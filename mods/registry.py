@@ -13,6 +13,7 @@ exact copy of the base mod under the Root Tabletop Tournament name.
 """
 
 from . import m000_identity
+from . import m020_remove_tools
 
 # Ready-made examples — uncomment to begin layering real modifications:
 # from . import m010_no_marquise_dice
@@ -20,4 +21,5 @@ from . import m000_identity
 MODS = [
     m000_identity,
     # m010_no_marquise_dice,
+    m020_remove_tools,
 ]

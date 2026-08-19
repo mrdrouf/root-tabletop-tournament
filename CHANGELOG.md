@@ -12,4 +12,15 @@ changes.
 - `m000_identity` — SaveName → "Root Tabletop Tournament"; GameMode →
   "Root Tabletop Tournament".
 
+## Cleanup: remove standalone tools — 2026-08-19
+`m020_remove_tools` — removed 12 optional menu tools (each: XML button +
+`EVERYTHING['Tools']` data), plus the now-dead `makeSideTables` and
+`makeNuancedQuestDeck` handlers: Battle Dice, Supply Knight, Nuanced Quest Deck,
+Quest Freshener, Craftable Items ("the items"), Clockwork Upgrade Cards,
+Hirelings Noir, Mighty Multi-State Warriors, Mighty Multi-State Ruins, Alliance
+Multi-State Warriors, Action Deck, Side Tables ("extra chairs"). Added
+`framework` removal helpers (`remove_item`, `remove_xml_buttons`,
+`remove_everything_entry`, `remove_lua_function`) and a dangling-reference
+verifier in `build.py` that fails the build if a removed item is still referenced.
+
 Each later step appends one or more modifications under `mods/` and an entry here.

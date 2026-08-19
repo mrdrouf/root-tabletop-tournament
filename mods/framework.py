@@ -73,3 +73,67 @@ def splice_into_setup_faction(text, lua_snippet):
         raise BuildError("objects-assignment not found inside setupFaction")
     i = i_obj + len(SETUP_OBJECTS)
     return text[:i] + esc(lua_snippet) + text[i:]
+
+
+# --- removal helpers (operate on the raw JSON text) --------------------------
+#
+# In the raw workshop JSON the Lua/XML live inside JSON string values, so a Lua
+# newline is the two characters backslash-n ("\\n" in Python) and an XML quote is
+# backslash-quote ("\\\"" in Python). The anchors below account for that.
+
+def remove_everything_entry(text, category, name):
+    """Delete the whole `EVERYTHING['category']['name'] = { ... }` data block
+    from the main script. Bounds it from its header to the next top-level
+    EVERYTHING header (or the #include close marker)."""
+    header = "\\n" + "EVERYTHING['%s']['%s'] =" % (category, name)
+    i = text.find(header)
+    if i == -1:
+        raise BuildError("EVERYTHING entry not found: %s / %s" % (category, name))
+    j = text.find("\\nEVERYTHING['", i + len(header))
+    if j == -1:
+        j = text.find("\\n----#include", i + len(header))
+    if j == -1:
+        raise BuildError("could not bound entry: %s / %s" % (category, name))
+    return text[:i] + text[j:]
+
+
+def remove_xml_buttons(text, item_id):
+    """Delete every `<Button ... id="item_id" ... />` element from the XmlUI.
+    Returns (new_text, count_removed)."""
+    anchor = 'id=\\"%s\\"' % item_id           # id=\"Battle Dice\" in the raw file
+    count = 0
+    while True:
+        k = text.find(anchor)
+        if k == -1:
+            break
+        start = text.rfind("<Button", 0, k)
+        end = text.find("/>", k)
+        if start == -1 or end == -1:
+            raise BuildError("malformed <Button> around id=%r" % item_id)
+        text = text[:start] + text[end + 2:]
+        count += 1
+    return text, count
+
+
+def remove_lua_function(text, funcname):
+    """Delete a top-level `function funcname(...) ... end` block — a function
+    declared at column 0 whose closing `end` is also at column 0 (inner block
+    `end`s are indented, so they are skipped)."""
+    start = "\\nfunction %s(" % funcname
+    i = text.find(start)
+    if i == -1:
+        raise BuildError("lua function not found: %s" % funcname)
+    j = text.find("\\nend\\n", i + len(start))
+    if j == -1:
+        raise BuildError("could not find closing end of function: %s" % funcname)
+    return text[:i] + text[j + len("\\nend"):]
+
+
+def remove_item(text, category, name, *, require_button=True):
+    """Remove a menu item completely: its XML button(s) and its EVERYTHING data
+    block. Returns text. Raises if the data block is missing; if require_button
+    and no button was found, raises too (guards against a silent no-op)."""
+    text, n = remove_xml_buttons(text, name)
+    if require_button and n == 0:
+        raise BuildError("no XML button found for %r" % name)
+    return remove_everything_entry(text, category, name)

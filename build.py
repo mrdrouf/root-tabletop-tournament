@@ -16,6 +16,7 @@ Nothing existing is overwritten except this project's own output (unique names).
 import hashlib
 import json
 import os
+import re
 import shutil
 import sys
 
@@ -85,10 +86,63 @@ def check_base(raw):
         print(f"[base] note: mods were written against {EXPECTED_VERSION}; base reports {version}")
 
 
+def _faction_selection_script(doc):
+    def walk(objs):
+        for x in objs:
+            if "function setupFaction(category,name,color,random)" in (x.get("LuaScript") or ""):
+                return x
+            r = walk(x.get("ContainedObjects") or [])
+            if r:
+                return r
+        return None
+    return walk(doc["ObjectStates"])
+
+
+def verify_no_dangling_refs(text):
+    """After removals, ensure no remaining UI button or literal spawn call points
+    at an EVERYTHING entry that no longer exists. Returns a list of problems."""
+    obj = _faction_selection_script(json.loads(text))
+    if obj is None:
+        raise SystemExit("verify: Faction Selection script not found")
+    lua = obj.get("LuaScript") or ""
+    xml = obj.get("XmlUI") or ""
+
+    defined = set(re.findall(r"EVERYTHING\['([^']+)'\]\['([^']+)'\] =", lua))
+    handler_cat = {"makeTool": "Tools", "makeMap": "Maps",
+                   "makeDeck": "Decks", "makeScenario": "Scenarios"}
+    problems = []
+
+    for b in re.findall(r"<Button\b[^>]*?/>", xml):
+        oc = re.search(r'onclick\s*=\s*"([^"]+)"', b)
+        idm = re.search(r'\bid\s*=\s*"([^"]+)"', b)
+        if oc and idm and oc.group(1) in handler_cat:
+            cat, iid = handler_cat[oc.group(1)], idm.group(1)
+            if (cat, iid) not in defined:
+                problems.append("button onclick=%s id=%r has no EVERYTHING['%s'][%r]"
+                                % (oc.group(1), iid, cat, iid))
+
+    # literal auto-spawn calls in the Lua (variable-driven calls can't be checked)
+    for cat, nm in re.findall(r'makeSpecial(?:WithTags?|Card)?\("([^"]+)",\s*"([^"]+)"', lua):
+        if (cat, nm) not in defined:
+            problems.append("makeSpecial(%r,%r) -> missing entry" % (cat, nm))
+    for cat, nm in re.findall(r'setupFaction\("([^"]+)",\s*"([^"]+)"', lua):
+        if (cat, nm) not in defined:
+            problems.append("setupFaction(%r,%r) -> missing entry" % (cat, nm))
+    for nm in re.findall(r'makeTool\([^,]*,[^,]*,\s*"([^"]+)"\)', lua):
+        if ("Tools", nm) not in defined:
+            problems.append("makeTool(...,%r) -> missing EVERYTHING['Tools'][%r]" % (nm, nm))
+
+    return sorted(set(problems))
+
+
 def main():
     raw, path = read_base()
     print(f"[base] {len(raw):,} chars <- {path}")
     check_base(raw)
+
+    base_problems = set(verify_no_dangling_refs(raw))
+    if base_problems:
+        print("[base] %d pre-existing dangling ref(s) in base (ignored)" % len(base_problems))
 
     text = raw
     for mod in registry.MODS:
@@ -99,6 +153,14 @@ def main():
 
     json.loads(text)  # fail loudly if any mod produced invalid JSON
     print("[ok  ] output re-parses as valid JSON")
+
+    new_problems = sorted(set(verify_no_dangling_refs(text)) - base_problems)
+    if new_problems:
+        print("[VERIFY] %d NEW dangling reference(s) introduced by the removals:" % len(new_problems))
+        for p in new_problems[:50]:
+            print("   -", p)
+        raise SystemExit("Build aborted: fix the mod (remove the caller too, or keep that data).")
+    print("[ok  ] no new dangling references")
 
     os.makedirs(DIST, exist_ok=True)
     out_json = os.path.join(DIST, OUT_NAME + ".json")
