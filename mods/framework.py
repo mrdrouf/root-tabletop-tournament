@@ -191,6 +191,27 @@ def set_button_attr(text, item_id, attr, new_val):
     return text, count
 
 
+def set_embedded_field(text, guid, field, value):
+    """Set the first numeric `"field": <n>` after the given GUID inside an embedded
+    object (its json blob lives in a Lua [[...]] string, so its quotes are escaped
+    as \\"). Returns (new_text, count). Used e.g. to flip a card's rotZ."""
+    anchor = '\\"GUID\\": \\"%s\\"' % guid
+    i = text.find(anchor)
+    if i == -1:
+        raise BuildError("embedded object %s not found" % guid)
+    key = '\\"%s\\":' % field
+    r = text.find(key, i)
+    if r == -1:
+        raise BuildError("field %r not found for object %s" % (field, guid))
+    r2 = r + len(key)
+    while r2 < len(text) and text[r2] == ' ':
+        r2 += 1
+    e = r2
+    while e < len(text) and text[e] not in ',}':
+        e += 1
+    return text[:r2] + str(value) + text[e:], 1
+
+
 def remove_lua_line(text, needle):
     """Remove the single line that contains `needle` (given as a raw / JSON-
     escaped substring). Bounds the line by its surrounding \\n markers."""

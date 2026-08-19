@@ -86,4 +86,10 @@ Added `framework.replace_unique` and `framework.set_button_attr`.
   tool" title; revert just this step if wrong.
 Added `framework.remove_top_level_object` (brace-matching, string-aware).
 
+## Gameplay: Bats assemblies face-down — 2026-08-19
+`m160_bats_assemblies_facedown` — the Twilight Council setup placed one of its 6
+"Assembly" tiles apart and face-up (GUID 930914, rotZ 180) — "set up and ready".
+Flipped it face-down (rotZ 0) so all six assemblies are face-down and none is
+revealed. Added `framework.set_embedded_field`.
+
 Each later step appends one or more modifications under `mods/` and an entry here.

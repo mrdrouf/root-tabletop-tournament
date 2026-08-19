@@ -27,6 +27,7 @@ from . import m120_remove_draft_modes
 from . import m130_resize_summer_button
 from . import m140_remove_master_pdf
 from . import m150_remove_title_model
+from . import m160_bats_assemblies_facedown
 
 # Ready-made examples — uncomment to begin layering real modifications:
 # from . import m010_no_marquise_dice
@@ -48,4 +49,5 @@ MODS = [
     m130_resize_summer_button,
     m140_remove_master_pdf,
     m150_remove_title_model,
+    m160_bats_assemblies_facedown,
 ]
