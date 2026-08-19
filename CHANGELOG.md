@@ -219,4 +219,25 @@ the base, so it was a no-op.
   Added `framework.remove_escaped_object` (brace-matched removal of one embedded
   object + comma, e.g. a warrior out of a bag's ContainedObjects).
 
+## Menu redesign from screenshot + real handwriting credit — 2026-08-19
+A screenshot showed the menu was a mess: scattered tools straddling the baked
+"TTS Tools by the ROOT Community" title, a giant blue credit, a duplicate button,
+and a wrapped label. Fixed after a verified design pass (independent layout
+proposals → judged → adversarial geometry check).
+- `m320_menu_cleanup` — the 9 tools become one uniform 5×2 grid (cells 33×14,
+  columns X=−70/−35/0/35/70, rows Y=−60/−77, fontSize 7) seated directly under the
+  baked title so it heads them; the bottom-left cell is left empty for the credit
+  corner and "More" takes the bottom-right. Also: deleted the duplicate
+  "Clearing Priorities" button (two shared one id, both driven to the same spot —
+  kept the "Big", dropped the "Small"); dropped "5 Players" to fontSize 7 so it no
+  longer wraps. Added `framework.set_button_attr_in_group`, `_find_toggle_group_open`
+  (tolerates `id="x"` and `id = "x"` spacing — tools1 uses the spaced form).
+- `m270` credit is now REAL handwriting. TTS UI text can't take a custom font
+  without a Unity TextMeshPro SDF asset bundle, but UI *images* load from any URL —
+  so "+ MrDrouf & Claude" is rendered in the Windows "Mistral" handwriting font to a
+  cream transparent PNG (`assets/credit/`), hosted via the repo's own GitHub raw
+  URL (no manual hosting), registered as a UI image asset on the menu board
+  (`framework.add_custom_ui_asset`), and placed as an `<Image>` tucked above the
+  baked credit. Swap fonts via `FONT` in m270 (five rendered options in assets).
+
 Each later step appends one or more modifications under `mods/` and an entry here.

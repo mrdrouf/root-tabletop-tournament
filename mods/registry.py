@@ -44,6 +44,7 @@ from . import m280_tools_on_board
 from . import m290_lizard_warriors
 from . import m300_duchy_warriors
 from . import m310_errata
+from . import m320_menu_cleanup
 
 # Ready-made examples — uncomment to begin layering real modifications:
 # from . import m010_no_marquise_dice
@@ -81,4 +82,5 @@ MODS = [
     m290_lizard_warriors,
     m300_duchy_warriors,
     m310_errata,
+    m320_menu_cleanup,
 ]

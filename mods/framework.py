@@ -212,11 +212,20 @@ def set_embedded_field(text, guid, field, value):
     return text[:r2] + str(value) + text[e:], 1
 
 
+def _find_toggle_group_open(text, group_id):
+    """Index of the <ToggleGroup ...> opening for group_id, tolerating both
+    id=\"x\" and id = \"x\" spacing. -1 if absent."""
+    gstart = text.find('<ToggleGroup id=\\"%s\\"' % group_id)
+    if gstart == -1:
+        gstart = text.find('<ToggleGroup id = \\"%s\\"' % group_id)
+    return gstart
+
+
 def set_button_position_in_group(text, group_id, button_id, position):
     """Set position="..." on <Button id="button_id"/> but only inside the given
     <ToggleGroup id="group_id">, so same-named buttons on other screens are not
     touched. Returns (new_text, count)."""
-    gstart = text.find('<ToggleGroup id=\\"%s\\"' % group_id)
+    gstart = _find_toggle_group_open(text, group_id)
     if gstart == -1:
         raise BuildError("ToggleGroup %r not found" % group_id)
     gend = text.find('</ToggleGroup>', gstart)
@@ -225,6 +234,35 @@ def set_button_position_in_group(text, group_id, button_id, position):
     block = text[gstart:gend]
     new_block, n = set_button_attr(block, button_id, "position", position)
     return text[:gstart] + new_block + text[gend:], n
+
+
+def set_button_attr_in_group(text, group_id, button_id, attr, new_val):
+    """Set attr="new_val" on <Button id=button_id/> but only inside the given
+    <ToggleGroup id=group_id> (scoped, like set_button_position_in_group).
+    Returns (new_text, count)."""
+    gstart = _find_toggle_group_open(text, group_id)
+    if gstart == -1:
+        raise BuildError("ToggleGroup %r not found" % group_id)
+    gend = text.find('</ToggleGroup>', gstart)
+    block = text[gstart:gend]
+    new_block, n = set_button_attr(block, button_id, attr, new_val)
+    return text[:gstart] + new_block + text[gend:], n
+
+
+def add_custom_ui_asset(text, name, url, *, near_asset="WWDraftTool"):
+    """Register a UI image asset {Type:0, Name, URL} in the object whose
+    CustomUIAssets array already contains `near_asset` (the Faction Selection menu
+    board). Inserts at the head of that array. Raw top-level JSON (real quotes)."""
+    a = text.find('"Name": "%s"' % near_asset)
+    if a == -1:
+        raise BuildError("anchor asset %r not found" % near_asset)
+    lb = text.rfind('"CustomUIAssets": [', 0, a)
+    if lb == -1:
+        raise BuildError("CustomUIAssets array not found before %r" % near_asset)
+    ins = lb + len('"CustomUIAssets": [')
+    entry = ('\n        {\n          "Type": 0,\n          "Name": "%s",\n'
+             '          "URL": "%s"\n        },' % (name, url))
+    return text[:ins] + entry + text[ins:]
 
 
 def remove_xml_buttons_by_onclick(text, onclick_value):
