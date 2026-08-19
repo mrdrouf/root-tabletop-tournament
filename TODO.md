@@ -2,12 +2,12 @@
 
 Ordered backlog of requested work not yet built. Newest big items at the bottom.
 
-## In progress
-- **Lizard warrior placement** — bake 2 warriors in the acolyte box + a pack of 4
-  and a pack of 3 next to the Lizard supply, using coordinates read from the
-  current save (the "fourth layer" Lizard setup). World→move_to conversion.
-- **Underground Duchy warrior placement** — same idea, arrangement read from the
-  current save.
+## Done (recent)
+- **Lizard warrior placement** — DONE (`m290`): 4-pack + 3-pack by the supply +
+  2 in the acolyte box.
+- **Underground Duchy warrior placement** — DONE (`m300`): pack of 2 + pack of 5.
+- **Errata pipeline** — DONE (`m310`): drop a corrected object into `errata/` and
+  the build repoints the matching card sheets to the fixed art.
 
 ## Big item — full RTT draft flow (spec captured 2026-08-19)
 After `rttSetup` deals the 5-card draft, run a guided snake draft:

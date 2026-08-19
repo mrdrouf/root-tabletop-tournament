@@ -43,6 +43,7 @@ from . import m270_credit_sign
 from . import m280_tools_on_board
 from . import m290_lizard_warriors
 from . import m300_duchy_warriors
+from . import m310_errata
 
 # Ready-made examples — uncomment to begin layering real modifications:
 # from . import m010_no_marquise_dice
@@ -79,4 +80,5 @@ MODS = [
     m280_tools_on_board,
     m290_lizard_warriors,
     m300_duchy_warriors,
+    m310_errata,
 ]

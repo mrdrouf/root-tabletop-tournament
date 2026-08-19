@@ -196,4 +196,15 @@ selector origin, then converting each warrior's save world into a move_to.
 Added `framework.everything_entry_span` (scopes edits to one faction so the shared
 bot-copy warrior GUIDs aren't hit), `set_data_move_to`, `clone_data_entry`.
 
+## Errata pipeline — 2026-08-19
+`m310_errata` — a folder-driven errata mechanism. Card text in TTS is baked into
+the face image, so an erratum is corrected face art at a new URL. The mod scans
+`errata/*.json`; for each CustomDeck sheet it finds, it looks up that sheet's
+current FaceURL in the base and globally repoints it to the errata URL. CardIDs /
+grid layout are unchanged, so the swap lines up card-for-card across every copy
+(loose, decks, draft piles). To add an erratum later: drop the corrected object's
+save into `errata/` and rebuild — no code change. First contents repointed the
+E&P/S&D face sheets 74 + 76 (106 refs each); the Lost City card already matched
+the base, so it was a no-op.
+
 Each later step appends one or more modifications under `mods/` and an entry here.
