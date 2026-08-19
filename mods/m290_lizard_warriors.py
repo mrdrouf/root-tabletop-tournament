@@ -8,11 +8,17 @@ spawns that way every game.
 
 How the coordinates were derived: the Lizard board (guid 6a1fe4) has
 move_to (-4.159154, 0.099868, -5.017212) in the faction data and spawns at world
-(-47.841, 11.560, 51.017) with rotY 0 (identity). So the faction selector origin
-is  selectorPos = board_world - board_move_to = (-43.682, 11.460, 56.034)  and,
-since the mapping is a pure 1:1 translation (verified: the warrior template's
-move_to Y 0.783 -> world Y 12.243 matches the save exactly), each warrior's
-move_to = its save world - selectorPos.
+(-47.841, 11.560, 51.017). The SELECTOR frame is rotated 180 about Y (the board's
+world rotY reads 0 only because the board's own data rotation cancels it) — proven
+by the data's internal geometry: the supply sits at local z=+6.26 but its save
+world z is BELOW the board's, i.e. world-z runs opposite to local-z. So
+
+    selectorPos = board_world - R180*board_move_to = (-52.0, 11.46, 46.0)
+    move_to     = R180 * (save_world - selectorPos)       (R180: negate x and z)
+
+Sanity-checked: the packs land at local z ~ +6 (right next to the supply's +6.26)
+and the acolytes at local z ~ -5 (on the board), matching where you placed them.
+(An earlier version used identity and mirrored them to the opposite side.)
 
 The 7 warriors already loose in the data become the two packs; two fresh clones
 (ac0201, ac0202) are added for the acolyte box. All edits are scoped to
@@ -31,24 +37,24 @@ NAME = "Lizard opening warriors: 4-pack + 3-pack + 2 in the acolyte box"
 
 CAT, FACTION = "Standard", "The Lizard Cult"
 
-# guid -> move_to  (the 7 loose warriors, repositioned into the two packs)
+# guid -> move_to  (the 7 loose warriors, repositioned into the two packs, R180)
 REPOSITION = {
-    # pack of four (x = 2.03 / 3.35, z = -16.31 / -15.64)
-    "71f2cc": (2.0318, 0.7839, -16.3052),
-    "ea0d22": (3.3528, 0.7839, -16.3052),
-    "d16eca": (2.0318, 0.7839, -15.6362),
-    "c318dc": (3.3528, 0.7839, -15.6362),
-    # pack of three (x = -0.36, z = -16.60 / -15.93 / -15.26)
-    "42ca2a": (-0.3552, 0.7839, -16.5952),
-    "0dea3d": (-0.3552, 0.7839, -15.9272),
-    "6d86d9": (-0.3552, 0.7839, -15.2582),
+    # pack of four (next to the supply, local z ~ +5.6/+6.3)
+    "71f2cc": (-10.350, 0.784, 6.271),
+    "ea0d22": (-11.671, 0.784, 6.271),
+    "d16eca": (-10.350, 0.784, 5.602),
+    "c318dc": (-11.671, 0.784, 5.602),
+    # pack of three (x = -7.96, just left of the four)
+    "42ca2a": (-7.963, 0.784, 6.561),
+    "0dea3d": (-7.963, 0.784, 5.893),
+    "6d86d9": (-7.963, 0.784, 5.224),
 }
 
-# (src_guid, new_guid, move_to) — two warriors in the acolyte box (z near -5, the
-# board side; slightly raised, y 0.883)
+# (src_guid, new_guid, move_to) — two warriors in the acolyte box (on the board,
+# local z ~ -5; slightly raised, y 0.883)
 CLONES = [
-    ("71f2cc", "ac0201", (-2.3002, 0.8829, -5.3862)),
-    ("71f2cc", "ac0202", (-2.3002, 0.8829, -4.7182)),
+    ("71f2cc", "ac0201", (-6.018, 0.883, -4.648)),
+    ("71f2cc", "ac0202", (-6.018, 0.883, -5.316)),
 ]
 
 # two warriors to pull OUT of the supply bag so the 2 added acolytes don't push the

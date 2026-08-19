@@ -4,20 +4,21 @@ m300 — Underground Duchy opening warrior placement.
 Same idea as m290 (Lizard), reading your arrangement from the current save. The
 Duchy you set up as a pack of two + a pack of five warriors next to the supply.
 
-The Duchy selector sits at a rotated seat, so unlike the Lizard this one is NOT
-identity: the Duchy board (guid 919e94, data move_to -0.690/0.100/-4.864) spawns
-at world (-52.690, 11.560, -50.864) with rotY 180. So
+The Duchy selector frame is IDENTITY (unlike the Lizard, which is R180) — proven
+the same way, by the data's internal geometry: the Duchy supply sits at local
+z=+5.5 and its save world z runs the SAME direction as local, so no flip. The
+Duchy board (guid 919e94, data move_to -0.690/0.100/-4.864) spawns at world
+(-52.690, 11.560, -50.864). So
 
-    selectorPos = board_world - R * board_move_to = (-53.380, 11.460, -55.728)
+    selectorPos = board_world - board_move_to = (-52.0, 11.46, -46.0)
+    move_to     = save_world - selectorPos            (identity)
 
-with R = rotate-180-about-Y (dx,dz -> -dx,-dz). Each warrior's
-    move_to = R * (save_world - selectorPos)
-and R is its own inverse. (Verified: warrior template move_to Y 0.594 -> world Y
-12.055, matches the save, so the mapping is a pure rigid rotation+translation.)
+Sanity-checked: all seven land at local z ~ +8 to +9, right in the supply's
+warrior cluster (supply local z=+5.5, default warriors +5.4..+10.2), matching your
+save. (An earlier version used R180 and mirrored them to the opposite side.)
 
-Seven of the eight loose warriors in the data are repositioned into the two packs
-(the pack of two at x~7.1, the pack of five at x~3.3-4.6). Edits are scoped to
-EVERYTHING['Standard']['Underground Duchy'] so bot copies aren't touched.
+Seven of the eight loose warriors are repositioned into the two packs. Edits are
+scoped to EVERYTHING['Standard']['Underground Duchy'] so bot copies aren't touched.
 
 NB: the data ships eight loose warriors; your save has seven placed, so the eighth
 (guid c444dc) is left where it sits near the supply. Say the word if you want it
@@ -30,17 +31,17 @@ NAME = "Underground Duchy opening warriors: pack of 2 + pack of 5"
 
 CAT, FACTION = "Standard", "Underground Duchy"
 
-# guid -> move_to (7 loose warriors -> the two packs)
+# guid -> move_to (7 loose warriors -> the two packs, identity transform)
 REPOSITION = {
-    # pack of two (x ~ 7.1)
-    "68944c": (7.109, 0.595, -18.310),
-    "95d9bd": (7.093, 0.595, -17.653),
-    # pack of five (x ~ 4.6 and 3.3, adjacent)
-    "cbba66": (4.635, 0.595, -18.373),
-    "3bcedc": (4.635, 0.595, -17.719),
-    "4b0679": (4.635, 0.595, -19.027),
-    "1dbd1f": (3.256, 0.595, -17.719),
-    "1ffbdd": (3.256, 0.595, -18.373),
+    # pack of two (x ~ -8.5, next to the supply)
+    "68944c": (-8.489, 0.595, 8.582),
+    "95d9bd": (-8.473, 0.595, 7.925),
+    # pack of five (x ~ -6.0 and -4.6, adjacent)
+    "cbba66": (-6.015, 0.595, 8.645),
+    "3bcedc": (-6.015, 0.595, 7.991),
+    "4b0679": (-6.015, 0.595, 9.299),
+    "1dbd1f": (-4.636, 0.595, 7.991),
+    "1ffbdd": (-4.636, 0.595, 8.645),
 }
 
 
