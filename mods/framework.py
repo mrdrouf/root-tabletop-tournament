@@ -212,6 +212,21 @@ def set_embedded_field(text, guid, field, value):
     return text[:r2] + str(value) + text[e:], 1
 
 
+def set_button_position_in_group(text, group_id, button_id, position):
+    """Set position="..." on <Button id="button_id"/> but only inside the given
+    <ToggleGroup id="group_id">, so same-named buttons on other screens are not
+    touched. Returns (new_text, count)."""
+    gstart = text.find('<ToggleGroup id=\\"%s\\"' % group_id)
+    if gstart == -1:
+        raise BuildError("ToggleGroup %r not found" % group_id)
+    gend = text.find('</ToggleGroup>', gstart)
+    if gend == -1:
+        raise BuildError("unterminated ToggleGroup %r" % group_id)
+    block = text[gstart:gend]
+    new_block, n = set_button_attr(block, button_id, "position", position)
+    return text[:gstart] + new_block + text[gend:], n
+
+
 def remove_lua_line(text, needle):
     """Remove the single line that contains `needle` (given as a raw / JSON-
     escaped substring). Bounds the line by its surrounding \\n markers."""

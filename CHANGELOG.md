@@ -100,4 +100,13 @@ revealed. Added `framework.set_embedded_field`.
   with 12 clearing markers for randomised suits). Open: whether Summer should also
   adopt the Autumn board art.
 
+## Menu: compact Setups, drop empty Tools nav — 2026-08-19
+`m190_compact_setup_menu` — after the removals the "Tools" left-nav page is empty
+("leads to nothing"), so its nav buttons (toolsButtonMain, toolsButton) are
+removed; the remaining rule tools already sit on the Setups page. Packed the 5
+Setups buttons (Vagabond Cards, Hirelings, Landmarks, Clearing Priorities, Setup
+All) into a tight top grid. Added `framework.set_button_position_in_group`
+(group-scoped so same-named buttons on other screens aren't moved). Best-effort
+layout — verify in TTS.
+
 Each later step appends one or more modifications under `mods/` and an entry here.
