@@ -129,6 +129,31 @@ def remove_lua_function(text, funcname):
     return text[:i] + text[j + len("\\nend"):]
 
 
+def remove_xml_element(text, tag, marker):
+    """Remove every self-closing `<tag ... />` element that contains `marker`
+    (a raw / JSON-escaped substring, e.g. an id or image value). Returns
+    (new_text, count)."""
+    open_tag = "<" + tag
+    count = 0
+    while True:
+        k = text.find(marker)
+        if k == -1:
+            break
+        start = text.rfind(open_tag, 0, k)
+        end = text.find("/>", k)
+        if start == -1 or end == -1:
+            raise BuildError("malformed <%s> around %r" % (tag, marker))
+        # safety: the marker must really sit inside this <tag ...> — i.e. no
+        # element boundary between the open tag and the marker. This prevents a
+        # marker that also appears in Lua (e.g. an asset name) from walking back
+        # to an unrelated <tag> and deleting a huge span.
+        if ">" in text[start:k]:
+            raise BuildError("marker %r is not inside a <%s> element" % (marker, tag))
+        text = text[:start] + text[end + 2:]
+        count += 1
+    return text, count
+
+
 def remove_lua_line(text, needle):
     """Remove the single line that contains `needle` (given as a raw / JSON-
     escaped substring). Bounds the line by its surrounding \\n markers."""

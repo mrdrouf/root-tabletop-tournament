@@ -38,4 +38,12 @@ piles). Dark Deck removed from the menu (button only) — it is coupled into
 makeDeck, which also drives the kept decks, so its data is left unreachable
 rather than risk surgery on core deck logic.
 
+## Cleanup: remove scenarios — 2026-08-19
+`m050_remove_scenarios` — removed all 6 scenarios (button + `EVERYTHING['Scenarios']`
+data): Trick or Treat!, The Tavern, Haunted Woodland, Riverfolk Markers, Double
+Entente, The Chaos Contraptions; the `makeHauntedWoodland` handler; and the
+"Scenarios" menu label. Added `framework.remove_xml_element` with an inside-the-
+element safety guard (the verifier caught it deleting Tools/Fan-Faction entries
+when a marker also appeared in the Lua asset table — now impossible).
+
 Each later step appends one or more modifications under `mods/` and an entry here.
