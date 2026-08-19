@@ -36,6 +36,7 @@ from . import m200_summer_autumn_design
 from . import m210_remove_more_buttons
 from . import m220_remove_hirelings
 from . import m230_four_player_corners
+from . import m240_five_player_setup
 
 # Ready-made examples — uncomment to begin layering real modifications:
 # from . import m010_no_marquise_dice
@@ -65,4 +66,5 @@ MODS = [
     m210_remove_more_buttons,
     m220_remove_hirelings,
     m230_four_player_corners,
+    m240_five_player_setup,
 ]

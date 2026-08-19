@@ -13,5 +13,9 @@ NAME = "Twilight Council (Bats): flip the ready assembly face-down (all assembli
 
 
 def apply(text):
-    text, _ = framework.set_embedded_field(text, "930914", "rotZ", "0")
+    # flip face-down AND move it into the row with the other 5 assemblies (they sit
+    # at posZ -53.54, posY 36.16; extend the row to the next slot at posX -53.27)
+    for field, val in (("rotZ", "0"), ("posX", "-53.27"),
+                       ("posY", "36.16"), ("posZ", "-53.54")):
+        text, _ = framework.set_embedded_field(text, "930914", field, val)
     return text

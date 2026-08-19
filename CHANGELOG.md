@@ -119,4 +119,11 @@ layout — verify in TTS.
 - `m230_four_player_corners` — the 4 faction selectors now spawn in the four table
   corners (was 3-on-one-side). Added `framework.remove_xml_buttons_by_onclick`.
 
+## 5-player setup + assembly placement — 2026-08-19
+- `m240_five_player_setup` — setupFactionBoards now spawns 4 or 5 selectors by
+  button id; added a "5 Players" setup button next to Setup All (placeholder art).
+  Added `framework.add_button_to_group`.
+- `m160` updated — the flipped Bats assembly is also moved into the row with the
+  other five (posX -53.27, posZ -53.54) so it sits on the board, not out front.
+
 Each later step appends one or more modifications under `mods/` and an entry here.

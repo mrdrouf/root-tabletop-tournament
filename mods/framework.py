@@ -246,6 +246,20 @@ def remove_xml_buttons_by_onclick(text, onclick_value):
     return text, count
 
 
+def add_button_to_group(text, group_id, button_xml):
+    """Insert a <Button.../> (written with normal quotes) just after the opening
+    tag of <ToggleGroup id="group_id">. button_xml is JSON-escaped for you."""
+    anchor = '<ToggleGroup id=\\"%s\\"' % group_id
+    i = text.find(anchor)
+    if i == -1:
+        raise BuildError("ToggleGroup %r not found" % group_id)
+    j = text.find(">", i)
+    if j == -1:
+        raise BuildError("unterminated <ToggleGroup %r>" % group_id)
+    j += 1
+    return text[:j] + esc("\n  " + button_xml) + text[j:]
+
+
 def remove_lua_line(text, needle):
     """Remove the single line that contains `needle` (given as a raw / JSON-
     escaped substring). Bounds the line by its surrounding \\n markers."""
