@@ -18,6 +18,8 @@ from . import m030_remove_fan_maps
 from . import m040_remove_fan_decks
 from . import m050_remove_scenarios
 from . import m060_no_faction_dice
+from . import m070_remove_manuals
+from . import m080_remove_dead_buttons
 
 # Ready-made examples — uncomment to begin layering real modifications:
 # from . import m010_no_marquise_dice
@@ -30,4 +32,6 @@ MODS = [
     m040_remove_fan_decks,
     m050_remove_scenarios,
     m060_no_faction_dice,
+    m070_remove_manuals,
+    m080_remove_dead_buttons,
 ]

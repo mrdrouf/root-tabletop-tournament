@@ -51,4 +51,12 @@ when a marker also appeared in the Lua asset table — now impossible).
 out every Custom_Dice object before spawning, for all factions, so battle dice no
 longer appear on the table with any faction.
 
+## Cleanup: manuals + dead buttons — 2026-08-19
+`m070_remove_manuals` — removed the rules manuals (Learning to Play, The Law of
+Root, The Law of Rootbotics, Better Bot Project manual): all buttons (makeTool /
+makeRules) + `EVERYTHING['Tools']` data. `m080_remove_dead_buttons` — removed the
+3 orphan buttons that lead to nothing (Klacar's Volcano Island Map ×2, Slug's
+Magic Bag, Fifty Fifty Draft). Extended `remove_xml_buttons` to single-quoted id
+attributes and added `makeRules` to the verifier.
+
 Each later step appends one or more modifications under `mods/` and an entry here.

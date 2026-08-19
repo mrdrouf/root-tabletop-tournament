@@ -99,19 +99,20 @@ def remove_everything_entry(text, category, name):
 
 def remove_xml_buttons(text, item_id):
     """Delete every `<Button ... id="item_id" ... />` element from the XmlUI.
+    Handles both double-quoted (JSON-escaped) and single-quoted id attributes.
     Returns (new_text, count_removed)."""
-    anchor = 'id=\\"%s\\"' % item_id           # id=\"Battle Dice\" in the raw file
     count = 0
-    while True:
-        k = text.find(anchor)
-        if k == -1:
-            break
-        start = text.rfind("<Button", 0, k)
-        end = text.find("/>", k)
-        if start == -1 or end == -1:
-            raise BuildError("malformed <Button> around id=%r" % item_id)
-        text = text[:start] + text[end + 2:]
-        count += 1
+    for anchor in ('id=\\"%s\\"' % item_id, "id='%s'" % item_id):
+        while True:
+            k = text.find(anchor)
+            if k == -1:
+                break
+            start = text.rfind("<Button", 0, k)
+            end = text.find("/>", k)
+            if start == -1 or end == -1 or ">" in text[start:k]:
+                raise BuildError("malformed / mismatched <Button> around id=%r" % item_id)
+            text = text[:start] + text[end + 2:]
+            count += 1
     return text, count
 
 

@@ -108,8 +108,8 @@ def verify_no_dangling_refs(text):
     xml = obj.get("XmlUI") or ""
 
     defined = set(re.findall(r"EVERYTHING\['([^']+)'\]\['([^']+)'\] =", lua))
-    handler_cat = {"makeTool": "Tools", "makeMap": "Maps",
-                   "makeDeck": "Decks", "makeScenario": "Scenarios"}
+    handler_cat = {"makeTool": "Tools", "makeMap": "Maps", "makeDeck": "Decks",
+                   "makeScenario": "Scenarios", "makeRules": "Tools"}
     problems = []
 
     for b in re.findall(r"<Button\b[^>]*?/>", xml):
