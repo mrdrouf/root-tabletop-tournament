@@ -29,6 +29,8 @@ from . import m140_remove_master_pdf
 # m150_remove_title_model DISABLED: GUID 4ee1f2 is the TABLE, not a title. Removing
 # it deleted the table surface. Left out of MODS until the real title is found.
 from . import m160_bats_assemblies_facedown
+from . import m170_resize_setup_button
+from . import m180_replace_autumn_with_summer
 
 # Ready-made examples — uncomment to begin layering real modifications:
 # from . import m010_no_marquise_dice
@@ -51,4 +53,6 @@ MODS = [
     m140_remove_master_pdf,
     # m150_remove_title_model,  # DISABLED — 4ee1f2 is the table, not a title
     m160_bats_assemblies_facedown,
+    m170_resize_setup_button,
+    m180_replace_autumn_with_summer,
 ]

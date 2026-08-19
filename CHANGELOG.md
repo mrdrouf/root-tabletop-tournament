@@ -92,4 +92,12 @@ Added `framework.remove_top_level_object` (brace-matching, string-aware).
 Flipped it face-down (rotZ 0) so all six assemblies are face-down and none is
 revealed. Added `framework.set_embedded_field`.
 
+## Setup button + Autumn→Summer — 2026-08-19
+- `m170_resize_setup_button` — "Setup All" (the standard-setup button) resized
+  from height 20 to 40 to match the other option buttons.
+- `m180_replace_autumn_with_summer` — removed the fixed-suit Autumn map (button +
+  data) and pointed randomDraftMap's Autumn roll at the Summer map (which ships
+  with 12 clearing markers for randomised suits). Open: whether Summer should also
+  adopt the Autumn board art.
+
 Each later step appends one or more modifications under `mods/` and an entry here.
