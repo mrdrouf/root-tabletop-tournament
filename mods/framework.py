@@ -204,6 +204,58 @@ def remove_lua_line(text, needle):
     return text[:start] + text[end:]
 
 
+def remove_top_level_object(text, guid):
+    """Remove a top-level ObjectStates object by its GUID. Finds the object's
+    opening brace via the unique real-quoted "GUID": "<guid>" anchor (the embedded
+    copies inside data blobs use escaped \\"GUID\\", so they don't match), then
+    brace-matches to the closing brace respecting JSON string literals, and drops
+    one adjacent comma so the array stays valid."""
+    anchor = '"GUID": "%s"' % guid
+    if text.count(anchor) != 1:
+        raise BuildError("top-level GUID %s not uniquely found (%d)" % (guid, text.count(anchor)))
+    a = text.find(anchor)
+    start = text.rfind("{", 0, a)
+    if start == -1:
+        raise BuildError("no opening brace for GUID %s" % guid)
+    depth = 0
+    j = start
+    n = len(text)
+    in_str = False
+    while j < n:
+        c = text[j]
+        if in_str:
+            if c == '\\':
+                j += 2
+                continue
+            if c == '"':
+                in_str = False
+        elif c == '"':
+            in_str = True
+        elif c == '{':
+            depth += 1
+        elif c == '}':
+            depth -= 1
+            if depth == 0:
+                j += 1
+                break
+        j += 1
+    if depth != 0:
+        raise BuildError("unbalanced braces matching GUID %s" % guid)
+    end = j
+    k = end
+    while k < n and text[k] in ' \t\r\n':
+        k += 1
+    if k < n and text[k] == ',':          # drop trailing comma
+        end = k + 1
+    else:                                  # or a leading comma
+        m = start - 1
+        while m >= 0 and text[m] in ' \t\r\n':
+            m -= 1
+        if m >= 0 and text[m] == ',':
+            start = m
+    return text[:start] + text[end:]
+
+
 def remove_item(text, category, name, *, require_button=True):
     """Remove a menu item completely: its XML button(s) and its EVERYTHING data
     block. Returns text. Raises if the data block is missing; if require_button

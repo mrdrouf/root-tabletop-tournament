@@ -25,6 +25,8 @@ from . import m100_four_selectors
 from . import m110_remove_fandmarks
 from . import m120_remove_draft_modes
 from . import m130_resize_summer_button
+from . import m140_remove_master_pdf
+from . import m150_remove_title_model
 
 # Ready-made examples — uncomment to begin layering real modifications:
 # from . import m010_no_marquise_dice
@@ -44,4 +46,6 @@ MODS = [
     m110_remove_fandmarks,
     m120_remove_draft_modes,
     m130_resize_summer_button,
+    m140_remove_master_pdf,
+    m150_remove_title_model,
 ]

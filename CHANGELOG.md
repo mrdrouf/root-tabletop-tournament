@@ -78,4 +78,12 @@ code. A deeper full removal remains possible.
   height 20 to 40 to match the other map buttons.
 Added `framework.replace_unique` and `framework.set_button_attr`.
 
+## Remove table objects — 2026-08-19
+- `m140_remove_master_pdf` — removed the Master Instructions PDF (Custom_PDF,
+  GUID b85bd2) from the far side of the table.
+- `m150_remove_title_model` — removed the central title/branding Custom_Model
+  (GUID 4ee1f2, dead-centre, scale 4.2) — best-guess for the "Root community TTS
+  tool" title; revert just this step if wrong.
+Added `framework.remove_top_level_object` (brace-matching, string-aware).
+
 Each later step appends one or more modifications under `mods/` and an entry here.
