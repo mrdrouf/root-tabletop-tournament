@@ -1,20 +1,14 @@
 """
-m190 — compact the Setups menu; drop the dead Tools nav.
+m190 — compact the Setups menu.
 
-After all the removals, the "Tools" left-nav page (toolsButtons) is empty — it
-"leads to nothing" — and the Setups screen has only 5 buttons scattered with big
-gaps. So:
-
-- remove the "Tools" nav buttons (toolsButtonMain, toolsButton), which open the
-  now-empty Tools page. The remaining rule tools already live on the Setups page.
-- pack the 5 Setups buttons into a tight top grid (4 across, Setup All below).
-
-Layout is a best-effort first pass — verify in TTS and nudge as needed.
+Packs the surviving Setups-screen buttons into a tight top grid. (An earlier
+version also removed the "Tools" nav button, but that hid the still-full Tools
+page of 115 buttons — that removal was reverted.)
 """
 
 from . import framework
 
-NAME = "compact the Setups menu and remove the empty Tools nav"
+NAME = "compact the Setups menu"
 
 # tight grid: options across the top row, Setup All beneath.
 # (Hirelings is removed by m220, so it's not placed here.)
@@ -27,9 +21,6 @@ LAYOUT = {
 
 
 def apply(text):
-    # the Tools nav opens the now-empty Tools page ("leads to nothing")
-    for nav in ("toolsButtonMain", "toolsButton"):
-        text, _ = framework.remove_xml_buttons(text, nav)
     # pack the Setups buttons (scoped to the setupButtons group)
     for bid, pos in LAYOUT.items():
         text, n = framework.set_button_position_in_group(text, "setupButtons", bid, pos)

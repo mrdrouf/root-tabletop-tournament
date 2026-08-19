@@ -74,7 +74,7 @@ RTT_INS_CARDS = %s
 RTT_ORDER_JSON = [==[%s]==]
 RTT_MILITANT = {%s}
 RTT_INSURGENT = {%s}
-RTT_SLOTS = {{63.4,3.4,-11.9},{63.4,3.4,-5.8},{63.4,3.4,-0.1},{63.4,3.4,6.1},{63.4,3.4,12.0}}
+RTT_SLOTS = {{63.4,11.7,-11.9},{63.4,11.7,-5.8},{63.4,11.7,-0.1},{63.4,11.7,6.1},{63.4,11.7,12.0}}
 RTT_SPAWNED = {}
 
 function rttShuffle(t)
@@ -99,44 +99,34 @@ function rttSetup(player, value, id)
   for _,cid in ipairs(draft) do
     jsons[#jsons+1] = RTT_MIL_CARDS[cid] or RTT_INS_CARDS[cid]
   end
-  rttSpawnStack(jsons, 1, {})
+  rttDealCard(jsons, 1)
 end
 
-function rttSpawnStack(jsons, i, spawned)
+-- deal one card at a time: spawn it above the leftmost slot, fly it to its slot
+-- (rightmost first) and flip it face-up, then spawn the next. Spawning one at a
+-- time and moving each away avoids TTS merging them into a single deck.
+function rttDealCard(jsons, i)
   if i > #jsons then
-    Wait.time(function() rttDeal(spawned) end, 0.5)
+    Wait.time(rttDealOrder, 0.8)
     return
   end
   local L = RTT_SLOTS[1]
+  local slotIdx = #jsons - i + 1
   spawnObjectJSON({
     json = jsons[i],
-    position = {L[1], L[2] + 1 + i*0.35, L[3]},
-    rotation = {0,180,180},
+    position = {L[1], L[2] + 3, L[3]},
+    rotation = {0, 180, 180},
     callback_function = function(o)
       o.setLock(false)
       RTT_SPAWNED[#RTT_SPAWNED+1] = o.getGUID()
-      spawned[i] = o
-      rttSpawnStack(jsons, i+1, spawned)
+      local s = RTT_SLOTS[slotIdx]
+      o.setPositionSmooth({s[1], s[2], s[3]}, false, false)
+      Wait.time(function()
+        o.setRotationSmooth({0, 180, 0}, false, false)
+        Wait.time(function() rttDealCard(jsons, i + 1) end, 0.6)
+      end, 0.7)
     end
   })
-end
-
-function rttDeal(cards)
-  rttDealOne(cards, #cards, #cards)
-end
-
-function rttDealOne(cards, cardIdx, slotIdx)
-  if slotIdx < 1 then
-    Wait.time(rttDealOrder, 0.6)
-    return
-  end
-  local card = cards[cardIdx]
-  local s = RTT_SLOTS[slotIdx]
-  card.setPositionSmooth({s[1], s[2], s[3]}, false, true)
-  Wait.time(function()
-    card.setRotationSmooth({0,180,0}, false, true)
-    Wait.time(function() rttDealOne(cards, cardIdx-1, slotIdx-1) end, 0.55)
-  end, 0.55)
 end
 
 function rttDealOrder()

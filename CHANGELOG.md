@@ -136,4 +136,16 @@ Militant cards) and flip face-up; then deal the 4 Player-Order cards to the seat
 coloured players. Cards spawned individually (no deck-merge juggling). v1 — needs
 TTS testing/tuning; a card-flip sound needs a hosted audio asset.
 
+## Fixes — 2026-08-19
+- **Restored the Tools nav** (m190): an earlier version removed the "Tools" nav
+  button on a buggy reading that the Tools page was empty. It actually has 115
+  buttons (Battle Mat, Lizard Wizard, Mini-Mood Manager, Bat Bungler, Koffin
+  Keeper, Robot Die, Clearing Markers, …). Nothing was deleted — it was hidden;
+  the nav is back so the page is reachable again.
+- **RTT draft fixed** (m250): cards were spawning on top of each other (TTS merged
+  them into one deck) at the wrong height. Now each card spawns one at a time at
+  Y≈11.7 and flies to its slot before the next spawns.
+- **5-player 5th seat** (m230): moved to the near-middle side; board rotation is
+  now decided by the seat's side, not its index (which put seat 5 on the wrong side).
+
 Each later step appends one or more modifications under `mods/` and an entry here.
