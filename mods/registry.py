@@ -39,6 +39,8 @@ from . import m230_four_player_corners
 from . import m240_five_player_setup
 from . import m250_rtt_setup
 from . import m260_one_board
+from . import m270_credit_sign
+from . import m280_tools_on_board
 
 # Ready-made examples — uncomment to begin layering real modifications:
 # from . import m010_no_marquise_dice
@@ -71,4 +73,6 @@ MODS = [
     m240_five_player_setup,
     m250_rtt_setup,
     m260_one_board,
+    m270_credit_sign,
+    m280_tools_on_board,
 ]

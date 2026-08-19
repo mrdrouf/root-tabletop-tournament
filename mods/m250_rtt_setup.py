@@ -74,7 +74,7 @@ RTT_INS_CARDS = %s
 RTT_ORDER_JSON = [==[%s]==]
 RTT_MILITANT = {%s}
 RTT_INSURGENT = {%s}
-RTT_SLOTS = {{63.9,11.6,-10.4},{63.9,11.6,-5.2},{63.9,11.6,0},{63.9,11.6,5.2},{63.9,11.6,10.4}}
+RTT_SLOTS = {{63.9,11.6,-14},{63.9,11.6,-7},{63.9,11.6,0},{63.9,11.6,7},{63.9,11.6,14}}
 RTT_SPAWNED = {}
 
 function rttShuffle(t)
@@ -108,14 +108,18 @@ end
 -- two cards are never at the same spot (which makes TTS merge them into a deck).
 -- Once all 5 are placed face-down, flip them one by one. Orientation rotY=270
 -- matches the cards you placed.
+-- The cards all appear at the rightmost (last) slot like a face-down deck; card i
+-- slides to slot i (so card #jsons stays at the rightmost), one at a time so they
+-- never overlap and merge. Once all are down, flip them all at once.
 function rttDealAll(jsons, i, cards)
   if i > #jsons then
-    Wait.time(function() rttFlipAll(cards, 1) end, 0.5)
+    Wait.time(function() rttFlipAll(cards) end, 0.6)
     return
   end
+  local R = RTT_SLOTS[#jsons]   -- rightmost = the "deck" spot
   spawnObjectJSON({
     json = jsons[i],
-    position = {63.9, 13, -18},
+    position = {R[1], R[2] + 2, R[3]},
     rotation = {0, 270, 180},
     callback_function = function(o)
       o.setLock(false)
@@ -123,18 +127,16 @@ function rttDealAll(jsons, i, cards)
       cards[i] = o
       local s = RTT_SLOTS[i]
       o.setPositionSmooth({s[1], s[2], s[3]}, false, false)
-      Wait.time(function() rttDealAll(jsons, i+1, cards) end, 0.85)
+      Wait.time(function() rttDealAll(jsons, i+1, cards) end, 0.7)
     end
   })
 end
 
-function rttFlipAll(cards, i)
-  if i > #cards then
-    Wait.time(rttDealOrder, 0.6)
-    return
+function rttFlipAll(cards)
+  for _,c in ipairs(cards) do
+    if c ~= nil then c.setRotationSmooth({0, 270, 0}, false, false) end
   end
-  if cards[i] ~= nil then cards[i].setRotationSmooth({0, 270, 0}, false, false) end
-  Wait.time(function() rttFlipAll(cards, i+1) end, 0.55)
+  Wait.time(rttDealOrder, 0.8)
 end
 
 function rttDealOrder()

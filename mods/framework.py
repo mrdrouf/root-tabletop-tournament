@@ -325,6 +325,92 @@ def remove_top_level_object(text, guid):
     return text[:start] + text[end:]
 
 
+QT = '\\"'  # the two raw characters backslash+quote = one JSON-escaped " in the text
+
+
+def _toggle_group_span(text, gid):
+    """Return (start, end) raw indices of <ToggleGroup ...id=gid...> ... </ToggleGroup>,
+    matching nested ToggleGroups so the close is the group's own. Tolerates spacing
+    variants (id="x" or id = "x")."""
+    idx = 0
+    while True:
+        s = text.find("<ToggleGroup", idx)
+        if s == -1:
+            raise BuildError("ToggleGroup %r not found" % gid)
+        e = text.find(">", s)
+        tag = text[s:e + 1]
+        if ('id=%s%s%s' % (QT, gid, QT)) in tag or ('id = %s%s%s' % (QT, gid, QT)) in tag:
+            break
+        idx = e + 1
+    depth = 0
+    j = s
+    while j < len(text):
+        o = text.find("<ToggleGroup", j)
+        c = text.find("</ToggleGroup>", j)
+        if c == -1:
+            raise BuildError("unterminated ToggleGroup %r" % gid)
+        if o != -1 and o < c:
+            depth += 1
+            j = o + len("<ToggleGroup")
+        else:
+            depth -= 1
+            j = c + len("</ToggleGroup>")
+            if depth == 0:
+                return s, j
+
+
+def set_toggle_group_active(text, gid, value):
+    """Set the default active="value" on a <ToggleGroup id=gid ...> opening tag,
+    replacing any existing active attribute or adding one."""
+    s = text.find("<ToggleGroup")
+    idx = 0
+    while True:
+        s = text.find("<ToggleGroup", idx)
+        if s == -1:
+            raise BuildError("ToggleGroup %r not found" % gid)
+        e = text.find(">", s)
+        tag = text[s:e + 1]
+        if ('id=%s%s%s' % (QT, gid, QT)) in tag or ('id = %s%s%s' % (QT, gid, QT)) in tag:
+            mk = 'active=%s%s%s' % (QT, value, QT)
+            if 'active' in tag:
+                a = tag.find('active')
+                p = tag.find(QT, a)
+                q = tag.find(QT, p + len(QT))
+                new_tag = tag[:a] + mk + tag[q + len(QT):]
+            else:
+                new_tag = tag[:-1].rstrip() + ' ' + mk + '>'
+            return text[:s] + new_tag + text[e + 1:]
+        idx = e + 1
+
+
+def _fmt_num(x):
+    return str(int(x)) if float(x).is_integer() else ("%g" % x)
+
+
+def shift_group_buttons_y(text, gid, dy):
+    """Add `dy` to the Y (2nd) component of every position="x y z" inside the group
+    (rigid vertical translation of the whole block). Returns (new_text, count)."""
+    s, e = _toggle_group_span(text, gid)
+    block = text[s:e]
+    count = 0
+    k = block.find('position', 0)
+    while k != -1:
+        p = block.find(QT, k)
+        q = block.find(QT, p + len(QT))
+        if p == -1 or q == -1:
+            break
+        nums = block[p + len(QT):q].split()
+        if len(nums) == 3:
+            nums[1] = _fmt_num(float(nums[1]) + dy)
+            newval = ' '.join(nums)
+            block = block[:p + len(QT)] + newval + block[q:]
+            count += 1
+            k = block.find('position', p + len(QT) + len(newval))
+        else:
+            k = block.find('position', q)
+    return text[:s] + block + text[e:], count
+
+
 def remove_item(text, category, name, *, require_button=True):
     """Remove a menu item completely: its XML button(s) and its EVERYTHING data
     block. Returns text. Raises if the data block is missing; if require_button

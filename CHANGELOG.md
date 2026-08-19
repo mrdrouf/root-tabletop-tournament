@@ -155,4 +155,30 @@ official maps in one middle line, the 3 decks along the bottom; setups+maps shru
 to width 30 to fit six per line; the redundant "Maps/Decks" nav removed. Tools stay
 their own tab. First pass — review spacing in TTS.
 
+## RTT draft animation polish — 2026-08-19
+`m250` updated — the five draft cards now start stacked face-down at the rightmost
+(deck) slot, deal out one at a time to the extreme-left slot, then 2nd-left, …, so
+card #5 stays at the rightmost; once all five are aligned they flip face-up all at
+the same time (was one-by-one). Slot spacing widened (z −14..14, step 7) so the
+cards don't touch.
+
+## Everything on one page (no tabs) — 2026-08-19
+`m270_credit_sign` — the board art's baked credit ("Board by Ehss & slugfacekillah",
+bottom-left) is a texture, not an element, so it can't be edited. Added a small,
+crooked, bold crayon-blue `<Text>` overlay next to it — "+ MrDrouf & Claude" — tilted
+−8°, as if someone scribbled their name onto the board. Lives in the always-on
+"Main Nav" group; position is an estimate of where the baked credit sits, nudge in
+TTS. Added `framework.add_button_to_group` reuse for a `<Text>`.
+
+`m280_tools_on_board` — the rules/tools now share the single page; no more tab
+switching. The Tools "page" is 9 buttons in group `tools1` (a scattered block, the
+lower-right ~half). Final one-page layout: Setups row (Y=70, enlarged 34×30), Maps
+row (Y=38, 34×30), Decks row (Y=8, kept 40×40), and the whole `tools1` block
+translated straight down by 20 (Y −85..−15) as a rigid unit so every tool keeps its
+own size/arrangement and still takes ~half the space. All four content groups
+(setups/maps/decks/tools) are made active by default so they show on load, and the
+redundant Setups/Tools tabs (setupButtonMain, toolsButtonMain) are removed. Added
+`framework.set_toggle_group_active`, `shift_group_buttons_y`, `_toggle_group_span`.
+Best-effort blind layout — fine-tune spacing in TTS.
+
 Each later step appends one or more modifications under `mods/` and an entry here.
