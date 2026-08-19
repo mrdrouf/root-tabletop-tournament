@@ -46,4 +46,9 @@ Entente, The Chaos Contraptions; the `makeHauntedWoodland` handler; and the
 element safety guard (the verifier caught it deleting Tools/Fan-Faction entries
 when a marker also appeared in the Lua asset table — now impossible).
 
+## Gameplay: no faction dice — 2026-08-19
+`m060_no_faction_dice` — generalises the m010 example: setupFaction now filters
+out every Custom_Dice object before spawning, for all factions, so battle dice no
+longer appear on the table with any faction.
+
 Each later step appends one or more modifications under `mods/` and an entry here.

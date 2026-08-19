@@ -17,6 +17,7 @@ from . import m020_remove_tools
 from . import m030_remove_fan_maps
 from . import m040_remove_fan_decks
 from . import m050_remove_scenarios
+from . import m060_no_faction_dice
 
 # Ready-made examples — uncomment to begin layering real modifications:
 # from . import m010_no_marquise_dice
@@ -28,4 +29,5 @@ MODS = [
     m030_remove_fan_maps,
     m040_remove_fan_decks,
     m050_remove_scenarios,
+    m060_no_faction_dice,
 ]
