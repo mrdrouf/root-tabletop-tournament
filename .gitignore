@@ -7,3 +7,6 @@ base/
 # python
 __pycache__/
 *.pyc
+
+# local machine setup helpers (paths + settings edits specific to this machine)
+/setup/
