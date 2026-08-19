@@ -16,12 +16,12 @@ from . import framework
 
 NAME = "compact the Setups menu and remove the empty Tools nav"
 
-# tight grid: 4 options across the top row, Setup All beneath
+# tight grid: options across the top row, Setup All beneath.
+# (Hirelings is removed by m220, so it's not placed here.)
 LAYOUT = {
     "Vagabond Cards":      "-25 45 -20",
-    "Hirelings":           "15 45 -20",
-    "Landmarks":           "55 45 -20",
-    "Clearing Priorities": "95 45 -20",
+    "Landmarks":           "15 45 -20",
+    "Clearing Priorities": "55 45 -20",
     "Setup All":           "-25 5 -20",
 }
 

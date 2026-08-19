@@ -32,6 +32,10 @@ from . import m160_bats_assemblies_facedown
 from . import m170_resize_setup_button
 from . import m180_replace_autumn_with_summer
 from . import m190_compact_setup_menu
+from . import m200_summer_autumn_design
+from . import m210_remove_more_buttons
+from . import m220_remove_hirelings
+from . import m230_four_player_corners
 
 # Ready-made examples — uncomment to begin layering real modifications:
 # from . import m010_no_marquise_dice
@@ -57,4 +61,8 @@ MODS = [
     m170_resize_setup_button,
     m180_replace_autumn_with_summer,
     m190_compact_setup_menu,
+    m200_summer_autumn_design,
+    m210_remove_more_buttons,
+    m220_remove_hirelings,
+    m230_four_player_corners,
 ]

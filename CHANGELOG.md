@@ -109,4 +109,14 @@ All) into a tight top grid. Added `framework.set_button_position_in_group`
 (group-scoped so same-named buttons on other screens aren't moved). Best-effort
 layout — verify in TTS.
 
+## Menu polish from screenshot feedback — 2026-08-19
+- `m200_summer_autumn_design` — Summer map button now uses Autumn's thumbnail
+  icon, 40x40 size, and Autumn's grid slot (it was a plain green placeholder).
+- `m210_remove_more_buttons` — removed the "more >" nav buttons paging to the now-
+  empty fan map / fan deck screens (maps1/2/3, decks1/2).
+- `m220_remove_hirelings` — removed the Hirelings option; m190 reflows the Setups
+  grid without it.
+- `m230_four_player_corners` — the 4 faction selectors now spawn in the four table
+  corners (was 3-on-one-side). Added `framework.remove_xml_buttons_by_onclick`.
+
 Each later step appends one or more modifications under `mods/` and an entry here.

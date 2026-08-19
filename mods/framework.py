@@ -227,6 +227,25 @@ def set_button_position_in_group(text, group_id, button_id, position):
     return text[:gstart] + new_block + text[gend:], n
 
 
+def remove_xml_buttons_by_onclick(text, onclick_value):
+    """Delete every <Button ... onclick="onclick_value" .../> (handles onclick and
+    onClick). For nav buttons that have no id. Returns (new_text, count)."""
+    count = 0
+    for oc in ("onclick", "onClick"):
+        anchor = '%s=\\"%s\\"' % (oc, onclick_value)
+        while True:
+            k = text.find(anchor)
+            if k == -1:
+                break
+            start = text.rfind("<Button", 0, k)
+            end = text.find("/>", k)
+            if start == -1 or end == -1 or ">" in text[start:k]:
+                raise BuildError("malformed <Button> for %s=%r" % (oc, onclick_value))
+            text = text[:start] + text[end + 2:]
+            count += 1
+    return text, count
+
+
 def remove_lua_line(text, needle):
     """Remove the single line that contains `needle` (given as a raw / JSON-
     escaped substring). Bounds the line by its surrounding \\n markers."""
