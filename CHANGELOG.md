@@ -148,4 +148,11 @@ TTS testing/tuning; a card-flip sound needs a hosted audio asset.
 - **5-player 5th seat** (m230): moved to the near-middle side; board rotation is
   now decided by the seat's side, not its index (which put seat 5 on the wrong side).
 
+## One-board layout (first pass) — 2026-08-19
+`m260_one_board` — Setups screen now also shows the maps and decks (setup() also
+activates mapButtonsStandard + decksButtonsStandard). Setups in a top row, the 6
+official maps in one middle line, the 3 decks along the bottom; setups+maps shrunk
+to width 30 to fit six per line; the redundant "Maps/Decks" nav removed. Tools stay
+their own tab. First pass — review spacing in TTS.
+
 Each later step appends one or more modifications under `mods/` and an entry here.

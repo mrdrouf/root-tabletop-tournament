@@ -38,6 +38,7 @@ from . import m220_remove_hirelings
 from . import m230_four_player_corners
 from . import m240_five_player_setup
 from . import m250_rtt_setup
+from . import m260_one_board
 
 # Ready-made examples — uncomment to begin layering real modifications:
 # from . import m010_no_marquise_dice
@@ -69,4 +70,5 @@ MODS = [
     m230_four_player_corners,
     m240_five_player_setup,
     m250_rtt_setup,
+    m260_one_board,
 ]
