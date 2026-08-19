@@ -155,6 +155,42 @@ def remove_xml_element(text, tag, marker):
     return text, count
 
 
+def replace_unique(text, old, new):
+    """Replace `old` with `new`, requiring exactly one occurrence (guards against
+    editing the wrong / multiple sites)."""
+    n = text.count(old)
+    if n != 1:
+        raise BuildError("expected exactly 1 occurrence of %r, found %d" % (old, n))
+    return text.replace(old, new, 1)
+
+
+def set_button_attr(text, item_id, attr, new_val):
+    """Set attr="new_val" on every <Button ... id="item_id" .../>. Returns
+    (new_text, count)."""
+    count = 0
+    i = 0
+    a = '%s=\\"' % attr                         # e.g. height=\"
+    while True:
+        k = text.find('id=\\"%s\\"' % item_id, i)
+        if k == -1:
+            break
+        start = text.rfind("<Button", 0, k)
+        end = text.find("/>", k) + 2
+        if start == -1 or end == 1:
+            raise BuildError("malformed <Button> around id=%r" % item_id)
+        seg = text[start:end]
+        p = seg.find(a)
+        if p != -1:
+            q = seg.find('\\"', p + len(a))     # closing \"
+            if q != -1:
+                seg = seg[:p] + a + new_val + seg[q:]
+                text = text[:start] + seg + text[end:]
+                end = start + len(seg)
+                count += 1
+        i = end
+    return text, count
+
+
 def remove_lua_line(text, needle):
     """Remove the single line that contains `needle` (given as a raw / JSON-
     escaped substring). Bounds the line by its surrounding \\n markers."""

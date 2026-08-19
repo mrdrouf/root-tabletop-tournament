@@ -21,6 +21,10 @@ from . import m060_no_faction_dice
 from . import m070_remove_manuals
 from . import m080_remove_dead_buttons
 from . import m090_remove_mode_buttons
+from . import m100_four_selectors
+from . import m110_remove_fandmarks
+from . import m120_remove_draft_modes
+from . import m130_resize_summer_button
 
 # Ready-made examples — uncomment to begin layering real modifications:
 # from . import m010_no_marquise_dice
@@ -36,4 +40,8 @@ MODS = [
     m070_remove_manuals,
     m080_remove_dead_buttons,
     m090_remove_mode_buttons,
+    m100_four_selectors,
+    m110_remove_fandmarks,
+    m120_remove_draft_modes,
+    m130_resize_summer_button,
 ]

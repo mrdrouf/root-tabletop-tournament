@@ -67,4 +67,15 @@ id is reused by the draft flow; Adset toggle groups drive clockwork-bot setup), 
 their data/handlers are left unreachable rather than risk surgery on shared setup
 code. A deeper full removal remains possible.
 
+## Setup + more cleanup — 2026-08-19
+- `m100_four_selectors` — standard setup spawns 4 faction selectors, not 6
+  (`for i = 1, 6 do` → `for i = 1, 4 do` in setupFactionBoards).
+- `m110_remove_fandmarks` — removed Fandmarks (fan landmarks): button + Tools data.
+- `m120_remove_draft_modes` — removed the GSG tournament draft ("Tournament") and
+  the advanced draft / advanced setup ("adDraft") from the menu (button-only;
+  both are large entangled draft subsystems).
+- `m130_resize_summer_button` — resized the Summer Map selector button from
+  height 20 to 40 to match the other map buttons.
+Added `framework.replace_unique` and `framework.set_button_attr`.
+
 Each later step appends one or more modifications under `mods/` and an entry here.
