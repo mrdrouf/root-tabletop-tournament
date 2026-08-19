@@ -181,4 +181,19 @@ redundant Setups/Tools tabs (setupButtonMain, toolsButtonMain) are removed. Adde
 `framework.set_toggle_group_active`, `shift_group_buttons_y`, `_toggle_group_span`.
 Best-effort blind layout — fine-tune spacing in TTS.
 
+## Opening warrior placement — 2026-08-19
+Bake the warrior arrangements you set in the current save into the faction setup
+data, by reading each faction board's world transform + move_to to recover the
+selector origin, then converting each warrior's save world into a move_to.
+- `m290_lizard_warriors` — Lizard Cult: the 7 loose warriors become a pack of four
+  and a pack of three next to the supply, plus two fresh clones (ac0201/ac0202) in
+  the acolyte box. Identity rotation (board rotY 0). Puts 9 warriors on the board
+  (2 over the 7 that ship loose); mirrors your save.
+- `m300_duchy_warriors` — Underground Duchy: 7 loose warriors become a pack of two
+  (x≈7.1) + a pack of five (x≈3.3–4.6). The Duchy seat is rotated, so this one
+  accounts for board rotY 180 (dx,dz → −dx,−dz). The 8th loose warrior (c444dc) is
+  left near the supply.
+Added `framework.everything_entry_span` (scopes edits to one faction so the shared
+bot-copy warrior GUIDs aren't hit), `set_data_move_to`, `clone_data_entry`.
+
 Each later step appends one or more modifications under `mods/` and an entry here.

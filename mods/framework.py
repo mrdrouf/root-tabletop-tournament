@@ -411,6 +411,56 @@ def shift_group_buttons_y(text, gid, dy):
     return text[:s] + block + text[e:], count
 
 
+def everything_entry_span(text, category, name):
+    """Return (start, end) of the `EVERYTHING['category']['name'] = ... ` data
+    block, bounded by the next EVERYTHING assignment header. Use it to SCOPE
+    GUID-based edits to one faction (warrior objects are shared by bot copies)."""
+    head = "EVERYTHING['%s']['%s'] =" % (category, name)
+    h = text.find(head)
+    if h == -1:
+        raise BuildError("EVERYTHING entry not found: %s / %s" % (category, name))
+    m = re.compile(r"EVERYTHING\['[^']+'\]\['[^']+'\] ?=").search(text, h + len(head))
+    return h, (m.start() if m else len(text))
+
+
+def set_data_move_to(text, guid, xyz):
+    """Set the `move_to={ x, y, z }` of the data entry whose embedded object has
+    this GUID. Requires the GUID field to appear exactly once in `text` — pass a
+    span-scoped slice (see everything_entry_span) so bot copies aren't hit."""
+    anchor = '\\"GUID\\": \\"%s\\"' % guid
+    if text.count(anchor) != 1:
+        raise BuildError("GUID %s not unique in scope (%d)" % (guid, text.count(anchor)))
+    gp = text.find(anchor)
+    ms = text.rfind('move_to={', 0, gp)
+    if ms == -1:
+        raise BuildError("no move_to before GUID %s" % guid)
+    me = text.find('}', ms)
+    new = 'move_to={ %.4f, %.4f, %.4f }' % (xyz[0], xyz[1], xyz[2])
+    return text[:ms] + new + text[me + 1:]
+
+
+def clone_data_entry(text, src_guid, new_guid, xyz):
+    """Duplicate the `{move_to={...}, json=[[ {..} ]]}` data entry whose object GUID
+    is src_guid, give the copy new_guid and move_to xyz, and insert it right after
+    the original. Requires src_guid unique in `text` (scope it first)."""
+    anchor = '\\"GUID\\": \\"%s\\"' % src_guid
+    if text.count(anchor) != 1:
+        raise BuildError("src GUID %s not unique in scope (%d)" % (src_guid, text.count(anchor)))
+    gp = text.find(anchor)
+    start = text.rfind('{move_to={', 0, gp)
+    end = text.find(']]}', gp)
+    if start == -1 or end == -1:
+        raise BuildError("cannot bound data entry for %s" % src_guid)
+    end += 3
+    entry = text[start:end]
+    entry = entry.replace('\\"GUID\\": \\"%s\\"' % src_guid,
+                          '\\"GUID\\": \\"%s\\"' % new_guid, 1)
+    ms = entry.find('move_to={')
+    me = entry.find('}', ms)
+    entry = entry[:ms] + 'move_to={ %.4f, %.4f, %.4f }' % (xyz[0], xyz[1], xyz[2]) + entry[me + 1:]
+    return text[:end] + ',' + entry + text[end:]
+
+
 def remove_item(text, category, name, *, require_button=True):
     """Remove a menu item completely: its XML button(s) and its EVERYTHING data
     block. Returns text. Raises if the data block is missing; if require_button

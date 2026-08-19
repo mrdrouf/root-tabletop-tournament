@@ -1,0 +1,133 @@
+{
+  "SaveName": "",
+  "Date": "",
+  "VersionNumber": "",
+  "GameMode": "",
+  "GameType": "",
+  "GameComplexity": "",
+  "Tags": [],
+  "Gravity": 0.5,
+  "PlayArea": 0.5,
+  "Table": "",
+  "Sky": "",
+  "Note": "",
+  "TabStates": {},
+  "LuaScript": "",
+  "LuaScriptState": "",
+  "XmlUI": "",
+  "ObjectStates": [
+    {
+      "GUID": "6fdc85",
+      "Name": "Custom_Model",
+      "Transform": {
+        "posX": -27.992,
+        "posY": 11.5887508,
+        "posZ": -17.5148335,
+        "rotX": -0.0008938483,
+        "rotY": 179.987762,
+        "rotZ": -6.126957E-05,
+        "scaleX": 0.350000441,
+        "scaleY": 0.350000441,
+        "scaleZ": 0.4158178
+      },
+      "Nickname": "Lost City",
+      "Description": "",
+      "GMNotes": "",
+      "AltLookAngle": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "ColorDiffuse": {
+        "r": 1.0,
+        "g": 1.0,
+        "b": 1.0
+      },
+      "LayoutGroupSortIndex": 0,
+      "Value": 0,
+      "Locked": false,
+      "Grid": true,
+      "Snap": true,
+      "IgnoreFoW": false,
+      "MeasureMovement": false,
+      "DragSelectable": true,
+      "Autoraise": true,
+      "Sticky": true,
+      "Tooltip": true,
+      "GridProjection": false,
+      "HideWhenFaceDown": false,
+      "Hands": false,
+      "CustomMesh": {
+        "MeshURL": "https://steamusercontent-a.akamaihd.net/ugc/1835788265943283567/C02B05BA23FE1D63B2544A0B1B36BED6E8AB6836/",
+        "DiffuseURL": "https://steamusercontent-a.akamaihd.net/ugc/1835788265943284072/0211D287CC5BD7362563AC205AFBC9A14E524DDB/",
+        "NormalURL": "",
+        "ColliderURL": "https://steamusercontent-a.akamaihd.net/ugc/1835788265943283567/C02B05BA23FE1D63B2544A0B1B36BED6E8AB6836/",
+        "Convex": true,
+        "MaterialIndex": 1,
+        "TypeIndex": 1,
+        "CastShadows": true
+      },
+      "LuaScript": "",
+      "LuaScriptState": "",
+      "XmlUI": ""
+    },
+    {
+      "GUID": "e64d9d",
+      "Name": "CardCustom",
+      "Transform": {
+        "posX": 0.0539932251,
+        "posY": -0.0136041641,
+        "posZ": 0.216823578,
+        "rotX": 7.01720364E-06,
+        "rotY": 179.991623,
+        "rotZ": -4.402374E-05,
+        "scaleX": 2.29910946,
+        "scaleY": 1.0,
+        "scaleZ": 2.29910946
+      },
+      "Nickname": "",
+      "Description": "",
+      "GMNotes": "",
+      "AltLookAngle": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "ColorDiffuse": {
+        "r": 0.713235259,
+        "g": 0.713235259,
+        "b": 0.713235259
+      },
+      "LayoutGroupSortIndex": 0,
+      "Value": 0,
+      "Locked": false,
+      "Grid": true,
+      "Snap": true,
+      "IgnoreFoW": false,
+      "MeasureMovement": false,
+      "DragSelectable": true,
+      "Autoraise": true,
+      "Sticky": true,
+      "Tooltip": true,
+      "GridProjection": false,
+      "HideWhenFaceDown": true,
+      "Hands": true,
+      "CardID": 15500,
+      "SidewaysCard": false,
+      "CustomDeck": {
+        "155": {
+          "FaceURL": "https://steamusercontent-a.akamaihd.net/ugc/1859433736252751364/0DC4B26C9A4D68D8944E0E6AB84868CA3DFA84D3/",
+          "BackURL": "https://steamusercontent-a.akamaihd.net/ugc/1859433736252752168/4F9A4FF6E287488E546CCA0A55329F012167D98D/",
+          "NumWidth": 1,
+          "NumHeight": 1,
+          "BackIsHidden": true,
+          "UniqueBack": false,
+          "Type": 0
+        }
+      },
+      "LuaScript": "",
+      "LuaScriptState": "",
+      "XmlUI": ""
+    }
+  ]
+}

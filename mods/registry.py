@@ -41,6 +41,8 @@ from . import m250_rtt_setup
 from . import m260_one_board
 from . import m270_credit_sign
 from . import m280_tools_on_board
+from . import m290_lizard_warriors
+from . import m300_duchy_warriors
 
 # Ready-made examples — uncomment to begin layering real modifications:
 # from . import m010_no_marquise_dice
@@ -75,4 +77,6 @@ MODS = [
     m260_one_board,
     m270_credit_sign,
     m280_tools_on_board,
+    m290_lizard_warriors,
+    m300_duchy_warriors,
 ]
