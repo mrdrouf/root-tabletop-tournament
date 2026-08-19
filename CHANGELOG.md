@@ -81,9 +81,9 @@ Added `framework.replace_unique` and `framework.set_button_attr`.
 ## Remove table objects — 2026-08-19
 - `m140_remove_master_pdf` — removed the Master Instructions PDF (Custom_PDF,
   GUID b85bd2) from the far side of the table.
-- `m150_remove_title_model` — removed the central title/branding Custom_Model
-  (GUID 4ee1f2, dead-centre, scale 4.2) — best-guess for the "Root community TTS
-  tool" title; revert just this step if wrong.
+- `m150_remove_title_model` — REVERTED. GUID 4ee1f2 turned out to be the TABLE,
+  not a title; removing it deleted the table surface. The mod was removed and the
+  "root community" title is still to be located.
 Added `framework.remove_top_level_object` (brace-matching, string-aware).
 
 ## Gameplay: Bats assemblies face-down — 2026-08-19
