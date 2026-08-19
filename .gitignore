@@ -1,0 +1,9 @@
+# build output
+dist/
+
+# base mod copy — Leder Games + original authors' IP; never commit
+base/
+
+# python
+__pycache__/
+*.pyc
