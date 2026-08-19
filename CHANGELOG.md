@@ -23,4 +23,10 @@ Multi-State Warriors, Action Deck, Side Tables ("extra chairs"). Added
 `remove_everything_entry`, `remove_lua_function`) and a dangling-reference
 verifier in `build.py` that fails the build if a removed item is still referenced.
 
+## Cleanup: remove fan maps — 2026-08-19
+`m030_remove_fan_maps` — kept the 7 official maps (Autumn, Lake, Marsh, Summer,
+Winter, Mountain, Gorge); removed the 21 fan maps (button + `EVERYTHING['Maps']`
+data) and the dead bot-setup line that swapped drafted map #7 to the Deep Woods
+bots map. `randomDraftMap` already draws only from the kept maps.
+
 Each later step appends one or more modifications under `mods/` and an entry here.

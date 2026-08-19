@@ -129,6 +129,19 @@ def remove_lua_function(text, funcname):
     return text[:i] + text[j + len("\\nend"):]
 
 
+def remove_lua_line(text, needle):
+    """Remove the single line that contains `needle` (given as a raw / JSON-
+    escaped substring). Bounds the line by its surrounding \\n markers."""
+    k = text.find(needle)
+    if k == -1:
+        raise BuildError("line needle not found: %r" % needle)
+    start = text.rfind("\\n", 0, k)
+    end = text.find("\\n", k)
+    if start == -1 or end == -1:
+        raise BuildError("could not bound line for: %r" % needle)
+    return text[:start] + text[end:]
+
+
 def remove_item(text, category, name, *, require_button=True):
     """Remove a menu item completely: its XML button(s) and its EVERYTHING data
     block. Returns text. Raises if the data block is missing; if require_button

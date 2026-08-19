@@ -131,6 +131,9 @@ def verify_no_dangling_refs(text):
     for nm in re.findall(r'makeTool\([^,]*,[^,]*,\s*"([^"]+)"\)', lua):
         if ("Tools", nm) not in defined:
             problems.append("makeTool(...,%r) -> missing EVERYTHING['Tools'][%r]" % (nm, nm))
+    for nm in re.findall(r'(?:draftMap|makeMap)\([^,]*,[^,]*,\s*"([^"]+)"\)', lua):
+        if ("Maps", nm) not in defined:
+            problems.append("draft/makeMap(...,%r) -> missing EVERYTHING['Maps'][%r]" % (nm, nm))
 
     return sorted(set(problems))
 
