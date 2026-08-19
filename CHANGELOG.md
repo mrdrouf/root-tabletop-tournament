@@ -59,4 +59,12 @@ makeRules) + `EVERYTHING['Tools']` data. `m080_remove_dead_buttons` — removed 
 Magic Bag, Fifty Fifty Draft). Extended `remove_xml_buttons` to single-quoted id
 attributes and added `makeRules` to the verifier.
 
+## Cleanup: remove mode buttons — 2026-08-19
+`m090_remove_mode_buttons` — removed Weird Root (slugSetupButton), Super Auto
+Smash Up (MashUp), Advanced Setup, and The Law of Slug from the menu (button-only).
+These are entry points into subsystems entangled with kept code (the slug button
+id is reused by the draft flow; Adset toggle groups drive clockwork-bot setup), so
+their data/handlers are left unreachable rather than risk surgery on shared setup
+code. A deeper full removal remains possible.
+
 Each later step appends one or more modifications under `mods/` and an entry here.

@@ -20,6 +20,7 @@ from . import m050_remove_scenarios
 from . import m060_no_faction_dice
 from . import m070_remove_manuals
 from . import m080_remove_dead_buttons
+from . import m090_remove_mode_buttons
 
 # Ready-made examples — uncomment to begin layering real modifications:
 # from . import m010_no_marquise_dice
@@ -34,4 +35,5 @@ MODS = [
     m060_no_faction_dice,
     m070_remove_manuals,
     m080_remove_dead_buttons,
+    m090_remove_mode_buttons,
 ]
