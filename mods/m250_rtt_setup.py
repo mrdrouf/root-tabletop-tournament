@@ -74,7 +74,7 @@ RTT_INS_CARDS = %s
 RTT_ORDER_JSON = [==[%s]==]
 RTT_MILITANT = {%s}
 RTT_INSURGENT = {%s}
-RTT_SLOTS = {{63.4,11.7,-11.9},{63.4,11.7,-5.8},{63.4,11.7,-0.1},{63.4,11.7,6.1},{63.4,11.7,12.0}}
+RTT_SLOTS = {{63.9,11.6,-10.4},{63.9,11.6,-5.2},{63.9,11.6,0},{63.9,11.6,5.2},{63.9,11.6,10.4}}
 RTT_SPAWNED = {}
 
 function rttShuffle(t)
@@ -85,7 +85,9 @@ end
 function rttSetup(player, value, id)
   for _,g in ipairs(RTT_SPAWNED) do local o=getObjectFromGUID(g) if o then o.destruct() end end
   RTT_SPAWNED = {}
-  math.randomseed(os.time()); math.random(); math.random(); math.random()
+  RTT_N = (RTT_N or 0) + 1
+  math.randomseed(os.time() + RTT_N * 7919)
+  for _=1,6 do math.random() end
   local mil = {}
   for _,c in ipairs(RTT_MILITANT) do mil[#mil+1]=c end
   rttShuffle(mil)
@@ -99,34 +101,40 @@ function rttSetup(player, value, id)
   for _,cid in ipairs(draft) do
     jsons[#jsons+1] = RTT_MIL_CARDS[cid] or RTT_INS_CARDS[cid]
   end
-  rttDealCard(jsons, 1)
+  rttDealAll(jsons, 1, {})
 end
 
--- deal one card at a time: spawn it above the leftmost slot, fly it to its slot
--- (rightmost first) and flip it face-up, then spawn the next. Spawning one at a
--- time and moving each away avoids TTS merging them into a single deck.
-function rttDealCard(jsons, i)
+-- Deal each card from a face-down deck on the left to its slot, ONE AT A TIME so
+-- two cards are never at the same spot (which makes TTS merge them into a deck).
+-- Once all 5 are placed face-down, flip them one by one. Orientation rotY=270
+-- matches the cards you placed.
+function rttDealAll(jsons, i, cards)
   if i > #jsons then
-    Wait.time(rttDealOrder, 0.8)
+    Wait.time(function() rttFlipAll(cards, 1) end, 0.5)
     return
   end
-  local L = RTT_SLOTS[1]
-  local slotIdx = #jsons - i + 1
   spawnObjectJSON({
     json = jsons[i],
-    position = {L[1], L[2] + 3, L[3]},
-    rotation = {0, 180, 180},
+    position = {63.9, 13, -18},
+    rotation = {0, 270, 180},
     callback_function = function(o)
       o.setLock(false)
       RTT_SPAWNED[#RTT_SPAWNED+1] = o.getGUID()
-      local s = RTT_SLOTS[slotIdx]
+      cards[i] = o
+      local s = RTT_SLOTS[i]
       o.setPositionSmooth({s[1], s[2], s[3]}, false, false)
-      Wait.time(function()
-        o.setRotationSmooth({0, 180, 0}, false, false)
-        Wait.time(function() rttDealCard(jsons, i + 1) end, 0.6)
-      end, 0.7)
+      Wait.time(function() rttDealAll(jsons, i+1, cards) end, 0.85)
     end
   })
+end
+
+function rttFlipAll(cards, i)
+  if i > #cards then
+    Wait.time(rttDealOrder, 0.6)
+    return
+  end
+  if cards[i] ~= nil then cards[i].setRotationSmooth({0, 270, 0}, false, false) end
+  Wait.time(function() rttFlipAll(cards, i+1) end, 0.55)
 end
 
 function rttDealOrder()
