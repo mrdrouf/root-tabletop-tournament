@@ -29,4 +29,13 @@ Winter, Mountain, Gorge); removed the 21 fan maps (button + `EVERYTHING['Maps']`
 data) and the dead bot-setup line that swapped drafted map #7 to the Deep Woods
 bots map. `randomDraftMap` already draws only from the kept maps.
 
+## Cleanup: remove fan decks — 2026-08-19
+`m040_remove_fan_decks` — kept the 3 official deck families (Standard/Base,
+Exiles & Partisans, Squires & Disciples) + shared support cards. Fully removed
+6 fan deck families (Dawn and Dusk, Upstarts and Renegades, Sorcery of the
+Enchanted Woods, Crafty Tactics, Offensive, 60 Card Master — button + both data
+piles). Dark Deck removed from the menu (button only) — it is coupled into
+makeDeck, which also drives the kept decks, so its data is left unreachable
+rather than risk surgery on core deck logic.
+
 Each later step appends one or more modifications under `mods/` and an entry here.
