@@ -126,4 +126,14 @@ layout — verify in TTS.
 - `m160` updated — the flipped Bats assembly is also moved into the row with the
   other five (posX -53.27, posZ -53.54) so it sits on the board, not out front.
 
+## RTT automated setup (Hoot draft) — 2026-08-19
+`m250_rtt_setup` — reads the "Hoot Draft" saved object, embeds its Militant (6) /
+Insurgent (6) faction cards and the Player-Order deck (4), and injects `rttSetup()`
++ an "RTT Setup" button. On click: draw 1 random Militant, shuffle the rest with
+all Insurgent, draw 4 -> a 5-card draft; the cards stack at the leftmost slot then
+fly one-by-one to the 5 slots (x=63.4, z -11.9..12.0, the positions you placed the
+Militant cards) and flip face-up; then deal the 4 Player-Order cards to the seated
+coloured players. Cards spawned individually (no deck-merge juggling). v1 — needs
+TTS testing/tuning; a card-flip sound needs a hosted audio asset.
+
 Each later step appends one or more modifications under `mods/` and an entry here.
