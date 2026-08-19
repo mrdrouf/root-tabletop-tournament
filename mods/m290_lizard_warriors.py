@@ -19,10 +19,10 @@ The 7 warriors already loose in the data become the two packs; two fresh clones
 EVERYTHING['Standard']['The Lizard Cult'] so the Logical Lizards / BBP Cogwheel
 bot copies that share these warrior GUIDs are untouched.
 
-NB: this puts 9 warriors on the board (2 more than the 7 that ship loose); the
-supply bag still holds its 18, so the table shows 27 Lizard warriors vs the
-component max of 25. That mirrors your save exactly — say the word to instead pull
-the two acolytes out of the supply bag to keep the count at 25.
+Warrior count is kept at the rules-legal 25: the 2 acolytes are added as clones,
+and 2 warriors (b00d64, bd1433 — the two you actually pulled in your save) are
+removed from the supply bag. Net: 9 loose (4-pack + 3-pack + 2 acolytes) + 16 in
+the bag = 25.
 """
 
 from . import framework
@@ -51,6 +51,10 @@ CLONES = [
     ("71f2cc", "ac0202", (-2.3002, 0.8829, -4.7182)),
 ]
 
+# two warriors to pull OUT of the supply bag so the 2 added acolytes don't push the
+# total past the rules-legal 25 (Lizard Cult has 25 warriors).
+BAG_REMOVE = ["b00d64", "bd1433"]
+
 
 def apply(text):
     h, j = framework.everything_entry_span(text, CAT, FACTION)
@@ -59,4 +63,6 @@ def apply(text):
         entry = framework.set_data_move_to(entry, guid, xyz)
     for src, new, xyz in CLONES:
         entry = framework.clone_data_entry(entry, src, new, xyz)
+    for guid in BAG_REMOVE:
+        entry, _ = framework.remove_escaped_object(entry, guid)
     return text[:h] + entry + text[j:]

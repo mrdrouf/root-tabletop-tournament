@@ -207,4 +207,16 @@ save into `errata/` and rebuild — no code change. First contents repointed the
 E&P/S&D face sheets 74 + 76 (106 refs each); the Lost City card already matched
 the base, so it was a no-op.
 
+## Fixes from screenshot feedback — 2026-08-19
+- `m270` credit redo — the first attempt rendered as a giant bright-blue banner
+  across the bottom-left. Now small (fontSize 6, was 16), dark ink (was blue),
+  italic + tilted −8° so it reads as a cramped hand-added scrawl, tucked just above
+  the baked credit. (A true handwriting font would need a hosted .ttf — none is
+  loaded in the mod — so italic+tilt+small is the approximation.)
+- `m290` Lizard warrior count — the 2 acolyte clones had pushed the table to 27
+  warriors vs the rules-legal 25. Now 2 warriors (b00d64, bd1433 — the two pulled
+  in your save) are removed from the supply bag, netting 9 loose + 16 bag = 25.
+  Added `framework.remove_escaped_object` (brace-matched removal of one embedded
+  object + comma, e.g. a warrior out of a bag's ContainedObjects).
+
 Each later step appends one or more modifications under `mods/` and an entry here.

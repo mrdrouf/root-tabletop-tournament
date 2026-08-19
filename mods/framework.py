@@ -461,6 +461,53 @@ def clone_data_entry(text, src_guid, new_guid, xyz):
     return text[:end] + ',' + entry + text[end:]
 
 
+def remove_escaped_object(text, guid):
+    """Remove the embedded object `{...}` whose escaped GUID field is `guid`, plus one
+    adjacent comma, from `text` (e.g. one warrior out of a bag's ContainedObjects).
+    Brace-matches naively (these piece objects carry no braces inside string values);
+    the caller / build's JSON re-parse catches any imbalance. Requires the GUID field
+    unique in `text` (scope it). Returns (new_text, removed_object_text)."""
+    anchor = '\\"GUID\\": \\"%s\\"' % guid
+    if text.count(anchor) != 1:
+        raise BuildError("GUID %s not unique in scope (%d)" % (guid, text.count(anchor)))
+    gp = text.find(anchor)
+    start = text.rfind('{', 0, gp)
+    if start == -1:
+        raise BuildError("no opening brace before GUID %s" % guid)
+    depth = 0
+    i = start
+    n = len(text)
+    while i < n:
+        c = text[i]
+        if c == '{':
+            depth += 1
+        elif c == '}':
+            depth -= 1
+            if depth == 0:
+                i += 1
+                break
+        i += 1
+    if depth != 0:
+        raise BuildError("unbalanced braces for object %s" % guid)
+    end = i
+    obj = text[start:end]
+    if ']]' in obj:
+        raise BuildError("object %s contains ']]' — unsafe to re-embed" % guid)
+    # drop one adjacent comma so the array stays valid
+    k = end
+    while k < n and text[k] in ' \t\r\n':
+        k += 1
+    if k < n and text[k] == ',':
+        end = k + 1
+    else:
+        m = start - 1
+        while m >= 0 and text[m] in ' \t\r\n':
+            m -= 1
+        if m >= 0 and text[m] == ',':
+            start = m
+    return text[:start] + text[end:], obj
+
+
 def remove_item(text, category, name, *, require_button=True):
     """Remove a menu item completely: its XML button(s) and its EVERYTHING data
     block. Returns text. Raises if the data block is missing; if require_button
