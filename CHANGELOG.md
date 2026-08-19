@@ -240,4 +240,23 @@ proposals → judged → adversarial geometry check).
   (`framework.add_custom_ui_asset`), and placed as an `<Image>` tucked above the
   baked credit. Swap fonts via `FONT` in m270 (five rendered options in assets).
 
+## A real feedback loop + a balanced board — 2026-08-20
+The menu kept shipping as a mess because it was laid out blind. `tools/preview_menu.py`
+fixes the workflow: it fetches the real hosted button-icons and composites the whole
+menu to a PNG at the true XmlUI coordinates, so the layout can be judged and iterated
+WITHOUT loading TTS. Everything below was tuned against that preview.
+- `m330_setup_plaques` — the three setup ACTIONS were flat dark text buttons that broke
+  the row. Replaced with matching wooden plaques "4 PLAYERS / 5 PLAYERS / RTT DRAFT"
+  (rendered in `assets/buttons/`, hosted via GitHub raw, same trick as the credit).
+- `m340_layout_polish` — final row geometry (overrides earlier): the 3 decks spread
+  wide and enlarged (46) to balance the 6-wide map row instead of leaving the right
+  third empty; setups/maps/decks nudged down to fill the dead band above the baked
+  title. Rows: setups Y66, maps Y30, decks Y−8; tools grid stays under the title.
+
+## Warrior placement was mirrored — 2026-08-20
+`m290`/`m300` — the selector-frame rotation had been applied backwards, so the Lizard
+(and Duchy) warriors spawned on the exact opposite side. Re-derived from the data's own
+supply position: Lizard needs R180, Duchy needs identity. Now the packs land next to
+each supply and the Lizard acolytes on the board.
+
 Each later step appends one or more modifications under `mods/` and an entry here.

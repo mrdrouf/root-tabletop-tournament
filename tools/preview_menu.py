@@ -18,8 +18,9 @@ OUT = os.path.join(ROOT, "tools", "menu_preview.png")
 os.makedirs(CACHE, exist_ok=True)
 
 MENU_GUID = "bab7e1"                      # Faction Selection
-GROUPS = sys.argv[1:] or ["setupButtons", "mapButtonsStandard",
-                          "decksButtonsStandard", "tools1", "Main Nav"]
+DEBUG = "--debug" in sys.argv
+GROUPS = [a for a in sys.argv[1:] if not a.startswith("--")] or \
+    ["setupButtons", "mapButtonsStandard", "decksButtonsStandard", "tools1", "Main Nav"]
 
 # ---- coordinate space -> pixels (calibrated to the board: X ~3.07 px/u, Y ~2.9) ----
 SX, SY = 3.2, 3.0
@@ -87,7 +88,17 @@ def parse(block, tag):
                         color=g("color")))
     return out
 
+REPO_RAW = "raw.githubusercontent.com/mrdrouf/root-tabletop-tournament/main/"
+
 def fetch(url):
+    # the repo's own assets may not be pushed yet — resolve them to local files
+    if REPO_RAW in url:
+        local = os.path.join(ROOT, url.split(REPO_RAW, 1)[1].replace("/", os.sep))
+        if os.path.exists(local):
+            try:
+                return Image.open(local).convert("RGBA")
+            except Exception:
+                pass
     p = os.path.join(CACHE, hashlib.md5(url.encode()).hexdigest() + ".img")
     if not os.path.exists(p):
         try:
@@ -126,7 +137,8 @@ def draw_btn(b):
     elif b.get("text"):
         dr.text(((l + r) / 2, (t + bot) / 2), b["text"], anchor="mm",
                 fill=(235, 225, 195), font=font(11))
-    dr.rectangle([l, t, r, bot], outline=(255, 255, 255, 40))   # slot outline
+    if DEBUG:
+        dr.rectangle([l, t, r, bot], outline=(255, 255, 255, 40))   # slot outline
 
 total = 0
 for gid in GROUPS:
@@ -135,18 +147,19 @@ for gid in GROUPS:
     for b in btns:
         draw_btn(b); total += 1
 
-# baked (immovable) reference markers
-def marker(x, y, txt, w=40, h=10):
-    l, t, r, bot = box(dict(x=x, y=y, w=w, h=h))
-    dr.rectangle([l, t, r, bot], outline=(255, 210, 120, 200), width=2)
-    dr.text(((l + r) / 2, (t + bot) / 2), txt, anchor="mm", fill=(255, 210, 120), font=font(12))
-marker(0, -45, "baked: TTS Tools by the ROOT Community", w=120, h=10)
-marker(-78, -82, "baked credit", w=34, h=8)
-marker(-72, 80, "ROOT logo", w=44, h=14)
-
-# board usable bounds
-bl = box(dict(x=-88, y=85, w=0, h=0))[0:2]; br = box(dict(x=92, y=-85, w=0, h=0))[0:2]
-dr.rectangle([bl[0], bl[1], br[0], br[1]], outline=(255, 255, 255, 90), width=1)
+# baked art (part of the board texture) — draw subtly so the preview is representative
+def baked_text(x, y, txt, size, fill):
+    cx, cy = px(x, y)
+    dr.text((cx, cy), txt, anchor="mm", fill=fill, font=font(size))
+baked_text(-2, -45, "TTS Tools by the ROOT Community", 20, (222, 205, 168, 235))
+baked_text(-70, -82, "Board by Ehss\n& slugfacekillah", 11, (150, 128, 96, 255))
+baked_text(-68, 78, "ROOT", 30, (210, 190, 150, 120))
+if DEBUG:
+    marker = lambda x, y, w, h: dr.rectangle(box(dict(x=x, y=y, w=w, h=h)),
+                                             outline=(255, 210, 120, 200), width=2)
+    marker(-2, -45, 120, 10); marker(-70, -82, 34, 12)
+    bl = box(dict(x=-88, y=85, w=0, h=0))[0:2]; br = box(dict(x=92, y=-85, w=0, h=0))[0:2]
+    dr.rectangle([bl[0], bl[1], br[0], br[1]], outline=(255, 255, 255, 90), width=1)
 
 img.convert("RGB").save(OUT)
 print("rendered %d elements -> %s (%dx%d)" % (total, OUT, W, H))
