@@ -249,6 +249,37 @@ def set_button_attr_in_group(text, group_id, button_id, attr, new_val):
     return text[:gstart] + new_block + text[gend:], n
 
 
+def set_xml_attr(text, tag, elem_id, attr, new_val):
+    """Set attr="new_val" on the self-closing <tag ... id="elem_id" .../> element
+    (works for <Image>, <Text>, etc.; adds the attr if missing). Returns
+    (new_text, count)."""
+    count = 0
+    i = 0
+    open_tag = "<" + tag
+    while True:
+        k = text.find('id=\\"%s\\"' % elem_id, i)
+        if k == -1:
+            break
+        start = text.rfind(open_tag, 0, k)
+        end = text.find("/>", k)
+        if start == -1 or end == -1 or ">" in text[start:k]:
+            raise BuildError("malformed <%s> around id=%r" % (tag, elem_id))
+        end += 2
+        seg = text[start:end]
+        a = '%s=\\"' % attr
+        p = seg.find(a)
+        if p != -1:
+            q = seg.find('\\"', p + len(a))
+            seg = seg[:p] + a + new_val + seg[q:]
+        else:  # add before the closing />
+            seg = seg[:-2].rstrip() + ' %s%s\\"' % (a, new_val) + '/>'
+        text = text[:start] + seg + text[end:]
+        end = start + len(seg)
+        count += 1
+        i = end
+    return text, count
+
+
 def add_custom_ui_asset(text, name, url, *, near_asset="WWDraftTool"):
     """Register a UI image asset {Type:0, Name, URL} in the object whose
     CustomUIAssets array already contains `near_asset` (the Faction Selection menu

@@ -19,22 +19,22 @@ from . import framework
 
 NAME = "menu cleanup: uniform tool grid + Clearing Priorities / 5 Players fixes"
 
-# tool button id -> (x, y) in the 5x2 grid under the baked title
+# tool button id -> (x, y) in the grid under the baked title (no "more" button —
+# the extra tools behind it are dropped per request)
 TOOL_GRID = {
     "Faction Select": (-70, -60), "Battle Mat": (-35, -60),
     "Clearing Markers": (0, -60), "Swol Birbs": (35, -60), "Mob Lobber": (70, -60),
     "Lizard Wizard": (-35, -77), "Ginso's Gizmo": (0, -77),
-    "Mini-Mood Manager": (35, -77), "moreTools": (70, -77),
+    "Mini-Mood Manager": (35, -77),
 }
 CELL_W, CELL_H, CELL_FS = "33", "14", "7"
 
 
 def apply(text):
-    # 1. the "more" button has no id — give it one so it can join the grid
-    text = framework.replace_unique(
-        text,
-        framework.esc('<Button onclick="tools2"'),
-        framework.esc('<Button id="moreTools" onclick="tools2"'))
+    # 1. remove the "more" button (and thus the hidden second tools page)
+    text, n = framework.remove_xml_buttons_by_onclick(text, "tools2")
+    if n == 0:
+        raise framework.BuildError("more button (onclick=tools2) not found")
 
     # 2. drop the duplicate Clearing Priorities (keep the "Big", delete the "Small")
     text, n = framework.remove_xml_element(

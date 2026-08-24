@@ -47,6 +47,7 @@ from . import m310_errata
 from . import m320_menu_cleanup
 from . import m330_setup_plaques
 from . import m340_layout_polish
+from . import m350_custom_layout
 
 # Ready-made examples — uncomment to begin layering real modifications:
 # from . import m010_no_marquise_dice
@@ -87,4 +88,5 @@ MODS = [
     m320_menu_cleanup,
     m330_setup_plaques,
     m340_layout_polish,
+    m350_custom_layout,
 ]
