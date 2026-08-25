@@ -50,6 +50,7 @@ from . import m340_layout_polish
 from . import m355_setup_fixes
 from . import m350_custom_layout
 from . import m360_board_cleanup
+from . import m370_cdn_urls
 
 # Ready-made examples — uncomment to begin layering real modifications:
 # from . import m010_no_marquise_dice
@@ -93,4 +94,5 @@ MODS = [
     m355_setup_fixes,
     m350_custom_layout,
     m360_board_cleanup,
+    m370_cdn_urls,
 ]

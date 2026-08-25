@@ -23,8 +23,8 @@ GROUPS = [a for a in sys.argv[1:] if not a.startswith("--")] or \
     ["setupButtons", "mapButtonsStandard", "decksButtonsStandard", "tools1", "Main Nav"]
 
 # ---- coordinate space -> pixels (calibrated to the board: X ~3.07 px/u, Y ~2.9) ----
-SX, SY = 3.2, 3.0
-X0, X1, Y0, Y1 = -98, 122, -92, 92
+SX, SY = 3.0, 3.0
+X0, X1, Y0, Y1 = -112, 112, -92, 92        # symmetric about X=0 (the board centre)
 W, H = int((X1 - X0) * SX), int((Y1 - Y0) * SY)
 
 def px(x, y):
@@ -111,11 +111,13 @@ def fetch(url):
     except Exception:
         return None
 
-# ---- render ----
-img = Image.new("RGBA", (W, H), (95, 66, 41, 255))
+# ---- render ---- (use the real board texture so centering is judged against the wood)
+_board_local = os.path.join(ROOT, "assets", "board", "board_clean.png")
+if os.path.exists(_board_local):
+    img = Image.open(_board_local).convert("RGBA").resize((W, H))
+else:
+    img = Image.new("RGBA", (W, H), (95, 66, 41, 255))
 dr = ImageDraw.Draw(img)
-for gy in range(0, H, 3):                    # faint wood grain
-    dr.line([(0, gy), (W, gy)], fill=(88, 61, 38, 60))
 def font(sz):
     try: return ImageFont.truetype(r"C:\Windows\Fonts\arialbd.ttf", sz)
     except: return ImageFont.load_default()
