@@ -1,57 +1,46 @@
 """
-m440 — Marsh Map randomised setup: flooded clearings, ruins, and suit markers.
+m440 — Marsh Map randomised setup, done DIRECTLY inside the map spawn.
 
-The Marsh map has three double-sided flood markers. Each marker floods one of two
-candidate clearings, chosen at random. The clearing each marker does NOT flood (its
-"dry" side) is a real clearing that needs a suit, and for markers B and C also a ruin.
+Every time the Marsh map is built, makeMap now computes a random plan FIRST and
+spawns each piece straight into its final position (no spawn-at-the-side-then-move,
+no post-processing search). This kills the "sometimes only 2 flood markers" race and
+makes everything appear in place immediately, locked.
 
-makeMap("Marsh Map") spawns everything in staging areas: the 3 flood markers in a
-supply row, 2 spare ruins parked top-left (x=-24.6), and 3 spare suit markers parked
-top-right (z>=25). This mod, running after the map finishes spawning, does the whole
-setup deterministically-correctly:
+The plan (rttMarshPlan), computed before the spawn loop:
+  * each of the 3 flood markers randomly floods its up or down clearing -> the marker
+    spawns on the flooded clearing (rotZ 0/180), locked;
+  * the 2 spare ruins (parked x=-24.6) and 3 spare suit markers (parked z>=23) spawn on
+    the DRY (non-flooded) clearings of markers B/C (ruins) and A/B/C (suits);
+  * ruin ITEMS are randomised by shuffling the 4 ruin entries across their 4 target
+    slots; the 3 spare suits are randomly assigned to the 3 dry clearings — with a
+    correct single-pass Fisher-Yates (rttShuffleList), NOT the base shuffle() (which
+    re-seeds os.time() per iteration; see rtt-rng-bug). The 9 fixed clearing suits are
+    left in place.
 
-  1. randomly flood each marker's up/down side; place the marker there, locked.
-  2. place the 2 spare ruins on markers B/C's dry clearings; place the 3 spare suits
-     on markers A/B/C's dry clearings.
-  3. re-randomise the ruin ITEMS (all 4 ruins) and the suits (all 12 clearing markers)
-     with a CORRECT Fisher-Yates — NOT the base mod's shuffle(), which re-seeds
-     os.time() every iteration and is deterministic per second (see rtt-rng-bug).
-  4. lock everything so nothing gets nudged.
+makeMap spawns objects at position = f(move_to); we override move_to (and rotation)
+per entry, so f still applies. Non-Marsh maps are untouched (RTT_OV stays nil). For
+Marsh we skip shuffleMaps (its ruin/clearing shuffle is what we're replacing; nothing
+else in it applies to Marsh — no City/Clearing-N/Shuffleable objects).
 
-Positions were measured from Adrien's Marsh Reference save. Flood markers are found
-by their unique tile artwork; ruins/suits by their "Ruin"/"Clearing Marker" tags
-(the flood markers carry neither, only "Map Object", so the lists stay clean).
-up/down face = rotZ 0/180 (rotY stays 180).
+Positions measured from Adrien's Marsh Reference save; flood entries found by their
+unique tile artwork, ruins by nickname RUIN, suits by the "Clearing Marker" tag.
 """
 from . import framework
 
-NAME = "Marsh Map: randomise floods + ruins + suits on the non-flooded clearings"
+NAME = "Marsh Map: spawn floods + ruins + suits directly in randomised positions"
 
-# fx/fz/fr = flood-marker spot (+rotZ) when this side is FLOODED;
-# sx/sz/sr = suit-marker spot (+rotY) on this side when it is DRY;
-# rx/rz    = ruin spot on this side when it is DRY (markers B and C only).
 FLOOD_LUA = r"""
 RTT_MARSH = {
-  { tag = "B080D64101E3F465A4247D895622221D53E4E9F1",
+  { key = "A", tag = "53E4E9F1",
     up   = { fx = -11.38, fz = 7.15,  fr = 0,   sx = -13.504, sz = 5.340,  sr = 225 },
     down = { fx = -20.93, fz = -2.72, fr = 180, sx = -17.795, sz = -5.680, sr = 135 } },
-  { tag = "5B5554398541EE4C6F0FED30E31DE2BFC5C35E37",
+  { key = "B", tag = "C5C35E37",
     up   = { fx = 15.91, fz = 3.73,  fr = 0,   sx = 17.342, sz = 0.101,  sr = 165, rx = 14.323, rz = 3.736 },
     down = { fx = 7.20,  fz = -7.21, fr = 180, sx = 3.811,  sz = -8.597, sr = 240, rx = 6.153,  rz = -6.705 } },
-  { tag = "D1E2F18AA1FC25927FDB31D9CBA79B5CB37C9A48",
+  { key = "C", tag = "B37C9A48",
     up   = { fx = 7.70, fz = 16.86,  fr = 0,   sx = 5.947, sz = 20.588, sr = 345, rx = 8.081, rz = 15.388 },
     down = { fx = 0.88, fz = -16.92, fr = 180, sx = 3.512, sz = -14.611, sr = 45, rx = 0.461, rz = -19.318 } },
 }
-
-function rttFindTile(tag)
-  for _, o in ipairs(getAllObjects()) do
-    if o.name == "Custom_Tile" then
-      local co = o.getCustomObject()
-      if co and co.image and string.find(co.image, tag, 1, true) then return o end
-    end
-  end
-  return nil
-end
 
 -- correct single-pass Fisher-Yates; NO os.time re-seed (that is the base shuffle() bug)
 function rttShuffleList(t)
@@ -61,90 +50,69 @@ function rttShuffleList(t)
   end
 end
 
-function rttPlace(o, x, z, rx, ry, rz)
-  local y = o.getPosition().y
-  o.setLock(false)
-  o.setPosition({ x, y, z })
-  o.setRotation({ rx, ry, rz })
-  o.setLock(true)
-end
-
-function rttMarshSetup(tries)
-  tries = tries or 0
-  local floods = {}
-  local allFound = true
-  for _, m in ipairs(RTT_MARSH) do
-    floods[m.tag] = rttFindTile(m.tag)
-    if floods[m.tag] == nil then allFound = false end
-  end
-  local ruins = getObjectsWithTag("Ruin")
-  local suits = getObjectsWithTag("Clearing Marker")
-  if (not allFound) or ruins == nil or #ruins < 4 or suits == nil or #suits < 12 then
-    if tries < 40 then Wait.time(function() rttMarshSetup(tries + 1) end, 0.4) end
-    return
-  end
-
-  -- seed once, here (after makeMap/shuffleMaps have finished re-seeding os.time())
+function rttMarshPlan(objects)
   RTT_MARSH_N = (RTT_MARSH_N or 0) + 1
   math.randomseed(os.time() + RTT_MARSH_N * 7919)
   for k = 1, 10 do math.random() end
 
-  -- 1) flood a random side of each marker; collect the DRY-side suit/ruin targets
-  local suitTargets = {}
-  local ruinTargets = {}
+  local floodIx = {}
+  local ruinIx = {}
+  local suitIx = {}
+  for idx, v in ipairs(objects) do
+    local j = v.json
+    if     string.find(j, "53E4E9F1", 1, true) then floodIx["A"] = idx
+    elseif string.find(j, "C5C35E37", 1, true) then floodIx["B"] = idx
+    elseif string.find(j, "B37C9A48", 1, true) then floodIx["C"] = idx
+    elseif string.find(j, "RUIN", 1, true) then ruinIx[#ruinIx + 1] = idx
+    elseif string.find(j, "Clearing Marker", 1, true) then suitIx[#suitIx + 1] = idx
+    end
+  end
+
+  local ov = {}
+  local drySuits = {}
+  local dryRuins = {}
   for _, m in ipairs(RTT_MARSH) do
     local flooded, dry
     if math.random(2) == 1 then flooded = m.up; dry = m.down else flooded = m.down; dry = m.up end
-    rttPlace(floods[m.tag], flooded.fx, flooded.fz, 0, 180, flooded.fr)
-    suitTargets[#suitTargets + 1] = { dry.sx, dry.sz, 0, dry.sr, 0 }
-    if dry.rx ~= nil then ruinTargets[#ruinTargets + 1] = { dry.rx, dry.rz, 0, 180, 0 } end
-  end
-
-  -- 2+3) SUITS: 9 real clearings (read current non-supply markers) + 3 dry ones;
-  --       shuffle all 12 markers across those 12 slots => suits truly randomised.
-  local suitSlots = {}
-  for _, s in ipairs(suits) do
-    local p = s.getPosition()
-    if p.z < 23 then                       -- the 3 spare suits are parked at z>=25
-      local r = s.getRotation()
-      suitSlots[#suitSlots + 1] = { p.x, p.z, r.x, r.y, r.z }
+    local fi = floodIx[m.key]
+    if fi ~= nil then
+      ov[fi] = { mt = { flooded.fx, objects[fi].move_to[2], flooded.fz }, rot = { 0, 180, flooded.fr } }
     end
-  end
-  for _, t in ipairs(suitTargets) do suitSlots[#suitSlots + 1] = t end
-  rttShuffleList(suits)
-  for i, s in ipairs(suits) do
-    local t = suitSlots[i]
-    if t ~= nil then rttPlace(s, t[1], t[2], t[3], t[4], t[5]) end
+    drySuits[#drySuits + 1] = { dry.sx, dry.sz, dry.sr }
+    if dry.rx ~= nil then dryRuins[#dryRuins + 1] = { dry.rx, dry.rz } end
   end
 
-  -- RUINS: 2 fixed clearings (read current non-supply ruins) + 2 dry ones;
-  --        shuffle all 4 => ruin ITEMS truly randomised.
+  -- RUINS: 2 fixed slots (entries at x>-20) + 2 dry slots; shuffle across the 4 entries
   local ruinSlots = {}
-  for _, r in ipairs(ruins) do
-    local p = r.getPosition()
-    if p.x > -20 then                       -- the 2 spare ruins are parked at x=-24.6
-      ruinSlots[#ruinSlots + 1] = { p.x, p.z, 0, 180, 0 }
+  for _, idx in ipairs(ruinIx) do
+    if objects[idx].move_to[1] > -20 then
+      ruinSlots[#ruinSlots + 1] = { objects[idx].move_to[1], objects[idx].move_to[3] }
     end
   end
-  for _, t in ipairs(ruinTargets) do ruinSlots[#ruinSlots + 1] = t end
-  rttShuffleList(ruins)
-  for i, r in ipairs(ruins) do
-    local t = ruinSlots[i]
-    if t ~= nil then rttPlace(r, t[1], t[2], t[3], t[4], t[5]) end
+  for _, p in ipairs(dryRuins) do ruinSlots[#ruinSlots + 1] = p end
+  rttShuffleList(ruinSlots)
+  for i, idx in ipairs(ruinIx) do
+    local p = ruinSlots[i]
+    if p ~= nil then ov[idx] = { mt = { p[1], objects[idx].move_to[2], p[2] }, rot = nil } end
   end
 
-  broadcastToAll("Marsh: floods, ruins and suits placed and randomised.", { 0.6, 0.8, 1 })
+  -- SUITS: leave the 9 fixed clearings (entries at z<23); place the 3 spare markers
+  -- (z>=23) on the 3 dry clearings, randomly assigned.
+  local spareSuits = {}
+  for _, idx in ipairs(suitIx) do
+    if objects[idx].move_to[3] >= 23 then spareSuits[#spareSuits + 1] = idx end
+  end
+  rttShuffleList(drySuits)
+  for i, idx in ipairs(spareSuits) do
+    local p = drySuits[i]
+    if p ~= nil then ov[idx] = { mt = { p[1], objects[idx].move_to[2], p[2] }, rot = { 0, p[3], 0 } } end
+  end
+
+  broadcastToAll("Marsh: flooded clearings, ruins and suits randomised.", { 0.6, 0.8, 1 })
+  return ov
 end
 
 """
-
-# Hook the makeMap DEFINITION so ANY Marsh spawn (the "Marsh Map" map button OR the
-# "5 Players" button, both of which call makeMap(...,"Marsh Map")) runs the setup.
-HOOK = (
-    '\n  if id == "Marsh Map" then\n'
-    '    Wait.time(function() rttMarshSetup(0) end, 1.4)\n'
-    '  end'
-)
 
 
 def apply(text):
@@ -152,5 +120,37 @@ def apply(text):
     if text.count(sig) != 1:
         raise framework.BuildError("makeMap anchor not unique")
     text = text.replace(sig, framework.esc(FLOOD_LUA) + sig, 1)
-    text = text.replace(sig, sig + framework.esc(HOOK), 1)
+
+    # 1) build the plan once, right after the map data is loaded
+    old1 = "objects = EVERYTHING[\"Maps\"][id]['data']"
+    new1 = old1 + "\n  local RTT_OV = nil\n  if id == \"Marsh Map\" then RTT_OV = rttMarshPlan(objects) end"
+    text = framework.replace_unique(text, framework.esc(old1), framework.esc(new1))
+
+    # 2) per-entry override of move_to / rotation / lock in the spawn loop
+    old2 = "  for _,v in ipairs(objects) do\n    local vec = Vector(v.move_to) * scale"
+    new2 = ("  for idx,v in ipairs(objects) do\n"
+            "    local rtt_mt = v.move_to\n"
+            "    local rtt_rot = nil\n"
+            "    local rtt_lock = false\n"
+            "    if RTT_OV ~= nil and RTT_OV[idx] ~= nil then rtt_mt = RTT_OV[idx].mt rtt_rot = RTT_OV[idx].rot rtt_lock = true end\n"
+            "    local vec = Vector(rtt_mt) * scale")
+    text = framework.replace_unique(text, framework.esc(old2), framework.esc(new2))
+
+    # 3) pass the rotation to the spawn, and lock the piece in its callback
+    old3 = ("        json              = v.json,\n"
+            "        position          = new_pos,\n"
+            "        callback_function = function(spawned_object)\n\n"
+            "        if spawned_object.name == \"Bag\" then spawned_object.shuffle() end")
+    new3 = ("        json              = v.json,\n"
+            "        position          = new_pos,\n"
+            "        rotation          = rtt_rot,\n"
+            "        callback_function = function(spawned_object)\n\n"
+            "        if rtt_lock then spawned_object.setLock(true) end\n"
+            "        if spawned_object.name == \"Bag\" then spawned_object.shuffle() end")
+    text = framework.replace_unique(text, framework.esc(old3), framework.esc(new3))
+
+    # 4) Marsh does its own randomisation above, so skip the buggy shuffleMaps for it
+    old4 = "  shuffleMaps(id)\nend"
+    new4 = "  if id ~= \"Marsh Map\" then shuffleMaps(id) end\nend"
+    text = framework.replace_unique(text, framework.esc(old4), framework.esc(new4))
     return text
