@@ -100,11 +100,16 @@ function rttSetup(player, value, id)
   for i=2,#mil do pool[#pool+1]=mil[i] end
   for _,c in ipairs(RTT_INSURGENT) do pool[#pool+1]=c end
   rttShuffle(pool)
+  -- the 5 dealt (Militant first); the rest stay as the deck so EVERY faction card is
+  -- on the table. The full random order is fixed here, up front.
   local draft = {first, pool[1], pool[2], pool[3], pool[4]}
+  local leftover = {}
+  for i=5,#pool do leftover[#leftover+1]=pool[i] end
+  RTT_NLEFT = #leftover
+  -- stack the deck: leftover on the bottom, the 5 draft cards on top (dealt from the top).
   local jsons = {}
-  for _,cid in ipairs(draft) do
-    jsons[#jsons+1] = RTT_MIL_CARDS[cid] or RTT_INS_CARDS[cid]
-  end
+  for _,cid in ipairs(leftover) do jsons[#jsons+1] = RTT_MIL_CARDS[cid] or RTT_INS_CARDS[cid] end
+  for _,cid in ipairs(draft)    do jsons[#jsons+1] = RTT_MIL_CARDS[cid] or RTT_INS_CARDS[cid] end
   rttSpawnDeck(jsons, 1, {})
 end
 
@@ -130,33 +135,34 @@ end
 
 -- 2) deal from the deck: each card flies up in a small ARC (raised mid-point) to its
 --    slot. Card 1 (always the Militant) lands LEFT-most, each later card one right.
-function rttSlideOut(cards, i)
-  if i > #cards then
+function rttSlideOut(cards, k)
+  if k > 5 then                                        -- deal only the top 5; leave the deck
     Wait.time(function() rttFlipAll(cards, 1) end, 0.6)
     return
   end
-  local c = cards[i]
+  local c = cards[RTT_NLEFT + k]                        -- the k-th draft card (top of the deck)
   if c ~= nil then
     c.setLock(false)
-    local s = RTT_SLOTS[#cards - i + 1]
+    local s = RTT_SLOTS[6 - k]                          -- k=1 (Militant) -> LEFT-most slot
     local mid = {s[1], s[2] + 4, (RTT_DECK[3] + s[3]) / 2}   -- lift over -> arc
     c.setPositionSmooth(mid, false, false)
     Wait.time(function()
       if c ~= nil then c.setPositionSmooth({s[1], s[2], s[3]}, false, true) end
     end, 0.35)
   end
-  Wait.time(function() rttSlideOut(cards, i+1) end, 0.6)
+  Wait.time(function() rttSlideOut(cards, k+1) end, 0.6)
 end
 
 -- 3) flip face-up with the REAL flip mechanism (a natural flip, not a rotate that
 --    clips through the table), one card at a time so they all flip the same way.
-function rttFlipAll(cards, i)
-  if i > #cards then
+function rttFlipAll(cards, k)
+  if k > 5 then                                        -- only the 5 dealt cards flip up
     Wait.time(rttDealOrder, 1.0)
     return
   end
-  if cards[i] ~= nil then cards[i].flip() end
-  Wait.time(function() rttFlipAll(cards, i+1) end, 0.12)
+  local c = cards[RTT_NLEFT + k]
+  if c ~= nil then c.flip() end
+  Wait.time(function() rttFlipAll(cards, k+1) end, 0.12)
 end
 
 function rttDealOrder()
