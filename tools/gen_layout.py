@@ -31,7 +31,7 @@ ROWS = [
     (["Summer Map", "Lake Map", "Marsh Map", "Winter Map", "Mountain Map", "Gorge Map"], 34, 34, 38),
     (["Standard Deck", "Exiles and Partisans Deck", "Squires and Disciples Deck"], 34, 34, 50),
     (["Faction Select", "Battle Mat", "Ginso's Gizmo", "Clearing Priorities", "Clearing Markers", "Vagabond Cards"], 34, 17, 38),
-    (["Lizard Wizard", "Mini-Mood Manager", "Mob Lobber", "Landmarks", "Swol Birbs", "Marsh5P"], 34, 17, 37),
+    (["Lizard Wizard", "Mini-Mood Manager", "Mob Lobber", "Landmarks", "Swol Birbs", "Marsh5P"], 34, 17, 38),
 ]
 
 els = []

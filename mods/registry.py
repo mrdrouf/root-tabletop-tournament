@@ -55,6 +55,7 @@ from . import m380_faction_selector_clean
 from . import m390_no_hover_credits
 from . import m400_remove_fan_factions
 from . import m410_marsh_5p
+from . import m420_rtt_button_style
 
 # Ready-made examples — uncomment to begin layering real modifications:
 # from . import m010_no_marquise_dice
@@ -97,6 +98,7 @@ MODS = [
     m340_layout_polish,
     m355_setup_fixes,
     m410_marsh_5p,
+    m420_rtt_button_style,
     m350_custom_layout,
     m360_board_cleanup,
     m380_faction_selector_clean,

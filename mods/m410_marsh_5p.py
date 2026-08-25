@@ -16,7 +16,7 @@ FUNC = (
     '  broadcastToAll("Marsh map - 5-player option", {0.9,0.85,0.6})\n'
     'end\n\n'
 )
-BUTTON = ('<Button id="Marsh5P" onclick="rttMarsh5P" text="Marsh 5P" '
+BUTTON = ('<Button id="Marsh5P" onclick="rttMarsh5P" text="5 Players" '
           'position="0 -73 -20" width="34" height="17" fontSize="7" color="#9b8551"/>')
 
 

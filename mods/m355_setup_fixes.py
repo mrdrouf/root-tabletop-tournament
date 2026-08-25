@@ -25,12 +25,8 @@ def apply(text):
         text, n = framework.remove_xml_buttons(text, bid)
         if n == 0:
             raise framework.BuildError("setup button to remove not found: %r" % bid)
-    # References -> plain TEXT rectangle buttons. The original 1:1 icons look wrong in
-    # the row (square/stretched) and custom fit-icons blank in TTS; a text label is
-    # reliable, always visible, and keeps the half-tile rectangle shape.
-    text = framework.replace_unique(text, 'icon =\\"Vagabond Cards\\"', 'text=\\"Vagabond Cards\\"')
-    text = framework.replace_unique(text, 'icon =\\"Landmarks\\"', 'text=\\"Landmarks\\"')
-    text = text.replace('icon=\\"Clearing Priorities Big\\"', 'text=\\"Clearing Priorities\\"')
-    for bid in ("Vagabond Cards", "Landmarks", "Clearing Priorities"):
-        text, _ = framework.set_button_attr(text, bid, "fontSize", "6")
+    # References keep their ORIGINAL (Steam, reliably-loading) icons so the art shows,
+    # like the tool boxes. They're 1:1 art in the 34x17 row, so TTS stretches them a
+    # little — the trade for reliable, always-visible art (custom padded icons blank
+    # in TTS). Sized/aligned by gen_layout.
     return text
