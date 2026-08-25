@@ -12,10 +12,10 @@ The plan (rttMarshPlan), computed before the spawn loop:
   * the 2 spare ruins (parked x=-24.6) and 3 spare suit markers (parked z>=23) spawn on
     the DRY (non-flooded) clearings of markers B/C (ruins) and A/B/C (suits);
   * ruin ITEMS are randomised by shuffling the 4 ruin entries across their 4 target
-    slots; the 3 spare suits are randomly assigned to the 3 dry clearings — with a
-    correct single-pass Fisher-Yates (rttShuffleList), NOT the base shuffle() (which
-    re-seeds os.time() per iteration; see rtt-rng-bug). The 9 fixed clearing suits are
-    left in place.
+    slots; ALL 12 clearing suits (4 of each colour) are randomised across the 12 active
+    clearings (9 fixed + the 3 dry candidates) — with a correct single-pass Fisher-Yates
+    (rttShuffleList), NOT the base shuffle() (which re-seeds os.time() per iteration; see
+    rtt-rng-bug).
 
 makeMap spawns objects at position = f(move_to); we override move_to (and rotation)
 per entry, so f still applies. Non-Marsh maps are untouched (RTT_OV stays nil). For
@@ -30,6 +30,13 @@ from . import framework
 NAME = "Marsh Map: spawn floods + ruins + suits directly in randomised positions"
 
 FLOOD_LUA = r"""
+-- the 9 always-present Marsh clearings (move_to x, z, rotY) that are never flood
+-- candidates; the other 3 active clearings are the dry sides of markers A/B/C.
+RTT_MARSH_SUIT9 = {
+  { 21.35, -16.92, 75 }, { -11.09, -16.05, 225 }, { -17.96, -13.52, 30 },
+  { 22.78, -11.85, 165 }, { -0.72, -0.27, 75 }, { 6.02, 2.89, 135 },
+  { 16.94, 11.65, 240 }, { -23.58, 19.61, 300 }, { -2.04, 21.44, 30 },
+}
 RTT_MARSH = {
   { key = "A", tag = "53E4E9F1",
     up   = { fx = -11.38, fz = 7.15,  fr = 0,   sx = -13.504, sz = 5.340,  sr = 225 },
@@ -96,16 +103,15 @@ function rttMarshPlan(objects)
     if p ~= nil then ov[idx] = { mt = { p[1], objects[idx].move_to[2], p[2] }, rot = nil } end
   end
 
-  -- SUITS: leave the 9 fixed clearings (entries at z<23); place the 3 spare markers
-  -- (z>=23) on the 3 dry clearings, randomly assigned.
-  local spareSuits = {}
-  for _, idx in ipairs(suitIx) do
-    if objects[idx].move_to[3] >= 23 then spareSuits[#spareSuits + 1] = idx end
-  end
-  rttShuffleList(drySuits)
-  for i, idx in ipairs(spareSuits) do
-    local p = drySuits[i]
-    if p ~= nil then ov[idx] = { mt = { p[1], objects[idx].move_to[2], p[2] }, rot = { 0, p[3], 0 } } end
+  -- SUITS: ALL 12 clearings are always randomised (4 of each colour). Distribute the
+  -- 12 suit markers across the 12 active clearings = 9 fixed + the 3 dry candidates.
+  local suitTargets = {}
+  for _, p in ipairs(RTT_MARSH_SUIT9) do suitTargets[#suitTargets + 1] = { p[1], p[2], p[3] } end
+  for _, p in ipairs(drySuits) do suitTargets[#suitTargets + 1] = p end
+  rttShuffleList(suitTargets)
+  for i, idx in ipairs(suitIx) do
+    local t = suitTargets[i]
+    if t ~= nil then ov[idx] = { mt = { t[1], objects[idx].move_to[2], t[2] }, rot = { 0, t[3], 0 } } end
   end
 
   broadcastToAll("Marsh: flooded clearings, ruins and suits randomised.", { 0.6, 0.8, 1 })
