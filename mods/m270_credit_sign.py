@@ -37,10 +37,10 @@ WIDTH = 52  # UI units; height derived from the font's aspect so it isn't stretc
 
 
 def apply(text):
-    url = "%s/assets/credit/credit_%s.png" % (REPO_RAW, FONT)
-    text = framework.add_custom_ui_asset(text, ASSET_NAME, url)
-
-    height = round(WIDTH / ASPECT[FONT], 1)
-    img = ('<Image id="rttCredit" image="%s" position="-58 -73 -22" '
-           'rotation="0 0 -6" width="%d" height="%s"/>' % (ASSET_NAME, WIDTH, height))
-    return framework.add_button_to_group(text, "Main Nav", img)
+    # Custom (non-Steam) UI images blank in TTS, so the handwriting IMAGE is disabled;
+    # use a small italic TEXT credit that always renders. (Restore the handwriting via
+    # a Steam-hosted image once uploaded.)
+    txt = ('<Text id="rttCredit" text="+ MrDrouf &amp; Claude" position="-70 84 -22" '
+           'rotation="0 0 -6" width="60" height="11" fontSize="7" fontStyle="Italic" '
+           'color="#241f18"/>')
+    return framework.add_button_to_group(text, "Main Nav", txt)

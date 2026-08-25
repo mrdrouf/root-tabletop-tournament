@@ -40,13 +40,8 @@ def apply(text):
         eid, grp, kind = e["id"], e["group"], e.get("kind")
         pos = "%g %g -20" % (e["x"], e["y"])
         if kind == "credit":
-            text, _ = framework.set_xml_attr(text, "Image", eid, "position", pos)
-            text, _ = framework.set_xml_attr(text, "Image", eid, "width", "%g" % e["w"])
-            text, _ = framework.set_xml_attr(text, "Image", eid, "height", "%g" % e["h"])
-            if e.get("label") and e["label"] != CREDIT_DEFAULT:
-                render_assets.render_credit(
-                    e["label"], os.path.join(ROOT, "assets", "credit", "credit_%s.png" % CREDIT_FONT),
-                    font=CREDIT_FONT)
+            # the credit is now a <Text> element (custom UI images blank in TTS)
+            text, _ = framework.set_xml_attr(text, "Text", eid, "position", pos)
             continue
         # buttons (setups / maps / decks / tools)
         text, n = framework.set_button_position_in_group(text, grp, eid, pos)

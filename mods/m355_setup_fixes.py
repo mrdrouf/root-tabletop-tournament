@@ -25,9 +25,8 @@ def apply(text):
         text, n = framework.remove_xml_buttons(text, bid)
         if n == 0:
             raise framework.BuildError("setup button to remove not found: %r" % bid)
-    for bid, name, png in FIT:
-        text = framework.add_custom_ui_asset(text, name, "%s/assets/icons_fit/%s" % (REPO_RAW, png))
-        text, n = framework.set_button_attr(text, bid, "icon", name)
-        if n == 0:
-            raise framework.BuildError("reference button not found: %r" % bid)
+    # NOTE: the aspect-fit reference icons are DISABLED — custom (non-Steam) UI images
+    # briefly load then blank in TTS. The references keep their original Steam icons
+    # (which load reliably); m340/gen_layout size those buttons SQUARE so 1:1 art
+    # isn't stretched. Re-enable via Steam-hosted URLs once uploaded.
     return text

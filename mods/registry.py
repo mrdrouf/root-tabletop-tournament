@@ -52,6 +52,8 @@ from . import m350_custom_layout
 from . import m360_board_cleanup
 from . import m370_cdn_urls
 from . import m380_faction_selector_clean
+from . import m390_no_hover_credits
+from . import m400_remove_fan_factions
 
 # Ready-made examples — uncomment to begin layering real modifications:
 # from . import m010_no_marquise_dice
@@ -90,11 +92,13 @@ MODS = [
     m300_duchy_warriors,
     m310_errata,
     m320_menu_cleanup,
-    m330_setup_plaques,
+    # m330_setup_plaques,  # DISABLED: custom UI plaques blank in TTS (RTT is a text button)
     m340_layout_polish,
     m355_setup_fixes,
     m350_custom_layout,
     m360_board_cleanup,
     m380_faction_selector_clean,
+    m390_no_hover_credits,
+    # m400_remove_fan_factions,  # TEMP disabled: introduces 2 dangling refs — fix first
     m370_cdn_urls,
 ]
