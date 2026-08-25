@@ -57,6 +57,7 @@ function rttFloodMarsh(tries)
         local s = f.down
         if math.random(2) == 1 then s = f.up end
         local y = o.getPosition().y
+        o.setLock(false)
         o.setPositionSmooth({ s[1], y, s[2] }, false, true)
         o.setRotationSmooth({ 0, 180, s[3] }, false, true)
         RTT_MARSH_DONE[f.tag] = true
@@ -74,25 +75,26 @@ end
 
 """
 
-TRIGGER = (
-    '\n  RTT_MARSH_DONE = {}\n'
-    '  RTT_MARSH_N = (RTT_MARSH_N or 0) + 1\n'
-    '  math.randomseed(os.time() + RTT_MARSH_N * 5701)\n'
-    '  for i = 1, 5 do math.random() end\n'
-    '  Wait.time(function() rttFloodMarsh(0) end, 1.2)'
+# Hook the makeMap DEFINITION so ANY Marsh spawn (the "Marsh Map" map button OR the
+# "5 Players" button, both of which call makeMap(...,"Marsh Map")) triggers the flood
+# randomiser — not just the 5-player path.
+HOOK = (
+    '\n  if id == "Marsh Map" then\n'
+    '    RTT_MARSH_DONE = {}\n'
+    '    RTT_MARSH_N = (RTT_MARSH_N or 0) + 1\n'
+    '    math.randomseed(os.time() + RTT_MARSH_N * 5701)\n'
+    '    for i = 1, 5 do math.random() end\n'
+    '    Wait.time(function() rttFloodMarsh(0) end, 1.4)\n'
+    '  end'
 )
 
 
 def apply(text):
-    # 1) inject the flood table + helpers just before makeMap()
-    anchor = "function makeMap(player,value,id)"
-    if text.count(anchor) != 1:
+    sig = "function makeMap(player,value,id)"
+    if text.count(sig) != 1:
         raise framework.BuildError("makeMap anchor not unique")
-    text = text.replace(anchor, framework.esc(FLOOD_LUA) + anchor, 1)
-
-    # 2) trigger the randomiser right after rttMarsh5P spawns the map
-    spawn_call = framework.esc('makeMap(nil, nil, "Marsh Map")')
-    if text.count(spawn_call) != 1:
-        raise framework.BuildError("rttMarsh5P makeMap call not unique (%d)" % text.count(spawn_call))
-    text = text.replace(spawn_call, spawn_call + framework.esc(TRIGGER), 1)
+    # 1) inject the flood table + helpers just before makeMap()
+    text = text.replace(sig, framework.esc(FLOOD_LUA) + sig, 1)
+    # 2) run the randomiser at the top of makeMap when the Marsh map is spawned
+    text = text.replace(sig, sig + framework.esc(HOOK), 1)
     return text

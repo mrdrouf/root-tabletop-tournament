@@ -59,7 +59,7 @@ from . import m420_rtt_button_style
 from . import m430_clearing_priorities_fix
 from . import m431_declutter_toplevel
 from . import m440_marsh_floods
-from . import m450_label_icons
+# m450_label_icons DISABLED: confirmed custom (non-Steam) UI icons blank in TTS
 
 # Ready-made examples — uncomment to begin layering real modifications:
 # from . import m010_no_marquise_dice
@@ -112,5 +112,5 @@ MODS = [
     m390_no_hover_credits,
     m400_remove_fan_factions,
     m370_cdn_urls,
-    m450_label_icons,              # repoint VB Cards / Landmarks icons to Mason-label composites
+    # m450_label_icons,  # DISABLED — custom UI icons blank in TTS; VB/Landmarks stay on Steam art
 ]
