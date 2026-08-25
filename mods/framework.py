@@ -279,6 +279,22 @@ def set_xml_attr(text, tag, elem_id, attr, new_val):
     return text, count
 
 
+def set_ui_asset_url(text, name, url):
+    """Repoint the CustomUIAssets entry named `name` to `url` (top-level JSON, real
+    quotes). The entry is `{ "Type":0, "Name":"<name>", "URL":"<url>" }`; we find the
+    Name and replace the URL value that follows it. Requires the Name to be unique."""
+    anchor = '"Name": "%s"' % name
+    if text.count(anchor) != 1:
+        raise BuildError("UI asset name %r not unique (%d)" % (name, text.count(anchor)))
+    i = text.find(anchor)
+    u = text.find('"URL": "', i)
+    if u == -1:
+        raise BuildError("URL field not found for UI asset %r" % name)
+    s = u + len('"URL": "')
+    e = text.find('"', s)
+    return text[:s] + url + text[e:]
+
+
 def add_custom_ui_asset(text, name, url, *, near_asset="WWDraftTool"):
     """Register a UI image asset {Type:0, Name, URL} in the object whose
     CustomUIAssets array already contains `near_asset` (the Faction Selection menu

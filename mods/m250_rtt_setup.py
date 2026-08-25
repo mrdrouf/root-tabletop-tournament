@@ -76,9 +76,9 @@ RTT_MILITANT = {%s}
 RTT_INSURGENT = {%s}
 -- five landing slots, centred on z=0; slot 5 (z=14) is the LEFT end.
 RTT_SLOTS = {{63.9,11.6,-14},{63.9,11.6,-7},{63.9,11.6,0},{63.9,11.6,7},{63.9,11.6,14}}
--- the draft deck sits one inter-card spacing (7) past the LEFT-most slot (z=14),
--- so the resting deck reads separate but not stranded.
-RTT_DECK = {63.9,11.6,21}
+-- the draft deck sits past the LEFT-most slot (z=14) with a ~10-unit gap: left of
+-- the cards, but not stranded far out.
+RTT_DECK = {63.9,11.6,24}
 RTT_SPAWNED = {}
 
 function rttShuffle(t)
