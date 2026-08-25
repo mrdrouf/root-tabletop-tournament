@@ -128,6 +128,34 @@ function rttMarshPlan(objects)
   return ov
 end
 
+-- Spawn the Marsh map ONE object at a time (a few frames apart). Spawning all ~39
+-- objects in a single frame makes TTS silently drop some (missing floods/suits).
+function rttMarshSpawn(objects, idx, scale, ov)
+  if idx > #objects then return end
+  local v = objects[idx]
+  local mt = v.move_to
+  local rot = nil
+  local lock = false
+  if ov ~= nil and ov[idx] ~= nil then mt = ov[idx].mt rot = ov[idx].rot lock = true end
+  local vec = Vector(mt) * scale
+  vec.y = vec.y - 0.1
+  vec = vec * Vector({15.5, 1, 15.5})
+  local new_pos = vec
+  new_pos.y = new_pos.y + 10 - 8.5 + 0.05 - 0.07 + 10.08
+  local ob = spawnObjectJSON({
+    json = v.json,
+    position = new_pos,
+    rotation = rot,
+    callback_function = function(spawned_object)
+      if lock then spawned_object.setLock(true) end
+      if spawned_object.name == "Bag" then spawned_object.shuffle() end
+      spawned_object.addTag("Map Object")
+    end
+  })
+  RTT_MARSH_PIECES[#RTT_MARSH_PIECES + 1] = ob
+  Wait.time(function() rttMarshSpawn(objects, idx + 1, scale, ov) end, 0.05)
+end
+
 """
 
 
@@ -203,4 +231,11 @@ def apply(text):
             '    if RTT_OV ~= nil then RTT_MARSH_PIECES[#RTT_MARSH_PIECES + 1] = ob end\n'
             '  end\n  if id ~= "Marsh Map" then shuffleMaps(id) end')
     text = framework.replace_unique(text, framework.esc(old7), framework.esc(new7))
+
+    # 8) Route Marsh through the staggered spawner (one object every few frames) so
+    #    TTS stops dropping some of the ~39 simultaneous spawns; skip the tight loop.
+    old8 = "  for idx,v in ipairs(objects) do\n    local rtt_mt = v.move_to"
+    new8 = ('  if id == "Marsh Map" then rttMarshSpawn(objects, 1, scale, RTT_OV) return end\n\n'
+            "  for idx,v in ipairs(objects) do\n    local rtt_mt = v.move_to")
+    text = framework.replace_unique(text, framework.esc(old8), framework.esc(new8))
     return text
