@@ -114,7 +114,6 @@ function rttMarshPlan(objects)
     if t ~= nil then ov[idx] = { mt = { t[1], objects[idx].move_to[2], t[2] }, rot = { 0, t[3], 0 } } end
   end
 
-  broadcastToAll("Marsh: flooded clearings, ruins and suits randomised.", { 0.6, 0.8, 1 })
   return ov
 end
 
@@ -159,4 +158,15 @@ def apply(text):
     old4 = "  shuffleMaps(id)\nend"
     new4 = "  if id ~= \"Marsh Map\" then shuffleMaps(id) end\nend"
     text = framework.replace_unique(text, framework.esc(old4), framework.esc(new4))
+
+    # 5) BASE BUG (all maps): the spawn callback tags map objects with
+    #    setTags(table.insert(getTags(),"Map Object")). table.insert returns nil in
+    #    Lua 5.2, so this is setTags(nil) and the "Map Object" tag ends up absent at
+    #    runtime. removeMapItems() keys entirely on getObjectsWithTag("Map Object"),
+    #    so the prior (locked) Marsh tiles are never destructed and pile up across
+    #    presses -> "missing" floods/suits/ruins and a sword frozen at its first-press
+    #    site. Use the additive API the Treasure branch two lines up already uses.
+    old5 = 'spawned_object.setTags(table.insert(spawned_object.getTags(),"Map Object"))'
+    new5 = 'spawned_object.addTag("Map Object")'
+    text = framework.replace_unique(text, framework.esc(old5), framework.esc(new5))
     return text
