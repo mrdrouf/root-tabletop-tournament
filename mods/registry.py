@@ -59,6 +59,7 @@ from . import m420_rtt_button_style
 from . import m430_clearing_priorities_fix
 from . import m431_declutter_toplevel
 from . import m440_marsh_floods
+from . import m445_marsh_no_landmarks
 # m450_label_icons DISABLED: confirmed custom (non-Steam) UI icons blank in TTS
 
 # Ready-made examples — uncomment to begin layering real modifications:
@@ -107,6 +108,7 @@ MODS = [
     m430_clearing_priorities_fix,  # after m350: rename+wrapper CP, drop stray top-level copies
     m431_declutter_toplevel,       # remove all base top-level bot/fan/reference buttons
     m440_marsh_floods,             # Marsh map: randomise the 3 flooded clearings on spawn
+    m445_marsh_no_landmarks,       # Marsh map: drop the landmark models + cards
     m360_board_cleanup,
     m380_faction_selector_clean,
     m390_no_hover_credits,
