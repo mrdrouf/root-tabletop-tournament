@@ -48,6 +48,14 @@ end
 
 function rttFloodMarsh(tries)
   tries = tries or 0
+  if tries == 0 then
+    -- seed HERE (not in makeMap): the base shuffle()/shuffleMaps re-seed with
+    -- os.time() during makeMap, which would otherwise clobber our RNG. Seeding at
+    -- the first flood pass (1.4s later) runs after all that, so up/down is truly random.
+    RTT_MARSH_N = (RTT_MARSH_N or 0) + 1
+    math.randomseed(os.time() + RTT_MARSH_N * 7919)
+    for k = 1, 10 do math.random() end
+  end
   RTT_MARSH_DONE = RTT_MARSH_DONE or {}
   local remaining = 0
   for _, f in ipairs(RTT_MARSH_FLOODS) do
@@ -58,15 +66,16 @@ function rttFloodMarsh(tries)
         if math.random(2) == 1 then s = f.up end
         local y = o.getPosition().y
         o.setLock(false)
-        o.setPositionSmooth({ s[1], y, s[2] }, false, true)
-        o.setRotationSmooth({ 0, 180, s[3] }, false, true)
+        o.setPosition({ s[1], y, s[2] })          -- placed directly, no slide
+        o.setRotation({ 0, 180, s[3] })
+        o.setLock(true)                            -- lock so it can't be nudged
         RTT_MARSH_DONE[f.tag] = true
       else
         remaining = remaining + 1
       end
     end
   end
-  if remaining > 0 and tries < 15 then
+  if remaining > 0 and tries < 40 then             -- keep looking until all 3 spawn
     Wait.time(function() rttFloodMarsh(tries + 1) end, 0.4)
   else
     broadcastToAll("Marsh: flooded clearings placed (randomised up/down).", { 0.6, 0.8, 1 })
@@ -81,9 +90,6 @@ end
 HOOK = (
     '\n  if id == "Marsh Map" then\n'
     '    RTT_MARSH_DONE = {}\n'
-    '    RTT_MARSH_N = (RTT_MARSH_N or 0) + 1\n'
-    '    math.randomseed(os.time() + RTT_MARSH_N * 5701)\n'
-    '    for i = 1, 5 do math.random() end\n'
     '    Wait.time(function() rttFloodMarsh(0) end, 1.4)\n'
     '  end'
 )
