@@ -13,7 +13,7 @@ NAME = "add a Marsh 5P option box"
 FUNC = (
     '\nfunction rttMarsh5P()\n'
     '  makeMap(nil, nil, "Marsh Map")\n'
-    '  broadcastToAll("Marsh map \\u2014 5-player option", {0.9,0.85,0.6})\n'
+    '  broadcastToAll("Marsh map - 5-player option", {0.9,0.85,0.6})\n'
     'end\n\n'
 )
 BUTTON = ('<Button id="Marsh5P" onclick="rttMarsh5P" text="Marsh 5P" '
