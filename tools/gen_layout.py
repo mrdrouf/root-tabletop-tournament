@@ -45,12 +45,7 @@ for ids, w, h, sp in ROWS:
                         x=x, y=round(cy, 2), w=w, h=h, label=LABEL.get(bid, bid)))
     y_top = cy - h / 2 - GAP
 
-# references use their original (Steam, reliably-loading) 1:1 icons -> make them SQUARE
-# so they aren't stretched in the half-tile row
-for e in els:
-    if e["id"] in ("Vagabond Cards", "Landmarks", "Clearing Priorities"):
-        e["w"] = e["h"] = 22
-
+# references are text buttons now (m355) -> keep the half-tile RECTANGLE shape (34x17)
 els.append(dict(id="rttCredit", group="Main Nav", kind="credit", x=-72, y=88, w=52, h=9.9, label=""))
 json.dump({"elements": els}, open(os.path.join(ROOT, "tools", "user_layout.json"), "w"), indent=1)
 print("wrote %d elements; bottom edge y=%.1f" % (len(els), y_top + GAP))

@@ -25,8 +25,12 @@ def apply(text):
         text, n = framework.remove_xml_buttons(text, bid)
         if n == 0:
             raise framework.BuildError("setup button to remove not found: %r" % bid)
-    # NOTE: the aspect-fit reference icons are DISABLED — custom (non-Steam) UI images
-    # briefly load then blank in TTS. The references keep their original Steam icons
-    # (which load reliably); m340/gen_layout size those buttons SQUARE so 1:1 art
-    # isn't stretched. Re-enable via Steam-hosted URLs once uploaded.
+    # References -> plain TEXT rectangle buttons. The original 1:1 icons look wrong in
+    # the row (square/stretched) and custom fit-icons blank in TTS; a text label is
+    # reliable, always visible, and keeps the half-tile rectangle shape.
+    text = framework.replace_unique(text, 'icon =\\"Vagabond Cards\\"', 'text=\\"Vagabond Cards\\"')
+    text = framework.replace_unique(text, 'icon =\\"Landmarks\\"', 'text=\\"Landmarks\\"')
+    text = text.replace('icon=\\"Clearing Priorities Big\\"', 'text=\\"Clearing Priorities\\"')
+    for bid in ("Vagabond Cards", "Landmarks", "Clearing Priorities"):
+        text, _ = framework.set_button_attr(text, bid, "fontSize", "6")
     return text

@@ -107,8 +107,8 @@ function rttSetup(player, value, id)
   rttSpawnDeck(jsons, 1, {})
 end
 
--- 1) build a real, visible face-down DECK at RTT_DECK (left of the row): spawn all
---    five cards there, locked & lightly stacked so they don't merge.
+-- 1) a real face-down DECK resting ON the table at RTT_DECK: cards spawn in a tight
+--    stack at table height (y offsets are tiny) and are locked so it sits like a deck.
 function rttSpawnDeck(jsons, i, cards)
   if i > #jsons then
     Wait.time(function() rttSlideOut(cards, 1) end, 0.9)   -- let the deck sit, then deal
@@ -116,45 +116,46 @@ function rttSpawnDeck(jsons, i, cards)
   end
   spawnObjectJSON({
     json = jsons[i],
-    position = {RTT_DECK[1], RTT_DECK[2] + 0.35 * i, RTT_DECK[3]},
+    position = {RTT_DECK[1], RTT_DECK[2] + 0.05 * i, RTT_DECK[3]},
     rotation = {0, 270, 180},
     callback_function = function(o)
       o.setLock(true)
       RTT_SPAWNED[#RTT_SPAWNED+1] = o.getGUID()
       cards[i] = o
-      Wait.time(function() rttSpawnDeck(jsons, i+1, cards) end, 0.12)
+      Wait.time(function() rttSpawnDeck(jsons, i+1, cards) end, 0.1)
     end
   })
 end
 
--- 2) deal from that deck: card 1 (always the Militant) slides to the LEFT-most slot,
---    each later card one slot further right.
+-- 2) deal from the deck: each card flies up in a small ARC (raised mid-point) to its
+--    slot. Card 1 (always the Militant) lands LEFT-most, each later card one right.
 function rttSlideOut(cards, i)
   if i > #cards then
-    Wait.time(function() rttFlipAll(cards) end, 0.5)
+    Wait.time(function() rttFlipAll(cards, 1) end, 0.6)
     return
   end
   local c = cards[i]
   if c ~= nil then
     c.setLock(false)
     local s = RTT_SLOTS[#cards - i + 1]
-    c.setPositionSmooth({s[1], s[2] + 0.5, s[3]}, false, false)
+    local mid = {s[1], s[2] + 4, (RTT_DECK[3] + s[3]) / 2}   -- lift over -> arc
+    c.setPositionSmooth(mid, false, false)
+    Wait.time(function()
+      if c ~= nil then c.setPositionSmooth({s[1], s[2], s[3]}, false, true) end
+    end, 0.35)
   end
-  Wait.time(function() rttSlideOut(cards, i+1) end, 0.55)
+  Wait.time(function() rttSlideOut(cards, i+1) end, 0.6)
 end
 
--- 3) flip all face-up in the SAME direction (two steps through 90 so the interpolation
---    can't split 180->0 into different ways per card).
-function rttFlipAll(cards)
-  for _,c in ipairs(cards) do
-    if c ~= nil then c.setRotationSmooth({0, 270, 90}, false, false) end
+-- 3) flip face-up with the REAL flip mechanism (a natural flip, not a rotate that
+--    clips through the table), one card at a time so they all flip the same way.
+function rttFlipAll(cards, i)
+  if i > #cards then
+    Wait.time(rttDealOrder, 1.0)
+    return
   end
-  Wait.time(function()
-    for _,c in ipairs(cards) do
-      if c ~= nil then c.setRotationSmooth({0, 270, 0}, false, false) end
-    end
-    Wait.time(rttDealOrder, 0.8)
-  end, 0.45)
+  if cards[i] ~= nil then cards[i].flip() end
+  Wait.time(function() rttFlipAll(cards, i+1) end, 0.12)
 end
 
 function rttDealOrder()

@@ -136,8 +136,8 @@
    "kind": "game",
    "x": 19.0,
    "y": -46.5,
-   "w": 22,
-   "h": 22,
+   "w": 34,
+   "h": 17,
    "label": "Clearing Priorities Big"
   },
   {
@@ -156,8 +156,8 @@
    "kind": "game",
    "x": 95.0,
    "y": -46.5,
-   "w": 22,
-   "h": 22,
+   "w": 34,
+   "h": 17,
    "label": "Vagabond Cards"
   },
   {
@@ -196,8 +196,8 @@
    "kind": "game",
    "x": 38.0,
    "y": -69.5,
-   "w": 22,
-   "h": 22,
+   "w": 34,
+   "h": 17,
    "label": "Landmarks"
   },
   {
