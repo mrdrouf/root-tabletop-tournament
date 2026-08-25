@@ -13,8 +13,13 @@ from . import framework
 NAME = "remove all Fan Factions (unused in tournament; flaky-host art)"
 
 
+# kept: components still referenced by a (dead but statically-present) Doomed-Vagabond
+# code path — removing them would dangle setupFaction() calls.
+KEEP = {"Doomed Vagabond Dice", "Doomed Vagabond Layout"}
+
+
 def apply(text):
-    names = sorted(set(re.findall(r"EVERYTHING\['Fan Factions'\]\['([^']+)'\]", text)),
+    names = sorted(set(re.findall(r"EVERYTHING\['Fan Factions'\]\['([^']+)'\]", text)) - KEEP,
                    key=len, reverse=True)  # longer first so substrings don't shadow
     removed = 0
     for name in names:

@@ -99,6 +99,6 @@ MODS = [
     m360_board_cleanup,
     m380_faction_selector_clean,
     m390_no_hover_credits,
-    # m400_remove_fan_factions,  # TEMP disabled: introduces 2 dangling refs — fix first
+    m400_remove_fan_factions,
     m370_cdn_urls,
 ]
