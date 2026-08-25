@@ -80,7 +80,7 @@ function rttMarshPlan(objects)
     if math.random(2) == 1 then flooded = m.up; dry = m.down else flooded = m.down; dry = m.up end
     local fi = floodIx[m.key]
     if fi ~= nil then
-      ov[fi] = { mt = { flooded.fx, objects[fi].move_to[2], flooded.fz }, rot = { 0, 180, flooded.fr } }
+      ov[fi] = { mt = { flooded.fx, objects[fi].move_to[2] + 2.5, flooded.fz }, rot = { 0, 180, flooded.fr } }
     end
     drySuits[#drySuits + 1] = { dry.sx, dry.sz, dry.sr }
     if dry.rx ~= nil then dryRuins[#dryRuins + 1] = { dry.rx, dry.rz } end
@@ -97,7 +97,7 @@ function rttMarshPlan(objects)
   rttShuffleList(ruinSlots)
   for i, idx in ipairs(ruinIx) do
     local p = ruinSlots[i]
-    if p ~= nil then ov[idx] = { mt = { p[1], objects[idx].move_to[2], p[2] }, rot = nil } end
+    if p ~= nil then ov[idx] = { mt = { p[1], objects[idx].move_to[2] + 2.5, p[2] }, rot = nil } end
   end
 
   -- SUITS: all 12 clearings randomised (4 of each colour) across 9 fixed + 3 dry
@@ -107,7 +107,7 @@ function rttMarshPlan(objects)
   rttShuffleList(suitTargets)
   for i, idx in ipairs(suitIx) do
     local t = suitTargets[i]
-    if t ~= nil then ov[idx] = { mt = { t[1], objects[idx].move_to[2], t[2] }, rot = { 0, t[3], 0 } } end
+    if t ~= nil then ov[idx] = { mt = { t[1], objects[idx].move_to[2] + 2.5, t[2] }, rot = { 0, t[3], 0 } } end
   end
 
   -- lock everything only AFTER it has settled onto the board (spawned unlocked)
@@ -115,7 +115,7 @@ function rttMarshPlan(objects)
     for _, o in ipairs(RTT_MARSH_PIECES) do
       if o ~= nil then pcall(function() o.setLock(true) end) end
     end
-  end, 3)
+  end, 4)
 
   return ov
 end
