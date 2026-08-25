@@ -1,37 +1,34 @@
 """
-m440 — Marsh Map randomised setup, done DIRECTLY inside the map spawn.
+m440 — Marsh Map randomised setup, spawned directly in place.
 
-Every time the Marsh map is built, makeMap now computes a random plan FIRST and
-spawns each piece straight into its final position (no spawn-at-the-side-then-move,
-no post-processing search). This kills the "sometimes only 2 flood markers" race and
-makes everything appear in place immediately, locked.
+Every Marsh build, makeMap computes a random plan (rttMarshPlan) BEFORE the spawn
+loop and overrides each piece's move_to + rotation, so pieces appear in their final
+randomised spots (no spawn-at-side-then-move):
+  * each of the 3 flood markers floods a random up/down clearing;
+  * the 2 spare ruins + 3 spare suit markers go to the dry (non-flooded) clearings;
+  * ruin ITEMS (4) and ALL 12 clearing suits (4 of each colour) are randomised across
+    the 12 active clearings, with a correct Fisher-Yates (rttShuffleList) — never the
+    base shuffle() (which re-seeds os.time() every loop; see rtt-rng-bug).
 
-The plan (rttMarshPlan), computed before the spawn loop:
-  * each of the 3 flood markers randomly floods its up or down clearing -> the marker
-    spawns on the flooded clearing (rotZ 0/180), locked;
-  * the 2 spare ruins (parked x=-24.6) and 3 spare suit markers (parked z>=23) spawn on
-    the DRY (non-flooded) clearings of markers B/C (ruins) and A/B/C (suits);
-  * ruin ITEMS are randomised by shuffling the 4 ruin entries across their 4 target
-    slots; ALL 12 clearing suits (4 of each colour) are randomised across the 12 active
-    clearings (9 fixed + the 3 dry candidates) — with a correct single-pass Fisher-Yates
-    (rttShuffleList), NOT the base shuffle() (which re-seeds os.time() per iteration; see
-    rtt-rng-bug).
+CRUCIAL: pieces are spawned UNLOCKED and locked only AFTER they settle (a delayed
+pass). Locking them in the spawn callback froze them mid-drop, so they ended up
+inside / under the board (missing floods/suits). The board's own pieces are unlocked
+and settle onto the surface; we do the same, then lock 3s later.
 
-makeMap spawns objects at position = f(move_to); we override move_to (and rotation)
-per entry, so f still applies. Non-Marsh maps are untouched (RTT_OV stays nil). For
-Marsh we skip shuffleMaps (its ruin/clearing shuffle is what we're replacing; nothing
-else in it applies to Marsh — no City/Clearing-N/Shuffleable objects).
+Removal is tag-independent and in-flight-safe: every override piece's handle is
+recorded synchronously and the previous build's handles are destructed up front (the
+base tag path alone misses still-loading tiles on a re-press).
 
 Positions measured from Adrien's Marsh Reference save; flood entries found by their
 unique tile artwork, ruins by nickname RUIN, suits by the "Clearing Marker" tag.
 """
 from . import framework
 
-NAME = "Marsh Map: spawn floods + ruins + suits directly in randomised positions"
+NAME = "Marsh Map: randomise floods + ruins + suits, spawn in place, lock after settle"
 
 FLOOD_LUA = r"""
--- the 9 always-present Marsh clearings (move_to x, z, rotY) that are never flood
--- candidates; the other 3 active clearings are the dry sides of markers A/B/C.
+-- the 9 always-present Marsh clearings (move_to x, z, rotY); the other 3 active
+-- clearings are the dry sides of markers A/B/C.
 RTT_MARSH_SUIT9 = {
   { 21.35, -16.92, 75 }, { -11.09, -16.05, 225 }, { -17.96, -13.52, 30 },
   { 22.78, -11.85, 165 }, { -0.72, -0.27, 75 }, { 6.02, 2.89, 135 },
@@ -49,7 +46,7 @@ RTT_MARSH = {
     down = { fx = 0.88, fz = -16.92, fr = 180, sx = 3.512, sz = -14.611, sr = 45, rx = 0.461, rz = -19.318 } },
 }
 
--- correct single-pass Fisher-Yates; NO os.time re-seed (that is the base shuffle() bug)
+-- correct single-pass Fisher-Yates; NO os.time re-seed
 function rttShuffleList(t)
   for i = #t, 2, -1 do
     local j = math.random(i)
@@ -103,8 +100,7 @@ function rttMarshPlan(objects)
     if p ~= nil then ov[idx] = { mt = { p[1], objects[idx].move_to[2], p[2] }, rot = nil } end
   end
 
-  -- SUITS: ALL 12 clearings are always randomised (4 of each colour). Distribute the
-  -- 12 suit markers across the 12 active clearings = 9 fixed + the 3 dry candidates.
+  -- SUITS: all 12 clearings randomised (4 of each colour) across 9 fixed + 3 dry
   local suitTargets = {}
   for _, p in ipairs(RTT_MARSH_SUIT9) do suitTargets[#suitTargets + 1] = { p[1], p[2], p[3] } end
   for _, p in ipairs(drySuits) do suitTargets[#suitTargets + 1] = p end
@@ -114,46 +110,14 @@ function rttMarshPlan(objects)
     if t ~= nil then ov[idx] = { mt = { t[1], objects[idx].move_to[2], t[2] }, rot = { 0, t[3], 0 } } end
   end
 
-  local nf = 0
-  if floodIx["A"] ~= nil then nf = nf + 1 end
-  if floodIx["B"] ~= nil then nf = nf + 1 end
-  if floodIx["C"] ~= nil then nf = nf + 1 end
-  local nov = 0
-  for _ in pairs(ov) do nov = nov + 1 end
-  broadcastToAll("RTT PLAN  floods=" .. nf .. "  ruins=" .. #ruinIx .. "  suits=" .. #suitIx .. "  overrides=" .. nov, { 1, 0.6, 0.2 })
+  -- lock everything only AFTER it has settled onto the board (spawned unlocked)
   Wait.time(function()
-    broadcastToAll("RTT PLACED  suits=" .. #getObjectsWithTag("Clearing Marker") .. "  ruins=" .. #getObjectsWithTag("Ruin"), { 0.3, 0.8, 1 })
+    for _, o in ipairs(RTT_MARSH_PIECES) do
+      if o ~= nil then pcall(function() o.setLock(true) end) end
+    end
   end, 3)
 
   return ov
-end
-
--- Spawn the Marsh map ONE object at a time (a few frames apart). Spawning all ~39
--- objects in a single frame makes TTS silently drop some (missing floods/suits).
-function rttMarshSpawn(objects, idx, scale, ov)
-  if idx > #objects then return end
-  local v = objects[idx]
-  local mt = v.move_to
-  local rot = nil
-  local lock = false
-  if ov ~= nil and ov[idx] ~= nil then mt = ov[idx].mt rot = ov[idx].rot lock = true end
-  local vec = Vector(mt) * scale
-  vec.y = vec.y - 0.1
-  vec = vec * Vector({15.5, 1, 15.5})
-  local new_pos = vec
-  new_pos.y = new_pos.y + 10 - 8.5 + 0.05 - 0.07 + 10.08
-  local ob = spawnObjectJSON({
-    json = v.json,
-    position = new_pos,
-    rotation = rot,
-    callback_function = function(spawned_object)
-      if lock then spawned_object.setLock(true) end
-      if spawned_object.name == "Bag" then spawned_object.shuffle() end
-      spawned_object.addTag("Map Object")
-    end
-  })
-  RTT_MARSH_PIECES[#RTT_MARSH_PIECES + 1] = ob
-  Wait.time(function() rttMarshSpawn(objects, idx + 1, scale, ov) end, 0.05)
 end
 
 """
@@ -165,22 +129,29 @@ def apply(text):
         raise framework.BuildError("makeMap anchor not unique")
     text = text.replace(sig, framework.esc(FLOOD_LUA) + sig, 1)
 
-    # 1) build the plan once, right after the map data is loaded
+    # build the plan + clean out the previous build's tracked pieces (tag-independent,
+    # catches still-loading tiles a quick re-press would otherwise strand)
     old1 = "objects = EVERYTHING[\"Maps\"][id]['data']"
-    new1 = old1 + "\n  local RTT_OV = nil\n  if id == \"Marsh Map\" then RTT_OV = rttMarshPlan(objects) end"
+    new1 = (old1 + "\n  local RTT_OV = nil\n"
+            "  if id == \"Marsh Map\" then\n"
+            "    for _,o in ipairs(RTT_MARSH_PIECES or {}) do if o ~= nil then pcall(function() o.destruct() end) end end\n"
+            "    RTT_MARSH_PIECES = {}\n"
+            "    RTT_OV = rttMarshPlan(objects)\n"
+            "  end")
     text = framework.replace_unique(text, framework.esc(old1), framework.esc(new1))
 
-    # 2) per-entry override of move_to / rotation / lock in the spawn loop
+    # per-entry override of move_to / rotation in the spawn loop (rtt_ov = an override piece)
     old2 = "  for _,v in ipairs(objects) do\n    local vec = Vector(v.move_to) * scale"
     new2 = ("  for idx,v in ipairs(objects) do\n"
             "    local rtt_mt = v.move_to\n"
             "    local rtt_rot = nil\n"
-            "    local rtt_lock = false\n"
-            "    if RTT_OV ~= nil and RTT_OV[idx] ~= nil then rtt_mt = RTT_OV[idx].mt rtt_rot = RTT_OV[idx].rot rtt_lock = true end\n"
+            "    local rtt_ov = false\n"
+            "    if RTT_OV ~= nil and RTT_OV[idx] ~= nil then rtt_mt = RTT_OV[idx].mt rtt_rot = RTT_OV[idx].rot rtt_ov = true end\n"
             "    local vec = Vector(rtt_mt) * scale")
     text = framework.replace_unique(text, framework.esc(old2), framework.esc(new2))
 
-    # 3) pass the rotation to the spawn, and lock the piece in its callback
+    # pass rotation; spawn override pieces UNLOCKED so they settle onto the board
+    # (they get locked 3s later in rttMarshPlan's delayed pass)
     old3 = ("        json              = v.json,\n"
             "        position          = new_pos,\n"
             "        callback_function = function(spawned_object)\n\n"
@@ -189,53 +160,20 @@ def apply(text):
             "        position          = new_pos,\n"
             "        rotation          = rtt_rot,\n"
             "        callback_function = function(spawned_object)\n\n"
-            "        if rtt_lock then spawned_object.setLock(true) end\n"
+            "        if rtt_ov then spawned_object.setLock(false) end\n"
             "        if spawned_object.name == \"Bag\" then spawned_object.shuffle() end")
     text = framework.replace_unique(text, framework.esc(old3), framework.esc(new3))
 
-    # 4) Marsh does its own randomisation above, so skip the buggy shuffleMaps for it
-    old4 = "  shuffleMaps(id)\nend"
-    new4 = "  if id ~= \"Marsh Map\" then shuffleMaps(id) end\nend"
+    # base bug: table.insert returns nil in Lua 5.2, so setTags(nil) never adds the
+    # "Map Object" tag and removeMapItems finds nothing. Use the additive API.
+    old4 = 'spawned_object.setTags(table.insert(spawned_object.getTags(),"Map Object"))'
+    new4 = 'spawned_object.addTag("Map Object")'
     text = framework.replace_unique(text, framework.esc(old4), framework.esc(new4))
 
-    # 5) BASE BUG (all maps): the spawn callback tags map objects with
-    #    setTags(table.insert(getTags(),"Map Object")). table.insert returns nil in
-    #    Lua 5.2, so this is setTags(nil) and the "Map Object" tag ends up absent at
-    #    runtime. removeMapItems() keys entirely on getObjectsWithTag("Map Object"),
-    #    so the prior (locked) Marsh tiles are never destructed and pile up across
-    #    presses -> "missing" floods/suits/ruins and a sword frozen at its first-press
-    #    site. Use the additive API the Treasure branch two lines up already uses.
-    old5 = 'spawned_object.setTags(table.insert(spawned_object.getTags(),"Map Object"))'
-    new5 = 'spawned_object.addTag("Map Object")'
+    # record each override piece's handle synchronously; skip the buggy shuffleMaps for Marsh
+    old5 = "    })\n  end\n  shuffleMaps(id)"
+    new5 = ("    })\n"
+            "    if rtt_ov then RTT_MARSH_PIECES[#RTT_MARSH_PIECES + 1] = ob end\n"
+            "  end\n  if id ~= \"Marsh Map\" then shuffleMaps(id) end")
     text = framework.replace_unique(text, framework.esc(old5), framework.esc(new5))
-
-    # 6) Tag-independent, in-flight-safe removal (fixes the async re-press race the
-    #    tag fix alone doesn't: removeMapItems runs synchronously but tiles are only
-    #    tagged in their async load callback, so a quick re-press leaves still-loading
-    #    tiles behind; new tiles then spawn on top and one gets physics-ejected —
-    #    "missing" a flood/suit). spawnObjectJSON returns the handle synchronously, so
-    #    we record every Marsh piece as it's issued and destruct the PREVIOUS build's
-    #    handles up front.
-    old6 = '  if id == "Marsh Map" then RTT_OV = rttMarshPlan(objects) end'
-    new6 = ('  if id == "Marsh Map" then\n'
-            '    for _,o in ipairs(RTT_MARSH_PIECES or {}) do if o ~= nil then pcall(function() o.destruct() end) end end\n'
-            '    RTT_MARSH_PIECES = {}\n'
-            '    RTT_OV = rttMarshPlan(objects)\n'
-            '  end')
-    text = framework.replace_unique(text, framework.esc(old6), framework.esc(new6))
-
-    # 7) record each spawned Marsh handle synchronously (ob is returned before the
-    #    async callback), so #6 can destruct even tiles still loading.
-    old7 = '    })\n  end\n  if id ~= "Marsh Map" then shuffleMaps(id) end'
-    new7 = ('    })\n'
-            '    if RTT_OV ~= nil then RTT_MARSH_PIECES[#RTT_MARSH_PIECES + 1] = ob end\n'
-            '  end\n  if id ~= "Marsh Map" then shuffleMaps(id) end')
-    text = framework.replace_unique(text, framework.esc(old7), framework.esc(new7))
-
-    # 8) Route Marsh through the staggered spawner (one object every few frames) so
-    #    TTS stops dropping some of the ~39 simultaneous spawns; skip the tight loop.
-    old8 = "  for idx,v in ipairs(objects) do\n    local rtt_mt = v.move_to"
-    new8 = ('  if id == "Marsh Map" then rttMarshSpawn(objects, 1, scale, RTT_OV) return end\n\n'
-            "  for idx,v in ipairs(objects) do\n    local rtt_mt = v.move_to")
-    text = framework.replace_unique(text, framework.esc(old8), framework.esc(new8))
     return text
