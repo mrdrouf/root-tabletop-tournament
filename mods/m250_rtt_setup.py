@@ -157,6 +157,9 @@ end
 --    clips through the table), one card at a time so they all flip the same way.
 function rttFlipAll(cards, k)
   if k > 5 then                                        -- only the 5 dealt cards flip up
+    for i = 1, RTT_NLEFT do                            -- unlock the leftover deck so it's movable
+      if cards[i] ~= nil then cards[i].setLock(false) end
+    end
     Wait.time(rttDealOrder, 1.0)
     return
   end
