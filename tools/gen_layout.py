@@ -19,7 +19,7 @@ for g, ids in {
     "decksButtonsStandard": ["Standard Deck", "Exiles and Partisans Deck", "Squires and Disciples Deck"],
     "tools1": ["Faction Select", "Battle Mat", "Ginso's Gizmo", "Clearing Markers", "Swol Birbs",
                "Lizard Wizard", "Mini-Mood Manager", "Mob Lobber"],
-    "setupButtons": ["Clearing Priorities", "Vagabond Cards", "Landmarks"],
+    "setupButtons": ["Clearing Priorities", "Vagabond Cards", "Landmarks", "Marsh5P"],
 }.items():
     for i in ids:
         GROUP.setdefault(i, g)
@@ -31,7 +31,7 @@ ROWS = [
     (["Summer Map", "Lake Map", "Marsh Map", "Winter Map", "Mountain Map", "Gorge Map"], 34, 34, 38),
     (["Standard Deck", "Exiles and Partisans Deck", "Squires and Disciples Deck"], 34, 34, 50),
     (["Faction Select", "Battle Mat", "Ginso's Gizmo", "Clearing Priorities", "Clearing Markers", "Vagabond Cards"], 34, 17, 38),
-    (["Lizard Wizard", "Mini-Mood Manager", "Mob Lobber", "Landmarks", "Swol Birbs"], 34, 17, 38),
+    (["Lizard Wizard", "Mini-Mood Manager", "Mob Lobber", "Landmarks", "Swol Birbs", "Marsh5P"], 34, 17, 37),
 ]
 
 els = []
