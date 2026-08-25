@@ -576,6 +576,128 @@ def remove_escaped_object(text, guid):
     return text[:start] + text[end:], obj
 
 
+def uncomment_button_in_group(text, group_id, button_id):
+    """If the <Button id=button_id/> inside <ToggleGroup id=group_id> is wrapped in
+    an XML comment (<!-- ... -->) that encloses only that button, strip the comment
+    delimiters so the button becomes live. Idempotent and guarded: does nothing if
+    the button is not directly wrapped by its own comment. Returns (new_text, n)."""
+    s, e = _toggle_group_span(text, group_id)
+    block = text[s:e]
+    idpos = block.find('id=%s%s%s' % (QT, button_id, QT))
+    if idpos == -1:
+        raise BuildError("button %r not found in group %r" % (button_id, group_id))
+    bstart = block.rfind("<Button", 0, idpos)
+    bend = block.find("/>", idpos)
+    if bstart == -1 or bend == -1:
+        raise BuildError("malformed <Button %r>" % button_id)
+    bend += 2
+    cstart = block.rfind("<!--", 0, bstart)
+    cend = block.find("-->", bend)
+    if cstart == -1 or cend == -1:
+        return text, 0                       # not commented
+    # guard: the opening <!-- must sit directly before the button (whitespace only)
+    gap = block[cstart + 4:bstart]
+    if "<" in gap or "-->" in gap:
+        return text, 0                       # a different, already-closed comment
+    # remove the trailing --> first, then the leading <!--
+    block = block[:cend] + block[cend + 3:]
+    block = block[:cstart] + block[cstart + 4:]
+    return text[:s] + block + text[e:], 1
+
+
+def _object_span(text, guid):
+    """(start, end) raw indices of the top-level ObjectStates object with this GUID,
+    brace-matched respecting JSON string literals. Requires the real-quoted
+    "GUID": "<guid>" anchor to be unique (embedded copies use escaped \\")."""
+    anchor = '"GUID": "%s"' % guid
+    if text.count(anchor) != 1:
+        raise BuildError("object GUID %s not uniquely found (%d)" % (guid, text.count(anchor)))
+    a = text.find(anchor)
+    start = text.rfind("{", 0, a)
+    if start == -1:
+        raise BuildError("no opening brace for GUID %s" % guid)
+    depth = 0
+    j = start
+    n = len(text)
+    in_str = False
+    while j < n:
+        c = text[j]
+        if in_str:
+            if c == '\\':
+                j += 2
+                continue
+            if c == '"':
+                in_str = False
+        elif c == '"':
+            in_str = True
+        elif c == '{':
+            depth += 1
+        elif c == '}':
+            depth -= 1
+            if depth == 0:
+                return start, j + 1
+        j += 1
+    raise BuildError("unbalanced braces for GUID %s" % guid)
+
+
+def remove_toplevel_ui_buttons(text, guid, keep_ids):
+    """Delete every <Button.../> that sits at ToggleGroup-depth 0 (i.e. inside NO
+    <ToggleGroup>) within the XmlUI of the object `guid`, except ids in keep_ids.
+    These are the base mod's always-visible reference/bot buttons that overlap the
+    custom tournament layout. Returns (new_text, removed_ids)."""
+    ostart, oend = _object_span(text, guid)
+    key = '"XmlUI": "'
+    ks = text.find(key, ostart, oend)
+    if ks == -1:
+        raise BuildError("XmlUI field not found in object %s" % guid)
+    vstart = ks + len(key)
+    i = vstart                      # find end of the JSON string value (unescaped ")
+    while i < oend:
+        c = text[i]
+        if c == '\\':
+            i += 2
+            continue
+        if c == '"':
+            break
+        i += 1
+    vend = i
+    S = text[vstart:vend]
+    removed = []
+    depth = 0
+    j = 0
+    n = len(S)
+    spans = []
+    while j < n:
+        if S.startswith("<!--", j):          # skip comment regions wholesale
+            c = S.find("-->", j)
+            j = (c + 3) if c != -1 else n
+        elif S.startswith("</ToggleGroup>", j):
+            depth -= 1
+            j += len("</ToggleGroup>")
+        elif S.startswith("<ToggleGroup", j):
+            e = S.find(">", j)
+            depth += 1
+            j = e + 1
+        elif S.startswith("<Button", j):
+            e = S.find("/>", j)
+            if e == -1:
+                raise BuildError("unterminated <Button> in XmlUI of %s" % guid)
+            tag = S[j:e + 2]
+            if depth == 0:
+                m = re.search(r'id=\\"([^\\"]*)\\"', tag)
+                bid = m.group(1) if m else ""
+                if bid not in keep_ids:
+                    spans.append((j, e + 2, bid))
+            j = e + 2
+        else:
+            j += 1
+    for s, e, bid in reversed(spans):
+        S = S[:s] + S[e:]
+        removed.append(bid)
+    text = text[:vstart] + S + text[vend:]
+    return text, list(reversed(removed))
+
+
 def remove_item(text, category, name, *, require_button=True):
     """Remove a menu item completely: its XML button(s) and its EVERYTHING data
     block. Returns text. Raises if the data block is missing; if require_button
