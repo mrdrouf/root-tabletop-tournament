@@ -114,6 +114,17 @@ function rttMarshPlan(objects)
     if t ~= nil then ov[idx] = { mt = { t[1], objects[idx].move_to[2], t[2] }, rot = { 0, t[3], 0 } } end
   end
 
+  local nf = 0
+  if floodIx["A"] ~= nil then nf = nf + 1 end
+  if floodIx["B"] ~= nil then nf = nf + 1 end
+  if floodIx["C"] ~= nil then nf = nf + 1 end
+  local nov = 0
+  for _ in pairs(ov) do nov = nov + 1 end
+  broadcastToAll("RTT PLAN  floods=" .. nf .. "  ruins=" .. #ruinIx .. "  suits=" .. #suitIx .. "  overrides=" .. nov, { 1, 0.6, 0.2 })
+  Wait.time(function()
+    broadcastToAll("RTT PLACED  suits=" .. #getObjectsWithTag("Clearing Marker") .. "  ruins=" .. #getObjectsWithTag("Ruin"), { 0.3, 0.8, 1 })
+  end, 3)
+
   return ov
 end
 
@@ -169,4 +180,27 @@ def apply(text):
     old5 = 'spawned_object.setTags(table.insert(spawned_object.getTags(),"Map Object"))'
     new5 = 'spawned_object.addTag("Map Object")'
     text = framework.replace_unique(text, framework.esc(old5), framework.esc(new5))
+
+    # 6) Tag-independent, in-flight-safe removal (fixes the async re-press race the
+    #    tag fix alone doesn't: removeMapItems runs synchronously but tiles are only
+    #    tagged in their async load callback, so a quick re-press leaves still-loading
+    #    tiles behind; new tiles then spawn on top and one gets physics-ejected —
+    #    "missing" a flood/suit). spawnObjectJSON returns the handle synchronously, so
+    #    we record every Marsh piece as it's issued and destruct the PREVIOUS build's
+    #    handles up front.
+    old6 = '  if id == "Marsh Map" then RTT_OV = rttMarshPlan(objects) end'
+    new6 = ('  if id == "Marsh Map" then\n'
+            '    for _,o in ipairs(RTT_MARSH_PIECES or {}) do if o ~= nil then pcall(function() o.destruct() end) end end\n'
+            '    RTT_MARSH_PIECES = {}\n'
+            '    RTT_OV = rttMarshPlan(objects)\n'
+            '  end')
+    text = framework.replace_unique(text, framework.esc(old6), framework.esc(new6))
+
+    # 7) record each spawned Marsh handle synchronously (ob is returned before the
+    #    async callback), so #6 can destruct even tiles still loading.
+    old7 = '    })\n  end\n  if id ~= "Marsh Map" then shuffleMaps(id) end'
+    new7 = ('    })\n'
+            '    if RTT_OV ~= nil then RTT_MARSH_PIECES[#RTT_MARSH_PIECES + 1] = ob end\n'
+            '  end\n  if id ~= "Marsh Map" then shuffleMaps(id) end')
+    text = framework.replace_unique(text, framework.esc(old7), framework.esc(new7))
     return text
