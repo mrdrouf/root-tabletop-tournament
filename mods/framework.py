@@ -165,28 +165,27 @@ def replace_unique(text, old, new):
 
 
 def set_button_attr(text, item_id, attr, new_val):
-    """Set attr="new_val" on every <Button ... id="item_id" .../>. Returns
+    """Set attr="new_val" on every <Button ... id="item_id" .../>. Tolerates spacing
+    around '=' (the base mixes `icon=\"x\"` and `icon =\"x\"`). Returns
     (new_text, count)."""
     count = 0
     i = 0
-    a = '%s=\\"' % attr                         # e.g. height=\"
+    pat = re.compile(r'%s\s*=\s*\\"[^\\"]*\\"' % re.escape(attr))
     while True:
         k = text.find('id=\\"%s\\"' % item_id, i)
         if k == -1:
             break
         start = text.rfind("<Button", 0, k)
-        end = text.find("/>", k) + 2
-        if start == -1 or end == 1:
+        end = text.find("/>", k)
+        if start == -1 or end == -1:
             raise BuildError("malformed <Button> around id=%r" % item_id)
+        end += 2
         seg = text[start:end]
-        p = seg.find(a)
-        if p != -1:
-            q = seg.find('\\"', p + len(a))     # closing \"
-            if q != -1:
-                seg = seg[:p] + a + new_val + seg[q:]
-                text = text[:start] + seg + text[end:]
-                end = start + len(seg)
-                count += 1
+        if pat.search(seg):
+            seg = pat.sub(lambda m: '%s=\\"%s\\"' % (attr, new_val), seg, count=1)
+            text = text[:start] + seg + text[end:]
+            end = start + len(seg)
+            count += 1
         i = end
     return text, count
 

@@ -1,0 +1,26 @@
+{
+ "elements": [
+  {"id": "rttSetup", "group": "setupButtons", "kind": "plaque", "x": 15, "y": 60, "w": 35, "h": 35, "label": "RTT | DRAFT"},
+  {"id": "Vagabond Cards", "group": "setupButtons", "kind": "game", "x": 100, "y": -55, "w": 30, "h": 15, "label": "Vagabond Cards"},
+  {"id": "Clearing Priorities", "group": "setupButtons", "kind": "game", "x": 30, "y": -55, "w": 30, "h": 15, "label": "Clearing Priorities Big"},
+  {"id": "Landmarks", "group": "setupButtons", "kind": "game", "x": 30, "y": -75, "w": 30, "h": 15, "label": "Landmarks"},
+  {"id": "Winter Map", "group": "mapButtonsStandard", "kind": "game", "x": 30, "y": 20, "w": 30, "h": 30, "label": "Winter Map"},
+  {"id": "Lake Map", "group": "mapButtonsStandard", "kind": "game", "x": -40, "y": 20, "w": 30, "h": 30, "label": "Lake Map"},
+  {"id": "Mountain Map", "group": "mapButtonsStandard", "kind": "game", "x": 65, "y": 20, "w": 30, "h": 30, "label": "Mountain Map"},
+  {"id": "Marsh Map", "group": "mapButtonsStandard", "kind": "game", "x": -5, "y": 20, "w": 30, "h": 30, "label": "Marsh Map"},
+  {"id": "Gorge Map", "group": "mapButtonsStandard", "kind": "game", "x": 100, "y": 20, "w": 30, "h": 30, "label": "Gorge Map"},
+  {"id": "Summer Map", "group": "mapButtonsStandard", "kind": "game", "x": -75, "y": 20, "w": 30, "h": 30, "label": "Autumn Map"},
+  {"id": "Standard Deck", "group": "decksButtonsStandard", "kind": "game", "x": -30, "y": -25, "w": 30, "h": 30, "label": "Standard Deck"},
+  {"id": "Exiles and Partisans Deck", "group": "decksButtonsStandard", "kind": "game", "x": 15, "y": -25, "w": 30, "h": 30, "label": "Exiles and Partisans Deck"},
+  {"id": "Squires and Disciples Deck", "group": "decksButtonsStandard", "kind": "game", "x": 60, "y": -25, "w": 30, "h": 30, "label": "Squires and Disciples Deck"},
+  {"id": "Faction Select", "group": "tools1", "kind": "game", "x": -75, "y": -55, "w": 30, "h": 15, "label": "Faction Selector Tool"},
+  {"id": "Battle Mat", "group": "tools1", "kind": "game", "x": -40, "y": -55, "w": 30, "h": 15, "label": "Battle Mat"},
+  {"id": "Lizard Wizard", "group": "tools1", "kind": "game", "x": -75, "y": -75, "w": 30, "h": 15, "label": "Lizard Wizard"},
+  {"id": "Clearing Markers", "group": "tools1", "kind": "game", "x": 65, "y": -55, "w": 30, "h": 15, "label": "Clearing Markers"},
+  {"id": "Swol Birbs", "group": "tools1", "kind": "game", "x": 65, "y": -75, "w": 30, "h": 15, "label": "Swol Birbs"},
+  {"id": "Mini-Mood Manager", "group": "tools1", "kind": "game", "x": -40, "y": -75, "w": 30, "h": 15, "label": "Mini-Mood Manager"},
+  {"id": "Ginso's Gizmo", "group": "tools1", "kind": "game", "x": -5, "y": -55, "w": 30, "h": 15, "label": "Ginso's Gizmo"},
+  {"id": "Mob Lobber", "group": "tools1", "kind": "game", "x": -5, "y": -75, "w": 30, "h": 15, "label": "Mob Lobber"},
+  {"id": "rttCredit", "group": "Main Nav", "kind": "credit", "x": -60, "y": 85, "w": 52, "h": 9.9, "label": ""}
+ ]
+}
