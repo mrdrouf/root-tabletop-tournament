@@ -147,13 +147,7 @@ for gid in GROUPS:
     for b in btns:
         draw_btn(b); total += 1
 
-# baked art (part of the board texture) — draw subtly so the preview is representative
-def baked_text(x, y, txt, size, fill):
-    cx, cy = px(x, y)
-    dr.text((cx, cy), txt, anchor="mm", fill=fill, font=font(size))
-baked_text(-2, -45, "TTS Tools by the ROOT Community", 20, (222, 205, 168, 235))
-baked_text(-70, -82, "Board by Ehss\n& slugfacekillah", 11, (150, 128, 96, 255))
-baked_text(-68, 78, "ROOT", 30, (210, 190, 150, 120))
+# (baked title/credit removed from the texture; ROOT logo + credit are real elements)
 if DEBUG:
     marker = lambda x, y, w, h: dr.rectangle(box(dict(x=x, y=y, w=w, h=h)),
                                              outline=(255, 210, 120, 200), width=2)

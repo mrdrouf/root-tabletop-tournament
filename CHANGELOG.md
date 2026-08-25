@@ -259,4 +259,14 @@ WITHOUT loading TTS. Everything below was tuned against that preview.
 supply position: Lizard needs R180, Duchy needs identity. Now the packs land next to
 each supply and the Lizard acolytes on the board.
 
+## Clean board — 2026-08-25
+`m360_board_cleanup` — the board is a Custom_Tile whose face is a hosted image, so we
+swapped it for `assets/board/board_clean.png`: the same wood with the baked
+"Board by Ehss & slugfacekillah" credit painted out (mirror-cloned corner; the
+artists stay credited here in the repo). Also removed the "message roof" — the
+`Fan Tools Label` image, whose baked art reads "TTS Tools by the ROOT Community"
+(baked text, which is why a text search never found it) — plus the Weird-Root
+`WWBanner`, and hid the stray Map/Deck and Red/Any-Factions section labels.
+Added `framework.set_xml_attr` (generic attr setter for `<Image>`/`<Text>`).
+
 Each later step appends one or more modifications under `mods/` and an entry here.
