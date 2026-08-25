@@ -51,6 +51,7 @@ from . import m355_setup_fixes
 from . import m350_custom_layout
 from . import m360_board_cleanup
 from . import m370_cdn_urls
+from . import m380_faction_selector_clean
 
 # Ready-made examples — uncomment to begin layering real modifications:
 # from . import m010_no_marquise_dice
@@ -94,5 +95,6 @@ MODS = [
     m355_setup_fixes,
     m350_custom_layout,
     m360_board_cleanup,
+    m380_faction_selector_clean,
     m370_cdn_urls,
 ]
