@@ -28,9 +28,10 @@ function rttTheme(player, value, id)
 end
 """
 
-RANKED_BTN = ('<Button id="rttRankedBtn" onclick="rttSetup" icon="RankedArt" '
+# background color = each art's own background, so a streaming icon never flashes white
+RANKED_BTN = ('<Button id="rttRankedBtn" onclick="rttSetup" icon="RankedArt" color="#030310" '
               'position="-20 60 -20" width="34" height="34"/>')   # square, matching the map buttons
-THEME_BTN = ('<Button id="rttThemeBtn" onclick="rttTheme" icon="ThemeArt" '
+THEME_BTN = ('<Button id="rttThemeBtn" onclick="rttTheme" icon="ThemeArt" color="#474F4B" '
              'position="20 60 -20" width="34" height="34"/>')
 
 
