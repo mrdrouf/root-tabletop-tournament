@@ -61,6 +61,7 @@ from . import m431_declutter_toplevel
 from . import m440_marsh_floods
 from . import m445_marsh_no_landmarks
 from . import m460_priority_markers
+from . import m470_rtt_draft_pick
 # m450_label_icons DISABLED: confirmed custom (non-Steam) UI icons blank in TTS
 
 # Ready-made examples — uncomment to begin layering real modifications:
@@ -111,6 +112,7 @@ MODS = [
     m440_marsh_floods,             # Marsh map: randomise the 3 flooded clearings on spawn
     m445_marsh_no_landmarks,       # Marsh map: drop the landmark models + cards
     m460_priority_markers,         # per-map: auto-place fixed clearing-priority markers
+    m470_rtt_draft_pick,           # RTT draft phase 0-2: turn order + P1/P2 map+deck pick
     m360_board_cleanup,
     m380_faction_selector_clean,
     m390_no_hover_credits,

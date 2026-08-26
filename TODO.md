@@ -10,7 +10,21 @@ Ordered backlog of requested work not yet built. Newest big items at the bottom.
   the build repoints the matching card sheets to the fixed art.
 
 ## Big item — full RTT draft flow (spec captured 2026-08-19)
-After `rttSetup` deals the 5-card draft, run a guided snake draft:
+
+**Decisions confirmed 2026-08-26 (supersede any conflicting text below):**
+- **Faction draft pool = the 5 cards `rttSetup` already dealt** (players+1, militant-first),
+  NOT an open pick from all 12. Reverse order, 1 card left over. Selector shows only the 5.
+- **Map/deck = free + leftover:** P1 picks a map OR a deck from one combined grid; P2 then
+  picks whichever category is left. (Not fixed P1=map/P2=deck.)
+- **Direction = single reverse pass** P4→P3→P2→P1 (NOT an actual snake).
+- **Build order:** (0) capture turn order into `RTT_ORDER` [prereq for all gating];
+  (1-2) map/deck pick; (3) 5-card faction draft; (4) VP markers; (5) box score.
+- **Progress:** phases 0-2 built in `m470_rtt_draft_pick` (RTT_ORDER capture +
+  P1/P2 map+deck pick screen). NEXT = phase 3 (reverse-order faction draft off the
+  5 dealt cards), then phases 4-5. NB: order-card FACES may not read 1..4 yet (cards
+  carry no ordinal; RTT_ORDER is authoritative, order shown via UI + broadcasts).
+
+After `rttSetup` deals the 5-card draft, run a guided reverse-order draft:
 
 1. **Per-player boards.** Every seated player gets their wooden faction board, but
    empty — nothing placed on it yet.
