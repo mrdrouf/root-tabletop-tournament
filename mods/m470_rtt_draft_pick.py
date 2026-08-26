@@ -17,6 +17,7 @@ category switches off, Player 2 picks the leftover on theirs. Faction draft (pha
 reuses these same lightweight boards.
 """
 import json
+import os
 
 from . import framework
 
@@ -108,6 +109,8 @@ RTT_PICKED = { map = nil, deck = nil }
 RTT_PICK_STAGE = 0
 RTT_SOLO = false
 RTT_SELECTOR_JSON = [===[%s]===]
+RTT_BOXSCORE_JSON = [====[%s]====]
+RTT_BOXSCORE_TAG = "RTT BoxScore"
 
 RTT_PICK_DEFS = {
   rttPickMap1  = { kind = "map",  id = "Summer Map",   label = "Autumn" },
@@ -212,9 +215,20 @@ RTT_FAC_STAGE = 0
 RTT_FAC_TAKEN = {}
 RTT_FAC_CURRENT = {}
 
+-- spawn the Root Box Score sheet, centred below the draft cards, locked to the table
+function rttSpawnBoxScore()
+  for _, o in ipairs(getObjectsWithTag(RTT_BOXSCORE_TAG)) do o.destruct() end
+  spawnObjectJSON({
+    json = RTT_BOXSCORE_JSON,
+    position = { 63.9, 11.6, -32 },
+    callback_function = function(o) o.addTag(RTT_BOXSCORE_TAG) o.setLock(true) end
+  })
+end
+
 function rttStartFactionDraft()
   RTT_FAC_TAKEN = {}
   RTT_VP_PLACED = 0
+  rttSpawnBoxScore()
   _G['Roster'] = {}
   for i = 1, #RTT_ORDER do _G['Roster'][i] = RTT_ORDER[i].name or "" end
   if _G['vagabondAlreadySpawned'] == nil then _G['vagabondAlreadySpawned'] = false end
@@ -526,7 +540,10 @@ def apply(text):
     selector_json = _build_selector_json(text)
     if "]===]" in selector_json:
         raise framework.BuildError("selector JSON contains ]===] — bracket clash")
-    coord_lua = COORD_LUA % selector_json
+    boxscore_json = open(os.path.join(os.path.dirname(__file__), "_boxscore.json"), encoding="utf-8").read()
+    if "]====]" in boxscore_json:
+        raise framework.BuildError("boxscore JSON contains ]====] — bracket clash")
+    coord_lua = COORD_LUA % (selector_json, boxscore_json)
     text = text.replace(MAKEMAP_SIG, framework.esc(coord_lua) + MAKEMAP_SIG, 1)
     text = framework.replace_unique(text, framework.esc(OLD_DEAL), framework.esc(NEW_DEAL))
     return text
