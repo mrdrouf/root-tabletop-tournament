@@ -18,8 +18,9 @@ from . import framework
 
 NAME = "RTT setup: Ranked (owl) + Theme (fox) image buttons on the top line"
 
-RANKED_URL = "https://steamusercontent-a.akamaihd.net/ugc/16567688693709882664/AE51F3B4977DA19D27182286AC65854B2F284FE7/"
-THEME_URL = "https://steamusercontent-a.akamaihd.net/ugc/10888766596693367672/E05EBC26AA0D8A1F55E6D861EF1E3D01CC07C803/"
+# small square (300x300) re-uploads — the 1.2MB versions flashed to white in TTS UI
+RANKED_URL = "https://steamusercontent-a.akamaihd.net/ugc/10170717684162208036/7455ACC11074D6DB3A1A1F2B82A1201278E17910/"
+THEME_URL = "https://steamusercontent-a.akamaihd.net/ugc/11172983172019187774/BA2ECDEF528ACA13DFA424A6D0EBC127BD8A5CBF/"
 
 THEME_LUA = r"""
 function rttTheme(player, value, id)

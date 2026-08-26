@@ -22,6 +22,7 @@ MAPS = {
     "Summer Map": "_priority_summer.json",
     "Lake Map": "_priority_lake.json",
     "Mountain Map": "_priority_mountain.json",
+    "Winter Map": "_priority_winter.json",
 }
 
 SPAWNER = r"""
