@@ -2,8 +2,10 @@
 m360 — clean the board itself.
 
  - Swap the wood texture for a version with the baked "Board by Ehss & slugfacekillah"
-   credit painted out (assets/board/board_clean.png, hosted via GitHub raw). The
-   original artists are still credited in the repo README/CHANGELOG.
+   credit removed (assets/board/board_clean_v2.png, hosted via GitHub raw). v2 keeps
+   the ORIGINAL 3D wood grain and removes the credit by mirroring the clean top-left
+   corner over it (feathered, matching grain + vignette) — no flat patch. The original
+   artists are still credited in the repo README/CHANGELOG.
  - Remove the "message roof" over the tools: the "Fan Tools Label" image, whose art
    reads "TTS Tools by the ROOT Community" (baked into the image, not text).
  - Remove the top "Weird Root mashup" banner (WWBanner).
@@ -15,7 +17,7 @@ from . import framework
 NAME = "clean board: new texture (no baked credit), drop banners + stray labels"
 
 OLD_BOARD = "https://steamusercontent-a.akamaihd.net/ugc/1760320391484183045/6F0CAF900BA7AF96687B49D73B36F68022202AE4/"
-NEW_BOARD = "https://raw.githubusercontent.com/mrdrouf/root-tabletop-tournament/main/assets/board/board_clean.png"
+NEW_BOARD = "https://raw.githubusercontent.com/mrdrouf/root-tabletop-tournament/main/assets/board/board_clean_v2.png"
 
 
 def apply(text):
