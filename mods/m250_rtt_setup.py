@@ -103,13 +103,11 @@ function rttSetup(player, value, id)
   -- the 5 dealt (Militant first); the rest stay as the deck so EVERY faction card is
   -- on the table. The full random order is fixed here, up front.
   local draft = {first, pool[1], pool[2], pool[3], pool[4]}
-  local leftover = {}
-  for i=5,#pool do leftover[#leftover+1]=pool[i] end
-  RTT_NLEFT = #leftover
-  -- stack the deck: leftover on the bottom, the 5 draft cards on top (dealt from the top).
+  -- ONLY the 5 drafted cards are put on the table (no leftover faction deck). The
+  -- draft empties these as factions are placed in the faction phase.
+  RTT_NLEFT = 0
   local jsons = {}
-  for _,cid in ipairs(leftover) do jsons[#jsons+1] = RTT_MIL_CARDS[cid] or RTT_INS_CARDS[cid] end
-  for _,cid in ipairs(draft)    do jsons[#jsons+1] = RTT_MIL_CARDS[cid] or RTT_INS_CARDS[cid] end
+  for _,cid in ipairs(draft) do jsons[#jsons+1] = RTT_MIL_CARDS[cid] or RTT_INS_CARDS[cid] end
   rttSpawnDeck(jsons, 1, {})
 end
 

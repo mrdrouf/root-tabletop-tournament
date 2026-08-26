@@ -20,6 +20,7 @@ NAME = "auto-place fixed clearing-priority markers (Summer/Autumn map)"
 # map id  ->  data file (a JSON array of marker object blobs, positions baked in)
 MAPS = {
     "Summer Map": "_priority_summer.json",
+    "Lake Map": "_priority_lake.json",
 }
 
 SPAWNER = r"""
@@ -63,4 +64,14 @@ def apply(text):
         raise framework.BuildError("makeMap anchor not unique")
     text = text.replace(sig, framework.esc(lua) + sig, 1)
     text = text.replace(sig, sig + framework.esc(hooks), 1)
+
+    # blank the "Priority Marker" nickname on the Clearing-Priorities TOOL markers too
+    # (EVERYTHING["Tools"]["Priority Markers"]), so the ones Adrien places via the option
+    # show no hover tooltip either. All 43 are Nickname data — no Lua compares the name.
+    old_nick = framework.esc('"Nickname": "Priority Marker"')
+    new_nick = framework.esc('"Nickname": ""')
+    n = text.count(old_nick)
+    if n == 0:
+        raise framework.BuildError("tool Priority Marker nicknames not found")
+    text = text.replace(old_nick, new_nick)
     return text

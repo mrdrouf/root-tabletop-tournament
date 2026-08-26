@@ -85,10 +85,10 @@ RTT_SEAT = {
   Teal = { 52, 46 }, Green = { 0, 46 }, Brown = { 0, -46 },
 }
 function rttSeatPos(color, n)
-  local p = getPosition(color, n)
-  if p ~= nil then return { p.x, p.z } end
-  p = getPosition(color, 4)
-  if p ~= nil then return { p.x, p.z } end
+  for _, c in ipairs({ n, 4, 6, 5, 3, 2, 1 }) do
+    local p = getPosition(color, c)
+    if p ~= nil then return { p.x, p.z } end
+  end
   if RTT_SEAT[color] ~= nil then return RTT_SEAT[color] end
   return { 0, -46 }
 end
@@ -101,8 +101,8 @@ function rttSpawnSelectors()
     local xz = rttSeatPos(e.color, n)
     local board = self.clone({ snap_to_grid = true })
     board.setName("Faction Board")
-    board.setLock(false)
     board.setPosition({ xz[1], 11.56, xz[2] })
+    board.setLock(true)   -- locked to the table so clicking an option never drags it
     if xz[2] > 0 then board.setRotation({ 0, 180, 0 }) else board.setRotation({ 0, 0, 0 }) end
     board.addTag(RTT_SELECTOR_TAG)
     RTT_CLONES[e.color] = board
@@ -115,8 +115,7 @@ function rttBeginPick()
   if #RTT_ORDER < 1 then broadcastToAll("Seat at least one player before the RTT draft.") return end
   RTT_PICKED = { map = nil, deck = nil }
   RTT_PICK_STAGE = 1
-  allButtonsOff()
-  self.UI.setAttribute("Main Nav", "active", "False")
+  -- the central menu board is NEVER touched: it keeps all its options.
   rttSpawnSelectors()
   Wait.frames(function() rttShowPick(1) end, 30)
 end
@@ -128,10 +127,10 @@ function rttShowPick(stage)
   clone.UI.setAttribute("rttPickMapDeck", "active", "true")
   for _, b in ipairs(RTT_MAP_BTNS)  do clone.UI.setAttribute(b, "active", (RTT_PICKED.map  == nil) and "true" or "false") end
   for _, b in ipairs(RTT_DECK_BTNS) do clone.UI.setAttribute(b, "active", (RTT_PICKED.deck == nil) and "true" or "false") end
-  local what = (stage == 1) and "pick a MAP or a DECK" or ("pick the " .. ((RTT_PICKED.map == nil) and "MAP" or "DECK"))
-  clone.UI.setAttribute("rttPickTitle", "text", "Player " .. stage .. " (" .. seat.color .. "): " .. what)
-  broadcastToColor("Your turn - " .. what .. ".", seat.color)
-  broadcastToAll("Player " .. stage .. " (" .. seat.color .. ") is picking.")
+  -- no player naming (we don't announce whose turn it is): the options simply appear
+  -- on the picking player's own board; every other board stays blank.
+  local what = (stage == 1) and "Pick a MAP or a DECK" or ("Pick the " .. ((RTT_PICKED.map == nil) and "MAP" or "DECK"))
+  clone.UI.setAttribute("rttPickTitle", "text", what)
 end
 
 function rttPlaceMap(mapId)
@@ -190,21 +189,21 @@ end
 
 """
 
-# the pick screen: one 3x3 grid using the REAL setup-board map/deck art (icon assets
-# live in the board's persistent CustomUIAssets, so they render on clones too).
-_BTN = 'width="46" height="32"'
+# the pick screen: one 3x3 grid using the REAL setup-board art AND each button's exact
+# designed background color (icon assets + colors match the menu buttons precisely).
+_SZ = 'width="42" height="34" fontSize="8"'
 XML = (
     '\n<ToggleGroup id="rttPickMapDeck" active="false">'
-    '\n  <Text id="rttPickTitle" text="" position="0 60 -20" width="240" height="14" fontSize="11" color="#f3e9cf"/>'
-    '\n  <Button id="rttPickMap1" onclick="rttPickRelay" icon="Autumn Map"   position="-50 32 -20" ' + _BTN + '/>'
-    '\n  <Button id="rttPickMap2" onclick="rttPickRelay" icon="Winter Map"   position="0 32 -20" ' + _BTN + '/>'
-    '\n  <Button id="rttPickMap3" onclick="rttPickRelay" icon="Lake Map"     position="50 32 -20" ' + _BTN + '/>'
-    '\n  <Button id="rttPickMap4" onclick="rttPickRelay" icon="Marsh Map"    position="-50 -4 -20" ' + _BTN + '/>'
-    '\n  <Button id="rttPickMap5" onclick="rttPickRelay" icon="Mountain Map" position="0 -4 -20" ' + _BTN + '/>'
-    '\n  <Button id="rttPickMap6" onclick="rttPickRelay" icon="Gorge Map"    position="50 -4 -20" ' + _BTN + '/>'
-    '\n  <Button id="rttPickDeck1" onclick="rttPickRelay" icon="Standard Deck"              position="-50 -40 -20" ' + _BTN + '/>'
-    '\n  <Button id="rttPickDeck2" onclick="rttPickRelay" icon="Exiles and Partisans Deck"  position="0 -40 -20" ' + _BTN + '/>'
-    '\n  <Button id="rttPickDeck3" onclick="rttPickRelay" icon="Squires and Disciples Deck" position="50 -40 -20" ' + _BTN + '/>'
+    '\n  <Text id="rttPickTitle" text="" position="0 62 -20" width="240" height="14" fontSize="11" color="#f3e9cf"/>'
+    '\n  <Button id="rttPickMap1" onclick="rttPickRelay" icon="Autumn Map"   color="#4b4d35" position="-46 34 -20" ' + _SZ + '/>'
+    '\n  <Button id="rttPickMap2" onclick="rttPickRelay" icon="Winter Map"   color="#6b8a8f" position="0 34 -20" ' + _SZ + '/>'
+    '\n  <Button id="rttPickMap3" onclick="rttPickRelay" icon="Lake Map"     color="#42a0c2" position="46 34 -20" ' + _SZ + '/>'
+    '\n  <Button id="rttPickMap4" onclick="rttPickRelay" icon="Marsh Map"    color="#9b8551" position="-46 -2 -20" ' + _SZ + '/>'
+    '\n  <Button id="rttPickMap5" onclick="rttPickRelay" icon="Mountain Map" color="#764a52" position="0 -2 -20" ' + _SZ + '/>'
+    '\n  <Button id="rttPickMap6" onclick="rttPickRelay" icon="Gorge Map"    color="#61746b" position="46 -2 -20" ' + _SZ + '/>'
+    '\n  <Button id="rttPickDeck1" onclick="rttPickRelay" icon="Standard Deck"              color="#8d7f81" position="-46 -38 -20" ' + _SZ + '/>'
+    '\n  <Button id="rttPickDeck2" onclick="rttPickRelay" icon="Exiles and Partisans Deck"  color="#378f90" position="0 -38 -20" ' + _SZ + '/>'
+    '\n  <Button id="rttPickDeck3" onclick="rttPickRelay" icon="Squires and Disciples Deck" color="#AB6894" position="46 -38 -20" ' + _SZ + '/>'
     '\n</ToggleGroup>'
 )
 
