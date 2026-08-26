@@ -82,12 +82,10 @@ end
 
 function rttPlaceMap(mapId)
   makeMap("", "", mapId)
-  Wait.time(function()
-    makeSpecialWithTag("Tools", "Battle Mat", 33.17, 1.55, 9.21, "Map Object")
-    if mapId == "Mountain Map" then
-      for _, v in ipairs(getObjectsWithTag("Tower")) do v.destruct() end
-    end
-  end, 0.6)
+  Wait.frames(function() makeSpecialWithTag("Tools", "Battle Mat", 33.17, 1.55, 9.21, "Map Object") end, 2)
+  if mapId == "Mountain Map" then
+    Wait.time(function() for _, v in ipairs(getObjectsWithTag("Tower")) do v.destruct() end end, 0.8)
+  end
 end
 
 function rttPlaceDeck(deckId)

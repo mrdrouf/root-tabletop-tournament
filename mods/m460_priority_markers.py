@@ -52,7 +52,10 @@ def apply(text):
         blobs = json.load(open(os.path.join(here, fname), encoding="utf-8"))
         var = "RTT_PRIO_" + "".join(c for c in map_id if c.isalnum()).upper()
         lua += "\n%s = {\n%s\n}\n" % (var, ",\n".join("[==[%s]==]" % b for b in blobs))
-        hooks += ('\n  if id == "%s" then Wait.time(function() rttSpawnPriority(%s) end, 0.6) end'
+        # frames(2) lands right after makeMap's synchronous body (removeMapItems +
+        # spawn loop) so the markers appear WITH the map, not a beat later. They lock
+        # at their exact Y regardless of when the board finishes loading.
+        hooks += ('\n  if id == "%s" then Wait.frames(function() rttSpawnPriority(%s) end, 2) end'
                   % (map_id, var))
 
     sig = "function makeMap(player,value,id)"
