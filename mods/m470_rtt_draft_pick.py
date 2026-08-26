@@ -54,6 +54,10 @@ RELAY_LUA = (
     'function rttPickRelay(player, value, id)\n'
     '  local c = getObjectFromGUID(RTT_COORD_GUID)\n'
     '  if c ~= nil then c.call("rttCoordPick", { color = player.color, id = id }) end\n'
+    'end\n'
+    'function rttFacRelay(player, value, id)\n'
+    '  local c = getObjectFromGUID(RTT_COORD_GUID)\n'
+    '  if c ~= nil then c.call("rttCoordFaction", { color = player.color, id = id }) end\n'
     'end'
 )
 
@@ -72,12 +76,26 @@ PICK_XML = (
     '<Button id="rttPickDeck2" onclick="rttPickRelay" icon="Exiles and Partisans Deck"  color="#378f90" position="0 -38 -20" ' + _SZ + '/>'
     '<Button id="rttPickDeck3" onclick="rttPickRelay" icon="Squires and Disciples Deck" color="#AB6894" position="40 -38 -20" ' + _SZ + '/>'
     '</ToggleGroup>'
+    # the faction selector (phase 3): 5 buttons, icons set by the coordinator to the
+    # available drafted factions; only shown on the current player's board in reverse order.
+    '<ToggleGroup id="rttFactions" active="false">'
+    '<Text id="rttFacTitle" text="Pick your faction" position="0 62 -20" width="240" height="14" fontSize="11" color="#f3e9cf"/>'
+    '<Button id="rttFac1" onclick="rttFacRelay" position="-46 30 -20" width="42" height="42"/>'
+    '<Button id="rttFac2" onclick="rttFacRelay" position="0 30 -20" width="42" height="42"/>'
+    '<Button id="rttFac3" onclick="rttFacRelay" position="46 30 -20" width="42" height="42"/>'
+    '<Button id="rttFac4" onclick="rttFacRelay" position="-23 -18 -20" width="42" height="42"/>'
+    '<Button id="rttFac5" onclick="rttFacRelay" position="23 -18 -20" width="42" height="42"/>'
+    '</ToggleGroup>'
 )
 
-# only the icons the selector actually uses (9 of the 538 the menu board carries)
+# only the icons the selector actually uses (map/deck for the pick + faction icons for
+# the draft) — ~21 of the 538 the menu board carries.
 SELECTOR_ASSET_NAMES = {
     "Autumn Map", "Winter Map", "Lake Map", "Marsh Map", "Mountain Map", "Gorge Map",
     "Standard Deck", "Exiles and Partisans Deck", "Squires and Disciples Deck",
+    "Marquise de Cat", "Eyrie Dynasties", "Woodland Alliance", "The Lizard Cult",
+    "Riverfolk Company", "Underground Duchy", "Corvid Conspiracy", "Lord of the Hundreds",
+    "Keepers in Iron", "Twilight Council", "Lilypad Diaspora", "Knaves of the Deepwood",
 }
 
 # ---- the coordinator's logic (runs on the menu board). %s = the selector object JSON.
@@ -184,7 +202,85 @@ function rttCoordPick(args)
   else RTT_PICKED.deck = def.id rttPlaceDeck(def.id) end
   if clone ~= nil then clone.UI.setAttribute("rttPickMapDeck", "active", "false") end
   RTT_PICK_STAGE = 0
-  -- Phase 3 (reverse-order faction draft off the 5 dealt cards) hooks in here.
+  rttStartFactionDraft()
+end
+
+-- ===== phase 3: reverse-order faction draft off the 5 dealt cards =====
+RTT_FAC_STAGE = 0
+RTT_FAC_TAKEN = {}
+RTT_FAC_CURRENT = {}
+
+function rttStartFactionDraft()
+  RTT_FAC_TAKEN = {}
+  _G['Roster'] = {}
+  for i = 1, #RTT_ORDER do _G['Roster'][i] = RTT_ORDER[i].name or "" end
+  if _G['vagabondAlreadySpawned'] == nil then _G['vagabondAlreadySpawned'] = false end
+  Wait.time(function() rttDealHands() end, 0.6)     -- 5 cards to each player from the picked deck
+  RTT_FAC_STAGE = #RTT_ORDER                        -- reverse order: last seat drafts first
+  Wait.frames(function() rttShowFactions() end, 40)
+end
+
+function rttDealHands()
+  local d = nil
+  for _, p in ipairs(getObjectsWithTag("Deck Object")) do
+    if p.name == "Deck" then d = p end
+  end
+  if d == nil then return end
+  for _, e in ipairs(RTT_ORDER) do d.deal(5, e.color) end
+end
+
+function rttShowFactions()
+  if RTT_FAC_STAGE < 1 then return end
+  local seat = RTT_ORDER[RTT_FAC_STAGE]
+  local clone = RTT_CLONES[seat.color]
+  if clone == nil then return end
+  RTT_FAC_CURRENT = {}
+  for _, f in ipairs(RTT_DRAFT_FACTIONS or {}) do
+    if f ~= nil and not RTT_FAC_TAKEN[f] then RTT_FAC_CURRENT[#RTT_FAC_CURRENT + 1] = f end
+  end
+  clone.UI.setAttribute("rttPickMapDeck", "active", "false")
+  clone.UI.setAttribute("rttFactions", "active", "true")
+  for i = 1, 5 do
+    local f = RTT_FAC_CURRENT[i]
+    if f ~= nil then
+      clone.UI.setAttribute("rttFac" .. i, "icon", f)
+      clone.UI.setAttribute("rttFac" .. i, "active", "true")
+    else
+      clone.UI.setAttribute("rttFac" .. i, "active", "false")
+    end
+  end
+end
+
+function rttCoordFaction(args)
+  if RTT_FAC_STAGE < 1 then return end
+  local seat = RTT_ORDER[RTT_FAC_STAGE]
+  if (not RTT_SOLO) and args.color ~= seat.color then return end
+  local idx = tonumber(string.sub(args.id, -1))
+  local faction = RTT_FAC_CURRENT[idx]
+  if faction == nil or RTT_FAC_TAKEN[faction] then return end
+  RTT_FAC_TAKEN[faction] = true
+  local clone = RTT_CLONES[seat.color]
+  if clone ~= nil then clone.UI.setAttribute("rttFactions", "active", "false") end
+  tournamentSpawnDraftFaction(1, faction, seat.color)     -- spawn at this player's seat
+  if faction == "Knaves of the Deepwood" then
+    Wait.time(function() rttKnavesCaptains(seat.color) end, 1.0)
+  end
+  RTT_FAC_STAGE = RTT_FAC_STAGE - 1
+  if RTT_FAC_STAGE >= 1 then
+    Wait.frames(function() rttShowFactions() end, 20)
+  end
+end
+
+-- Knaves: draw 4 random Captains from the Knave board's captain deck (best-effort by name)
+function rttKnavesCaptains(color)
+  for _, o in ipairs(getAllObjects()) do
+    local nm = o.getName() or ""
+    if o.name == "Deck" and (string.find(nm, "Captain", 1, true) or string.find(nm, "Knave", 1, true)) then
+      o.shuffle()
+      o.deal(4, color)
+      return
+    end
+  end
 end
 
 """

@@ -80,6 +80,13 @@ RTT_SLOTS = {{63.9,11.6,-14},{63.9,11.6,-7},{63.9,11.6,0},{63.9,11.6,7},{63.9,11
 -- the cards, but not stranded far out.
 RTT_DECK = {63.9,11.6,24}
 RTT_SPAWNED = {}
+-- CardID -> faction name (matches EVERYTHING['Standard'][name]); used by the faction draft
+RTT_CARD_FACTION = {
+  [300]="Marquise de Cat", [301]="Eyrie Dynasties", [307]="Underground Duchy",
+  [309]="Lord of the Hundreds", [310]="Keepers in Iron", [73200]="Lilypad Diaspora",
+  [302]="Woodland Alliance", [304]="Riverfolk Company", [305]="The Lizard Cult",
+  [308]="Corvid Conspiracy", [73000]="Twilight Council", [73300]="Knaves of the Deepwood",
+}
 
 function rttShuffle(t)
   for i=#t,2,-1 do local j=math.random(i) t[i],t[j]=t[j],t[i] end
@@ -103,6 +110,9 @@ function rttSetup(player, value, id)
   -- the 5 dealt (Militant first); the rest stay as the deck so EVERY faction card is
   -- on the table. The full random order is fixed here, up front.
   local draft = {first, pool[1], pool[2], pool[3], pool[4]}
+  -- the 5 drafted faction NAMES, for the reverse-order faction draft (phase 3)
+  RTT_DRAFT_FACTIONS = {}
+  for _,cid in ipairs(draft) do RTT_DRAFT_FACTIONS[#RTT_DRAFT_FACTIONS+1] = RTT_CARD_FACTION[cid] end
   -- ONLY the 5 drafted cards are put on the table (no leftover faction deck). The
   -- draft empties these as factions are placed in the faction phase.
   RTT_NLEFT = 0
