@@ -17,7 +17,7 @@ from . import framework
 NAME = "clean board: new texture (no baked credit), drop banners + stray labels"
 
 OLD_BOARD = "https://steamusercontent-a.akamaihd.net/ugc/1760320391484183045/6F0CAF900BA7AF96687B49D73B36F68022202AE4/"
-NEW_BOARD = "https://raw.githubusercontent.com/mrdrouf/root-tabletop-tournament/main/assets/board/board_clean_v2.png"
+NEW_BOARD = "https://raw.githubusercontent.com/mrdrouf/root-tabletop-tournament/main/assets/board/board_clean_v3.png"
 
 
 def apply(text):

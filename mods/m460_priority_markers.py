@@ -21,6 +21,7 @@ NAME = "auto-place fixed clearing-priority markers (Summer/Autumn map)"
 MAPS = {
     "Summer Map": "_priority_summer.json",
     "Lake Map": "_priority_lake.json",
+    "Mountain Map": "_priority_mountain.json",
 }
 
 SPAWNER = r"""
