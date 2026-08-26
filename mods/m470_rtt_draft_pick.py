@@ -214,6 +214,7 @@ RTT_FAC_CURRENT = {}
 
 function rttStartFactionDraft()
   RTT_FAC_TAKEN = {}
+  RTT_VP_PLACED = 0
   _G['Roster'] = {}
   for i = 1, #RTT_ORDER do _G['Roster'][i] = RTT_ORDER[i].name or "" end
   if _G['vagabondAlreadySpawned'] == nil then _G['vagabondAlreadySpawned'] = false end
@@ -280,6 +281,9 @@ function rttCoordFaction(args)
   RTT_CLONES[seat.color] = nil
   if clone ~= nil then clone.destruct() end
   rttSpawnFaction(faction, bp.x, bp.z, bp.z > 0)     -- no dice; warriors baked in the data
+  RTT_VP_PLACED = (RTT_VP_PLACED or 0) + 1           -- put this faction's VP marker on score 0
+  local vpN, vpF = RTT_VP_PLACED, faction
+  Wait.time(function() rttPlaceVP(vpF, vpN) end, 1.2)   -- after the pieces (VP marker) settle
   if faction == "Woodland Alliance" then spawnSupportersHand(seat.color) end
   if faction == "Knaves of the Deepwood" then
     Wait.time(function() rttKnavesCaptains(seat.color) end, 1.0)
@@ -325,6 +329,167 @@ function rttKnavesCaptains(color)
       return
     end
   end
+end
+
+-- ===== RTT: move drafted-faction VP markers onto the map score track (col 0) =====
+-- Ports the box-score tool's proven track detection + geometry.
+RTT_TRACK          = RTT_TRACK or nil
+RTT_SCORE0_AT_MIN  = false              -- score 0 sits at the track's LOCAL MAX (base-mod convention)
+RTT_VP_PLACED      = RTT_VP_PLACED or 0
+
+RTT_VP_SHORT = {
+  ["Marquise de Cat"]        = "Marquise",
+  ["Eyrie Dynasties"]        = "Eyrie",
+  ["Woodland Alliance"]      = "Alliance",
+  ["The Lizard Cult"]        = "Lizard",
+  ["Riverfolk Company"]      = "Riverfolk",
+  ["Underground Duchy"]      = "Duchy",
+  ["Corvid Conspiracy"]      = "Crows",
+  ["Lord of the Hundreds"]   = "Rats",
+  ["Keepers in Iron"]        = "Badgers",
+  ["Twilight Council"]       = "Council",
+  ["Lilypad Diaspora"]       = "Diaspora",
+  ["Knaves of the Deepwood"] = "Knaves",
+}
+
+function rttDetectTrackOn(obj)
+  local ok, sp = pcall(function() return obj.getSnapPoints() end)
+  if not ok or sp == nil or #sp < 40 then return nil end
+  local bandsFound = {}
+  for _, axis in ipairs({ "x", "z" }) do
+    local other = (axis == "x") and "z" or "x"
+    local pts = {}
+    for _, s in ipairs(sp) do table.insert(pts, { a = s.position[axis], b = s.position[other] }) end
+    table.sort(pts, function(p, q) return p.b < q.b end)
+    local bands, cur = {}, {}
+    for _, p in ipairs(pts) do
+      if #cur > 0 and (p.b - cur[#cur].b) > 0.03 then table.insert(bands, cur); cur = {} end
+      table.insert(cur, p)
+    end
+    if #cur > 0 then table.insert(bands, cur) end
+    for _, band in ipairs(bands) do
+      if #band >= 25 then
+        local xs = {}
+        for _, p in ipairs(band) do table.insert(xs, p.a) end
+        table.sort(xs)
+        local diffs = {}
+        for i = 2, #xs do table.insert(diffs, xs[i] - xs[i - 1]) end
+        table.sort(diffs)
+        local s = diffs[math.ceil(#diffs / 2)]
+        local even = s and s > 0.01
+        if even then
+          for _, d in ipairs(diffs) do
+            local mrep = math.floor(d / s + 0.5)
+            if mrep < 1 or mrep > 2 or math.abs(d - mrep * s) > 0.25 * s then even = false end
+          end
+        end
+        if even then
+          local n = math.floor((xs[#xs] - xs[1]) / s + 0.5) + 1
+          if n >= 28 and n <= 60 and #xs >= 0.85 * n then
+            table.insert(bandsFound, { axis = axis, other = other, a0 = xs[1], s = s, n = n, b = band[1].b })
+          end
+        end
+      end
+    end
+  end
+  if #bandsFound == 0 then return nil end
+  local best = nil
+  for _, band in ipairs(bandsFound) do
+    if best == nil then
+      best = { axis = band.axis, other = band.other, a0 = band.a0, s = band.s, n = band.n, rows = { band.b } }
+    elseif band.axis == best.axis
+      and math.abs(band.s - best.s) < 0.1 * best.s
+      and math.abs(band.a0 - best.a0) < 0.5 * best.s then
+      table.insert(best.rows, band.b)
+      if band.n > best.n then best.n = band.n end
+    end
+  end
+  table.sort(best.rows)
+  best.pts = {}
+  local bmin, bmax = best.rows[1] - 0.05, best.rows[#best.rows] + 0.05
+  for _, s2 in ipairs(sp) do
+    local a = (best.axis == "x") and s2.position.x or s2.position.z
+    local b = (best.axis == "x") and s2.position.z or s2.position.x
+    if b >= bmin and b <= bmax then table.insert(best.pts, { a = a, b = b }) end
+  end
+  best.guid = obj.getGUID()
+  return best
+end
+
+function rttFindScoreTrack()
+  if RTT_TRACK ~= nil then
+    local o = getObjectFromGUID(RTT_TRACK.guid)
+    if o ~= nil then return o end
+    RTT_TRACK = nil
+  end
+  local best, bestSnaps = nil, 0
+  for _, o in ipairs(getAllObjects()) do
+    local ok, sp = pcall(function() return o.getSnapPoints() end)
+    if ok and sp and #sp >= 40 and #sp > bestSnaps then
+      local t = rttDetectTrackOn(o)
+      if t then best, bestSnaps = t, #sp end
+    end
+  end
+  RTT_TRACK = best
+  if best == nil then return nil end
+  return getObjectFromGUID(best.guid)
+end
+
+function rttZeroColumnSlots()
+  if rttFindScoreTrack() == nil then return {} end
+  local t = RTT_TRACK
+  local cellIdx = RTT_SCORE0_AT_MIN and 0 or (t.n - 1)
+  local cellA   = t.a0 + cellIdx * t.s
+  local mid     = t.rows[math.ceil(#t.rows / 2)]
+  local slots = {}
+  for _, p in ipairs(t.pts or {}) do
+    if math.abs(p.a - cellA) < 0.45 * t.s then slots[#slots + 1] = { a = p.a, b = p.b } end
+  end
+  table.sort(slots, function(p, q) return math.abs(p.b - mid) < math.abs(q.b - mid) end)
+  local step = 0.11
+  if #t.rows >= 2 then step = (t.rows[#t.rows] - t.rows[1]) / (#t.rows - 1) end
+  for _, b in ipairs({ mid - 2 * step, mid + 2 * step, mid - 3 * step, mid + 3 * step }) do
+    slots[#slots + 1] = { a = cellA, b = b }
+  end
+  return slots
+end
+
+function rttSlotWorld(slot)
+  if RTT_TRACK == nil or slot == nil then return nil end
+  local map = getObjectFromGUID(RTT_TRACK.guid)
+  if map == nil then return nil end
+  local lp = { x = 0, y = 2.0, z = 0 }
+  lp[RTT_TRACK.axis]  = slot.a
+  lp[RTT_TRACK.other] = slot.b
+  return map.positionToWorld(lp)
+end
+
+function rttFindVPMarker(faction)
+  local short = RTT_VP_SHORT[faction] or faction
+  local want  = short .. " VP"
+  local held  = nil
+  for _, o in ipairs(getAllObjects()) do
+    if o ~= nil and (o.getName() or "") == want then
+      if o.held_by_color == nil then return o end
+      held = held or o
+    end
+  end
+  return held
+end
+
+function rttPlaceVP(faction, n)
+  if faction == nil then return false end
+  if rttFindScoreTrack() == nil then return false end
+  local m = rttFindVPMarker(faction)
+  if m == nil then return false end
+  local slots = rttZeroColumnSlots()
+  if #slots == 0 then return false end
+  local idx = math.max(1, math.min(#slots, n or 1))
+  local wp  = rttSlotWorld(slots[idx])
+  if wp == nil then return false end
+  if m.getLock and m.getLock() then m.setLock(false) end
+  m.setPositionSmooth({ wp.x, wp.y + 0.12, wp.z }, false, true)
+  return true
 end
 
 """
