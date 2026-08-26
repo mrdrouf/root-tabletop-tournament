@@ -28,16 +28,16 @@ function rttTheme(player, value, id)
 end
 """
 
-RANKED_BTN = ('<Button id="rttRankedBtn" onclick="rttSetup" icon="RankedButton" '
+RANKED_BTN = ('<Button id="rttRankedBtn" onclick="rttSetup" icon="RankedArt" '
               'position="-20 60 -20" width="34" height="34"/>')   # square, matching the map buttons
-THEME_BTN = ('<Button id="rttThemeBtn" onclick="rttTheme" icon="ThemeButton" '
+THEME_BTN = ('<Button id="rttThemeBtn" onclick="rttTheme" icon="ThemeArt" '
              'position="20 60 -20" width="34" height="34"/>')
 
 
 def apply(text):
     # register the two Steam-hosted button images as named UI assets
-    text = framework.add_custom_ui_asset(text, "RankedButton", RANKED_URL)
-    text = framework.add_custom_ui_asset(text, "ThemeButton", THEME_URL)
+    text = framework.add_custom_ui_asset(text, "RankedArt", RANKED_URL)
+    text = framework.add_custom_ui_asset(text, "ThemeArt", THEME_URL)
 
     # drop the old "RTT DRAFT" text button
     text, n = framework.remove_xml_buttons(text, "rttSetup")
