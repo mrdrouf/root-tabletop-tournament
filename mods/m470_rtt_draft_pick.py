@@ -37,6 +37,12 @@ NEW_DEAL = (
     "          RTT_ORDER = {}\n"
     "          for _,p in ipairs(seated) do RTT_ORDER[#RTT_ORDER+1] = {color=p.color, name=p.steam_name} end\n"
     "          for i=#RTT_ORDER,2,-1 do local j=math.random(i) RTT_ORDER[i],RTT_ORDER[j]=RTT_ORDER[j],RTT_ORDER[i] end\n"
+    "          RTT_SOLO = (#RTT_ORDER <= 1)\n"
+    "          if RTT_SOLO then\n"
+    "            local nm = RTT_ORDER[1] and RTT_ORDER[1].name or ''\n"
+    "            RTT_ORDER = {}\n"
+    "            for _,c in ipairs({'Red','Yellow','Teal','Orange'}) do RTT_ORDER[#RTT_ORDER+1] = {color=c, name=nm} end\n"
+    "          end\n"
     "          for _,e in ipairs(RTT_ORDER) do\n"
     "            if ord ~= nil and ord.deal then ord.deal(1, e.color) end\n"
     "          end\n"
@@ -152,7 +158,8 @@ function rttCoordPick(args)
   local def = RTT_PICK_DEFS[args.id]
   if def == nil or RTT_PICK_STAGE == 0 then return end
   local seat = (RTT_PICK_STAGE == 1) and RTT_ORDER[1] or (RTT_ORDER[2] or RTT_ORDER[1])
-  if args.color ~= seat.color then return end   -- silently ignore out-of-turn clicks
+  -- gate to the seat whose turn it is; in solo test mode the one tester drives every board
+  if (not RTT_SOLO) and args.color ~= seat.color then return end
   local clone = RTT_CLONES[seat.color]
 
   if RTT_PICK_STAGE == 1 then
