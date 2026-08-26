@@ -77,42 +77,36 @@ function rttConfigSelector(board)
   board.UI.setAttribute("xButton", "active", "False")
 end
 
--- robust seat position: getPosition is count/colour-specific and returns nil off its
--- table (which errored the whole spawn). Fall back to the 4-player layout, then a
--- fixed per-colour seat, then a corner — NEVER nil.
-RTT_SEAT = {
-  Red = { 52, -46 }, Yellow = { -52, -46 }, Orange = { -52, 46 },
-  Teal = { 52, 46 }, Green = { 0, 46 }, Brown = { 0, -46 },
+-- the six board positions from the old 6-board faction-selector spawner
+-- (setupFactionBoards): corners first, then the two mid-edges.
+RTT_POS = { { 52, -46 }, { -52, -46 }, { 52, 46 }, { -52, 46 }, { 0, -46 }, { 0, 46 } }
+-- which of those positions to use for N players, in turn order (P1 first). Two players
+-- sit diagonally (1 & 4); four players take all corners.
+RTT_LAYOUT = {
+  [1] = { 1 }, [2] = { 1, 4 }, [3] = { 1, 2, 4 },
+  [4] = { 1, 2, 3, 4 }, [5] = { 1, 2, 3, 4, 5 }, [6] = { 1, 2, 3, 4, 5, 6 },
 }
-function rttSeatPos(color, n)
-  for _, c in ipairs({ n, 4, 6, 5, 3, 2, 1 }) do
-    local p = getPosition(color, c)
-    if p ~= nil then return { p.x, p.z } end
-  end
-  if RTT_SEAT[color] ~= nil then return RTT_SEAT[color] end
-  return { 0, -46 }
-end
 
 function rttSpawnSelectors()
   for _, o in ipairs(getObjectsWithTag(RTT_SELECTOR_TAG)) do o.destruct() end
   RTT_CLONES = {}
   local n = #RTT_ORDER
-  for _, e in ipairs(RTT_ORDER) do
-    local xz = rttSeatPos(e.color, n)
+  local layout = RTT_LAYOUT[n] or RTT_LAYOUT[4]
+  for i, e in ipairs(RTT_ORDER) do
+    local p = RTT_POS[layout[i] or i] or RTT_POS[1]
     local board = self.clone({ snap_to_grid = true })
     board.setName("Faction Board")
-    board.setPosition({ xz[1], 11.56, xz[2] })
+    board.setPosition({ p[1], 11.56, p[2] })
     board.setLock(true)   -- locked to the table so clicking an option never drags it
-    if xz[2] > 0 then board.setRotation({ 0, 180, 0 }) else board.setRotation({ 0, 0, 0 }) end
+    if p[2] > 0 then board.setRotation({ 0, 180, 0 }) else board.setRotation({ 0, 0, 0 }) end
     board.addTag(RTT_SELECTOR_TAG)
     RTT_CLONES[e.color] = board
     Wait.frames(function() rttConfigSelector(board) end, 10)
   end
-  broadcastToAll("RTT: spawned " .. n .. " faction-selector board(s) at the seated players.")
 end
 
 function rttBeginPick()
-  if #RTT_ORDER < 1 then broadcastToAll("Seat at least one player before the RTT draft.") return end
+  if #RTT_ORDER < 1 then return end
   RTT_PICKED = { map = nil, deck = nil }
   RTT_PICK_STAGE = 1
   -- the central menu board is NEVER touched: it keeps all its options.
@@ -158,17 +152,13 @@ function rttCoordPick(args)
   local def = RTT_PICK_DEFS[args.id]
   if def == nil or RTT_PICK_STAGE == 0 then return end
   local seat = (RTT_PICK_STAGE == 1) and RTT_ORDER[1] or (RTT_ORDER[2] or RTT_ORDER[1])
-  if args.color ~= seat.color then
-    broadcastToColor("It is Player " .. RTT_PICK_STAGE .. " (" .. seat.color .. ")'s pick.", args.color)
-    return
-  end
+  if args.color ~= seat.color then return end   -- silently ignore out-of-turn clicks
   local clone = RTT_CLONES[seat.color]
 
   if RTT_PICK_STAGE == 1 then
     if def.kind == "map" then RTT_PICKED.map = def.id rttPlaceMap(def.id)
     else RTT_PICKED.deck = def.id rttPlaceDeck(def.id) end
     if clone ~= nil then clone.UI.setAttribute("rttPickMapDeck", "active", "false") end
-    broadcastToAll("Player 1 chose " .. def.label .. ".")
     RTT_PICK_STAGE = 2
     rttShowPick(2)
     return
@@ -180,10 +170,7 @@ function rttCoordPick(args)
   if def.kind == "map" then RTT_PICKED.map = def.id rttPlaceMap(def.id)
   else RTT_PICKED.deck = def.id rttPlaceDeck(def.id) end
   if clone ~= nil then clone.UI.setAttribute("rttPickMapDeck", "active", "false") end
-  broadcastToAll("Player 2 chose " .. def.label .. ".")
   RTT_PICK_STAGE = 0
-  broadcastToAll("Map: " .. tostring(RTT_PICKED.map) .. "  |  Deck: " .. tostring(RTT_PICKED.deck)
-    .. ".  Faction draft (reverse order, P" .. #RTT_ORDER .. " first) is next.")
   -- Phase 3 (reverse-order faction draft off the 5 dealt cards) hooks in here.
 end
 
@@ -191,19 +178,19 @@ end
 
 # the pick screen: one 3x3 grid using the REAL setup-board art AND each button's exact
 # designed background color (icon assets + colors match the menu buttons precisely).
-_SZ = 'width="42" height="34" fontSize="8"'
+_SZ = 'width="34" height="34" fontSize="8"'   # EXACT original button size (art stays centred)
 XML = (
     '\n<ToggleGroup id="rttPickMapDeck" active="false">'
-    '\n  <Text id="rttPickTitle" text="" position="0 62 -20" width="240" height="14" fontSize="11" color="#f3e9cf"/>'
-    '\n  <Button id="rttPickMap1" onclick="rttPickRelay" icon="Autumn Map"   color="#4b4d35" position="-46 34 -20" ' + _SZ + '/>'
+    '\n  <Text id="rttPickTitle" text="" position="0 60 -20" width="240" height="14" fontSize="11" color="#f3e9cf"/>'
+    '\n  <Button id="rttPickMap1" onclick="rttPickRelay" icon="Autumn Map"   color="#4b4d35" position="-40 34 -20" ' + _SZ + '/>'
     '\n  <Button id="rttPickMap2" onclick="rttPickRelay" icon="Winter Map"   color="#6b8a8f" position="0 34 -20" ' + _SZ + '/>'
-    '\n  <Button id="rttPickMap3" onclick="rttPickRelay" icon="Lake Map"     color="#42a0c2" position="46 34 -20" ' + _SZ + '/>'
-    '\n  <Button id="rttPickMap4" onclick="rttPickRelay" icon="Marsh Map"    color="#9b8551" position="-46 -2 -20" ' + _SZ + '/>'
+    '\n  <Button id="rttPickMap3" onclick="rttPickRelay" icon="Lake Map"     color="#42a0c2" position="40 34 -20" ' + _SZ + '/>'
+    '\n  <Button id="rttPickMap4" onclick="rttPickRelay" icon="Marsh Map"    color="#9b8551" position="-40 -2 -20" ' + _SZ + '/>'
     '\n  <Button id="rttPickMap5" onclick="rttPickRelay" icon="Mountain Map" color="#764a52" position="0 -2 -20" ' + _SZ + '/>'
-    '\n  <Button id="rttPickMap6" onclick="rttPickRelay" icon="Gorge Map"    color="#61746b" position="46 -2 -20" ' + _SZ + '/>'
-    '\n  <Button id="rttPickDeck1" onclick="rttPickRelay" icon="Standard Deck"              color="#8d7f81" position="-46 -38 -20" ' + _SZ + '/>'
+    '\n  <Button id="rttPickMap6" onclick="rttPickRelay" icon="Gorge Map"    color="#61746b" position="40 -2 -20" ' + _SZ + '/>'
+    '\n  <Button id="rttPickDeck1" onclick="rttPickRelay" icon="Standard Deck"              color="#8d7f81" position="-40 -38 -20" ' + _SZ + '/>'
     '\n  <Button id="rttPickDeck2" onclick="rttPickRelay" icon="Exiles and Partisans Deck"  color="#378f90" position="0 -38 -20" ' + _SZ + '/>'
-    '\n  <Button id="rttPickDeck3" onclick="rttPickRelay" icon="Squires and Disciples Deck" color="#AB6894" position="46 -38 -20" ' + _SZ + '/>'
+    '\n  <Button id="rttPickDeck3" onclick="rttPickRelay" icon="Squires and Disciples Deck" color="#AB6894" position="40 -38 -20" ' + _SZ + '/>'
     '\n</ToggleGroup>'
 )
 
