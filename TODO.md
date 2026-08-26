@@ -50,9 +50,12 @@ After `rttSetup` deals the 5-card draft, run a guided reverse-order draft:
          P2's board).
 3. **Faction pick (reverse order).** Once map+deck are set, factions are dealt in
    reverse seat order: **Player 4 first**, then Player 3, then 2, then 1. Each sees
-   the **12 official factions** (Vagabond + Knaves are meshed into one option, as on
-   the current board) and picks one; picked factions are removed for the next
-   player. (P1 picks last.)
+   ONLY the **5 drafted factions** (decision 2026-08-26) on their OWN selector board;
+   picked factions are removed for the next player. (P1 picks last.) `setupFaction`
+   already consumes the clicked board into that faction's setup at the seat.
+   - **Knaves special:** if Knaves of the Deepwood is drafted, after its setup draw
+     **4 random Captain cards** from the Knave faction board's captain deck (an extra
+     line in the faction-place step).
 4. **VP markers pre-placed.** Put every faction's victory-point marker up on the
    board's score track at `zero_point_tracker` (NOT next to the faction boards), so
    the game is ready to score. Place them exactly where the **`root_boxscore`** tool
@@ -66,3 +69,12 @@ After `rttSetup` deals the 5-card draft, run a guided reverse-order draft:
 - **Setup-button art (4-player / 5-player / RTT):** user pasted a top-down setup
   screenshot to use as the button image, but Claude can't host images. Needs a URL
   (Steam Workshop image or other host) before it can be wired into the assets table.
+- **RTT Draft button = owl art + "ranked":** Adrien pasted a HOOT-owl image (dark
+  blue speckled bg, a stray white parchment box top-left to blend into the bg) to use
+  as the RTT DRAFT button, with "ranked" written below in the map-button font
+  (= Mason, at C:\Windows\Fonts\MasonSer*.ttf). BLOCKED twice over: (1) the pasted
+  image isn't saved to disk anywhere Claude can read — need the actual file; (2) a UI
+  button icon must be Steam-hosted (non-Steam UI icons blank in TTS), so the finished
+  composite has to be uploaded to Steam Workshop for a URL. Plan once unblocked:
+  blend the white box into the speckled bg, add "ranked" in Mason below the owl,
+  export, host on Steam, wire as the RTT DRAFT button icon.
