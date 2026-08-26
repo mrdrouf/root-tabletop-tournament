@@ -275,16 +275,15 @@ function rttCoordFaction(args)
   RTT_FAC_TAKEN[faction] = true
   local clone = RTT_CLONES[seat.color]
   if clone ~= nil then clone.UI.setAttribute("rttFactions", "active", "false") end
-  -- spawn the faction WHERE THE PLAYER'S BOARD IS (no dice; warriors are baked in the data)
+  -- remove the board FIRST (so it doesn't visibly linger), THEN spawn the faction there
   local bp = (clone ~= nil) and clone.getPosition() or Vector(0, 11.56, 0)
-  rttSpawnFaction(faction, bp.x, bp.z, bp.z > 0)
+  RTT_CLONES[seat.color] = nil
+  if clone ~= nil then clone.destruct() end
+  rttSpawnFaction(faction, bp.x, bp.z, bp.z > 0)     -- no dice; warriors baked in the data
   if faction == "Woodland Alliance" then spawnSupportersHand(seat.color) end
   if faction == "Knaves of the Deepwood" then
     Wait.time(function() rttKnavesCaptains(seat.color) end, 1.0)
   end
-  -- the selector board has been used up: remove it (like setupFaction destructs its board)
-  RTT_CLONES[seat.color] = nil
-  if clone ~= nil then Wait.time(function() if clone ~= nil then clone.destruct() end end, 0.5) end
   RTT_FAC_STAGE = RTT_FAC_STAGE - 1
   if RTT_FAC_STAGE >= 1 then
     Wait.frames(function() rttShowFactions() end, 20)
