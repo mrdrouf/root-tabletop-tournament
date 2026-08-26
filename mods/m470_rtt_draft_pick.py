@@ -124,9 +124,11 @@ RTT_MAP_BTNS  = { "rttPickMap1", "rttPickMap2", "rttPickMap3", "rttPickMap4", "r
 RTT_DECK_BTNS = { "rttPickDeck1", "rttPickDeck2", "rttPickDeck3" }
 -- the six board positions (from the old 6-board spawner)
 RTT_POS = { { 52, -46 }, { -52, -46 }, { 52, 46 }, { -52, 46 }, { 0, -46 }, { 0, 46 } }
+-- counterclockwise seating: P4 sits across from P1 (pos3 vs pos1), P3 across from P2
+-- (pos4 vs pos2). RTT_POS: 1=(52,-46) 2=(-52,-46) 3=(52,46) 4=(-52,46).
 RTT_LAYOUT = {
-  [1] = { 1 }, [2] = { 1, 4 }, [3] = { 1, 2, 4 },
-  [4] = { 1, 2, 3, 4 }, [5] = { 1, 2, 3, 4, 5 }, [6] = { 1, 2, 3, 4, 5, 6 },
+  [1] = { 1 }, [2] = { 1, 3 }, [3] = { 1, 2, 3 },
+  [4] = { 1, 2, 4, 3 }, [5] = { 1, 2, 5, 4, 3 }, [6] = { 1, 2, 5, 6, 4, 3 },
 }
 
 function rttSpawnSelectors()
@@ -226,7 +228,19 @@ function rttDealHands()
     if p.name == "Deck" then d = p end
   end
   if d == nil then return end
-  for _, e in ipairs(RTT_ORDER) do d.deal(5, e.color) end
+  local seated = {}
+  for _, p in ipairs(Player.getPlayers()) do
+    if p.seated and p.color ~= "Grey" and p.color ~= "Black" then seated[#seated + 1] = p.color end
+  end
+  if #seated == 0 then return end        -- real players only; never deal into the void
+  rttDealOne(d, seated, 1, 1)            -- one card at a time, around the table
+end
+
+function rttDealOne(d, seated, card, who)
+  if card > 5 then return end
+  if who > #seated then rttDealOne(d, seated, card + 1, 1) return end
+  if d ~= nil and d.deal then d.deal(1, seated[who]) end
+  Wait.time(function() rttDealOne(d, seated, card, who + 1) end, 0.15)
 end
 
 function rttShowFactions()
@@ -261,13 +275,44 @@ function rttCoordFaction(args)
   RTT_FAC_TAKEN[faction] = true
   local clone = RTT_CLONES[seat.color]
   if clone ~= nil then clone.UI.setAttribute("rttFactions", "active", "false") end
-  tournamentSpawnDraftFaction(1, faction, seat.color)     -- spawn at this player's seat
+  -- spawn the faction WHERE THE PLAYER'S BOARD IS (no dice; warriors are baked in the data)
+  local bp = (clone ~= nil) and clone.getPosition() or Vector(0, 11.56, 0)
+  rttSpawnFaction(faction, bp.x, bp.z, bp.z > 0)
+  if faction == "Woodland Alliance" then spawnSupportersHand(seat.color) end
   if faction == "Knaves of the Deepwood" then
     Wait.time(function() rttKnavesCaptains(seat.color) end, 1.0)
   end
+  -- the selector board has been used up: remove it (like setupFaction destructs its board)
+  RTT_CLONES[seat.color] = nil
+  if clone ~= nil then Wait.time(function() if clone ~= nil then clone.destruct() end end, 0.5) end
   RTT_FAC_STAGE = RTT_FAC_STAGE - 1
   if RTT_FAC_STAGE >= 1 then
     Wait.frames(function() rttShowFactions() end, 20)
+  end
+end
+
+-- spawn a faction's pieces at (cx,cz), WITHOUT dice (m060). Warrior placements (m290
+-- Lizard, m300 Duchy) are baked into the faction data, so they come along. flip rotates
+-- the setup 180 for a far-side (z>0) seat. Mirrors tournamentSpawnDraftFaction's math.
+function rttSpawnFaction(faction, cx, cz, flip)
+  local objects = {}
+  for _, v in ipairs(EVERYTHING['Standard'][faction]['data']) do
+    if not string.find(v.json, '"Name": "Custom_Dice"', 1, true) then objects[#objects + 1] = v end
+  end
+  local scale = self.getScale()
+  scale.x = 1 / scale.x
+  scale.z = 1 / scale.z
+  local function cb(o)
+    if flip then o.setRotation({ o.getRotation().x, o.getRotation().y + 180, o.getRotation().z }) end
+    if o.hasTag("Ruin Set") then o.destroy() end
+    if o.hasTag("Shuffleable") then o.shuffle() o.shuffle() end
+  end
+  for _, v in ipairs(objects) do
+    local vec = Vector(v.move_to) * scale
+    if flip then vec = vec * Vector(-15.5, 1, -15.5) else vec = vec * Vector(15.5, 1, 15.5) end
+    local new_pos = Vector(cx, 11.56, cz) + vec
+    new_pos.y = new_pos.y - 0.1
+    spawnObjectJSON({ json = v.json, position = new_pos, callback_function = cb })
   end
 end
 
