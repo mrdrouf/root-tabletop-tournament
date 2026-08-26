@@ -19,10 +19,20 @@ Ordered backlog of requested work not yet built. Newest big items at the bottom.
 - **Direction = single reverse pass** P4→P3→P2→P1 (NOT an actual snake).
 - **Build order:** (0) capture turn order into `RTT_ORDER` [prereq for all gating];
   (1-2) map/deck pick; (3) 5-card faction draft; (4) VP markers; (5) box score.
-- **Progress:** phases 0-2 built in `m470_rtt_draft_pick` (RTT_ORDER capture +
-  P1/P2 map+deck pick screen). NEXT = phase 3 (reverse-order faction draft off the
-  5 dealt cards), then phases 4-5. NB: order-card FACES may not read 1..4 yet (cards
-  carry no ordinal; RTT_ORDER is authoritative, order shown via UI + broadcasts).
+- **Architecture (Adrien 2026-08-26):** NEVER touch the central menu board. The
+  central board is a hidden COORDINATOR (GUID bab7e1) that clones one faction-selector
+  board in front of each seated player (`getPosition`), and drives each clone's UI.
+  Clones run their own Lua context, so their buttons RELAY clicks back to the
+  coordinator via getObjectFromGUID(bab7e1).call(...). Map/deck buttons use the REAL
+  setup-board icon art (persistent CustomUIAssets survive on clones). The faction
+  selector will be the base `standardButtons`, trimmed to the 5 drafted factions with
+  no bots/fan/setup/rules, revealed board-by-board in reverse order.
+- **Progress:** m470_rtt_draft_pick reworked to the clone architecture — spawns 4
+  per-player boards + P1/P2 map+deck pick with real art, coordinated by relay. NEXT =
+  phase 3 (reverse-order faction draft off the 5 dealt cards on those same clones:
+  restrict standardButtons to 5, reveal P4->P1, setupFaction consumes each clone),
+  then phases 4-5 (VP markers + box score). NB: order-card FACES may not read 1..4
+  (cards carry no ordinal; RTT_ORDER authoritative, order shown via UI + broadcasts).
 
 After `rttSetup` deals the 5-card draft, run a guided reverse-order draft:
 

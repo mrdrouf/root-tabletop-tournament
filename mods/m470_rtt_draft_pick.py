@@ -1,32 +1,33 @@
 """
-m470 — RTT draft, phase 0-2: capture turn order, then the P1/P2 map+deck pick.
+m470 — RTT draft on per-player selector boards: turn order + P1/P2 map+deck pick.
 
-After `rttSetup` (m250) deals the 5-card draft + the player-order cards, this:
+Adrien's architecture: never touch the central menu board. After `rttSetup` (m250)
+deals the 5-card draft + order cards, the central board becomes a hidden COORDINATOR
+that spawns one faction-selector board (a clone) in front of every seated player and
+drives their UI. Each player interacts only with the board at their seat.
 
-  * captures the seated players' turn order into `RTT_ORDER` (a shuffle — the
-    authoritative order; the physical order-card faces are cosmetic for now, since
-    the cards carry no readable ordinal), then opens the pick screen;
-  * shows one clean 3x3 grid of text buttons: 6 maps + 3 decks;
-  * **Player 1** picks a map OR a deck (free choice); the chosen category's buttons
-    switch off, leaving the other category for **Player 2**, who picks the leftover.
-  * Each pick is gated to that seat's colour and places the piece via the base
-    primitives `makeMap` (+ battle mat, Mountain Tower removal) and `makeDeck`
-    (2-player decks get the " 2" variant, as the base does).
+Clone mechanics reused from the base:
+  * `self.clone()` + `setName("Faction Board")` — the name makes the clone SKIP the
+    heavy `onLoad` (guarded by `if self.getName() != "Faction Board"`), so it spawns
+    bare; its persistent CustomUIAssets (map/deck/faction icons) come along, so real
+    art renders on it.
+  * seat position = `getPosition(color, n)`; rotation by table side (z>0 -> 180).
+  * clones each run their OWN Lua context (globals are NOT shared), so their buttons
+    RELAY clicks to the coordinator (the one board still named "Faction Selection",
+    GUID bab7e1) via getObjectFromGUID(...).call(...). All state lives on the coordinator.
 
-When both are picked the screen closes and it announces the faction draft is next —
-that's phase 3 (reverse-order draft off the 5 dealt cards), wired in a later mod.
-
-Decisions locked 2026-08-26 (see TODO.md): free+leftover map/deck; draft from the 5
-dealt cards; single reverse pass. Buttons are TEXT (custom UI icons blank in TTS).
+Phase 0-2 here: capture RTT_ORDER, spawn the boards, then Player 1 picks a map OR a
+deck (real setup-board art) on their own board; the chosen category switches off and
+Player 2 picks the leftover on theirs. Phase 3 (reverse-order faction draft off the 5
+dealt cards, revealed board-by-board) reuses these same clones and is wired next.
 """
 from . import framework
 
-NAME = "RTT draft: turn-order capture + P1/P2 map+deck pick"
+NAME = "RTT draft: per-player selector boards + P1/P2 map+deck pick"
 
 MAKEMAP_SIG = "function makeMap(player,value,id)"
 
-# the exact deal loop injected by m250's rttDealOrder — we replace it to also
-# capture RTT_ORDER and kick off the pick screen.
+# m250's rttDealOrder deal loop -> also capture RTT_ORDER + start the pick.
 OLD_DEAL = (
     "          for _,p in ipairs(seated) do\n"
     "            if ord ~= nil and ord.deal then ord.deal(1, p.color) end\n"
@@ -43,10 +44,13 @@ NEW_DEAL = (
 )
 
 LUA = r"""
--- ===== RTT map/deck pick (P1 free choice, P2 leftover) =====
+-- ===== RTT per-player selector boards + P1/P2 map/deck pick =====
+RTT_COORD_GUID = "bab7e1"          -- the central menu board (never touched; only coordinates)
+RTT_SELECTOR_TAG = "RTT Selector"
 RTT_ORDER = RTT_ORDER or {}
+RTT_CLONES = {}                    -- color -> clone board ref (lives on the coordinator)
 RTT_PICKED = { map = nil, deck = nil }
-RTT_PICK_STAGE = 0   -- 0 idle, 1 = first picker (P1), 2 = leftover (P2)
+RTT_PICK_STAGE = 0                 -- 0 idle, 1 = P1 (free), 2 = P2 (leftover)
 
 RTT_PICK_DEFS = {
   rttPickMap1  = { kind = "map",  id = "Summer Map",   label = "Autumn" },
@@ -61,23 +65,56 @@ RTT_PICK_DEFS = {
 }
 RTT_MAP_BTNS  = { "rttPickMap1", "rttPickMap2", "rttPickMap3", "rttPickMap4", "rttPickMap5", "rttPickMap6" }
 RTT_DECK_BTNS = { "rttPickDeck1", "rttPickDeck2", "rttPickDeck3" }
+-- everything to switch off on a fresh selector clone (show nothing until told)
+RTT_HIDE_GROUPS = {
+  "Main Nav", "Main Nav Personal", "standardButtons", "vagabondButtons", "setupButtons",
+  "mapButtonsStandard", "fanMapButtons1", "fanMapButtons2", "decksButtonsStandard", "deckPage2",
+  "toolsButtons", "tools1", "tools2", "robotButtons", "robotButtons2", "rttPickMapDeck",
+}
 
-function rttPickSetButtons(ids, on)
-  for _, b in ipairs(ids) do self.UI.setAttribute(b, "active", on and "true" or "false") end
+function rttConfigSelector(board)
+  for _, g in ipairs(RTT_HIDE_GROUPS) do board.UI.setAttribute(g, "active", "False") end
+  board.UI.setAttribute("xButton", "active", "False")
+end
+
+function rttSpawnSelectors()
+  for _, o in ipairs(getObjectsWithTag(RTT_SELECTOR_TAG)) do o.destruct() end
+  RTT_CLONES = {}
+  local n = #RTT_ORDER
+  for _, e in ipairs(RTT_ORDER) do
+    local pos = getPosition(e.color, n)
+    local board = self.clone({ snap_to_grid = true })
+    board.setName("Faction Board")
+    board.setLock(false)
+    board.setPosition({ pos.x, 11.56, pos.z })
+    if pos.z > 0 then board.setRotation({ 0, 180, 0 }) else board.setRotation({ 0, 0, 0 }) end
+    board.addTag(RTT_SELECTOR_TAG)
+    RTT_CLONES[e.color] = board
+    Wait.frames(function() rttConfigSelector(board) end, 10)
+  end
 end
 
 function rttBeginPick()
-  RTT_PICKED = { map = nil, deck = nil }
   if #RTT_ORDER < 1 then broadcastToAll("Seat at least one player before the RTT draft.") return end
+  RTT_PICKED = { map = nil, deck = nil }
   RTT_PICK_STAGE = 1
   allButtonsOff()
   self.UI.setAttribute("Main Nav", "active", "False")
-  rttPickSetButtons(RTT_MAP_BTNS, true)
-  rttPickSetButtons(RTT_DECK_BTNS, true)
-  self.UI.setAttribute("rttPickMapDeck", "active", "true")
-  self.UI.setAttribute("rttPickTitle", "text", "Player 1 (" .. RTT_ORDER[1].color .. "): pick a MAP or a DECK")
-  broadcastToColor("You are Player 1 - pick a map OR a deck.", RTT_ORDER[1].color)
-  broadcastToAll("Player 1 (" .. RTT_ORDER[1].color .. ") picks a map or a deck.")
+  rttSpawnSelectors()
+  Wait.frames(function() rttShowPick(1) end, 30)
+end
+
+function rttShowPick(stage)
+  local seat = (stage == 1) and RTT_ORDER[1] or (RTT_ORDER[2] or RTT_ORDER[1])
+  local clone = RTT_CLONES[seat.color]
+  if clone == nil then return end
+  clone.UI.setAttribute("rttPickMapDeck", "active", "true")
+  for _, b in ipairs(RTT_MAP_BTNS)  do clone.UI.setAttribute(b, "active", (RTT_PICKED.map  == nil) and "true" or "false") end
+  for _, b in ipairs(RTT_DECK_BTNS) do clone.UI.setAttribute(b, "active", (RTT_PICKED.deck == nil) and "true" or "false") end
+  local what = (stage == 1) and "pick a MAP or a DECK" or ("pick the " .. ((RTT_PICKED.map == nil) and "MAP" or "DECK"))
+  clone.UI.setAttribute("rttPickTitle", "text", "Player " .. stage .. " (" .. seat.color .. "): " .. what)
+  broadcastToColor("Your turn - " .. what .. ".", seat.color)
+  broadcastToAll("Player " .. stage .. " (" .. seat.color .. ") is picking.")
 end
 
 function rttPlaceMap(mapId)
@@ -94,85 +131,72 @@ function rttPlaceDeck(deckId)
   makeDeck("", "", id)
 end
 
-function rttPickFinish()
+-- runs on the CLONE; forwards the click to the coordinator (own Lua context)
+function rttPickRelay(player, value, id)
+  local coord = getObjectFromGUID(RTT_COORD_GUID)
+  if coord ~= nil then coord.call("rttCoordPick", { color = player.color, id = id }) end
+end
+
+-- runs on the COORDINATOR (has RTT_ORDER / RTT_CLONES / RTT_PICKED)
+function rttCoordPick(args)
+  local def = RTT_PICK_DEFS[args.id]
+  if def == nil or RTT_PICK_STAGE == 0 then return end
+  local seat = (RTT_PICK_STAGE == 1) and RTT_ORDER[1] or (RTT_ORDER[2] or RTT_ORDER[1])
+  if args.color ~= seat.color then
+    broadcastToColor("It is Player " .. RTT_PICK_STAGE .. " (" .. seat.color .. ")'s pick.", args.color)
+    return
+  end
+  local clone = RTT_CLONES[seat.color]
+
+  if RTT_PICK_STAGE == 1 then
+    if def.kind == "map" then RTT_PICKED.map = def.id rttPlaceMap(def.id)
+    else RTT_PICKED.deck = def.id rttPlaceDeck(def.id) end
+    if clone ~= nil then clone.UI.setAttribute("rttPickMapDeck", "active", "false") end
+    broadcastToAll("Player 1 chose " .. def.label .. ".")
+    RTT_PICK_STAGE = 2
+    rttShowPick(2)
+    return
+  end
+
+  -- stage 2: P2 takes the leftover category (buttons already filtered)
+  if RTT_PICKED.map == nil and def.kind ~= "map" then return end
+  if RTT_PICKED.deck == nil and def.kind ~= "deck" then return end
+  if def.kind == "map" then RTT_PICKED.map = def.id rttPlaceMap(def.id)
+  else RTT_PICKED.deck = def.id rttPlaceDeck(def.id) end
+  if clone ~= nil then clone.UI.setAttribute("rttPickMapDeck", "active", "false") end
+  broadcastToAll("Player 2 chose " .. def.label .. ".")
   RTT_PICK_STAGE = 0
-  self.UI.setAttribute("rttPickMapDeck", "active", "false")
   broadcastToAll("Map: " .. tostring(RTT_PICKED.map) .. "  |  Deck: " .. tostring(RTT_PICKED.deck)
     .. ".  Faction draft (reverse order, P" .. #RTT_ORDER .. " first) is next.")
   -- Phase 3 (reverse-order faction draft off the 5 dealt cards) hooks in here.
 end
 
-function rttPickChoose(player, value, id)
-  local def = RTT_PICK_DEFS[id]
-  if def == nil or RTT_PICK_STAGE == 0 then return end
-
-  local seat
-  if RTT_PICK_STAGE == 1 then seat = RTT_ORDER[1] else seat = RTT_ORDER[2] or RTT_ORDER[1] end
-  if player.color ~= seat.color then
-    broadcastToColor("It is Player " .. RTT_PICK_STAGE .. " (" .. seat.color .. ")'s pick.", player.color)
-    return
-  end
-
-  if RTT_PICK_STAGE == 1 then
-    if def.kind == "map" then
-      RTT_PICKED.map = def.id
-      rttPlaceMap(def.id)
-      rttPickSetButtons(RTT_MAP_BTNS, false)     -- map taken -> leftover = decks
-    else
-      RTT_PICKED.deck = def.id
-      rttPlaceDeck(def.id)
-      rttPickSetButtons(RTT_DECK_BTNS, false)    -- deck taken -> leftover = maps
-    end
-    broadcastToAll("Player 1 chose " .. def.label .. ".")
-    RTT_PICK_STAGE = 2
-    local seat2 = RTT_ORDER[2] or RTT_ORDER[1]
-    local leftover = (RTT_PICKED.map == nil) and "MAP" or "DECK"
-    self.UI.setAttribute("rttPickTitle", "text", "Player 2 (" .. seat2.color .. "): pick the " .. leftover)
-    broadcastToColor("You are Player 2 - pick the " .. leftover .. ".", seat2.color)
-    broadcastToAll("Player 2 (" .. seat2.color .. ") picks the " .. leftover .. ".")
-    return
-  end
-
-  -- stage 2: P2 takes whichever category is left (buttons are already filtered)
-  if RTT_PICKED.map == nil and def.kind ~= "map" then return end
-  if RTT_PICKED.deck == nil and def.kind ~= "deck" then return end
-  if def.kind == "map" then RTT_PICKED.map = def.id rttPlaceMap(def.id)
-  else RTT_PICKED.deck = def.id rttPlaceDeck(def.id) end
-  broadcastToAll("Player 2 chose " .. def.label .. ".")
-  rttPickFinish()
-end
-
 """
 
-# the pick screen: one 3x3 grid (6 maps + 3 decks) of same-size parchment text
-# buttons, centred on the draft area (x cols -5/35/75, matching DraftOptions).
-_BTN = 'width="38" height="26" fontSize="8" color="#e3d3a6" textColor="#3d2c15" fontStyle="Bold"'
+# the pick screen: one 3x3 grid using the REAL setup-board map/deck art (icon assets
+# live in the board's persistent CustomUIAssets, so they render on clones too).
+_BTN = 'width="46" height="32"'
 XML = (
     '\n<ToggleGroup id="rttPickMapDeck" active="false">'
-    '\n  <Text id="rttPickTitle" text="" position="35 62 -20" width="240" height="14" fontSize="11" color="#f3e9cf"/>'
-    '\n  <Button id="rttPickMap1" onclick="rttPickChoose" text="Autumn"   position="-5 34 -20" ' + _BTN + '/>'
-    '\n  <Button id="rttPickMap2" onclick="rttPickChoose" text="Winter"   position="35 34 -20" ' + _BTN + '/>'
-    '\n  <Button id="rttPickMap3" onclick="rttPickChoose" text="Lake"     position="75 34 -20" ' + _BTN + '/>'
-    '\n  <Button id="rttPickMap4" onclick="rttPickChoose" text="Marsh"    position="-5 4 -20" ' + _BTN + '/>'
-    '\n  <Button id="rttPickMap5" onclick="rttPickChoose" text="Mountain" position="35 4 -20" ' + _BTN + '/>'
-    '\n  <Button id="rttPickMap6" onclick="rttPickChoose" text="Gorge"    position="75 4 -20" ' + _BTN + '/>'
-    '\n  <Button id="rttPickDeck1" onclick="rttPickChoose" text="Standard"            position="-5 -26 -20" ' + _BTN + '/>'
-    '\n  <Button id="rttPickDeck2" onclick="rttPickChoose" text="Exiles &amp; Partisans"  position="35 -26 -20" ' + _BTN + '/>'
-    '\n  <Button id="rttPickDeck3" onclick="rttPickChoose" text="Squires &amp; Disciples" position="75 -26 -20" ' + _BTN + '/>'
+    '\n  <Text id="rttPickTitle" text="" position="0 60 -20" width="240" height="14" fontSize="11" color="#f3e9cf"/>'
+    '\n  <Button id="rttPickMap1" onclick="rttPickRelay" icon="Autumn Map"   position="-50 32 -20" ' + _BTN + '/>'
+    '\n  <Button id="rttPickMap2" onclick="rttPickRelay" icon="Winter Map"   position="0 32 -20" ' + _BTN + '/>'
+    '\n  <Button id="rttPickMap3" onclick="rttPickRelay" icon="Lake Map"     position="50 32 -20" ' + _BTN + '/>'
+    '\n  <Button id="rttPickMap4" onclick="rttPickRelay" icon="Marsh Map"    position="-50 -4 -20" ' + _BTN + '/>'
+    '\n  <Button id="rttPickMap5" onclick="rttPickRelay" icon="Mountain Map" position="0 -4 -20" ' + _BTN + '/>'
+    '\n  <Button id="rttPickMap6" onclick="rttPickRelay" icon="Gorge Map"    position="50 -4 -20" ' + _BTN + '/>'
+    '\n  <Button id="rttPickDeck1" onclick="rttPickRelay" icon="Standard Deck"              position="-50 -40 -20" ' + _BTN + '/>'
+    '\n  <Button id="rttPickDeck2" onclick="rttPickRelay" icon="Exiles and Partisans Deck"  position="0 -40 -20" ' + _BTN + '/>'
+    '\n  <Button id="rttPickDeck3" onclick="rttPickRelay" icon="Squires and Disciples Deck" position="50 -40 -20" ' + _BTN + '/>'
     '\n</ToggleGroup>'
 )
 
 
 def apply(text):
-    # 1) inject the Lua before makeMap
     if text.count(MAKEMAP_SIG) != 1:
         raise framework.BuildError("makeMap anchor not unique")
     text = text.replace(MAKEMAP_SIG, framework.esc(LUA) + MAKEMAP_SIG, 1)
-
-    # 2) capture RTT_ORDER + start the pick when the order cards are dealt
     text = framework.replace_unique(text, framework.esc(OLD_DEAL), framework.esc(NEW_DEAL))
-
-    # 3) add the pick screen to the board's XmlUI (after the Root logo image)
     anchor = 'image=\\"Root Logo\\"/>'
     text = framework.replace_unique(text, anchor, anchor + framework.esc(XML))
     return text
