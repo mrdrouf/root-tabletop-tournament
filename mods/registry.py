@@ -50,6 +50,7 @@ from . import m340_layout_polish
 from . import m355_setup_fixes
 from . import m350_custom_layout
 from . import m360_board_cleanup
+from . import m365_board_thickness
 from . import m370_cdn_urls
 from . import m380_faction_selector_clean
 from . import m390_no_hover_credits
@@ -116,6 +117,7 @@ MODS = [
     m470_rtt_draft_pick,           # RTT draft phase 0-2: turn order + P1/P2 map+deck pick
     m480_ranked_theme_buttons,     # replace RTT DRAFT text button with Ranked + Theme image buttons
     m360_board_cleanup,
+    m365_board_thickness,          # give the board real 3D thickness (was a flat tile)
     m380_faction_selector_clean,
     m390_no_hover_credits,
     m400_remove_fan_factions,
