@@ -28,9 +28,9 @@ end
 """
 
 RANKED_BTN = ('<Button id="rttRankedBtn" onclick="rttSetup" icon="RankedButton" '
-              'position="-22 58 -20" width="36" height="44"/>')
+              'position="-20 60 -20" width="34" height="34"/>')   # square, matching the map buttons
 THEME_BTN = ('<Button id="rttThemeBtn" onclick="rttTheme" icon="ThemeButton" '
-             'position="22 58 -20" width="36" height="44"/>')
+             'position="20 60 -20" width="34" height="34"/>')
 
 
 def apply(text):

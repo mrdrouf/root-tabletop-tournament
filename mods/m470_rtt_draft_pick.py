@@ -1,29 +1,26 @@
 """
-m470 — RTT draft on per-player selector boards: turn order + P1/P2 map+deck pick.
+m470 — RTT draft on LIGHTWEIGHT per-player selector boards + P1/P2 map+deck pick.
 
-Adrien's architecture: never touch the central menu board. After `rttSetup` (m250)
-deals the 5-card draft + order cards, the central board becomes a hidden COORDINATOR
-that spawns one faction-selector board (a clone) in front of every seated player and
-drives their UI. Each player interacts only with the board at their seat.
+Adrien's key requirement: do NOT clone the giant menu board (its LuaScript is ~4.3 MB
+of map/faction/tool data + 538 UI assets) — cloning it 4x is what lags the game and
+makes the button art flash then go white. Instead we spawn a tiny purpose-built
+Custom_Tile: the same wood texture, ONLY the map/deck pick UI, a ~1 KB relay script,
+and ONLY the ~9 map/deck icons it needs. Fast to spawn, no lag, no white flash.
 
-Clone mechanics reused from the base:
-  * `self.clone()` + `setName("Faction Board")` — the name makes the clone SKIP the
-    heavy `onLoad` (guarded by `if self.getName() != "Faction Board"`), so it spawns
-    bare; its persistent CustomUIAssets (map/deck/faction icons) come along, so real
-    art renders on it.
-  * seat position = `getPosition(color, n)`; rotation by table side (z>0 -> 180).
-  * clones each run their OWN Lua context (globals are NOT shared), so their buttons
-    RELAY clicks to the coordinator (the one board still named "Faction Selection",
-    GUID bab7e1) via getObjectFromGUID(...).call(...). All state lives on the coordinator.
+The central menu board (GUID bab7e1) stays the untouched COORDINATOR: it holds turn
+order + all draft state and drives each selector's UI (cross-object UI.setAttribute).
+Each selector's buttons RELAY clicks back to the coordinator (own Lua context).
 
-Phase 0-2 here: capture RTT_ORDER, spawn the boards, then Player 1 picks a map OR a
-deck (real setup-board art) on their own board; the chosen category switches off and
-Player 2 picks the leftover on theirs. Phase 3 (reverse-order faction draft off the 5
-dealt cards, revealed board-by-board) reuses these same clones and is wired next.
+Phase 0-2: capture RTT_ORDER (solo test => a full 4-board layout the one tester drives),
+spawn the selectors, Player 1 picks a map OR deck on their own board, the chosen
+category switches off, Player 2 picks the leftover on theirs. Faction draft (phase 3)
+reuses these same lightweight boards.
 """
+import json
+
 from . import framework
 
-NAME = "RTT draft: per-player selector boards + P1/P2 map+deck pick"
+NAME = "RTT draft: lightweight per-player selector boards + P1/P2 map+deck pick"
 
 MAKEMAP_SIG = "function makeMap(player,value,id)"
 
@@ -51,14 +48,48 @@ NEW_DEAL = (
     "          Wait.time(function() rttBeginPick() end, 1.2)"
 )
 
-LUA = r"""
--- ===== RTT per-player selector boards + P1/P2 map/deck pick =====
-RTT_COORD_GUID = "bab7e1"          -- the central menu board (never touched; only coordinates)
+# ---- the lightweight selector's OWN tiny script: just relay clicks to the coordinator
+RELAY_LUA = (
+    'RTT_COORD_GUID = "bab7e1"\n'
+    'function rttPickRelay(player, value, id)\n'
+    '  local c = getObjectFromGUID(RTT_COORD_GUID)\n'
+    '  if c ~= nil then c.call("rttCoordPick", { color = player.color, id = id }) end\n'
+    'end'
+)
+
+# ---- the lightweight selector's OWN XmlUI: only the 3x3 map/deck pick grid
+_SZ = 'width="34" height="34" fontSize="8"'
+PICK_XML = (
+    '<ToggleGroup id="rttPickMapDeck" active="false">'
+    '<Text id="rttPickTitle" text="" position="0 60 -20" width="240" height="14" fontSize="11" color="#f3e9cf"/>'
+    '<Button id="rttPickMap1" onclick="rttPickRelay" icon="Autumn Map"   color="#4b4d35" position="-40 34 -20" ' + _SZ + '/>'
+    '<Button id="rttPickMap2" onclick="rttPickRelay" icon="Winter Map"   color="#6b8a8f" position="0 34 -20" ' + _SZ + '/>'
+    '<Button id="rttPickMap3" onclick="rttPickRelay" icon="Lake Map"     color="#42a0c2" position="40 34 -20" ' + _SZ + '/>'
+    '<Button id="rttPickMap4" onclick="rttPickRelay" icon="Marsh Map"    color="#9b8551" position="-40 -2 -20" ' + _SZ + '/>'
+    '<Button id="rttPickMap5" onclick="rttPickRelay" icon="Mountain Map" color="#764a52" position="0 -2 -20" ' + _SZ + '/>'
+    '<Button id="rttPickMap6" onclick="rttPickRelay" icon="Gorge Map"    color="#61746b" position="40 -2 -20" ' + _SZ + '/>'
+    '<Button id="rttPickDeck1" onclick="rttPickRelay" icon="Standard Deck"              color="#8d7f81" position="-40 -38 -20" ' + _SZ + '/>'
+    '<Button id="rttPickDeck2" onclick="rttPickRelay" icon="Exiles and Partisans Deck"  color="#378f90" position="0 -38 -20" ' + _SZ + '/>'
+    '<Button id="rttPickDeck3" onclick="rttPickRelay" icon="Squires and Disciples Deck" color="#AB6894" position="40 -38 -20" ' + _SZ + '/>'
+    '</ToggleGroup>'
+)
+
+# only the icons the selector actually uses (9 of the 538 the menu board carries)
+SELECTOR_ASSET_NAMES = {
+    "Autumn Map", "Winter Map", "Lake Map", "Marsh Map", "Mountain Map", "Gorge Map",
+    "Standard Deck", "Exiles and Partisans Deck", "Squires and Disciples Deck",
+}
+
+# ---- the coordinator's logic (runs on the menu board). %s = the selector object JSON.
+COORD_LUA = r"""
+-- ===== RTT lightweight per-player selectors + P1/P2 map/deck pick =====
 RTT_SELECTOR_TAG = "RTT Selector"
 RTT_ORDER = RTT_ORDER or {}
-RTT_CLONES = {}                    -- color -> clone board ref (lives on the coordinator)
+RTT_CLONES = {}
 RTT_PICKED = { map = nil, deck = nil }
-RTT_PICK_STAGE = 0                 -- 0 idle, 1 = P1 (free), 2 = P2 (leftover)
+RTT_PICK_STAGE = 0
+RTT_SOLO = false
+RTT_SELECTOR_JSON = [===[%s]===]
 
 RTT_PICK_DEFS = {
   rttPickMap1  = { kind = "map",  id = "Summer Map",   label = "Autumn" },
@@ -73,23 +104,8 @@ RTT_PICK_DEFS = {
 }
 RTT_MAP_BTNS  = { "rttPickMap1", "rttPickMap2", "rttPickMap3", "rttPickMap4", "rttPickMap5", "rttPickMap6" }
 RTT_DECK_BTNS = { "rttPickDeck1", "rttPickDeck2", "rttPickDeck3" }
--- everything to switch off on a fresh selector clone (show nothing until told)
-RTT_HIDE_GROUPS = {
-  "Main Nav", "Main Nav Personal", "standardButtons", "vagabondButtons", "setupButtons",
-  "mapButtonsStandard", "fanMapButtons1", "fanMapButtons2", "decksButtonsStandard", "deckPage2",
-  "toolsButtons", "tools1", "tools2", "robotButtons", "robotButtons2", "rttPickMapDeck",
-}
-
-function rttConfigSelector(board)
-  for _, g in ipairs(RTT_HIDE_GROUPS) do board.UI.setAttribute(g, "active", "False") end
-  board.UI.setAttribute("xButton", "active", "False")
-end
-
--- the six board positions from the old 6-board faction-selector spawner
--- (setupFactionBoards): corners first, then the two mid-edges.
+-- the six board positions (from the old 6-board spawner)
 RTT_POS = { { 52, -46 }, { -52, -46 }, { 52, 46 }, { -52, 46 }, { 0, -46 }, { 0, 46 } }
--- which of those positions to use for N players, in turn order (P1 first). Two players
--- sit diagonally (1 & 4); four players take all corners.
 RTT_LAYOUT = {
   [1] = { 1 }, [2] = { 1, 4 }, [3] = { 1, 2, 4 },
   [4] = { 1, 2, 3, 4 }, [5] = { 1, 2, 3, 4, 5 }, [6] = { 1, 2, 3, 4, 5, 6 },
@@ -102,14 +118,13 @@ function rttSpawnSelectors()
   local layout = RTT_LAYOUT[n] or RTT_LAYOUT[4]
   for i, e in ipairs(RTT_ORDER) do
     local p = RTT_POS[layout[i] or i] or RTT_POS[1]
-    local board = self.clone({ snap_to_grid = true })
-    board.setName("Faction Board")
-    board.setPosition({ p[1], 11.56, p[2] })
-    board.setLock(true)   -- locked to the table so clicking an option never drags it
-    if p[2] > 0 then board.setRotation({ 0, 180, 0 }) else board.setRotation({ 0, 0, 0 }) end
-    board.addTag(RTT_SELECTOR_TAG)
+    local board = spawnObjectJSON({
+      json = RTT_SELECTOR_JSON,
+      position = { p[1], 11.56, p[2] },
+      rotation = { 0, (p[2] > 0) and 180 or 0, 0 },
+      callback_function = function(o) o.setLock(true) o.addTag(RTT_SELECTOR_TAG) end
+    })
     RTT_CLONES[e.color] = board
-    Wait.frames(function() rttConfigSelector(board) end, 10)
   end
 end
 
@@ -117,9 +132,8 @@ function rttBeginPick()
   if #RTT_ORDER < 1 then return end
   RTT_PICKED = { map = nil, deck = nil }
   RTT_PICK_STAGE = 1
-  -- the central menu board is NEVER touched: it keeps all its options.
-  rttSpawnSelectors()
-  Wait.frames(function() rttShowPick(1) end, 30)
+  rttSpawnSelectors()          -- the central menu board is NEVER touched
+  Wait.frames(function() rttShowPick(1) end, 40)
 end
 
 function rttShowPick(stage)
@@ -129,8 +143,6 @@ function rttShowPick(stage)
   clone.UI.setAttribute("rttPickMapDeck", "active", "true")
   for _, b in ipairs(RTT_MAP_BTNS)  do clone.UI.setAttribute(b, "active", (RTT_PICKED.map  == nil) and "true" or "false") end
   for _, b in ipairs(RTT_DECK_BTNS) do clone.UI.setAttribute(b, "active", (RTT_PICKED.deck == nil) and "true" or "false") end
-  -- no player naming (we don't announce whose turn it is): the options simply appear
-  -- on the picking player's own board; every other board stays blank.
   local what = (stage == 1) and "Pick a MAP or a DECK" or ("Pick the " .. ((RTT_PICKED.map == nil) and "MAP" or "DECK"))
   clone.UI.setAttribute("rttPickTitle", "text", what)
 end
@@ -149,18 +161,11 @@ function rttPlaceDeck(deckId)
   makeDeck("", "", id)
 end
 
--- runs on the CLONE; forwards the click to the coordinator (own Lua context)
-function rttPickRelay(player, value, id)
-  local coord = getObjectFromGUID(RTT_COORD_GUID)
-  if coord ~= nil then coord.call("rttCoordPick", { color = player.color, id = id }) end
-end
-
--- runs on the COORDINATOR (has RTT_ORDER / RTT_CLONES / RTT_PICKED)
+-- runs on the COORDINATOR (relayed from a selector)
 function rttCoordPick(args)
   local def = RTT_PICK_DEFS[args.id]
   if def == nil or RTT_PICK_STAGE == 0 then return end
   local seat = (RTT_PICK_STAGE == 1) and RTT_ORDER[1] or (RTT_ORDER[2] or RTT_ORDER[1])
-  -- gate to the seat whose turn it is; in solo test mode the one tester drives every board
   if (not RTT_SOLO) and args.color ~= seat.color then return end
   local clone = RTT_CLONES[seat.color]
 
@@ -173,7 +178,6 @@ function rttCoordPick(args)
     return
   end
 
-  -- stage 2: P2 takes the leftover category (buttons already filtered)
   if RTT_PICKED.map == nil and def.kind ~= "map" then return end
   if RTT_PICKED.deck == nil and def.kind ~= "deck" then return end
   if def.kind == "map" then RTT_PICKED.map = def.id rttPlaceMap(def.id)
@@ -185,30 +189,39 @@ end
 
 """
 
-# the pick screen: one 3x3 grid using the REAL setup-board art AND each button's exact
-# designed background color (icon assets + colors match the menu buttons precisely).
-_SZ = 'width="34" height="34" fontSize="8"'   # EXACT original button size (art stays centred)
-XML = (
-    '\n<ToggleGroup id="rttPickMapDeck" active="false">'
-    '\n  <Text id="rttPickTitle" text="" position="0 60 -20" width="240" height="14" fontSize="11" color="#f3e9cf"/>'
-    '\n  <Button id="rttPickMap1" onclick="rttPickRelay" icon="Autumn Map"   color="#4b4d35" position="-40 34 -20" ' + _SZ + '/>'
-    '\n  <Button id="rttPickMap2" onclick="rttPickRelay" icon="Winter Map"   color="#6b8a8f" position="0 34 -20" ' + _SZ + '/>'
-    '\n  <Button id="rttPickMap3" onclick="rttPickRelay" icon="Lake Map"     color="#42a0c2" position="40 34 -20" ' + _SZ + '/>'
-    '\n  <Button id="rttPickMap4" onclick="rttPickRelay" icon="Marsh Map"    color="#9b8551" position="-40 -2 -20" ' + _SZ + '/>'
-    '\n  <Button id="rttPickMap5" onclick="rttPickRelay" icon="Mountain Map" color="#764a52" position="0 -2 -20" ' + _SZ + '/>'
-    '\n  <Button id="rttPickMap6" onclick="rttPickRelay" icon="Gorge Map"    color="#61746b" position="40 -2 -20" ' + _SZ + '/>'
-    '\n  <Button id="rttPickDeck1" onclick="rttPickRelay" icon="Standard Deck"              color="#8d7f81" position="-40 -38 -20" ' + _SZ + '/>'
-    '\n  <Button id="rttPickDeck2" onclick="rttPickRelay" icon="Exiles and Partisans Deck"  color="#378f90" position="0 -38 -20" ' + _SZ + '/>'
-    '\n  <Button id="rttPickDeck3" onclick="rttPickRelay" icon="Squires and Disciples Deck" color="#AB6894" position="40 -38 -20" ' + _SZ + '/>'
-    '\n</ToggleGroup>'
-)
+
+def _build_selector_json(text):
+    """Build the lightweight selector object from the menu board's texture + the 9
+    map/deck icons it needs (parsed from the compiled board object)."""
+    start, end = framework._object_span(text, "bab7e1")
+    board = json.loads(text[start:end])
+    assets = [a for a in (board.get("CustomUIAssets") or []) if a.get("Name") in SELECTOR_ASSET_NAMES]
+    if len(assets) < len(SELECTOR_ASSET_NAMES):
+        raise framework.BuildError("selector icons missing: found %d/%d"
+                                   % (len(assets), len(SELECTOR_ASSET_NAMES)))
+    light = {
+        "Name": "Custom_Tile",
+        "Transform": {"posX": 0.0, "posY": 11.56, "posZ": 0.0,
+                      "rotX": 0.0, "rotY": 0.0, "rotZ": 0.0,
+                      "scaleX": 15.5, "scaleY": 1.0, "scaleZ": 15.5},
+        "Nickname": "", "Description": "", "GMNotes": "",
+        "Locked": True, "Grid": False, "Snap": False, "IgnoreFoW": False,
+        "CustomImage": board["CustomImage"],
+        "LuaScript": RELAY_LUA,
+        "XmlUI": PICK_XML,
+        "CustomUIAssets": assets,
+        "Tags": ["RTT Selector"],
+    }
+    return json.dumps(light, separators=(",", ":"))
 
 
 def apply(text):
     if text.count(MAKEMAP_SIG) != 1:
         raise framework.BuildError("makeMap anchor not unique")
-    text = text.replace(MAKEMAP_SIG, framework.esc(LUA) + MAKEMAP_SIG, 1)
+    selector_json = _build_selector_json(text)
+    if "]===]" in selector_json:
+        raise framework.BuildError("selector JSON contains ]===] — bracket clash")
+    coord_lua = COORD_LUA % selector_json
+    text = text.replace(MAKEMAP_SIG, framework.esc(coord_lua) + MAKEMAP_SIG, 1)
     text = framework.replace_unique(text, framework.esc(OLD_DEAL), framework.esc(NEW_DEAL))
-    anchor = 'image=\\"Root Logo\\"/>'
-    text = framework.replace_unique(text, anchor, anchor + framework.esc(XML))
     return text

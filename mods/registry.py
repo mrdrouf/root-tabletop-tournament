@@ -115,10 +115,10 @@ MODS = [
     m440_marsh_floods,             # Marsh map: randomise the 3 flooded clearings on spawn
     m445_marsh_no_landmarks,       # Marsh map: drop the landmark models + cards
     m460_priority_markers,         # per-map: auto-place fixed clearing-priority markers
-    m470_rtt_draft_pick,           # RTT draft phase 0-2: turn order + P1/P2 map+deck pick
     m480_ranked_theme_buttons,     # replace RTT DRAFT text button with Ranked + Theme image buttons
     m360_board_cleanup,
     # m365_board_thickness,        # DISABLED — board was never 3D; thickness broke rendering
+    m470_rtt_draft_pick,           # AFTER m360: copies the swapped v3 texture into the lightweight selector
     m380_faction_selector_clean,
     m390_no_hover_credits,
     m400_remove_fan_factions,
