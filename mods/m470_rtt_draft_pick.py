@@ -77,21 +77,38 @@ function rttConfigSelector(board)
   board.UI.setAttribute("xButton", "active", "False")
 end
 
+-- robust seat position: getPosition is count/colour-specific and returns nil off its
+-- table (which errored the whole spawn). Fall back to the 4-player layout, then a
+-- fixed per-colour seat, then a corner — NEVER nil.
+RTT_SEAT = {
+  Red = { 52, -46 }, Yellow = { -52, -46 }, Orange = { -52, 46 },
+  Teal = { 52, 46 }, Green = { 0, 46 }, Brown = { 0, -46 },
+}
+function rttSeatPos(color, n)
+  local p = getPosition(color, n)
+  if p ~= nil then return { p.x, p.z } end
+  p = getPosition(color, 4)
+  if p ~= nil then return { p.x, p.z } end
+  if RTT_SEAT[color] ~= nil then return RTT_SEAT[color] end
+  return { 0, -46 }
+end
+
 function rttSpawnSelectors()
   for _, o in ipairs(getObjectsWithTag(RTT_SELECTOR_TAG)) do o.destruct() end
   RTT_CLONES = {}
   local n = #RTT_ORDER
   for _, e in ipairs(RTT_ORDER) do
-    local pos = getPosition(e.color, n)
+    local xz = rttSeatPos(e.color, n)
     local board = self.clone({ snap_to_grid = true })
     board.setName("Faction Board")
     board.setLock(false)
-    board.setPosition({ pos.x, 11.56, pos.z })
-    if pos.z > 0 then board.setRotation({ 0, 180, 0 }) else board.setRotation({ 0, 0, 0 }) end
+    board.setPosition({ xz[1], 11.56, xz[2] })
+    if xz[2] > 0 then board.setRotation({ 0, 180, 0 }) else board.setRotation({ 0, 0, 0 }) end
     board.addTag(RTT_SELECTOR_TAG)
     RTT_CLONES[e.color] = board
     Wait.frames(function() rttConfigSelector(board) end, 10)
   end
+  broadcastToAll("RTT: spawned " .. n .. " faction-selector board(s) at the seated players.")
 end
 
 function rttBeginPick()
