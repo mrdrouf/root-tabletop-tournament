@@ -20,10 +20,12 @@ NAME = "add a 5-player setup button (spawns 5 selectors; top-down art)"
 # Steam-hosted RGBA (D7F3C16E… = SHA1 of assets/images/5players.png, portrait 850x1000)
 FIVE_URL = "https://steamusercontent-a.akamaihd.net/ugc/13228007358041271497/D7F3C16E093B57844CA249AAEEF2D59C0219B76D/"
 
-# portrait art (aspect ~0.85): keep the button a touch taller than wide so it isn't squished
+# portrait art (aspect ~0.85): keep the button a touch taller than wide so it isn't squished.
+# color="#ffffff": a TTS Button color MULTIPLIES the icon, so it must be neutral white — a
+# dark or transparent (alpha 0) tint would render the art black/invisible.
 FIVE_BUTTON = (
     '<Button id="fivePlayerSetup" onclick="setupFactionBoards" icon="FivePlayerArt" '
-    'color="#00000000" position="15 5 -20" width="40" height="47"/>'
+    'color="#ffffff" position="15 5 -20" width="40" height="47"/>'
 )
 
 

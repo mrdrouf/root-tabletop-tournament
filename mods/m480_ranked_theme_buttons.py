@@ -31,10 +31,15 @@ function rttTheme(player, value, id)
 end
 """
 
-# background color = each art's own background, so a streaming icon never flashes white
-RANKED_BTN = ('<Button id="rttRankedBtn" onclick="rttSetup" icon="RankedArt" color="#030310" '
+# CRITICAL: a TTS Button's `color` MULTIPLIES the icon sprite (it is a tint, not a
+# backdrop). Every working faction icon uses a BRIGHT tint (Marquise #d77435, Lizard
+# #e8e138, …) because those icons are light silhouettes. Our owl/fox art is a full-colour
+# opaque image, so it must be tinted WHITE (#ffffff = neutral) or it renders as-is.
+# The old dark tints (#030310 / #474F4B) multiplied the art down to near-black = invisible
+# — THAT was the two-day "art doesn't appear" bug, not the RGB/RGBA or the URL.
+RANKED_BTN = ('<Button id="rttRankedBtn" onclick="rttSetup" icon="RankedArt" color="#ffffff" '
               'position="-20 60 -20" width="34" height="34"/>')   # square, matching the map buttons
-THEME_BTN = ('<Button id="rttThemeBtn" onclick="rttTheme" icon="ThemeArt" color="#474F4B" '
+THEME_BTN = ('<Button id="rttThemeBtn" onclick="rttTheme" icon="ThemeArt" color="#ffffff" '
              'position="20 60 -20" width="34" height="34"/>')
 
 
