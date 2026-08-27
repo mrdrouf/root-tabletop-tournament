@@ -49,11 +49,9 @@ MTN_LM_POS = (-0.116, 11.66, 0.187)
 MTN_CARD_POS = (-29.303, 11.575, -19.899)
 MTN_CARD_SCALE = 2.299
 
-# dispatch after each faction spawns — draft path (inside rttCoordFaction, after Knaves)
+# dispatch after each faction spawns — draft path (inside rttCoordFaction, after rttSpawnFaction)
 DISPATCH = ('\n  Wait.time(function() rttFactionExtras(faction, bp.x, bp.z, bp.z > 0) end, 1.2)')
-KNAVES_ANCHOR = ('  if faction == "Knaves of the Deepwood" then\n'
-                 '    Wait.time(function() rttKnavesCaptains(seat.color) end, 1.0)\n'
-                 '  end')
+KNAVES_ANCHOR = "  rttSpawnFaction(faction, bp.x, bp.z, bp.z > 0)       -- no dice; warriors baked in the data"
 
 # dispatch after each faction spawns — SELECTOR path (inside makeFaction, after setupFaction)
 SELECTOR_ANCHOR = "  setupFaction(category,id,player.color,false)"
@@ -101,7 +99,7 @@ function rttFactionExtras(faction, cx, cz, flip)
   -- Twilight Council (bats) now spawns from the baked blueprint (m560) — no runtime setup
   elseif faction == "Corvid Conspiracy" then rttCrowsPlots(cx, cz, flip)
   -- Underground Duchy (moles) now spawns 7 loose + 13 bagged from the blueprint (m300) — no tuck
-  elseif faction == "Knaves of the Deepwood" then rttKnavesSetup(cx, cz, flip)
+  -- Knaves captains now spawn under the DRAFT CARDS (rttDraftKnavesCaptains), not with the board
   elseif faction == "Marquise de Cat" then rttMarquiseCats(cx, cz, flip)
   end
 end

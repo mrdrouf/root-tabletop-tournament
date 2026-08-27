@@ -185,10 +185,10 @@ end
 function rttDealOrder()
   spawnObjectJSON({
     json = RTT_ORDER_JSON,
-    position = {63.9, 13, -25},          -- above the table so the leftover deck drops & rests
-    rotation = {0, 270, 0},
+    position = {63.9, -50, -25},         -- BELOW the table: the order deck is never seen; cards are
+    rotation = {0, 270, 0},              -- dealt from here straight into the seated players' hidden hands
     callback_function = function(ord)
-      ord.setLock(false)                 -- unlock so it isn't left floating
+      ord.setLock(true)                  -- keep it parked below the table
       RTT_SPAWNED[#RTT_SPAWNED+1] = ord.getGUID()
       Wait.time(function()
         if ord ~= nil and ord.shuffle then ord.shuffle() end

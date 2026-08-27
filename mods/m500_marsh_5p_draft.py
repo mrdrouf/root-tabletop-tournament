@@ -186,7 +186,7 @@ SEAT_NEW = "[5] = { 1, 5, 2, 4, 3 }"
 # draft N faction cards (6 for the 5-player game); RTT_DRAFT_N is set by rttFivePStart and
 # cleared here so the owl draft stays at 5.
 DRAFT_OLD = "local draft = {first, pool[1], pool[2], pool[3], pool[4]}"
-DRAFT_NEW = ("local RTT_DN = RTT_DRAFT_N or 5 RTT_DRAFT_N = nil local draft = {first} "
+DRAFT_NEW = ("RTT_DN = RTT_DRAFT_N or 5 RTT_DRAFT_N = nil local draft = {first} "
              "for _di = 1, RTT_DN - 1 do draft[#draft + 1] = pool[_di] end")
 
 # the physical faction-card row (rttSlideOut/rttFlipAll) was hardcoded to 5 cards + a fixed
@@ -226,11 +226,12 @@ def apply(text):
     text = text.replace(MAKEMAP_SIG, MAKEMAP_SIG + framework.esc(MARSH_LM_HOOK), 1)
 
     text = _sub(text, SETUP_ANCHOR, SETUP_RESET, "rttSetup reset")
-    text = _sub(text, SOLO_OLD, SOLO_NEW, "solo -> 5 boards")
+    # SOLO_NEW / BEGIN_NEW obsolete: the map/deck pick is removed and the draft now builds a fixed-N
+    # RTT_ORDER (m470); the 5p-Marsh map is auto-placed in the new rttBeginPick. TITLE_NEW/COORD_NEW
+    # still patch the (now dead) rttShowPick/rttCoordPick harmlessly and are kept for anchor stability.
     text = _sub(text, FACTION_TAG_OLD, FACTION_TAG_NEW, "tag faction pieces")
     text = _sub(text, PLAN_OLD, PLAN_NEW, "marsh plan")
     text = _sub(text, MTN_OV_OLD, MTN_OV_NEW, "mountain hide-tower")
-    text = _sub(text, BEGIN_ANCHOR, BEGIN_NEW, "rttBeginPick")
     text = _sub(text, TITLE_OLD, TITLE_NEW, "rttShowPick title")
     text = _sub(text, COORD_ANCHOR, COORD_NEW, "rttCoordPick 5p")
     text = _sub(text, MARSH5P_OLD, MARSH5P_NEW, "Marsh5P button -> 5-player art")

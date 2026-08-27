@@ -32,21 +32,17 @@ OLD_DEAL = (
     "          end"
 )
 NEW_DEAL = (
+    "          -- joined players keep THEIR chosen colours; assign a RANDOM turn order.\n"
+    "          local plist = {}\n"
+    "          for _,p in ipairs(seated) do plist[#plist+1] = {color=p.color, name=p.steam_name} end\n"
+    "          for i=#plist,2,-1 do local j=math.random(i) plist[i],plist[j]=plist[j],plist[i] end\n"
+    "          -- N FIXED seats = draft size (RTT_DN-1), independent of how many humans joined\n"
+    "          -- (this is what fixes 'only 2 boards with 2 players').\n"
+    "          local _N = (RTT_DN or 5) - 1\n"
     "          RTT_ORDER = {}\n"
-    "          for _,p in ipairs(seated) do RTT_ORDER[#RTT_ORDER+1] = {color=p.color, name=p.steam_name} end\n"
-    "          for i=#RTT_ORDER,2,-1 do local j=math.random(i) RTT_ORDER[i],RTT_ORDER[j]=RTT_ORDER[j],RTT_ORDER[i] end\n"
-    "          -- deal one order card to each ACTUAL seated player FIRST (before any solo\n"
-    "          -- re-map), so the real players get their card in hand.\n"
-    "          for _,e in ipairs(RTT_ORDER) do\n"
-    "            if ord ~= nil and ord.deal then ord.deal(1, e.color) end\n"
-    "          end\n"
-    "          RTT_SOLO = (#RTT_ORDER <= 1)\n"
-    "          if RTT_SOLO then\n"
-    "            local nm = RTT_ORDER[1] and RTT_ORDER[1].name or ''\n"
-    "            RTT_ORDER = {}\n"
-    "            for _,c in ipairs({'Red','Yellow','Teal','Orange'}) do RTT_ORDER[#RTT_ORDER+1] = {color=c, name=nm} end\n"
-    "          end\n"
-    "          Wait.time(function() rttBeginPick() end, 1.2)"
+    "          for i=1,_N do RTT_ORDER[i] = plist[i] or {color=nil, name=''} end\n"
+    "          RTT_ORDER_DECK = (ord ~= nil) and ord.getGUID() or nil   -- rttSeatAndDeal deals from it\n"
+    "          Wait.time(function() rttBeginPick() end, 1.0)"
 )
 
 # ---- the lightweight selector's OWN tiny script: just relay clicks to the coordinator
@@ -58,7 +54,7 @@ RELAY_LUA = (
     'end\n'
     'function rttFacRelay(player, value, id)\n'
     '  local c = getObjectFromGUID(RTT_COORD_GUID)\n'
-    '  if c ~= nil then c.call("rttCoordFaction", { color = player.color, id = id }) end\n'
+    '  if c ~= nil then c.call("rttCoordFaction", { color = player.color, id = id, board = self.getGUID() }) end\n'
     'end'
 )
 
@@ -135,29 +131,66 @@ RTT_LAYOUT = {
   [4] = { 1, 2, 4, 3 }, [5] = { 1, 2, 5, 4, 3 }, [6] = { 1, 2, 5, 6, 4, 3 },
 }
 
+-- hand transform for each of the 6 board positions (base handPositions/handRotations, matched by
+-- x,z sign): the player sits at z=±64, one row behind their board (z=±46).
+RTT_SEAT_HAND = {
+  { pos = { 52, 14.62, -64 }, rot = { 0, 0, 0 } },     -- pos1 (52,-46)
+  { pos = { -52, 14.62, -64 }, rot = { 0, 0, 0 } },    -- pos2 (-52,-46)
+  { pos = { 52, 14.62, 64 }, rot = { 0, 180, 0 } },    -- pos3 (52,46)
+  { pos = { -52, 14.62, 64 }, rot = { 0, 180, 0 } },   -- pos4 (-52,46)
+  { pos = { 0, 14.62, -64 }, rot = { 0, 0, 0 } },      -- pos5 (0,-46)
+  { pos = { 0, 14.62, 64 }, rot = { 0, 180, 0 } },     -- pos6 (0,46)
+}
+RTT_SEATS = {}          -- [seat] = { board=obj, color=<colour|nil>, pos={x,z}, hand=<RTT_SEAT_HAND entry> }
+RTT_BOARD_SEAT = {}     -- [board guid] = seat index
+
 function rttSpawnSelectors()
   for _, o in ipairs(getObjectsWithTag(RTT_SELECTOR_TAG)) do o.destruct() end
   RTT_CLONES = {}
-  local n = #RTT_ORDER
+  RTT_SEATS = {}
+  RTT_BOARD_SEAT = {}
+  local n = #RTT_ORDER                          -- the FIXED N seats (built in rttDealOrder)
   local layout = RTT_LAYOUT[n] or RTT_LAYOUT[4]
-  for i, e in ipairs(RTT_ORDER) do
-    local p = RTT_POS[layout[i] or i] or RTT_POS[1]
+  for i = 1, n do
+    local pi = layout[i] or i
+    local p = RTT_POS[pi] or RTT_POS[1]
+    local color = (RTT_ORDER[i] and RTT_ORDER[i].color) or nil
     local board = spawnObjectJSON({
       json = RTT_SELECTOR_JSON,
       position = { p[1], 11.56, p[2] },
       rotation = { 0, (p[2] > 0) and 180 or 0, 0 },
       callback_function = function(o) o.setLock(true) o.addTag(RTT_SELECTOR_TAG) end
     })
-    RTT_CLONES[e.color] = board
+    RTT_BOARD_SEAT[board.getGUID()] = i
+    RTT_SEATS[i] = { board = board, color = color, pos = p, hand = RTT_SEAT_HAND[pi] }
+    if color ~= nil then RTT_CLONES[color] = board end
+  end
+end
+
+-- Auto-seat: move each real player's HAND to their random turn-order seat (KEEP their chosen
+-- colour) and deal the turn-order card straight into that now-seated, HIDDEN hand. Empty seats
+-- (fewer humans than the fixed N) get no card, so nothing is ever left face-up on the table.
+function rttSeatAndDeal()
+  local ord = getObjectFromGUID(RTT_ORDER_DECK or "")
+  for i, e in ipairs(RTT_ORDER) do
+    if e.color ~= nil then
+      local seat = RTT_SEATS[i]
+      local hand = seat and seat.hand
+      if hand ~= nil and Player[e.color] ~= nil and Player[e.color].seated then
+        pcall(function() Player[e.color].setHandTransform({ position = hand.pos, rotation = hand.rot }, 1) end)
+      end
+      if ord ~= nil and ord.deal then pcall(function() ord.deal(1, e.color) end) end
+    end
   end
 end
 
 function rttBeginPick()
   if #RTT_ORDER < 1 then return end
   RTT_PICKED = { map = nil, deck = nil }
-  RTT_PICK_STAGE = 1
-  rttSpawnSelectors()          -- the central menu board is NEVER touched
-  Wait.frames(function() rttShowPick(1) end, 40)
+  RTT_PICK_STAGE = 0                             -- map/deck pick REMOVED (Adrien places them manually)
+  if RTT_5P_MARSH then rttPlaceMap("Marsh Map") end   -- the 5-player button still auto-places its Marsh map
+  rttSpawnSelectors()
+  Wait.frames(function() rttSeatAndDeal() rttStartFactionDraft() end, 10)
 end
 
 function rttShowPick(stage)
@@ -236,9 +269,47 @@ function rttStartFactionDraft()
   _G['Roster'] = {}
   for i = 1, #RTT_ORDER do _G['Roster'][i] = RTT_ORDER[i].name or "" end
   if _G['vagabondAlreadySpawned'] == nil then _G['vagabondAlreadySpawned'] = false end
-  Wait.time(function() rttDealHands() end, 0.6)     -- 5 cards to each player from the picked deck
-  RTT_FAC_STAGE = #RTT_ORDER                        -- reverse order: last seat drafts first
-  Wait.frames(function() rttShowFactions() end, 40)
+  Wait.time(function() rttDealHands() end, 0.6)     -- starting cards to each seated player
+  rttDraftKnavesCaptains()                          -- 4 captains under the draft cards (if Knaves drafted)
+  Wait.frames(function() rttShowFactions() end, 40) -- light EVERY board at once (simultaneous pick)
+end
+
+-- Knaves: if Knaves is one of the drafted factions, spawn its 12-card Captain deck directly under
+-- the faction-card row DURING the draft, keep 4 at random, discard the rest. (No longer spawned
+-- with the faction board.) The deck blob lives in the Knaves faction data (its FaceURL is unique).
+function rttDraftKnavesCaptains()
+  local has = false
+  for _, f in ipairs(RTT_DRAFT_FACTIONS or {}) do
+    if f == "Knaves of the Deepwood" then has = true break end
+  end
+  if not has then return end
+  local kd = EVERYTHING['Standard']['Knaves of the Deepwood']
+  if kd == nil or kd['data'] == nil then return end
+  local blob = nil
+  for _, v in ipairs(kd['data']) do
+    if string.find(v.json, "FA78C0F952724D77A33BECEC0651802808037E95", 1, true) then blob = v.json break end
+  end
+  if blob == nil then return end
+  spawnObjectJSON({
+    json = blob,
+    position = { 57.9, 11.6, 0 },                   -- one card-depth in front of the x=63.9 draft row
+    rotation = { 0, 270, 0 },
+    callback_function = function(deck)
+      deck.setLock(true)
+      pcall(function() deck.shuffle() end)
+      Wait.time(function()
+        if deck == nil then return end
+        local p = deck.getPosition()
+        for i = 1, 4 do
+          pcall(function() deck.takeObject({
+            position = { p.x, p.y + 0.3, p.z + (i - 2.5) * 2.4 },
+            rotation = { 0, 270, 0 }, smooth = false,
+            callback_function = function(o) o.setLock(true) o.addTag("RTT Faction") end }) end)
+        end
+        Wait.time(function() if deck ~= nil then pcall(function() deck.destruct() end) end end, 0.8)
+      end, 0.5)
+    end
+  })
 end
 
 function rttDealHands()
@@ -262,54 +333,53 @@ function rttDealOne(d, seated, card, who)
   Wait.time(function() rttDealOne(d, seated, card, who + 1) end, 0.15)
 end
 
+-- light the faction menu on EVERY live board at once (simultaneous pick). Factions keep FIXED
+-- button positions (slot i = RTT_DRAFT_FACTIONS[i]); a taken faction's slot just goes inactive, so
+-- a click's button index always resolves to the same faction even as others are taken (no race).
 function rttShowFactions()
-  if RTT_FAC_STAGE < 1 then return end
-  local seat = RTT_ORDER[RTT_FAC_STAGE]
-  local clone = RTT_CLONES[seat.color]
-  if clone == nil then return end
-  RTT_FAC_CURRENT = {}
-  for _, f in ipairs(RTT_DRAFT_FACTIONS or {}) do
-    if f ~= nil and not RTT_FAC_TAKEN[f] then RTT_FAC_CURRENT[#RTT_FAC_CURRENT + 1] = f end
-  end
-  clone.UI.setAttribute("rttPickMapDeck", "active", "false")
-  clone.UI.setAttribute("rttFactions", "active", "true")
-  for i = 1, 6 do
-    local f = RTT_FAC_CURRENT[i]
-    if f ~= nil then
-      clone.UI.setAttribute("rttFac" .. i, "icon", f)
-      clone.UI.setAttribute("rttFac" .. i, "active", "true")
-    else
-      clone.UI.setAttribute("rttFac" .. i, "active", "false")
+  for _, seat in ipairs(RTT_SEATS or {}) do
+    local clone = seat.board
+    if clone ~= nil then
+      clone.UI.setAttribute("rttPickMapDeck", "active", "false")
+      clone.UI.setAttribute("rttFactions", "active", "true")
+      for i = 1, 6 do
+        local f = (RTT_DRAFT_FACTIONS or {})[i]
+        if f ~= nil and not RTT_FAC_TAKEN[f] then
+          clone.UI.setAttribute("rttFac" .. i, "icon", f)
+          clone.UI.setAttribute("rttFac" .. i, "active", "true")
+        else
+          clone.UI.setAttribute("rttFac" .. i, "active", "false")
+        end
+      end
     end
   end
 end
 
+-- a player clicked a faction on some board. Resolve by the BOARD they clicked (not by whose turn
+-- it is — all boards are live at once). First click on a faction takes it; the board is removed and
+-- the faction spawns at that seat; the other boards refresh so the taken faction disappears.
 function rttCoordFaction(args)
-  if RTT_FAC_STAGE < 1 then return end
-  local seat = RTT_ORDER[RTT_FAC_STAGE]
-  if (not RTT_SOLO) and args.color ~= seat.color then return end
+  local seat = RTT_BOARD_SEAT[args.board or ""]
+  if seat == nil then return end
+  local s = RTT_SEATS[seat]
+  if s == nil or s.board == nil then return end        -- board already drafted
   local idx = tonumber(string.sub(args.id, -1))
-  local faction = RTT_FAC_CURRENT[idx]
+  if idx == nil then return end
+  local faction = (RTT_DRAFT_FACTIONS or {})[idx]
   if faction == nil or RTT_FAC_TAKEN[faction] then return end
-  RTT_FAC_TAKEN[faction] = true
-  local clone = RTT_CLONES[seat.color]
-  if clone ~= nil then clone.UI.setAttribute("rttFactions", "active", "false") end
-  -- remove the board FIRST (so it doesn't visibly linger), THEN spawn the faction there
-  local bp = (clone ~= nil) and clone.getPosition() or Vector(0, 11.56, 0)
-  RTT_CLONES[seat.color] = nil
-  if clone ~= nil then clone.destruct() end
-  rttSpawnFaction(faction, bp.x, bp.z, bp.z > 0)     -- no dice; warriors baked in the data
-  RTT_VP_PLACED = (RTT_VP_PLACED or 0) + 1           -- put this faction's VP marker on score 0
+  RTT_FAC_TAKEN[faction] = true                        -- lock immediately (guards double-clicks)
+  local clone = s.board
+  local bp = clone.getPosition()
+  s.board = nil
+  RTT_BOARD_SEAT[clone.getGUID()] = nil
+  if s.color ~= nil then RTT_CLONES[s.color] = nil end
+  clone.destruct()                                     -- board gone first, then the faction spawns there
+  rttSpawnFaction(faction, bp.x, bp.z, bp.z > 0)       -- no dice; warriors baked in the data
+  RTT_VP_PLACED = (RTT_VP_PLACED or 0) + 1
   local vpN, vpF = RTT_VP_PLACED, faction
-  Wait.time(function() rttPlaceVP(vpF, vpN) end, 1.2)   -- after the pieces (VP marker) settle
-  if faction == "Woodland Alliance" then spawnSupportersHand(seat.color) end
-  if faction == "Knaves of the Deepwood" then
-    Wait.time(function() rttKnavesCaptains(seat.color) end, 1.0)
-  end
-  RTT_FAC_STAGE = RTT_FAC_STAGE - 1
-  if RTT_FAC_STAGE >= 1 then
-    Wait.frames(function() rttShowFactions() end, 20)
-  end
+  Wait.time(function() rttPlaceVP(vpF, vpN) end, 1.2)
+  if faction == "Woodland Alliance" then spawnSupportersHand(s.color or "Red") end
+  Wait.frames(function() rttShowFactions() end, 10)    -- refresh remaining boards
 end
 
 -- spawn a faction's pieces at (cx,cz), WITHOUT dice (m060). Warrior placements (m290
