@@ -160,24 +160,26 @@ end
 
 -- keep polling until the faction spawn has produced the Captain deck, then keep 4 random
 function rttKnavesSetup(cx, cz, flip)
-  rttKnavesTry(cx, cz, 0)
+  rttKnavesTry(cx, cz, flip, 0)
 end
 
-function rttKnavesTry(cx, cz, attempt)
+function rttKnavesTry(cx, cz, flip, attempt)
   local deck = rttFindKnavesDeck(cx, cz)
   if deck == nil then
-    if attempt < 10 then Wait.time(function() rttKnavesTry(cx, cz, attempt + 1) end, 0.5) end
+    if attempt < 10 then Wait.time(function() rttKnavesTry(cx, cz, flip, attempt + 1) end, 0.5) end
     return
   end
   pcall(function() deck.shuffle() end)
   Wait.time(function()
     local ok, p = pcall(function() return deck.getPosition() end)
     if not ok or p == nil then return end
-    -- lay 4 captains in a face-up row where the deck sat; keep them locked as faction pieces
+    -- lay 4 captains in a face-up row BELOW the knave cards (the deck's drafting spot), toward
+    -- the player; keep them locked as faction pieces
+    local below = (flip and 1 or -1) * 3.6
     for i = 1, 4 do
       pcall(function()
         deck.takeObject({
-          position = { p.x + (i - 2.5) * 2.4, p.y + 0.3, p.z },
+          position = { p.x + (i - 2.5) * 2.4, p.y + 0.3, p.z + below },
           rotation = { 0, 180, 0 },
           smooth = false,
           callback_function = function(o)

@@ -27,9 +27,17 @@ THEME_URL = "https://steamusercontent-a.akamaihd.net/ugc/16316853328531788856/FE
 
 THEME_LUA = r"""
 function rttTheme(player, value, id)
-  -- Theme mode: action TBD (placeholder until Adrien specifies what Theme does).
+  -- Theme = ranked draft, but the pool is 1 mandatory Militant + ALL Insurgents (no extra
+  -- Militants). Everything else (deal, pick, faction phase) is identical to ranked.
+  RTT_THEME = true
+  rttSetup(player, value, id)
 end
 """
+
+# in rttSetup, skip adding the leftover Militants to the pool when Theme is active (leaving
+# 1 Militant `first` + all Insurgents), then clear the flag.
+THEME_POOL_OLD = "for i=2,#mil do pool[#pool+1]=mil[i] end"
+THEME_POOL_NEW = "if not RTT_THEME then for i=2,#mil do pool[#pool+1]=mil[i] end end RTT_THEME = nil"
 
 # CRITICAL: a TTS Button's `color` MULTIPLIES the icon sprite (it is a tint, not a
 # backdrop). Every working faction icon uses a BRIGHT tint (Marquise #d77435, Lizard
@@ -62,9 +70,13 @@ def apply(text):
     text = framework.add_button_to_group(text, "setupButtons", RANKED_BTN)
     text = framework.add_button_to_group(text, "setupButtons", THEME_BTN)
 
-    # rttTheme stub
+    # rttTheme
     anchor = "function makeMap(player,value,id)"
     if text.count(anchor) != 1:
         raise framework.BuildError("makeMap anchor not unique")
     text = text.replace(anchor, framework.esc(THEME_LUA) + anchor, 1)
+
+    # Theme pool = insurgents only (+ the 1 mandatory Militant already chosen as `first`)
+    text = framework.replace_unique(text,
+        framework.esc(THEME_POOL_OLD), framework.esc(THEME_POOL_NEW))
     return text

@@ -29,9 +29,20 @@ NAME = "solo faction board: strip to the 12 factions (hide nav, Knaves as a dire
 # (configureFactionBoard), so the nav is turned off and the board revealed in one hidden pass.
 HIDDEN_POS = ("board1.setPosition({54.81,-60,0})")
 FINAL_POS = ("board1.setPosition({54.81,11.56,0})")
+# while the board is still hidden: strip the nav, spread the 12 tiles wider + centred into the
+# space the nav used to occupy, then reveal. All done before the board is visible (no adjust).
+_SPREAD = ("local _sp = {"
+           '{"Marquise de Cat","-90 45 -20"},{"Eyrie Dynasties","-30 45 -20"},'
+           '{"Woodland Alliance","30 45 -20"},{"Knaves of the Deepwood","90 45 -20"},'
+           '{"The Lizard Cult","-90 -5 -20"},{"Riverfolk Company","-30 -5 -20"},'
+           '{"Underground Duchy","30 -5 -20"},{"Corvid Conspiracy","90 -5 -20"},'
+           '{"Lord of the Hundreds","-90 -55 -20"},{"Keepers in Iron","-30 -55 -20"},'
+           '{"Twilight Council","30 -55 -20"},{"Lilypad Diaspora","90 -55 -20"}} '
+           "for _, e in ipairs(_sp) do pcall(function() board1.UI.setAttribute(e[1], \"position\", e[2]) end) end")
 REVEAL = ('\n  Wait.frames(function() '
           'pcall(function() board1.UI.setAttribute("Main Nav Personal", "active", "False") end) '
-          'board1.setPosition({54.81,11.56,0}) end, 14)')
+          + _SPREAD +
+          ' board1.setPosition({54.81,11.56,0}) end, 14)')
 
 # direct Knaves tile, at the "Vabond Choices" grid slot (95 45 -20)
 KNAVES_TILE = ('<Button onclick="makeFaction" onMouseEnter="infoOfficialContent" '

@@ -80,7 +80,7 @@ PICK_XML = (
     # the faction selector (phase 3): 5 buttons, icons set by the coordinator to the
     # available drafted factions; only shown on the current player's board in reverse order.
     '<ToggleGroup id="rttFactions" active="false">'
-    '<Text id="rttFacTitle" text="Pick your faction" position="0 62 -20" width="240" height="14" fontSize="11" color="#f3e9cf"/>'
+    '<Text id="rttFacTitle" text="Pick your faction" position="0 64 -20" width="260" height="26" fontSize="20" color="#f3e9cf"/>'
     '<Button id="rttFac1" onclick="rttFacRelay" position="-46 30 -20" width="42" height="42"/>'
     '<Button id="rttFac2" onclick="rttFacRelay" position="0 30 -20" width="42" height="42"/>'
     '<Button id="rttFac3" onclick="rttFacRelay" position="46 30 -20" width="42" height="42"/>'
