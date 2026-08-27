@@ -329,23 +329,35 @@ function rttMountainLandmark()
   -- the landmark REPLACES the tower + the central suit marker
   for _, v in ipairs(towers) do pcall(function() v.destruct() end) end
   if marker ~= nil then pcall(function() marker.destruct() end) end
-  makeSpecialWithTag("Landmarks", name, RTT_MTN_LM[1], RTT_MTN_LM[2], RTT_MTN_LM[3], "RTT Landmark")
-  Wait.time(function() rttStandLandmark() end, 1.2)
+  rttSpawnLandmarkAt(name, RTT_MTN_LM[1], RTT_MTN_LM[2], RTT_MTN_LM[3],
+                     RTT_MTN_CARD[1], RTT_MTN_CARD[2], RTT_MTN_CARD[3])
 end
 
--- stand the landmark model upright at the centre; move its rules card to the map's lower-left,
--- rules side up (rotZ 0 shows the FaceURL / rules side).
-function rttStandLandmark()
-  for _, o in ipairs(getObjectsWithTag("RTT Landmark")) do
-    o.addTag("Map Object")
-    if o.getLock and o.getLock() then o.setLock(false) end
-    if o.name == "Custom_Model" then
-      o.setPositionSmooth({ RTT_MTN_LM[1], RTT_MTN_LM[2], RTT_MTN_LM[3] }, false, true)
-      o.setRotationSmooth({ 0, 165, 0 }, false, true)     -- rotX/rotZ 0 = standing signpost
-    elseif o.name == "Card" or o.name == "CardCustom" then
-      o.setPositionSmooth({ RTT_MTN_CARD[1], RTT_MTN_CARD[2], RTT_MTN_CARD[3] }, false, true)
-      o.setRotationSmooth({ 0, 180, 0 }, false, true)     -- rotZ 0 = rules side up
-      pcall(function() o.setScale({ RTT_MTN_CARD_SCALE, 1.0, RTT_MTN_CARD_SCALE }) end)
+-- spawn a landmark's model (standing) + its rules card (rules side up) DIRECTLY at their
+-- final transforms, so they appear in place and just settle onto the board like the other
+-- map pieces — no visible slide/rotate. spawnObjectJSON's position/rotation override the
+-- data's baked (flat) transform. EVERYTHING is on this board (self), so it's in scope.
+function rttSpawnLandmarkAt(name, mx, my, mz, cx, cy, cz)
+  local lm = EVERYTHING['Landmarks'][name]
+  if lm == nil or lm['data'] == nil then return end
+  for _, v in ipairs(lm['data']) do
+    if string.find(v.json, "CardID", 1, true) ~= nil then
+      spawnObjectJSON({
+        json = v.json,
+        position = { cx, cy, cz },
+        rotation = { 0, 180, 0 },                 -- rotZ 0 = rules side up
+        callback_function = function(o)
+          o.addTag("Map Object")
+          pcall(function() o.setScale({ RTT_MTN_CARD_SCALE, 1.0, RTT_MTN_CARD_SCALE }) end)
+        end
+      })
+    else
+      spawnObjectJSON({
+        json = v.json,
+        position = { mx, my, mz },
+        rotation = { 0, 165, 0 },                 -- standing signpost, in place
+        callback_function = function(o) o.addTag("Map Object") end
+      })
     end
   end
 end

@@ -98,38 +98,18 @@ end
 -- the 3 town rules cards go in a row at the map's lower-left (confirm/nudge in TTS)
 RTT_MARSH_CARD_ROW = { { -29.3, 11.58, -20.0 }, { -29.3, 11.58, -13.5 }, { -29.3, 11.58, -7.0 } }
 
+-- spawn each town standing on its clearing + its rules card in the lower-left row, all
+-- DIRECTLY at their final transforms (rttSpawnLandmarkAt, from m490) so they appear in
+-- place and settle onto the board — no slide/rotate.
 function rttMarshLandmarks()
   if not RTT_5P_MARSH then return end
+  local ci = 0
   for _, lm in ipairs(RTT_MARSH_LANDMARKS or {}) do
-    makeSpecialWithTag("Landmarks", lm.name, lm.x, 11.66, lm.z, "RTT Marsh LM")
-  end
-  Wait.time(function() rttStandMarshLandmarks() end, 1.2)
-end
-
--- stand each town on its clearing; lay its rules card in the lower-left row, rules side up
-function rttStandMarshLandmarks()
-  local cardN = 0
-  for _, o in ipairs(getObjectsWithTag("RTT Marsh LM")) do
-    o.addTag("Map Object")
-    if o.getLock and o.getLock() then o.setLock(false) end
-    if o.name == "Custom_Model" then
-      local p = o.getPosition()
-      local best, bd = nil, 1e9
-      for _, lm in ipairs(RTT_MARSH_LANDMARKS or {}) do
-        local d = (p.x - lm.x) ^ 2 + (p.z - lm.z) ^ 2
-        if d < bd then bd = d; best = lm end
-      end
-      if best ~= nil then o.setPositionSmooth({ best.x, 11.66, best.z }, false, true) end
-      o.setRotationSmooth({ 0, 165, 0 }, false, true)     -- standing signpost
-    elseif o.name == "Card" or o.name == "CardCustom" then
-      cardN = cardN + 1
-      local si = cardN
-      if si > 3 then si = 3 end
-      local slot = RTT_MARSH_CARD_ROW[si]
-      o.setPositionSmooth({ slot[1], slot[2], slot[3] }, false, true)
-      o.setRotationSmooth({ 0, 180, 0 }, false, true)     -- rotZ 0 = rules side up
-      pcall(function() o.setScale({ 2.299, 1.0, 2.299 }) end)
-    end
+    ci = ci + 1
+    local si = ci
+    if si > 3 then si = 3 end
+    local slot = RTT_MARSH_CARD_ROW[si]
+    rttSpawnLandmarkAt(lm.name, lm.x, 11.66, lm.z, slot[1], slot[2], slot[3])
   end
 end
 """
@@ -138,8 +118,23 @@ MARSH_LM_HOOK = ('\n  if id == "Marsh Map" and RTT_5P_MARSH then'
                  ' Wait.time(function() rttMarshLandmarks() end, 1.4) end')
 
 # --- injection anchors (edit the compiled Lua produced by earlier mods) ---
+# rttSetup start: reset the 5-player flag AND wipe any boards from a prior launch (the
+# selector clones + every drafted faction piece), so relaunching starts clean.
 SETUP_ANCHOR = "function rttSetup(player, value, id)\n"
-SETUP_RESET = "function rttSetup(player, value, id)\n  RTT_5P_MARSH = false\n"
+SETUP_RESET = ('function rttSetup(player, value, id)\n'
+               '  RTT_5P_MARSH = false\n'
+               '  for _, o in ipairs(getObjectsWithTag("RTT Selector")) do pcall(function() o.destruct() end) end\n'
+               '  for _, o in ipairs(getObjectsWithTag("RTT Faction")) do pcall(function() o.destruct() end) end\n')
+
+# solo test path deals to 4 virtual players; a 5-player launch needs 5 boards
+SOLO_OLD = ("for _,c in ipairs({'Red','Yellow','Teal','Orange'}) do "
+            "RTT_ORDER[#RTT_ORDER+1] = {color=c, name=nm} end")
+SOLO_NEW = ("for _,c in ipairs(RTT_5P_MARSH and {'Red','Yellow','Teal','Orange','Green'} "
+            "or {'Red','Yellow','Teal','Orange'}) do RTT_ORDER[#RTT_ORDER+1] = {color=c, name=nm} end")
+
+# tag every drafted faction piece so a relaunch can wipe them (see SETUP_RESET)
+FACTION_TAG_OLD = "  local function cb(o)\n    if flip then o.setRotation("
+FACTION_TAG_NEW = "  local function cb(o)\n    o.addTag(\"RTT Faction\")\n    if flip then o.setRotation("
 
 PLAN_OLD = "RTT_OV = rttMarshPlan(objects)"
 PLAN_NEW = "if RTT_5P_MARSH then RTT_OV = rttMarshPlan5P(objects) else RTT_OV = rttMarshPlan(objects) end"
@@ -168,8 +163,9 @@ COORD_NEW = ('    if clone ~= nil then clone.UI.setAttribute("rttPickMapDeck", "
 # rttFivePStart; #ffffff so the icon tint is neutral).
 MARSH5P_OLD = ('<Button id="Marsh5P" onclick="rttMarsh5P" text="5 Players" '
                'position="95 -69.5 -20" width="34" height="17" fontSize="7" color="#9b8551"/>')
+# keep Adrien's original half-rectangle shape/spot; just swap in the art + the new handler
 MARSH5P_NEW = ('<Button id="Marsh5P" onclick="rttFivePStart" icon="FivePlayerArt" '
-               'position="95 -71 -20" width="34" height="40" color="#ffffff"/>')
+               'position="95 -69.5 -20" width="34" height="17" color="#ffffff"/>')
 
 
 def _sub(text, old, new, label):
@@ -186,6 +182,8 @@ def apply(text):
     text = text.replace(MAKEMAP_SIG, MAKEMAP_SIG + framework.esc(MARSH_LM_HOOK), 1)
 
     text = _sub(text, SETUP_ANCHOR, SETUP_RESET, "rttSetup reset")
+    text = _sub(text, SOLO_OLD, SOLO_NEW, "solo -> 5 boards")
+    text = _sub(text, FACTION_TAG_OLD, FACTION_TAG_NEW, "tag faction pieces")
     text = _sub(text, PLAN_OLD, PLAN_NEW, "marsh plan")
     text = _sub(text, BEGIN_ANCHOR, BEGIN_NEW, "rttBeginPick")
     text = _sub(text, TITLE_OLD, TITLE_NEW, "rttShowPick title")
