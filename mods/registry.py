@@ -71,6 +71,7 @@ from . import m510_ui_assets_persist
 from . import m520_solo_faction_board
 from . import m530_deck_spacing
 from . import m540_button_art_urls
+from . import m550_marquise_keep
 # m450_label_icons DISABLED: confirmed custom (non-Steam) UI icons blank in TTS
 
 # Ready-made examples — uncomment to begin layering real modifications:
@@ -135,5 +136,6 @@ MODS = [
     m520_solo_faction_board, # solo faction board: strip to the 12 factions + Knaves as a direct tile
     m530_deck_spacing,       # setup board: deck buttons spaced to match the map buttons
     m540_button_art_urls,    # repoint label + map button icons to Adrien's new Steam art
+    m550_marquise_keep,      # bake the enlarged Marquise Keep
     # m450_label_icons,  # DISABLED — custom UI icons blank in TTS; VB/Landmarks stay on Steam art
 ]
