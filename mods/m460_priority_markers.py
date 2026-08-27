@@ -67,22 +67,25 @@ end
 -- RTT_MARSH_NUMJSON[n] is a full number-token JSON with number n's art baked in; we spawn
 -- it at the clearing's centre, upright (rotY 180, uniform so every number reads the same
 -- way), locked, tagged "Map Object" so the next map build clears it.
+-- each entry: { suitX, suitY, suitZ,  tokenX, tokenZ } — the SUIT centre is used only for the
+-- flood/landmark skip test; the number token is placed at Adrien's deliberate TOKEN position
+-- (offset beside the clearing so the suit stays visible), recorded per-clearing like every map.
 RTT_MARSH_RANK = {
-  { -13.504, 11.739,   5.340 },   -- 1  pair A.up  (Adrien: "the current 2 should be 1")
-  { -23.584, 11.719,  19.613 },   -- 2  FIX7
-  {  -2.042, 11.719,  21.443 },   -- 3  FIX8
-  {   5.947, 11.717,  20.588 },   -- 4  pair C.up
-  {  16.941, 11.719,  11.653 },   -- 5  FIX6
-  {  -0.718, 11.719,  -0.272 },   -- 6  FIX4
-  {   6.024, 11.719,   2.893 },   -- 7  FIX5
-  {  17.342, 11.695,   0.101 },   -- 8  pair B.up
-  { -17.795, 11.742,  -5.680 },   -- 9  pair A.down
-  {   3.811, 11.711,  -8.597 },   -- 10 pair B.down
-  { -17.962, 11.719, -13.523 },   -- 11 FIX2
-  { -11.094, 11.719, -16.054 },   -- 12 FIX1
-  {   3.512, 11.710, -14.611 },   -- 13 pair C.down
-  {  21.347, 11.684, -16.915 },   -- 14 FIX0
-  {  22.784, 11.719, -11.850 },   -- 15 FIX3
+  { -23.584, 11.719,  19.613,  -22.723,  15.732 },   -- 1  FIX7
+  {  -2.042, 11.719,  21.443,   -6.780,  15.272 },   -- 2  FIX8
+  {   5.947, 11.717,  20.588,   10.119,  13.567 },   -- 3  C.up
+  {  16.941, 11.719,  11.653,   22.373,  17.238 },   -- 4  FIX6
+  { -13.504, 11.739,   5.340,  -10.991,  11.491 },   -- 5  A.up
+  {   6.024, 11.719,   2.893,    6.420,   8.630 },   -- 6  FIX5
+  {  17.342, 11.695,   0.101,   14.726,   6.362 },   -- 7  B.up
+  { -17.795, 11.742,  -5.680,  -23.281,   0.501 },   -- 8  A.down
+  {  -0.718, 11.719,  -0.272,   -3.829,   3.173 },   -- 9  FIX4
+  {   3.811, 11.711,  -8.597,    5.948,  -3.427 },   -- 10 B.down
+  {  22.784, 11.719, -11.850,   17.876,  -4.877 },   -- 11 FIX3
+  { -17.962, 11.719, -13.523,  -23.483, -13.564 },   -- 12 FIX2
+  { -11.094, 11.719, -16.054,  -10.851,  -9.377 },   -- 13 FIX1
+  {   3.512, 11.710, -14.611,   -0.883, -13.135 },   -- 14 C.down
+  {  21.347, 11.684, -16.915,   15.435, -13.961 },   -- 15 FIX0
 }
 
 function rttSpawnMarshNumbers()
@@ -95,8 +98,8 @@ function rttSpawnMarshNumbers()
   for _, cl in ipairs(RTT_MARSH_RANK) do
     local isEx = false
     for _, e in ipairs(excl) do
-      local dx, dz = cl[1] - e[1], cl[3] - e[2]
-      if dx * dx + dz * dz < 4.0 then isEx = true break end   -- within 2u = this clearing
+      local dx, dz = cl[1] - e[1], cl[3] - e[2]                 -- SUIT centre vs the excluded clearing
+      if dx * dx + dz * dz < 4.0 then isEx = true break end     -- within 2u = this clearing
     end
     if not isEx then
       n = n + 1
@@ -104,7 +107,7 @@ function rttSpawnMarshNumbers()
       if j ~= nil then
         local ob = spawnObjectJSON({
           json = j,
-          position = { cl[1], cl[2] + 0.10, cl[3] },
+          position = { cl[4], cl[2] + 0.10, cl[5] },            -- Adrien's TOKEN spot
           rotation = { 0, 180, 0 },
           callback_function = function(o)
             o.setLock(true)
