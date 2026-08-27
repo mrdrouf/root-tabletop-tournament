@@ -32,11 +32,11 @@ starts in its final container/position:
       not face-up/open for everyone to see first. Investigate + resolve — flagged important.
 
 ### Maps / landmarks
-- [ ] **Marsh 5-player map button** (= "Swole Birds"): the button already exists (id `Marsh5P`,
-      onclick `rttFivePStart`, already drives Marsh-in-5p) — only art/label changes. Needs a 400×200
-      `assets/upload/marsh_5p_label.png` (Marsh art left, "Marsh / 5 Players" right, cream serif),
-      then repoint the `FivePlayerArt` URL (m540 SWAPS) + set the button `color="#ffffff"` (m500
-      MARSH5P_NEW). Waiting on the image.
+- [~] **Marsh 5-player map button** (= "Swole Birds"): button already wired (id `Marsh5P`,
+      onclick `rttFivePStart`, drives Marsh-in-5p). Draft label composed:
+      `assets/upload/marsh_5p_label.png` (5-player art left + "Marsh / 5 Players" right, label family
+      style). NEXT: Adrien uploads it to Steam -> give me the URL -> repoint `FivePlayerArt` (m540
+      SWAPS) + set button tint in m500 MARSH5P_NEW. Waiting on Adrien's upload + URL.
 - [x] **Mountain landmark direct spawn** (DONE): m590 removes the central clearing marker (1b3b99)
       from the Mountain data at build time (11 markers spawn, shuffleMaps is count-safe);
       rttMountainLandmark no longer reads/destroys a marker — spawns a random landmark directly.
