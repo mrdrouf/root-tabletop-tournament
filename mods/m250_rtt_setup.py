@@ -102,9 +102,8 @@ end
 function rttSetup(player, value, id)
   for _,g in ipairs(RTT_SPAWNED) do local o=getObjectFromGUID(g) if o then o.destruct() end end
   RTT_SPAWNED = {}
-  RTT_N = (RTT_N or 0) + 1
-  math.randomseed(os.time() + RTT_N * 7919)
-  for _=1,6 do math.random() end
+  -- NO os.time re-seed: the RNG is seeded once at load and advances per call, so each draft is
+  -- independent (see rtt-rng-bug). Re-seeding to os.time() made same-second launches identical.
   local mil = {}
   for _,c in ipairs(RTT_MILITANT) do mil[#mil+1]=c end
   rttShuffle(mil)

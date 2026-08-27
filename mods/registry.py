@@ -76,6 +76,7 @@ from . import m560_bats_warriors
 from . import m570_marquise_warriors
 from . import m580_lilypad_pond
 from . import m590_mountain_central_marker
+from . import m600_fix_shuffle_rng
 # m450_label_icons DISABLED: confirmed custom (non-Steam) UI icons blank in TTS
 
 # Ready-made examples — uncomment to begin layering real modifications:
@@ -145,5 +146,6 @@ MODS = [
     m570_marquise_warriors,  # bake the 3 staging Marquise warriors (direct spawn)
     m580_lilypad_pond,       # remove The Pond from the blueprint; spawn it directly at its world spot
     m590_mountain_central_marker,  # drop Mountain's central clearing marker (landmark, no flash)
+    m600_fix_shuffle_rng,          # replace base shuffle() os.time-reseed with clean Fisher-Yates
     # m450_label_icons,  # DISABLED — custom UI icons blank in TTS; VB/Landmarks stay on Steam art
 ]
