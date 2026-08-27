@@ -51,6 +51,9 @@ REPOSITION = {
     "f5d15c": (9.969, 0.100, 5.236),
     "8c9c61": (10.038, 0.100, 6.911),
     "c8c8a2": (-10.998, 0.100, 5.372),
+    # the 8th loose warrior: spawn it BELOW the table (hidden) so it never flashes on the board;
+    # rttDuchyTuck (m490) puts THIS guid straight into the Duchy Supply bag (7 placed, 13 in bag).
+    "c444dc": (0.0, -60.0, 0.0),
 }
 
 

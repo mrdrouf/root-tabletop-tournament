@@ -317,27 +317,19 @@ function rttCrowsPlots(cx, cz, flip)
 end
 
 -- ---- Underground Duchy (moles): 7 placed + the 8th in the supply -----------
--- the data ships 8 loose warriors; tuck outliers into the Duchy Supply bag until 7 remain.
+-- m300 bakes 7 warriors into the two packs and the 8th (guid c444dc) BELOW the table, so nothing
+-- flashes on the board. Here we just drop that hidden 8th straight into the Duchy Supply bag, so
+-- the bag holds 13 — no visible tuck, no default-then-adjust.
 function rttDuchyTuck()
-  local bag, warriors = nil, {}
+  local bag = nil
   for _, o in ipairs(getAllObjects()) do
-    local nm = o.getName() or ""
-    if nm == "Duchy Supply" then bag = o
-    elseif nm == "Duchy Warrior" then warriors[#warriors + 1] = o end
+    if (o.getName() or "") == "Duchy Supply" then bag = o break end
   end
   if bag == nil then return end
-  while #warriors > 7 do
-    local sx, sz = 0, 0
-    for _, w in ipairs(warriors) do local p = w.getPosition() sx = sx + p.x sz = sz + p.z end
-    sx, sz = sx / #warriors, sz / #warriors
-    local oi, od = 1, -1
-    for i, w in ipairs(warriors) do
-      local p = w.getPosition()
-      local d = (p.x - sx) ^ 2 + (p.z - sz) ^ 2
-      if d > od then od = d; oi = i end
-    end
-    pcall(function() bag.putObject(warriors[oi]) end)
-    table.remove(warriors, oi)
+  local spare = getObjectFromGUID("c444dc")
+  if spare ~= nil then
+    if spare.getLock and spare.getLock() then spare.setLock(false) end
+    pcall(function() bag.putObject(spare) end)
   end
 end
 
