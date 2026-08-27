@@ -40,10 +40,12 @@ end
 # now that the icons load (m510), the Button color shows as the frame/rounded-corners
 # behind the icon (like the map buttons) — set it to each art's dominant/edge colour so the
 # frame blends with the art instead of a white box.
+# x=-19/19 = the two central map-button columns directly below, so Ranked sits exactly above
+# the map button under it (was -20/20, off by 1 = the "not perfectly aligned" report).
 RANKED_BTN = ('<Button id="rttRankedBtn" onclick="rttSetup" icon="RankedArt" color="#030411" '
-              'position="-20 60 -20" width="34" height="34"/>')   # square, matching the map buttons
+              'position="-19 60 -20" width="34" height="34"/>')   # square, matching the map buttons
 THEME_BTN = ('<Button id="rttThemeBtn" onclick="rttTheme" icon="ThemeArt" color="#49514b" '
-             'position="20 60 -20" width="34" height="34"/>')
+             'position="19 60 -20" width="34" height="34"/>')
 
 
 def apply(text):

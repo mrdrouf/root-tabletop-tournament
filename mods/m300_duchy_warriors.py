@@ -31,17 +31,21 @@ NAME = "Underground Duchy opening warriors: pack of 2 + pack of 5"
 
 CAT, FACTION = "Standard", "Underground Duchy"
 
-# guid -> move_to (7 loose warriors -> the two packs, identity transform)
+# guid -> move_to (7 loose warriors -> the two packs). Re-recorded from Adrien's latest save.
+# NB: setupFaction spawns via self.positionToWorld(move_to), i.e. move_to is SELECTOR-LOCAL and
+# is rotated by the selector at spawn. Adrien's save had the selector at R180 (the Duchy board's
+# baked rotY is 180 but its world rotY was ~0), so the raw save-minus-selectorPos values had to be
+# un-rotated (R180: negate x,z about the board) back into the canonical selector-local frame:
+#   move_to = 2*board_move_to - (warrior_world - selectorPos),  board_move_to = (-0.690, ., -4.864)
 REPOSITION = {
-    # pack of two (x ~ -8.5, next to the supply)
-    "68944c": (-8.489, 0.595, 8.582),
-    "95d9bd": (-8.473, 0.595, 7.925),
-    # pack of five (x ~ -6.0 and -4.6, adjacent)
-    "cbba66": (-6.015, 0.595, 8.645),
-    "3bcedc": (-6.015, 0.595, 7.991),
-    "4b0679": (-6.015, 0.595, 9.299),
-    "1dbd1f": (-4.636, 0.595, 7.991),
-    "1ffbdd": (-4.636, 0.595, 8.645),
+    # three x-columns next to the supply (Adrien's latest layout, identity-seat save)
+    "68944c": (-8.430, 0.595, 5.047),
+    "95d9bd": (-8.430, 0.595, 5.701),
+    "cbba66": (-5.672, 0.595, 5.047),
+    "3bcedc": (-5.672, 0.595, 5.701),
+    "4b0679": (-4.292, 0.595, 5.047),
+    "1dbd1f": (-4.292, 0.595, 5.701),
+    "1ffbdd": (-4.292, 0.595, 6.355),
 }
 
 

@@ -31,7 +31,11 @@ from . import framework
 NAME = "per-faction setup extras (all paths) + Mountain landmark"
 
 # Adrien's staged reference spots (from his TTS save)
-LIZARD_WIZ_POS = (-31.325, 11.562, 12.278)
+# makeSpecialWithTag ADDS a fixed newVec (~ -0.805, +10.010, +2.248) to this input, so this is
+# NOT the world position — it's (target_world - newVec). Old value put the Wizard 10u in the air
+# (input y 11.562 -> world 21.57 = "frozen in the air"). Target world (-30.437, 11.562, 12.486)
+# -> input below. (newVec derived from the pre-fix floating save.)
+LIZARD_WIZ_POS = (-29.632, 1.552, 10.238)
 POND_SHIFT_POS = (-31.217, 11.562, 21.567)
 
 # Mountain landmark: centre-clearing suit snap (where Adrien stood the Lost City), and the
@@ -85,6 +89,35 @@ function rttFactionExtras(faction, cx, cz, flip)
   elseif faction == "Corvid Conspiracy" then rttCrowsPlots(cx, cz, flip)
   elseif faction == "Underground Duchy" then rttDuchyTuck()
   elseif faction == "Knaves of the Deepwood" then rttKnavesSetup(cx, cz, flip)
+  elseif faction == "Marquise de Cat" then rttMarquiseCats()
+  end
+end
+
+-- ---- Marquise de Cat: one warrior in the CENTRE of every clearing -------------------------
+-- Every clearing carries a "Clearing Marker" (the suit token) at its centre, on every map, so
+-- we drop one Cat Warrior on each marker — no per-map clearing table needed. The buildings +
+-- Keep + the remaining warriors spawn with the faction board as-is (Adrien's default layout).
+-- Cats come from the loose pool first, then the Marquise Supply bag; ~10 stay in the supply.
+function rttMarquiseCats()
+  local markers = {}
+  for _, o in ipairs(getObjectsWithTag("Clearing Marker")) do markers[#markers + 1] = o end
+  if #markers == 0 then return end
+  local bag, loose = nil, {}
+  for _, o in ipairs(getAllObjects()) do
+    local nm = o.getName() or ""
+    if nm == "Marquise Supply" then bag = o
+    elseif nm == "Cat Warrior" then loose[#loose + 1] = o end
+  end
+  for _, m in ipairs(markers) do
+    local p = m.getPosition()
+    local tgt = { p.x, p.y + 0.8, p.z }
+    local cat = table.remove(loose)
+    if cat ~= nil then
+      if cat.getLock and cat.getLock() then cat.setLock(false) end
+      cat.setPosition(tgt)                                  -- instant: appears in final spot
+    elseif bag ~= nil then
+      pcall(function() bag.takeObject({ position = tgt, smooth = false }) end)
+    end
   end
 end
 
@@ -173,17 +206,24 @@ function rttCrowsPlots(cx, cz, flip)
     if (o.getName() or "") == "Plot" then pcall(function() o.destruct() end) end
   end
   local ry = board.getRotation().y
-  for i, blob in ipairs(RTT_CROW_PLOTS or {}) do
+  -- REPOSITION the plots the base already spawned (they are FACE DOWN) into a 4-wide grid,
+  -- instant + preserving each plot's face (rx/rz) so none flip face up. We no longer destruct
+  -- and respawn from the recorded blobs (those were face UP = the "3 plots appear face up" bug).
+  local plots = {}
+  for _, o in ipairs(getAllObjects()) do
+    if (o.getName() or "") == "Plot" then plots[#plots + 1] = o end
+  end
+  local z0 = RTT_CROW_ROWS[1]
+  local dz = RTT_CROW_ROWS[2] - RTT_CROW_ROWS[1]
+  for i, o in ipairs(plots) do
     local idx = i - 1
-    local col = math.floor(idx / 3) + 1
-    local row = (idx %% 3) + 1
-    local w = board.positionToWorld({ RTT_CROW_COLS[col], 0.03, RTT_CROW_ROWS[row] })
-    spawnObjectJSON({
-      json = blob,
-      position = { w.x, w.y + 0.2, w.z },
-      rotation = { 0, ry, 0 },
-      callback_function = function(o) o.setLock(false) end
-    })
+    local col = (idx %% 4) + 1
+    local row = math.floor(idx / 4)
+    local w = board.positionToWorld({ RTT_CROW_COLS[col], 0.03, z0 + row * dz })
+    local r = o.getRotation()
+    if o.getLock and o.getLock() then o.setLock(false) end
+    o.setPosition({ w.x, w.y + 0.2, w.z })
+    o.setRotation({ r.x, ry, r.z })
   end
 end
 
@@ -239,9 +279,9 @@ function rttRepositionPond()
   local lizard = (RTT_FAC_TAKEN or {})["The Lizard Cult"] == true
   local p = lizard and RTT_POND_SHIFT or RTT_LIZ_WIZ
   if pond.getLock and pond.getLock() then pond.setLock(false) end
-  pond.setPositionSmooth({ p[1], p[2], p[3] }, false, true)
-  pond.setRotationSmooth({ 0, 90, 0 }, false, true)
-  Wait.time(function() if pond ~= nil then pond.setLock(true) end end, 1.0)
+  pond.setPosition({ p[1], p[2], p[3] })          -- instant: no visible slide
+  pond.setRotation({ 0, 90, 0 })
+  Wait.time(function() if pond ~= nil then pond.setLock(true) end end, 0.3)
 end
 
 function rttShuffleFrogsIntoDeck()
@@ -292,10 +332,23 @@ function rttForestWorldCenters(mapId)   -- fallback for maps with no recorded re
   return out
 end
 
+-- the map buttons + makeMap live on the MAIN board (bab7e1); clones (the solo/standard faction
+-- selectors) have their own Lua globals, so a clone's RTT_CURRENT_MAP is nil. This getter lets
+-- any clone read the main board's current map by GUID.
+function rttGetCurrentMap() return RTT_CURRENT_MAP end
+
 function rttBadgerRelics()
   -- RTT_PICKED.map is only set by the ranked-draft coordinator; on the solo/standard faction
-  -- board it is nil, so fall back to RTT_CURRENT_MAP (the map makeMap last actually spawned).
+  -- board it is nil. Fall back to RTT_CURRENT_MAP (this board's last makeMap); and if THIS
+  -- object is a selector clone (its own RTT_CURRENT_MAP is nil), read the main board bab7e1.
   local mapId = RTT_CURRENT_MAP or (RTT_PICKED or {}).map
+  if mapId == nil then
+    local mb = getObjectFromGUID("bab7e1")
+    if mb ~= nil then
+      local ok, mid = pcall(function() return mb.call("rttGetCurrentMap") end)
+      if ok and type(mid) == "string" then mapId = mid end
+    end
+  end
   if mapId == nil then return end
   local bag = nil
   for _, o in ipairs(getAllObjects()) do
@@ -318,7 +371,7 @@ function rttBadgerRelics()
   if #targets == 0 then return end
   for _, c in ipairs(targets) do
     pcall(function()
-      bag.takeObject({ position = { c[1], 12.0, c[2] }, rotation = { 0, 180, 0 }, smooth = true })
+      bag.takeObject({ position = { c[1], 12.0, c[2] }, rotation = { 0, 180, 0 }, smooth = false })
     end)
   end
 end
@@ -338,7 +391,7 @@ function rttBatsSetup(cx, cz, flip)
   for _, o in ipairs(getAllObjects()) do
     if (not placed) and (o.getName() or "") == "Assembly" then
       if o.getLock and o.getLock() then o.setLock(false) end
-      o.setPositionSmooth({ asmWorld.x, asmWorld.y + 0.3, asmWorld.z }, false, true)
+      o.setPosition({ asmWorld.x, asmWorld.y + 0.3, asmWorld.z })   -- instant, no slide
       placed = true
     end
   end
@@ -349,7 +402,7 @@ function rttBatsSetup(cx, cz, flip)
   for i = 1, math.min(6, #warriors) do
     local off = RTT_BATS_WAR[i]
     local w = board.positionToWorld({ off[1], 0.02, off[2] })
-    warriors[i].setPositionSmooth({ w.x, w.y + 0.5, w.z }, false, true)
+    warriors[i].setPosition({ w.x, w.y + 0.5, w.z })              -- instant, no slide
   end
 end
 

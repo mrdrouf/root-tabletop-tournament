@@ -193,8 +193,13 @@ def apply(text):
 
     # record each override handle synchronously; skip the buggy shuffleMaps for Marsh
     old5 = "    })\n  end\n  shuffleMaps(id)"
+    # guard RTT_MARSH_PIECES: it is only initialised for Marsh, but rtt_ov is now also
+    # true on Mountain (m500's tower-hide override), so an unguarded #RTT_MARSH_PIECES
+    # was `#nil` on Mountain — it crashed makeMap mid-spawn-loop, dropping every suit
+    # marker after the tower. The tower carries the "Map Object" tag anyway, so it is
+    # cleaned on the next map build without needing to be tracked here.
     new5 = ("    })\n"
-            "    if rtt_ov then RTT_MARSH_PIECES[#RTT_MARSH_PIECES + 1] = ob end\n"
+            "    if rtt_ov and RTT_MARSH_PIECES ~= nil then RTT_MARSH_PIECES[#RTT_MARSH_PIECES + 1] = ob end\n"
             "  end\n  if id ~= \"Marsh Map\" then shuffleMaps(id) end")
     text = framework.replace_unique(text, framework.esc(old5), framework.esc(new5))
     return text
