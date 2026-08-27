@@ -215,12 +215,15 @@ RTT_FAC_STAGE = 0
 RTT_FAC_TAKEN = {}
 RTT_FAC_CURRENT = {}
 
--- spawn the Root Box Score sheet, centred below the draft cards, locked to the table
+-- spawn the Root Box Score sheet at Adrien's placed spot (read from his TTS save),
+-- rotated 270 to face the camera, sized to fill the board-design rectangle (scale up
+-- ~1.3x wide / ~1.1x tall baked into _boxscore.json), locked to the table.
 function rttSpawnBoxScore()
   for _, o in ipairs(getObjectsWithTag(RTT_BOXSCORE_TAG)) do o.destruct() end
   spawnObjectJSON({
     json = RTT_BOXSCORE_JSON,
-    position = { 63.9, 11.6, -32 },
+    position = { -59.088, 11.652, -3.154 },
+    rotation = { 0, 270, 0 },
     callback_function = function(o) o.addTag(RTT_BOXSCORE_TAG) o.setLock(true) end
   })
 end
@@ -455,14 +458,31 @@ function rttZeroColumnSlots()
   local cellIdx = RTT_SCORE0_AT_MIN and 0 or (t.n - 1)
   local cellA   = t.a0 + cellIdx * t.s
   local mid     = t.rows[math.ceil(#t.rows / 2)]
-  local slots = {}
+  -- the score-0 column's REAL snap rows (Adrien places the VP markers exactly on these).
+  local real = {}
   for _, p in ipairs(t.pts or {}) do
-    if math.abs(p.a - cellA) < 0.45 * t.s then slots[#slots + 1] = { a = p.a, b = p.b } end
+    if math.abs(p.a - cellA) < 0.45 * t.s then real[#real + 1] = p.b end
   end
-  table.sort(slots, function(p, q) return math.abs(p.b - mid) < math.abs(q.b - mid) end)
+  table.sort(real)
+  -- centre-out ladder over the real snaps: zero (centre), then up, then down, then
+  -- further up/down (Adrien's requested stack order), extending past the ends by the
+  -- exact row spacing only when more factions than snap rows.
   local step = 0.11
-  if #t.rows >= 2 then step = (t.rows[#t.rows] - t.rows[1]) / (#t.rows - 1) end
-  for _, b in ipairs({ mid - 2 * step, mid + 2 * step, mid - 3 * step, mid + 3 * step }) do
+  if #real >= 2 then step = (real[#real] - real[1]) / (#real - 1)
+  elseif #t.rows >= 2 then step = (t.rows[#t.rows] - t.rows[1]) / (#t.rows - 1) end
+  local cidx = 1
+  for i = 2, #real do if math.abs(real[i] - mid) < math.abs(real[cidx] - mid) then cidx = i end end
+  local order = { real[cidx] }
+  local up, dn = cidx + 1, cidx - 1
+  while up <= #real or dn >= 1 do
+    if up <= #real then order[#order + 1] = real[up]; up = up + 1 end
+    if dn >= 1 then order[#order + 1] = real[dn]; dn = dn - 1 end
+  end
+  local top, bot = real[#real], real[1]
+  local ext = { top + step, bot - step, top + 2 * step, bot - 2 * step }
+  local slots = {}
+  for _, b in ipairs(order) do slots[#slots + 1] = { a = cellA, b = b } end
+  for _, b in ipairs(ext) do
     slots[#slots + 1] = { a = cellA, b = b }
   end
   return slots
@@ -502,6 +522,13 @@ function rttPlaceVP(faction, n)
   local wp  = rttSlotWorld(slots[idx])
   if wp == nil then return false end
   if m.getLock and m.getLock() then m.setLock(false) end
+  -- Orientation fix: VP markers spawn at their faction board, and a far-side (z>0) seat
+  -- spawns flipped 180, so its marker lands upside-down on the track. Normalise every
+  -- placed marker to the score track's own facing so they all read the same way.
+  local trackRy = 0
+  local map = getObjectFromGUID(RTT_TRACK.guid)
+  if map ~= nil then trackRy = map.getRotation().y end
+  m.setRotationSmooth({ 0, trackRy, 0 }, false, true)
   m.setPositionSmooth({ wp.x, wp.y + 0.12, wp.z }, false, true)
   return true
 end

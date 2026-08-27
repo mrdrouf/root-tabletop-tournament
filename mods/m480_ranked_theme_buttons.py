@@ -18,9 +18,12 @@ from . import framework
 
 NAME = "RTT setup: Ranked (owl) + Theme (fox) image buttons on the top line"
 
-# small square (300x300) re-uploads — the 1.2MB versions flashed to white in TTS UI
-RANKED_URL = "https://steamusercontent-a.akamaihd.net/ugc/10170717684162208036/7455ACC11074D6DB3A1A1F2B82A1201278E17910/"
-THEME_URL = "https://steamusercontent-a.akamaihd.net/ugc/11172983172019187774/BA2ECDEF528ACA13DFA424A6D0EBC127BD8A5CBF/"
+# 150x150 RGBA re-uploads. The earlier 300x300 uploads were RGB, and TTS UI icons
+# only render from RGBA (RGB is exactly why the icon flashed then went white). These
+# URLs were recovered from the Mods/Images cache by content SHA1 after Adrien uploaded
+# the RGBA PNGs (ranked 23F7EB22…, theme FE0894D6…).
+RANKED_URL = "https://steamusercontent-a.akamaihd.net/ugc/17736006513028835727/23F7EB2248073953C65D1AAD44636708E9E2DFE1/"
+THEME_URL = "https://steamusercontent-a.akamaihd.net/ugc/16316853328531788856/FE0894D6BBC40E7876FE4A683368A61FC1B35547/"
 
 THEME_LUA = r"""
 function rttTheme(player, value, id)

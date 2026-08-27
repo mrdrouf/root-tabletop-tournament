@@ -63,6 +63,10 @@ function rttMarshPlan(objects)
   math.randomseed(os.time() + RTT_MARSH_N * 7919)
   for k = 1, 10 do math.random() end
 
+  -- world (x,z) of each clearing that floods this build; m460 uses this to drop the
+  -- priority-number token on each flooded (submerged, no-suit) clearing.
+  RTT_MARSH_FLOODED = {}
+
   local floodIx = {}
   local ruinIx = {}
   local suitIx = {}
@@ -82,6 +86,7 @@ function rttMarshPlan(objects)
   for _, m in ipairs(RTT_MARSH) do
     local flooded, dry
     if math.random(2) == 1 then flooded = m.up; dry = m.down else flooded = m.down; dry = m.up end
+    RTT_MARSH_FLOODED[#RTT_MARSH_FLOODED + 1] = { flooded.flood[1], flooded.flood[3] }
     local fi = floodIx[m.key]
     if fi ~= nil then
       local f = flooded.flood
