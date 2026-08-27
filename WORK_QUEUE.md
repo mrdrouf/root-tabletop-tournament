@@ -16,26 +16,28 @@ starts in its final container/position:
 
 ## OPEN
 
-### Randomization TIMING / RNG (Adrien: "very dangerous") — DONE
-- [x] Seed RNG once at load, advance per call; removed per-click os.time reseeds (rttMarshPlan /
-      rttMarshPlan5P). Fast re-clicks now re-randomise instantly (floods).
-- [x] Mountain landmark: Wait.frames(2) (fast), self-clears old landmark, advancing RNG.
-- [x] Marsh number tokens: rest on the board (RTT_MARSH_TOKEN_Y 11.635), not floating.
+### Randomization / RNG (Adrien: "very dangerous") — DONE + PROVEN
+- [x] **ROOT CAUSE fixed**: base shuffle() reseeded math.randomseed(os.time()) 101x/call + next
+      frame -> deterministic-per-second, and shuffleMaps() runs it right before the landmark. m600
+      replaces it with one clean Fisher-Yates, no reseed. Removed the per-draft reseed (m250) too.
+      Now 2 seeds total, both load-time. PROVEN by sim: old = identical for 3 same-second clicks;
+      fixed landmark uniform 25% (chi-sq 2.10), floods 50/50 per pair.
+- [x] Mountain landmark fast (Wait.frames 2), self-clears; Marsh floods re-randomise instantly.
+- [x] Marsh number tokens rest on the board (11.635).
 
 ### Draft / seating flow — DONE (needs Adrien's TTS test; big change)
-- [x] **Remove pick-map / pick-deck**: rttBeginPick skips the pick, spawns boards immediately (Adrien
-      places map/deck manually). The 5-player button still auto-places its Marsh map.
-- [x] **Fixed board/seat count** = RTT_DN-1 (4 ranked / 5 for 5p Marsh), independent of live players
-      (RTT_ORDER is built with N entries; empty seats allowed). Fixes the 2-player bug.
-- [x] **Auto-seat on turn-order card**: order deck spawns BELOW the table (never face-up); random turn
-      order; rttSeatAndDeal moves each real player's HAND to their seat (keeps their color) and deals
-      the card into that hidden hand.
-- [x] **Simultaneous faction choice**: rttShowFactions lights EVERY board at once; rttCoordFaction
-      resolves by the clicked BOARD (fixed faction slots, no race), first click takes it, refreshes the rest.
-- [x] **Knave Captains**: rttDraftKnavesCaptains spawns 4 random captains under the draft cards during
-      the draft; removed from the faction-spawn (rttFactionExtras + rttCoordFaction hand-deal).
-  NOTE to verify in TTS: seat/hand positions, Knave-captain offset (x 57.9), that cards land hidden,
-  and that a real 4-player draft still resolves cleanly.
+- [x] **Remove pick-map / pick-deck**: rttBeginPick skips the pick, spawns boards immediately.
+      5-player button still auto-places Marsh.
+- [x] **Fixed board/seat count** = RTT_DN-1 -> fixes the 2-player bug.
+- [x] **Seating (REVISED per Adrien's report)**: do NOT move hands / change colour (that caused the
+      "hand under the table" + wrong-seat bug). rttSeatPlayers matches each seated player to the board
+      at THEIR OWN seat (nearest to where they sit) and deals the turn-order card into their existing
+      hand. Order deck stays ON the table (turn order isn't secret). Turn order is random.
+- [x] **Restrict**: rttCoordFaction only lets a player pick on their OWN seat's board (no seat conflicts).
+- [x] **Simultaneous**: every board lights at once; fixed faction slots (no race).
+- [x] **Knave Captains**: unlocked, laid FACE-UP in Adrien's line (x 53.5, z -8..+7.4); source deck
+      spawned below the table so the 8 undrafted captains never show. "Pick your faction" text removed.
+  VERIFY in TTS: nearest-seat board matching, restrict, captain line, real 4-player draft resolves.
 
 ### Maps / landmarks
 - [~] **Marsh 5-player map button** (= "Swole Birds"): button already wired (id `Marsh5P`,
@@ -48,6 +50,11 @@ starts in its final container/position:
       rttMountainLandmark no longer reads/destroys a marker — spawns a random landmark directly.
 - [x] **Landmark explanation cards — flip** (DONE): m490 Mountain landmark now passes crotZ 180
       (RULES/BackURL face up). Marsh 5p towns already correct.
+- [~] **Lost City rules-card art (outdated)**: Adrien's new art is `assets/images/landmark-lostcity.webp`
+      (815x1111). TTS won't load webp -> converted to `assets/upload/landmark_lostcity_rules.png`. The
+      card's outdated RULES face (BackURL) to replace:
+      `.../ugc/1859433736252751364/0DC4B26C9A4D68D8944E0E6AB84868CA3DFA84D3/`. **Action: Adrien uploads
+      the PNG to Steam -> gives me the URL -> I swap that BackURL** (framework.replace_unique).
 
 ### Golden-rule cleanup — needs a verified read
 - [ ] **Crows warriors**: rttCrowsPlots repositions the 4 Corvid Warriors at runtime (place-then-

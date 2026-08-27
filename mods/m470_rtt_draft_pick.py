@@ -131,17 +131,7 @@ RTT_LAYOUT = {
   [4] = { 1, 2, 4, 3 }, [5] = { 1, 2, 5, 4, 3 }, [6] = { 1, 2, 5, 6, 4, 3 },
 }
 
--- hand transform for each of the 6 board positions (base handPositions/handRotations, matched by
--- x,z sign): the player sits at z=±64, one row behind their board (z=±46).
-RTT_SEAT_HAND = {
-  { pos = { 52, 14.62, -64 }, rot = { 0, 0, 0 } },     -- pos1 (52,-46)
-  { pos = { -52, 14.62, -64 }, rot = { 0, 0, 0 } },    -- pos2 (-52,-46)
-  { pos = { 52, 14.62, 64 }, rot = { 0, 180, 0 } },    -- pos3 (52,46)
-  { pos = { -52, 14.62, 64 }, rot = { 0, 180, 0 } },   -- pos4 (-52,46)
-  { pos = { 0, 14.62, -64 }, rot = { 0, 0, 0 } },      -- pos5 (0,-46)
-  { pos = { 0, 14.62, 64 }, rot = { 0, 180, 0 } },     -- pos6 (0,46)
-}
-RTT_SEATS = {}          -- [seat] = { board=obj, color=<colour|nil>, pos={x,z}, hand=<RTT_SEAT_HAND entry> }
+RTT_SEATS = {}          -- [seat] = { board=obj, color=<colour|nil>, pos={x,z} }
 RTT_BOARD_SEAT = {}     -- [board guid] = seat index
 
 function rttSpawnSelectors()
@@ -154,7 +144,6 @@ function rttSpawnSelectors()
   for i = 1, n do
     local pi = layout[i] or i
     local p = RTT_POS[pi] or RTT_POS[1]
-    local color = (RTT_ORDER[i] and RTT_ORDER[i].color) or nil
     local board = spawnObjectJSON({
       json = RTT_SELECTOR_JSON,
       position = { p[1], 11.56, p[2] },
@@ -162,24 +151,36 @@ function rttSpawnSelectors()
       callback_function = function(o) o.setLock(true) o.addTag(RTT_SELECTOR_TAG) end
     })
     RTT_BOARD_SEAT[board.getGUID()] = i
-    RTT_SEATS[i] = { board = board, color = color, pos = p, hand = RTT_SEAT_HAND[pi] }
-    if color ~= nil then RTT_CLONES[color] = board end
+    RTT_SEATS[i] = { board = board, color = nil, pos = p }   -- colour assigned by ACTUAL seat below
   end
 end
 
--- Auto-seat: move each real player's HAND to their random turn-order seat (KEEP their chosen
--- colour) and deal the turn-order card straight into that now-seated, HIDDEN hand. Empty seats
--- (fewer humans than the fixed N) get no card, so nothing is ever left face-up on the table.
-function rttSeatAndDeal()
+-- Assign each seated player to the board at THEIR OWN seat (the one nearest to where they physically
+-- sit) and deal the turn-order card into their EXISTING hand. We do NOT move hands or change colours
+-- (that was the bug: the hand ended up away from the player and cards seemed to go under the table).
+-- The player keeps the colour they picked; turn order is random (the deck was shuffled). Making each
+-- player's own board = the board in front of them means the faction they pick lands at their seat,
+-- and rttCoordFaction can stop anyone else from grabbing a faction on someone else's board.
+function rttSeatPlayers()
   local ord = getObjectFromGUID(RTT_ORDER_DECK or "")
-  for i, e in ipairs(RTT_ORDER) do
-    if e.color ~= nil then
-      local seat = RTT_SEATS[i]
-      local hand = seat and seat.hand
-      if hand ~= nil and Player[e.color] ~= nil and Player[e.color].seated then
-        pcall(function() Player[e.color].setHandTransform({ position = hand.pos, rotation = hand.rot }, 1) end)
+  for _, p in ipairs(Player.getPlayers()) do
+    if p.seated and p.color ~= "Grey" and p.color ~= "Black" then
+      local hp = nil
+      pcall(function() hp = p.getHandTransform().position end)
+      if hp ~= nil then
+        local bestD, bestI = nil, nil
+        for i, seat in ipairs(RTT_SEATS) do
+          if seat.board ~= nil and seat.color == nil then          -- an unclaimed board
+            local d = (seat.pos[1] - hp.x) ^ 2 + (seat.pos[2] - hp.z) ^ 2
+            if bestD == nil or d < bestD then bestD, bestI = d, i end
+          end
+        end
+        if bestI ~= nil then
+          RTT_SEATS[bestI].color = p.color
+          RTT_CLONES[p.color] = RTT_SEATS[bestI].board
+        end
       end
-      if ord ~= nil and ord.deal then pcall(function() ord.deal(1, e.color) end) end
+      if ord ~= nil and ord.deal then pcall(function() ord.deal(1, p.color) end) end  -- card into their own hand
     end
   end
 end
@@ -190,7 +191,7 @@ function rttBeginPick()
   RTT_PICK_STAGE = 0                             -- map/deck pick REMOVED (Adrien places them manually)
   if RTT_5P_MARSH then rttPlaceMap("Marsh Map") end   -- the 5-player button still auto-places its Marsh map
   rttSpawnSelectors()
-  Wait.frames(function() rttSeatAndDeal() rttStartFactionDraft() end, 10)
+  Wait.frames(function() rttSeatPlayers() rttStartFactionDraft() end, 10)
 end
 
 function rttShowPick(stage)
@@ -277,6 +278,14 @@ end
 -- Knaves: if Knaves is one of the drafted factions, spawn its 12-card Captain deck directly under
 -- the faction-card row DURING the draft, keep 4 at random, discard the rest. (No longer spawned
 -- with the faction board.) The deck blob lives in the Knaves faction data (its FaceURL is unique).
+-- the 4 drafted Knave captains, laid FACE UP in a line below the draft cards (Adrien's placed spots)
+RTT_KNAVE_CAP = {
+  { 53.495, 11.7, -7.992 },
+  { 53.495, 11.7, -2.870 },
+  { 53.495, 11.7,  2.253 },
+  { 53.495, 11.7,  7.375 },
+}
+
 function rttDraftKnavesCaptains()
   local has = false
   for _, f in ipairs(RTT_DRAFT_FACTIONS or {}) do
@@ -292,19 +301,18 @@ function rttDraftKnavesCaptains()
   if blob == nil then return end
   spawnObjectJSON({
     json = blob,
-    position = { 57.9, 11.6, 0 },                   -- one card-depth in front of the x=63.9 draft row
+    position = { 53.495, -50, 0 },                  -- BELOW the table: only the 4 drafted captains show
     rotation = { 0, 270, 0 },
     callback_function = function(deck)
       deck.setLock(true)
       pcall(function() deck.shuffle() end)
       Wait.time(function()
         if deck == nil then return end
-        local p = deck.getPosition()
         for i = 1, 4 do
           pcall(function() deck.takeObject({
-            position = { p.x, p.y + 0.3, p.z + (i - 2.5) * 2.4 },
-            rotation = { 0, 270, 0 }, smooth = false,
-            callback_function = function(o) o.setLock(true) o.addTag("RTT Faction") end }) end)
+            position = RTT_KNAVE_CAP[i],
+            rotation = { 0, 270, 0 }, smooth = false,        -- face up (captain art), NOT locked
+            callback_function = function(o) o.setLock(false) o.addTag("RTT Faction") end }) end)
         end
         Wait.time(function() if deck ~= nil then pcall(function() deck.destruct() end) end end, 0.8)
       end, 0.5)
@@ -363,6 +371,7 @@ function rttCoordFaction(args)
   if seat == nil then return end
   local s = RTT_SEATS[seat]
   if s == nil or s.board == nil then return end        -- board already drafted
+  if s.color ~= nil and args.color ~= s.color then return end   -- only YOUR own seat's board (no seat conflicts)
   local idx = tonumber(string.sub(args.id, -1))
   if idx == nil then return end
   local faction = (RTT_DRAFT_FACTIONS or {})[idx]
