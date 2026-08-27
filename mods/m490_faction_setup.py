@@ -36,6 +36,9 @@ NAME = "per-faction setup extras (all paths) + Mountain landmark"
 # (input y 11.562 -> world 21.57 = "frozen in the air"). Target world (-30.437, 11.562, 12.486)
 # -> input below. (newVec derived from the pre-fix floating save.)
 LIZARD_WIZ_POS = (-29.632, 1.552, 10.238)
+# the frog pond's WORLD resting spot (the central special area) — was wrongly read off
+# RTT_LIZ_WIZ, which is now a makeSpecialWithTag INPUT (y 1.55), sending the pond underground.
+POND_FROG_POS = (-30.437, 11.562, 12.486)
 POND_SHIFT_POS = (-31.217, 11.562, 21.567)
 
 # Mountain landmark: centre-clearing suit snap (where Adrien stood the Lost City), and the
@@ -80,6 +83,7 @@ def _extra_lua():
 
 RTT_LIZ_WIZ = { %(wx).3f, %(wy).3f, %(wz).3f }
 RTT_POND_SHIFT = { %(px).3f, %(py).3f, %(pz).3f }
+RTT_POND_FROG = { %(fx).3f, %(fy).3f, %(fz).3f }
 
 function rttFactionExtras(faction, cx, cz, flip)
   if faction == "The Lizard Cult" then rttLizardSetup()
@@ -214,25 +218,24 @@ function rttCrowsPlots(cx, cz, flip)
   for _, o in ipairs(getAllObjects()) do
     if (o.getName() or "") == "Plot" then pcall(function() o.destruct() end) end
   end
-  local ry = board.getRotation().y
-  -- REPOSITION the plots the base already spawned (they are FACE DOWN) into a 4-wide grid,
-  -- instant + preserving each plot's face (rx/rz) so none flip face up. We no longer destruct
-  -- and respawn from the recorded blobs (those were face UP = the "3 plots appear face up" bug).
-  local plots = {}
+  -- the base does NOT spawn loose "Plot" objects, so RTT_CROW_PLOTS is the only source: spawn
+  -- the 12 plots straight into the 4x3 grid, FACE DOWN (rotZ 180 — the recorded blobs are face
+  -- up), in ONE step. Clear any leftover plots from a prior setup first.
   for _, o in ipairs(getAllObjects()) do
-    if (o.getName() or "") == "Plot" then plots[#plots + 1] = o end
+    if (o.getName() or "") == "Plot" then pcall(function() o.destruct() end) end
   end
-  local z0 = RTT_CROW_ROWS[1]
-  local dz = RTT_CROW_ROWS[2] - RTT_CROW_ROWS[1]
-  for i, o in ipairs(plots) do
+  local ry = board.getRotation().y
+  for i, blob in ipairs(RTT_CROW_PLOTS or {}) do
     local idx = i - 1
-    local col = (idx %% 4) + 1
-    local row = math.floor(idx / 4)
-    local w = board.positionToWorld({ RTT_CROW_COLS[col], 0.03, z0 + row * dz })
-    local r = o.getRotation()
-    if o.getLock and o.getLock() then o.setLock(false) end
-    o.setPosition({ w.x, w.y + 0.2, w.z })
-    o.setRotation({ r.x, ry, r.z })
+    local col = math.floor(idx / 3) + 1
+    local row = (idx %% 3) + 1
+    local w = board.positionToWorld({ RTT_CROW_COLS[col], 0.03, RTT_CROW_ROWS[row] })
+    spawnObjectJSON({
+      json = blob,
+      position = { w.x, w.y + 0.2, w.z },
+      rotation = { 0, ry, 180 },            -- face DOWN
+      callback_function = function(o) o.setLock(false) end
+    })
   end
 end
 
@@ -286,7 +289,7 @@ function rttRepositionPond()
   end
   if pond == nil then return end
   local lizard = (RTT_FAC_TAKEN or {})["The Lizard Cult"] == true
-  local p = lizard and RTT_POND_SHIFT or RTT_LIZ_WIZ
+  local p = lizard and RTT_POND_SHIFT or RTT_POND_FROG
   if pond.getLock and pond.getLock() then pond.setLock(false) end
   pond.setPosition({ p[1], p[2], p[3] })          -- instant: no visible slide
   pond.setRotation({ 0, 90, 0 })
@@ -502,6 +505,7 @@ end
     "relic_pos": relic_pos,
     "wx": LIZARD_WIZ_POS[0], "wy": LIZARD_WIZ_POS[1], "wz": LIZARD_WIZ_POS[2],
     "px": POND_SHIFT_POS[0], "py": POND_SHIFT_POS[1], "pz": POND_SHIFT_POS[2],
+    "fx": POND_FROG_POS[0], "fy": POND_FROG_POS[1], "fz": POND_FROG_POS[2],
     "mx": MTN_LM_POS[0], "my": MTN_LM_POS[1], "mz": MTN_LM_POS[2],
     "kx": MTN_CARD_POS[0], "ky": MTN_CARD_POS[1], "kz": MTN_CARD_POS[2],
     "ks": MTN_CARD_SCALE,
