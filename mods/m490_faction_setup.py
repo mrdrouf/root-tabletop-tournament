@@ -93,7 +93,7 @@ function rttFactionExtras(faction, cx, cz, flip)
   elseif faction == "Corvid Conspiracy" then rttCrowsPlots(cx, cz, flip)
   elseif faction == "Underground Duchy" then rttDuchyTuck()
   elseif faction == "Knaves of the Deepwood" then rttKnavesSetup(cx, cz, flip)
-  elseif faction == "Marquise de Cat" then rttMarquiseCats()
+  elseif faction == "Marquise de Cat" then rttMarquiseCats(cx, cz, flip)
   end
 end
 
@@ -102,16 +102,19 @@ end
 -- we drop one Cat Warrior on each marker — no per-map clearing table needed. The buildings +
 -- Keep + the remaining warriors spawn with the faction board as-is (Adrien's default layout).
 -- Cats come from the loose pool first, then the Marquise Supply bag; ~10 stay in the supply.
-function rttMarquiseCats()
+-- 3 starting warriors sit BELOW the buildings by the faction board (recorded board-local)
+RTT_CAT_WAR = { { -0.347, -1.215 }, { -0.204, -1.215 }, { -0.061, -1.215 } }
+
+function rttMarquiseCats(cx, cz, flip)
   local markers = {}
   for _, o in ipairs(getObjectsWithTag("Clearing Marker")) do markers[#markers + 1] = o end
-  if #markers == 0 then return end
   local bag, loose = nil, {}
   for _, o in ipairs(getAllObjects()) do
     local nm = o.getName() or ""
     if nm == "Marquise Supply" then bag = o
     elseif nm == "Cat Warrior" then loose[#loose + 1] = o end
   end
+  -- one cat on every clearing (suit-marker) centre
   for _, m in ipairs(markers) do
     local p = m.getPosition()
     local tgt = { p.x, p.y + 0.8, p.z }
@@ -121,6 +124,21 @@ function rttMarquiseCats()
       cat.setPosition(tgt)                                  -- instant: appears in final spot
     elseif bag ~= nil then
       pcall(function() bag.takeObject({ position = tgt, smooth = false }) end)
+    end
+  end
+  -- 3 warriors out of the supply, below the buildings by the faction board
+  local board = rttFindSeatBoard(cx, cz)
+  if board ~= nil then
+    for i = 1, 3 do
+      local off = RTT_CAT_WAR[i]
+      local w = board.positionToWorld({ off[1], 0.02, off[2] })
+      local cat = table.remove(loose)
+      if cat ~= nil then
+        if cat.getLock and cat.getLock() then cat.setLock(false) end
+        cat.setPosition({ w.x, w.y + 0.5, w.z })
+      elseif bag ~= nil then
+        pcall(function() bag.takeObject({ position = { w.x, w.y + 0.5, w.z }, smooth = false }) end)
+      end
     end
   end
 end
