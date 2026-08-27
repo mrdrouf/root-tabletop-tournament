@@ -37,9 +37,12 @@ end
 # opaque image, so it must be tinted WHITE (#ffffff = neutral) or it renders as-is.
 # The old dark tints (#030310 / #474F4B) multiplied the art down to near-black = invisible
 # — THAT was the two-day "art doesn't appear" bug, not the RGB/RGBA or the URL.
-RANKED_BTN = ('<Button id="rttRankedBtn" onclick="rttSetup" icon="RankedArt" color="#ffffff" '
+# now that the icons load (m510), the Button color shows as the frame/rounded-corners
+# behind the icon (like the map buttons) — set it to each art's dominant/edge colour so the
+# frame blends with the art instead of a white box.
+RANKED_BTN = ('<Button id="rttRankedBtn" onclick="rttSetup" icon="RankedArt" color="#030411" '
               'position="-20 60 -20" width="34" height="34"/>')   # square, matching the map buttons
-THEME_BTN = ('<Button id="rttThemeBtn" onclick="rttTheme" icon="ThemeArt" color="#ffffff" '
+THEME_BTN = ('<Button id="rttThemeBtn" onclick="rttTheme" icon="ThemeArt" color="#49514b" '
              'position="20 60 -20" width="34" height="34"/>')
 
 

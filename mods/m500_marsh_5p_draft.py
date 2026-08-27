@@ -180,9 +180,9 @@ COORD_NEW = ('    if clone ~= nil then clone.UI.setAttribute("rttPickMapDeck", "
 # rttFivePStart; #ffffff so the icon tint is neutral).
 MARSH5P_OLD = ('<Button id="Marsh5P" onclick="rttMarsh5P" text="5 Players" '
                'position="95 -69.5 -20" width="34" height="17" fontSize="7" color="#9b8551"/>')
-# keep Adrien's original half-rectangle shape/spot; just swap in the art + the new handler
+# keep Adrien's original half-rectangle shape/spot; art + new handler + dominant-colour frame
 MARSH5P_NEW = ('<Button id="Marsh5P" onclick="rttFivePStart" icon="FivePlayerArt" '
-               'position="95 -69.5 -20" width="34" height="17" color="#ffffff"/>')
+               'position="95 -69.5 -20" width="34" height="17" color="#1e1a13"/>')
 
 
 def _sub(text, old, new, label):
