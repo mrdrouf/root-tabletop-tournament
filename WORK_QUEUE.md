@@ -49,11 +49,13 @@ starts in its final container/position:
 - [x] **Landmark explanation cards — flip** (DONE): m490 Mountain landmark now passes crotZ 180
       (RULES/BackURL face up). Marsh 5p towns already correct.
 
-### Draft path — remaining golden-rule cleanups (fold into the draft rework)
-- [ ] **Crows plots/warriors**: rttCrowsPlots respawns plots face-down + repositions warriors at
-      runtime — convert to blueprint (bake warrior move_to, and set plot facing in the data). Corvid
-      wasn't set up when mapped; re-read once it is.
-- [ ] **Knave captains**: moving to the draft-card stage anyway (see draft item) — spawn directly.
+### Golden-rule cleanup — needs a verified read
+- [ ] **Crows warriors**: rttCrowsPlots repositions the 4 Corvid Warriors at runtime (place-then-
+      adjust). The plots already spawn face-down directly (fine); the bot card is just removed (fine).
+      To bake the 4 warriors (blueprint GUIDs 653be4/8b4f9c/d78475/b66f9e) I need Corvid SET UP in a
+      TTS save so I can recover their move_to the verified way (like bats/Marquise) — RTT_CROW_WAR is
+      board-local and the spawn frame is ambiguous, so don't bake it blind. **Action: Adrien, set up
+      Corvid once + save, then I bake it.**
 
 ## DONE (this session, pending Adrien's confirmation in TTS)
 - [x] Bats (Twilight Council): 6 warriors + 6 assemblies baked into blueprint (m560); rttBatsSetup removed.
