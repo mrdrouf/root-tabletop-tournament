@@ -1,64 +1,77 @@
 """
-m490 — per-faction setup extras, dispatched after each drafted faction spawns.
+m490 — per-faction setup extras + the Mountain landmark, on EVERY spawn path.
 
-Hooks a single dispatcher (rttFactionExtras) into the draft's rttCoordFaction (m470),
-called ~1.2s after a faction's pieces settle. Per faction:
+A single dispatcher (rttFactionExtras) runs the per-faction extras. It is hooked into
+BOTH spawn paths so the behaviour holds whether you draft or click the faction selector:
+  * the DRAFT path  — rttCoordFaction (m470), ~1.2s after the pieces settle
+  * the SELECTOR path — makeFaction (base), right after its setupFaction() call
 
-  * The Lizard Cult   -> spawn the "Lizard Wizard" Tool (its option drops the Lost Souls
-                         discard by the card decks), remove the unused Outcast Marker,
-                         and reposition the frogs' Pond if it is already out.
-  * Lilypad Diaspora  -> shuffle the 14 frog cards (Description "Frog", CardID 74000-13)
-    (frogs)              into the shared deck, and place The Pond next to the discard —
-                         shifted aside when the Lizard's Lost Souls is also in play.
-  * Keepers in Iron   -> scatter the relics into the map's forests (one per forest at the
-    (badgers)            forest's clearing-centroid; extra relics stay put for the player).
-  * Twilight Council  -> (bats) filled in once the board's assembly snap is confirmed.
-    (bats)
+Per faction:
+  * The Lizard Cult  -> spawn the "Lizard Wizard" Tool, remove the unused Outcast Marker,
+                        reposition the frogs' Pond if it is already out.
+  * Lilypad Diaspora -> shuffle the 14 frog cards into the shared deck; place The Pond by
+    (frogs)             the discard (shifted aside when the Lizard's Lost Souls is in play).
+  * Keepers in Iron  -> draw one relic per recorded spot (Adrien's corrected per-map
+    (badgers)           positions; random type) from the Relics bag; extras stay in the bag.
+  * Twilight Council -> (bats) one assembly on the board's first snap + 4-pack/2-pack warriors.
+  * Corvid           -> 12 plots (3 of each) in a clean 4x3 grid on the board.
+  * Underground Duchy -> (moles) tuck the extra loose warrior into the supply (7 placed, 13 in bag).
 
-Forest centres come from root_engine's per-map geometry (mean of each forest's clearing
-UVs), converted to world at runtime through the live map tile's bounds + Y-rotation.
+Mountain map (fires from makeMap, so the direct map-click works too): read the central
+clearing's suit from its "Clearing Marker" token, then remove the Tower + that marker and
+stand a landmark there — d4 roll 0 => Lost City, else the suit's landmark (rabbit->Rabbit-
+Town, fox->Foxburrow, mouse->Mousehold). The landmark's rules card goes to the map's
+lower-left, rules side up.
 """
 import json
 import os
 
 from . import framework
 
-NAME = "per-faction setup extras (Lizard/frogs/Badgers) after the draft spawn"
+NAME = "per-faction setup extras (all paths) + Mountain landmark"
 
-# Adrien's staged reference spots (from his TTS save): the Lizard Wizard / Lost Souls
-# sits here; the frogs' Pond sits here too when Lizard is absent, or shifts aside when
-# both are in play so the two discards never overlap.
+# Adrien's staged reference spots (from his TTS save)
 LIZARD_WIZ_POS = (-31.325, 11.562, 12.278)
 POND_SHIFT_POS = (-31.217, 11.562, 21.567)
 
-DISPATCH = ('\n  Wait.time(function() rttFactionExtras(faction, bp.x, bp.z, bp.z > 0) end, 1.2)')
-
-# Mountain: the base rttPlaceMap just destroys the Tower; replace that with the landmark
-# roll (0->Lost City, else the suit landmark) placed on the mountain-top clearing.
-MTN_TOWER_ANCHOR = ('  if mapId == "Mountain Map" then\n'
-                    '    Wait.time(function() for _, v in ipairs(getObjectsWithTag("Tower")) do v.destruct() end end, 0.8)\n'
-                    '  end')
-MTN_TOWER_NEW = ('  if mapId == "Mountain Map" then\n'
-                 '    Wait.time(function() rttMountainLandmark() end, 0.8)\n'
-                 '  end')
-
-# the landmark sits on the middle clearing's suit-marker snap (Adrien's revised choice) —
-# the Mountain map's centre clearing, where he snapped it.
+# Mountain landmark: centre-clearing suit snap (where Adrien stood the Lost City), and the
+# Lost City rules card's lower-left resting spot + card scale (all from his save).
 MTN_LM_POS = (-0.116, 11.66, 0.187)
-# map lower-left corner (best guess — confirm in TTS) for the landmark's rules card.
-MTN_CARD_POS = (-22.0, 11.70, -22.0)
+MTN_CARD_POS = (-29.303, 11.575, -19.899)
+MTN_CARD_SCALE = 2.299
 
+# dispatch after each faction spawns — draft path (inside rttCoordFaction, after Knaves)
+DISPATCH = ('\n  Wait.time(function() rttFactionExtras(faction, bp.x, bp.z, bp.z > 0) end, 1.2)')
 KNAVES_ANCHOR = ('  if faction == "Knaves of the Deepwood" then\n'
                  '    Wait.time(function() rttKnavesCaptains(seat.color) end, 1.0)\n'
                  '  end')
 
+# dispatch after each faction spawns — SELECTOR path (inside makeFaction, after setupFaction)
+SELECTOR_ANCHOR = "  setupFaction(category,id,player.color,false)"
+SELECTOR_DISPATCH = (
+    "  setupFaction(category,id,player.color,false)\n"
+    "  do local cp = self.getPosition()\n"
+    "    Wait.time(function() rttFactionExtras(id, cp.x, cp.z, cp.z > 0) end, 1.2) end")
+
+# Mountain: rttPlaceMap's tower-destroy branch (m470) — REMOVE it; makeMap now drives the
+# landmark (so both draft and direct-click fire it), and it needs the Tower alive to locate
+# the central clearing.
+MTN_TOWER_BRANCH = ('  if mapId == "Mountain Map" then\n'
+                    '    Wait.time(function() for _, v in ipairs(getObjectsWithTag("Tower")) do v.destruct() end end, 0.8)\n'
+                    '  end\n')
+# fire the landmark from inside makeMap (covers every path that reaches makeMap)
+MAKEMAP_SIG = "function makeMap(player,value,id)"
+MAKEMAP_HOOK = '\n  if id == "Mountain Map" then Wait.time(function() rttMountainLandmark() end, 1.0) end'
+
 
 def _extra_lua():
-    forest_uv = open(os.path.join(os.path.dirname(__file__), "_forest_uv_lua.txt"),
-                     encoding="utf-8").read()
+    here = os.path.dirname(__file__)
+    forest_uv = open(os.path.join(here, "_forest_uv_lua.txt"), encoding="utf-8").read()
+    relic_pos = open(os.path.join(here, "_relic_pos_lua.txt"), encoding="utf-8").read()
     return r"""
 -- ===== RTT per-faction setup extras =====
 %(forest_uv)s
+%(relic_pos)s
 
 RTT_LIZ_WIZ = { %(wx).3f, %(wy).3f, %(wz).3f }
 RTT_POND_SHIFT = { %(px).3f, %(py).3f, %(pz).3f }
@@ -69,17 +82,12 @@ function rttFactionExtras(faction, cx, cz, flip)
   elseif faction == "Keepers in Iron" then rttBadgerRelics()
   elseif faction == "Twilight Council" then rttBatsSetup(cx, cz, flip)
   elseif faction == "Corvid Conspiracy" then rttCrowsPlots(cx, cz, flip)
+  elseif faction == "Underground Duchy" then rttDuchyTuck()
   end
 end
 
--- ---- Corvid Conspiracy (crows): 12 plots, 3 of each type, in a clean 4x3 grid --------
--- Adrien could not align them by hand; RTT_CROW_PLOTS holds his 12 (grouped 3-per-type)
--- and we lay them out on board-local columns/rows (measured from his setup), removing the
--- base spawn's loose plots first.
-RTT_CROW_COLS = { -0.400, -0.577, -0.754, -0.931 }   -- one column per plot type
-RTT_CROW_ROWS = { -1.166, -1.353, -1.540 }           -- 3 rows
-
-function rttCrowsPlots(cx, cz, flip)
+-- pick the big faction-board tile that just spawned nearest a seat (cx,cz)
+function rttFindSeatBoard(cx, cz)
   local board, bestD = nil, 1e9
   for _, o in ipairs(getAllObjects()) do
     if o.name == "Custom_Tile" then
@@ -91,6 +99,15 @@ function rttCrowsPlots(cx, cz, flip)
       end
     end
   end
+  return board
+end
+
+-- ---- Corvid Conspiracy (crows): 12 plots, 3 of each type, in a clean 4x3 grid --------
+RTT_CROW_COLS = { -0.400, -0.577, -0.754, -0.931 }
+RTT_CROW_ROWS = { -1.166, -1.353, -1.540 }
+
+function rttCrowsPlots(cx, cz, flip)
+  local board = rttFindSeatBoard(cx, cz)
   if board == nil then return end
   for _, o in ipairs(getAllObjects()) do
     if (o.getName() or "") == "Plot" then pcall(function() o.destruct() end) end
@@ -110,6 +127,31 @@ function rttCrowsPlots(cx, cz, flip)
   end
 end
 
+-- ---- Underground Duchy (moles): 7 placed + the 8th in the supply -----------
+-- the data ships 8 loose warriors; tuck outliers into the Duchy Supply bag until 7 remain.
+function rttDuchyTuck()
+  local bag, warriors = nil, {}
+  for _, o in ipairs(getAllObjects()) do
+    local nm = o.getName() or ""
+    if nm == "Duchy Supply" then bag = o
+    elseif nm == "Duchy Warrior" then warriors[#warriors + 1] = o end
+  end
+  if bag == nil then return end
+  while #warriors > 7 do
+    local sx, sz = 0, 0
+    for _, w in ipairs(warriors) do local p = w.getPosition() sx = sx + p.x sz = sz + p.z end
+    sx, sz = sx / #warriors, sz / #warriors
+    local oi, od = 1, -1
+    for i, w in ipairs(warriors) do
+      local p = w.getPosition()
+      local d = (p.x - sx) ^ 2 + (p.z - sz) ^ 2
+      if d > od then od = d; oi = i end
+    end
+    pcall(function() bag.putObject(warriors[oi]) end)
+    table.remove(warriors, oi)
+  end
+end
+
 -- ---- Lizard Cult ----------------------------------------------------------
 function rttLizardSetup()
   makeSpecialWithTag("Tools", "Lizard Wizard",
@@ -119,7 +161,7 @@ function rttLizardSetup()
       if (o.getName() or "") == "Outcast Marker" then pcall(function() o.destruct() end) end
     end
   end, 0.8)
-  Wait.time(function() rttRepositionPond() end, 1.0)   -- slide the Pond aside if it is out
+  Wait.time(function() rttRepositionPond() end, 1.0)
 end
 
 -- ---- Lilypad Diaspora (frogs) --------------------------------------------
@@ -128,8 +170,6 @@ function rttFrogsSetup()
   Wait.time(function() rttRepositionPond() end, 1.0)
 end
 
--- Pond default = the Lost-Souls spot; when the Lizard is also drafted, shift it aside so
--- the frog Pond and the Lizard's Lost Souls discard do not collide by the card decks.
 function rttRepositionPond()
   local pond = nil
   for _, o in ipairs(getAllObjects()) do
@@ -144,8 +184,6 @@ function rttRepositionPond()
   Wait.time(function() if pond ~= nil then pond.setLock(true) end end, 1.0)
 end
 
--- gather every frog card (Description "Frog") + the frog deck, merge into the shared
--- clearing deck, and shuffle. Identified by content, not GUID (draft spawns are fresh).
 function rttShuffleFrogsIntoDeck()
   local mainDeck, frogObjs = nil, {}
   for _, o in ipairs(getAllObjects()) do
@@ -165,9 +203,7 @@ function rttShuffleFrogsIntoDeck()
   Wait.time(function() if mainDeck ~= nil then pcall(function() mainDeck.shuffle() end) end end, 1.0)
 end
 
--- ---- Keepers in Iron (badgers): relics into forests -----------------------
--- the live map tile is the biggest snap-point object; convert each forest's centroid UV
--- to world via the tile's bounds (full width/depth) and Y-rotation, then drop a relic.
+-- ---- Keepers in Iron (badgers): relics onto Adrien's recorded per-map spots -----------
 function rttFindMapObject()
   local best, bestN = nil, 0
   for _, o in ipairs(getAllObjects()) do
@@ -177,7 +213,7 @@ function rttFindMapObject()
   return best
 end
 
-function rttForestWorldCenters(mapId)
+function rttForestWorldCenters(mapId)   -- fallback for maps with no recorded relic spots
   local cents = RTT_FOREST_UV[mapId]
   if cents == nil then return {} end
   local m = rttFindMapObject()
@@ -196,30 +232,36 @@ function rttForestWorldCenters(mapId)
   return out
 end
 
--- the 12 relics live in a Bag named "Relics"; draw one per forest onto its centre (the
--- bag randomises the type), leaving the extra relics in the bag for the player to place.
 function rttBadgerRelics()
   local mapId = (RTT_PICKED or {}).map
   if mapId == nil then return end
-  local centers = rttForestWorldCenters(mapId)
-  if #centers == 0 then return end
   local bag = nil
   for _, o in ipairs(getAllObjects()) do
     if o.name == "Bag" and (o.getName() or "") == "Relics" then bag = o break end
   end
   if bag == nil then return end
-  pcall(function() bag.shuffle() end)
-  local y = 12.0
-  for _, c in ipairs(centers) do
+  pcall(function() bag.shuffle() end)              -- placement is ALWAYS random (per Adrien)
+  local targets = {}
+  local recorded = RTT_RELIC_POS[mapId]
+  if recorded ~= nil then                          -- Adrien's exact per-map spots (map-local)
+    local m = rttFindMapObject()
+    if m == nil then return end
+    for _, lc in ipairs(recorded) do
+      local w = m.positionToWorld({ lc[1], 0.05, lc[2] })
+      targets[#targets + 1] = { w.x, w.z }
+    end
+  else
+    targets = rttForestWorldCenters(mapId)          -- fallback: forest centroids
+  end
+  if #targets == 0 then return end
+  for _, c in ipairs(targets) do
     pcall(function()
-      bag.takeObject({ position = { c[1], y, c[2] }, rotation = { 0, 180, 0 }, smooth = true })
+      bag.takeObject({ position = { c[1], 12.0, c[2] }, rotation = { 0, 180, 0 }, smooth = true })
     end)
   end
 end
 
 -- ---- Twilight Council (bats) ---------------------------------------------
--- board-local offsets (world delta / board scale 9.035): assembly first snap, and the
--- "pack of 4 + pack of 2" warrior arrangement, measured from Adrien's setup.
 RTT_BATS_ASM = { -0.032, -0.253 }
 RTT_BATS_WAR = {
   { 0.354, -1.204 }, { 0.354, -1.278 }, { 0.494, -1.204 }, { 0.494, -1.278 },  -- pack of 4
@@ -227,20 +269,8 @@ RTT_BATS_WAR = {
 }
 
 function rttBatsSetup(cx, cz, flip)
-  -- the Council board is the big faction tile that just spawned nearest the seat
-  local board, bestD = nil, 1e9
-  for _, o in ipairs(getAllObjects()) do
-    if o.name == "Custom_Tile" then
-      local s = o.getScale()
-      if s ~= nil and s.x >= 7.5 then
-        local p = o.getPosition()
-        local d = (p.x - cx) ^ 2 + (p.z - cz) ^ 2
-        if d < bestD and d < 900 then bestD = d; board = o end
-      end
-    end
-  end
+  local board = rttFindSeatBoard(cx, cz)
   if board == nil then return end
-  -- put ONE assembly on the board's first assembly snap
   local asmWorld = board.positionToWorld({ RTT_BATS_ASM[1], 0.254, RTT_BATS_ASM[2] })
   local placed = false
   for _, o in ipairs(getAllObjects()) do
@@ -250,7 +280,6 @@ function rttBatsSetup(cx, cz, flip)
       placed = true
     end
   end
-  -- arrange 6 Council Warriors as pack-of-4 + pack-of-2 just south of the board
   local warriors = {}
   for _, o in ipairs(getAllObjects()) do
     if (o.getName() or "") == "Council Warrior" then warriors[#warriors + 1] = o end
@@ -262,79 +291,106 @@ function rttBatsSetup(cx, cz, flip)
   end
 end
 
--- ---- Mountain: landmark roll on the mountain-top clearing ------------------
+-- ---- Mountain: read the centre-clearing suit, then stand a landmark there ---------------
+-- suit textures on the "Clearing Marker" mesh (verified by eye): yellow=rabbit, orange=mouse,
+-- red=fox. Matched by the steam UGC handle in the marker's diffuse URL.
+RTT_SUIT_TEX = {
+  ["1725416554252055237"] = "rabbit",
+  ["1725416554252058449"] = "mouse",
+  ["1725416554252050523"] = "fox",
+}
+RTT_SUIT_LM = { rabbit = "Rabbit-Town", fox = "Foxburrow", mouse = "Mousehold" }
 RTT_MTN_LM = { %(mx).3f, %(my).3f, %(mz).3f }
-RTT_MTN_CARD = { %(cx).3f, %(cy).3f, %(cz2).3f }
+RTT_MTN_CARD = { %(kx).3f, %(ky).3f, %(kz).3f }
+RTT_MTN_CARD_SCALE = %(ks).3f
 
 function rttMountainLandmark()
-  for _, v in ipairs(getObjectsWithTag("Tower")) do pcall(function() v.destruct() end) end
-  local roll = math.random(0, 3)                 -- 0..3; 0 => Lost City, else suit landmark
-  local name = "Lost City"
-  if roll ~= 0 then
-    local suit = rttMiddleSuit()
-    if suit == "rabbit" then name = "Rabbit-Town"
-    elseif suit == "fox" then name = "Foxburrow"
-    elseif suit == "mouse" then name = "Mousehold" end
-    -- suit unknown -> stays "Lost City" (safe fallback; wire rttMiddleSuit once suit
-    -- encoding is confirmed)
+  -- the Tower marks the central clearing; its suit marker is the nearest "Clearing Marker"
+  local towers = getObjectsWithTag("Tower")
+  local cx, cz = RTT_MTN_LM[1], RTT_MTN_LM[3]
+  if towers[1] ~= nil then local tp = towers[1].getPosition() cx, cz = tp.x, tp.z end
+  local marker, md = nil, 1e9
+  for _, o in ipairs(getObjectsWithTag("Clearing Marker")) do
+    local p = o.getPosition()
+    local d = (p.x - cx) ^ 2 + (p.z - cz) ^ 2
+    if d < md then md = d; marker = o end
   end
-  makeSpecialWithTag("Landmarks", name, RTT_MTN_LM[1], RTT_MTN_LM[2], RTT_MTN_LM[3], "Map Object")
-  Wait.time(function() rttPlaceLandmarkCard() end, 1.2)
-end
-
--- best-effort: no reliable suit token in the save, so return nil for now (Lost City).
-function rttMiddleSuit()
-  return nil
-end
-
--- the landmark's rules card spawns beside the landmark; slide it to the map's lower-left
--- with the rules side up (rotZ 0 shows the rules face on the Lost City card).
-function rttPlaceLandmarkCard()
-  local best, bd = nil, 1e9
-  for _, o in ipairs(getAllObjects()) do
-    local n = o.name
-    if n == "Card" or n == "CardCustom" then
-      local p = o.getPosition()
-      local d = (p.x - RTT_MTN_LM[1]) ^ 2 + (p.z - RTT_MTN_LM[3]) ^ 2
-      if d < bd and d < 100 then bd = d; best = o end
+  local suit = nil
+  if marker ~= nil then
+    local ok, co = pcall(function() return marker.getCustomObject() end)
+    local url = (ok and co and (co.diffuse or co.mesh)) or ""
+    for handle, s in pairs(RTT_SUIT_TEX) do
+      if string.find(url, handle, 1, true) then suit = s break end
     end
   end
-  if best == nil then return end
-  if best.getLock and best.getLock() then best.setLock(false) end
-  best.setPositionSmooth({ RTT_MTN_CARD[1], RTT_MTN_CARD[2], RTT_MTN_CARD[3] }, false, true)
-  best.setRotationSmooth({ 0, 180, 0 }, false, true)     -- rotZ 0 => rules side up
+  local roll = math.random(0, 3)                   -- 0 => Lost City, else the suit's landmark
+  local name = "Lost City"
+  if roll ~= 0 and suit ~= nil then name = RTT_SUIT_LM[suit] end
+  -- the landmark REPLACES the tower + the central suit marker
+  for _, v in ipairs(towers) do pcall(function() v.destruct() end) end
+  if marker ~= nil then pcall(function() marker.destruct() end) end
+  makeSpecialWithTag("Landmarks", name, RTT_MTN_LM[1], RTT_MTN_LM[2], RTT_MTN_LM[3], "RTT Landmark")
+  Wait.time(function() rttStandLandmark() end, 1.2)
+end
+
+-- stand the landmark model upright at the centre; move its rules card to the map's lower-left,
+-- rules side up (rotZ 0 shows the FaceURL / rules side).
+function rttStandLandmark()
+  for _, o in ipairs(getObjectsWithTag("RTT Landmark")) do
+    o.addTag("Map Object")
+    if o.getLock and o.getLock() then o.setLock(false) end
+    if o.name == "Custom_Model" then
+      o.setPositionSmooth({ RTT_MTN_LM[1], RTT_MTN_LM[2], RTT_MTN_LM[3] }, false, true)
+      o.setRotationSmooth({ 0, 165, 0 }, false, true)     -- rotX/rotZ 0 = standing signpost
+    elseif o.name == "Card" or o.name == "CardCustom" then
+      o.setPositionSmooth({ RTT_MTN_CARD[1], RTT_MTN_CARD[2], RTT_MTN_CARD[3] }, false, true)
+      o.setRotationSmooth({ 0, 180, 0 }, false, true)     -- rotZ 0 = rules side up
+      pcall(function() o.setScale({ RTT_MTN_CARD_SCALE, 1.0, RTT_MTN_CARD_SCALE }) end)
+    end
+  end
 end
 """ % {
     "forest_uv": forest_uv,
+    "relic_pos": relic_pos,
     "wx": LIZARD_WIZ_POS[0], "wy": LIZARD_WIZ_POS[1], "wz": LIZARD_WIZ_POS[2],
     "px": POND_SHIFT_POS[0], "py": POND_SHIFT_POS[1], "pz": POND_SHIFT_POS[2],
     "mx": MTN_LM_POS[0], "my": MTN_LM_POS[1], "mz": MTN_LM_POS[2],
-    "cx": MTN_CARD_POS[0], "cy": MTN_CARD_POS[1], "cz2": MTN_CARD_POS[2],
+    "kx": MTN_CARD_POS[0], "ky": MTN_CARD_POS[1], "kz": MTN_CARD_POS[2],
+    "ks": MTN_CARD_SCALE,
 }
 
 
 def apply(text):
-    sig = "function makeMap(player,value,id)"
-    if text.count(sig) != 1:
+    if text.count(MAKEMAP_SIG) != 1:
         raise framework.BuildError("makeMap anchor not unique")
-    text = text.replace(sig, framework.esc(_extra_lua()) + sig, 1)
+    text = text.replace(MAKEMAP_SIG, framework.esc(_extra_lua()) + MAKEMAP_SIG, 1)
 
     # the 12 Corvid plot blobs (grouped 3-per-type) — injected separately from the
     # %-formatted extras so their URLs (which contain %) are not treated as format specs.
     plots = json.load(open(os.path.join(os.path.dirname(__file__), "_corvid_plots.json"),
                            encoding="utf-8"))
     crow_lua = "\nRTT_CROW_PLOTS = {\n%s\n}\n" % ",\n".join("[==[%s]==]" % b for b in plots)
-    text = text.replace(sig, framework.esc(crow_lua) + sig, 1)
+    text = text.replace(MAKEMAP_SIG, framework.esc(crow_lua) + MAKEMAP_SIG, 1)
 
-    # dispatch the extras right after the Knaves hook inside rttCoordFaction
+    # fire the Mountain landmark from inside makeMap (draft AND direct map-click)
+    text = text.replace(MAKEMAP_SIG, MAKEMAP_SIG + framework.esc(MAKEMAP_HOOK), 1)
+
+    # dispatch the extras on the DRAFT path (after the Knaves hook in rttCoordFaction)
     anchor = framework.esc(KNAVES_ANCHOR)
     if text.count(anchor) != 1:
         raise framework.BuildError("rttCoordFaction Knaves anchor not unique for dispatch")
     text = text.replace(anchor, anchor + framework.esc(DISPATCH), 1)
 
-    # Mountain: swap the plain tower-destroy for the landmark roll
-    mtn_old = framework.esc(MTN_TOWER_ANCHOR)
+    # dispatch the extras on the SELECTOR path (after setupFaction() in makeFaction)
+    sel_old = framework.esc(SELECTOR_ANCHOR)
+    if text.count(sel_old) != 1:
+        raise framework.BuildError("setupFaction selector anchor not unique")
+    text = text.replace(sel_old, framework.esc(SELECTOR_DISPATCH), 1)
+
+    # remove rttPlaceMap's own Mountain tower-destroy (makeMap now drives the landmark and
+    # needs the Tower alive to find the central clearing)
+    mtn_old = framework.esc(MTN_TOWER_BRANCH)
     if text.count(mtn_old) != 1:
-        raise framework.BuildError("Mountain tower-destroy anchor not unique")
-    text = text.replace(mtn_old, framework.esc(MTN_TOWER_NEW), 1)
+        raise framework.BuildError("rttPlaceMap Mountain tower-destroy branch not unique")
+    text = text.replace(mtn_old, "", 1)
     return text
