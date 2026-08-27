@@ -36,9 +36,8 @@ end
 -- 5-player Marsh plan: no flooding; all 15 clearings active; 3 random -> town landmarks,
 -- the other 12 -> the 12 suit markers. Reuses m440's RTT_MARSH_SUIT9 / RTT_MARSH data.
 function rttMarshPlan5P(objects)
-  RTT_MARSH_N = (RTT_MARSH_N or 0) + 1
-  math.randomseed(os.time() + RTT_MARSH_N * 7919)
-  for k = 1, 10 do math.random() end
+  -- NO os.time re-seed (see rtt-rng-bug): seeded once at load, advance per call so fast re-clicks
+  -- re-randomise instantly.
 
   local floodIx, ruinIx, suitIx = {}, {}, {}
   for idx, v in ipairs(objects) do

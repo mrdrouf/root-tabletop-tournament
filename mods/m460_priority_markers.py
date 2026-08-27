@@ -70,6 +70,10 @@ end
 -- each entry: { suitX, suitY, suitZ,  tokenX, tokenZ } — the SUIT centre is used only for the
 -- flood/landmark skip test; the number token is placed at Adrien's deliberate TOKEN position
 -- (offset beside the clearing so the suit stays visible), recorded per-clearing like every map.
+-- the number tokens' true resting height on the (flat) Marsh board — recorded ~11.63-11.66;
+-- 11.635 = map surface (~11.61) + half token thickness, so they sit ON the board, not floating.
+RTT_MARSH_TOKEN_Y = 11.635
+
 RTT_MARSH_RANK = {
   { -23.584, 11.719,  19.613,  -22.723,  15.732 },   -- 1  FIX7
   {  -2.042, 11.719,  21.443,   -6.780,  15.272 },   -- 2  FIX8
@@ -107,7 +111,9 @@ function rttSpawnMarshNumbers()
       if j ~= nil then
         local ob = spawnObjectJSON({
           json = j,
-          position = { cl[4], cl[2] + 0.10, cl[5] },            -- Adrien's TOKEN spot
+          -- Adrien's TOKEN x,z; Y = the tokens' true resting height on the (flat) Marsh board.
+          -- (cl[2] is the SUIT marker's Y; number tokens rest ~0.05 lower, so cl[2]+0.10 floated.)
+          position = { cl[4], RTT_MARSH_TOKEN_Y, cl[5] },
           rotation = { 0, 180, 0 },
           callback_function = function(o)
             o.setLock(true)

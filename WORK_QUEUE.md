@@ -16,20 +16,32 @@ starts in its final container/position:
 
 ## OPEN
 
-### Draft / seating flow (interrelated — investigating)
-- [ ] **Knave Captains**: do NOT spawn the 4 random captains with the faction-selector board. They
-      must appear immediately BELOW the drafting cards DURING the draft.
-- [ ] **Remove pick-map / pick-deck**: delete the "player 1 picks map/deck, then player 2…" flow
-      entirely (Adrien does map/deck manually). Instead a faction-selector board appears for ALL
-      players immediately.
-- [ ] **Simultaneous faction choice**: ranked & theme draft should deal the factions and let EVERY
-      player choose from their own faction board at once — NOT sequential player 4→3→2→1.
-- [ ] **Ranked 2-player bug**: with ranked + only 2 players, only 2 faction boards spawn (should be
-      the full set regardless of player count). Setup must NOT branch on player count. Adrien can't
-      reproduce/observe this himself (needs 2 humans).
-- [ ] **Seat on turn-order card**: seat each player the moment they RECEIVE their turn-order card
-      (not when they click a faction). Deal the card straight into the seated player's hand (hidden),
-      not face-up/open for everyone to see first. Investigate + resolve — flagged important.
+### Randomization TIMING / RNG (Adrien: "very dangerous") — HIGH PRIORITY
+- [ ] **Mountain landmark re-randomize on fast re-click**: re-clicking a map doesn't reshuffle the
+      landmark immediately; click too fast → SAME landmark as before. Must be as fast as the suit
+      shuffle and reliably re-random. (Root cause likely the os.time()-per-second reseed — see
+      [[rtt-rng-bug]] — plus the Wait.time(1.0) delay on rttMountainLandmark. Make it synchronous
+      like shuffleMaps, clear the old landmark first, and reseed granularly / advance the RNG.)
+- [ ] **Marsh flood swap on fast re-click**: clicking Marsh too fast → the flood-clearing swap
+      doesn't happen. Make it immediate/synchronous like the Winter suit-marker shuffle (the speed
+      benchmark), and re-random each click.
+
+### Draft / seating flow (seating model CONFIRMED)
+Seating rule (Adrien): each player gets a RANDOM turn order every time, regardless of pick order or
+color. When randomly assigned to a turn-order card, they are seated at that position IMMEDIATELY with
+hand access there — but the player keeps the COLOR they picked (do NOT change their color; move their
+hand transform to the seat instead). Card lands hidden in their hand.
+- [ ] **Remove pick-map / pick-deck**: delete the sequential map/deck pick (Adrien does it manually);
+      faction boards appear for all players at once.
+- [ ] **Fixed board/seat count** = draft size (4 ranked / 5 for 5p Marsh), independent of live player
+      count — fixes the "only 2 boards with 2 players" bug. Setup must NOT branch on player count.
+- [ ] **Auto-seat on turn-order card**: deal the order deck hidden (never face-up); random assignment;
+      on receiving a card, move that player's HAND to the matching seat (keep their color) + card into
+      the hidden hand.
+- [ ] **Simultaneous faction choice**: all faction boards light up at once; first click takes a
+      faction and refreshes the others — NOT sequential player 4→3→2→1.
+- [ ] **Knave Captains**: spawn the 4 random captains directly BELOW the draft cards during the draft,
+      not with the faction-selector board.
 
 ### Maps / landmarks
 - [~] **Marsh 5-player map button** (= "Swole Birds"): button already wired (id `Marsh5P`,

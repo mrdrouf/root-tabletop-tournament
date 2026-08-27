@@ -59,9 +59,9 @@ function rttShuffleList(t)
 end
 
 function rttMarshPlan(objects)
-  RTT_MARSH_N = (RTT_MARSH_N or 0) + 1
-  math.randomseed(os.time() + RTT_MARSH_N * 7919)
-  for k = 1, 10 do math.random() end
+  -- NO os.time re-seed here: it made rapid re-clicks land in the same second -> same flood
+  -- (see rtt-rng-bug). The RNG is seeded once at load; each call advances it, so every click
+  -- re-randomises instantly.
 
   -- world (x,z) of each clearing that floods this build; m460 uses this to drop the
   -- priority-number token on each flooded (submerged, no-suit) clearing.

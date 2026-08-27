@@ -71,7 +71,7 @@ MTN_TOWER_BRANCH = ('  if mapId == "Mountain Map" then\n'
 # fire the landmark from inside makeMap (covers every path that reaches makeMap)
 MAKEMAP_SIG = "function makeMap(player,value,id)"
 MAKEMAP_HOOK = ('\n  RTT_CURRENT_MAP = id'
-                '\n  if id == "Mountain Map" then Wait.time(function() rttMountainLandmark() end, 1.0) end')
+                '\n  if id == "Mountain Map" then Wait.frames(function() rttMountainLandmark() end, 2) end')
 
 
 def _extra_lua():
@@ -80,6 +80,11 @@ def _extra_lua():
     relic_pos = open(os.path.join(here, "_relic_pos_lua.txt"), encoding="utf-8").read()
     return r"""
 -- ===== RTT per-faction setup extras =====
+-- Seed the RNG ONCE at load. Everything random (floods, landmark, draft) then just advances this
+-- stream per call, so rapid re-clicks always differ. Never re-seed with os.time() per action —
+-- that made same-second clicks collide (see rtt-rng-bug).
+math.randomseed(os.time())
+for _rw = 1, 5 do math.random() end
 %(forest_uv)s
 %(relic_pos)s
 
@@ -510,14 +515,19 @@ RTT_MTN_CARD = { %(kx).3f, %(ky).3f, %(kz).3f }
 RTT_MTN_CARD_SCALE = %(ks).3f
 
 RTT_MTN_LANDMARKS = { "Lost City", "Rabbit-Town", "Foxburrow", "Mousehold" }
+RTT_MTN_LM_PIECES = RTT_MTN_LM_PIECES or {}
 
 function rttMountainLandmark()
-  -- The central clearing has NO suit marker (m590 removes it from the Mountain data), and the
-  -- Tower is hidden — so the landmark just spawns DIRECTLY at RTT_MTN_LM. Nothing to read or
-  -- destroy first (no marker flash). Pick one of the four landmarks at random; the landmark card
-  -- itself defines the clearing's suit.
+  -- clear the PREVIOUS landmark first, so a fast re-click replaces it (no stacking, no stale piece)
+  for _, o in ipairs(RTT_MTN_LM_PIECES or {}) do
+    if o ~= nil then pcall(function() o.destruct() end) end
+  end
+  RTT_MTN_LM_PIECES = {}
+  -- The central clearing has NO suit marker (m590) and the Tower is hidden, so the landmark spawns
+  -- DIRECTLY at RTT_MTN_LM — no marker flash. Advancing RNG (seeded once at load) => a fresh random
+  -- landmark on every click, instantly. The landmark card itself defines the clearing's suit.
   local name = RTT_MTN_LANDMARKS[math.random(1, #RTT_MTN_LANDMARKS)]
-  rttSpawnLandmarkAt(name, RTT_MTN_LM[1], RTT_MTN_LM[2], RTT_MTN_LM[3],
+  RTT_MTN_LM_PIECES = rttSpawnLandmarkAt(name, RTT_MTN_LM[1], RTT_MTN_LM[2], RTT_MTN_LM[3],
                      RTT_MTN_CARD[1], RTT_MTN_CARD[2], RTT_MTN_CARD[3],
                      165, 180, RTT_MTN_CARD_SCALE)  -- crotZ 180 = RULES face up (BackURL)
 end
@@ -533,11 +543,13 @@ end
 function rttSpawnLandmarkAt(name, mx, my, mz, cx, cy, cz, mrotY, crotZ, cscale)
   mrotY = mrotY or 165
   crotZ = crotZ or 0
+  local pieces = {}
   local lm = EVERYTHING['Landmarks'][name]
-  if lm == nil or lm['data'] == nil then return end
+  if lm == nil or lm['data'] == nil then return pieces end
   for _, v in ipairs(lm['data']) do
+    local ob
     if string.find(v.json, "CardID", 1, true) ~= nil then
-      spawnObjectJSON({
+      ob = spawnObjectJSON({
         json = v.json,
         position = { cx, cy, cz },
         rotation = { 0, 180, crotZ },
@@ -548,7 +560,7 @@ function rttSpawnLandmarkAt(name, mx, my, mz, cx, cy, cz, mrotY, crotZ, cscale)
         end
       })
     else
-      spawnObjectJSON({
+      ob = spawnObjectJSON({
         json = v.json,
         position = { mx, my, mz },
         rotation = { 0, mrotY, 0 },                 -- standing signpost, in place
@@ -558,7 +570,9 @@ function rttSpawnLandmarkAt(name, mx, my, mz, cx, cy, cz, mrotY, crotZ, cscale)
         end
       })
     end
+    pieces[#pieces + 1] = ob
   end
+  return pieces                                     -- caller (rttMountainLandmark) tracks these to clear on re-click
 end
 """ % {
     "forest_uv": forest_uv,
