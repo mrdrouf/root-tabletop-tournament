@@ -35,7 +35,9 @@ NAME = "per-faction setup extras (all paths) + Mountain landmark"
 # NOT the world position — it's (target_world - newVec). Old value put the Wizard 10u in the air
 # (input y 11.562 -> world 21.57 = "frozen in the air"). Target world (-30.437, 11.562, 12.486)
 # -> input below. (newVec derived from the pre-fix floating save.)
-LIZARD_WIZ_POS = (-29.632, 1.552, 10.238)
+LIZARD_WIZ_POS = (-29.878, 1.552, 9.915)   # -> world (-30.683, 11.562, 12.163)
+LIZARD_WIZ_ROTY = 90                        # the wizard faces this way (Adrien's direction)
+LIZARD_OUTCAST_POS = (-29.220, 11.760, 15.020)   # the Outcast Marker's spot, on the wizard
 # the frog pond's WORLD resting spot (the central special area) — was wrongly read off
 # RTT_LIZ_WIZ, which is now a makeSpecialWithTag INPUT (y 1.55), sending the pond underground.
 POND_FROG_POS = (-30.970, 11.562, 21.682)
@@ -82,6 +84,8 @@ def _extra_lua():
 %(relic_pos)s
 
 RTT_LIZ_WIZ = { %(wx).3f, %(wy).3f, %(wz).3f }
+RTT_LIZ_WIZ_ROTY = %(wr)d
+RTT_LIZ_OUTCAST = { %(ox).3f, %(oy).3f, %(oz).3f }
 RTT_POND_SHIFT = { %(px).3f, %(py).3f, %(pz).3f }
 RTT_POND_FROG = { %(fx).3f, %(fy).3f, %(fz).3f }
 
@@ -309,6 +313,21 @@ function rttLizardSetup()
   -- keep the Outcast Marker (it belongs ON the Lizard Wizard) — do NOT destruct it.
   makeSpecialWithTag("Tools", "Lizard Wizard",
     RTT_LIZ_WIZ[1], RTT_LIZ_WIZ[2], RTT_LIZ_WIZ[3], "Faction")
+  -- makeSpecialWithTag can't set the facing, and the Outcast Marker spawns elsewhere, so orient
+  -- the wizard and snap the marker onto it (instant, no slide).
+  Wait.time(function()
+    for _, o in ipairs(getAllObjects()) do
+      local nm = o.getName() or ""
+      if nm == "Lizard Wizard" then
+        if o.getLock and o.getLock() then o.setLock(false) end
+        o.setRotation({ 0, RTT_LIZ_WIZ_ROTY, 0 })
+      elseif nm == "Outcast Marker" then
+        if o.getLock and o.getLock() then o.setLock(false) end
+        o.setPosition({ RTT_LIZ_OUTCAST[1], RTT_LIZ_OUTCAST[2], RTT_LIZ_OUTCAST[3] })
+        o.setRotation({ 0, RTT_LIZ_WIZ_ROTY, 0 })
+      end
+    end
+  end, 0.8)
   Wait.time(function() rttRepositionPond() end, 1.0)
 end
 
@@ -540,6 +559,8 @@ end
     "forest_uv": forest_uv,
     "relic_pos": relic_pos,
     "wx": LIZARD_WIZ_POS[0], "wy": LIZARD_WIZ_POS[1], "wz": LIZARD_WIZ_POS[2],
+    "wr": LIZARD_WIZ_ROTY,
+    "ox": LIZARD_OUTCAST_POS[0], "oy": LIZARD_OUTCAST_POS[1], "oz": LIZARD_OUTCAST_POS[2],
     "px": POND_SHIFT_POS[0], "py": POND_SHIFT_POS[1], "pz": POND_SHIFT_POS[2],
     "fx": POND_FROG_POS[0], "fy": POND_FROG_POS[1], "fz": POND_FROG_POS[2],
     "mx": MTN_LM_POS[0], "my": MTN_LM_POS[1], "mz": MTN_LM_POS[2],

@@ -20,13 +20,16 @@ from . import framework
 SWAPS = {
     "Landmarks": (
         "https://steamusercontent-a.akamaihd.net/ugc/1862810258466467224/9564630227863DEDC450E448CE529E7A155FC9F4/",
-        "https://steamusercontent-a.akamaihd.net/ugc/10295651881785695810/70113339A12781B2182D7664343C0545E6BF2995/"),
+        "https://steamusercontent-a.akamaihd.net/ugc/12936154875885790386/85439BAAE5C809A82FAF83A96E5232DFF4152DD0/"),
     "Vagabond Cards": (
         "https://steamusercontent-a.akamaihd.net/ugc/1725416402718274003/CD92CEB17685C1F47F3251FA59A5A6C89E068AF3/",
-        "https://steamusercontent-a.akamaihd.net/ugc/17016038705845891952/0D01118BE6612AFA4A60B5123AFC04C6B4F90649/"),
+        "https://steamusercontent-a.akamaihd.net/ugc/13747817220151181841/9A47D69E9103B9502DBED36BEA4DA6F9C70C6EB8/"),
     "FivePlayerArt": (
         "https://steamusercontent-a.akamaihd.net/ugc/13228007358041271497/D7F3C16E093B57844CA249AAEEF2D59C0219B76D/",
-        "https://steamusercontent-a.akamaihd.net/ugc/16496962041436022975/DEAE17BCE2BD1ED301D99FC44F5D1A2C84DD73A2/"),
+        "https://steamusercontent-a.akamaihd.net/ugc/9432553611997660064/10534C207FE7EE732F52BFC961670065F9CF0813/"),
+    "Clearing Priorities Big": (
+        "https://steamusercontent-a.akamaihd.net/ugc/1725416402719800299/10FBE62951D9E567FEB3DE44340D49C41EB89D21/",
+        "https://steamusercontent-a.akamaihd.net/ugc/17343862070314210598/A5AFE2885F4656D394532C9DA4E260DAEBB5D271/"),
     "Autumn Map": (
         "https://steamusercontent-a.akamaihd.net/ugc/1809859635019282433/EAE1E0EB9E10AF35A6454618104EE3020576DD16/",
         "https://steamusercontent-a.akamaihd.net/ugc/9338841708247799860/688C6CB9F5A34B2A2B067C6DA493AD653B7D9C6A/"),
