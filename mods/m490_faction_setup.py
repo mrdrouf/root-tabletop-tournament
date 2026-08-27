@@ -61,7 +61,8 @@ MTN_TOWER_BRANCH = ('  if mapId == "Mountain Map" then\n'
                     '  end\n')
 # fire the landmark from inside makeMap (covers every path that reaches makeMap)
 MAKEMAP_SIG = "function makeMap(player,value,id)"
-MAKEMAP_HOOK = '\n  if id == "Mountain Map" then Wait.time(function() rttMountainLandmark() end, 1.0) end'
+MAKEMAP_HOOK = ('\n  RTT_CURRENT_MAP = id'
+                '\n  if id == "Mountain Map" then Wait.time(function() rttMountainLandmark() end, 1.0) end')
 
 
 def _extra_lua():
@@ -83,7 +84,66 @@ function rttFactionExtras(faction, cx, cz, flip)
   elseif faction == "Twilight Council" then rttBatsSetup(cx, cz, flip)
   elseif faction == "Corvid Conspiracy" then rttCrowsPlots(cx, cz, flip)
   elseif faction == "Underground Duchy" then rttDuchyTuck()
+  elseif faction == "Knaves of the Deepwood" then rttKnavesSetup(cx, cz, flip)
   end
+end
+
+-- ---- Knaves of the Deepwood: draft 4 RANDOM captains, remove the other 8 -----------------
+-- The faction spawns a 12-card Captain deck (DeckIDs 73400-73411, shared face sheet
+-- FA78C0...037E95) with an EMPTY nickname, so the base rttKnavesCaptains name-match never
+-- fires and all 12 just sit there. Adrien wants only 4 random captains kept, laid out in a
+-- visible row where the deck spawned; the rest are discarded. Identify the deck by its face
+-- sheet (nickname/GMNotes are all blank), scoped to this seat.
+function rttFindKnavesDeck(cx, cz)
+  local best, bd = nil, 1e9
+  for _, o in ipairs(getAllObjects()) do
+    if o.name == "Deck" then
+      local p = o.getPosition()
+      local d = (p.x - cx) ^ 2 + (p.z - cz) ^ 2
+      if d < 900 then
+        local ok, dt = pcall(function() return o.getData() end)
+        if ok and dt ~= nil and dt.CustomDeck ~= nil then
+          for _, cd in pairs(dt.CustomDeck) do
+            if cd.FaceURL ~= nil and
+               string.find(cd.FaceURL, "FA78C0F952724D77A33BECEC0651802808037E95", 1, true) then
+              if d < bd then bd = d; best = o end
+              break
+            end
+          end
+        end
+      end
+    end
+  end
+  return best
+end
+
+function rttKnavesSetup(cx, cz, flip)
+  Wait.time(function()
+    local deck = rttFindKnavesDeck(cx, cz)
+    if deck == nil then return end
+    pcall(function() deck.shuffle() end)
+    Wait.time(function()
+      if deck == nil then return end
+      local ok, p = pcall(function() return deck.getPosition() end)
+      if not ok or p == nil then return end
+      -- lay 4 captains in a face-up row where the deck sat; keep them locked as faction pieces
+      for i = 1, 4 do
+        pcall(function()
+          deck.takeObject({
+            position = { p.x + (i - 2.5) * 2.4, p.y + 0.3, p.z },
+            rotation = { 0, 180, 0 },
+            smooth = false,
+            callback_function = function(o)
+              o.setLock(true)
+              o.addTag("RTT Faction")
+            end
+          })
+        end)
+      end
+      -- discard the remaining 8 (destruct the leftover deck once the takes have settled)
+      Wait.time(function() if deck ~= nil then pcall(function() deck.destruct() end) end end, 0.8)
+    end, 0.5)
+  end, 1.0)
 end
 
 -- pick the big faction-board tile that just spawned nearest a seat (cx,cz)
@@ -233,7 +293,9 @@ function rttForestWorldCenters(mapId)   -- fallback for maps with no recorded re
 end
 
 function rttBadgerRelics()
-  local mapId = (RTT_PICKED or {}).map
+  -- RTT_PICKED.map is only set by the ranked-draft coordinator; on the solo/standard faction
+  -- board it is nil, so fall back to RTT_CURRENT_MAP (the map makeMap last actually spawned).
+  local mapId = RTT_CURRENT_MAP or (RTT_PICKED or {}).map
   if mapId == nil then return end
   local bag = nil
   for _, o in ipairs(getAllObjects()) do
@@ -264,8 +326,8 @@ end
 -- ---- Twilight Council (bats) ---------------------------------------------
 RTT_BATS_ASM = { -0.032, -0.253 }
 RTT_BATS_WAR = {
-  { 0.354, -1.204 }, { 0.354, -1.278 }, { 0.494, -1.204 }, { 0.494, -1.278 },  -- pack of 4
-  { 0.064, -1.208 }, { 0.064, -1.281 },                                        -- pack of 2
+  { 0.657, -1.241 }, { 0.657, -1.167 }, { 0.797, -1.167 }, { 0.797, -1.241 },  -- pack of 4
+  { 0.375, -1.167 }, { 0.375, -1.241 },                                        -- pack of 2
 }
 
 function rttBatsSetup(cx, cz, flip)
@@ -326,18 +388,26 @@ function rttMountainLandmark()
   local roll = math.random(0, 3)                   -- 0 => Lost City, else the suit's landmark
   local name = "Lost City"
   if roll ~= 0 and suit ~= nil then name = RTT_SUIT_LM[suit] end
-  -- the landmark REPLACES the tower + the central suit marker
-  for _, v in ipairs(towers) do pcall(function() v.destruct() end) end
+  -- the landmark REPLACES the central suit marker (the Tower is already parked below the
+  -- table by rttMountainHideTower, so there is nothing to destroy here — `towers` was an
+  -- undefined global and ipairs(nil) crashed the whole function before the landmark spawned)
   if marker ~= nil then pcall(function() marker.destruct() end) end
   rttSpawnLandmarkAt(name, RTT_MTN_LM[1], RTT_MTN_LM[2], RTT_MTN_LM[3],
-                     RTT_MTN_CARD[1], RTT_MTN_CARD[2], RTT_MTN_CARD[3])
+                     RTT_MTN_CARD[1], RTT_MTN_CARD[2], RTT_MTN_CARD[3],
+                     165, 0, RTT_MTN_CARD_SCALE)
 end
 
 -- spawn a landmark's model (standing) + its rules card (rules side up) DIRECTLY at their
 -- final transforms, so they appear in place and just settle onto the board like the other
 -- map pieces — no visible slide/rotate. spawnObjectJSON's position/rotation override the
 -- data's baked (flat) transform. EVERYTHING is on this board (self), so it's in scope.
-function rttSpawnLandmarkAt(name, mx, my, mz, cx, cy, cz)
+-- mrotY  = standing-model world rotY (Mountain=165; Marsh towns pass the clearing's suit rotY)
+-- crotZ  = rules-card rotZ (Mountain=0; Marsh towns pass 180, matching Adrien's saved cards)
+-- cscale = rules-card XZ scale, or nil to leave the card at its blueprint scale (Marsh towns)
+-- both the model and the card spawn LOCKED (Adrien wants landmarks + their cards fixed).
+function rttSpawnLandmarkAt(name, mx, my, mz, cx, cy, cz, mrotY, crotZ, cscale)
+  mrotY = mrotY or 165
+  crotZ = crotZ or 0
   local lm = EVERYTHING['Landmarks'][name]
   if lm == nil or lm['data'] == nil then return end
   for _, v in ipairs(lm['data']) do
@@ -345,18 +415,22 @@ function rttSpawnLandmarkAt(name, mx, my, mz, cx, cy, cz)
       spawnObjectJSON({
         json = v.json,
         position = { cx, cy, cz },
-        rotation = { 0, 180, 0 },                 -- rotZ 0 = rules side up
+        rotation = { 0, 180, crotZ },
         callback_function = function(o)
+          o.setLock(true)
           o.addTag("Map Object")
-          pcall(function() o.setScale({ RTT_MTN_CARD_SCALE, 1.0, RTT_MTN_CARD_SCALE }) end)
+          if cscale ~= nil then pcall(function() o.setScale({ cscale, 1.0, cscale }) end) end
         end
       })
     else
       spawnObjectJSON({
         json = v.json,
         position = { mx, my, mz },
-        rotation = { 0, 165, 0 },                 -- standing signpost, in place
-        callback_function = function(o) o.addTag("Map Object") end
+        rotation = { 0, mrotY, 0 },                 -- standing signpost, in place
+        callback_function = function(o)
+          o.setLock(true)
+          o.addTag("Map Object")
+        end
       })
     end
   end

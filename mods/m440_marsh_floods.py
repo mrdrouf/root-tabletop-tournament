@@ -66,6 +66,10 @@ function rttMarshPlan(objects)
   -- world (x,z) of each clearing that floods this build; m460 uses this to drop the
   -- priority-number token on each flooded (submerged, no-suit) clearing.
   RTT_MARSH_FLOODED = {}
+  -- world (x,z) of the CLEARING CENTRE (suit position) that is inactive this build. m460's
+  -- number logic matches these against RTT_MARSH_RANK to skip the excluded clearings. The
+  -- flood MARKER sits ~2.8u off the clearing centre, so this is the suit slot, not the marker.
+  RTT_MARSH_EXCLUDED = {}
 
   local floodIx = {}
   local ruinIx = {}
@@ -87,6 +91,7 @@ function rttMarshPlan(objects)
     local flooded, dry
     if math.random(2) == 1 then flooded = m.up; dry = m.down else flooded = m.down; dry = m.up end
     RTT_MARSH_FLOODED[#RTT_MARSH_FLOODED + 1] = { flooded.flood[1], flooded.flood[3] }
+    RTT_MARSH_EXCLUDED[#RTT_MARSH_EXCLUDED + 1] = { flooded.suit[1], flooded.suit[3] }
     local fi = floodIx[m.key]
     if fi ~= nil then
       local f = flooded.flood

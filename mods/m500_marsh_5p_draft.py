@@ -28,6 +28,7 @@ LUA = r"""
 RTT_5P_MARSH = RTT_5P_MARSH or false
 
 function rttFivePStart(player, value, id)
+  RTT_DRAFT_N = 6               -- 5 players draft 6 faction cards (players + 1 leftover)
   rttSetup(player, value, id)   -- resets RTT_5P_MARSH=false at its start; we set it after
   RTT_5P_MARSH = true
 end
@@ -64,10 +65,12 @@ function rttMarshPlan5P(objects)
   rttShuffleList(towns)
   RTT_MARSH_LANDMARKS = {}
   RTT_MARSH_FLOODED = {}    -- the 3 "no-number" clearings (m460 drops their number tokens)
+  RTT_MARSH_EXCLUDED = {}   -- same 3 clearing centres, for m460's rank-walk skip logic
   for i = 1, 3 do
     local c = clearings[i]
-    RTT_MARSH_LANDMARKS[i] = { x = c[1], z = c[3], name = towns[i] }
+    RTT_MARSH_LANDMARKS[i] = { x = c[1], z = c[3], name = towns[i], rotY = c[4] }
     RTT_MARSH_FLOODED[i] = { c[1], c[3] }
+    RTT_MARSH_EXCLUDED[i] = { c[1], c[3] }
   end
 
   local ov = {}
@@ -95,21 +98,24 @@ function rttMarshPlan5P(objects)
   return ov
 end
 
--- the 3 town rules cards go in a row at the map's lower-left (confirm/nudge in TTS)
-RTT_MARSH_CARD_ROW = { { -29.3, 11.58, -20.0 }, { -29.3, 11.58, -13.5 }, { -29.3, 11.58, -7.0 } }
+-- each town's rules card has its OWN fixed spot (Adrien placed + locked them in the save);
+-- keyed by town name so a card always lands in the same place regardless of which clearing
+-- the town landmark spawns on. All three: y 11.575, z -19.135, rotZ 180, unscaled.
+RTT_MARSH_CARD_POS = {
+  ["Rabbit-Town"] = { -40.156, 11.575, -19.135 },
+  ["Foxburrow"]   = { -35.098, 11.575, -19.135 },
+  ["Mousehold"]   = { -45.214, 11.575, -19.135 },
+}
 
--- spawn each town standing on its clearing + its rules card in the lower-left row, all
--- DIRECTLY at their final transforms (rttSpawnLandmarkAt, from m490) so they appear in
--- place and settle onto the board — no slide/rotate.
+-- spawn each town standing on its clearing (model rotY = the clearing's suit rotY) + its
+-- rules card at that town's fixed locked spot, all DIRECTLY at their final transforms
+-- (rttSpawnLandmarkAt, from m490) so they appear in place and settle — no slide/rotate.
 function rttMarshLandmarks()
   if not RTT_5P_MARSH then return end
-  local ci = 0
   for _, lm in ipairs(RTT_MARSH_LANDMARKS or {}) do
-    ci = ci + 1
-    local si = ci
-    if si > 3 then si = 3 end
-    local slot = RTT_MARSH_CARD_ROW[si]
-    rttSpawnLandmarkAt(lm.name, lm.x, 11.66, lm.z, slot[1], slot[2], slot[3])
+    local slot = RTT_MARSH_CARD_POS[lm.name] or { -40.156, 11.575, -19.135 }
+    rttSpawnLandmarkAt(lm.name, lm.x, 11.66, lm.z, slot[1], slot[2], slot[3],
+                       lm.rotY or 165, 180, nil)
   end
 end
 
@@ -173,6 +179,17 @@ COORD_NEW = ('    if clone ~= nil then clone.UI.setAttribute("rttPickMapDeck", "
              '    if RTT_5P_MARSH then rttPlaceMap("Marsh Map") RTT_PICK_STAGE = 0 rttStartFactionDraft() return end\n'
              '    RTT_PICK_STAGE = 2')
 
+# 5-player seating: P3 was landing between P1 and P2 (pos5 centre). Swap P2/P3 so play
+# runs counter-clockwise (P1 near-right, P2 near-centre, P3 near-left, P4 far-left, P5 far-right).
+SEAT_OLD = "[5] = { 1, 2, 5, 4, 3 }"
+SEAT_NEW = "[5] = { 1, 5, 2, 4, 3 }"
+
+# draft N faction cards (6 for the 5-player game); RTT_DRAFT_N is set by rttFivePStart and
+# cleared here so the owl draft stays at 5.
+DRAFT_OLD = "local draft = {first, pool[1], pool[2], pool[3], pool[4]}"
+DRAFT_NEW = ("local RTT_DN = RTT_DRAFT_N or 5 RTT_DRAFT_N = nil local draft = {first} "
+             "for _di = 1, RTT_DN - 1 do draft[#draft + 1] = pool[_di] end")
+
 
 # the VISIBLE "5 Players" button is Marsh5P (the Board-Studio layout dropped the m240
 # fivePlayerSetup art button). Repurpose Marsh5P into the 5-player ART button that launches
@@ -207,4 +224,6 @@ def apply(text):
     text = _sub(text, TITLE_OLD, TITLE_NEW, "rttShowPick title")
     text = _sub(text, COORD_ANCHOR, COORD_NEW, "rttCoordPick 5p")
     text = _sub(text, MARSH5P_OLD, MARSH5P_NEW, "Marsh5P button -> 5-player art")
+    text = _sub(text, SEAT_OLD, SEAT_NEW, "5-player seating swap P2/P3")
+    text = _sub(text, DRAFT_OLD, DRAFT_NEW, "6-card draft")
     return text

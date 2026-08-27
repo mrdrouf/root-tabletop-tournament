@@ -84,8 +84,9 @@ PICK_XML = (
     '<Button id="rttFac1" onclick="rttFacRelay" position="-46 30 -20" width="42" height="42"/>'
     '<Button id="rttFac2" onclick="rttFacRelay" position="0 30 -20" width="42" height="42"/>'
     '<Button id="rttFac3" onclick="rttFacRelay" position="46 30 -20" width="42" height="42"/>'
-    '<Button id="rttFac4" onclick="rttFacRelay" position="-23 -18 -20" width="42" height="42"/>'
-    '<Button id="rttFac5" onclick="rttFacRelay" position="23 -18 -20" width="42" height="42"/>'
+    '<Button id="rttFac4" onclick="rttFacRelay" position="-46 -18 -20" width="42" height="42"/>'
+    '<Button id="rttFac5" onclick="rttFacRelay" position="0 -18 -20" width="42" height="42"/>'
+    '<Button id="rttFac6" onclick="rttFacRelay" position="46 -18 -20" width="42" height="42"/>'
     '</ToggleGroup>'
 )
 
@@ -272,7 +273,7 @@ function rttShowFactions()
   end
   clone.UI.setAttribute("rttPickMapDeck", "active", "false")
   clone.UI.setAttribute("rttFactions", "active", "true")
-  for i = 1, 5 do
+  for i = 1, 6 do
     local f = RTT_FAC_CURRENT[i]
     if f ~= nil then
       clone.UI.setAttribute("rttFac" .. i, "icon", f)
