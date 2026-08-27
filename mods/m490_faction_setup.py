@@ -127,19 +127,23 @@ end
 -- fires and all 12 just sit there. Adrien wants only 4 random captains kept, laid out in a
 -- visible row where the deck spawned; the rest are discarded. Identify the deck by its face
 -- sheet (nickname/GMNotes are all blank), scoped to this seat.
+-- find the 12-card Captain deck near the seat. Prefer the deck whose face sheet is the Captain
+-- sheet (FA78C0...), but fall back to the nearest Deck within 20u of the seat (the Knaves faction
+-- has only one deck near its board), so a getData() quirk can't leave all 12 captains in play.
 function rttFindKnavesDeck(cx, cz)
-  local best, bd = nil, 1e9
+  local best, bd, faceBest, faceBd = nil, 1e9, nil, 1e9
   for _, o in ipairs(getAllObjects()) do
     if o.name == "Deck" then
       local p = o.getPosition()
       local d = (p.x - cx) ^ 2 + (p.z - cz) ^ 2
-      if d < 900 then
+      if d < 400 then
+        if d < bd then bd = d; best = o end
         local ok, dt = pcall(function() return o.getData() end)
         if ok and dt ~= nil and dt.CustomDeck ~= nil then
           for _, cd in pairs(dt.CustomDeck) do
             if cd.FaceURL ~= nil and
                string.find(cd.FaceURL, "FA78C0F952724D77A33BECEC0651802808037E95", 1, true) then
-              if d < bd then bd = d; best = o end
+              if d < faceBd then faceBd = d; faceBest = o end
               break
             end
           end
@@ -147,36 +151,41 @@ function rttFindKnavesDeck(cx, cz)
       end
     end
   end
-  return best
+  return faceBest or best
 end
 
+-- keep polling until the faction spawn has produced the Captain deck, then keep 4 random
 function rttKnavesSetup(cx, cz, flip)
+  rttKnavesTry(cx, cz, 0)
+end
+
+function rttKnavesTry(cx, cz, attempt)
+  local deck = rttFindKnavesDeck(cx, cz)
+  if deck == nil then
+    if attempt < 10 then Wait.time(function() rttKnavesTry(cx, cz, attempt + 1) end, 0.5) end
+    return
+  end
+  pcall(function() deck.shuffle() end)
   Wait.time(function()
-    local deck = rttFindKnavesDeck(cx, cz)
-    if deck == nil then return end
-    pcall(function() deck.shuffle() end)
-    Wait.time(function()
-      if deck == nil then return end
-      local ok, p = pcall(function() return deck.getPosition() end)
-      if not ok or p == nil then return end
-      -- lay 4 captains in a face-up row where the deck sat; keep them locked as faction pieces
-      for i = 1, 4 do
-        pcall(function()
-          deck.takeObject({
-            position = { p.x + (i - 2.5) * 2.4, p.y + 0.3, p.z },
-            rotation = { 0, 180, 0 },
-            smooth = false,
-            callback_function = function(o)
-              o.setLock(true)
-              o.addTag("RTT Faction")
-            end
-          })
-        end)
-      end
-      -- discard the remaining 8 (destruct the leftover deck once the takes have settled)
-      Wait.time(function() if deck ~= nil then pcall(function() deck.destruct() end) end end, 0.8)
-    end, 0.5)
-  end, 1.0)
+    local ok, p = pcall(function() return deck.getPosition() end)
+    if not ok or p == nil then return end
+    -- lay 4 captains in a face-up row where the deck sat; keep them locked as faction pieces
+    for i = 1, 4 do
+      pcall(function()
+        deck.takeObject({
+          position = { p.x + (i - 2.5) * 2.4, p.y + 0.3, p.z },
+          rotation = { 0, 180, 0 },
+          smooth = false,
+          callback_function = function(o)
+            o.setLock(true)
+            o.addTag("RTT Faction")
+          end
+        })
+      end)
+    end
+    -- discard the remaining captains (destruct the leftover deck once the takes have settled)
+    Wait.time(function() if deck ~= nil then pcall(function() deck.destruct() end) end end, 0.8)
+  end, 0.5)
 end
 
 -- pick the big faction-board tile that just spawned nearest a seat (cx,cz)

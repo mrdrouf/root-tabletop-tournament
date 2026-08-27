@@ -190,6 +190,17 @@ DRAFT_OLD = "local draft = {first, pool[1], pool[2], pool[3], pool[4]}"
 DRAFT_NEW = ("local RTT_DN = RTT_DRAFT_N or 5 RTT_DRAFT_N = nil local draft = {first} "
              "for _di = 1, RTT_DN - 1 do draft[#draft + 1] = pool[_di] end")
 
+# the physical faction-card row (rttSlideOut/rttFlipAll) was hardcoded to 5 cards + a fixed
+# 5-slot table (RTT_SLOTS[6-k]); deal ALL drafted cards and centre them in the same ~28-unit
+# row with squeezed spacing so the 6th card joins the row (dealt N = #cards).
+SLIDE_OLD = "if k > 5 then                                        -- deal only the top 5; leave the deck"
+SLIDE_NEW = "if k > (#cards - RTT_NLEFT) then                     -- deal ALL the drafted cards"
+FLIP_OLD = "if k > 5 then                                        -- only the 5 dealt cards flip up"
+FLIP_NEW = "if k > (#cards - RTT_NLEFT) then                     -- flip ALL the dealt cards"
+SLOT_OLD = "local s = RTT_SLOTS[6 - k]                          -- k=1 (Militant) -> LEFT-most slot"
+SLOT_NEW = ("local _nd = #cards - RTT_NLEFT local _sp = (_nd > 1) and (28.0 / (_nd - 1)) or 0 "
+            "local s = {63.9, 11.6, -14 + (_nd - k) * _sp}")
+
 
 # the VISIBLE "5 Players" button is Marsh5P (the Board-Studio layout dropped the m240
 # fivePlayerSetup art button). Repurpose Marsh5P into the 5-player ART button that launches
@@ -226,4 +237,7 @@ def apply(text):
     text = _sub(text, MARSH5P_OLD, MARSH5P_NEW, "Marsh5P button -> 5-player art")
     text = _sub(text, SEAT_OLD, SEAT_NEW, "5-player seating swap P2/P3")
     text = _sub(text, DRAFT_OLD, DRAFT_NEW, "6-card draft")
+    text = _sub(text, SLIDE_OLD, SLIDE_NEW, "slide-out deal all cards")
+    text = _sub(text, FLIP_OLD, FLIP_NEW, "flip all cards")
+    text = _sub(text, SLOT_OLD, SLOT_NEW, "dynamic centred card row")
     return text
