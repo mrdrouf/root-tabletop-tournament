@@ -223,7 +223,7 @@ function rttSpawnBoxScore()
   for _, o in ipairs(getObjectsWithTag(RTT_BOXSCORE_TAG)) do o.destruct() end
   spawnObjectJSON({
     json = RTT_BOXSCORE_JSON,
-    position = { -59.088, 11.652, -3.154 },
+    position = { -58.36, 11.652, -0.05 },   -- centre of Adrien's 4-card box-score rectangle
     rotation = { 0, 270, 0 },
     callback_function = function(o) o.addTag(RTT_BOXSCORE_TAG) o.setLock(true) end
   })
