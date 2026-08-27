@@ -66,6 +66,7 @@ from . import m460_priority_markers
 from . import m470_rtt_draft_pick
 from . import m480_ranked_theme_buttons
 from . import m490_faction_setup
+from . import m500_marsh_5p_draft
 # m450_label_icons DISABLED: confirmed custom (non-Steam) UI icons blank in TTS
 
 # Ready-made examples — uncomment to begin layering real modifications:
@@ -125,5 +126,6 @@ MODS = [
     m390_no_hover_credits,
     m400_remove_fan_factions,
     m370_cdn_urls,
+    m500_marsh_5p_draft,   # AFTER m440/m460/m470/m490: 5-player Marsh ranked draft + towns
     # m450_label_icons,  # DISABLED — custom UI icons blank in TTS; VB/Landmarks stay on Steam art
 ]

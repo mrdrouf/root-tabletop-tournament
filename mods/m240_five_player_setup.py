@@ -23,8 +23,10 @@ FIVE_URL = "https://steamusercontent-a.akamaihd.net/ugc/13228007358041271497/D7F
 # portrait art (aspect ~0.85): keep the button a touch taller than wide so it isn't squished.
 # color="#ffffff": a TTS Button color MULTIPLIES the icon, so it must be neutral white — a
 # dark or transparent (alpha 0) tint would render the art black/invisible.
+# onclick=rttFivePStart (m500): launches the 5-player Marsh ranked draft, not the old base
+# setupFactionBoards selector spawn.
 FIVE_BUTTON = (
-    '<Button id="fivePlayerSetup" onclick="setupFactionBoards" icon="FivePlayerArt" '
+    '<Button id="fivePlayerSetup" onclick="rttFivePStart" icon="FivePlayerArt" '
     'color="#ffffff" position="15 5 -20" width="40" height="47"/>'
 )
 
