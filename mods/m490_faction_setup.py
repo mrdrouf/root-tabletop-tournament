@@ -95,7 +95,7 @@ function rttFactionExtras(faction, cx, cz, flip)
   elseif faction == "Keepers in Iron" then rttBadgerRelics()
   -- Twilight Council (bats) now spawns from the baked blueprint (m560) — no runtime setup
   elseif faction == "Corvid Conspiracy" then rttCrowsPlots(cx, cz, flip)
-  elseif faction == "Underground Duchy" then rttDuchyTuck()
+  -- Underground Duchy (moles) now spawns 7 loose + 13 bagged from the blueprint (m300) — no tuck
   elseif faction == "Knaves of the Deepwood" then rttKnavesSetup(cx, cz, flip)
   elseif faction == "Marquise de Cat" then rttMarquiseCats(cx, cz, flip)
   end
@@ -156,17 +156,29 @@ function rttMarquiseCats(cx, cz, flip)
     if (o.getName() or "") == "Marquise Supply" then bag = o break end
   end
   if bag == nil then return end
+  -- Marsh clearings depend on player count: 4-player floods 3 clearings (skip them -> 12 cats);
+  -- 5-player has no floods, all 15 clearings are active (place 15). Every other map is 12.
   local excl = {}
-  if mapId == "Marsh Map" then                     -- the 3 inactive clearing centres (bab7e1 global)
-    excl = RTT_MARSH_EXCLUDED
-    if excl == nil then
+  if mapId == "Marsh Map" then
+    local is5p = RTT_5P_MARSH
+    if is5p == nil then
       local mb = getObjectFromGUID("bab7e1")
       if mb ~= nil then
-        local ok, ex = pcall(function() return mb.call("rttGetMarshExcluded") end)
-        if ok and type(ex) == "table" then excl = ex end
+        local ok, v = pcall(function() return mb.call("rttGet5pMarsh") end)
+        if ok then is5p = v end
       end
     end
-    excl = excl or {}
+    if not is5p then                               -- 4-player: skip the 3 flooded clearing centres
+      excl = RTT_MARSH_EXCLUDED
+      if excl == nil then
+        local mb = getObjectFromGUID("bab7e1")
+        if mb ~= nil then
+          local ok, ex = pcall(function() return mb.call("rttGetMarshExcluded") end)
+          if ok and type(ex) == "table" then excl = ex end
+        end
+      end
+      excl = excl or {}
+    end
   end
   for _, c in ipairs(centres) do
     local skip = false
@@ -316,23 +328,6 @@ function rttCrowsPlots(cx, cz, flip)
   end
 end
 
--- ---- Underground Duchy (moles): 7 placed + the 8th in the supply -----------
--- m300 bakes 7 warriors into the two packs and the 8th (guid c444dc) BELOW the table, so nothing
--- flashes on the board. Here we just drop that hidden 8th straight into the Duchy Supply bag, so
--- the bag holds 13 — no visible tuck, no default-then-adjust.
-function rttDuchyTuck()
-  local bag = nil
-  for _, o in ipairs(getAllObjects()) do
-    if (o.getName() or "") == "Duchy Supply" then bag = o break end
-  end
-  if bag == nil then return end
-  local spare = getObjectFromGUID("c444dc")
-  if spare ~= nil then
-    if spare.getLock and spare.getLock() then spare.setLock(false) end
-    pcall(function() bag.putObject(spare) end)
-  end
-end
-
 -- ---- Lizard Cult ----------------------------------------------------------
 function rttLizardSetup()
   -- keep the Outcast Marker (it belongs ON the Lizard Wizard) — do NOT destruct it.
@@ -353,27 +348,28 @@ function rttLizardSetup()
       end
     end
   end, 0.8)
-  Wait.time(function() rttRepositionPond() end, 1.0)
 end
 
 -- ---- Lilypad Diaspora (frogs) --------------------------------------------
 function rttFrogsSetup()
   rttShuffleFrogsIntoDeck()
-  Wait.time(function() rttRepositionPond() end, 1.0)
+  rttSpawnPond()
 end
 
-function rttRepositionPond()
-  local pond = nil
-  for _, o in ipairs(getAllObjects()) do
-    if (o.getName() or "") == "The Pond" then pond = o break end
-  end
-  if pond == nil then return end
+-- The Pond is MAP-relative (a fixed world spot, independent of the frog's seat), so it can't be a
+-- seat-local blueprint move_to. m580 removes it from the frog blueprint and hands its object JSON
+-- here as RTT_POND_JSON; we spawn it DIRECTLY at its world spot — no seat-relative default, no
+-- reposition, no below-table trick.
+function rttSpawnPond()
+  if RTT_POND_JSON == nil then return end
   local lizard = (RTT_FAC_TAKEN or {})["The Lizard Cult"] == true
   local p = lizard and RTT_POND_SHIFT or RTT_POND_FROG
-  if pond.getLock and pond.getLock() then pond.setLock(false) end
-  pond.setPosition({ p[1], p[2], p[3] })          -- instant: no visible slide
-  pond.setRotation({ 0, 90, 0 })
-  Wait.time(function() if pond ~= nil then pond.setLock(true) end end, 0.3)
+  spawnObjectJSON({
+    json = RTT_POND_JSON,
+    position = { p[1], p[2], p[3] },
+    rotation = { 0, 90, 0 },
+    callback_function = function(o) o.setLock(true) end,
+  })
 end
 
 function rttShuffleFrogsIntoDeck()
@@ -429,6 +425,7 @@ end
 -- any clone read the main board's current map by GUID.
 function rttGetCurrentMap() return RTT_CURRENT_MAP end
 function rttGetMarshExcluded() return RTT_MARSH_EXCLUDED end
+function rttGet5pMarsh() return RTT_5P_MARSH end
 
 function rttBadgerRelics()
   -- RTT_PICKED.map is only set by the ranked-draft coordinator; on the solo/standard faction

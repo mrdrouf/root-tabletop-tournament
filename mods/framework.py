@@ -523,6 +523,56 @@ def set_data_move_to(text, guid, xyz):
     return text[:ms] + new + text[me + 1:]
 
 
+def stow_loose_in_bag(text, category, faction, piece_guids, bag_guid):
+    """Move loose blueprint pieces INTO a bag's ContainedObjects — the proper way to
+    make a piece start inside the supply instead of spawning loose on the table.
+
+    In EVERYTHING[category][faction]['data'] each loose piece is a top-level entry
+    `{move_to={x,y,z}, json=[[{<object JSON>}]]}`; a bag is such an entry whose object
+    carries a `"ContainedObjects": [ {obj}, ... ]` array. For each guid in `piece_guids`
+    we excise its loose data entry (and one adjacent comma) and splice its object JSON
+    into `bag_guid`'s ContainedObjects. No runtime hiding/tucking/repositioning.
+
+    Scoped to the one faction (via everything_entry_span) so bot copies aren't touched.
+    build.py's JSON re-parse validates the result."""
+    h, j = everything_entry_span(text, category, faction)
+    entry = text[h:j]
+    objs = []
+    for guid in piece_guids:
+        a = QT + 'GUID' + QT + ': ' + QT + guid + QT
+        if entry.count(a) != 1:
+            raise BuildError("loose piece %s not unique in %s (%d)" % (guid, faction, entry.count(a)))
+        g = entry.find(a)
+        estart = entry.rfind('{move_to={', 0, g)
+        if estart == -1:
+            raise BuildError("%s has no loose {move_to=...} entry (already bagged?)" % guid)
+        eend = entry.find(']]}', g) + 3
+        js = entry.find('json=[[', estart) + len('json=[[')
+        je = entry.find(']]', js)
+        if not (estart < js < je < eend):
+            raise BuildError("malformed data entry bounds for %s" % guid)
+        obj = entry[js:je]
+        objs.append(obj)
+        if entry[estart - 1] == ',':               # drop the leading comma
+            cut_start, cut_end = estart - 1, eend
+        elif eend < len(entry) and entry[eend] == ',':
+            cut_start, cut_end = estart, eend + 1   # or the trailing comma
+        else:
+            cut_start, cut_end = estart, eend
+        entry = entry[:cut_start] + entry[cut_end:]
+    ba = QT + 'GUID' + QT + ': ' + QT + bag_guid + QT
+    bg = entry.find(ba)
+    if bg == -1:
+        raise BuildError("bag %s not found in %s" % (bag_guid, faction))
+    comarker = QT + 'ContainedObjects' + QT + ': ['
+    co = entry.find(comarker, bg)
+    if co == -1:
+        raise BuildError("bag %s has no ContainedObjects" % bag_guid)
+    arr = co + len(comarker)
+    entry = entry[:arr] + ','.join(objs) + ',' + entry[arr:]
+    return text[:h] + entry + text[j:]
+
+
 def clone_data_entry(text, src_guid, new_guid, xyz):
     """Duplicate the `{move_to={...}, json=[[ {..} ]]}` data entry whose object GUID
     is src_guid, give the copy new_guid and move_to xyz, and insert it right after

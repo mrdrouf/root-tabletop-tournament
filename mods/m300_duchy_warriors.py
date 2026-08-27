@@ -51,10 +51,13 @@ REPOSITION = {
     "f5d15c": (9.969, 0.100, 5.236),
     "8c9c61": (10.038, 0.100, 6.911),
     "c8c8a2": (-10.998, 0.100, 5.372),
-    # the 8th loose warrior: spawn it BELOW the table (hidden) so it never flashes on the board;
-    # rttDuchyTuck (m490) puts THIS guid straight into the Duchy Supply bag (7 placed, 13 in bag).
-    "c444dc": (0.0, -60.0, 0.0),
 }
+
+# The data ships EIGHT loose warriors; Adrien wants 7 placed + the rest in the supply. Rather than
+# spawn the 8th loose and tuck it at runtime (a dirty fix), we move it straight into the Duchy
+# Supply bag in the blueprint, so it starts inside the bag (7 loose + 13 bagged = 20).
+SPARE_WARRIOR = "c444dc"
+SUPPLY_BAG = "3d1178"
 
 
 def apply(text):
@@ -62,4 +65,7 @@ def apply(text):
     entry = text[h:j]
     for guid, xyz in REPOSITION.items():
         entry = framework.set_data_move_to(entry, guid, xyz)
-    return text[:h] + entry + text[j:]
+    text = text[:h] + entry + text[j:]
+    # stow the 8th warrior INSIDE the supply bag (proper blueprint edit, no runtime tuck)
+    text = framework.stow_loose_in_bag(text, CAT, FACTION, [SPARE_WARRIOR], SUPPLY_BAG)
+    return text

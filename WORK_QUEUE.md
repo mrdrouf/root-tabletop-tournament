@@ -4,11 +4,15 @@ Single source of truth for outstanding tasks. Nothing is "done" until it's built
 Adrien has confirmed it in TTS. Keep this file live: add every new request here the moment it lands,
 tick items only when committed, and re-open anything Adrien reports still broken.
 
-## Golden rule (Adrien, repeated)
-**Never spawn the old/default version of a piece and then move it.** Spawn the FINAL version directly
-— bake seat-relative pieces into the blueprint (m290/m300/m560/m570 pattern), take map-relative
-pieces straight from the supply bag to their target, or spawn hidden (below table) and reveal in one
-setPosition. No default-then-adjust, ever.
+## Golden rule (Adrien, repeated + hardened)
+**Fix the BLUEPRINT, never patch at runtime.** No dirty tricks — no spawn-then-move, no
+spawn-below-the-table-then-reveal, no runtime tuck. Modify the faction's data so every piece
+starts in its final container/position:
+  - seat-relative pieces (warriors/buildings by the board): bake move_to (m290/m300/m560/m570).
+  - "extra" pieces that belong in supply: MOVE them into the bag's ContainedObjects in the data
+    (framework.stow_loose_in_bag) — they spawn inside the bag.
+  - map-relative pieces (cats on clearings, The Pond): take from the supply bag / spawn the object
+    JSON directly AT the final world spot — never a seat-local default first.
 
 ## OPEN
 
@@ -28,23 +32,37 @@ setPosition. No default-then-adjust, ever.
       not face-up/open for everyone to see first. Investigate + resolve — flagged important.
 
 ### Maps / landmarks
-- [ ] **Marsh 5-player map button**: add a MAP button "Marsh 5 players" (2-line label, same design as
-      the other map buttons, image left + text right) alongside the existing Marsh (4p). It REPLACES
-      the "Swole Birds" option. Needs an uploaded left-image asset.
-- [ ] **Mountain landmark direct spawn**: still spawns the suit marker first, then drops the landmark
-      on it. Spawn the landmark directly — no default-then-move step.
-- [ ] **Landmark explanation cards — flip**: they currently show the SETUP face; flip so the RULES
-      face is up.
+- [ ] **Marsh 5-player map button** (= "Swole Birds"): the button already exists (id `Marsh5P`,
+      onclick `rttFivePStart`, already drives Marsh-in-5p) — only art/label changes. Needs a 400×200
+      `assets/upload/marsh_5p_label.png` (Marsh art left, "Marsh / 5 Players" right, cream serif),
+      then repoint the `FivePlayerArt` URL (m540 SWAPS) + set the button `color="#ffffff"` (m500
+      MARSH5P_NEW). Waiting on the image.
+- [ ] **Mountain landmark direct spawn**: the landmark model+card ALREADY spawn directly; the flash
+      is the central *Clearing Marker* (suit token) spawning visible then being destruct+replaced.
+      Fix (clean): drop the central clearing-marker data entry at build time (m445-style filter on
+      Mountain), so only 11 markers spawn + shuffle; `rttMountainLandmark` then stops reading a
+      marker and just spawns the landmark. (m500 rttMountainHideTower / m490 rttMountainLandmark.)
+- [ ] **Landmark explanation cards — flip**: one token — m490:543 `rttSpawnLandmarkAt(... 165, 0 ...)`
+      -> `165, 180` (Mountain card to RULES/BackURL face). Marsh 5p towns already pass 180 (correct).
 
-### Carried over
-- [ ] **Duchy "moles" tuck**: 8th warrior spawns visible then is tucked into supply → bake it below
-      the table + tuck that exact warrior by GUID (in progress this commit).
+### Draft path — remaining golden-rule cleanups (fold into the draft rework)
+- [ ] **Crows plots/warriors**: rttCrowsPlots respawns plots face-down + repositions warriors at
+      runtime — convert to blueprint (bake warrior move_to, and set plot facing in the data). Corvid
+      wasn't set up when mapped; re-read once it is.
+- [ ] **Knave captains**: moving to the draft-card stage anyway (see draft item) — spawn directly.
 
 ## DONE (this session, pending Adrien's confirmation in TTS)
 - [x] Bats (Twilight Council): 6 warriors + 6 assemblies baked into blueprint (m560); rttBatsSetup removed.
-- [x] Marquise: 3 staging warriors baked (m570); removed from rttMarquiseCats.
-- [x] Cats: 12 placed on true clearing CENTRES per map (RTT_CLEARING_CENTRES, from eyes geometry),
-      taken straight from the supply bag; Marsh skips its 3 inactive clearings.
-- [x] The Pond: spawns below the table (m580), revealed at its no-lizard world spot in one setPosition.
+- [x] **Marquise (proper blueprint fix)**: 8 of the 11 loose warriors MOVED into the supply bag
+      (framework.stow_loose_in_bag); 3 staging warriors baked below the 3 starting buildings (z 5.4,
+      m570 — nudge if off); cats come from the bag. Total 25 (3 staging + 12/15 map + 10/7 bag).
+      Fixed the m570 bug that was corrupting the supply bag's own move_to.
+- [x] Cats on clearings: placed on true clearing CENTRES per map (RTT_CLEARING_CENTRES, from eyes
+      geometry), from the supply bag. 12 standard / 4p-Marsh (skip 3 flooded); **15 on 5p-Marsh**.
+- [x] **Duchy (proper blueprint fix)**: the 8th warrior MOVED into the Duchy Supply bag in the data
+      (7 loose + 13 bagged); removed the below-table hack + deleted rttDuchyTuck.
+- [x] **The Pond (proper fix)**: REMOVED from the frog blueprint (m580); spawned directly at its
+      world spot from RTT_POND_JSON (rttSpawnPond) — no below-table, no reposition.
 - [x] Marsh number tokens: deliberate token positions + skip-and-renumber (m460).
 - [x] Marquise Keep enlarged (m550); Lizard wizard direction + Outcast marker (m490).
+- [x] framework.stow_loose_in_bag: new primitive to move a loose blueprint piece into a bag.
