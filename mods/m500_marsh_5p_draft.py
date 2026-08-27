@@ -112,6 +112,19 @@ function rttMarshLandmarks()
     rttSpawnLandmarkAt(lm.name, lm.x, 11.66, lm.z, slot[1], slot[2], slot[3])
   end
 end
+
+-- Mountain: the Tower is never used (a landmark replaces it), so spawn it BELOW the table
+-- from frame one instead of spawning it on the board and destroying it (no visible flash).
+-- rttMountainLandmark still destroys the (hidden) tower via its "Tower" tag afterwards.
+function rttMountainHideTower(objects)
+  local ov = {}
+  for idx, v in ipairs(objects) do
+    if string.find(v.json, "\"Tower\"", 1, true) ~= nil then
+      ov[idx] = { world = { 0, -60, 0 }, rot = nil }
+    end
+  end
+  return ov
+end
 """
 
 MARSH_LM_HOOK = ('\n  if id == "Marsh Map" and RTT_5P_MARSH then'
@@ -138,6 +151,10 @@ FACTION_TAG_NEW = "  local function cb(o)\n    o.addTag(\"RTT Faction\")\n    if
 
 PLAN_OLD = "RTT_OV = rttMarshPlan(objects)"
 PLAN_NEW = "if RTT_5P_MARSH then RTT_OV = rttMarshPlan5P(objects) else RTT_OV = rttMarshPlan(objects) end"
+
+# after the Marsh override block, add a Mountain branch that hides the Tower at spawn
+MTN_OV_OLD = PLAN_NEW + "\n  end"
+MTN_OV_NEW = PLAN_NEW + "\n  end\n  if id == \"Mountain Map\" then RTT_OV = rttMountainHideTower(objects) end"
 
 BEGIN_ANCHOR = "  RTT_PICKED = { map = nil, deck = nil }\n  RTT_PICK_STAGE = 1"
 BEGIN_NEW = ("  RTT_PICKED = { map = nil, deck = nil }\n"
@@ -185,6 +202,7 @@ def apply(text):
     text = _sub(text, SOLO_OLD, SOLO_NEW, "solo -> 5 boards")
     text = _sub(text, FACTION_TAG_OLD, FACTION_TAG_NEW, "tag faction pieces")
     text = _sub(text, PLAN_OLD, PLAN_NEW, "marsh plan")
+    text = _sub(text, MTN_OV_OLD, MTN_OV_NEW, "mountain hide-tower")
     text = _sub(text, BEGIN_ANCHOR, BEGIN_NEW, "rttBeginPick")
     text = _sub(text, TITLE_OLD, TITLE_NEW, "rttShowPick title")
     text = _sub(text, COORD_ANCHOR, COORD_NEW, "rttCoordPick 5p")

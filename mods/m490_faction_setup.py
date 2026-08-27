@@ -305,10 +305,10 @@ RTT_MTN_CARD = { %(kx).3f, %(ky).3f, %(kz).3f }
 RTT_MTN_CARD_SCALE = %(ks).3f
 
 function rttMountainLandmark()
-  -- the Tower marks the central clearing; its suit marker is the nearest "Clearing Marker"
-  local towers = getObjectsWithTag("Tower")
+  -- the central clearing sits at RTT_MTN_LM (the Tower is now hidden below the table by
+  -- rttMountainHideTower, so we don't read its position); its suit marker is the nearest
+  -- "Clearing Marker" to that centre.
   local cx, cz = RTT_MTN_LM[1], RTT_MTN_LM[3]
-  if towers[1] ~= nil then local tp = towers[1].getPosition() cx, cz = tp.x, tp.z end
   local marker, md = nil, 1e9
   for _, o in ipairs(getObjectsWithTag("Clearing Marker")) do
     local p = o.getPosition()
