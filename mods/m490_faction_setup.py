@@ -93,7 +93,7 @@ function rttFactionExtras(faction, cx, cz, flip)
   if faction == "The Lizard Cult" then rttLizardSetup()
   elseif faction == "Lilypad Diaspora" then rttFrogsSetup()
   elseif faction == "Keepers in Iron" then rttBadgerRelics()
-  elseif faction == "Twilight Council" then rttBatsSetup(cx, cz, flip)
+  -- Twilight Council (bats) now spawns from the baked blueprint (m560) — no runtime setup
   elseif faction == "Corvid Conspiracy" then rttCrowsPlots(cx, cz, flip)
   elseif faction == "Underground Duchy" then rttDuchyTuck()
   elseif faction == "Knaves of the Deepwood" then rttKnavesSetup(cx, cz, flip)
@@ -102,48 +102,23 @@ function rttFactionExtras(faction, cx, cz, flip)
 end
 
 -- ---- Marquise de Cat: one warrior in the CENTRE of every clearing -------------------------
--- Every clearing carries a "Clearing Marker" (the suit token) at its centre, on every map, so
--- we drop one Cat Warrior on each marker — no per-map clearing table needed. The buildings +
--- Keep + the remaining warriors spawn with the faction board as-is (Adrien's default layout).
--- Cats come from the loose pool first, then the Marquise Supply bag; ~10 stay in the supply.
--- 3 starting warriors sit BELOW the buildings by the faction board (recorded board-local)
-RTT_CAT_WAR = { { -0.347, -1.215 }, { -0.204, -1.215 }, { -0.061, -1.215 } }
-
+-- The 3 staging warriors + buildings + Keep are baked (m570/m550) so they spawn in place. Here
+-- we only handle the 12 cats on the map: taken STRAIGHT from the Marquise Supply bag onto each
+-- clearing, so they appear at their spot directly (no default-then-move). The buildings/keep/
+-- staging warriors spawn from the blueprint, ~10 cats stay in the bag.
+-- (TODO: place on the clearing CENTRE from the recorded map geometry, not the edge suit marker.)
 function rttMarquiseCats(cx, cz, flip)
   local markers = {}
   for _, o in ipairs(getObjectsWithTag("Clearing Marker")) do markers[#markers + 1] = o end
-  local bag, loose = nil, {}
+  if #markers == 0 then return end
+  local bag = nil
   for _, o in ipairs(getAllObjects()) do
-    local nm = o.getName() or ""
-    if nm == "Marquise Supply" then bag = o
-    elseif nm == "Cat Warrior" then loose[#loose + 1] = o end
+    if (o.getName() or "") == "Marquise Supply" then bag = o break end
   end
-  -- one cat on every clearing (suit-marker) centre
+  if bag == nil then return end
   for _, m in ipairs(markers) do
     local p = m.getPosition()
-    local tgt = { p.x, p.y + 0.8, p.z }
-    local cat = table.remove(loose)
-    if cat ~= nil then
-      if cat.getLock and cat.getLock() then cat.setLock(false) end
-      cat.setPosition(tgt)                                  -- instant: appears in final spot
-    elseif bag ~= nil then
-      pcall(function() bag.takeObject({ position = tgt, smooth = false }) end)
-    end
-  end
-  -- 3 warriors out of the supply, below the buildings by the faction board
-  local board = rttFindSeatBoard(cx, cz)
-  if board ~= nil then
-    for i = 1, 3 do
-      local off = RTT_CAT_WAR[i]
-      local w = board.positionToWorld({ off[1], 0.02, off[2] })
-      local cat = table.remove(loose)
-      if cat ~= nil then
-        if cat.getLock and cat.getLock() then cat.setLock(false) end
-        cat.setPosition({ w.x, w.y + 0.5, w.z })
-      elseif bag ~= nil then
-        pcall(function() bag.takeObject({ position = { w.x, w.y + 0.5, w.z }, smooth = false }) end)
-      end
-    end
+    pcall(function() bag.takeObject({ position = { p.x, p.y + 0.8, p.z }, smooth = false }) end)
   end
 end
 
