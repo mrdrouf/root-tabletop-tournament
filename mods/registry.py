@@ -65,6 +65,7 @@ from . import m445_marsh_no_landmarks
 from . import m460_priority_markers
 from . import m470_rtt_draft_pick
 from . import m480_ranked_theme_buttons
+from . import m490_faction_setup
 # m450_label_icons DISABLED: confirmed custom (non-Steam) UI icons blank in TTS
 
 # Ready-made examples — uncomment to begin layering real modifications:
@@ -119,6 +120,7 @@ MODS = [
     m360_board_cleanup,
     # m365_board_thickness,        # DISABLED — board was never 3D; thickness broke rendering
     m470_rtt_draft_pick,           # AFTER m360: copies the swapped v3 texture into the lightweight selector
+    m490_faction_setup,            # AFTER m470: per-faction setup extras (Lizard/frogs/Badgers) dispatch
     m380_faction_selector_clean,
     m390_no_hover_credits,
     m400_remove_fan_factions,

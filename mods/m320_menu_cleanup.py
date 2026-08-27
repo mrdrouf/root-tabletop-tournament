@@ -51,8 +51,6 @@ def apply(text):
         for attr, val in (("width", CELL_W), ("height", CELL_H), ("fontSize", CELL_FS)):
             text, _ = framework.set_button_attr_in_group(text, "tools1", bid, attr, val)
 
-    # 4. "5 Players" fits on one line at fontSize 7 (34-wide box unchanged)
-    text, n = framework.set_button_attr(text, "fivePlayerSetup", "fontSize", "7")
-    if n == 0:
-        raise framework.BuildError("fivePlayerSetup button not found")
+    # 4. the fivePlayerSetup button is now an image button (m240), so no text/fontSize
+    # tweak is needed here anymore.
     return text

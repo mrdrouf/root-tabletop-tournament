@@ -2,48 +2,44 @@
 
 Ordered backlog. Newest big items at the bottom.
 
-## Done (recent)
-- **Lizard / Duchy warrior placement** — DONE (`m290`/`m300`).
-- **Errata pipeline** — DONE (`m310`).
-- **Full RTT draft flow** — DONE (`m470`, building green): lightweight per-player
-  selector boards (no menu-board clone → no lag); P1 picks map OR deck, P2 picks the
-  leftover; 5 cards dealt one-by-one to each seated player from the chosen deck;
-  reverse-order (P4→P1) faction draft off the 5 drafted factions on each own board;
-  board removed then faction spawned (no dice; warriors baked in); Woodland supporters;
-  Knaves → 4 random Captains; VP marker placed on score-track column 0 (stacked).
-- **Box score integrated + auto-spawned** — DONE (`m470`): embedded `_boxscore.json`,
-  spawns locked at (63.9, 11.6, -32) when the faction draft starts. *(position pending
-  Adrien's visual OK.)*
-- **Priority markers, all fixed-clearing maps** — DONE (`m460`): Summer/Autumn, Lake,
-  Mountain, Winter, Gorge auto-place their locked 12-marker layout on map spawn;
-  "Priority Marker" hover nickname blanked.
-- **Board texture credit removed** — DONE (`m360`, v3): baked "Board by …" credit gone,
-  fake-3D vignette border preserved (0.0 diff).
+## Done & building green
+- **Full RTT draft flow** (`m470`): lightweight selectors, map/deck pick, 5-card deal,
+  reverse faction draft, board-removed-then-faction spawn, Knaves captains, box score.
+- **RGBA Ranked/Theme buttons** (`m480`) — wired to the 150×150 RGBA uploads.
+- **5-player setup button art** (`m240`) — top-down `5players.png` (Steam-hosted RGBA).
+- **Box score** (`m470`/`_boxscore.json`) — spawns at Adrien's placed spot
+  (-59.09,11.65,-3.15) rotY270, scaled to fill the board rectangle (~1.3× wide, 1.1× tall).
+- **Priority markers** all fixed-clearing maps (`m460`) + **Marsh flood-aware** (drop the
+  token on each flooded clearing; `m440` exports `RTT_MARSH_FLOODED`).
+- **VP markers** (`m470`) — placed on the score-0 column's real snap rows, rotation
+  normalised to the track (fixes far-side upside-down).
+- **Per-faction setup extras** (`m490`, dispatched after each faction spawns):
+  - *Lizard Cult*: spawn the Lizard Wizard tool, remove the Outcast Marker, shift the
+    frogs' Pond aside if it's out.
+  - *Lilypad Diaspora (frogs)*: shuffle the 14 frog cards into the shared deck; place The
+    Pond by the discard (default spot, or shifted when the Lizard's Lost Souls is in play).
+  - *Keepers in Iron (badgers)*: draw one relic per forest from the Relics bag onto the
+    forest centroid (extras stay in the bag for manual placement).
+  - *Twilight Council (bats)*: place one Assembly on the board's first assembly snap and
+    arrange 6 warriors as a pack-of-4 + pack-of-2.
+  - *Corvid Conspiracy (crows)*: 12 plots (3 of each type) in a clean 4×3 grid on the board.
+  - *Mountain map*: never the Tower — roll a d4; 0 → Lost City, else the middle-clearing
+    suit's landmark; place the landmark's rules card at the map's lower-left.
 
-## Blocked on Adrien (need a Steam Cloud upload or an in-TTS confirmation)
+## Needs an in-TTS visual pass / a decision from Adrien
+1. **Mountain middle-clearing suit** — I can't find a suit token in the save to read
+   (suits look printed), so `rttMiddleSuit()` returns nil and the roll currently always
+   yields **Lost City**. Tell me how the middle clearing's suit is encoded (a token image?
+   a nickname?) and I'll wire rabbit→Rabbit-Town / fox→Foxburrow / mouse→Mousehold.
+2. **Mountain landmark + card positions** — landmark spawns at your Mousehold spot
+   (2.46,11.66,6.03); the rules card goes to a best-guess lower-left (-22,-22). Confirm
+   or nudge. (Only the Lost City *rules card* exists in the mod — the other three landmark
+   cards aren't present; the landmark model still spawns.)
+3. **Bats / Crows placement** is relative to the faction board found at the seat — verify
+   the assembly/warrior and the 12-plot grid land cleanly at every seat.
+4. **VP stacking / orientation, Lizard/frog shuffle, Badger relic spots** — eyeball once.
 
-1. **Ranked (owl) + Theme (fox) button art** — the two composites are FINAL and correct
-   (`assets/images/ranked_button.png`, `theme_button.png`, 150×150 **RGBA**). The URLs
-   `m480` currently points at are the *old 300×300 **RGB*** uploads — RGB is exactly why
-   the icon renders white. Fix = Adrien uploads the two RGBA PNGs via TTS Cloud Manager;
-   Claude then recovers the Steam URLs by SHA1 and wires them into `m480`.
-   (RGBA sha1: ranked `23F7EB22…`, theme `FE0894D6…`.)
-
-2. **Marsh (spoken "March") flood-aware priority numbering** — 15 tokens recorded in
-   `_priority_marsh_raw.json`. Measurement is solid (each of the 6 flood-candidate
-   clearings has a unique nearest token, 3–4u), BUT the 15→12 rule Adrien intends does
-   not match the simple "each flood pair shares one number" model — simulating "drop the
-   token under each flood tile" leaves some numbers doubled and some missing. **Need
-   Adrien to explain the rule** (which token is the alternate for which, and what the
-   flood outcome does to each). Question posed to Adrien.
-
-3. **4-player / 5-player setup-button art** — still a text placeholder ("5 Players",
-   `m240`). Needs a top-down board screenshot from Adrien + a Steam upload.
-
-4. **Selector title font** — "Pick a MAP or a DECK" / "Pick the MAP/DECK" already render
-   in one consistent UI font. Matching the *map-label (Mason)* font needs a hosted TTF
-   as a UI font asset (same Steam-hosting blocker + fiddly). Optional — confirm if wanted.
-
-5. **In-TTS visual verification** — VP-marker stacking order in column 0 (spec: zero,
-   then above, then below, then further up), Knaves→4 Captains, box-score placement.
-   Needs Adrien to run one game and eyeball.
+## Investigating
+- **Spawn "zoom flash"** — big items (map/deck/board) flash a zoomed-in wrong-scale
+  version for a split second before settling. Re-investigate whether it's the spawn code
+  rescaling after spawn (fixable) rather than pure TTS texture streaming.
