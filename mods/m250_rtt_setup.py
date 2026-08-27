@@ -52,6 +52,12 @@ def apply(text):
     hoot = json.load(open(HOOT, encoding="utf-8"))
     decks = {d.get("GUID"): d for d in hoot["ObjectStates"]}
     mil, ins, order = decks[MILITANT_GUID], decks[INSURGENT_GUID], decks[ORDER_GUID]
+    # the base order deck holds only 4 player-order cards; use the recorded 5-card deck
+    # (adds CardID 806 for the 5th player) when present, so 5-player games deal a card to
+    # every seat. Extracted from Adrien's table next to the draft.
+    order_5 = os.path.join(os.path.dirname(__file__), "_order_deck.json")
+    if os.path.exists(order_5):
+        order = json.load(open(order_5, encoding="utf-8"))
 
     def card_table(deck):
         cd = deck.get("CustomDeck") or {}
