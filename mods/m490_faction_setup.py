@@ -42,8 +42,9 @@ MTN_TOWER_NEW = ('  if mapId == "Mountain Map" then\n'
                  '    Wait.time(function() rttMountainLandmark() end, 0.8)\n'
                  '  end')
 
-# Adrien's placed Mousehold spot = the mountain-top clearing where the landmark goes.
-MTN_LM_POS = (2.46, 11.66, 6.03)
+# the landmark sits on the middle clearing's suit-marker snap (Adrien's revised choice) —
+# the Mountain map's centre clearing, where he snapped it.
+MTN_LM_POS = (-0.116, 11.66, 0.187)
 # map lower-left corner (best guess — confirm in TTS) for the landmark's rules card.
 MTN_CARD_POS = (-22.0, 11.70, -22.0)
 
