@@ -24,9 +24,14 @@ from . import framework
 
 NAME = "solo faction board: strip to the 12 factions (hide nav, Knaves as a direct tile)"
 
-# hide the whole nav group on the solo board only; frame 15 > configureFactionBoard's frame 10
-NAV_HIDE = ('\n  Wait.frames(function() pcall(function() '
-            'board1.UI.setAttribute("Main Nav Personal", "active", "False") end) end, 15)')
+# Spawn the clone BELOW the table, strip it while hidden, then raise it — so it appears
+# ALREADY stripped (no visible "full board then nav removed" adjustment). frame 14 > frame 10
+# (configureFactionBoard), so the nav is turned off and the board revealed in one hidden pass.
+HIDDEN_POS = ("board1.setPosition({54.81,-60,0})")
+FINAL_POS = ("board1.setPosition({54.81,11.56,0})")
+REVEAL = ('\n  Wait.frames(function() '
+          'pcall(function() board1.UI.setAttribute("Main Nav Personal", "active", "False") end) '
+          'board1.setPosition({54.81,11.56,0}) end, 14)')
 
 # direct Knaves tile, at the "Vabond Choices" grid slot (95 45 -20)
 KNAVES_TILE = ('<Button onclick="makeFaction" onMouseEnter="infoOfficialContent" '
@@ -36,10 +41,12 @@ KNAVES_TILE = ('<Button onclick="makeFaction" onMouseEnter="infoOfficialContent"
 
 
 def apply(text):
-    # 1. hide the nav bar on the solo Faction Board (anchor unique to makeFactionSelector)
-    text = framework.splice_after_unique(text, "board1.locked = false", NAV_HIDE)
+    # 1. spawn the solo Faction Board hidden below the table
+    text = framework.replace_unique(text, framework.esc(FINAL_POS), framework.esc(HIDDEN_POS))
+    # 2. strip the nav + raise it (already configured) in one hidden pass — no visible flash
+    text = framework.splice_after_unique(text, "board1.locked = false", REVEAL)
 
-    # 2. replace the "Vabond Choices" submenu tile with a direct Knaves faction tile
+    # 3. replace the "Vabond Choices" submenu tile with a direct Knaves faction tile
     text, n = framework.remove_xml_buttons_by_onclick(text, "vagabondChoices")
     if n != 1:
         raise framework.BuildError("expected exactly 1 'Vabond Choices' button, found %d" % n)

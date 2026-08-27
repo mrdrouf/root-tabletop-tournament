@@ -68,8 +68,8 @@ end
 -- it at the clearing's centre, upright (rotY 180, uniform so every number reads the same
 -- way), locked, tagged "Map Object" so the next map build clears it.
 RTT_MARSH_RANK = {
-  { -23.584, 11.719,  19.613 },   -- 1  FIX7
-  { -13.504, 11.739,   5.340 },   -- 2  pair A.up
+  { -13.504, 11.739,   5.340 },   -- 1  pair A.up  (Adrien: "the current 2 should be 1")
+  { -23.584, 11.719,  19.613 },   -- 2  FIX7
   {  -2.042, 11.719,  21.443 },   -- 3  FIX8
   {   5.947, 11.717,  20.588 },   -- 4  pair C.up
   {  16.941, 11.719,  11.653 },   -- 5  FIX6

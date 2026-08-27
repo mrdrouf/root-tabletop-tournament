@@ -38,7 +38,7 @@ NAME = "per-faction setup extras (all paths) + Mountain landmark"
 LIZARD_WIZ_POS = (-29.632, 1.552, 10.238)
 # the frog pond's WORLD resting spot (the central special area) — was wrongly read off
 # RTT_LIZ_WIZ, which is now a makeSpecialWithTag INPUT (y 1.55), sending the pond underground.
-POND_FROG_POS = (-30.437, 11.562, 12.486)
+POND_FROG_POS = (-30.970, 11.562, 21.682)
 POND_SHIFT_POS = (-31.217, 11.562, 21.567)
 
 # Mountain landmark: centre-clearing suit snap (where Adrien stood the Lost City), and the
@@ -211,6 +211,8 @@ end
 -- ---- Corvid Conspiracy (crows): 12 plots, 3 of each type, in a clean 4x3 grid --------
 RTT_CROW_COLS = { -0.400, -0.577, -0.754, -0.931 }
 RTT_CROW_ROWS = { -1.166, -1.353, -1.540 }
+-- the 4 starting Corvid warriors, board-local (recorded from Adrien's save): a row by the supply
+RTT_CROW_WAR = { { 0.330, -1.157 }, { 0.499, -1.157 }, { 0.668, -1.157 }, { 0.837, -1.157 } }
 
 function rttCrowsPlots(cx, cz, flip)
   local board = rttFindSeatBoard(cx, cz)
@@ -236,6 +238,24 @@ function rttCrowsPlots(cx, cz, flip)
       rotation = { 0, ry, 180 },            -- face DOWN
       callback_function = function(o) o.setLock(false) end
     })
+  end
+  -- 4 starting warriors on the seat board (recorded board-local offsets), placed instantly
+  local cw = {}
+  for _, o in ipairs(getAllObjects()) do
+    if (o.getName() or "") == "Corvid Warrior" then cw[#cw + 1] = o end
+  end
+  for i = 1, math.min(4, #cw) do
+    local off = RTT_CROW_WAR[i]
+    local w = board.positionToWorld({ off[1], 0.02, off[2] })
+    if cw[i].getLock and cw[i].getLock() then cw[i].setLock(false) end
+    cw[i].setPosition({ w.x, w.y + 0.5, w.z })
+  end
+  -- drop the Corvid "Bot Interactions" reference card (CardID 29900) — human tournament, no bots
+  for _, o in ipairs(getAllObjects()) do
+    if o.name == "Card" or o.name == "CardCustom" then
+      local ok, dt = pcall(function() return o.getData() end)
+      if ok and dt ~= nil and dt.CardID == 29900 then pcall(function() o.destruct() end) end
+    end
   end
 end
 
@@ -266,13 +286,9 @@ end
 
 -- ---- Lizard Cult ----------------------------------------------------------
 function rttLizardSetup()
+  -- keep the Outcast Marker (it belongs ON the Lizard Wizard) — do NOT destruct it.
   makeSpecialWithTag("Tools", "Lizard Wizard",
     RTT_LIZ_WIZ[1], RTT_LIZ_WIZ[2], RTT_LIZ_WIZ[3], "Faction")
-  Wait.time(function()
-    for _, o in ipairs(getAllObjects()) do
-      if (o.getName() or "") == "Outcast Marker" then pcall(function() o.destruct() end) end
-    end
-  end, 0.8)
   Wait.time(function() rttRepositionPond() end, 1.0)
 end
 
