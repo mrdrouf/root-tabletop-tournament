@@ -37,13 +37,11 @@ starts in its final container/position:
       `assets/upload/marsh_5p_label.png` (Marsh art left, "Marsh / 5 Players" right, cream serif),
       then repoint the `FivePlayerArt` URL (m540 SWAPS) + set the button `color="#ffffff"` (m500
       MARSH5P_NEW). Waiting on the image.
-- [ ] **Mountain landmark direct spawn**: the landmark model+card ALREADY spawn directly; the flash
-      is the central *Clearing Marker* (suit token) spawning visible then being destruct+replaced.
-      Fix (clean): drop the central clearing-marker data entry at build time (m445-style filter on
-      Mountain), so only 11 markers spawn + shuffle; `rttMountainLandmark` then stops reading a
-      marker and just spawns the landmark. (m500 rttMountainHideTower / m490 rttMountainLandmark.)
-- [ ] **Landmark explanation cards — flip**: one token — m490:543 `rttSpawnLandmarkAt(... 165, 0 ...)`
-      -> `165, 180` (Mountain card to RULES/BackURL face). Marsh 5p towns already pass 180 (correct).
+- [x] **Mountain landmark direct spawn** (DONE): m590 removes the central clearing marker (1b3b99)
+      from the Mountain data at build time (11 markers spawn, shuffleMaps is count-safe);
+      rttMountainLandmark no longer reads/destroys a marker — spawns a random landmark directly.
+- [x] **Landmark explanation cards — flip** (DONE): m490 Mountain landmark now passes crotZ 180
+      (RULES/BackURL face up). Marsh 5p towns already correct.
 
 ### Draft path — remaining golden-rule cleanups (fold into the draft rework)
 - [ ] **Crows plots/warriors**: rttCrowsPlots respawns plots face-down + repositions warriors at

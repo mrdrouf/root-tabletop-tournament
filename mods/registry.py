@@ -75,6 +75,7 @@ from . import m550_marquise_keep
 from . import m560_bats_warriors
 from . import m570_marquise_warriors
 from . import m580_lilypad_pond
+from . import m590_mountain_central_marker
 # m450_label_icons DISABLED: confirmed custom (non-Steam) UI icons blank in TTS
 
 # Ready-made examples — uncomment to begin layering real modifications:
@@ -142,6 +143,7 @@ MODS = [
     m550_marquise_keep,      # bake the enlarged Marquise Keep
     m560_bats_warriors,      # bake bats warriors + assemblies (direct spawn)
     m570_marquise_warriors,  # bake the 3 staging Marquise warriors (direct spawn)
-    m580_lilypad_pond,       # spawn The Pond below the table (revealed in place, no flash)
+    m580_lilypad_pond,       # remove The Pond from the blueprint; spawn it directly at its world spot
+    m590_mountain_central_marker,  # drop Mountain's central clearing marker (landmark, no flash)
     # m450_label_icons,  # DISABLED — custom UI icons blank in TTS; VB/Landmarks stay on Steam art
 ]

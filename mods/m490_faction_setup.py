@@ -509,35 +509,17 @@ RTT_MTN_LM = { %(mx).3f, %(my).3f, %(mz).3f }
 RTT_MTN_CARD = { %(kx).3f, %(ky).3f, %(kz).3f }
 RTT_MTN_CARD_SCALE = %(ks).3f
 
+RTT_MTN_LANDMARKS = { "Lost City", "Rabbit-Town", "Foxburrow", "Mousehold" }
+
 function rttMountainLandmark()
-  -- the central clearing sits at RTT_MTN_LM (the Tower is now hidden below the table by
-  -- rttMountainHideTower, so we don't read its position); its suit marker is the nearest
-  -- "Clearing Marker" to that centre.
-  local cx, cz = RTT_MTN_LM[1], RTT_MTN_LM[3]
-  local marker, md = nil, 1e9
-  for _, o in ipairs(getObjectsWithTag("Clearing Marker")) do
-    local p = o.getPosition()
-    local d = (p.x - cx) ^ 2 + (p.z - cz) ^ 2
-    if d < md then md = d; marker = o end
-  end
-  local suit = nil
-  if marker ~= nil then
-    local ok, co = pcall(function() return marker.getCustomObject() end)
-    local url = (ok and co and (co.diffuse or co.mesh)) or ""
-    for handle, s in pairs(RTT_SUIT_TEX) do
-      if string.find(url, handle, 1, true) then suit = s break end
-    end
-  end
-  local roll = math.random(0, 3)                   -- 0 => Lost City, else the suit's landmark
-  local name = "Lost City"
-  if roll ~= 0 and suit ~= nil then name = RTT_SUIT_LM[suit] end
-  -- the landmark REPLACES the central suit marker (the Tower is already parked below the
-  -- table by rttMountainHideTower, so there is nothing to destroy here — `towers` was an
-  -- undefined global and ipairs(nil) crashed the whole function before the landmark spawned)
-  if marker ~= nil then pcall(function() marker.destruct() end) end
+  -- The central clearing has NO suit marker (m590 removes it from the Mountain data), and the
+  -- Tower is hidden — so the landmark just spawns DIRECTLY at RTT_MTN_LM. Nothing to read or
+  -- destroy first (no marker flash). Pick one of the four landmarks at random; the landmark card
+  -- itself defines the clearing's suit.
+  local name = RTT_MTN_LANDMARKS[math.random(1, #RTT_MTN_LANDMARKS)]
   rttSpawnLandmarkAt(name, RTT_MTN_LM[1], RTT_MTN_LM[2], RTT_MTN_LM[3],
                      RTT_MTN_CARD[1], RTT_MTN_CARD[2], RTT_MTN_CARD[3],
-                     165, 0, RTT_MTN_CARD_SCALE)
+                     165, 180, RTT_MTN_CARD_SCALE)  -- crotZ 180 = RULES face up (BackURL)
 end
 
 -- spawn a landmark's model (standing) + its rules card (rules side up) DIRECTLY at their
@@ -545,7 +527,7 @@ end
 -- map pieces — no visible slide/rotate. spawnObjectJSON's position/rotation override the
 -- data's baked (flat) transform. EVERYTHING is on this board (self), so it's in scope.
 -- mrotY  = standing-model world rotY (Mountain=165; Marsh towns pass the clearing's suit rotY)
--- crotZ  = rules-card rotZ (Mountain=0; Marsh towns pass 180, matching Adrien's saved cards)
+-- crotZ  = rules-card rotZ; 180 = RULES/BackURL face up (Mountain=180, Marsh towns=180)
 -- cscale = rules-card XZ scale, or nil to leave the card at its blueprint scale (Marsh towns)
 -- both the model and the card spawn LOCKED (Adrien wants landmarks + their cards fixed).
 function rttSpawnLandmarkAt(name, mx, my, mz, cx, cy, cz, mrotY, crotZ, cscale)

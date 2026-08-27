@@ -573,6 +573,30 @@ def stow_loose_in_bag(text, category, faction, piece_guids, bag_guid):
     return text[:h] + entry + text[j:]
 
 
+def remove_loose_piece(text, category, name, guid):
+    """Delete one loose `{move_to={...}, json=[[{...guid...}]]}` data entry (and one adjacent
+    comma) from EVERYTHING[category][name]['data']. The piece then never spawns — the clean way
+    to drop e.g. the central clearing marker that a landmark replaces. Scoped to the one entry."""
+    h, j = everything_entry_span(text, category, name)
+    entry = text[h:j]
+    a = QT + 'GUID' + QT + ': ' + QT + guid + QT
+    if entry.count(a) != 1:
+        raise BuildError("piece %s not unique in %s/%s (%d)" % (guid, category, name, entry.count(a)))
+    g = entry.find(a)
+    estart = entry.rfind('{move_to={', 0, g)
+    if estart == -1:
+        raise BuildError("%s has no loose {move_to=...} entry" % guid)
+    eend = entry.find(']]}', g) + 3
+    if entry[estart - 1] == ',':
+        cs, ce = estart - 1, eend
+    elif eend < len(entry) and entry[eend] == ',':
+        cs, ce = estart, eend + 1
+    else:
+        cs, ce = estart, eend
+    entry = entry[:cs] + entry[ce:]
+    return text[:h] + entry + text[j:]
+
+
 def clone_data_entry(text, src_guid, new_guid, xyz):
     """Duplicate the `{move_to={...}, json=[[ {..} ]]}` data entry whose object GUID
     is src_guid, give the copy new_guid and move_to xyz, and insert it right after
