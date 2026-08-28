@@ -35,22 +35,31 @@ MARSH_FILE = "_priority_marsh.json"
 
 SPAWNER = r"""
 RTT_PRIO_PIECES = RTT_PRIO_PIECES or {}
+RTT_PRIO_MAP = RTT_PRIO_MAP or nil
 
-function rttSpawnPriority(jsons)
-  for _, o in ipairs(RTT_PRIO_PIECES or {}) do
-    if o ~= nil then pcall(function() o.destruct() end) end
-  end
+-- clear the current priority/number markers. They are tagged "RTT Priority" (NOT "Map Object") so
+-- makeMap's removeMapItems does NOT wipe them every click — we manage them here instead.
+function rttClearPriority()
+  for _, o in ipairs(getObjectsWithTag("RTT Priority")) do pcall(function() o.destruct() end) end
   RTT_PRIO_PIECES = {}
+end
+
+-- Non-Marsh maps: the priority markers are FIXED, so on a SAME-map re-click leave them alone (no
+-- delete/respawn flicker). Only re-spawn when the map actually changed.
+function rttSpawnPriority(id, jsons)
+  if RTT_PRIO_MAP == id then return end
+  rttClearPriority()
   for _, j in ipairs(jsons) do
     local ob = spawnObjectJSON({
       json = j,
       callback_function = function(o)
         o.setLock(true)
-        o.addTag("Map Object")
+        o.addTag("RTT Priority")
       end
     })
     RTT_PRIO_PIECES[#RTT_PRIO_PIECES + 1] = ob
   end
+  RTT_PRIO_MAP = id
 end
 
 -- Marsh number tokens (priority order, skip-excluded-and-renumber).
@@ -93,10 +102,7 @@ RTT_MARSH_RANK = {
 }
 
 function rttSpawnMarshNumbers()
-  for _, o in ipairs(RTT_PRIO_PIECES or {}) do
-    if o ~= nil then pcall(function() o.destruct() end) end
-  end
-  RTT_PRIO_PIECES = {}
+  rttClearPriority()                    -- Marsh ALWAYS re-places: the flood shifts which clearings get a number
   local excl = RTT_MARSH_EXCLUDED or {}
   local n = 0
   for _, cl in ipairs(RTT_MARSH_RANK) do
@@ -117,13 +123,14 @@ function rttSpawnMarshNumbers()
           rotation = { 0, 180, 0 },
           callback_function = function(o)
             o.setLock(true)
-            o.addTag("Map Object")
+            o.addTag("RTT Priority")
           end
         })
         RTT_PRIO_PIECES[#RTT_PRIO_PIECES + 1] = ob
       end
     end
   end
+  RTT_PRIO_MAP = "Marsh Map"
 end
 """
 
@@ -139,8 +146,8 @@ def apply(text):
         # frames(2) lands right after makeMap's synchronous body (removeMapItems +
         # spawn loop) so the markers appear WITH the map, not a beat later. They lock
         # at their exact Y regardless of when the board finishes loading.
-        hooks += ('\n  if id == "%s" then Wait.frames(function() rttSpawnPriority(%s) end, 2) end'
-                  % (map_id, var))
+        hooks += ('\n  if id == "%s" then Wait.frames(function() rttSpawnPriority("%s", %s) end, 2) end'
+                  % (map_id, map_id, var))
 
     # Marsh: build one number-token blob per number 1..12 (the recorded tokens carry the
     # number art in their ImageURL; the last 10 hex of the URL identify the number). We keep
