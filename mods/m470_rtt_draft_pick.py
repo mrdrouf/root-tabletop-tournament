@@ -144,6 +144,12 @@ RTT_SEAT_HAND = {
 RTT_SEATS = {}          -- [seat] = { board=obj, color=<colour|nil>, pos={x,z}, hand=<RTT_SEAT_HAND entry> }
 RTT_BOARD_SEAT = {}     -- [board guid] = seat index
 
+-- ==== seat-by-turn-order-card tables (RTT seating restore) ==================
+RTT_SETUP_COLORS   = { "Red", "Yellow", "Orange", "Teal", "Green", "Brown" }   -- base setupColors: seat N -> colour N
+RTT_HAND_SCALE     = { 20, 6, 4 }                                              -- base handScale (RTT had dropped it)
+RTT_CARDID_FOR_N   = { 800, 801, 802, 805, 806 }                              -- seat N -> "Player N" order-card CardID
+RTT_ORDER_CARD_NUM = { [800]=1, [801]=2, [802]=3, [805]=4, [806]=5 }           -- inverse: order-card CardID -> its number
+
 function rttSpawnSelectors()
   for _, o in ipairs(getObjectsWithTag(RTT_SELECTOR_TAG)) do o.destruct() end
   RTT_CLONES = {}
@@ -165,29 +171,97 @@ function rttSpawnSelectors()
   end
 end
 
--- Seat EVERY player: shuffle the seated players for a random turn order, then assign player i to
--- seat/board i, MOVE that player's hand to their board's seat, and deal the turn-order card into it.
--- (Keeps their colour — no changeColor.) Because we iterate 1..#players, nobody is skipped (the 4th
--- player was being dropped before). Their board is now theirs, so the faction they pick lands there
--- and rttCoordFaction blocks anyone else from grabbing a faction on someone else's board.
+-- Seat by TURN-ORDER CARD, restoring the base placePlayer path (changeColor + base handPositions
+-- geometry + base handScale) but TRIGGERED at turn-order time instead of on faction pick. ONE
+-- shuffle sets the turn order; each player is seated at the seat matching their card's number and
+-- then handed the matching "Player N" card, so it lands in the seated hand (not the off-table reset
+-- strip at x=-77.5 that looked like "trash"). Uses the base's exact SAFE sequence: kick everyone to
+-- Grey FIRST, then a FRESH getPlayers() loop matched by steam_name -- a pre-kick Player ref is stale
+-- after the colour change, which is why capturing refs then kicking would seat nobody.
 function rttSeatPlayers()
-  local ord = getObjectFromGUID(RTT_ORDER_DECK or "")
-  local plist = {}
+  local roster = {}                                     -- [N] = steam_name of the player in seat N
   for _, p in ipairs(Player.getPlayers()) do
-    if p.seated and p.color ~= "Grey" and p.color ~= "Black" then plist[#plist + 1] = p.color end
+    if p.seated and p.color ~= "Grey" and p.color ~= "Black" then roster[#roster + 1] = p.steam_name end
   end
-  for i = #plist, 2, -1 do local j = math.random(i) plist[i], plist[j] = plist[j], plist[i] end
-  for i, color in ipairs(plist) do
-    local seat = RTT_SEATS[i]
-    if seat ~= nil and seat.board ~= nil then
-      seat.color = color
-      RTT_CLONES[color] = seat.board
-      if seat.hand ~= nil and Player[color] ~= nil then
-        pcall(function() Player[color].setHandTransform({ position = seat.hand.pos, rotation = seat.hand.rot }, 1) end)
+  -- ONE randomisation = the turn order. After this, card number == seat (no second shuffle).
+  for i = #roster, 2, -1 do local j = math.random(i) roster[i], roster[j] = roster[j], roster[i] end
+  pcall(function() kickPlayersFromSeats() end)           -- base: everyone -> Grey (frees the colours; no hand reset)
+  local seated = {}                                      -- [N] = seat colour, for the deferred card
+  for _, p in ipairs(Player.getPlayers()) do             -- FRESH, post-kick (base pattern): refs are valid
+    for N = 1, #roster do
+      if p.steam_name == roster[N] then
+        local seat = RTT_SEATS[N]
+        if seat ~= nil and seat.board ~= nil and seat.hand ~= nil then
+          local color = RTT_SETUP_COLORS[N]
+          pcall(function() p.changeColor(color) end)     -- base placePlayer op 1: put the player INTO the seat colour
+          pcall(function()                               -- base placePlayer op 2: move that colour's hand zone (+ base scale)
+            Player[color].setHandTransform(
+              { position = seat.hand.pos, rotation = seat.hand.rot, scale = RTT_HAND_SCALE }, 1)
+          end)
+          seat.color = color
+          RTT_CLONES[color] = seat.board
+          seated[N] = color
+        end
+        break
       end
-      if ord ~= nil and ord.deal then pcall(function() ord.deal(1, color) end) end
     end
   end
+  -- base pattern: seat, ~20-frame settle, THEN deliver the matching order card.
+  Wait.frames(function() rttDealOrderCards(seated) end, 20)
+end
+
+-- world point just above seat N's hand zone: a card dropped here falls into the owned hand.
+function rttSeatHandWorld(N)
+  local h = RTT_SEATS[N].hand.pos
+  return { h[1], (h[2] or 14.62) + 2, h[3] }
+end
+
+-- Give each seated player the "Player N" card that MATCHES their seat, addressed by intrinsic CardID
+-- (robust to runtime GUID reassignment), delivered into their hand. Seat colour was forced to
+-- RTT_SETUP_COLORS[N] and the card is RTT_CARDID_FOR_N[N], so card number == seat by construction.
+function rttDealOrderCards(seated)
+  local deck = getObjectFromGUID(RTT_ORDER_DECK or "")
+  if deck == nil then return end
+  -- map CardID -> contained-card GUID ONCE, up front (guids stay stable as others are taken; the
+  -- guid of the last card survives even after the deck collapses to a single Card).
+  local guidFor = {}
+  local ok, d = pcall(function() return deck.getData() end)
+  if ok and d ~= nil then
+    if d.ContainedObjects ~= nil then
+      for _, c in ipairs(d.ContainedObjects) do guidFor[c.CardID] = c.GUID end
+    elseif d.CardID ~= nil then
+      guidFor[d.CardID] = deck.getGUID()
+    end
+  end
+  local order = {}
+  for N in pairs(seated) do order[#order + 1] = N end
+  table.sort(order)
+  local function deliver(i)
+    if i > #order then return end
+    local N     = order[i]
+    local color = seated[N]
+    local cid   = RTT_CARDID_FOR_N[N]
+    local g     = (cid ~= nil) and guidFor[cid] or nil
+    if g ~= nil and color ~= nil then
+      local hp = rttSeatHandWorld(N)
+      local o  = getObjectFromGUID(RTT_ORDER_DECK or "")
+      local isDeck = false
+      if o ~= nil then
+        local ok2, dd = pcall(function() return o.getData() end)
+        if ok2 and dd ~= nil and dd.ContainedObjects ~= nil then isDeck = true end
+      end
+      if isDeck then
+        pcall(function()
+          o.takeObject({ guid = g, position = hp, rotation = RTT_SEATS[N].hand.rot, smooth = false })
+        end)
+      else                                               -- deck collapsed: the card is loose now
+        local c = getObjectFromGUID(g)
+        if c ~= nil then pcall(function() c.setPositionSmooth(hp, false, false) end) end
+      end
+    end
+    Wait.time(function() deliver(i + 1) end, 0.25)       -- one at a time = no deck-busy / collapse race
+  end
+  deliver(1)
 end
 
 function rttBeginPick()

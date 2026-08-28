@@ -33,6 +33,15 @@ function rttFivePStart(player, value, id)
   RTT_5P_MARSH = true
 end
 
+-- place the 5-player Marsh MAP only (no draft/selectors/seating). Sets the flag that the makeMap
+-- Marsh branch + landmark hook + number-token hook all read, then reuses the base rttPlaceMap path
+-- exactly like a plain map button. RTT_5P_MARSH is left true (the async landmark/number hooks
+-- early-return on false); rttSetup resets it on the next ranked/5p launch.
+function rttPlaceMarsh5P(player, value, id)
+  RTT_5P_MARSH = true
+  rttPlaceMap("Marsh Map")
+end
+
 -- 5-player Marsh plan: no flooding; all 15 clearings active; 3 random -> town landmarks,
 -- the other 12 -> the 12 suit markers. Reuses m440's RTT_MARSH_SUIT9 / RTT_MARSH data.
 function rttMarshPlan5P(objects)
@@ -209,7 +218,9 @@ MARSH5P_OLD = ('<Button id="Marsh5P" onclick="rttMarsh5P" text="5 Players" '
                'position="95 -69.5 -20" width="34" height="17" fontSize="7" color="#9b8551"/>')
 # keep Adrien's original half-rectangle shape/spot; art + new handler + dominant-colour frame
 MARSH5P_NEW = ('<Button id="Marsh5P" onclick="rttFivePStart" icon="FivePlayerArt" '
-               'position="57 -69.5 -20" width="34" height="17" color="#ffffff"/>')  # Swol Birbs slot
+               'position="57 -69.5 -20" width="34" height="17" color="#ffffff"/>'
+               '<Button id="Marsh5PMap" onclick="rttPlaceMarsh5P" icon="Marsh Map" '
+               'position="95 -69.5 -20" width="34" height="17" color="#9b8551"/>')  # Swol Birbs slot (draft) + place-map sibling
 
 
 def _sub(text, old, new, label):
