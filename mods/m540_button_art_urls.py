@@ -26,7 +26,7 @@ SWAPS = {
         "https://steamusercontent-a.akamaihd.net/ugc/13747817220151181841/9A47D69E9103B9502DBED36BEA4DA6F9C70C6EB8/"),
     "FivePlayerArt": (
         "https://steamusercontent-a.akamaihd.net/ugc/13228007358041271497/D7F3C16E093B57844CA249AAEEF2D59C0219B76D/",
-        "https://steamusercontent-a.akamaihd.net/ugc/9432553611997660064/10534C207FE7EE732F52BFC961670065F9CF0813/"),
+        "https://steamusercontent-a.akamaihd.net/ugc/10646501209524696434/622AC9B1FA1D4C6B239DF99C896C07640F449574/"),  # Marsh 5-player label (real map art)
     "Clearing Priorities Big": (
         "https://steamusercontent-a.akamaihd.net/ugc/1725416402719800299/10FBE62951D9E567FEB3DE44340D49C41EB89D21/",
         "https://steamusercontent-a.akamaihd.net/ugc/17343862070314210598/A5AFE2885F4656D394532C9DA4E260DAEBB5D271/"),
