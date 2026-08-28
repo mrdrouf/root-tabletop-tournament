@@ -81,7 +81,9 @@ from . import m610_lost_city_card
 from . import m620_crow_warriors
 from . import m630_remove_swol_birbs
 from . import m640_fix_coldload_ui
-from . import m650_coldload_selfheal   # now: auto-respawn the setup board once (simulate the 2nd load)
+# m650_coldload_selfheal DISABLED for the m660 trim A/B (its 27s respawn would mask/blank the result).
+# from . import m650_coldload_selfheal
+from . import m660_trim_setup_assets   # trim bab7e1 CustomUIAssets 541 -> ~147 (cheap cold-load A/B)
 # m450_label_icons DISABLED: confirmed custom (non-Steam) UI icons blank in TTS
 
 # Ready-made examples — uncomment to begin layering real modifications:
@@ -155,7 +157,8 @@ MODS = [
     m610_lost_city_card,           # swap the outdated Lost City rules-card art
     m620_crow_warriors,            # bake Corvid warriors + moved supply (direct spawn)
     m630_remove_swol_birbs,        # replace the Swol Birbs fan option with the Marsh 5p button
-    m640_fix_coldload_ui,          # cold-load: remove the frame-100 setCustomAssets (no re-stomp on respawn)
-    m650_coldload_selfheal,        # cold-load: auto-respawn the setup board once (simulate the 2nd load)
+    m640_fix_coldload_ui,          # cold-load: remove the frame-100 setCustomAssets (no re-stomp)
+    # m650_coldload_selfheal,      # DISABLED for the m660 trim A/B (respawn would mask the result)
+    m660_trim_setup_assets,        # cold-load: trim bab7e1 CustomUIAssets 541 -> ~147 (art-safe)
     # m450_label_icons,  # DISABLED — custom UI icons blank in TTS; VB/Landmarks stay on Steam art
 ]
