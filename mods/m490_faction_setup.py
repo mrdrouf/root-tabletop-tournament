@@ -50,7 +50,7 @@ MTN_CARD_POS = (-29.303, 11.575, -19.899)
 MTN_CARD_SCALE = 2.299
 
 # dispatch after each faction spawns — draft path (inside rttCoordFaction, after rttSpawnFaction)
-DISPATCH = ('\n  Wait.time(function() rttFactionExtras(faction, bp.x, bp.z, bp.z > 0) end, 1.2)')
+DISPATCH = ('\n  Wait.time(function() rttFactionExtras(faction, bp.x, bp.z, bp.z > 0, true) end, 1.2)')
 KNAVES_ANCHOR = "  rttSpawnFaction(faction, bp.x, bp.z, bp.z > 0)       -- no dice; warriors baked in the data"
 
 # dispatch after each faction spawns — SELECTOR path (inside makeFaction, after setupFaction)
@@ -58,7 +58,7 @@ SELECTOR_ANCHOR = "  setupFaction(category,id,player.color,false)"
 SELECTOR_DISPATCH = (
     "  setupFaction(category,id,player.color,false)\n"
     "  do local cp = self.getPosition()\n"
-    "    Wait.time(function() rttFactionExtras(id, cp.x, cp.z, cp.z > 0) end, 1.2) end")
+    "    Wait.time(function() rttFactionExtras(id, cp.x, cp.z, cp.z > 0, false) end, 1.2) end")
 
 # Mountain: rttPlaceMap's tower-destroy branch (m470) — REMOVE it; makeMap now drives the
 # landmark (so both draft and direct-click fire it), and it needs the Tower alive to locate
@@ -92,12 +92,12 @@ RTT_LIZ_OUTCAST = { %(ox).3f, %(oy).3f, %(oz).3f }
 RTT_POND_SHIFT = { %(px).3f, %(py).3f, %(pz).3f }
 RTT_POND_FROG = { %(fx).3f, %(fy).3f, %(fz).3f }
 
-function rttFactionExtras(faction, cx, cz, flip)
+function rttFactionExtras(faction, cx, cz, flip, isDraft)
   if faction == "The Lizard Cult" then rttLizardSetup()
   elseif faction == "Lilypad Diaspora" then rttFrogsSetup()
   elseif faction == "Keepers in Iron" then rttBadgerRelics()
   -- Twilight Council (bats) now spawns from the baked blueprint (m560) — no runtime setup
-  elseif faction == "Corvid Conspiracy" then rttCrowsPlots(cx, cz, flip)
+  elseif faction == "Corvid Conspiracy" then rttCrowsPlots(cx, cz, flip, isDraft)
   -- Underground Duchy (moles) now spawns 7 loose + 13 bagged from the blueprint (m300) — no tuck
   -- Knaves captains now spawn under the DRAFT CARDS (rttDraftKnavesCaptains), not with the board
   elseif faction == "Marquise de Cat" then rttMarquiseCats(cx, cz, flip)
@@ -290,7 +290,7 @@ RTT_CROW_ROWS = { -1.166, -1.353, -1.540 }
 -- the 4 starting Corvid warriors, board-local (recorded from Adrien's save): a row by the supply
 RTT_CROW_WAR = { { 0.330, -1.157 }, { 0.499, -1.157 }, { 0.668, -1.157 }, { 0.837, -1.157 } }
 
-function rttCrowsPlots(cx, cz, flip)
+function rttCrowsPlots(cx, cz, flip, isDraft)
   local board = rttFindSeatBoard(cx, cz)
   if board == nil then return end
   for _, o in ipairs(getAllObjects()) do
@@ -318,7 +318,7 @@ function rttCrowsPlots(cx, cz, flip)
   -- the 4 starting warriors + moved supply are BAKED into the blueprint now (m620) — no reposition.
   -- spawn Adrien's hidden-plot cover (a Hidden Zone), coloured to the crow player's seat so only they
   -- can see their plots (the parked cover was grey = visible to all).
-  rttCrowsHiddenZone(board, cx, cz)
+  rttCrowsHiddenZone(board, cx, cz, isDraft)
   -- drop the Corvid "Bot Interactions" reference card (CardID 29900) — human tournament, no bots
   for _, o in ipairs(getAllObjects()) do
     if o.name == "Card" or o.name == "CardCustom" then
@@ -331,8 +331,19 @@ end
 -- Adrien's hidden-plot cover: a Hidden Zone (FogOfWarTrigger) parked to the RIGHT of the plot grid.
 -- Its FogColor decides who can see inside; grey/White = everyone, so we recolour it to the crow
 -- player's own colour (the seated player nearest the crow board) so only they can see their plots.
-function rttCrowsHiddenZone(board, cx, cz)
+function rttCrowsHiddenZone(board, cx, cz, isDraft)
   if board == nil or RTT_CROW_HZ_JSON == nil then return end
+  if not isDraft then return end                 -- only the automated draft, not the faction selector
+  -- 5-player game: skip for the 1st/2nd/3rd seats (Adrien's exception)
+  local seat, sbest = nil, nil
+  if RTT_SEATS ~= nil then
+    for i, s in ipairs(RTT_SEATS) do
+      local d = (s.pos[1] - cx) ^ 2 + (s.pos[2] - cz) ^ 2
+      if sbest == nil or d < sbest then sbest = d; seat = i end
+    end
+  end
+  if RTT_5P_MARSH and seat ~= nil and seat <= 3 then return end
+  -- crow player's colour = the seated player nearest the crow board
   local color, best = "White", nil
   for _, p in ipairs(Player.getPlayers()) do
     if p.seated and p.color ~= "Grey" and p.color ~= "Black" then
@@ -344,8 +355,9 @@ function rttCrowsHiddenZone(board, cx, cz)
       end
     end
   end
-  -- board-local spot of Adrien's parked cover (its selector move_to, un-scaled onto the board frame)
-  local w = board.positionToWorld({ 3.163, 0.30, 0.404 })
+  -- board-LOCAL spot of Adrien's cover; board.positionToWorld rotates it to the RIGHT of the plots
+  -- for ANY seat (the board's blueprint frame is rotated 180, hence the negative signs).
+  local w = board.positionToWorld({ -3.163, 0.30, -0.404 })
   local blob = string.gsub(RTT_CROW_HZ_JSON, '"FogColor":"White"', '"FogColor":"' .. color .. '"')
   spawnObjectJSON({
     json = blob,
