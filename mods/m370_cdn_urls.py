@@ -20,5 +20,7 @@ CDN = "https://cdn.jsdelivr.net/gh/mrdrouf/root-tabletop-tournament@main"
 def apply(text):
     n = text.count(RAW)
     if n == 0:
-        raise framework.BuildError("no raw.githubusercontent URLs found to swap")
+        # Nothing custom-hosted to swap. This is now the normal case: the board (the only
+        # non-Steam asset) is on Steam. Kept as a no-op safety net for any future GitHub-raw asset.
+        return text
     return text.replace(RAW, CDN)
