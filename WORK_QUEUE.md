@@ -26,11 +26,10 @@ starts in its final container/position:
       into the blueprint; removed the runtime warrior reposition. Hidden Zone (FogOfWarTrigger) spawned
       on the crow board, recoloured grey->crow player's seat colour (rttCrowsHiddenZone). VERIFY in TTS:
       hidden-zone position over/right of the plots, and that the FogColor recolour + spawn actually work.
-- [ ] **Box score — FIXED format** (DEFERRED, needs a focused pass): make the layout NOT resize by
-      players/VP — pre-format for 4 (default) / 5 (if pressed). It's a large adaptive object (m470
-      _boxscore.json, 88KB): `showR = max(S.cols+1, maxLocks+2)` grows the VP columns as scores rise,
-      and rows grow as players join. Fixing safely = force showR from a fixed VP span + pre-allocate
-      4/5 rows at spawn. Do as its own task (touches the root_boxscore object's layout).
+- [x] **Box score — FIXED format** (DONE, VERIFY): pinned showR (no column growth) + reserve nMin
+      rows (4 ranked / 5 for 5p, via Global RTT_BOXSCORE_MIN set in rttSpawnBoxScore); blank placeholder
+      rows fill empty slots, all interactive controls gated `not placeholder`. Grows past nMin for more
+      players. No text resize by players/VP.
 - [ ] **Runes randomise on re-click** — verify (uses shuffle(), now fixed by m600, so it does).
 
 ## OPEN
