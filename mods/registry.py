@@ -81,10 +81,7 @@ from . import m610_lost_city_card
 from . import m620_crow_warriors
 from . import m630_remove_swol_birbs
 from . import m640_fix_coldload_ui
-# m650_coldload_selfheal DISABLED: it re-called setCustomAssets/setXml (5s/12s), re-doing the exact
-# stomp m640 removes -> it sabotaged the m640 fix. The cold-load blank is the frame-100 setCustomAssets
-# re-registering our (uncached) new-upload icons a beat after they render, blanking the whole setup UI.
-# from . import m650_coldload_selfheal
+from . import m650_coldload_selfheal   # now: auto-respawn the setup board once (simulate the 2nd load)
 # m450_label_icons DISABLED: confirmed custom (non-Steam) UI icons blank in TTS
 
 # Ready-made examples — uncomment to begin layering real modifications:
@@ -158,7 +155,7 @@ MODS = [
     m610_lost_city_card,           # swap the outdated Lost City rules-card art
     m620_crow_warriors,            # bake Corvid warriors + moved supply (direct spawn)
     m630_remove_swol_birbs,        # replace the Swol Birbs fan option with the Marsh 5p button
-    m640_fix_coldload_ui,          # cold-load: remove the frame-100 setCustomAssets that STOMPS the UI
-    # m650_coldload_selfheal,      # DISABLED — it re-stomped (setCustomAssets/setXml); see import note
+    m640_fix_coldload_ui,          # cold-load: remove the frame-100 setCustomAssets (no re-stomp on respawn)
+    m650_coldload_selfheal,        # cold-load: auto-respawn the setup board once (simulate the 2nd load)
     # m450_label_icons,  # DISABLED — custom UI icons blank in TTS; VB/Landmarks stay on Steam art
 ]

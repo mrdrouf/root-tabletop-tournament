@@ -1,19 +1,23 @@
 """
-m650 — cold-load self-heal: repaint bab7e1's setup UI a few seconds after load so the
-brand-new (uncached) personal-upload icons appear on the FIRST session, without a manual
-2nd load. Additive only: it appends two Wait.time repaints after the setup branch's
-Turns.order line (which sits after `assets` is built). Deletes nothing; runs only in the
-setup (!= "Faction Board") branch, so runtime clones (solo Faction Board, seat selectors)
-are never touched.
+m650 — cold-load: SIMULATE THE SECOND LOAD (Adrien's suggestion).
 
-Pairs with the m640 revert (base onLoad setCustomAssets call restored). `assets` is the
-global onLoad table (m510 already rides ThemeArt/RankedArt/FivePlayerArt at its head, m540
-repoints FivePlayerArt's URL), so re-registering it + re-applying the saved XmlUI forces a
-repaint with the now-downloaded textures. 6s/14s are heuristics — tune on a real cold launch.
+On a cold load the setup board's custom-UI icons are not yet on disk, so TTS draws the
+buttons blank and never repaints them -- only a manual 2nd load (assets now cached) fixes
+it. Re-applying the UI from Lua (setXml / setCustomAssets) does NOT fix it (tried, failed):
+the object has to be re-instantiated, which is exactly what a 2nd load does.
+
+So we do that automatically, ONCE: a few seconds after load -- long enough for the small
+icon files to finish downloading -- the setup board respawns itself from its own JSON. The
+respawned object reads the now-cached assets and renders the buttons, just like the manual
+2nd load. Safe because at LOAD (before any draft) nothing else references this board yet.
+
+A Global flag (reset on every real save-load) makes the respawn happen once per load and
+stops the respawned board from respawning again (no loop). Pairs with m640 (no frame-100
+setCustomAssets), so the respawned board is not re-stomped.
 """
 from . import framework
 
-NAME = "cold-load self-heal: delayed setup-UI repaint (no manual 2nd load)"
+NAME = "cold-load: auto-respawn the setup board once (simulate the 2nd load) so the UI renders"
 
 # raw-escaped Turns.order line inside the setup branch (unique; count == 1)
 ANCHOR = ('Turns.order =   {' + framework.QT + 'Red' + framework.QT + ',' +
@@ -24,20 +28,18 @@ ANCHOR = ('Turns.order =   {' + framework.QT + 'Red' + framework.QT + ',' +
           framework.QT + 'Brown' + framework.QT + '}')
 
 # literal Lua appended right after the anchor (esc() handles JSON-escaping)
-SELFHEAL = (
-    # Capture the REAL setup XML at load (before any blank), then force a rebuild after the
-    # (uncached, new-upload) icons have had time to download, so the buttons appear on the FIRST
-    # load. Using the captured XML (not getXml() at repaint time, which returns the blanked UI) is
-    # the fix vs the previous attempt.
-    "\n    if RTT_SETUP_XML0 == nil then pcall(function() RTT_SETUP_XML0 = self.UI.getXml() end) end"
-    "\n    local function _rttRepaint()"
-    "\n      if self == nil or self.UI == nil then return end"
-    "\n      if RTT_SETUP_XML0 == nil or RTT_SETUP_XML0 == '' then return end"
-    "\n      pcall(function() self.UI.setCustomAssets(assets) end)"
-    "\n      pcall(function() self.UI.setXml(RTT_SETUP_XML0, assets) end)"
+RESPAWN = (
+    "\n    if Global.getVar('RTT_SETUP_REBORN') ~= true then"
+    "\n      Wait.time(function()"
+    "\n        if self == nil then return end"
+    "\n        Global.setVar('RTT_SETUP_REBORN', true)"
+    "\n        local _j = self.getJSON()"
+    "\n        local _p = self.getPosition()"
+    "\n        local _r = self.getRotation()"
+    "\n        self.destruct()"
+    "\n        spawnObjectJSON({ json = _j, position = _p, rotation = _r })"
+    "\n      end, 10)"
     "\n    end"
-    "\n    Wait.time(_rttRepaint, 5)"
-    "\n    Wait.time(_rttRepaint, 12)"
 )
 
 
@@ -45,4 +47,4 @@ def apply(text):
     n = text.count(ANCHOR)
     if n != 1:
         raise framework.BuildError("m650 Turns.order anchor not unique: %d" % n)
-    return text.replace(ANCHOR, ANCHOR + framework.esc(SELFHEAL), 1)
+    return text.replace(ANCHOR, ANCHOR + framework.esc(RESPAWN), 1)
