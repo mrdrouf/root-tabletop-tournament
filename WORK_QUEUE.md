@@ -24,13 +24,21 @@ starts in its final container/position:
 - [x] Seating: hand moved to board by turn order, all players seated (VERIFY in TTS).
 - [x] **Crows** (DONE, VERIFY): m620 bakes 4 warriors (3 loose + un-stow the 4th) + the moved supply
       into the blueprint; removed the runtime warrior reposition. Hidden Zone (FogOfWarTrigger) spawned
-      on the crow board, recoloured grey->crow player's seat colour (rttCrowsHiddenZone). VERIFY in TTS:
-      hidden-zone position over/right of the plots, and that the FogColor recolour + spawn actually work.
+      on the crow board, recoloured grey->crow player's seat colour (rttCrowsHiddenZone). **Side fixed**:
+      board-local offset now (-3.163,-0.404) so positionToWorld rotates it to the RIGHT of the plots for
+      ANY seat (board blueprint rotY=180); draft-path ONLY (isDraft flag, not the faction selector); and
+      SKIPPED for 5-player seats 1-3 (RTT_SEATS nearest match). VERIFY in TTS: right side on every seat.
 - [x] **Box score — FIXED format** (DONE, VERIFY): pinned showR (no column growth) + reserve nMin
       rows (4 ranked / 5 for 5p, via Global RTT_BOXSCORE_MIN set in rttSpawnBoxScore); blank placeholder
       rows fill empty slots, all interactive controls gated `not placeholder`. Grows past nMin for more
       players. No text resize by players/VP.
 - [ ] **Runes randomise on re-click** — verify (uses shuffle(), now fixed by m600, so it does).
+- [x] **Cold-load "setup board shows nothing until loaded twice"** (DONE, VERIFY): root cause = onLoad's
+      `Wait.frames(setCustomAssets(assets), 100)` on bab7e1. It's redundant (saved CustomUIAssets already
+      has all 541 icons, verified identical names+URLs) and on a COLD cache it replaces the asset table
+      before the Steam downloads finish, blanking setupButtons with no re-render -> only a warm 2nd load
+      recovered. m640 removes the call; TTS's own progressive render of the saved assets is left intact.
+      VERIFY: fully quit TTS (cold cache), relaunch, load ONCE -> setup board should show immediately.
 
 ## OPEN
 
@@ -58,11 +66,11 @@ starts in its final container/position:
   VERIFY in TTS: nearest-seat board matching, restrict, captain line, real 4-player draft resolves.
 
 ### Maps / landmarks
-- [~] **Marsh 5-player map button** (= "Swole Birds"): button already wired (id `Marsh5P`,
-      onclick `rttFivePStart`, drives Marsh-in-5p). Draft label composed:
-      `assets/upload/marsh_5p_label.png` (5-player art left + "Marsh / 5 Players" right, label family
-      style). NEXT: Adrien uploads it to Steam -> give me the URL -> repoint `FivePlayerArt` (m540
-      SWAPS) + set button tint in m500 MARSH5P_NEW. Waiting on Adrien's upload + URL.
+- [x] **Marsh 5-player map button REPLACES Swol Birbs** (DONE): "Swol Birbs" was a *separate* fan-
+      faction tool button at x=57 (an earlier agent wrongly thought it WAS the Marsh5P button). Fixed:
+      m500 moves the Marsh5P button (id `Marsh5P`, onclick `rttFivePStart`, icon `FivePlayerArt` =
+      Adrien's Marsh 5p label art, URL 622AC9B1) into the x=57 slot; m630 removes the Swol Birbs button
+      + its EVERYTHING['Tools']['Swol Birbs'] data. Bottom option row now ends at the Marsh 5p button.
 - [x] **Mountain landmark direct spawn** (DONE): m590 removes the central clearing marker (1b3b99)
       from the Mountain data at build time (11 markers spawn, shuffleMaps is count-safe);
       rttMountainLandmark no longer reads/destroys a marker — spawns a random landmark directly.
