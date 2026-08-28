@@ -260,6 +260,9 @@ RTT_FAC_CURRENT = {}
 -- ~1.3x wide / ~1.1x tall baked into _boxscore.json), locked to the table.
 function rttSpawnBoxScore()
   for _, o in ipairs(getObjectsWithTag(RTT_BOXSCORE_TAG)) do o.destruct() end
+  -- tell the box score how many player rows to pre-format for (4 ranked / 5 for 5p Marsh); it reads
+  -- this Global each rebuild and grows past it only if more players are added.
+  Global.setVar("RTT_BOXSCORE_MIN", (RTT_DN or 5) - 1)
   spawnObjectJSON({
     json = RTT_BOXSCORE_JSON,
     position = { -58.36, 11.652, -0.05 },   -- centre of Adrien's 4-card box-score rectangle
