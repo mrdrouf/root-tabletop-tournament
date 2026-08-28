@@ -355,9 +355,15 @@ function rttCrowsHiddenZone(board, cx, cz, isDraft)
       end
     end
   end
-  -- board-LOCAL spot of Adrien's cover; board.positionToWorld rotates it to the RIGHT of the plots
-  -- for ANY seat (the board's blueprint frame is rotated 180, hence the negative signs).
-  local w = board.positionToWorld({ -3.163, 0.30, -0.404 })
+  -- board-LOCAL sideways spot of Adrien's cover. Default = board-RIGHT of the plots (-3.163). For the
+  -- 1st and 3rd seats the board faces the other way, so the cover must go to board-LEFT (+3.163) to stay
+  -- OUTSIDE the play area. Pull it ~one card width closer to the plots (toward x=0) now that the
+  -- card-improvement area is gone (board scale ~8.8, a ~2.5u card ≈ 0.28 board-local -- estimate).
+  local lx = -3.163
+  if seat == 1 or seat == 3 then lx = 3.163 end
+  local closer = 0.28
+  if lx < 0 then lx = lx + closer else lx = lx - closer end
+  local w = board.positionToWorld({ lx, 0.30, -0.404 })
   local blob = string.gsub(RTT_CROW_HZ_JSON, '"FogColor":"White"', '"FogColor":"' .. color .. '"')
   spawnObjectJSON({
     json = blob,

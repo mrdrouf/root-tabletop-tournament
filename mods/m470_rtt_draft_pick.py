@@ -179,30 +179,35 @@ end
 -- Grey FIRST, then a FRESH getPlayers() loop matched by steam_name -- a pre-kick Player ref is stale
 -- after the colour change, which is why capturing refs then kicking would seat nobody.
 function rttSeatPlayers()
-  local roster = {}                                     -- [N] = steam_name of the player in seat N
+  -- real humans (steam_names survive the kick; Player refs don't).
+  local humans = {}
   for _, p in ipairs(Player.getPlayers()) do
-    if p.seated and p.color ~= "Grey" and p.color ~= "Black" then roster[#roster + 1] = p.steam_name end
+    if p.seated and p.color ~= "Grey" and p.color ~= "Black" then humans[#humans + 1] = p.steam_name end
   end
-  -- ONE randomisation = the turn order. After this, card number == seat (no second shuffle).
-  for i = #roster, 2, -1 do local j = math.random(i) roster[i], roster[j] = roster[j], roster[i] end
+  -- Assign each human a RANDOM seat NUMBER out of ALL N seats, so the turn-order card is random for
+  -- everyone -- including a lone tester, who previously always landed in seat 1 / "First Player".
+  local N = #RTT_SEATS
+  local seatNums = {}
+  for i = 1, N do seatNums[i] = i end
+  for i = N, 2, -1 do local j = math.random(i) seatNums[i], seatNums[j] = seatNums[j], seatNums[i] end
+  local seatOf = {}                                      -- steam_name -> seat number
+  for i, name in ipairs(humans) do seatOf[name] = seatNums[i] end
   pcall(function() kickPlayersFromSeats() end)           -- base: everyone -> Grey (frees the colours; no hand reset)
-  local seated = {}                                      -- [N] = seat colour, for the deferred card
+  local seated = {}                                      -- [seat N] = seat colour, for the deferred card
   for _, p in ipairs(Player.getPlayers()) do             -- FRESH, post-kick (base pattern): refs are valid
-    for N = 1, #roster do
-      if p.steam_name == roster[N] then
-        local seat = RTT_SEATS[N]
-        if seat ~= nil and seat.board ~= nil and seat.hand ~= nil then
-          local color = RTT_SETUP_COLORS[N]
-          pcall(function() p.changeColor(color) end)     -- base placePlayer op 1: put the player INTO the seat colour
-          pcall(function()                               -- base placePlayer op 2: move that colour's hand zone (+ base scale)
-            Player[color].setHandTransform(
-              { position = seat.hand.pos, rotation = seat.hand.rot, scale = RTT_HAND_SCALE }, 1)
-          end)
-          seat.color = color
-          RTT_CLONES[color] = seat.board
-          seated[N] = color
-        end
-        break
+    local sN = seatOf[p.steam_name]
+    if sN ~= nil then
+      local seat = RTT_SEATS[sN]
+      if seat ~= nil and seat.board ~= nil and seat.hand ~= nil then
+        local color = RTT_SETUP_COLORS[sN]
+        pcall(function() p.changeColor(color) end)       -- base placePlayer op 1: put the player INTO the seat colour
+        pcall(function()                                 -- base placePlayer op 2: move that colour's hand zone (+ base scale)
+          Player[color].setHandTransform(
+            { position = seat.hand.pos, rotation = seat.hand.rot, scale = RTT_HAND_SCALE }, 1)
+        end)
+        seat.color = color
+        RTT_CLONES[color] = seat.board
+        seated[sN] = color
       end
     end
   end
@@ -352,7 +357,7 @@ function rttStartFactionDraft()
   _G['Roster'] = {}
   for i = 1, #RTT_ORDER do _G['Roster'][i] = RTT_ORDER[i].name or "" end
   if _G['vagabondAlreadySpawned'] == nil then _G['vagabondAlreadySpawned'] = false end
-  Wait.time(function() rttDealHands() end, 0.6)     -- starting cards to each seated player
+  -- (Adrien: never auto-deal starting hands. rttDealHands removed.)
   rttDraftKnavesCaptains()                          -- 4 captains under the draft cards (if Knaves drafted)
   Wait.frames(function() rttShowFactions() end, 40) -- light EVERY board at once (simultaneous pick)
 end
