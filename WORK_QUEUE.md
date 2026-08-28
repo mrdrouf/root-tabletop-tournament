@@ -14,6 +14,28 @@ starts in its final container/position:
   - map-relative pieces (cats on clearings, The Pond): take from the supply bag / spawn the object
     JSON directly AT the final world spot — never a seat-local default first.
 
+## OPEN — new batch (2026-08-29)
+- [ ] **Battle mat**: spawn ONE battle mat with EVERY map placement; never duplicated / bundled with
+      another item. Live flow = rttPlaceMap spawns it once (OK); dead paths (rttCoordPick, rttMarsh5P)
+      to be removed in the cleanup. Make the single-spawn bulletproof (fold into cleanup).
+- [ ] **Duchy (moles) tunnel position**: Adrien moved the TUNNEL when the Duchy spawns and saved it.
+      Recover the new tunnel move_to from his recent save (board-frame reproject) + bake into the Duchy
+      blueprint (m300) so it spawns there every time, from any faction board / setup. NEED: which save.
+- [ ] **Thorough code cleanup** (workflow wbindjqke running): drop obsolete/dead code + bloat, no
+      duplication (shared helpers), fix bugs/typos/robustness, well-written. Implement from the plan,
+      verify build each step, conservative (proven-dead only).
+- [ ] **Easy-install folder** in the GitHub repo: a clear folder with exactly what a new user drops
+      into their TTS Saves folder to use the mod. (Deliverable after cleanup.)
+- [ ] **Thorough README**: explains the exact function of EVERY button + install + what it changes vs base.
+- [ ] **Faction buttons alignment**: faction buttons not perfectly aligned to the grid; **Knaves is
+      completely offset**. Investigate the faction button layout (rttFac grid on selectors? faction
+      card row? faction selector tool?) and fix the Knaves offset.
+- [ ] **NEW OBJECT — Knaves captain board** (AFTER the list + cleanup; design carefully, pre-plan so we
+      don't iterate): a new object styled EXACTLY like the crafted-improvement board next to each faction
+      board, placed to the RIGHT of the current crafted-improvement board, ONLY for Knaves. Holds the 3
+      captain cards VERTICALLY with snap areas + elegant labelled areas for Captain 1/2/3, NO overlap,
+      enough space. Root design style + the usual font. Base it on the crafted-improvement design, larger.
+
 ## OPEN — active batch (2026-08-28)
 - [x] Uploaded assets wired: Marsh 5p label -> FivePlayerArt (button neutral #ffffff); Lost City rules
       card -> new BackURL. Marsh5P button already spawns 5p Marsh via rttFivePStart.

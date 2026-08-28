@@ -44,10 +44,13 @@ REVEAL = ('\n  Wait.frames(function() '
           + _SPREAD +
           ' board1.setPosition({54.81,11.56,0}) end, 14)')
 
-# direct Knaves tile, at the "Vabond Choices" grid slot (95 45 -20)
+# direct Knaves tile, ALIGNED to the grid's row-1 col-4 (x=90, matching _SPREAD). It must sit at 90
+# statically: the runtime _SPREAD setAttribute is ambiguous because 4 buttons share the id
+# "Knaves of the Deepwood" (this tile + the base submenu/ban/draft copies), so it can't be relied on
+# to move THIS tile onto the column -- hence the static position must already be the grid slot.
 KNAVES_TILE = ('<Button onclick="makeFaction" onMouseEnter="infoOfficialContent" '
                'onMouseExit="clearInfo" category="Standard" id="Knaves of the Deepwood" '
-               'position="95 45 -20" width="40" height="40" fontSize="8" '
+               'position="90 45 -20" width="40" height="40" fontSize="8" '
                'icon="Knaves of the Deepwood" color="gray"/>')
 
 
