@@ -79,6 +79,8 @@ from . import m590_mountain_central_marker
 from . import m600_fix_shuffle_rng
 from . import m610_lost_city_card
 from . import m620_crow_warriors
+from . import m630_remove_swol_birbs
+from . import m640_fix_coldload_ui
 # m450_label_icons DISABLED: confirmed custom (non-Steam) UI icons blank in TTS
 
 # Ready-made examples — uncomment to begin layering real modifications:
@@ -151,5 +153,7 @@ MODS = [
     m600_fix_shuffle_rng,          # replace base shuffle() os.time-reseed with clean Fisher-Yates
     m610_lost_city_card,           # swap the outdated Lost City rules-card art
     m620_crow_warriors,            # bake Corvid warriors + moved supply (direct spawn)
+    m630_remove_swol_birbs,        # replace the Swol Birbs fan option with the Marsh 5p button
+    m640_fix_coldload_ui,          # drop onLoad's redundant setCustomAssets (cold-load blank fix)
     # m450_label_icons,  # DISABLED — custom UI icons blank in TTS; VB/Landmarks stay on Steam art
 ]
