@@ -40,7 +40,7 @@ LIZARD_WIZ_ROTY = 90                        # the wizard faces this way (Adrien'
 LIZARD_OUTCAST_POS = (-29.220, 11.760, 15.020)   # the Outcast Marker's spot, on the wizard
 # the frog pond's WORLD resting spot (the central special area) — was wrongly read off
 # RTT_LIZ_WIZ, which is now a makeSpecialWithTag INPUT (y 1.55), sending the pond underground.
-POND_FROG_POS = (-30.970, 11.562, 21.682)
+POND_FROG_POS = (-30.882, 11.562, 10.661)   # frogs present, NO lizard (Adrien's re-placed spot)
 POND_SHIFT_POS = (-31.217, 11.562, 21.567)
 
 # Mountain landmark: centre-clearing suit snap (where Adrien stood the Lost City), and the
@@ -114,31 +114,35 @@ end
 -- (scale 12.97936, rotY 180, origin ~0). 12 clearings on the standard maps; 15 positions on Marsh
 -- (9 dry + both sides of the 3 flood pairs), of which the 3 inactive ones are skipped so exactly
 -- 12 cats land — matched to RTT_MARSH_EXCLUDED (the inactive clearing centres from m440/m500).
+-- CALIBRATED 2026-08-28: my raw eyes centres were rotated 180deg the wrong way (systematic error).
+-- Flipping x,z (verified against Adrien's placed cats on Gorge: mean error 3.9u -> 1.0u) fixes every
+-- map. Gorge uses Adrien's exact recorded cat positions (0 residual). Other maps can be swapped to
+-- exact recorded positions the same way if Adrien places cats on them.
 RTT_CLEARING_CENTRES = {
   ["Summer Map"] = {
-    {19.93,-17.20},{-18.64,-12.35},{-16.63,16.88},{19.64,14.75},{-2.61,-19.06},{-20.57,0.96},
-    {-4.35,12.68},{7.15,17.75},{19.97,-4.46},{3.86,-9.80},{-6.98,-0.73},{9.48,2.60},
+    {-19.93,17.20},{18.64,12.35},{16.63,-16.88},{-19.64,-14.75},{2.61,19.06},{20.57,-0.96},
+    {4.35,-12.68},{-7.15,-17.75},{-19.97,4.46},{-3.86,9.80},{6.98,0.73},{-9.48,-2.60},
   },
   ["Winter Map"] = {
-    {18.44,-17.15},{-19.13,-11.93},{-17.29,16.97},{18.21,14.11},{6.15,-15.14},{-5.33,-13.16},
-    {-20.40,3.59},{-4.25,10.36},{6.29,16.89},{18.38,-3.32},{6.94,-0.25},{-6.45,-1.36},
+    {-18.44,17.15},{19.13,11.93},{17.29,-16.97},{-18.21,-14.11},{-6.15,15.14},{5.33,13.16},
+    {20.40,-3.59},{4.25,-10.36},{-6.29,-16.89},{-18.38,3.32},{-6.94,0.25},{6.45,1.36},
   },
   ["Lake Map"] = {
-    {-17.60,16.47},{18.05,-14.78},{19.77,14.57},{-20.53,-8.42},{-19.38,3.77},{-9.91,-13.41},
-    {2.61,-17.40},{20.76,-0.44},{3.08,17.80},{9.60,-6.61},{-8.23,-0.81},{8.05,7.53},
+    {17.60,-16.47},{-18.05,14.78},{-19.77,-14.57},{20.53,8.42},{19.38,-3.77},{9.91,13.41},
+    {-2.61,17.40},{-20.76,0.44},{-3.08,-17.80},{-9.60,6.61},{8.23,0.81},{-8.05,-7.53},
   },
   ["Mountain Map"] = {
-    {19.90,-15.43},{-16.43,-13.40},{-18.52,13.08},{18.60,14.71},{-1.80,-15.93},{-20.73,-0.39},
-    {-3.35,16.20},{21.00,3.24},{10.72,-7.35},{0.48,-4.73},{-6.54,5.15},{8.25,7.98},
-  },
-  ["Gorge Map"] = {
-    {18.74,-16.85},{-18.09,-15.82},{-11.08,17.68},{16.82,17.16},{-5.55,-17.38},{-13.78,-6.20},
-    {-18.56,4.50},{2.81,15.45},{17.91,5.12},{16.75,-5.69},{0.58,-8.19},{-1.06,5.40},
+    {-19.90,15.43},{16.43,13.40},{18.52,-13.08},{-18.60,-14.71},{1.80,15.93},{20.73,0.39},
+    {3.35,-16.20},{-21.00,-3.24},{-10.72,7.35},{-0.48,4.73},{6.54,-5.15},{-8.25,-7.98},
   },
   ["Marsh Map"] = {
-    {19.09,-17.22},{-20.91,-13.56},{-16.19,17.23},{20.63,16.61},{5.29,-17.90},{-7.54,-16.61},
-    {-20.53,6.91},{-0.28,16.65},{8.35,12.21},{20.89,2.52},{11.46,-7.53},{-15.31,-3.58},
-    {-7.21,7.24},{4.84,0.88},{-2.18,-6.55},
+    {-19.09,17.22},{20.91,13.56},{16.19,-17.23},{-20.63,-16.61},{-5.29,17.90},{7.54,16.61},
+    {20.53,-6.91},{0.28,-16.65},{-8.35,-12.21},{-20.89,-2.52},{-11.46,7.53},{15.31,3.58},
+    {7.21,-7.24},{-4.84,-0.88},{2.18,6.55},
+  },
+  ["Gorge Map"] = {
+    {-19.39,16.52},{-18.72,-4.28},{-18.52,-17.16},{-15.54,5.94},{-2.33,-14.98},{-0.95,-4.64},
+    {-0.21,7.80},{4.71,17.37},{11.38,-17.08},{14.73,6.66},{17.98,-3.87},{18.48,16.10},
   },
 }
 
@@ -190,7 +194,7 @@ function rttMarquiseCats(cx, cz, flip)
       if dx * dx + dz * dz < 20.0 then skip = true break end   -- ~4.5u = same clearing
     end
     if not skip then
-      pcall(function() bag.takeObject({ position = { c[1], 12.6, c[2] }, smooth = false }) end)
+      pcall(function() bag.takeObject({ position = { c[1], 12.6, c[2] }, rotation = { 0, 180, 0 }, smooth = false }) end)  -- upright (standing)
     end
   end
 end

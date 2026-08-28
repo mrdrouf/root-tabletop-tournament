@@ -14,6 +14,31 @@ starts in its final container/position:
   - map-relative pieces (cats on clearings, The Pond): take from the supply bag / spawn the object
     JSON directly AT the final world spot — never a seat-local default first.
 
+## OPEN — active batch (2026-08-28, work top-to-bottom)
+- [ ] **Uploaded assets** (Adrien uploaded to Steam): find URLs from the TTS Images cache by content
+      and wire: (a) `marsh_5p_label.png` -> repoint FivePlayerArt (m540); (b) `landmark_lostcity_rules.png`
+      -> replace Lost City BackURL `.../1859433736252751364/0DC4B26C…/`.
+- [ ] **Marsh 5p button** = replace "Swole Birds" (Marsh5P); it spawns the 5-player Marsh map. Already
+      onclick rttFivePStart (sets RTT_5P_MARSH + RTT_DRAFT_N=6). Confirm it places the 5p Marsh map.
+- [ ] **Turn-order decks (Adrien made two physical decks near the draft)**: a 4-card deck (player 1-4)
+      for STANDARD ranked, a 5-card deck (player 1-5) for 5-PLAYER ranked. Deal from the right existing
+      deck by RTT_DN; STOP spawning RTT_ORDER_JSON with a 5th card in standard. Read the two decks from
+      the save.
+- [ ] **Box score**: FIXED format/font by draft size (4-player default; 5-player if pressed) — do NOT
+      resize text by how many players joined / how many VP tokens. More players than that = squeeze (edge).
+- [ ] **Winter / non-Marsh clearing NUMBER tokens**: they're fixed, so do NOT destruct+respawn them on
+      every same-map re-click (only Marsh re-places, because its floods shift the numbers). m460.
+- [ ] **Runes randomise on map re-click** — verify it happens (Adrien thinks it probably does).
+- [ ] **Crows (Adrien saved it set up)**: bake the 4 warriors from the save (verified way); the plots
+      already spawn face-down. Fix the "old crow faction then new one appears".
+- [ ] **Crows hidden-plot cover**: Adrien made a "hidden plot version" object on the crow board that
+      hides the plots so only the crow player sees them. Spawn it, coloured to the SEATED player's colour
+      (currently grey = see-through). Position is now to the RIGHT of the plot area (new save).
+- [ ] **Crows supply**: slightly changed position (from the save).
+- [ ] **Pond (frogs, NO lizard)**: Adrien re-placed it at the correct no-lizard spot -> update
+      RTT_POND_FROG (POND_FROG_POS in m490) from the save.
+- [ ] **Seating** (DONE this build, VERIFY): hand moved to board by turn order, all players seated.
+
 ## OPEN
 
 ### Randomization / RNG (Adrien: "very dangerous") — DONE + PROVEN
