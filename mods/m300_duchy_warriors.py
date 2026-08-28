@@ -47,10 +47,11 @@ REPOSITION = {
     "1dbd1f": (-4.292, 0.595, 5.701),
     "1ffbdd": (-4.292, 0.595, 6.355),
     # the 3 tunnels, baked so they spawn at Adrien's staged spots DIRECTLY (no reposition).
-    # This save's selector was at R180, so world deltas were un-rotated to the canonical frame.
+    # Re-recovered from TS_AutoSave_4 (identity frame; warriors reproject to their known move_to at
+    # residual 0.0007): Adrien moved ONLY c8c8a2 -> (-8.499, 0.100, 7.538). The other two unchanged.
     "f5d15c": (9.969, 0.100, 5.236),
     "8c9c61": (10.038, 0.100, 6.911),
-    "c8c8a2": (-10.998, 0.100, 5.372),
+    "c8c8a2": (-8.499, 0.100, 7.538),
 }
 
 # The data ships EIGHT loose warriors; Adrien wants 7 placed + the rest in the supply. Rather than
