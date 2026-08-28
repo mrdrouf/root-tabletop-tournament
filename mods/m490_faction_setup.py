@@ -315,17 +315,10 @@ function rttCrowsPlots(cx, cz, flip)
       callback_function = function(o) o.setLock(false) end
     })
   end
-  -- 4 starting warriors on the seat board (recorded board-local offsets), placed instantly
-  local cw = {}
-  for _, o in ipairs(getAllObjects()) do
-    if (o.getName() or "") == "Corvid Warrior" then cw[#cw + 1] = o end
-  end
-  for i = 1, math.min(4, #cw) do
-    local off = RTT_CROW_WAR[i]
-    local w = board.positionToWorld({ off[1], 0.02, off[2] })
-    if cw[i].getLock and cw[i].getLock() then cw[i].setLock(false) end
-    cw[i].setPosition({ w.x, w.y + 0.5, w.z })
-  end
+  -- the 4 starting warriors + moved supply are BAKED into the blueprint now (m620) — no reposition.
+  -- spawn Adrien's hidden-plot cover (a Hidden Zone), coloured to the crow player's seat so only they
+  -- can see their plots (the parked cover was grey = visible to all).
+  rttCrowsHiddenZone(board, cx, cz)
   -- drop the Corvid "Bot Interactions" reference card (CardID 29900) — human tournament, no bots
   for _, o in ipairs(getAllObjects()) do
     if o.name == "Card" or o.name == "CardCustom" then
@@ -333,6 +326,33 @@ function rttCrowsPlots(cx, cz, flip)
       if ok and dt ~= nil and dt.CardID == 29900 then pcall(function() o.destruct() end) end
     end
   end
+end
+
+-- Adrien's hidden-plot cover: a Hidden Zone (FogOfWarTrigger) parked to the RIGHT of the plot grid.
+-- Its FogColor decides who can see inside; grey/White = everyone, so we recolour it to the crow
+-- player's own colour (the seated player nearest the crow board) so only they can see their plots.
+function rttCrowsHiddenZone(board, cx, cz)
+  if board == nil or RTT_CROW_HZ_JSON == nil then return end
+  local color, best = "White", nil
+  for _, p in ipairs(Player.getPlayers()) do
+    if p.seated and p.color ~= "Grey" and p.color ~= "Black" then
+      local ht = nil
+      pcall(function() ht = p.getHandTransform().position end)
+      if ht ~= nil then
+        local d = (ht.x - cx) ^ 2 + (ht.z - cz) ^ 2
+        if best == nil or d < best then best = d; color = p.color end
+      end
+    end
+  end
+  -- board-local spot of Adrien's parked cover (its selector move_to, un-scaled onto the board frame)
+  local w = board.positionToWorld({ 3.163, 0.30, 0.404 })
+  local blob = string.gsub(RTT_CROW_HZ_JSON, '"FogColor":"White"', '"FogColor":"' .. color .. '"')
+  spawnObjectJSON({
+    json = blob,
+    position = { w.x, 14.11, w.z },
+    rotation = { 0, board.getRotation().y, 0 },
+    callback_function = function(o) o.setLock(true) o.addTag("RTT Faction") end
+  })
 end
 
 -- ---- Lizard Cult ----------------------------------------------------------
@@ -601,6 +621,14 @@ def apply(text):
                            encoding="utf-8"))
     crow_lua = "\nRTT_CROW_PLOTS = {\n%s\n}\n" % ",\n".join("[==[%s]==]" % b for b in plots)
     text = text.replace(MAKEMAP_SIG, framework.esc(crow_lua) + MAKEMAP_SIG, 1)
+
+    # Adrien's hidden-plot cover (a FogOfWarTrigger); rttCrowsHiddenZone recolours it to the crow
+    # player's seat and places it on the board. Injected separately (its data may contain %).
+    hz = open(os.path.join(os.path.dirname(__file__), "_crow_hidden_zone.json"), encoding="utf-8").read()
+    if "]==]" in hz:
+        raise framework.BuildError("crow hidden-zone JSON contains ]==] — bracket clash")
+    hz_lua = "\nRTT_CROW_HZ_JSON = [==[%s]==]\n" % hz
+    text = text.replace(MAKEMAP_SIG, framework.esc(hz_lua) + MAKEMAP_SIG, 1)
 
     # fire the Mountain landmark from inside makeMap (draft AND direct map-click)
     text = text.replace(MAKEMAP_SIG, MAKEMAP_SIG + framework.esc(MAKEMAP_HOOK), 1)

@@ -597,6 +597,21 @@ def remove_loose_piece(text, category, name, guid):
     return text[:h] + entry + text[j:]
 
 
+def unstow_from_bag(text, category, faction, guid, xyz):
+    """Move a piece OUT of a bag's ContainedObjects into a loose top-level `{move_to=..., json=[[..]]}`
+    data entry (the reverse of stow_loose_in_bag). Used when Adrien staged one extra piece he drew from
+    the supply — bake it as a loose staged piece so it spawns there, one fewer left in the bag."""
+    h, j = everything_entry_span(text, category, faction)
+    entry = text[h:j]
+    new_entry, obj = remove_escaped_object(entry, guid)   # removes from the bag, returns the {object}
+    loose = '{move_to={ %.4f, %.4f, %.4f }, json=[[%s]]},' % (xyz[0], xyz[1], xyz[2], obj)
+    ins = new_entry.find('{move_to={')
+    if ins == -1:
+        raise BuildError("no data entry to insert before in %s/%s" % (category, faction))
+    new_entry = new_entry[:ins] + loose + new_entry[ins:]
+    return text[:h] + new_entry + text[j:]
+
+
 def clone_data_entry(text, src_guid, new_guid, xyz):
     """Duplicate the `{move_to={...}, json=[[ {..} ]]}` data entry whose object GUID
     is src_guid, give the copy new_guid and move_to xyz, and insert it right after

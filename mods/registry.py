@@ -78,6 +78,7 @@ from . import m580_lilypad_pond
 from . import m590_mountain_central_marker
 from . import m600_fix_shuffle_rng
 from . import m610_lost_city_card
+from . import m620_crow_warriors
 # m450_label_icons DISABLED: confirmed custom (non-Steam) UI icons blank in TTS
 
 # Ready-made examples — uncomment to begin layering real modifications:
@@ -149,5 +150,6 @@ MODS = [
     m590_mountain_central_marker,  # drop Mountain's central clearing marker (landmark, no flash)
     m600_fix_shuffle_rng,          # replace base shuffle() os.time-reseed with clean Fisher-Yates
     m610_lost_city_card,           # swap the outdated Lost City rules-card art
+    m620_crow_warriors,            # bake Corvid warriors + moved supply (direct spawn)
     # m450_label_icons,  # DISABLED — custom UI icons blank in TTS; VB/Landmarks stay on Steam art
 ]
