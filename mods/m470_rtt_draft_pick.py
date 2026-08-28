@@ -131,7 +131,17 @@ RTT_LAYOUT = {
   [4] = { 1, 2, 4, 3 }, [5] = { 1, 2, 5, 4, 3 }, [6] = { 1, 2, 5, 6, 4, 3 },
 }
 
-RTT_SEATS = {}          -- [seat] = { board=obj, color=<colour|nil>, pos={x,z} }
+-- hand transform for each board position (base handPositions/handRotations, by x,z sign): the
+-- player's hand sits just behind their board (z=±64 behind the board at z=±46).
+RTT_SEAT_HAND = {
+  { pos = { 52, 14.62, -64 }, rot = { 0, 0, 0 } },     -- pos1 (52,-46)
+  { pos = { -52, 14.62, -64 }, rot = { 0, 0, 0 } },    -- pos2 (-52,-46)
+  { pos = { 52, 14.62, 64 }, rot = { 0, 180, 0 } },    -- pos3 (52,46)
+  { pos = { -52, 14.62, 64 }, rot = { 0, 180, 0 } },   -- pos4 (-52,46)
+  { pos = { 0, 14.62, -64 }, rot = { 0, 0, 0 } },      -- pos5 (0,-46)
+  { pos = { 0, 14.62, 64 }, rot = { 0, 180, 0 } },     -- pos6 (0,46)
+}
+RTT_SEATS = {}          -- [seat] = { board=obj, color=<colour|nil>, pos={x,z}, hand=<RTT_SEAT_HAND entry> }
 RTT_BOARD_SEAT = {}     -- [board guid] = seat index
 
 function rttSpawnSelectors()
@@ -151,36 +161,31 @@ function rttSpawnSelectors()
       callback_function = function(o) o.setLock(true) o.addTag(RTT_SELECTOR_TAG) end
     })
     RTT_BOARD_SEAT[board.getGUID()] = i
-    RTT_SEATS[i] = { board = board, color = nil, pos = p }   -- colour assigned by ACTUAL seat below
+    RTT_SEATS[i] = { board = board, color = nil, pos = p, hand = RTT_SEAT_HAND[pi] }
   end
 end
 
--- Assign each seated player to the board at THEIR OWN seat (the one nearest to where they physically
--- sit) and deal the turn-order card into their EXISTING hand. We do NOT move hands or change colours
--- (that was the bug: the hand ended up away from the player and cards seemed to go under the table).
--- The player keeps the colour they picked; turn order is random (the deck was shuffled). Making each
--- player's own board = the board in front of them means the faction they pick lands at their seat,
--- and rttCoordFaction can stop anyone else from grabbing a faction on someone else's board.
+-- Seat EVERY player: shuffle the seated players for a random turn order, then assign player i to
+-- seat/board i, MOVE that player's hand to their board's seat, and deal the turn-order card into it.
+-- (Keeps their colour — no changeColor.) Because we iterate 1..#players, nobody is skipped (the 4th
+-- player was being dropped before). Their board is now theirs, so the faction they pick lands there
+-- and rttCoordFaction blocks anyone else from grabbing a faction on someone else's board.
 function rttSeatPlayers()
   local ord = getObjectFromGUID(RTT_ORDER_DECK or "")
+  local plist = {}
   for _, p in ipairs(Player.getPlayers()) do
-    if p.seated and p.color ~= "Grey" and p.color ~= "Black" then
-      local hp = nil
-      pcall(function() hp = p.getHandTransform().position end)
-      if hp ~= nil then
-        local bestD, bestI = nil, nil
-        for i, seat in ipairs(RTT_SEATS) do
-          if seat.board ~= nil and seat.color == nil then          -- an unclaimed board
-            local d = (seat.pos[1] - hp.x) ^ 2 + (seat.pos[2] - hp.z) ^ 2
-            if bestD == nil or d < bestD then bestD, bestI = d, i end
-          end
-        end
-        if bestI ~= nil then
-          RTT_SEATS[bestI].color = p.color
-          RTT_CLONES[p.color] = RTT_SEATS[bestI].board
-        end
+    if p.seated and p.color ~= "Grey" and p.color ~= "Black" then plist[#plist + 1] = p.color end
+  end
+  for i = #plist, 2, -1 do local j = math.random(i) plist[i], plist[j] = plist[j], plist[i] end
+  for i, color in ipairs(plist) do
+    local seat = RTT_SEATS[i]
+    if seat ~= nil and seat.board ~= nil then
+      seat.color = color
+      RTT_CLONES[color] = seat.board
+      if seat.hand ~= nil and Player[color] ~= nil then
+        pcall(function() Player[color].setHandTransform({ position = seat.hand.pos, rotation = seat.hand.rot }, 1) end)
       end
-      if ord ~= nil and ord.deal then pcall(function() ord.deal(1, p.color) end) end  -- card into their own hand
+      if ord ~= nil and ord.deal then pcall(function() ord.deal(1, color) end) end
     end
   end
 end
