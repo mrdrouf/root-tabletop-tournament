@@ -37,12 +37,13 @@ starts in its final container/position:
       (fixed by m600). Only 2 `randomseed(os.time())` calls remain and BOTH are top-level load-time seeds
       (m490's + the base script's) — zero per-click reseeds, so every re-click advances the stream = new
       layout. VERIFY in TTS: re-click a map a few times, ruin positions differ each time.
-- [x] **Cold-load "setup board shows nothing until loaded twice"** (DONE, VERIFY): root cause = onLoad's
-      `Wait.frames(setCustomAssets(assets), 100)` on bab7e1. It's redundant (saved CustomUIAssets already
-      has all 541 icons, verified identical names+URLs) and on a COLD cache it replaces the asset table
-      before the Steam downloads finish, blanking setupButtons with no re-render -> only a warm 2nd load
-      recovered. m640 removes the call; TTS's own progressive render of the saved assets is left intact.
-      VERIFY: fully quit TTS (cold cache), relaunch, load ONCE -> setup board should show immediately.
+- [~] **Cold-load "setup board shows nothing until loaded twice"** (REWORKED after m640 FAILED):
+      m640 (delete onLoad setCustomAssets) did NOT fix it and violated the no-delete-base rule. Per
+      Adrien the BASE loaded fine, so RESTORE it: m640 DISABLED (base `Wait.frames(setCustomAssets,100)`
+      reappears verbatim), m510 kept (rides the 3 new icons). Residual cold-blank is the NEW uncached
+      personal-upload icons (Ranked/Theme/FivePlayerArt) the base never had -> additive m650 repaints the
+      setup UI at 6s/14s once they download. VERIFY on a REAL cold launch: quit TTS fully, relaunch, load
+      ONCE. Watch for (i) does it now render first-try, (ii) any warm-load flicker from the 6s/14s repaint.
 
 ## OPEN
 
@@ -55,7 +56,20 @@ starts in its final container/position:
 - [x] Mountain landmark fast (Wait.frames 2), self-clears; Marsh floods re-randomise instantly.
 - [x] Marsh number tokens rest on the board (11.635).
 
-### Draft / seating flow — DONE (needs Adrien's TTS test; big change)
+### Seating / hand placement — REWORKED to restore the base (2026-08-28, multi-agent workflow)
+- [~] **Seat on turn-order-card by CARD NUMBER** (per Adrien: "same code, different trigger"): the base
+      seated correctly on faction-pick via `placePlayer` (changeColor + setHandTransform into base
+      handPositions + handScale). RTT's `rttSeatPlayers` had dropped that: a 2nd shuffle (seat != card),
+      a bare setHandTransform (no changeColor/scale, never seated the player), and same-frame `ord.deal`
+      that dropped the card on the base `resetHands` strip at x=-77.5 (the "trash"). REWRITTEN (m470) to
+      the base's SAFE pattern: capture steam_names, shuffle ONCE = turn order, `kickPlayersFromSeats()`,
+      then a FRESH `getPlayers()` loop matched by steam_name -> `changeColor(setupColors[N])` +
+      `setHandTransform({seat N hand, scale=handScale})`; after a 20-frame settle, `rttDealOrderCards`
+      delivers the matching "Player N" card (by CardID 800/801/802/805/806) INTO the seated hand. Seat N ==
+      card N by construction. VERIFY in TTS: each player seated at their card's number, card in hand (not
+      the x=-77.5 strip), hand behind their own selector board, at turn-order time (not on faction pick).
+
+### Draft / seating flow — earlier work (superseded by the seating rework above)
 - [x] **Remove pick-map / pick-deck**: rttBeginPick skips the pick, spawns boards immediately.
       5-player button still auto-places Marsh.
 - [x] **Fixed board/seat count** = RTT_DN-1 -> fixes the 2-player bug.
@@ -70,11 +84,11 @@ starts in its final container/position:
   VERIFY in TTS: nearest-seat board matching, restrict, captain line, real 4-player draft resolves.
 
 ### Maps / landmarks
-- [x] **Marsh 5-player map button REPLACES Swol Birbs** (DONE): "Swol Birbs" was a *separate* fan-
-      faction tool button at x=57 (an earlier agent wrongly thought it WAS the Marsh5P button). Fixed:
-      m500 moves the Marsh5P button (id `Marsh5P`, onclick `rttFivePStart`, icon `FivePlayerArt` =
-      Adrien's Marsh 5p label art, URL 622AC9B1) into the x=57 slot; m630 removes the Swol Birbs button
-      + its EVERYTHING['Tools']['Swol Birbs'] data. Bottom option row now ends at the Marsh 5p button.
+- [x] **Marsh 5-player buttons** (DONE): "Swol Birbs" was a *separate* fan-faction tool button at x=57
+      (an earlier agent wrongly thought it WAS the Marsh5P button); m630 removed it + its Tool data.
+      Now SPLIT into two (m500): x=57 `Marsh5P` (icon FivePlayerArt) -> `rttFivePStart` = full 5p Marsh
+      DRAFT; x=95 `Marsh5PMap` (icon "Marsh Map") -> `rttPlaceMarsh5P` = PLACE the 5p Marsh map only
+      (sets RTT_5P_MARSH, calls rttPlaceMap, no draft/selectors/seating). VERIFY both in TTS.
 - [x] **Mountain landmark direct spawn** (DONE): m590 removes the central clearing marker (1b3b99)
       from the Mountain data at build time (11 markers spawn, shuffleMaps is count-safe);
       rttMountainLandmark no longer reads/destroys a marker — spawns a random landmark directly.
