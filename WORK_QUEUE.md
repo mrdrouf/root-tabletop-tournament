@@ -32,7 +32,11 @@ starts in its final container/position:
       rows (4 ranked / 5 for 5p, via Global RTT_BOXSCORE_MIN set in rttSpawnBoxScore); blank placeholder
       rows fill empty slots, all interactive controls gated `not placeholder`. Grows past nMin for more
       players. No text resize by players/VP.
-- [ ] **Runes randomise on re-click** — verify (uses shuffle(), now fixed by m600, so it does).
+- [x] **Ruins ("runes") randomise on re-click** (DONE, verified in dist): RTT's Marsh ruins go through
+      `rttShuffleList` (clean Fisher-Yates, no reseed); base-map ruins go through the base `shuffle()`
+      (fixed by m600). Only 2 `randomseed(os.time())` calls remain and BOTH are top-level load-time seeds
+      (m490's + the base script's) — zero per-click reseeds, so every re-click advances the stream = new
+      layout. VERIFY in TTS: re-click a map a few times, ruin positions differ each time.
 - [x] **Cold-load "setup board shows nothing until loaded twice"** (DONE, VERIFY): root cause = onLoad's
       `Wait.frames(setCustomAssets(assets), 100)` on bab7e1. It's redundant (saved CustomUIAssets already
       has all 541 icons, verified identical names+URLs) and on a COLD cache it replaces the asset table
@@ -76,19 +80,15 @@ starts in its final container/position:
       rttMountainLandmark no longer reads/destroys a marker — spawns a random landmark directly.
 - [x] **Landmark explanation cards — flip** (DONE): m490 Mountain landmark now passes crotZ 180
       (RULES/BackURL face up). Marsh 5p towns already correct.
-- [~] **Lost City rules-card art (outdated)**: Adrien's new art is `assets/images/landmark-lostcity.webp`
-      (815x1111). TTS won't load webp -> converted to `assets/upload/landmark_lostcity_rules.png`. The
-      card's outdated RULES face (BackURL) to replace:
-      `.../ugc/1859433736252751364/0DC4B26C9A4D68D8944E0E6AB84868CA3DFA84D3/`. **Action: Adrien uploads
-      the PNG to Steam -> gives me the URL -> I swap that BackURL** (framework.replace_unique).
+- [x] **Lost City rules-card art (outdated)** (DONE, verified): m610 swapped the card's outdated RULES
+      face (BackURL) to Adrien's new Steam upload. Verified in dist: new URL `.../11026657163450986659/
+      01C4A12996D5C47049E1BA794CC33AC10F9AF662/` present, old `.../1859433736252751364/0DC4B26C.../` gone.
 
-### Golden-rule cleanup — needs a verified read
-- [ ] **Crows warriors**: rttCrowsPlots repositions the 4 Corvid Warriors at runtime (place-then-
-      adjust). The plots already spawn face-down directly (fine); the bot card is just removed (fine).
-      To bake the 4 warriors (blueprint GUIDs 653be4/8b4f9c/d78475/b66f9e) I need Corvid SET UP in a
-      TTS save so I can recover their move_to the verified way (like bats/Marquise) — RTT_CROW_WAR is
-      board-local and the spawn frame is ambiguous, so don't bake it blind. **Action: Adrien, set up
-      Corvid once + save, then I bake it.**
+### Golden-rule cleanup — DONE
+- [x] **Crows warriors** (DONE): Adrien set up Corvid + saved; m620 bakes the 4 warriors the verified
+      way (3 loose move_to'd 8b4f9c/b66f9e/d78475 + un-stow the 4th 29769e from the supply bag) plus the
+      moved supply bag 653be4. Runtime warrior reposition removed from rttCrowsPlots. All 5 GUIDs verified
+      present in the dist blueprint.
 
 ## DONE (this session, pending Adrien's confirmation in TTS)
 - [x] Bats (Twilight Council): 6 warriors + 6 assemblies baked into blueprint (m560); rttBatsSetup removed.
