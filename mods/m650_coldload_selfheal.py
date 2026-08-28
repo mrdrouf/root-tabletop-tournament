@@ -25,13 +25,19 @@ ANCHOR = ('Turns.order =   {' + framework.QT + 'Red' + framework.QT + ',' +
 
 # literal Lua appended right after the anchor (esc() handles JSON-escaping)
 SELFHEAL = (
-    "\n    Wait.time(function()"
-    " if self ~= nil and self.UI ~= nil then"
-    " self.UI.setCustomAssets(assets);"
-    " self.UI.setXml(self.UI.getXml(), assets) end end, 6)"
-    "\n    Wait.time(function()"
-    " if self ~= nil and self.UI ~= nil then"
-    " self.UI.setXml(self.UI.getXml(), assets) end end, 14)"
+    # Capture the REAL setup XML at load (before any blank), then force a rebuild after the
+    # (uncached, new-upload) icons have had time to download, so the buttons appear on the FIRST
+    # load. Using the captured XML (not getXml() at repaint time, which returns the blanked UI) is
+    # the fix vs the previous attempt.
+    "\n    if RTT_SETUP_XML0 == nil then pcall(function() RTT_SETUP_XML0 = self.UI.getXml() end) end"
+    "\n    local function _rttRepaint()"
+    "\n      if self == nil or self.UI == nil then return end"
+    "\n      if RTT_SETUP_XML0 == nil or RTT_SETUP_XML0 == '' then return end"
+    "\n      pcall(function() self.UI.setCustomAssets(assets) end)"
+    "\n      pcall(function() self.UI.setXml(RTT_SETUP_XML0, assets) end)"
+    "\n    end"
+    "\n    Wait.time(_rttRepaint, 5)"
+    "\n    Wait.time(_rttRepaint, 12)"
 )
 
 
