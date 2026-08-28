@@ -8,8 +8,9 @@ group paints blank (the board TILE renders because CustomImage uses a different 
 only references ~147 of the 541 assets; the other ~394 are dead weight left from the base menu.
 
 Filtering CustomUIAssets to the referenced set is FULLY ART-SAFE (drops only entries no button uses)
-and cuts the asset-resolution work. This is the cheap A/B step; if it alone does not render the
-buttons cold, the light-launcher mod is the guaranteed fix and this trim stacks cleanly under it.
+and cuts the asset-resolution work back under the threshold. CONFIRMED IN-GAME (2026-08-29): with the
+count at 147 the setup buttons render immediately on a cold load -- no respawn, no 2nd load. This is
+the cold-load fix. (The heavier light-launcher rework designed alongside it was not needed.)
 
 Runs LAST so m470's lightweight selectors (built from bab7e1's full CustomUIAssets earlier) keep
 their icons. Surgical: only bab7e1's CustomUIAssets array is rewritten; the 4.5 MB LuaScript is not.

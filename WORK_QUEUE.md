@@ -37,13 +37,17 @@ starts in its final container/position:
       (fixed by m600). Only 2 `randomseed(os.time())` calls remain and BOTH are top-level load-time seeds
       (m490's + the base script's) — zero per-click reseeds, so every re-click advances the stream = new
       layout. VERIFY in TTS: re-click a map a few times, ruin positions differ each time.
-- [~] **Cold-load "setup board shows nothing until loaded twice"** (REWORKED after m640 FAILED):
-      m640 (delete onLoad setCustomAssets) did NOT fix it and violated the no-delete-base rule. Per
-      Adrien the BASE loaded fine, so RESTORE it: m640 DISABLED (base `Wait.frames(setCustomAssets,100)`
-      reappears verbatim), m510 kept (rides the 3 new icons). Residual cold-blank is the NEW uncached
-      personal-upload icons (Ranked/Theme/FivePlayerArt) the base never had -> additive m650 repaints the
-      setup UI at 6s/14s once they download. VERIFY on a REAL cold launch: quit TTS fully, relaunch, load
-      ONCE. Watch for (i) does it now render first-try, (ii) any warm-load flicker from the 6s/14s repaint.
+- [x] **Cold-load "setup board loads blank / needs 2nd load"** (SOLVED + confirmed in-game 2026-08-29):
+      ROOT CAUSE = the setup board bab7e1 carried **541 CustomUIAssets**, far over TTS's ~75-100
+      UI-composite threshold. TTS resolves an object's XmlUI icon refs ONCE at instantiation and never
+      re-composites; over that threshold the whole button group paints blank on a cold process (the board
+      TILE renders because CustomImage is a separate pipeline -> "tile shows, buttons don't"). FIX = m660
+      trims bab7e1's CustomUIAssets to the ~147 its XmlUI actually references (drops 394 unused base-menu
+      icons; fully art-safe) -> back under the threshold -> buttons render immediately, cold, first-try.
+      Dead ends ruled out along the way (do NOT repeat): setCustomAssets present/absent (m640) is neither
+      cause nor cure; setXml/setCustomAssets re-apply never repaints; the board texture (jsDelivr) is fine;
+      m650's full-board respawn works but is ~27s (Lua getJSON on the 4.5MB object) so it's disabled.
+      Kept: m640 on, m650 OFF, m660 on, custom board on.
 
 ## OPEN
 

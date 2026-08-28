@@ -158,7 +158,7 @@ MODS = [
     m620_crow_warriors,            # bake Corvid warriors + moved supply (direct spawn)
     m630_remove_swol_birbs,        # replace the Swol Birbs fan option with the Marsh 5p button
     m640_fix_coldload_ui,          # cold-load: remove the frame-100 setCustomAssets (no re-stomp)
-    # m650_coldload_selfheal,      # DISABLED for the m660 trim A/B (respawn would mask the result)
-    m660_trim_setup_assets,        # cold-load: trim bab7e1 CustomUIAssets 541 -> ~147 (art-safe)
+    # m650_coldload_selfheal,      # DISABLED — the m660 trim FIXED cold-load; the 27s respawn isn't needed
+    m660_trim_setup_assets,        # cold-load FIX (confirmed): trim bab7e1 CustomUIAssets 541 -> 147 (art-safe)
     # m450_label_icons,  # DISABLED — custom UI icons blank in TTS; VB/Landmarks stay on Steam art
 ]
