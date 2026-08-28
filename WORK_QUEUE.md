@@ -22,9 +22,10 @@ starts in its final container/position:
 - [x] Pond (frogs, no lizard): POND_FROG_POS -> (-30.882,11.562,10.661).
 - [x] Cats: stand upright (rotation), calibrated centres (eyes was 180-flipped; Gorge = exact cats).
 - [x] Seating: hand moved to board by turn order, all players seated (VERIFY in TTS).
-- [~] **Crows** (agent recovering bake-data): bake 4 warriors + supply move (from save); spawn the
-      "hidden plot version" cover to the RIGHT of the plot area, coloured to the seated player's colour
-      (grey now = see-through); fix old-then-new.
+- [x] **Crows** (DONE, VERIFY): m620 bakes 4 warriors (3 loose + un-stow the 4th) + the moved supply
+      into the blueprint; removed the runtime warrior reposition. Hidden Zone (FogOfWarTrigger) spawned
+      on the crow board, recoloured grey->crow player's seat colour (rttCrowsHiddenZone). VERIFY in TTS:
+      hidden-zone position over/right of the plots, and that the FogColor recolour + spawn actually work.
 - [ ] **Box score — FIXED format** (DEFERRED, needs a focused pass): make the layout NOT resize by
       players/VP — pre-format for 4 (default) / 5 (if pressed). It's a large adaptive object (m470
       _boxscore.json, 88KB): `showR = max(S.cols+1, maxLocks+2)` grows the VP columns as scores rise,
