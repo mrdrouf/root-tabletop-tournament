@@ -17,12 +17,9 @@ from . import framework
 NAME = "clean board: new texture (no baked credit), drop banners + stray labels"
 
 OLD_BOARD = "https://steamusercontent-a.akamaihd.net/ugc/1760320391484183045/6F0CAF900BA7AF96687B49D73B36F68022202AE4/"
-# TEMP DIAGNOSTIC (2026-08-28): board texture kept on the base STEAM url to prove the cold-load blank
-# is caused by hosting the custom board on a non-Steam host (GitHub raw -> jsDelivr). Once Adrien
-# uploads board_clean_v3.png to Steam, set NEW_BOARD to that steamusercontent URL to restore the
-# custom art (still Steam = cold-load safe). Was:
-#   NEW_BOARD = "https://raw.githubusercontent.com/mrdrouf/root-tabletop-tournament/main/assets/board/board_clean_v3.png"
-NEW_BOARD = OLD_BOARD  # no-op swap: board stays on the base Steam texture
+# custom clean board (credit removed). Diagnostic confirmed the board texture is NOT the cold-load
+# cause -- the tile renders on cold load; the blank is the setup BUTTONS. Restored per Adrien.
+NEW_BOARD = "https://raw.githubusercontent.com/mrdrouf/root-tabletop-tournament/main/assets/board/board_clean_v3.png"
 
 
 def apply(text):
