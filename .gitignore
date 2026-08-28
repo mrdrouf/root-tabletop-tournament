@@ -1,12 +1,10 @@
-# build output
-dist/
-
-# base mod copy — Leder Games + original authors' IP; never commit
-base/
-
 # python
 __pycache__/
 *.pyc
 
 # local machine setup helpers (paths + settings edits specific to this machine)
 /setup/
+
+# NOTE: dist/ (the compiled self-contained save) and base/ (the source mod) are BOTH committed
+# on purpose -- Adrien has full authorization; the repo is self-contained so GitHub holds the
+# final one-file product AND can rebuild it with nothing external.
