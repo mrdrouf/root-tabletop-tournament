@@ -52,12 +52,13 @@ def apply(text):
     hoot = json.load(open(HOOT, encoding="utf-8"))
     decks = {d.get("GUID"): d for d in hoot["ObjectStates"]}
     mil, ins, order = decks[MILITANT_GUID], decks[INSURGENT_GUID], decks[ORDER_GUID]
-    # the base order deck holds only 4 player-order cards; use the recorded 5-card deck
-    # (adds CardID 806 for the 5th player) when present, so 5-player games deal a card to
-    # every seat. Extracted from Adrien's table next to the draft.
-    order_5 = os.path.join(os.path.dirname(__file__), "_order_deck.json")
-    if os.path.exists(order_5):
-        order = json.load(open(order_5, encoding="utf-8"))
+    # TWO turn-order decks (Adrien's, from his table): a 4-card deck (player 1-4) for STANDARD ranked
+    # and a 5-card deck (player 1-5) for the 5-PLAYER draft. rttDealOrder spawns whichever matches
+    # RTT_DN, so standard ranked never shows a 5th-player card.
+    o4 = os.path.join(os.path.dirname(__file__), "_order_deck_4.json")
+    o5 = os.path.join(os.path.dirname(__file__), "_order_deck_5.json")
+    order_4 = json.load(open(o4, encoding="utf-8")) if os.path.exists(o4) else order
+    order_5 = json.load(open(o5, encoding="utf-8")) if os.path.exists(o5) else order
 
     def card_table(deck):
         cd = deck.get("CustomDeck") or {}
@@ -68,7 +69,8 @@ def apply(text):
 
     mil_cards = card_table(mil)
     ins_cards = card_table(ins)
-    order_json = json.dumps(order, separators=(",", ":"))
+    order_4_json = json.dumps(order_4, separators=(",", ":"))
+    order_5_json = json.dumps(order_5, separators=(",", ":"))
 
     # ---- build the Lua block ----
     def lua_card_map(cards):
@@ -77,7 +79,8 @@ def apply(text):
     lua = """
 RTT_MIL_CARDS = %s
 RTT_INS_CARDS = %s
-RTT_ORDER_JSON = [==[%s]==]
+RTT_ORDER_JSON_4 = [==[%s]==]
+RTT_ORDER_JSON_5 = [==[%s]==]
 RTT_MILITANT = {%s}
 RTT_INSURGENT = {%s}
 -- five landing slots, centred on z=0; slot 5 (z=14) is the LEFT end.
@@ -183,7 +186,7 @@ end
 
 function rttDealOrder()
   spawnObjectJSON({
-    json = RTT_ORDER_JSON,
+    json = ((RTT_DN and RTT_DN >= 6) and RTT_ORDER_JSON_5 or RTT_ORDER_JSON_4),  -- 5-card deck only for 5p
     position = {63.9, 13, -25},          -- on the table (turn order isn't secret); the leftover deck rests here
     rotation = {0, 270, 0},
     callback_function = function(ord)
@@ -207,7 +210,8 @@ end
 """ % (
         lua_card_map(mil_cards),
         lua_card_map(ins_cards),
-        order_json,
+        order_4_json,
+        order_5_json,
         ",".join(str(c["CardID"]) for c in mil["ContainedObjects"]),
         ",".join(str(c["CardID"]) for c in ins["ContainedObjects"]),
     )
