@@ -6840,9 +6840,10 @@ RTT_CAP_OFF_X    = 15.68    -- captains-board offset in the faction board's LOCA
 RTT_CAP_OFF_Z    = 0.28
 RTT_CAP_POOL_GAP = 2.4      -- world gap between the board and the pick-pool
 RTT_CAP_CARD_YAW = 0        -- captain-card yaw relative to the board (PORTRAIT, as Adrien places them)
-RTT_CAP_IMG_H    = 2757     -- board art height (px)  -- self-size: boardWorldHeight = cardLong*IMG_H/SLOT_H
+RTT_CAP_IMG_H    = 2469     -- board art height (px)  -- self-size: boardWorldHeight = cardLong*IMG_H/SLOT_H
 RTT_CAP_SLOT_H   = 747      -- one slot's height (px)  -- so a slot's world height == the card's long side
-RTT_CAP_SLOT_FRAC = { 0.2051, 0.5, 0.7949 }   -- slot-centre y-fractions (for the snap points)
+-- slots TOUCH (spacing == slot height), so once self-sized the 3 cards stack on top of each other
+RTT_CAP_SLOT_FRAC = { 0.1974, 0.5, 0.8026 }   -- slot-centre y-fractions (for the snap points)
 RTT_CAPTAIN_BOARD_JSON = [==[{"Name":"Custom_Tile","Transform":{"posX":0.0,"posY":11.5,"posZ":0.0,"rotX":0.0,"rotY":0.0,"rotZ":0.0,"scaleX":12.0,"scaleY":1.0,"scaleZ":12.0},"Nickname":"Knaves Captains","Description":"","ColorDiffuse":{"r":1.0,"g":1.0,"b":1.0},"Locked":true,"Grid":true,"Snap":true,"IgnoreFoW":false,"MeasureMovement":false,"DragSelectable":true,"Autoraise":true,"Sticky":true,"Tooltip":true,"GridProjection":false,"HideWhenFaceDown":false,"Hands":false,"CustomImage":{"ImageURL":"https://cdn.jsdelivr.net/gh/mrdrouf/root-tabletop-tournament@main/assets/labels/knaves_captains_board.png","ImageSecondaryURL":"","ImageScalar":1.0,"WidthScale":0.0,"CustomTile":{"Type":0,"Thickness":0.1,"Stackable":false,"Stretch":true}}}]==]
 
 -- spawn the Captains board at Adrien's spot: the faction-local offset from the Knaves rules board
