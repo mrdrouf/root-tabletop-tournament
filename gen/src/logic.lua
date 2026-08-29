@@ -6832,16 +6832,18 @@ RTT_KNAVE_CAP = {
 -- draft RANDOMISES 4 captains; the player PICKS 3 (Law of Root Step 2) — nothing is auto-filled.
 -- When Knaves is placed we spawn the board at Adrien's chosen spot (LEFT of the faction rules board,
 -- faction-local offset RTT_CAP_OFF_*), and lay the 4 captains in a pick-pool beside it.
--- Board scale (10.2, so a slot frames a portrait captain card) + 3 slot snap points are BAKED into
--- RTT_CAPTAIN_BOARD_JSON (getBounds self-sizing over-measures this Stretch tile). Scale from Adrien's
--- 3 fits: slots too big at 13.565, cards overflow at 8.4 -> card=slot ~9.7, +margin -> 10.2. Snap
--- z = (0.5-yfrac)*2.0 = +-0.5898 (scale-independent -> stays on the slots at any scale).
+-- SELF-SIZED so a slot exactly frames a portrait captain card: boardWorldHeight = cardLong *
+-- (RTT_CAP_IMG_H/RTT_CAP_SLOT_H), measured live (getBounds is reliable for a flat card once the
+-- remote image loads). 3 snap points are set at the slot centres at runtime.
 RTT_KNAVE_BOARD_IMG = "84529E736BDD4EF6B70CA79E3F99E2D07FA75A2C"  -- Knaves faction rules board face
 RTT_CAP_OFF_X    = 15.68    -- captains-board offset in the faction board's LOCAL frame (Adrien's spot)
 RTT_CAP_OFF_Z    = 0.28
 RTT_CAP_POOL_GAP = 2.4      -- world gap between the board and the pick-pool
 RTT_CAP_CARD_YAW = 0        -- captain-card yaw relative to the board (PORTRAIT, as Adrien places them)
-RTT_CAPTAIN_BOARD_JSON = [==[{"Name":"Custom_Tile","Transform":{"posX":0.0,"posY":11.5,"posZ":0.0,"rotX":0.0,"rotY":0.0,"rotZ":0.0,"scaleX":10.2,"scaleY":1.0,"scaleZ":10.2},"Nickname":"Knaves Captains","Description":"","ColorDiffuse":{"r":1.0,"g":1.0,"b":1.0},"Locked":true,"Grid":true,"Snap":true,"IgnoreFoW":false,"MeasureMovement":false,"DragSelectable":true,"Autoraise":true,"Sticky":true,"Tooltip":true,"GridProjection":false,"HideWhenFaceDown":false,"Hands":false,"AttachedSnapPoints":[{"Position":{"x":0.0,"y":0.05,"z":0.5898}},{"Position":{"x":0.0,"y":0.05,"z":0.0}},{"Position":{"x":0.0,"y":0.05,"z":-0.5898}}],"CustomImage":{"ImageURL":"https://cdn.jsdelivr.net/gh/mrdrouf/root-tabletop-tournament@main/assets/labels/knaves_captains_board.png","ImageSecondaryURL":"","ImageScalar":1.0,"WidthScale":0.0,"CustomTile":{"Type":0,"Thickness":0.1,"Stackable":false,"Stretch":true}}}]==]
+RTT_CAP_IMG_H    = 2757     -- board art height (px)  -- self-size: boardWorldHeight = cardLong*IMG_H/SLOT_H
+RTT_CAP_SLOT_H   = 747      -- one slot's height (px)  -- so a slot's world height == the card's long side
+RTT_CAP_SLOT_FRAC = { 0.2051, 0.5, 0.7949 }   -- slot-centre y-fractions (for the snap points)
+RTT_CAPTAIN_BOARD_JSON = [==[{"Name":"Custom_Tile","Transform":{"posX":0.0,"posY":11.5,"posZ":0.0,"rotX":0.0,"rotY":0.0,"rotZ":0.0,"scaleX":12.0,"scaleY":1.0,"scaleZ":12.0},"Nickname":"Knaves Captains","Description":"","ColorDiffuse":{"r":1.0,"g":1.0,"b":1.0},"Locked":true,"Grid":true,"Snap":true,"IgnoreFoW":false,"MeasureMovement":false,"DragSelectable":true,"Autoraise":true,"Sticky":true,"Tooltip":true,"GridProjection":false,"HideWhenFaceDown":false,"Hands":false,"CustomImage":{"ImageURL":"https://cdn.jsdelivr.net/gh/mrdrouf/root-tabletop-tournament@main/assets/labels/knaves_captains_board.png","ImageSecondaryURL":"","ImageScalar":1.0,"WidthScale":0.0,"CustomTile":{"Type":0,"Thickness":0.1,"Stackable":false,"Stretch":true}}}]==]
 
 -- spawn the Captains board at Adrien's spot: the faction-local offset from the Knaves rules board
 function rttKnaveCaptainBoard(cx, cz, flip)
@@ -6862,25 +6864,64 @@ function rttKnaveCaptainBoard(cx, cz, flip)
   local wz = fp.z - RTT_CAP_OFF_X * math.sin(ang) + RTT_CAP_OFF_Z * math.cos(ang)
   local pos = { wx, fp.y, wz }
   spawnObjectJSON({
-    json = RTT_CAPTAIN_BOARD_JSON,                        -- carries a baked scale (10.2) + baked snap points
+    json = RTT_CAPTAIN_BOARD_JSON,                        -- initial scale 12; self-sized to the card below
     position = pos,
     rotation = { 0, fry, 0 },
     callback_function = function(board)
       pcall(function() board.setLock(true) end)
-      -- just wait for the tile to exist, then lay the 4 captains in a pick-pool beside it
+      -- wait for the remote image to LOAD (getBounds is ~0 until then), THEN self-size + snap + pool
       Wait.condition(
-        function() rttPoolCaptains(board, fp) end,
+        function() rttFitCaptainBoard(board, fp) end,
         function()
           local ok, b = pcall(function() return board.getBounds().size end)
-          return ok and b ~= nil and math.max(b.x, b.z) > 2
+          return ok and b ~= nil and math.max(b.x, b.z) > 4
         end, 8,
-        function() rttPoolCaptains(board, fp) end)
+        function() rttFitCaptainBoard(board, fp) end)
     end
   })
 end
 
--- lay the 4 drafted captains in a 2x2 grid beside the board (side away from the Crafted Improvements
--- board), face up and PORTRAIT, so the player sees all 4 and drags 3 onto the (snap-pointed) slots
+-- self-size the board so a PORTRAIT slot exactly frames a captain card, then snap + pool
+function rttFitCaptainBoard(board, facPos)
+  if board == nil then return end
+  local caps = {}
+  for _, o in ipairs(getObjectsWithTag("RTT Knave Captain")) do caps[#caps + 1] = o end
+  if #caps == 0 then return end
+  local cs = caps[1].getBounds().size
+  local cardLong = math.max(cs.x, cs.z)
+  local bb = board.getBounds().size
+  local curH = math.max(bb.x, bb.z)
+  if curH > 0.01 and cardLong > 0.01 then
+    -- slot height (SLOT_H/IMG_H of the board) must equal the card's long side
+    local desiredH = cardLong * (RTT_CAP_IMG_H / RTT_CAP_SLOT_H)
+    local ns = board.getScale().x * desiredH / curH
+    pcall(function() board.setScale({ ns, 1, ns }) end)
+  end
+  Wait.frames(function()
+    rttCaptainSnaps(board)
+    rttPoolCaptains(board, facPos)
+  end, 20)
+end
+
+-- put a snap point at each of the 3 slot centres (from the self-sized board's real bounds)
+function rttCaptainSnaps(board)
+  if board == nil then return end
+  local bp = board.getPosition()
+  local bb = board.getBounds().size
+  local H = math.max(bb.x, bb.z)
+  local up = (bb.z >= bb.x) and board.getTransformForward() or board.getTransformRight()
+  local snaps = {}
+  for i = 1, 3 do
+    local off = (0.5 - RTT_CAP_SLOT_FRAC[i]) * H
+    local wp = { bp.x + up.x * off, bp.y + 0.1, bp.z + up.z * off }
+    local lp = board.positionToLocal(wp)
+    snaps[i] = { position = { lp.x, lp.y, lp.z } }
+  end
+  pcall(function() board.setSnapPoints(snaps) end)
+end
+
+-- lay the 4 drafted captains in a 2x2 grid beside the board (side away from the faction board),
+-- face up and PORTRAIT, so the player sees all 4 and drags 3 onto the (snap-pointed) slots
 function rttPoolCaptains(board, craftPos)
   if board == nil then return end
   local caps = {}
