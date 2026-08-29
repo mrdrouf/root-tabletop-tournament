@@ -27,13 +27,26 @@ def _set_board_lua(objs, lua):
         _set_board_lua(o.get("ContainedObjects", []) or [], lua)
 
 
+def _board_lua():
+    """The board Lua, from the most-modular source available.
+      content.lua + logic.lua   -> Root's object DATA (content) + OUR CODE (logic)   [preferred]
+      board.clean.lua           -> the cleaned single file
+      board.lua                 -> the identity original (for --identity/--verify)
+    """
+    content = os.path.join(SRC, "content.lua")
+    logic = os.path.join(SRC, "logic.lua")
+    clean = os.path.join(SRC, "board.clean.lua")
+    identity = "--identity" in sys.argv
+    if not identity and os.path.exists(content) and os.path.exists(logic):
+        return open(content, encoding="utf-8").read() + open(logic, encoding="utf-8").read()
+    if not identity and os.path.exists(clean):
+        return open(clean, encoding="utf-8").read()
+    return open(os.path.join(SRC, "board.lua"), encoding="utf-8").read()
+
+
 def build():
     save = json.load(open(os.path.join(SRC, "save.json"), encoding="utf-8"))
-    # prefer the CLEAN board Lua (bloat + dead code omitted, gen/clean.py) once it exists; the
-    # identity board.lua stays as the reproducibility reference for --verify.
-    clean = os.path.join(SRC, "board.clean.lua")
-    src_lua = clean if ("--identity" not in sys.argv and os.path.exists(clean)) else os.path.join(SRC, "board.lua")
-    board_lua = open(src_lua, encoding="utf-8").read()
+    board_lua = _board_lua()
     _set_board_lua(save["ObjectStates"], board_lua)
     os.makedirs(OUT_DIR, exist_ok=True)
     with open(OUT, "w", encoding="utf-8", newline="") as f:

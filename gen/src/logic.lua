@@ -1,0 +1,8240 @@
+function onLoad()
+  assets = {}
+  if self.getName() != "Faction Board" then
+    assets = {
+
+        {name = "ThemeArt", url = "https://steamusercontent-a.akamaihd.net/ugc/16316853328531788856/FE0894D6BBC40E7876FE4A683368A61FC1B35547/"},
+        {name = "RankedArt", url = "https://steamusercontent-a.akamaihd.net/ugc/17736006513028835727/23F7EB2248073953C65D1AAD44636708E9E2DFE1/"},
+        {name = "FivePlayerArt", url = "https://steamusercontent-a.akamaihd.net/ugc/10646501209524696434/622AC9B1FA1D4C6B239DF99C896C07640F449574/"},
+        {name = "WWDraftTool", url = "https://steamusercontent-a.akamaihd.net/ugc/1862809540303472326/2081F779AB2B2A6FA9D15696F6920FE2067BC4C6/"},
+
+        {name = "WWMapAndDeckLabel", url = "https://steamusercontent-a.akamaihd.net/ugc/1862809798758457073/089EBACF82C9F5F6A57DE99BC4B039C26025C7DE/"},
+        {name = "WWDeckPlus", url = "https://steamusercontent-a.akamaihd.net/ugc/1862809798762847395/53113D7B4CA59080584242196F2EA48B3FCA8D6E/"},
+        {name = "WWFactionLabel", url = "https://steamusercontent-a.akamaihd.net/ugc/1862809798758458688/3E0EB033B013FBF8DC17AB401A9CFC0C042C478B/"},
+        {name = "WW1Turn", url = "https://steamusercontent-a.akamaihd.net/ugc/1862809798758602160/9AAC237742D5737D3BE4B82B05EA1068F5D48BA3/"},
+        {name = "WW2Turn", url = "https://steamusercontent-a.akamaihd.net/ugc/1862809798758604829/DEE763FEACB81AA6A9B985EB633F1C08E55A51D7/"},
+        {name = "WW3Turn", url = "https://steamusercontent-a.akamaihd.net/ugc/1862809798758605739/B59B238873159994857BB1B76264F05A5EA8F752/"},
+        {name = "WW4Turn", url = "https://steamusercontent-a.akamaihd.net/ugc/1862809798758606547/AAF86B0FCA4C757CC8AACDE731C1708ADA40BA77/"},
+        {name = "WW5Turn", url = "https://steamusercontent-a.akamaihd.net/ugc/1862809798758607233/A1B8CBA9BC61EFFF8FAA38FB9D519205E2C1CB7F/"},
+        {name = "WW6Turn", url = "https://steamusercontent-a.akamaihd.net/ugc/1862809798758607829/2975F869B1C9244D5B81BF05ED14466D65738C5F/"},
+
+        {name = "WWExit", url = "https://steamusercontent-a.akamaihd.net/ugc/1760320391476521209/314B380DED440A1EA71186A6E99FB3C59402C3C4/"},
+        {name = "WWAreYouSure", url = "https://steamusercontent-a.akamaihd.net/ugc/1862809948805514871/4912582E0454C46654010394CDE4437FC873BB7B/"},
+        {name = "WWForReal", url = "https://steamusercontent-a.akamaihd.net/ugc/1862809948805515438/3D111DD6A136933815806FBAA641A241F6852B11/"},
+        {name = "WWReally", url = "https://steamusercontent-a.akamaihd.net/ugc/1862809948805515962/8A00A6741876FB854953900056B68F69953CEC43/"},
+        {name = "WWYaChicken", url = "https://steamusercontent-a.akamaihd.net/ugc/1862809948805516454/B21AFB4D0FEF08B2B2E95DD1BE244BF7174007C5/"},
+
+        {name = "WWSelectFaction", url = "https://steamusercontent-a.akamaihd.net/ugc/1862809798758740795/3FB9174F6DAEDA6A39FA754A8158379865001AF7/"},
+        {name = "WWSetupFaction", url = "https://steamusercontent-a.akamaihd.net/ugc/1862809798758847572/52A3F4A7974F05A7A7696D4D0AED8F1545AA1834/"},
+        {name = "WWDraftHands", url = "https://steamusercontent-a.akamaihd.net/ugc/1862809798762823019/8F1F0B8448A78CEEB9D825F3680DFAE7F27A8172/"},
+
+        {name = "WWBanner", url = "https://steamusercontent-a.akamaihd.net/ugc/1857179401538180590/45D17C1F9442D6215F3BB6C548CD07164E72991A/"},
+        {name = "WWWarning",url = "https://steamusercontent-a.akamaihd.net/ugc/1857179401538181099/B8139CFC01F8293E948DD07EDB9A86A7167E8AF8/"},
+        {name = "WWWarning2",url = "https://steamusercontent-a.akamaihd.net/ugc/1862809798758614860/CFB938DF75CE98ADBD04EAEA77262474339F9829/"},
+        {name = "WWWarning3",url = "https://steamusercontent-a.akamaihd.net/ugc/1862809948809580211/1B23ADFB88AC5B28B87EAC9CEE094DE165CD9F2F/"},
+        {name = "WWLeftMenu1", url="https://steamusercontent-a.akamaihd.net/ugc/1861696999739467549/E173D7232282E89F95CD5BD5212191AE2006434E/"},
+        {name = "WWJoin", url="https://steamusercontent-a.akamaihd.net/ugc/1857179401538293879/330B576B2DD6F0795FC4CC02BD206FBA46F3697C/"},
+        {name = "WWLeave", url="https://steamusercontent-a.akamaihd.net/ugc/1857179401538295235/5939B90F793DDBA86097052BE14FFFCDE58A32EE/"},
+        {name = "WWCheckRoster", url="https://steamusercontent-a.akamaihd.net/ugc/1857179401538296267/EB0B3938A6F213DA0C18B0023478C1F8B95E2665/"},
+        {name = "WWDone", url = "https://steamusercontent-a.akamaihd.net/ugc/1857179401538297317/C5B575BB0049489877DE5C13E071B5C95EA321C4/"},
+        {name = "WW5050Ticket", url = "https://steamusercontent-a.akamaihd.net/ugc/1857179401541152150/F7AF1F3347F9DC8A055AA6E3F1BEA24E1BA5F709/"},
+        {name = "WWHomebrewTicket", url = "https://steamusercontent-a.akamaihd.net/ugc/1857179401541897237/C2FB1A75D08974B34BB847F093C653B807CAB601/"},
+        {name = "WWOfficialTicket", url = "https://steamusercontent-a.akamaihd.net/ugc/1857179401541899191/538766C95C53DF455C08AC20B80E9F10E9A9123A/"},
+
+        {name = "WWLeftMenuSit", url = "https://steamusercontent-a.akamaihd.net/ugc/1861696999739462797/DD836A4FFCD21D0B8721B3C68437AAD79D5901FA/"},
+        {name = "WWLeftMenuDot1", url = "https://steamusercontent-a.akamaihd.net/ugc/1859433104053138769/0234EA080C02276650E4C047777DE044DD7AE3F8/"},
+        {name = "WWLeftMenuDot2", url = "https://steamusercontent-a.akamaihd.net/ugc/1861696999739471432/6B0D0B26362825EE9846EA4F29CB72D4967CD662/"},
+        {name = "WWLeftMenuDot3", url = "https://steamusercontent-a.akamaihd.net/ugc/1859433104053140385/36A0512FAE850FE6CAF048CA3EF3F9282454E83F/"},
+        {name = "WWLeftMenuFaction", url = "https://steamusercontent-a.akamaihd.net/ugc/1861696999739480088/5D023427404A0E3F7E81C7C1BCE1CF0A23691BBF/"},
+        {name = "WWLeftMenuCards", url = "https://steamusercontent-a.akamaihd.net/ugc/1861696999739486161/9618E6DE2DA9392A6BFF61479302CE313B18A5A8/"},
+
+        {name = "Marquise de Cat Icon", url = "https://steamusercontent-a.akamaihd.net/ugc/1857179401550009864/6E9B0A804DA5A91ECC0535F0392F4A34F24E06AE/"},
+        {name = "Eyrie Dynasties Icon", url = "https://steamusercontent-a.akamaihd.net/ugc/1857179401550009319/049E94CDBFA5B150C865E01EA320220A326F331F/"},
+        {name = "Woodland Alliance Icon", url = "https://steamusercontent-a.akamaihd.net/ugc/1857179401550001585/23C5DBFF72D7A03DA456759B0A36EB8CEF02A788/"},
+        --{name = "VagabondIcon", url = ""},
+        {name = "Adventurer Icon", url = "https://steamusercontent-a.akamaihd.net/ugc/1857179401550015803/48DC9EF391BC6B006E69BBCA8CEAFD4E67EAA4AC/"},
+        {name = "Arbiter Icon", url = "https://steamusercontent-a.akamaihd.net/ugc/1857179401550016508/A471B257858AC918D854ABB36F5034AB1D195E0A/"},
+        {name = "Harrier Icon", url = "https://steamusercontent-a.akamaihd.net/ugc/1857179401550017049/C332A30388CBC4A7E4C2AC2AF2EE54F6547AB756/"},
+        {name = "Ranger Icon", url = "https://steamusercontent-a.akamaihd.net/ugc/1857179401550017564/2B6C5175DE1339B4449F57C906601B3EFA2E51B6/"},
+        {name = "Ronin Icon", url = "https://steamusercontent-a.akamaihd.net/ugc/1857179401550018161/1D55A3293DB2F65D81FE227F901DA843130FA1CC/"},
+        {name = "Scoundrel Icon", url = "https://steamusercontent-a.akamaihd.net/ugc/1857179401550018814/71CD81FEFBC311429C2C20616A7F62ADF68B02F6/"},
+        {name = "Thief Icon", url = "https://steamusercontent-a.akamaihd.net/ugc/1857179401550019508/60F0E1E2F722EA3F26D3AE6CAB442C967C0F6DD7/"},
+        {name = "Tinker Icon", url = "https://steamusercontent-a.akamaihd.net/ugc/1857179401550020017/C77584E4A6B380FD43840689FAA10C220E239156/"},
+        {name = "Vagrant Icon", url = "https://steamusercontent-a.akamaihd.net/ugc/1857179401550020620/6BA52746C00824954AB919C156DC5EBC9B95CA7B/"},
+
+        {name = "The Lizard Cult Icon", url = "https://steamusercontent-a.akamaihd.net/ugc/1857179401550007094/FAEE39697FC835E29610B861A4808C369FD06F85/"},
+        {name = "Riverfolk Company Icon", url = "https://steamusercontent-a.akamaihd.net/ugc/1857179401550007733/624734933939460FB93EDC1E87661B7B0FD8BC17/"},
+        {name = "Underground Duchy Icon", url = "https://steamusercontent-a.akamaihd.net/ugc/1857179401550010408/691D89719FEBDFBEF34B6D587EEDD591158B5BD9/"},
+        {name = "Corvid Conspiracy Icon", url = "https://steamusercontent-a.akamaihd.net/ugc/1857179401550005663/F564BBDB4F798CF275D2C2AB4CE6456C869E8B5B/"},
+        {name = "Lord of the Hundreds Icon", url = "https://steamusercontent-a.akamaihd.net/ugc/1857179401550011183/3723DA81DFFA11C6491D382E8101C9876BF352BF/"},
+        {name = "Keepers in Iron Icon", url = "https://steamusercontent-a.akamaihd.net/ugc/1857179401550008429/895B9C8C8EB927DD1E515CB857F48A7C6730E036/"},
+
+        {name = "Eyrie's End Icon", url = "https://steamusercontent-a.akamaihd.net/ugc/1861696999739457258/1A2351BCC8618DD1A9DF4C188A41C69A810E5BBF/"},
+        {name = "Old Man Tinker Icon", url = "https://steamusercontent-a.akamaihd.net/ugc/1857179401550088526/8CA3A5C47E9B31A7F0B047846FCB65DB819B372F/"},
+        {name = "Necropossums Cabal Icon", url = "https://steamusercontent-a.akamaihd.net/ugc/1857179401550087005/F56AE22AE7DB057892B518722DB8B3B2C819BD15/"},
+        {name = "Dawn of the Marquistadors Icon", url = "https://steamusercontent-a.akamaihd.net/ugc/1857179401550072133/90B6CE3FB04284BA319B10ED3E8D85C604B60051/"},
+        {name = "Workshop Marquise Icon", url = "https://steamusercontent-a.akamaihd.net/ugc/1857179401550080643/E5C63D11769B438FE155D49FE049C84E53925B0C/"},
+        {name = "Arachnid Association II Icon", url = "https://steamusercontent-a.akamaihd.net/ugc/1857179401550081315/2EEEBE26BC6809490E0D8E54B2D4450A979BBC33/"},
+        {name = "Croakers Coven Icon", url = "https://steamusercontent-a.akamaihd.net/ugc/1857179401550083528/27DD958986D8E0F977F784BC350BD18938C08A9C/"},
+        {name = "The Noxious Battery Icon", url = "https://steamusercontent-a.akamaihd.net/ugc/1857179401550087819/FEE54AD3C8FD8501A24DCC61B672E21B612EE068/"},
+        {name = "Bone Patrol Icon", url = "https://steamusercontent-a.akamaihd.net/ugc/1857179401550082699/9C394B84046A2A70F5D37CA5D8179274600224F7/"},
+        {name = "Warriors Wake Icon", url = "https://steamusercontent-a.akamaihd.net/ugc/1857179401550076797/6E3E7DF36FBB1051DC6EA677C258E759576A6C03/"},
+
+        {name = "Black Creek Pirates II Icon", url = "https://steamusercontent-a.akamaihd.net/ugc/1857179401550081971/FABC194CCAA0668987844114BC008A601704C4E3/"},
+        {name = "Spinners of Mercy Icon", url = "https://steamusercontent-a.akamaihd.net/ugc/1920249469919849760/D2CF1773DD8589DCD09911AF0EA349324847B62F/"},
+        {name = "The Winged Menace Icon", url = "https://steamusercontent-a.akamaihd.net/ugc/1857179401550085845/8C04BDDA697D7A2DE10F3D9E51FDADA7E081A21E/"},
+        {name = "Woodland Revolution Icon", url = "https://steamusercontent-a.akamaihd.net/ugc/1857179401550089807/1EE10AF49AAD3962E9AAFB9B1E8813D2778CD079/"},
+        {name = "United Dove Corps II Icon", url = "https://steamusercontent-a.akamaihd.net/ugc/1857179401550084912/1A39068A8FC659E440E87A32CFDA34A756CF9C29/"},
+        {name = "Doomed Swindler Icon", url = "https://steamusercontent-a.akamaihd.net/ugc/1857179401550094665/F0363557F7D207986118F40C67D8E15B8D35A258/"},
+        {name = "Grouch Icon", url = "https://steamusercontent-a.akamaihd.net/ugc/1857179401550094063/5B82F97B82D8C5532BABB7BEE9E53FA4A2E01375/"},
+        {name = "Doomed Berserker Icon", url = "https://steamusercontent-a.akamaihd.net/ugc/1857179401550092503/A52FA339323BD25DE4B44AA03B861CA2EB6E9A9D/"},
+        {name = "Doomed Bard Icon", url = "https://steamusercontent-a.akamaihd.net/ugc/1920249469919844619/ADF458CBDE9BE820DDEA64E2BB95B44B15205A2E/"},
+        {name = "Doomed Blacksmith Icon", url = "https://steamusercontent-a.akamaihd.net/ugc/1857179401550093176/D9423ADE626A5038B11B9774EEEC23F4CD0A2826/"},
+        {name = "Doomed Zealot Icon", url = "https://steamusercontent-a.akamaihd.net/ugc/1857179401550095449/3C52155CEE9AD2DA8D5B9E92B59A347ECCDB1C40/"},
+        {name = "Doomed Barkeep Icon", url = "https://steamusercontent-a.akamaihd.net/ugc/1857179401550091785/51839FE6ACD4BB803CF8B6F2CF82F35BE5C078BA/"},
+
+        {name = "AutumnMapIcon", url = "https://steamusercontent-a.akamaihd.net/ugc/1857179401545559145/2195AD666798BBCB915DA39317949235295E82A7/"},
+        {name = "WinterMapIcon", url = "https://steamusercontent-a.akamaihd.net/ugc/1857179401545566679/C3EB10215C5917643F5A98406D83EF3FF8EC974A/"},
+        {name = "LakeMapIcon", url = "https://steamusercontent-a.akamaihd.net/ugc/1857179401545567379/E6023DB1078C0853ECC52AF6B2B290CE0E0F143E/"},
+        {name = "MountainMapIcon", url = "https://steamusercontent-a.akamaihd.net/ugc/1857179401545562698/D662D39270730E70041FBD5F625258858AF18B67/"},
+
+        {name = "The WastelandsMapIcon", url = "https://steamusercontent-a.akamaihd.net/ugc/1857179401545573259/8A8E4C8418B82E176D4607359D147FCDB49EE32A/"},
+        {name = "Treasure IslandMapIcon", url = "https://steamusercontent-a.akamaihd.net/ugc/1857179401545574508/7DD827948F2AA06F03010B84CBEB29A242184D28/"},
+        {name = "SummerMapIcon", url = "https://steamusercontent-a.akamaihd.net/ugc/1857179401545571231/D22D076DC9147535B9C9F31AD072C9108D3ABD47/"},
+        {name = "LegendsMapIcon", url = "https://steamusercontent-a.akamaihd.net/ugc/1857179401545577556/F7AF1ED713481A3AE0DFBA1DBDE4DD8BD87E5950/"},
+        {name = "GorgeMapIcon", url = "https://steamusercontent-a.akamaihd.net/ugc/1857179401545578515/DB4342B9BAA27D31ECC43EDFD348D547E4E51DAF/"},
+        {name = "The Deep WoodsMapIcon", url = "https://steamusercontent-a.akamaihd.net/ugc/1857179401545579387/6B0D4B1D705223FE94DD9CF0D81870BF00575DC0/"},
+        {name = "AustraliaMapIcon", url = "https://steamusercontent-a.akamaihd.net/ugc/1857179401545580292/DBEF949234DAF2857DE18B172ED45B8FC6307242/"},
+
+        {name = "StandardDeckIcon", url = "https://steamusercontent-a.akamaihd.net/ugc/1857179401545826011/4080587C766BB40FE5FDA3A4421A2382D9C07C79/"},
+        {name = "Exiles and PartisansDeckIcon", url = "https://steamusercontent-a.akamaihd.net/ugc/1857179401545826716/4E6FCAC53A99A571397113355569F01B28C33AD6/"},
+
+        {name = "Action! Deck BoosterDeckIcon", url = "https://steamusercontent-a.akamaihd.net/ugc/1857179401545831943/88FEA9D84DBD567A598C157CF753C14C5A61299C/"},
+        {name = "DarkDeckIcon", url = "https://steamusercontent-a.akamaihd.net/ugc/1857179401545831177/067E483842521EE487CEB01133DE9CE161B5F92E/"},
+        {name = "60 Card MasterDeckIcon", url = "https://steamusercontent-a.akamaihd.net/ugc/1857179401545830431/51A86BB9F8461512C24296C373DB53020214B414/"},
+        {name = "Sorcery of the Enchanted WoodsDeckIcon", url = "https://steamusercontent-a.akamaihd.net/ugc/1857179401545829283/25349508CF3204557D862AE7D016D39512B16877/"},
+        {name = "Upstarts and RenegadesDeckIcon", url = "https://steamusercontent-a.akamaihd.net/ugc/1857179401545827523/4F032CC45504B87FBB2B64C9AF5E4E6CDFBE2FCD/"},
+
+        {name = "Marquise de Cat",url  = "https://steamusercontent-a.akamaihd.net/ugc/1861696999739429295/F6CF523AAA7DCC91AF3812339EBB3354F6D9891A/"},
+        {name = "Eyrie Dynasties",url  = "https://steamusercontent-a.akamaihd.net/ugc/1728793291755958213/960DFA43E52D99A3250863FC63F3BA3AE5104325/"},
+        {name = "Woodland Alliance",url  = "https://steamusercontent-a.akamaihd.net/ugc/1728793291755956632/E99D3C9B246A94F6A898EC0D8098A05FA9467473/"},
+        {name = "VagabondAndKnaves",url  = "https://steamusercontent-a.akamaihd.net/ugc/11747765109863371101/6EB77E31F0244DFD039474C19C18D49AD0C93DBD/"},
+        {name = "Vagabond",url  = "https://steamusercontent-a.akamaihd.net/ugc/18029067728280360921/442E94C46A3882D69BD9CE83FAC257620EE84AEB/"},
+        {name = "The Lizard Cult",url  = "https://steamusercontent-a.akamaihd.net/ugc/1728793291755960838/D88CBE9192488A678AF3EC6DFC45B4C728C9A169/"},
+        {name = "Riverfolk Company",url  = "https://steamusercontent-a.akamaihd.net/ugc/1728793291755963912/C9589D96259534C6FB15DD91F78E7E90A073FDD8/"},
+        {name = "Underground Duchy",url  = "https://steamusercontent-a.akamaihd.net/ugc/1728793291755961872/1E2748C8EDD0BDE039B81658AFD0B19C771569BD/"},
+        {name = "Corvid Conspiracy",url  = "https://steamusercontent-a.akamaihd.net/ugc/1728793291755959858/69B8EC707AD26EF2F558ACAB65B39163B812D3F6/"},
+        {name = "Lord of the Hundreds",url  = "https://steamusercontent-a.akamaihd.net/ugc/1833522185818578726/CE952087E18A1C0B6B94E44EF53EB009A97A7122/"},
+        {name = "Keepers in Iron",url  = "https://steamusercontent-a.akamaihd.net/ugc/1833522185818579404/C0D7197A109DBF0C2EFB34DF50AE2CA70A66C25B/"},
+        {name = "Twilight Council",url  = "https://steamusercontent-a.akamaihd.net/ugc/2452866064845174396/6228F6A71DDC36CD883777CA958857CB123D7ECB/"},
+        {name = "Lilypad Diaspora",url  = "https://steamusercontent-a.akamaihd.net/ugc/2508034524425991747/77C277526C0042FE2754C83836A1E2C3C03FAD38/"},
+        {name = "Knaves of the Deepwood",url  = "https://steamusercontent-a.akamaihd.net/ugc/14468202139363768412/1012F7145C45B86F395C099B9AE80EA536529DD3/"},
+
+        {name = "Adventurer",url="https://steamusercontent-a.akamaihd.net/ugc/1728793291756318712/DAB9CB5B2AA9CF5AF4BDD67CFED687B8595411CF/"},
+        {name = "Arbiter",url="https://steamusercontent-a.akamaihd.net/ugc/1728793291756223555/8BB76979D215E9C042976005212DD7D0F9EBCDBD/"},
+        {name = "Harrier",url="https://steamusercontent-a.akamaihd.net/ugc/1728793291756321980/D728E9E7523EF9917554681B8CCFA7A79D6E95DC/"},
+        {name = "Ranger",url="https://steamusercontent-a.akamaihd.net/ugc/1728793291756323292/B5CDBACDB5E58637478F86047D574579AECBC763/"},
+        {name = "Ronin",url="https://steamusercontent-a.akamaihd.net/ugc/1861696999739435936/8C15D8C6D58FAF51A22B66697740CBA5BAEBBEFB/"},
+        {name = "Scoundrel",url="https://steamusercontent-a.akamaihd.net/ugc/1728793291756324621/71561324D23947260120C7F2EDF0A692986619EB/"},
+        {name = "Thief",url = "https://steamusercontent-a.akamaihd.net/ugc/1728793291756326469/AA4F3B6BF91AC337A240B582DF46C07DF9A374E5/"},
+        {name = "Tinker",url = "https://steamusercontent-a.akamaihd.net/ugc/1728793291756328063/25E9D54EAFE7A483877DECF1013DE57C96B0F214/"},
+        {name = "Vagrant", url = "https://steamusercontent-a.akamaihd.net/ugc/1728793291756329310/FEBDC9CB90C879DFC4ECAE1BBDDA857DBF9CD95C/"},
+        {name = "Gladiator", url = "https://steamusercontent-a.akamaihd.net/ugc/16433884667023926/65F0E372EB9EEF805369BB5F766846F066BD62AF/"},
+        {name = "Jailor", url = "https://steamusercontent-a.akamaihd.net/ugc/10906121492486022753/B8147FE9BB8652380D0027EB4AF0C7FF8C7C66AE/"},
+        {name = "Cheat", url = "https://steamusercontent-a.akamaihd.net/ugc/14685838847886183596/2F910C564507478E736E783C2B01011BF710E3D0/"},
+
+        {name = "Mechanical Marquise",url = "https://steamusercontent-a.akamaihd.net/ugc/1725416402721131861/8DFCF422BF000F0D33F310771EC480209A1B2FB9/"},
+        {name = "Electric Eyrie",url = "https://steamusercontent-a.akamaihd.net/ugc/1725416402721129634/D808C0E7B301109F6DD575FF1490D6D87F6B8BC2/"},
+        {name = "Automated Alliance",url = "https://steamusercontent-a.akamaihd.net/ugc/1861696999739432560/60BCFCAE3B311E5E8F1D5CB3501DE3866A7078EC/"},
+        {name = "Vagabot",url = "https://steamusercontent-a.akamaihd.net/ugc/1725416468779735395/C04D04E37CA20214E51DE0D29F25D9BEF5313301/"},
+        {name = "Logical Lizards",url = "https://steamusercontent-a.akamaihd.net/ugc/1862805096112811713/49271C38EF97345F1771945C9889135873EAC47A/"},
+        {name = "Riverfolk Robots",url = "https://steamusercontent-a.akamaihd.net/ugc/1862805096112812454/BD1ED64CA5FF7AB5A14CE0930BD8E18BEFE0305D/"},
+        {name = "Drillbit Duchy",url = "https://steamusercontent-a.akamaihd.net/ugc/1862805096112813105/3DE8DFDA735083A2204632BB173EC4A9EF6F9ED9/"},
+        {name = "Cogwheel Corvids",url = "https://steamusercontent-a.akamaihd.net/ugc/1862805096112813648/AAA583B6C664FBC673DFC00288CEE08C4D0CC465/"},
+
+        {name = "Orange Meeple",url = "https://steamusercontent-a.akamaihd.net/ugc/1725416402721123069/559A9AE0710087A6BBCC7222757960C83086EFA2/"},
+        {name = "Blue Meeple",url = "https://steamusercontent-a.akamaihd.net/ugc/1725416402721133627/ECD52C5CD057AB195970E9C4A65A3F32D48B436C/"},
+        {name = "Green Meeple",url = "https://steamusercontent-a.akamaihd.net/ugc/1725416402721121814/F441AAAA2A5048397E1685E324C87A4BB946B5B7/"},
+        {name = "Gray Meeple",url = "https://steamusercontent-a.akamaihd.net/ugc/1725416468779734881/4BCBD5DF5F7927EB2374776760DF37AF8F19A712/"},
+        {name = "Yellow Meeple",url = "https://steamusercontent-a.akamaihd.net/ugc/1725416402721123899/6AF30E9F551002970DB6F4FB5EEB7BCD65B31F17/"},
+        {name = "Teal Meeple",url = "https://steamusercontent-a.akamaihd.net/ugc/1725416402721125696/027507215C8F16B4E56BAAF7217012CFDB9DAB78/"},
+        {name = "Brown Meeple",url = "https://steamusercontent-a.akamaihd.net/ugc/1725416468779643667/7F9A4BA198E699336EDB20FCB3BB859716ACF2BC/"},
+        {name = "Purple Meeple",url = "https://steamusercontent-a.akamaihd.net/ugc/1725416402721146053/AB0C714CC7C938FF7B195A912D00D1149C4816F7/"},
+
+        {name = "Corvid Interaction",url = "https://steamusercontent-a.akamaihd.net/ugc/1760320391475639768/27AE75B717985F9076DA10B9EE1BB03C4D9C2110/"},
+        {name = "Riverfolk Interaction", url = "https://steamusercontent-a.akamaihd.net/ugc/1862805096113038687/C70605DF61D6855C6D8F350B0881D1C8CC284A36/"},
+
+        {name = "Law of Robotics",url = "https://steamusercontent-a.akamaihd.net/ugc/1725416402719829914/4AF4CF62BEB439F9C672F2AAFA8C69EF53F8D83F/"},
+        {name = "Better Bot Project Manual",url = "https://steamusercontent-a.akamaihd.net/ugc/1725416402719831731/6BF906A19B74952DC184CCBD35698E64F2070250/"},
+
+        {name = "Bristling Brigade",url = "https://steamusercontent-a.akamaihd.net/ugc/1728793291752819250/E32A3794A37003D5533A598DDAA273F1DE4B1F1B/"},
+        {name = "Farmlands Cooperative",url = "https://steamusercontent-a.akamaihd.net/ugc/1728793291755371057/D571CBDEFED60B1BF42D7D065CC648F91F40468A/"},
+        {name = "Fangus Khan",url = "https://steamusercontent-a.akamaihd.net/ugc/1728793269130803332/E81932701AFF7E192093ECB0C0BA5646591C54B5/"},
+
+        {name = "The Voracious Wyrm",url = "https://steamusercontent-a.akamaihd.net/ugc/16419302166140473/D542A3C6EC16C45F11E4DB7B4E89B8E35F864167/"},
+        {name = "The Noxious Battery",url = "https://steamusercontent-a.akamaihd.net/ugc/16419302166144247/F28FED589189A2A0EFFF6586F9A83E34840FC439/"},
+        {name = "Rockin' Robin",url = "https://steamusercontent-a.akamaihd.net/ugc/1728793269130941006/435DD0C59C2EE2B396113A8D70E2998DC3A70FC7/"},
+        {name = "Red Guard",url = "https://steamusercontent-a.akamaihd.net/ugc/1728793291754385033/4889F99696960F1E40307210CE157C8F92B6162B/"},
+
+        {name = "Black Creek Pirates",url = "https://steamusercontent-a.akamaihd.net/ugc/1728793291754407173/8AE59004E86A18683681D2677C685D8C84B00E78/"},
+        {name = "Workshop Marquise",url = "https://steamusercontent-a.akamaihd.net/ugc/1728793291754408441/8EB77D6898CC9B9787C1C07870405CFAE0101509/"},
+        {name = "Boarish Hoards",url = "https://steamusercontent-a.akamaihd.net/ugc/1728793291754413659/E3E248FEC484C98C1180875D58D581D796C4AC8B/"},
+        {name = "The Weekly Croak",url = "https://steamusercontent-a.akamaihd.net/ugc/1920249469919853693/93C5E539E5A02195D6C53032364390E20D6FA0F8/"},
+        {name = "Spinners of Mercy",url = "https://steamusercontent-a.akamaihd.net/ugc/1728793291754416260/AE57D54645432C8981422F9051666710651D0A7B/"},
+        {name = "Arachnid Association",url = "https://steamusercontent-a.akamaihd.net/ugc/1728793291754417443/B754FCCED4E254960BE764B064689FC9A5DC63BA/"},
+        {name = "Arachnid Association II",url = "https://steamusercontent-a.akamaihd.net/ugc/1728793635526446511/9AE39070D94704577D502A7272E2C2BBA280EEB0/"},
+        {name = "Frosty Theocracy",url = "https://steamusercontent-a.akamaihd.net/ugc/1728793291754418318/D0DC3EE0EE36563ABDCB26304AD2007CB5614995/"},
+        {name = "Nocturnal Battalion",url = "https://steamusercontent-a.akamaihd.net/ugc/1728793291754420021/99C8DA982CACE2CFD5C89B4FBEF9F2BB6B2E3EE1/"},
+        {name = "Necropossums Cabal",url = "https://steamusercontent-a.akamaihd.net/ugc/1728793291754421552/0ECC6133A89142CFD3BB9C8DCE77DD80B42DAEFF/"},
+        {name = "Nomads of the Great Shell",url = "https://steamusercontent-a.akamaihd.net/ugc/1782839567653161783/2C982EB15D1B4E75247D015A9FC62BD106D356D8/"},
+
+        {name = "The Shoreline Consortium",url = "https://steamusercontent-a.akamaihd.net/ugc/1725416468780453986/961367964158C9E70428C8D060426B4E737689DD/"},
+        {name = "The Great Aviators",url = "https://steamusercontent-a.akamaihd.net/ugc/1728793291754424723/4EE841E28962FE10FFA399E2A8A2EAC0AAD693B4/"},
+        {name = "The Wolf Pack",url = "https://steamusercontent-a.akamaihd.net/ugc/1728793291754425599/73ED0E6AB92CD8D66E64047416AF703A6E7D8F8C/"},
+        {name = "The Dark Forest",url = "https://steamusercontent-a.akamaihd.net/ugc/1728793291754426330/C47ACE492461CB59DBF070B623911FCC159C273A/"},
+        {name = "Temple Guard",url = "https://steamusercontent-a.akamaihd.net/ugc/1728793291755375118/FE7BA21B53190482411E070D3585006DB1867FEE/"},
+        {name = "Bad Skunk-pany",url = "https://steamusercontent-a.akamaihd.net/ugc/1728793291754427899/5B13ACC3AB84A674FED340194EB0DD674D1B739D/"},
+        {name = "United Dove Corps",url = "https://steamusercontent-a.akamaihd.net/ugc/1728793291754429271/C57C13B0F3F728DD0D45B09F7FB280173116DEDD/"},
+        {name = "United Dove Corps II",url = "https://steamusercontent-a.akamaihd.net/ugc/1760320725210985400/313DDA3DC787AD1250E67BEB6D15C9CC521F0CA2/"},
+        {name = "Ragoon",url = "https://steamusercontent-a.akamaihd.net/ugc/1728793291754430392/DB23332FE6CE88B19C00FCCAB81CD46C979092DB/"},
+        {name = "The Canine Republic",url = "https://steamusercontent-a.akamaihd.net/ugc/1728793269130971425/0DA397272C3C474980982593BDD684D935E7058D/"},
+        {name = "The Shrewd Tribe",url = "https://steamusercontent-a.akamaihd.net/ugc/1728793291752822407/199392757C63C1535CE284B78CE28A75333C6578/"},
+
+        {name = "The Law of Slug",url = "https://steamusercontent-a.akamaihd.net/ugc/1728793269130778170/778A62D63760B4120D313DC353057CA33D462093/"},
+        {name = "Grouch",url = "https://steamusercontent-a.akamaihd.net/ugc/1728793269130982247/6DA4C7DB07CDE7A8816778BC17EB204D82525DBD/"},
+        {name = "Bone Patrol",url = "https://steamusercontent-a.akamaihd.net/ugc/1728793269130783070/891450842D245D61990A8B72A20DE9845CE8BF28/"},
+        {name = "The Winged Menace",url = "https://steamusercontent-a.akamaihd.net/ugc/1728793269130772512/5224E0C4368F481102D897EEBF414FA3C2D45028/"},
+        {name = "Order of the Forest",url = "https://steamusercontent-a.akamaihd.net/ugc/1728793269130780575/3571EAA5DD49A1F6180B2ECFC363A8DE0826E757/"},
+        {name = "Croakers Coven",url = "https://steamusercontent-a.akamaihd.net/ugc/1728793269130781664/CFA0D3E4F26C6801C757C3353FE5DC5A41DC3464/"},
+        {name = "The Twelve Colonies",url = "https://steamusercontent-a.akamaihd.net/ugc/1728793269130775406/36C0A03A168EF8AA32A4B75F9A8231364ADE93D9/"},
+        {name = "Old Man Tinker",url = "https://steamusercontent-a.akamaihd.net/ugc/1728793269130777020/80BF4930BB27FA1E2A7A239C0A7974063F5C2525/"},
+
+        {name = "Woodland Guard",url = "https://steamusercontent-a.akamaihd.net/ugc/1728793291755376126/8E5CFE7BBE1D87B21224375BBB9B9C7DD52ED034/"},
+        {name = "Plague Doctors",url = "https://steamusercontent-a.akamaihd.net/ugc/1728793291755374026/19E1D6C35762F91D9A66134E1F0CE671C2B8031C/"},
+        {name = "The Eagle King's Court",url = "https://steamusercontent-a.akamaihd.net/ugc/1728793291755372779/BE97463BFFB9D4C56EB0968A185E21D4D2F74E3D/"},
+
+        {name = "Free Leaders of the Nest",url = "https://steamusercontent-a.akamaihd.net/ugc/1699529949888466739/66D17CAC9116C759D2FE588D6963989D6E785563/"},
+        {name = "Pig Troupe",url = "https://steamusercontent-a.akamaihd.net/ugc/1699529949888467800/0FCE7164746B7954293848C89BEC70E398BD26FB/"},
+        {name = "Invasion of the Tinklones",url = "https://steamusercontent-a.akamaihd.net/ugc/1699529949888468626/B6D0B7FA8F8A64A176591B1834C6DC3781F28B6D/"},
+        {name = "Upstart Packaging Service",url = "https://steamusercontent-a.akamaihd.net/ugc/1699529762863976318/137CC24C34978AB167383775ECC1547865D9C983/"},
+        {name = "Rootjam 21", url = "https://steamusercontent-a.akamaihd.net/ugc/1699529949886637620/D529CBE526DFF8D09732A90DC3B0F7D3AAC49D40/"},
+
+        {name = "Dawn of the Marquistadors",url = "https://steamusercontent-a.akamaihd.net/ugc/1696154224422718057/A8AAC9571CC9982B09392B55E9E751BE319BEA8B/"},
+        {name = "Eyrie's End",url = "https://steamusercontent-a.akamaihd.net/ugc/1696154224422738170/CF032C0C50839D92BE2F0A4A2FFACB24C5C3F005/"},
+        {name = "Sagacious Scholars", url = "https://steamusercontent-a.akamaihd.net/ugc/1696154224422828679/61E18C178357D1182081FEC391C7F401C5A71905/"},
+        {name = "The Pond Confederation", url = "https://steamusercontent-a.akamaihd.net/ugc/1696154635652941741/8FAA95E49E7654066B0F168D831426E73393B3B6/"},
+        {name = "The North Clan", url = "https://steamusercontent-a.akamaihd.net/ugc/1696154635652943373/704AEA3C771A3F43A61653C49450D7D745E55805/"},
+
+        {name = "Advanced Setup",url = "https://steamusercontent-a.akamaihd.net/ugc/1833522185814719458/237945A7E3C9DE1967AE096BD09BE1F7829476C0/"},
+        {name = "Draft Tool",url = "https://steamusercontent-a.akamaihd.net/ugc/1859434258001794538/FC3DA4C98C6DC090A9D3890825B1BA17B39F06FA/"},
+        {name = "Law of Root",url = "https://steamusercontent-a.akamaihd.net/ugc/1725416402719828856/442D99DF43D27564672F46E7B94389838E77EBB7/"},
+        {name = "Learning to Play",url = "https://steamusercontent-a.akamaihd.net/ugc/1725416402719826329/7AC0B80B54F7A8AE83E6C1A1F0014EB83926DAB0/"},
+        {name = "Hirelings",url = "https://steamusercontent-a.akamaihd.net/ugc/1862809948809300312/E3C3019162AAD66652E8C4AB388D47FE777E5A9E/"},
+        {name = "New Landmarks",url = "https://steamusercontent-a.akamaihd.net/ugc/2452866064852475557/7281F83E30CAB4C8A6355289C2CE6E8785B5FEF3/"},
+        {name = "Landmarks",url = "https://steamusercontent-a.akamaihd.net/ugc/12936154875885790386/85439BAAE5C809A82FAF83A96E5232DFF4152DD0/"},
+        {name = "Fandmarks",url = "https://steamusercontent-a.akamaihd.net/ugc/1725416402718265355/D40F5A9F58E29970DD02DE3B668CD35920F4A4C0/"},
+        {name = "Faction Select",url = "https://steamusercontent-a.akamaihd.net/ugc/1858304668138699983/C44EA2A82303E48DE0BF8014D328132B2254D498/"},
+
+        {name = "Alliance Multi-State Warriors",url="https://steamusercontent-a.akamaihd.net/ugc/16420027239828392/D9A788A1356580F7B60B7D3D8507A50CA8A88A39/"},
+        {name = "Battle Mat",url = "https://steamusercontent-a.akamaihd.net/ugc/1728793367872326632/BBBD16CCB2233145C130F362BD4772B701C7DF2D/"},
+        {name = "Koffin Keeper",url = "https://steamusercontent-a.akamaihd.net/ugc/1728793367872328873/9643C19226CC90278C43552680153DDF15418A5A/"},
+        {name = "Lizard Wizard",url = "https://steamusercontent-a.akamaihd.net/ugc/1728793367872331088/3CE6C8D9633EBD9DF25142BA43A97E9B35F01AE4/"},
+        {name = "Mighty Multi-State Warriors",url="https://steamusercontent-a.akamaihd.net/ugc/1728793367872333367/F2534D89EE4AF2F499B16CBF80B8F265A0119C80/"},
+        {name = "Mole Monger",url="https://steamusercontent-a.akamaihd.net/ugc/1728793367872336052/05940C3730A58F0B71A020D512486BB890F45550/"},
+        {name = "Swol Birbs",url="https://steamusercontent-a.akamaihd.net/ugc/1725416289813279001/63A7B0C8DC0B3592F93D530B90451CBEC07547F2/"},
+        {name = "Battle Dice",url="https://steamusercontent-a.akamaihd.net/ugc/1728793367872340896/F217E92D8189385816ACC9A9EA44603D49B19865/"},
+        {name = "Vagabond Cards",url="https://steamusercontent-a.akamaihd.net/ugc/13747817220151181841/9A47D69E9103B9502DBED36BEA4DA6F9C70C6EB8/"},
+        {name = "Mighty Multi-State Ruins",url = "https://steamusercontent-a.akamaihd.net/ugc/1728793635526481079/46982BC98D7F8D610F4F2CEAE92D987F20485862/"},
+        {name = "Clearing Priorities Big",url = "https://steamusercontent-a.akamaihd.net/ugc/17343862070314210598/A5AFE2885F4656D394532C9DA4E260DAEBB5D271/"},
+        {name = "Clearing Priorities Small",url = "https://steamusercontent-a.akamaihd.net/ugc/1692779977932694143/EE512EC6064B68F082466AEBEA087CA38B461B28/"},
+        {name = "Faction Selector Tool",url="https://steamusercontent-a.akamaihd.net/ugc/16420027251539310/A450741E43546370C6509D413D2CA3F1DABCBFAC/"},
+        {name = "Mini-Mood Manager",url="https://steamusercontent-a.akamaihd.net/ugc/1782839567653163566/583C3FE604C4B4E943BD914071325274C515E9D8/"},
+        {name = "Bat Bungler",url="https://steamusercontent-a.akamaihd.net/ugc/14651271115865573647/F4976C56FFA40862183EC055ED9F908FA96DC2B3/"},
+
+        {name = "Clearing Markers",url="https://steamusercontent-a.akamaihd.net/ugc/18105714333446016542/1C77868231CEA4360B4404A43211931D57921DC0/"},
+        {name = "Items",url="https://steamusercontent-a.akamaihd.net/ugc/12996382395453116197/45486599501A1D46FA13087CA986ED5521F7835C/"},
+
+        {name = "TournamentSetup",url="https://steamusercontent-a.akamaihd.net/ugc/1692779977932700444/9D69FB04BB032F7C266BF3F561BECED1E8A28247/"},
+
+        {name = "Trick or Treat!",url = "https://steamusercontent-a.akamaihd.net/ugc/1728793291756336066/1281B7F98C739BF9989F056FD6A632D3B47C20BB/"},
+        {name = "The Tavern",url = "https://steamusercontent-a.akamaihd.net/ugc/1728793291756347083/0C3EA962F017F73CCAB786B6DF8ED267CFBE4F98/"},
+        {name = "The Chaos Contraptions",url = "https://steamusercontent-a.akamaihd.net/ugc/1728793291756375251/8649076A0F2345DFD5FD686FFA17B40516465A8C/"},
+        {name = "Haunted Woodland",url = "https://steamusercontent-a.akamaihd.net/ugc/1728793367872320860/04630EB9DF042364C651FF659CEA9C2A5BF68614/"},
+        {name = "Eyrie Leaders",url = "https://steamusercontent-a.akamaihd.net/ugc/1704036262314927549/1634051CED6CB2268AAA54AB089F9E9CA9613FCA/"},
+
+        {name = "Magenta Marquise",url = "https://steamusercontent-a.akamaihd.net/ugc/1871805410096211175/57E337F2E78C96BEA1B4ABD61D37CCBFC01A044F/"},
+        {name = "Brown Birds",url="https://steamusercontent-a.akamaihd.net/ugc/1871805410096212710/E0B54F274CC0D03F687825059F5CAE06D0A0AA54/"},
+
+        {name = "Riverfolk Markers", url = "https://steamusercontent-a.akamaihd.net/ugc/1704036262312748289/AB402F0842EE5E2CF9A2A4C591DB55A5EA03BA60/"},
+
+        {name = "Autumn Map",url = "https://steamusercontent-a.akamaihd.net/ugc/9338841708247799860/688C6CB9F5A34B2A2B067C6DA493AD653B7D9C6A/"},
+        {name = "Winter Map",url = "https://steamusercontent-a.akamaihd.net/ugc/12863190738702993416/F9C676622A48D6E15BB3AE235E26CE7BC8D11283/"},
+        {name = "Lake Map",url = "https://steamusercontent-a.akamaihd.net/ugc/11224158918879846636/C034E1855CED11FD28D76E3020D629478FABD195/"},
+        {name = "Mountain Map",url = "https://steamusercontent-a.akamaihd.net/ugc/17146621840035729417/55256EFBD832F89B16ADAF98A382D4BF09162487/"},
+        {name = "Marsh Map",url = "https://steamusercontent-a.akamaihd.net/ugc/12189840401890527004/1A5500DF801E01874A28C059E04D049043948426/"},
+
+        {name = "Summer Map",url = "https://steamusercontent-a.akamaihd.net/ugc/1696154224423110603/C3BC80DD5A0F72966665CAC14BECEEED1B02A692/"},
+        {name = "Legends Map",url = "https://steamusercontent-a.akamaihd.net/ugc/1871805410099132277/153EB97C3CCEC3B2AC8076C8DDC724F8E1165163/"},
+
+        {name = "Gorge Map",url = "https://steamusercontent-a.akamaihd.net/ugc/17163206417596942920/65DEC204EF54C27F6BAFE8202D3AE63F73D28DD3/"},
+        {name = "Gorge Original Map",url = "https://steamusercontent-a.akamaihd.net/ugc/16433884666653740/C1766FAF41F0433D369D2181F92C7941B5D6C929/"},
+        
+        {name = "Treasure Island Map",url = "https://steamusercontent-a.akamaihd.net/ugc/1728793291755436567/7A21720DB922FA3A0B05F0FF0E9FB0A4619D7D0A/"},
+        {name = "Deep Woods Map",url = "https://steamusercontent-a.akamaihd.net/ugc/1728793291755429411/8C1C77B62B18F620F24053812DC4B32DAE8FD86D/"},
+        {name = "Wastelands Map",url = "https://steamusercontent-a.akamaihd.net/ugc/1728793291755559172/F8B13B88C817D4BC1C4262DB09E109F84484148A/"},
+        {name = "Australia Map",url = "https://steamusercontent-a.akamaihd.net/ugc/1728793291755441446/16318E30B063A6E439E08728EAFF4963E7A17277/"},
+        {name = "Narrows and Islets Map", url = "https://steamusercontent-a.akamaihd.net/ugc/1728793291755465538/44001F9D0FA1F134FE63DE2720B367CF00F17D24/"},
+        {name = "Tropics Map", url = "https://steamusercontent-a.akamaihd.net/ugc/1782840088903024368/D45A2DD6DA43C27CAA47C56305C8E1B0A053F881/"},
+        {name = "Tunnel Unraveled Map",url = "https://steamusercontent-a.akamaihd.net/ugc/1782840088903031238/69C85739BFF03016086DEBE20D49D6DE60314E20/"},
+
+        {name = "River Town Map",url = "https://steamusercontent-a.akamaihd.net/ugc/16419302161232742/A4D7217C4526E93BB851080B0804F1C22BDC6A34/"},
+        {name = "Mountainside Map",url = "https://steamusercontent-a.akamaihd.net/ugc/16419302161240148/A070DD5DCA35CA4A0C712934079FA5F0996A1044/"},
+        {name = "Tidal Flats Map",url = "https://steamusercontent-a.akamaihd.net/ugc/16419302161036555/CC02B14ADD3A4C25950B866B0931551D334541FC/"},
+        {name = "Blighted City Map",url = "https://steamusercontent-a.akamaihd.net/ugc/16419302161005481/0D14C349BE0ECF10D83DD948ECC46FF2A8E89CB7/"},
+        {name = "Taiga Map",url = "https://steamusercontent-a.akamaihd.net/ugc/16419302161030312/C82A0C235A5FCD839E5242FD40FFB2654CBE1032/"},
+        {name = "Gloom Map",url = "https://steamusercontent-a.akamaihd.net/ugc/16419302161032587/58BC5A336F1A3149766B9538B409D089BA172FBC/"},
+        {name = "Klacar's Volcano Island Map",url = "https://steamusercontent-a.akamaihd.net/ugc/16423272750590320/FA1BF0F9298AA3E23156A5F1B47153D81324B3F3/"},
+        {name = "Spaceballs Map",url = "https://steamusercontent-a.akamaihd.net/ugc/16429450331909207/2A1EBD3531ED5024A04E88ACF39A579FE5879EAC/"},
+        {name = "Inferno Map",url = "https://steamusercontent-a.akamaihd.net/ugc/16429450331983247/B0CB31F2A58C84985465986BE4ACD4073F310538/"},
+        {name = "Blighted Grove Map",url = "https://steamusercontent-a.akamaihd.net/ugc/16430283484922818/2C537178499FF02869872FC4CEE2493C089026E8/"},
+
+        {name = "Standard Deck",url = "https://steamusercontent-a.akamaihd.net/ugc/1791848789393178780/9438FC204F346D081D3E66A95BBEAC918288004A/"},
+        {name = "Exiles and Partisans Deck",url = "https://steamusercontent-a.akamaihd.net/ugc/1791848789393180099/504416827060BE54A0038F2C9BCF5D5A9475367F/"},
+        {name = "Squires and Disciples Deck",url = "https://steamusercontent-a.akamaihd.net/ugc/16423108253239612/4B2CC3EBFD87C25AD92E61110CF80A5C0E461BD6/"},
+        {name = "Sorcery of the Enchanted Woods Deck",url = "https://steamusercontent-a.akamaihd.net/ugc/1728793291755382878/F583CD37323A8CB18FAA1769158A70D09FA07102/"},
+        {name = "Upstarts and Renegades Deck",url = "https://steamusercontent-a.akamaihd.net/ugc/1728793291755379437/7B5FD13E65EB5EEC2C15749E88A68748E1418E2A/"},
+        {name = "60 Card Master Deck",url = "https://steamusercontent-a.akamaihd.net/ugc/1728793291755389308/494037551CA49B9B4BDE834ECBAD477A852C0EFB/"},
+        {name = "Dark Deck",url = "https://steamusercontent-a.akamaihd.net/ugc/1759199733286355061/7CC669574FB8C2836047540B51419475D35EA270/"},
+        {name = "Dawn and Dusk Deck",url = "https://steamusercontent-a.akamaihd.net/ugc/16419302161441770/32A810A7CE14B231C3D16A55CB4DE221BAC33AB8/"},
+
+        {name = "Doomed Vagabonds",url = "https://steamusercontent-a.akamaihd.net/ugc/1696154224422742579/AFE057743980A271EE1B308F1B2E44D23AB9E555/"},
+        {name = "Hirelings Noir",url = "https://steamusercontent-a.akamaihd.net/ugc/1759199733284824390/0C20FDD76FB7E0E77833A6948C12DC931F9A0C30/"},
+        {name = "Slug's Magic Bag", url = "https://steamusercontent-a.akamaihd.net/ugc/1699529762863980476/785BA878C983A54AC086E7A56D06BEC6037E6157/"},
+
+        {name = "The Bumblebee Dominion",url = "https://steamusercontent-a.akamaihd.net/ugc/1696154342833386558/5FD16D49B18B5465AB6B76DE94B44C5859BCE5DF/"},
+        {name = "The Auspicious Augury",url = "https://steamusercontent-a.akamaihd.net/ugc/1696154342833400459/C150BAEDD652C9DFFA64BEFB0F7AA588707997FD/"},
+        {name = "Unearthed Duchy",url = "https://steamusercontent-a.akamaihd.net/ugc/1704036353781365999/9A0588E9306AB8EAA05F5E944DDD33749E10EEB9/"},
+
+        {name = "Bots", url = "https://steamusercontent-a.akamaihd.net/ugc/1725416402721084869/964BF0F573EDFD0380AD036C520F95955B27A811/"},
+        {name = "Core Factions", url = "https://steamusercontent-a.akamaihd.net/ugc/1725416402721086214/91112CA7A5B080B4E98EC71B0261A2687E09062E/"},
+        {name = "Fan Factions", url = "https://steamusercontent-a.akamaihd.net/ugc/1725416402721087204/95423490207D628D10A530AACF52998F9CC067B5/"},
+        {name = "Maps and Decks", url = "https://steamusercontent-a.akamaihd.net/ugc/1725416402721063731/939DF2074A31CAD355D03105EA90530671E275DE/"},
+        {name = "Tools", url = "https://steamusercontent-a.akamaihd.net/ugc/1725416402721070945/3B57F7CCBEDB396CEB70481769051D7CD491CAFB/"},
+        {name = "Setups", url = "https://steamusercontent-a.akamaihd.net/ugc/1725416402721072522/F96D33B2DA2FEC9AA603AFC14D63B34311F34915/"},
+        {name = "Back Button",url="https://steamusercontent-a.akamaihd.net/ugc/1725416402721079676/65CDF0BE142456D54B25285390B4CCF0163B5903/"},
+        {name = "More Button",url="https://steamusercontent-a.akamaihd.net/ugc/1725416402721081167/3E8A5E5A5806EE37F0C95F73AF9FC24D9F9E0AED/"},
+        {name = "NextButton",url= "https://steamusercontent-a.akamaihd.net/ugc/1809859799003111170/04391B14EF07FBD13352AD45AA63DAE5EDDFD4DC/"},
+
+        {name = "Big Back Button",url = "https://steamusercontent-a.akamaihd.net/ugc/1809859303953108083/DE8E54E2AAA576DBCFF1942FE96D79BAEF9FEF00/"},
+        {name = "Big Exit Button",url = "https://steamusercontent-a.akamaihd.net/ugc/1809859303953109854/0E8E4F07F53C124137BD58D4211953DF6E3514DD/"},
+        {name = "Big Random Button",url= "https://steamusercontent-a.akamaihd.net/ugc/1809859303953125137/85AEEA8FEA3B3E1E9E9695AAF5555FEAFD7A77D1/"},
+
+        {name = "Tourn1PlayerButton", url = "https://steamusercontent-a.akamaihd.net/ugc/1692779977932741607/D22A52DC8CED484B8BBDF2E985FABDFA3CA2A645/"},
+        {name = "Tourn2PlayerButton", url = "https://steamusercontent-a.akamaihd.net/ugc/1692779977932763041/FC23FE63411E212BA0E936B31690B9132BA58C35/"},
+        {name = "Tourn3PlayerButton", url = "https://steamusercontent-a.akamaihd.net/ugc/1692779977932763644/31EB4F30002DC7ABFD555BFDB9D9F6205FE8D2A7/"},
+        {name = "Tourn4PlayerButton", url = "https://steamusercontent-a.akamaihd.net/ugc/1692779977932764273/68CAA0AF3BC786725A575E4C6844CF1D3DFB1EAF/"},
+        {name = "Tourn5PlayerButton", url = "https://steamusercontent-a.akamaihd.net/ugc/1692779977932764728/032295901D0D70CCFF454ED48FFD0CB4BC14F95B/"},
+        {name = "Tourn6PlayerButton", url = "https://steamusercontent-a.akamaihd.net/ugc/1692779977932765525/04EFA5DB9E5D73EA1574D5739AB3EE712EAD5E5D/"},
+
+        {name = "TournBackButton", url = "https://steamusercontent-a.akamaihd.net/ugc/1692779977932766268/21F629C7094262B23084D723A4AA062732A0CDC1/"},
+        {name = "TournCheckRosterButton", url = "https://steamusercontent-a.akamaihd.net/ugc/1692779977932766857/A16731FA8B53847EFB65384E78C981B660FDA500/"},
+        {name = "TournExitButton", url = "https://steamusercontent-a.akamaihd.net/ugc/1692779977932767575/492ED6F9726FF88905AF6AF9DC9221A9DF39E345/"},
+        {name = "TournJoinButton", url = "https://steamusercontent-a.akamaihd.net/ugc/1692779977932768104/6738B469EA8D7AF916044D87212B8DAE9D4600B4/"},
+        {name = "TournLeaveButton", url = "https://steamusercontent-a.akamaihd.net/ugc/1692779977932768742/8602F7D800D7CD9621AB317E7EF75B1CBA609866/"},
+        {name = "TournStartDraftButton", url = "https://steamusercontent-a.akamaihd.net/ugc/1692779977932769529/E294E3BDCA6D8E5AA6BD2543191DA5CA81E25D0F/"},
+        {name = "TournDraftPoolButton", url = "https://steamusercontent-a.akamaihd.net/ugc/1692779977932770674/C3977F03EF0D5A472E49D4FF498C61E0117E0805/"},
+        {name = "TournMountainButton", url = "https://steamusercontent-a.akamaihd.net/ugc/1629731306410841935/F2DC34AF88DE208A2B895FAC8D1DAF22BA62741A/"},
+
+        {name = "TournMapButton", url = "https://steamusercontent-a.akamaihd.net/ugc/1692779977932771947/B3FF124D969ABD3F60EEF662615C3A438A2F6517/"},
+
+        {name = "TournSideMenu1Button", url = "https://steamusercontent-a.akamaihd.net/ugc/1629731306411064977/B7FD7E2F4BF5D07CB6DE80910A61CEB346F078A4/"},
+        {name = "TournSideMenu2Button", url = "https://steamusercontent-a.akamaihd.net/ugc/1629731306411066694/E86E658BA6796A012EE04D01B3C0DF7438F88D93/"},
+        {name = "TournSideMenu3Button", url = "https://steamusercontent-a.akamaihd.net/ugc/1629731306411067611/7AF64BEDD57C087E06BD1A8579A931381492FD78/"},
+        {name = "TournSideMenu4Button", url = "https://steamusercontent-a.akamaihd.net/ugc/1629731306411068885/5DD0AC1F3A2BFD9823720EFB1E2A27A82BFDDB25/"},
+        {name = "TournTitleButton", url = "https://steamusercontent-a.akamaihd.net/ugc/1692779977932776686/62CADED8D0C8A4F22CA85EFF72C625286A8D61D0/"},
+
+        {name = "TournMapSelectMessage", url = "https://steamusercontent-a.akamaihd.net/ugc/1629731543197726351/F3041972D3BB1E74F31912F30251F6B328F65898/"},
+        {name = "TournFacSelectMessage", url = "https://steamusercontent-a.akamaihd.net/ugc/1692779977932773239/EF1B5CD14A27B687AF58DCCCF528742193BD79E2/"},
+        {name = "TournOnceAllButton", url = "https://steamusercontent-a.akamaihd.net/ugc/1629731624852901524/8BCA7C09432EA76145F3231F632997B8D8E25073/"},
+        {name = "TournCompleteSetup", url = "https://steamusercontent-a.akamaihd.net/ugc/1629731624852894764/78AE061E5F01B984433BD4606E958F97EBE4D161/"},
+
+        {name = "TournDoneButton",url="https://steamusercontent-a.akamaihd.net/ugc/1629731624852318441/26B77D1F7FD7F4EA25BA5E307D67AAF752AA5D43/"},
+        {name = "TournDoneButtonWhite",url="https://steamusercontent-a.akamaihd.net/ugc/1629731624852319793/8E6D942B695A71A615BF1C0DE9AAF808052BA284/"},
+
+        {name = "X Icon",url = "https://steamusercontent-a.akamaihd.net/ugc/1859433104053132366/2704A9C9AB1B047A1DC28B1B19E612B08F905940/"},
+
+        {name = "Root Logo", url="https://steamusercontent-a.akamaihd.net/ugc/1859433104053130905/247FAE492208FF3BEFACE423A31B8D7644BA7B19/"},
+        {name = "Credits",url="https://steamusercontent-a.akamaihd.net/ugc/1728793367872500988/79BC1C2E8411DCAFADF7C9B7D094F2273CC38E87/"},
+
+        
+        {name = "Ehss Info",url = "https://steamusercontent-a.akamaihd.net/ugc/1696154342833457824/C8378F41BA886E94FBCD6CDC32DBEA32FE6796E8/"},
+        {name = "slugfacekillah Info",url = "https://steamusercontent-a.akamaihd.net/ugc/1728793635526371464/0DB00E235E0DA0EA7201674331D0AE7B8BCD47D1/"},
+        {name = "Ehss and Slug Info",url = "https://steamusercontent-a.akamaihd.net/ugc/1782839103935392102/0927F44D64B56538A6E2A028FF30126D6652702C/"},
+        {name = "Ehss and Endgamer Info",url = "https://steamusercontent-a.akamaihd.net/ugc/1692779977932665342/9AC806656AAED471C30FA206D84CD2E5C5E22F5F/"},
+        {name = "JustinInExile Info",url = "https://steamusercontent-a.akamaihd.net/ugc/1728793635528179522/0F18B9473BA94C17D367FD9D79F35A0EC4D9C32E/"},
+        {name = "Le Codex Info",url = "https://steamusercontent-a.akamaihd.net/ugc/1728793635528183632/1F52657746CCA823152BED2D9EDE275D074E6A6E/"},
+        {name = "Milda Matilda Info",url = "https://steamusercontent-a.akamaihd.net/ugc/1728793635528228433/36B3365AA4ADDC92DD860358DC7A99F570C3C1DD/"},
+        {name = "MarcustheCat Info", url = "https://steamusercontent-a.akamaihd.net/ugc/1760320301172364599/8F6F0A03E0C90E33FE11AB9CC86ECBEF85CA9647/"},
+        {name = "MarcustheCat and Supacatone Info", url = "https://steamusercontent-a.akamaihd.net/ugc/1728793727830262661/CC0DE39F8778AC1DEBEFBE051A51D7A7AFE51EC1/"},
+        {name = "Chemical Info",url = "https://steamusercontent-a.akamaihd.net/ugc/1728793727830263065/CD4865518547492100E452A023BD05F802A784D8/"},
+        {name = "Oranos.3408 Info",url = "https://steamusercontent-a.akamaihd.net/ugc/1728793727830286619/49D8A8CE4B78D19686DB4E3B0436F35DEE11B9BB/"},
+        {name = "Vuorienpeikko Info",url = "https://steamusercontent-a.akamaihd.net/ugc/1728793727832869945/431423264320113A03A34D78D26E923E1782F306/"},
+        {name = "S.P.Shaman Info",url = "https://steamusercontent-a.akamaihd.net/ugc/1728793727832880296/CFD0A34E8AAC66EE2E406C5F2652DA7E3699AA7E/"},
+        {name = "Totgeboren Info",url = "https://steamusercontent-a.akamaihd.net/ugc/1728793727832881462/03A7FD1F96384B3B123C4AF7C67AB9D4506AD9DE/"},
+        {name = "Esau Info",url = "https://steamusercontent-a.akamaihd.net/ugc/1728793727832883476/6C3171B5D089EFA3602745BC2708B93B0AF99B50/"},
+        {name = "J444 Info",url = "https://steamusercontent-a.akamaihd.net/ugc/1728793799439301238/42584E05230B726880E018640DDB1D6D8BA52B9A/"},
+        {name = "Nevakanezah Info",url="https://steamusercontent-a.akamaihd.net/ugc/1728793799439302485/F46D00FF0354D5F24AFCFB7FFFAC2EA4DDA28A11/"},
+        {name = "Matchstick Info",url="https://steamusercontent-a.akamaihd.net/ugc/1728793799439303700/EB8E0B76EE3A6475B2033B7DC69597D9821FC6EA/"},
+        {name = "MarcustheCat and Trashpanda8 Info",url="https://steamusercontent-a.akamaihd.net/ugc/1728793799439305020/FA757DED2F3A8B71389D6A295130BDC05F1ABCA4/"},
+        {name = "LordOfTheBoard Info",url="https://steamusercontent-a.akamaihd.net/ugc/1728793799439331955/33C92E129FA9EB9D30B773021738391A736B120C/"},
+        {name = "Creslin9 Info",url="https://steamusercontent-a.akamaihd.net/ugc/1728793822430780649/9808291C794CB564FFBCD1CDBCCA6CD4831667AF/"},
+        {name = "GaborBoth and RedCheshireKate Info",url = "https://steamusercontent-a.akamaihd.net/ugc/1728793822430800456/57A7EB3183970920332901DCF6BBA9144044AE3E/"},
+        {name = "snowjedi6 Info",url="https://steamusercontent-a.akamaihd.net/ugc/1725416136412298173/FF2AD403F14FF46680CBF079A0A5B6ECCBA9010D/"},
+        {name = "Velensk and Sid3run Info",url="https://steamusercontent-a.akamaihd.net/ugc/1725416136412299340/90CA325A0BB24342F4881C733D7A1A294E2842A8/"},
+        {name = "Dewhurst Info", url ="https://steamusercontent-a.akamaihd.net/ugc/1725416136413184582/B8383703DD33F641106984A529949A781C1C15EE/"},
+        {name = "kpackard Info", url = "https://steamusercontent-a.akamaihd.net/ugc/1725416195554265462/D69A93D9FB6C499681F11642EE88F20373336304/"},
+        {name = "Milda Matilda and Ehss Info", url = "https://steamusercontent-a.akamaihd.net/ugc/1760320644483451110/1611C87B972B512E9EB0B5E882696ACCD07D32D2/"},
+        {name = "Print and Play Info", url = "https://steamusercontent-a.akamaihd.net/ugc/1782839633458571009/CBF6363D467FF60D4713CAD182E36A9DB0727B5A/"},
+        {name = "Nevakanezah and Slug Info", url= "https://steamusercontent-a.akamaihd.net/ugc/1704036430908662468/83E53F32BC1C2149747AF4C5B35EDF2B1F5F4717/"},
+        {name = "Original Supacatone Info", url="https://steamusercontent-a.akamaihd.net/ugc/1871809398613363241/B5FF21266CA2BCA4EDB0CAFB3419BAD7C7C73B8B/"},
+        {name = "fkolouch Info", url="https://steamusercontent-a.akamaihd.net/ugc/16419302161271568/9750F9E81C3C339B7A108297BF9EA36D39051F01/"};
+        {name = "Klacar Info",url = "https://steamusercontent-a.akamaihd.net/ugc/16423272750658596/A8D3FEB3736DB4D9900D34166E73FBF7110EE85D/"},
+
+        {name = "Le Codex and Lijosu Info", url = "https://steamusercontent-a.akamaihd.net/ugc/1699529949886920161/1D02FAFD4A8C43AC9EC164F2AA7CDCB0380BAA50/"},
+        {name = "GeneralMasterJake Info", url = "https://steamusercontent-a.akamaihd.net/ugc/1699529949886923998/AFAC8B0A8C50B71BA1E227434D0B198C103695A7/"},
+
+        {name = "Norsehound Info",url = "https://steamusercontent-a.akamaihd.net/ugc/1760320391475275637/371429CC54867CA7064F05C5258C0E5503C9D00E/"},
+        {name = "vatechman3 Info",url = "https://steamusercontent-a.akamaihd.net/ugc/1699528634399457079/46FFE28F8E63C2B75B6CD1EE261D9DBA0FDEE069/"},
+        {name = "Hierotitan and Leonatus Info",url = "https://steamusercontent-a.akamaihd.net/ugc/1782839856362038803/D1A1331E2B11F6B9218D74DC7D7A0E7F4FE17F1E/"},
+        {name = "Brooklyn Game Lab Info",url = "https://steamusercontent-a.akamaihd.net/ugc/1760320391475284598/BC4D2CE436CA4A24CE209DC52C6FFB31ED358B86/"},
+        {name = "mine12king Info",url="https://steamusercontent-a.akamaihd.net/ugc/1760320391475287888/242DB7A4ED993A83D5FF278EE88B8BB18259E035/"},
+        {name = "adorablerocket Info",url = "https://steamusercontent-a.akamaihd.net/ugc/1758072369107353185/7911CE2914C6DA96F3B28E141231372DE0CAA303/"},
+
+        {name = "Azhdar and Supacatone Info",url="https://steamusercontent-a.akamaihd.net/ugc/1809859303950628984/979820A68EC7BB7CB0812856DAB8455966C21A10/"},
+        {name = "Supacatone Info",url="https://steamusercontent-a.akamaihd.net/ugc/1809859303950632835/A47AA2904B4AFFE19648A9583C1AB5F872E84189/"},
+        {name = "Magh and Supacatone Info",url="https://steamusercontent-a.akamaihd.net/ugc/1809859303950635072/B71340F7B3B6B8E30B491868B93CE13539463C4E/"},
+        {name = "Luhnaire and Supacatone Info",url = "https://steamusercontent-a.akamaihd.net/ugc/1809859303950636966/DD89D4857C4DB810D71F1ED80DD1ABE3548C5ED5/"},
+        {name = "Tikette and Supacatone Info",url="https://steamusercontent-a.akamaihd.net/ugc/1809859303950638542/BD3C9002B06FA848A16378C5E168236F2755775A/"},
+        {name = "Max Masque and Alex L'Arbe and Supacatone Info",url = "https://steamusercontent-a.akamaihd.net/ugc/1809859303950641909/BD0B83895573607C967FA637052B486F9EDC37D8/"},
+        {name = "Evan Lindeman and Magh and Supacatone Info",url = "https://steamusercontent-a.akamaihd.net/ugc/1809859303950643011/84B0F5F2FC4ABE02610EC9DB069F0C87D123DA3D/"},
+        {name = "OrigamiGoblin and Arkane Info",url = "https://steamusercontent-a.akamaihd.net/ugc/1696154342833425148/BE33B9B499CCB8FB7444071B0493CCFE0808D4EE/"},
+        {name = "McDougishole Info",url = "https://steamusercontent-a.akamaihd.net/ugc/1696154342833429281/9378E5A5884B77B0C5FF3B4FA536C60979014ECA/"},
+        {name = "Endgamer Info",url="https://steamusercontent-a.akamaihd.net/ugc/1833522185819287693/7774219B8D50A4D4F2C9E616D14308F104490F68/"},
+        {name = "RemiPipi Info",url="https://steamusercontent-a.akamaihd.net/ugc/1874056202036047917/8A54F1181C19277BFF5F99C61B33584AEA183A51/"},
+        {name = "Marcus Tweak Info",url="https://steamusercontent-a.akamaihd.net/ugc/1874056202036053425/64A0BB73D3D79E9CB37C0FD70E0F8969CD10D3DA/"},
+
+        {name = "Bdeink Info",url = "https://steamusercontent-a.akamaihd.net/ugc/1696154635652923227/3213508DBB1889BE43B1B1B2B1AD36D6DC319257/"},
+        {name = "Moloman Info",url = "https://steamusercontent-a.akamaihd.net/ugc/1696154635652929772/891E44AC4C7A2CA025AAEB0F4E645171BEE4E23B/"},
+        {name = "Ginso Info",url = "https://steamusercontent-a.akamaihd.net/ugc/1862810258468082738/334D246CA9969A15F1C7A06FB6C54C65ECF316CD/"},
+
+        {name = "Laterbot Info",url = "https://steamusercontent-a.akamaihd.net/ugc/18259687869223016796/FADAB2AEE28641D5E449CFD97C25D255214BCD69/"},
+
+        --{name = "Inconmon Info",url="https://steamusercontent-a.akamaihd.net/ugc/1782838933582071523/D4EFF55361F7693F215FDF30E29BCB03E63FF20C/"},
+        {name = "Inconmon Info",url = "https://steamusercontent-a.akamaihd.net/ugc/1782839633458582396/169BD7654EE5AE1D88B8C8C2D6C17B31D90927F0/"},
+
+        {name = "Tunnel Map Info",url = "https://steamusercontent-a.akamaihd.net/ugc/1728793635528454412/2D849386C6945557146B340A7A2E2EA9EB769D3C/"},
+
+        {name = "Official Content Info",url = "https://steamusercontent-a.akamaihd.net/ugc/1725416136412842797/8C16959C043FF934C5D88C583AD957EE85D4B7FE/"},
+        {name = "Blank Info",url = "https://steamusercontent-a.akamaihd.net/ugc/1728793635526111266/638962CD65D3760A1FD61D0AA78EE4C496C5487E/"},
+
+        {name = "Clockwork Expansion Tag", url="https://steamusercontent-a.akamaihd.net/ugc/1782838933579301205/7363CC92AB61C7B0BF4D93BFBC9892605BC20B80/"},
+        {name = "Better Bot Project Tag",url = "https://steamusercontent-a.akamaihd.net/ugc/1782838933579299065/1BEF3249CB6CE2995650CD7B5B8B8807AEF6D0C2/"},
+
+        {name = "Fan Tools Label", url = "https://steamusercontent-a.akamaihd.net/ugc/1782839685992682079/CCEED2B6B487D6964A435437F633C3AF3EE871F7/"},
+
+        {name = "Scenarios Tag",url = "https://steamusercontent-a.akamaihd.net/ugc/1782838933579302036/CE6374FE0E23C9CF5497E9B67F5E6595A262FFA3/"},
+
+        {name = "Player 0 Tile",url="https://steamusercontent-a.akamaihd.net/ugc/1760320391476180248/5994F1680B98F561C4297AF0DD69C492A979EB2C/"},
+        {name = "Player 1 Tile",url="https://steamusercontent-a.akamaihd.net/ugc/1809859799003156760/E68BD984348439054963132BE9D1E9E708FFB08A/"},
+        {name = "Player 2 Tile",url="https://steamusercontent-a.akamaihd.net/ugc/1809859799002798151/522376C833A9089E37B6E190423341DB948709AA/"},
+        {name = "Player 3 Tile",url="https://steamusercontent-a.akamaihd.net/ugc/1809859799002799429/55AEE70FBD094EA29A99C1C4D1B1D12B3C43ED3A/"},
+        {name = "Player 4 Tile",url="https://steamusercontent-a.akamaihd.net/ugc/1809859799002800397/C361CBE503FDE27C2CA0B277BB0B1A8B5B45E9D4/"},
+        {name = "Player 5 Tile",url="https://steamusercontent-a.akamaihd.net/ugc/1809859799002801228/E66FF018000CC7B4CDA93A658193475F9112D996/"},
+        {name = "Player 6 Tile",url="https://steamusercontent-a.akamaihd.net/ugc/1809859799002802180/6CE35596C7C0354E7D5868C4B8DC286A2A0EEA36/"},
+
+        {name = "TheHirelings",url="https://steamusercontent-a.akamaihd.net/ugc/12940714382263073688/392257681D14FA34B4848585A35811CEF23D685E/"},
+        {name = "TheLandmarks",url="https://steamusercontent-a.akamaihd.net/ugc/1859433396458782841/B0C3F1F30DCCF711DA0EC2E5B48F5D410701B958/"},
+        {name = "TheClockworkBots", url="https://steamusercontent-a.akamaihd.net/ugc/1859433396458784883/C7C6C929AAEFC026633CCB3888A72F0F279DD8A1/"},
+        {name = "TheClockworkBotsSetup", url = "https://steamusercontent-a.akamaihd.net/ugc/1859434388164944196/474B48652298983416B1ACAC5253182B4B537D43/"},
+        {name = "LandmarkSetup", url="https://steamusercontent-a.akamaihd.net/ugc/1859434388165714553/500BF78AFBB93A233F7101EF1F2EE117180170F5/"},
+        {name = "HirelingsSetup", url="https://steamusercontent-a.akamaihd.net/ugc/1859434101951585009/F33362E64934EFD20410F353BE64A5451FD4FB73/"},
+        {name = "Black Market", url="https://steamusercontent-a.akamaihd.net/ugc/1859433736239170486/C20D52F3CC0751DAB42D2F4C6E86974B88447E31/"},
+        {name = "The Ferry", url="https://steamusercontent-a.akamaihd.net/ugc/1859433736239171107/7A6B085D8EBE56E413B96F3591E6E9C46FD16B93/"},
+        {name = "Legendary Forge", url="https://steamusercontent-a.akamaihd.net/ugc/1859433736239171843/7391D4BC9FEC71BBF02DDD3A36C434AC281D9232/"},
+        {name = "Lost City", url="https://steamusercontent-a.akamaihd.net/ugc/1859433736239172517/D920C1D6AF1EB2D20AC4C645BA54FA5603ACB0C6/"},
+        {name = "The Tower", url="https://steamusercontent-a.akamaihd.net/ugc/1859433736239172988/6B96F789BFD1EE4C781965012D42D82B8062E50C/"},
+        {name = "Elder Treetop", url="https://steamusercontent-a.akamaihd.net/ugc/1859433736239173480/9836372381D050FC979324F569C82E4698B33A44/"},
+        {name = "Mousehold", url="https://steamusercontent-a.akamaihd.net/ugc/11208216119893423521/6899825B194B4AE1C272FD70C8A67292943B3E06/"},
+        {name = "Foxburrow", url="https://steamusercontent-a.akamaihd.net/ugc/14325117635732818978/AB011F3096FD8FDCD48FC9589DCDE8EF30A76560/"},
+        {name = "Rabbit-Town", url = "https://steamusercontent-a.akamaihd.net/ugc/13209270657155809146/E83807902465C87971D45F55BE9FEF59ABA98312/"},
+
+        {name = "Sure Label", url="https://steamusercontent-a.akamaihd.net/ugc/1859434101951610005/FF4F77B450D2F32501E70CAF352DE257BDADCC05/"},
+        {name = "No Thanks Label", url = "https://steamusercontent-a.akamaihd.net/ugc/1859434101951611900/514A5003AE63A6AC1FAEB5F68BE741226F779009/"},
+
+
+        {name = "ContinueLabel", url="https://steamusercontent-a.akamaihd.net/ugc/1859433396459135062/253FCE248E26587FB9E4CE4F46FDADF821F9F1C4/"},
+        {name = "SetupLabel", url="https://steamusercontent-a.akamaihd.net/ugc/1859433396459136343/34E362A154266CD60CAD440C7CA8CA8E36D7BC9C/"},
+        {name = "SkipLabel", url="https://steamusercontent-a.akamaihd.net/ugc/1859434258003723744/420718C7006B759F3C04D418311F841412F8F81E/"},
+
+        {name = "DraftClockworkLeft1", url = "https://steamusercontent-a.akamaihd.net/ugc/1859433396458940483/7AAD94536429D22306C090309845DF953CC34532/"},
+        {name = "DraftClockworkLeft2", url = "https://steamusercontent-a.akamaihd.net/ugc/1859433736239233535/1E6EAAD16C69A68CFD5BDFB84411FA65FBD7F2C7/"},
+        {name = "DraftLandmarksLeft1", url = "https://steamusercontent-a.akamaihd.net/ugc/1859433736239338361/43B9B1D5FA66BC4A8DCA9BD72EC9BBD24F7DB2BF/"},
+        {name = "DraftLandmarksLeft2", url = "https://steamusercontent-a.akamaihd.net/ugc/1859433736241079554/3E62827E84C53494BD3F30580E30EA0ABC4AB689/"},
+
+        {name = "TheWarlord",url="https://steamusercontent-a.akamaihd.net/ugc/1809859799002976789/D911472850E01877B9C4D64578A98C8943430DAB/"},
+        {name = "TheBadgers",url="https://steamusercontent-a.akamaihd.net/ugc/1809859799002978285/E82A012E48C4D8C29E06225C63E5DF056C1CD281/"},
+        {name = "WouldYouLikeTo",url="https://steamusercontent-a.akamaihd.net/ugc/1809859799002995320/62E29F39304BB917BC7D6B2279023815C567E78B/"},
+
+        {name = "Autumn Map Tile",url = "https://steamusercontent-a.akamaihd.net/ugc/1760320391479011021/9E725254A1E8A5C7F52AC45587D20FE0D013B7BE/"},
+        {name = "Winter Map Tile",url = "https://steamusercontent-a.akamaihd.net/ugc/1760320391479013315/D70BD5B6EF8801AB463571F52CC69F3A450BF5E2/"},
+        {name = "Lake Map Tile",url = "https://steamusercontent-a.akamaihd.net/ugc/1760320391479014412/C558A70F5F54251C81131D10EFD090DEE6B421D7/"},
+        {name = "Mountain Map Tile",url = "https://steamusercontent-a.akamaihd.net/ugc/1760320391479015401/461D8051E173952BB8AA8516F1C97086973F791F/"},
+
+        {name = "Gorge Map Tile",url="https://steamusercontent-a.akamaihd.net/ugc/14465139803514895819/7CE3CD6DD27F6313548E8E79111612058BEB0F01/"},
+        {name = "Gorge Original Map Tile",url="https://steamusercontent-a.akamaihd.net/ugc/16433884666649838/177A27B5110AACB3297427BED28BFA8B5C9B990D/"},
+        
+        
+        {name = "Marsh Map Tile",url="https://steamusercontent-a.akamaihd.net/ugc/9462082978453409298/2BC10CFF84D5ACFC833CF5DBF81D5A4246CE9396/"},
+        {name = "Treasure Island Map Tile",url="https://steamusercontent-a.akamaihd.net/ugc/1760320391479017185/177A27B5110AACB3297427BED28BFA8B5C9B990D/"},
+        {name = "The Deep Woods Map Tile",url="https://steamusercontent-a.akamaihd.net/ugc/1760320391479018075/177A27B5110AACB3297427BED28BFA8B5C9B990D/"},
+        {name = "The Wastelands Map Tile",url="https://steamusercontent-a.akamaihd.net/ugc/1760320391479018823/177A27B5110AACB3297427BED28BFA8B5C9B990D/"},
+        {name = "Australia Map Tile",url="https://steamusercontent-a.akamaihd.net/ugc/1760320391479019656/177A27B5110AACB3297427BED28BFA8B5C9B990D/"},
+        {name = "Narrows and Islets Map Tile",url="https://steamusercontent-a.akamaihd.net/ugc/1760320391479020655/177A27B5110AACB3297427BED28BFA8B5C9B990D/"},
+        {name = "Tunnel Unraveled Map Tile",url="https://steamusercontent-a.akamaihd.net/ugc/1760320391479021477/177A27B5110AACB3297427BED28BFA8B5C9B990D/"},
+        {name = "Tropics Map Tile",url="https://steamusercontent-a.akamaihd.net/ugc/1760320391479022298/177A27B5110AACB3297427BED28BFA8B5C9B990D/"},
+        {name = "Summer Map Tile",url="https://steamusercontent-a.akamaihd.net/ugc/1696154342827738629/177A27B5110AACB3297427BED28BFA8B5C9B990D/"},
+        {name = "Lost Woodland Map Tile",url="https://steamusercontent-a.akamaihd.net/ugc/1871805410096554660/177A27B5110AACB3297427BED28BFA8B5C9B990D/"},
+        {name = "Legends Map Tile",url="https://steamusercontent-a.akamaihd.net/ugc/1871805410096540515/177A27B5110AACB3297427BED28BFA8B5C9B990D/"},
+        {name = "Urban Map Tile",url="https://steamusercontent-a.akamaihd.net/ugc/1856049403360993432/177A27B5110AACB3297427BED28BFA8B5C9B990D/"},
+        {name = "River Town Map Tile",url="https://steamusercontent-a.akamaihd.net/ugc/16419302161430757/177A27B5110AACB3297427BED28BFA8B5C9B990D/"},
+        {name = "Mountainside Map Tile",url="https://steamusercontent-a.akamaihd.net/ugc/16419302161431106/177A27B5110AACB3297427BED28BFA8B5C9B990D/"},
+        {name = "Tidal Flats Map Tile",url="https://steamusercontent-a.akamaihd.net/ugc/16419302161431190/177A27B5110AACB3297427BED28BFA8B5C9B990D/"},
+        {name = "Blighted City Map Tile",url="https://steamusercontent-a.akamaihd.net/ugc/16419302161431768/177A27B5110AACB3297427BED28BFA8B5C9B990D/"},
+        {name = "Taiga Map Tile",url="https://steamusercontent-a.akamaihd.net/ugc/16419302161431735/177A27B5110AACB3297427BED28BFA8B5C9B990D/"},
+        {name = "Gloom Map Tile",url="https://steamusercontent-a.akamaihd.net/ugc/16419302161432264/177A27B5110AACB3297427BED28BFA8B5C9B990D/"},
+        {name = "Klacar's Volcano Island Map Tile",url="https://steamusercontent-a.akamaihd.net/ugc/16423272750663634/177A27B5110AACB3297427BED28BFA8B5C9B990D/"},
+        {name = "Spaceballs Map Tile",url="https://steamusercontent-a.akamaihd.net/ugc/16429450331905367/177A27B5110AACB3297427BED28BFA8B5C9B990D/"},
+        {name = "Inferno Map Tile",url="https://steamusercontent-a.akamaihd.net/ugc/16429450331978383/177A27B5110AACB3297427BED28BFA8B5C9B990D/"},
+        {name = "Blighted Grove Map Tile",url = "https://steamusercontent-a.akamaihd.net/ugc/16430283484958415/177A27B5110AACB3297427BED28BFA8B5C9B990D/"},
+
+        {name = "Standard Deck Tile",url="https://steamusercontent-a.akamaihd.net/ugc/1760320391479023162/017FC34EB2A5461BA9907A6655C19031F88CBF46/"},
+        {name = "Exiles and Partisans Deck Tile",url="https://steamusercontent-a.akamaihd.net/ugc/1760320391479024026/F0F9819595316F0C4002C81902F616579B413F2C/"},
+        {name = "Squires and Disciples Deck Tile",url="https://steamusercontent-a.akamaihd.net/ugc/16423272747872045/D2F069B918E0EFBC461DEA2920B5FFE3282BB053/"},
+
+        {name = "Sorcery of the Enchanted Woods Deck Tile",url="https://steamusercontent-a.akamaihd.net/ugc/1760320391479024813/177A27B5110AACB3297427BED28BFA8B5C9B990D/"},
+        {name = "Upstarts and Renegades Deck Tile",url="https://steamusercontent-a.akamaihd.net/ugc/1760320391479025626/177A27B5110AACB3297427BED28BFA8B5C9B990D/"},
+        {name = "Dawn and Dusk Deck Tile",url = "https://steamusercontent-a.akamaihd.net/ugc/16419302161430663/177A27B5110AACB3297427BED28BFA8B5C9B990D/"},
+        {name = "Offensive Deck Tile",url = "https://steamusercontent-a.akamaihd.net/ugc/16423272747851258/177A27B5110AACB3297427BED28BFA8B5C9B990D/"},
+        {name = "Crafty Tactics Deck Tile",url = "https://steamusercontent-a.akamaihd.net/ugc/16423272747855386/177A27B5110AACB3297427BED28BFA8B5C9B990D/"},
+
+
+        {name = "60 Card Master Deck Tile",url = "https://steamusercontent-a.akamaihd.net/ugc/1760320391479026649/177A27B5110AACB3297427BED28BFA8B5C9B990D/"},
+        {name = "Dark Deck Tile",url = "https://steamusercontent-a.akamaihd.net/ugc/1759199733284882024/177A27B5110AACB3297427BED28BFA8B5C9B990D/"},
+
+
+        {name = "draftBackButton",url="https://steamusercontent-a.akamaihd.net/ugc/1809859531500249680/07F53AB05F97BFCD0B372B60ECCAC2534D03C9C0/"},
+        {name = "draftJoinButton",url="https://steamusercontent-a.akamaihd.net/ugc/1809859531500252810/618CF62B03AC113700F5F3C82C6CC143BD7980CB/"},
+        {name = "draftLeaveButton",url="https://steamusercontent-a.akamaihd.net/ugc/1809859531500254831/DCCA54261EE8176EA4D4A367CD6D510669EE36C7/"},
+        {name = "draftOkayButton",url="https://steamusercontent-a.akamaihd.net/ugc/1809859531500256036/0B98A2667B87E1D56069A516C7467A2F3251C00E/"},
+        {name = "draftCheckRosterButton",url="https://steamusercontent-a.akamaihd.net/ugc/1809859531500256753/7BE44363B3AB5E9B20DFFF21F9A8D1E8D157656D/"},
+        {name = "Checkmark",url="https://steamusercontent-a.akamaihd.net/ugc/1809859531500339787/BCB16EAAD444C96B77E2DC230473C89086269CBF/"},
+        {name = "Xmark",url="https://steamusercontent-a.akamaihd.net/ugc/1809859531500279761/E8108BE85DEBE1F569D9FDF951FA0D2DEA769CB8/"},
+
+        {name = "Birdsong0",url="https://steamusercontent-a.akamaihd.net/ugc/1859434101951710722/B363F2041887AB57F90C594D7036F7FD1745086C/"},
+        {name = "Birdsong1",url="https://steamusercontent-a.akamaihd.net/ugc/1859434101951712863/B1CD398C494BE01C9D4E4753E9F915D7EB54E460/"},
+        {name = "Birdsong2",url="https://steamusercontent-a.akamaihd.net/ugc/1859434101951713498/B99906D69F79A91FFEEE4444152EA31E923FDA42/"},
+        {name = "Birdsong3",url="https://steamusercontent-a.akamaihd.net/ugc/1859434101951714181/CAAC38556E5D2111DA5D75EB136635CA9645C52A/"},
+
+        {name = "Birdsong5",url="https://steamusercontent-a.akamaihd.net/ugc/1859434101951715139/8ECE46813DCB1D48B3D36A419B88C24C80FAAD93/"},
+        {name = "Birdsong6",url="https://steamusercontent-a.akamaihd.net/ugc/1859434101951715881/7927CA35AB21A6D5BCD9D1249027B258D82A2648/"},
+
+        {name = "Birdsong8",url="https://steamusercontent-a.akamaihd.net/ugc/9782098988954605361/BA62008C2AF294CD69A76E2AACE1DB88923C85CF/"},
+        {name = "Birdsong9",url="https://steamusercontent-a.akamaihd.net/ugc/1859434101951718461/65E9006F827C7FC2D5180838E6C4A49F8040D8F5/"},
+
+        {name = "Daylight00",url="https://steamusercontent-a.akamaihd.net/ugc/1809859799002351912/627D5210E8BCE36A77E184822010EF2C61F7DEDC/"},
+        {name = "Daylight0",url="https://steamusercontent-a.akamaihd.net/ugc/1809859799002352594/072F0CCC9D517E9FADC65F7BDE8256398266B047/"},
+        {name = "Daylight1",url="https://steamusercontent-a.akamaihd.net/ugc/1809859799002353118/D1293E1872A2FF7B6CAF0B439AC7D4EE55D90224/"},
+        {name = "Daylight2",url="https://steamusercontent-a.akamaihd.net/ugc/1809859799002353766/6F439F94DE0CB726A10D42931F22CF32D2A4D1CA/"},
+        {name = "Daylight3",url="https://steamusercontent-a.akamaihd.net/ugc/1809859799002354394/01E665731D3A10966A85E4059731CBAAC99F661A/"},
+        {name = "Daylight4",url="https://steamusercontent-a.akamaihd.net/ugc/1809859799002354943/AD7A3863BC48FE4CB38148457B42AC00D8BC8EBE/"},
+        {name = "Daylight5",url="https://steamusercontent-a.akamaihd.net/ugc/1809859799002355565/BEA908D461229491144DC3CEE3047769C645D30E/"},
+        {name = "Daylight6",url="https://steamusercontent-a.akamaihd.net/ugc/1809859799002356204/0253E139941420EA32CBF63EEB066962A30EE1E3/"},
+        {name = "Evening1",url="https://steamusercontent-a.akamaihd.net/ugc/1809859799002356838/C3AF19CCCD1E81E2422E82E60EA512AC12CE5C0C/"},
+
+        {name = "DraftBanner",url="https://steamusercontent-a.akamaihd.net/ugc/1859434258001698297/806BC83B3E94AC2454A3E285AC67B90424959125/"},
+
+        {name = "Random White",url = "https://steamusercontent-a.akamaihd.net/ugc/1760320391476513193/BC24B78DB0EB7F04B03D162BD7C9C4DC56F6BA30/"},
+        {name = "Exit White",url = "https://steamusercontent-a.akamaihd.net/ugc/1760320391476521209/314B380DED440A1EA71186A6E99FB3C59402C3C4/"},
+        {name = "StartDraftButton",url="https://steamusercontent-a.akamaihd.net/ugc/1760320391476562674/F7F1CF96513DDEA45A8F3676A265A88E63C676A1/"},
+        {name = "WhiteNext",url="https://steamusercontent-a.akamaihd.net/ugc/1809859799003114048/CF48A3023C92C86A4A3D145367AFD84F23681D07/"},
+
+        {name = "HirelingSetupMessage", url = "https://steamusercontent-a.akamaihd.net/ugc/1782839166827486343/6117E1938803CFB27B9B5E11AE5211EA1D586847/"},
+
+        {name = "StartGameButton",url="https://steamusercontent-a.akamaihd.net/ugc/1760320391483979109/439A3ED93AA7CCEA361EE156603836D8D1AC6213/"},
+        {name = "DoneButton",url="https://steamusercontent-a.akamaihd.net/ugc/1760320391477467005/7C3F17A8356F03ED9959F45D9B75D4806753293D/"},
+
+        {name = "RedOnlyText", url="https://steamusercontent-a.akamaihd.net/ugc/1859433104053128068/C897405AA4A79F6BB6BB1FCB437A7DCCE4816E5D/"},
+        {name = "StayRed",url="https://steamusercontent-a.akamaihd.net/ugc/1760320391478913266/D2EB4AB85F5F10C192BB144B002A32DCF92B3265/"},
+        {name = "BringItOn",url="https://steamusercontent-a.akamaihd.net/ugc/1760320391478914056/E3198ED7968E6049D0C66D8FB999C5CACC59DBCC/"},
+        {name = "RootLogo",url="https://steamusercontent-a.akamaihd.net/ugc/1760320391484168782/6AB3B3D66178AF6937DE96321EB5E9898C6B088B/"},
+
+        {name = "SixPack",url="https://steamusercontent-a.akamaihd.net/ugc/16420027251539438/5ACED6C71A4D2C7292355986C1279349C00BA49E/"},
+
+        -- Tournament Assets
+        {name = "GSGBanner",url="https://steamusercontent-a.akamaihd.net/ugc/1695030024164477202/952098BA4C12862A95CE19110B12227B85D86086/"},
+        {name = "TournamentJoin",url = "https://steamusercontent-a.akamaihd.net/ugc/1695030024164509942/2152ADCBD171129717DE63FDA374C83BAF8FE11D/"},
+        {name = "TournamentLeave",url = "https://steamusercontent-a.akamaihd.net/ugc/1695030024164511274/1E4D84852505A07139E4D43B2CF485CEBB7D206B/"},
+        {name = "TournamentStartDraft",url = "https://steamusercontent-a.akamaihd.net/ugc/1695030024164512460/F7E49A635F4B70694FDAC469A384D12BE67DD16B/"},
+        {name = "TournamentSide1",url = "https://steamusercontent-a.akamaihd.net/ugc/1695030024164513547/295D37261C5874179FFCE36C5433EC81C0B20EDD/"},
+
+        {name = "TournamentSide2",url = "https://steamusercontent-a.akamaihd.net/ugc/1695030024165938810/12D932C8F3B369CF5DADB6716C431DF02EF0BDA6/"},
+        {name = "TournamentMapLabel",url = "https://steamusercontent-a.akamaihd.net/ugc/1695030024165950555/18567DBC2FAF017705789C5493F5DB8E34F3AF09/"},
+
+        {name = "ExtraChairsWhite",url = "https://steamusercontent-a.akamaihd.net/ugc/1786233211071686717/6EC913639AC72B7CE6D04A9BB36D715A218B1793/"},
+
+        {name = "DoubleEntente",url="https://steamusercontent-a.akamaihd.net/ugc/1786233211086829774/D34DED7CBC4DDF71B6E3BD78C2DEBC90F3176531/"},
+        {name = "ActionDeck",url="https://steamusercontent-a.akamaihd.net/ugc/1786233211086847220/627C599441E86F86731BEDF96B23634C36882F78/"},
+        {name = "Lost Woodland Map",url="https://steamusercontent-a.akamaihd.net/ugc/1786233211086883130/5B96E0370A42D4CC2C97569EDFF7624621471EDF/"},
+        {name = "Warriors Wake",url="https://steamusercontent-a.akamaihd.net/ugc/1786233211086912182/563B6D9C9AFC31863D36B443728319131A2B4E03/"},
+        {name = "Woodland Revolution", url="https://steamusercontent-a.akamaihd.net/ugc/1833522185818215151/BD81EFECC6902E60CAFE69E4D0097FDE9B1C86EB/"},
+
+        {name = "DoomedBerzeker",url="https://steamusercontent-a.akamaihd.net/ugc/1833522185818575000/34288530419DF2000AB07BE9C6F76F4F390810E9/"},
+        {name = "DoomedBarkeep",url="https://steamusercontent-a.akamaihd.net/ugc/1833522185818575539/E85CCE19EC8F6CDFAE22F78B30128A529EAE7BAD/"},
+        {name = "DoomedBlacksmith",url="https://steamusercontent-a.akamaihd.net/ugc/1833522185818574236/99EEEF30B3667FB22F243008BCA1368EE3E05338/"},
+        {name = "DoomedSwindler",url="https://steamusercontent-a.akamaihd.net/ugc/1833522185818573545/FC3E6F9A6C7EC90D212555F80BAB19A44BE34782/"},
+        {name = "DoomedBard",url="https://steamusercontent-a.akamaihd.net/ugc/1833522185818576295/160397A5A0DC4B0CA28B90CFB07C0C005A153B44/"},
+        {name = "DoomedZealot",url="https://steamusercontent-a.akamaihd.net/ugc/1833522185818570837/5AD9E0C3A070B225F367DA2D8B2FF19B45DE01AE/"},
+        {name = "DoomedFate",url="https://steamusercontent-a.akamaihd.net/ugc/1833522185818445287/72392A96AED1472DDC31D3867B7742B316703314/"},
+
+        {name = "Black Creek Pirates II",url="https://steamusercontent-a.akamaihd.net/ugc/1874056202036022996/426F024995C896F8DFB53D5F51BA8100A213AB64/"},
+
+        {name = "Mob Lobber",url="https://steamusercontent-a.akamaihd.net/ugc/1871806044359108580/ED91771BFC667788679555DC9F9E7E175E5A2346/"},
+        {name = "Quest Freshener",url="https://steamusercontent-a.akamaihd.net/ugc/1871806044359176221/007B74BEF5F41C8CF1E3BC6371B8746F85149C5B/"},
+
+        {name = "Ginso's Gizmo",url="https://steamusercontent-a.akamaihd.net/ugc/1871808701913894000/9E9D2A27ADC818413936D98C3194E03E87A8726A/"},
+        {name = "Supply Knight",url="https://steamusercontent-a.akamaihd.net/ugc/16420027239829921/595B9928F56465239300E6A54C4A27E53F6E04F5/"},
+        {name = "Snow Kingdom ii",url="https://steamusercontent-a.akamaihd.net/ugc/1871808701913905742/C512B939A77659A639B338D3D7100B46D3B80078/"},
+        {name = "Black Paw Bandits",url="https://steamusercontent-a.akamaihd.net/ugc/1871808701913909385/F2E9E01AA0ACFB1783D550FBC0578AD57B21E84F/"},
+
+        {name = "Urban Map", url="https://steamusercontent-a.akamaihd.net/ugc/1856049403360886234/7DACC2ADA249351AA203BD55EEABE021F13D7AB5/"},
+        {name = "MashUp", url="https://steamusercontent-a.akamaihd.net/ugc/1856049403372487506/800F1C1E00650FB92603080C3A95FD42E58BFD56/"},
+
+        {name = "Robot Die", url="https://steamusercontent-a.akamaihd.net/ugc/1862805937564898964/DBFF836F27862D7E04DD45FE1D4FAEABDC02DDD5/"},
+
+        {name = "Reach Cell", url="https://steamusercontent-a.akamaihd.net/ugc/1859434225080798164/0D2C17759DEFDC174D12198136404A7ECE05FC5F/"},
+        {name = "Reach Cell 10", url="https://steamusercontent-a.akamaihd.net/ugc/1859434225080859685/DBC14BF55B906F73925CB99D2A48D8653A6E8655/"},
+        {name = "Reach Cell 20", url="https://steamusercontent-a.akamaihd.net/ugc/1859434225080861783/D301E68CB89DCDF96782CDCCBFE22C1D0E2526C1/"},
+        {name = "Reach Cell 30", url="https://steamusercontent-a.akamaihd.net/ugc/1859434225080862473/E48961307C71CBA6CA9189BDD625E8B84ED2C7F1/"},
+        {name = "Reach Cell 40", url="https://steamusercontent-a.akamaihd.net/ugc/1859434225080863963/4EA3989FC5CAFDC6E584E2B1A0E7FCB232DE02D8/"},
+        {name = "Reach Cell Dot", url="https://steamusercontent-a.akamaihd.net/ugc/1859434225080904939/F4D3FC049DECCCE5EF930CCDC003EA22C207459E/"},
+        {name = "Reach Cell Dots", url="https://steamusercontent-a.akamaihd.net/ugc/1859434225080905685/C05EF88D19BEF812487A9429502BD9071769B44E/"},
+
+
+        {name = "DraftFactionPick", url="https://steamusercontent-a.akamaihd.net/ugc/1859434225081613222/2464BDE6BF73D6522AA8BBDB37CB6B5EBD6A4B99/"},
+        {name = "DraftFactionSetup", url="https://steamusercontent-a.akamaihd.net/ugc/1859434225081615866/317E175EE2E15A84723CA8510B3B0D74D0B19332/"},
+
+        {name = "standardSelection", url="https://steamusercontent-a.akamaihd.net/ugc/1859434388160724128/3ACB262AA7620A4108D09D1437F9DFA3EE95A62F/"},
+        {name = "adsetSelection", url="https://steamusercontent-a.akamaihd.net/ugc/1859434388160745758/EF66E3413945D78D73E0D27E4AD1F3038C687ACA/"},
+
+        -- New Fan Factions // 11/11/2024
+        {name = "Chameleander",url = "https://steamusercontent-a.akamaihd.net/ugc/14792217880038068722/443149AE6BAF4858C2C37624115DBB25B4CCD119/ "},
+        {name = "Cirque du Goat",url = "https://steamusercontent-a.akamaihd.net/ugc/16419302165190285/136D31C871008C148D5C51EF9EA5462567AA8E2D/"},
+        {name = "Thewy Info", url = "https://steamusercontent-a.akamaihd.net/ugc/16419302164246797/5919C074E0FD61B002BCF188F139EF40F5417A51/"},
+
+        {name = "United Colonies", url = "https://steamusercontent-a.akamaihd.net/ugc/16419302165168501/BC91D59F9BB0F7A614600570FCCCF8C6ADA91C42/"},
+        {name = "Disasterman52 and Mysteryboxx Info", url = "https://steamusercontent-a.akamaihd.net/ugc/16419302165171019/8CA7FDD0DAD03982F916C9CEB627921B7645D883/"},
+        {name = "SP Shaman and Disasterman Info", url = "https://steamusercontent-a.akamaihd.net/ugc/16419302166075461/3AF848F2E28286CF03A65CAFEA159F312B1A3363/"},
+
+        {name = "KnightMiner Info",url = "https://steamusercontent-a.akamaihd.net/ugc/16420027239835212/17EF891649EAC732AD14DB5F4BF5EEF86A8B40F0/"},
+        {name = "Crafty Tactics Deck",url ="https://steamusercontent-a.akamaihd.net/ugc/16420027239845541/86839DB8FD22242FE6C266B180CBC112571E6D33/"},
+        {name = "Phoenix1147 Info",url = "https://steamusercontent-a.akamaihd.net/ugc/16420027239840004/BE2E5831BF0712A048CE2DA1AF1034F44FD6F002/"},
+
+        {name = "Borough Kings",url = "https://steamusercontent-a.akamaihd.net/ugc/16420027245499554/5D1F4D0E5757E0954CBA8DAD5A974770C0240A49/"},
+        {name = "Host of Light",url = "https://steamusercontent-a.akamaihd.net/ugc/16420027245496603/0CEAE160AA06FE2B5EBF9C9586CDD385368F0A21/"},
+
+        {name = "Nuanced Quest Deck",url = "https://steamusercontent-a.akamaihd.net/ugc/16421205162192184/0EB23DE14DEEB692BC718D1995877FFEE0F308E6/"},
+        {name = "Offensive Deck",url = "https://steamusercontent-a.akamaihd.net/ugc/16421205162192117/FE3156709F13ED9B46C72C676C938853FB60878D/"},
+
+        {name = "Whisperers Guild", url = "https://steamusercontent-a.akamaihd.net/ugc/16423272747455615/99B53E84E6D62963A9E68ACBA0DA23B7827BF9A0/"},
+        {name = "Doomsayers Union", url = "https://steamusercontent-a.akamaihd.net/ugc/16423272747453068/B48EB4FDFB2F15F821BB790DEFDA664305667245/"},
+
+        {name = "New Hirelings", url = "https://steamusercontent-a.akamaihd.net/ugc/16427546922849855/F1FF06471CC23933E6353A97282366553F710C5A/"},
+
+        {name = "The Ooze", url = "https://steamusercontent-a.akamaihd.net/ugc/16430083180899816/2B561DA929D17784EFA2AB394FC94DB30E865ABB/"},
+        {name = "Bot Upgrade Button", url = "https://steamusercontent-a.akamaihd.net/ugc/9686778829007578801/50A4993C8E7C2A0F10AAFA38FD3C762EE6B672AE/"},
+
+    }
+
+    _G['Roster'] = {}
+    _G['DraftedFactions'] = {"","","","","",""}
+    _G['TurnOrder'] = {}
+    _G['ColorsTaken'] = {}
+    vagabondChosen = false
+    Turns.order =   {"Red","Yellow","Orange","Teal","Green","Brown"}
+
+
+    -- RTT m640: onLoad setCustomAssets removed (cold-load blank fix). The saved
+    -- CustomUIAssets already carries all 541 icons (identical names + URLs), so the
+    -- setup UI renders from them directly; this frame-100 table-replace fired before
+    -- the Steam assets finished downloading on a cold cache and blanked the buttons
+    -- with no re-render (only a 2nd/warm load recovered).
+
+  elseif self.getName() == "Faction Board" then
+    configureFactionBoard(self)
+  end
+
+end
+
+local lastSuccess = 10
+
+local draftBotNames = {"draftCatBot","draftBirdBot","draftWABot","draftVagaBot","draftLizBot","draftOtterBot","draftMoleBot","draftCrowBot"}
+local draftBotDefaultColor = "#DDDDFF"
+
+local draftBotColors = {}
+draftBotColors["draftCatBot"] = "#d77435"
+draftBotColors["draftBirdBot"] = "#4776b6"
+draftBotColors["draftWABot"] = "#6bb659"
+draftBotColors["draftVagaBot"] = "#808080"
+draftBotColors["draftLizBot"] = "#DFD835"
+draftBotColors["draftOtterBot"] = "#54ABA6"
+draftBotColors["draftMoleBot"] = "#DBB89B"
+draftBotColors["draftCrowBot"] = "#512870"
+
+local inactiveLandmarkColor = "#222222"
+local activeLandmarkColor = "#DDDDDD"
+local landmarkNames = {"draftLegendaryForge","draftTheFerry","draftLostCity","draftTheTower","draftBlackMarket","draftElderTreetop","draftFoxburrow","draftRabbit-Town","draftMousehold"}
+_G['DraftedLandmarks'] = {}
+
+local draftedFactions = {}
+local vagabondCards = {}
+local overallPlayerCount
+local draftedHirelings = {}
+
+local hirelingsSelected = false
+
+local draftCardOptions = {}
+
+local selectedHirelings = {}
+
+local redTaken = false
+
+function startingReset()
+  self.reload()
+end
+
+
+_G['BotRoster'] = {}
+
+
+
+
+
+
+function draftRandomDeck()
+  math.random() math.random() math.random()
+  local choice = math.random(1,3)
+
+  if choice == 1 then
+    draftDeck("","","Standard Deck")
+  elseif choice == 2 then
+    draftDeck("","","Exiles and Partisans Deck")
+  else
+    draftDeck("","","Squires and Disciples Deck")
+  end
+end
+
+function draftDeck(player,value,id)
+
+  setTile("deck",id.." Tile")
+
+  if #_G['Roster'] <= 2 then
+    id = id.." 2"
+  end
+  makeDeck(player,value,id)
+  allButtonsOff()
+  self.UI.setAttribute("AdsetDraftClockworkBotButtons","active","True")
+
+  for i = 1, #draftBotNames do
+    self.UI.setAttribute(draftBotNames[i], "color", draftBotDefaultColor)
+  end
+
+  _G['BotRoster'] = {}
+
+  clearInfo()
+
+  -- self.UI.setAttribute("draftRatsOnCheck","icon","Xmark")
+  -- self.UI.setAttribute("draftRatsOnCheck","color","#E53F36")
+  -- setTile("Rat","Lord of the Hundreds On Tile")
+  --
+  -- self.UI.setAttribute("draftBadgersOnCheck","icon","Xmark")
+  -- self.UI.setAttribute("draftBadgersOnCheck","color","#E53F36")
+  -- setTile("Badger","Keepers in Iron On Tile")
+  --
+  -- self.UI.setAttribute("draftHirelingsOnCheck","icon","Xmark")
+  -- self.UI.setAttribute("draftHirelingsOnCheck","color","#E53F36")
+  --
+  -- self.UI.setAttribute("draftClockworkBotsOnCheck","icon","Xmark")
+  -- self.UI.setAttribute("draftClockworkBotsOnCheck","color","#E53F36")
+  --
+  -- self.UI.setAttribute("draftLandmarksOnCheck","icon","Xmark")
+  -- self.UI.setAttribute("draftLandmarksOnCheck","color","#E53F36")
+  --
+  -- setTile("Hireling","Hirelings On Tile")
+  --
+  -- self.UI.setAttribute("draftRedWhiteOnCheck","icon","Xmark")
+  -- self.UI.setAttribute("draftRedWhiteOnCheck","color","E53F36")
+  --
+  -- broadcastToAll("When you're ready, START DRAFT.")
+end
+
+function deal5Cards()
+  local d
+  for _, p in ipairs(getObjectsWithTag("Deck Object")) do
+    if (p.name == "Deck") then
+      d = p
+    end
+  end
+
+  if Player["Red"].seated then d.deal(5,"Red") end
+  if Player["Yellow"].seated then d.deal(5,"Yellow") end
+  if Player["Orange"].seated then d.deal(5,"Orange") end
+  if Player["Teal"].seated then d.deal(5,"Teal") end
+  if Player["Green"].seated then d.deal(5,"Green") end
+  if Player["Brown"].seated then d.deal(5,"Brown") end
+
+
+end
+
+function dealCards(n)
+  local d
+  for _, p in ipairs(getObjectsWithTag("Deck Object")) do
+    if (p.name == "Deck") then
+      d = p
+    end
+  end
+
+  if Player["Red"].seated then d.deal(n,"Red") end
+  if Player["Yellow"].seated then d.deal(n,"Yellow") end
+  if Player["Orange"].seated then d.deal(n,"Orange") end
+  if Player["Teal"].seated then d.deal(n,"Teal") end
+  if Player["Green"].seated then d.deal(n,"Green") end
+  if Player["Brown"].seated then d.deal(n,"Brown") end
+
+
+end
+
+function deleteAllItemsWithTag(tag)
+  for _,v in ipairs(getObjectsWithTag(tag)) do
+    v.destruct()
+  end
+end
+
+function kickPlayersFromSeats()
+  for _, p in pairs(Player.getPlayers()) do
+    if p.color != "White" and p.color != "Black" then
+      p.changeColor("Grey")
+    end
+  end
+end
+
+local handScale = {20,6,4}
+local handRotations = {{0,0,0},{0,180,0}}
+local handPositions = {{52.00,14.62,-64.00},{0.00,14.62,-64.00},{-52.00,14.62,-64.00},{-52.00,14.62,64.00},{0.00,14.62,64.00},{52.00,14.62,64.00}}
+
+
+function placePlayer(player,color,pos,rot)
+
+  player.changeColor(color)
+ 
+  Player[color].setHandTransform({position = handPositions[pos],rotation = handRotations[rot],scale = handScale})
+
+end
+
+
+local setupColors = {"Red","Yellow","Orange","Teal","Green","Brown"}
+
+
+function spawnBotDraftFaction(i,faction,color)
+
+  local pos = getPosition(color,#_G['FullRoster'])
+
+  local objects = {}
+
+  objects = EVERYTHING['Official Bots'][faction]['data']
+  local scale = self.getScale()
+  scale.x = 1/scale.x
+  scale.z = 1/scale.z
+
+  function callback(o)
+    if flipSide(color,#_G['FullRoster']) then
+      o.setRotation({o.getRotation().x, o.getRotation().y + 180, o.getRotation().z})
+    else
+      o.setRotation({o.getRotation().x, o.getRotation().y, o.getRotation().z})
+    end
+
+    if o.hasTag("Shuffleable") then o.shuffle() o.shuffle() end
+
+    if tableHasElement(_G['BotRoster'], "draftVagaBot") then
+      if o.hasTag("Ruin Set") then o.destroy() end
+    end
+  end
+  for _,v in ipairs(objects) do
+      local vec = Vector(v.move_to) * scale
+
+      if flipSide(color,#_G['FullRoster']) then
+        vec = vec * Vector(-15.5 , 1, -15.5)
+
+      else
+          vec = vec * Vector(15.5, 1, 15.5)
+      end
+      local new_pos = pos + vec
+      new_pos.y = new_pos.y - 0.1
+      spawnObjectJSON({
+          json              = v.json,
+          position          = new_pos,
+          callback_function = callback
+      })
+  end
+  if faction == "Cogwheel Corvids" then
+    shufflePlots(getPosition(color,#_G['FullRoster']))
+  end
+end
+
+function placeBot(fac,color,place,rotation)
+
+  local botTranslations = {}
+  botTranslations["draftCatBot"] = "Mechanical Marquise"
+  botTranslations["draftBirdBot"] = "Electric Eyrie"
+  botTranslations["draftWABot"] = "Automated Alliance"
+  botTranslations["draftVagaBot"] = "Vagabot"
+  botTranslations["draftLizBot"] = "Logical Lizards"
+  botTranslations["draftOtterBot"] = "Riverfolk Robots"
+  botTranslations["draftMoleBot"] = "Drillbit Duchy"
+  botTranslations["draftCrowBot"] = "Cogwheel Corvids"
+
+  spawnBotDraftFaction(place,botTranslations[fac],color)
+
+end
+
+function isBotDraft(n)
+  return tableHasElement(draftBotNames,n)
+end
+
+function seatPlayersAndBots()
+
+  -- _G['BotRoster'] = {}
+  --
+  -- for i = 1, #draftBotNames do
+  --   if self.UI.getAttribute(draftBotNames[i], "color") != draftBotDefaultColor then
+  --     table.insert(_G['BotRoster'],draftBotNames[i])
+  --   end
+  -- end
+  _G['FullRoster'] = concatTables(_G['BotRoster'],_G['Roster'])
+  _G['FullRoster'] = shuffle(_G['FullRoster'])
+
+  playerSetup(#_G['FullRoster'],false)
+
+  lastSuccess = #_G['FullRoster']
+
+  kickPlayersFromSeats()
+
+  -- Place Players
+  if #_G['FullRoster'] == 1 then
+    for _, p in pairs(Player.getPlayers()) do
+      if p.steam_name == _G['FullRoster'][1] then placePlayer(p,setupColors[1],1,1) end
+    end
+  elseif #_G['FullRoster'] == 2 then
+    for _, p in pairs(Player.getPlayers()) do
+      if p.steam_name == _G['FullRoster'][1] then placePlayer(p,setupColors[1],1,1)
+      elseif p.steam_name == _G['FullRoster'][2] then placePlayer(p,setupColors[2],3,1) end
+    end
+  elseif #_G['FullRoster'] == 3 then
+    for _, p in pairs(Player.getPlayers()) do
+      if p.steam_name == _G['FullRoster'][1] then placePlayer(p,setupColors[1],1,1)
+      elseif p.steam_name == _G['FullRoster'][2] then placePlayer(p,setupColors[2],2,1)
+      elseif p.steam_name == _G['FullRoster'][3] then placePlayer(p,setupColors[3],3,1) end
+    end
+  elseif #_G['FullRoster'] == 4 then
+    for _, p in pairs(Player.getPlayers()) do
+      if p.steam_name == _G['FullRoster'][1] then placePlayer(p,setupColors[1],1,1)
+      elseif p.steam_name == _G['FullRoster'][2] then placePlayer(p,setupColors[2],3,1)
+      elseif p.steam_name == _G['FullRoster'][3] then placePlayer(p,setupColors[3],4,2)
+      elseif p.steam_name == _G['FullRoster'][4] then placePlayer(p,setupColors[4],6,2)end
+    end
+  elseif #_G['FullRoster'] == 5 then
+    for _, p in pairs(Player.getPlayers()) do
+      if p.steam_name == _G['FullRoster'][1] then placePlayer(p,setupColors[1],1,1)
+      elseif p.steam_name == _G['FullRoster'][2] then placePlayer(p,setupColors[2],2,1)
+      elseif p.steam_name == _G['FullRoster'][3] then placePlayer(p,setupColors[3],3,1)
+      elseif p.steam_name == _G['FullRoster'][4] then placePlayer(p,setupColors[4],4,2)
+      elseif p.steam_name == _G['FullRoster'][5] then placePlayer(p,setupColors[5],6,2)end
+    end
+  elseif #_G['FullRoster'] == 6 then
+    for _, p in pairs(Player.getPlayers()) do
+      if p.steam_name == _G['FullRoster'][1] then placePlayer(p,setupColors[1],1,1)
+      elseif p.steam_name == _G['FullRoster'][2] then placePlayer(p,setupColors[2],2,1)
+      elseif p.steam_name == _G['FullRoster'][3] then placePlayer(p,setupColors[3],3,1)
+      elseif p.steam_name == _G['FullRoster'][4] then placePlayer(p,setupColors[4],4,2)
+      elseif p.steam_name == _G['FullRoster'][5] then placePlayer(p,setupColors[5],5,2)
+      elseif p.steam_name == _G['FullRoster'][6] then placePlayer(p,setupColors[6],6,2)end
+    end
+  end
+
+  -- Place Bots
+
+  for i = 0, #_G['FullRoster'] do
+    if isBotDraft(_G['FullRoster'][i]) then
+      if #_G['FullRoster'] == 2 then
+        if i == 1 then placeBot(_G['FullRoster'][i],setupColors[1],1,1) end
+        if i == 2 then placeBot(_G['FullRoster'][i],setupColors[2],3,1) end
+      end
+      if #_G['FullRoster'] == 3 then
+        if i == 1 then placeBot(_G['FullRoster'][i],setupColors[1],1,1) end
+        if i == 2 then placeBot(_G['FullRoster'][i],setupColors[2],2,1) end
+        if i == 3 then placeBot(_G['FullRoster'][i],setupColors[3],3,1) end
+      end
+      if #_G['FullRoster'] == 4 then
+        if i == 1 then placeBot(_G['FullRoster'][i],setupColors[1],1,1) end
+        if i == 2 then placeBot(_G['FullRoster'][i],setupColors[2],3,1) end
+        if i == 3 then placeBot(_G['FullRoster'][i],setupColors[3],4,2) end
+        if i == 4 then placeBot(_G['FullRoster'][i],setupColors[4],6,2) end
+      end
+      if #_G['FullRoster'] == 5 then
+        if i == 1 then placeBot(_G['FullRoster'][i],setupColors[1],1,1) end
+        if i == 2 then placeBot(_G['FullRoster'][i],setupColors[2],2,1) end
+        if i == 3 then placeBot(_G['FullRoster'][i],setupColors[3],3,1) end
+        if i == 4 then placeBot(_G['FullRoster'][i],setupColors[4],4,2) end
+        if i == 5 then placeBot(_G['FullRoster'][i],setupColors[5],6,2) end
+      end
+      if #_G['FullRoster'] == 6 then
+        if i == 1 then placeBot(_G['FullRoster'][i],setupColors[1],1,1) end
+        if i == 2 then placeBot(_G['FullRoster'][i],setupColors[2],2,1) end
+        if i == 3 then placeBot(_G['FullRoster'][i],setupColors[3],3,1) end
+        if i == 4 then placeBot(_G['FullRoster'][i],setupColors[4],4,2) end
+        if i == 5 then placeBot(_G['FullRoster'][i],setupColors[5],5,2) end
+        if i == 6 then placeBot(_G['FullRoster'][i],setupColors[6],6,2) end
+      end
+
+    end
+  end
+
+  function translateBot(botName)
+  local botTranslate = {}
+  botTranslate['draftCatBot'] = "Marquise de Cat"
+  botTranslate['draftBirdBot'] = "Eyrie Dynasties"
+  botTranslate['draftWABot'] = "Woodland Alliance"
+  botTranslate['draftVagaBot'] = "Vagabond2"
+  botTranslate['draftLizBot'] = "The Lizard Cult"
+  botTranslate['draftOtterBot'] = "Riverfolk Company"
+  botTranslate['draftMoleBot'] = "Underground Duchy"
+  botTranslate['draftCrowBot'] = "Corvid Conspiracy"
+
+  return botTranslate[botName]
+end
+
+  if #_G['BotRoster'] > 0 then
+
+    allButtonsOff()
+    self.UI.setAttribute("AdsetDraftClockworkSetup","active","true")
+    makeTool('','',"Random Bot Tools")
+
+    spawnPriorityMarkers()
+    return
+  end
+  if #_G['BotRoster'] == 0 then
+    draftLandmarks()
+    return
+  end
+end
+
+function selectStandardDraft()
+  allButtonsOff()
+  self.UI.setAttribute("FactionDrafting","active","true")
+  if self.UI.getAttribute("standardSetupDraft","active") == "true" then
+    self.UI.setAttribute("standardSetupDraft","active","false")
+    self.UI.setAttribute("DraftOptions","active","true")
+    self.UI.setAttribute("standardSelectSwitch","icon","standardSelection")
+  end
+  if self.UI.getAttribute("standardSetupDraft","active") == "false" then
+    self.UI.setAttribute("standardSetupDraft","active","true")
+    self.UI.setAttribute("DraftOptions","active","false")
+    self.UI.setAttribute("standardSelectSwitch","icon","adsetSelection")
+  end
+
+end
+
+function landmarksSelected()
+  if draftLandmarkCount() > 0 then
+    if landmarkNames[1] == "draftTheTower" or landmarkNames[2] == "draftTheTower" then
+      for _,v in ipairs(getAllObjects()) do
+        if v.getName() == "Tower" then
+          v.destruct()
+        end
+      end
+    end
+    if landmarkNames[1] == "draftTheFerry" or landmarkNames[2] == "draftTheFerry" then
+      for _,v in ipairs(getAllObjects()) do
+        if v.getName() == "Ferry" then
+          v.destruct()
+        end
+      end
+    end
+
+    -- allButtonsOff()
+    -- self.UI.setAttribute("AdsetDraftClockworkSetup","active","true")
+
+    local count = 1
+    for i = 1, #landmarkNames do
+      if self.UI.getAttribute(landmarkNames[i],"color") ==  activeLandmarkColor then
+        if landmarkNames[i] == "draftTheFerry" then
+          for _,v in ipairs(getAllObjects()) do
+            if v.getName() == "The Ferry" then
+              v.destruct()
+            end
+          end
+        end
+        if landmarkNames[i] == "draftTheTower" then
+          for _,v in ipairs(getAllObjects()) do
+            if v.getName() == "The Tower" then
+              v.destruct()
+            end
+          end
+        end
+        spawnLandmark(count,landmarkNames[i],draftLandmarkCount())
+        count = count + 1
+      end
+    end
+
+    allButtonsOff()
+    self.UI.setAttribute("AdsetDraftLandmarksSetup","active","true")
+    return
+  end
+  if draftLandmarkCount() == 0 then
+    -- draftLandmarks()
+
+    goToHirelings()
+    return
+  end
+end
+
+function goToHirelings()
+  selectedHirelings = {}
+  hirelingsSelected = false
+  allButtonsOff()
+  self.UI.setAttribute("AdsetDraftHirelingsButtons","active","true")
+
+  for _,v in ipairs(getObjectsWithTag("Landmark Card")) do
+    v.setRotationSmooth({0,270,180})
+  end
+end
+
+
+local priorityClearingMarkerLocations = {
+  {-- Autumn
+    {-23.02, 11.70, 17.09},{21.78, 11.63, 11.88},{15.39, 11.63, -14.30},{-22.06, 11.69, -15.88},{1.91, 11.66, 21.41},{20.49, 11.63, -4.76},
+    {1.18, 11.65, -15.25},{-6.23, 11.66, -14.21},{-23.95, 11.69, 5.44},{-1.48, 11.67, 12.02},{3.65, 11.66, 1.30},{-9.18, 11.67, 1.52}
+  },
+  {-- Winter
+    {-21.79, 11.72, 18.71},{21.23, 11.64, 15.45},{16.46, 11.63, -13.11},{-22.44, 11.69, -12.69},{-6.23, 11.67, 19.64},{4.84, 11.66, 16.07},
+    {24.20, 11.63, -4.37},{1.12, 11.65, -10.71},{-6.55, 11.66, -13.24},{-19.97, 11.69, 0.16},{-7.23, 11.67, 4.44},{8.84, 11.65, -0.09}
+  },
+  {-- Lake
+    {18.20, 11.63, -13.44},{-18.33, 11.69, 18.58},{-23.42, 11.69, -14.65},{23.84, 11.63, 9.19},{22.98, 11.63, -1.33},{12.14, 11.65, 15.14},
+    {-1.57, 11.67, 21.56},{-22.90, 11.69, 5.10},{-6.04, 11.66, -16.63},{-11.59, 11.68, 10.20},{11.31, 11.64, 2.68},{-11.31, 11.67, -7.41}
+  },
+  { -- Mountain
+    {-19.56, 11.69, 19.37},{20.22, 11.64, 15.43},{21.28, 11.63, -11.86},{-20.33, 11.68, -16.71},{4.28, 11.66, 18.60},{23.77, 11.63, -0.81},
+    {0.38, 11.65, -14.64},{-22.93, 11.69, 0.09},{-13.78, 11.68, 10.17},{1.91, 11.66, 7.39},{9.67, 11.64, -7.80},{-10.84, 11.67, -3.57},
+  },
+  { -- Gorge -- nitrorev helped
+    {-21.19, 11.72, 17.05},{21.12, 11.64, 17.43},{15.24, 11.63, -17.04},{-15.53, 11.68, -14.91},
+    {4.14, 11.66, 18.88},{16.74, 11.64, 8.59},{-3.78, 11.66, -12.57},{-17.83, 11.68, -2.40},
+    {22.26, 11.63, -4.82},{-18.71, 11.69, 5.49},{0.32, 11.66, 11.18},{-0.60, 11.66, -3.02}
+  },
+  { -- Treasure Island -- has 13 clearings
+    {-20.73, 11.69, 16.97},{23.46, 11.63, 13.58},{21.41, 11.63, -15.83},{-22.22, 11.69, -15.64},{8.05, 11.65, 14.15},{23.05, 11.63, 3.28},
+    {0.80, 11.65, -18.52},{-21.82, 11.69, -2.32},{-3.88, 11.67, 20.09},{-7.16, 11.67, 6.62},{-2.28, 11.66, -8.29},{14.39, 11.64, -5.48},
+    {-2.57, 11.66, 2.24}
+  },
+  { -- Deep Woods -- special setup
+
+  },
+  { -- Wastelands
+    {15.55, 11.71, -16.84},{-17.72, 11.70, 13.97},{-18.21, 11.69, -13.34},{20.51, 11.72, 12.30},{1.77, 11.71, 21.80},{-9.76, 11.71, 21.58},
+    {-24.42, 11.69, -6.27},{3.66, 11.71, -13.43},{24.18, 11.71, -4.04},{-4.87, 11.71, 9.32},{-6.86, 11.70, -5.23},{6.06, 11.71, -0.59}
+  },
+  { -- Australia -- nitrorev helped
+    {-19.41, 11.69, 6.84},{21.01, 11.63, -3.45},{-19.85, 11.69, -1.84},{18.45, 11.64, 5.63},{-20.39, 11.69, -9.23},{17.20, 11.64, 14.11},
+    {13.24, 11.64, -14.79},{-9.45, 11.68, 12.00},{7.05, 11.65, 11.47},{1.40, 11.66, -3.00},{-3.23, 11.66, -3.11},{-3.27, 11.67, 12.71}
+  },
+  { -- Narrows & Islets -- 15 clearings!
+    {8.37, 11.65, 17.96},{-19.48, 11.68, -14.18},{-6.32, 11.67, 16.78},{12.50, 11.64, -9.50},{14.76, 11.64, 10.43},{-1.27, 11.65, -7.61},
+    {-9.27, 11.66, -12.39},{-17.30, 11.68, -5.89},{0.54, 11.66, 11.46},{5.60, 11.65, -1.12},{-11.39, 11.67, -5.71},{-11.05, 11.67, 2.85},
+    {-2.94, 11.66, -1.54},{4.41, 11.65, 13.19},{-5.48, 11.67, 8.62}
+
+  },
+  { -- Tunnel Unraveled -- Has its own clearings
+
+  },
+  { -- Tropics
+    {-12.57, 11.68, 16.57},{16.40, 11.64, 13.49},{8.22, 11.64, -15.62},{-18.48, 11.68, -7.11},{-9.84, 11.67, 8.31},{10.55, 11.65, 4.19},
+    {6.32, 11.65, -7.26},{-9.39, 11.67, -14.59},{-18.40, 11.69, 7.53},{2.92, 11.66, 13.49},{12.32, 11.64, -6.28},{-2.83, 11.66, -4.92}
+  },
+  {-- Summer
+    {-23.02, 11.70, 17.09},{21.78, 11.63, 11.88},{15.39, 11.63, -14.30},{-22.06, 11.69, -15.88},{1.91, 11.66, 21.41},{20.49, 11.63, -4.76},
+    {1.18, 11.65, -15.25},{-6.23, 11.66, -14.21},{-23.95, 11.69, 5.44},{-1.48, 11.67, 12.02},{3.65, 11.66, 1.30},{-9.18, 11.67, 1.52}
+  },
+  { -- Lost Woodland -- nitrorev helped
+    {-18.73, 11.66, 22.07},{20.18, 11.66, 24.20},{21.91, 11.66, -13.88},{-22.86, 11.66, -15.13},{-10.87, 11.66, 22.48},{23.20, 11.66, 12.76},
+    {-6.59, 11.66, -14.61},{-20.50, 11.66, 3.59},{8.08, 11.66, 23.68},{20.66, 11.66, -5.97},{2.85, 11.66, -9.86},{-11.13, 11.66, -1.15},
+    {-15.54, 11.66, 14.22},{10.37, 11.66, 13.15},{0.67, 11.72, 7.72},{5.52, 11.66, 0.32}
+
+  },
+  { -- Legends -- nitrorev helped
+    {-23.37, 11.68, 17.65},{23.42, 11.62, 18.74},{24.29, 11.63, -16.28},{-24.20, 11.69, -14.37},{-0.72, 11.65, 21.60},{22.35, 11.63, 3.31},
+    {2.18, 11.65, -12.39},{-24.10, 11.68, -0.07},{-10.84, 11.67, 11.11},{12.73, 11.64, 13.54},{-10.49, 11.67, -3.31},{5.55, 11.65, 3.25}
+
+  },
+  { -- Urban -- nitrorev helped
+    {-23.16, 11.70, 20.90},{17.57, 11.64, 17.17},{21.81, 11.63, -12.25},{-22.38, 11.69, -12.22},{-2.38, 11.65, 20.93},{23.65, 11.63, 2.01},
+    {2.03, 11.65, -13.48},{-18.39, 11.69, 1.87},{3.66, 11.66, 18.09},{4.72, 11.65, 5.89},{-5.07, 11.67, -3.47},{-4.48, 11.67, 9.57}
+  },
+  {
+    -- River Town
+    {-12.35, 11.67, 6.07},{10.67, 11.64, 4.67},{4.77, 11.65, -2.67},{-4.81, 11.66, -5.80},{-23.08, 11.69, 18.43},{21.03, 11.63, 13.22},
+    {17.30, 11.63, -13.46},{-15.71, 11.67, -16.52},{-22.60, 11.69, 2.51},{-4.33, 11.67, 19.44},{21.55, 11.63, 4.01},{1.87, 11.65, -15.70},
+  },
+  {
+    -- Mountainside
+    {11.89, 11.65, 12.91},{19.23, 11.65, -12.24},{-20.98, 11.65, -17.06},{-23.38, 11.65, 7.99},{18.12, 11.65, 3.66},{0.78, 11.65, -14.47},
+    {-21.42, 11.65, -9.63},{-0.95, 11.65, 20.24},{9.05, 11.65, -1.22},{-8.88, 11.65, -6.11},{-14.76, 11.65, 2.71},{-1.44, 11.65, 10.30}
+  },
+  {-- Tidal Flats
+    {-17.80, 11.69, 14.58},{21.85, 11.63, 13.94},{19.51, 11.63, -13.17},{-19.52, 11.68, -13.35},{4.56, 11.66, 19.03},{19.55, 11.64, 8.45},
+    {21.73, 11.63, -8.47},{-2.69, 11.66, -13.19},{-21.26, 11.69, -1.05},{-19.92, 11.69, 9.45},{0.12, 11.66, 10.57},{10.52, 11.64, -7.05},
+    {-13.67, 11.68, -5.95}
+  },
+  { -- Blighted City
+    {-23.89, 11.70, 18.49},{18.75, 11.64, 19.95},{22.01, 11.63, -12.25},{-24.14, 11.69, -16.12},{0.09, 11.67, 21.55},{24.06, 11.63, 1.95},
+    {-4.29, 11.66, -13.24},{-23.76, 11.69, -0.76},{-13.81, 11.68, 10.17},{9.65, 11.65, 12.28},{9.96, 11.64, -3.87},{-14.57, 11.68, -6.13},
+    {-0.86, 11.66, -3.42}
+  },
+  { -- Taiga
+    {-24.21, 11.69, 15.51},{22.13, 11.63, 14.21},{23.07, 11.62, -11.33},{-24.28, 11.68, -16.33},{-4.52, 11.67, 17.52},{22.23, 11.63, -1.54},
+    {-23.63, 11.69, -1.74},{2.56, 11.65, 4.42},{2.56, 11.65, 4.42},{12.14, 11.64, -6.81},{-7.61, 11.66, -10.07},{-13.79, 11.67, 0.00}
+  },
+  { -- Gloom
+      {-18.77, 11.69, 20.29},{23.43, 11.63, 16.11},{20.47, 11.63, -17.53},{-22.19, 11.69, -16.25},{1.97, 11.66, 19.70},{20.68, 11.63, -2.86},
+      {5.21, 11.65, -18.11},{-7.32, 11.67, -13.22},{-21.59, 11.69, 0.41},{-9.60, 11.68, 9.16},{6.93, 11.65, 7.11},{-1.81, 11.66, -2.45}
+  },
+  { -- Klacar's Volcano Island
+      {13.85, 11.64, -10.14},{-18.52, 11.69, 14.76},{18.12, 11.64, 12.62},{-21.94, 11.69, -8.40},{20.78, 11.63, 4.23},{-19.83, 11.69, 2.82},
+      {5.78, 11.66, 16.35},{-4.74, 11.66, -12.26},{-10.31, 11.68, 9.49},{6.24, 11.65, -13.85},{-6.74, 11.67, -2.26},{2.33, 11.66, 4.59}
+  },
+  { -- SPACEBALLS -- Unknown
+      {63.33, 11.56, -7.57},{65.43, 11.56, -7.57},{67.53, 11.56, -7.57},{63.33, 11.56, -9.40},{65.43, 11.56, -9.40},{67.53, 11.56, -9.40},
+      {63.33, 11.56, -11.23},{65.43, 11.56, -11.23},{67.53, 11.56, -11.23},{63.33, 11.56, -13.07},{65.43, 11.56, -13.07},{67.53, 11.56, -13.07},
+      {63.33, 11.56, -14.90},{65.43, 11.56, -14.90},{67.53, 11.56, -14.90}
+  },
+  { -- INFERNO -- Unknown
+      {63.33, 11.56, -7.57},{65.43, 11.56, -7.57},{67.53, 11.56, -7.57},{63.33, 11.56, -9.40},{65.43, 11.56, -9.40},{67.53, 11.56, -9.40},
+      {63.33, 11.56, -11.23},{65.43, 11.56, -11.23},{67.53, 11.56, -11.23},{63.33, 11.56, -13.07},{65.43, 11.56, -13.07},{67.53, 11.56, -13.07},
+      {63.33, 11.56, -14.90},{65.43, 11.56, -14.90},{67.53, 11.56, -14.90}
+  },
+
+  { -- Blighted Grove
+    {-22.79, 11.70, 17.47},{18.45, 11.64, 19.13},{21.65, 11.65, -17.43},{-22.56, 11.71, -15.57},{1.65, 11.67, 17.19},{21.24, 11.64, -0.31},
+    {0.83, 11.67, -11.95},{-24.19, 11.71, 1.23},{-9.03, 11.68, 3.70},{0.24, 11.67, -2.27}
+  },
+
+  { -- Gorge Original -- nitrorev helped
+    {-14.24, 11.69, 19.60},{20.20, 11.64, 16.05},{12.34, 11.64, -15.74},{-13.41, 11.67, -15.64},{4.86, 11.66, 18.32},{11.38, 11.65, 8.56},
+    {-3.30, 11.66, -13.14},{-17.16, 11.68, -1.17},{15.58, 11.64, -0.91},{-13.05, 11.68, 8.56},{0.47, 11.66, 11.19},{4.80, 11.65, -0.65}
+  },
+  { -- Marsh -- Unknown
+    {63.33, 11.56, -7.57},{65.43, 11.56, -7.57},{67.53, 11.56, -7.57},{63.33, 11.56, -9.40},{65.43, 11.56, -9.40},{67.53, 11.56, -9.40},
+    {63.33, 11.56, -11.23},{65.43, 11.56, -11.23},{67.53, 11.56, -11.23},{63.33, 11.56, -13.07},{65.43, 11.56, -13.07},{67.53, 11.56, -13.07},
+    {63.33, 11.56, -14.90},{65.43, 11.56, -14.90},{67.53, 11.56, -14.90}
+  },
+
+  
+
+
+}
+
+function mysplit (inputstr, sep)
+        if sep == nil then
+                sep = "%s"
+        end
+        local t={}
+        for str in string.gmatch(inputstr, "([^"..sep.."]+)") do
+                table.insert(t, str)
+        end
+        return t
+end
+
+function spawnPriorityMarkers()
+  --['Tools']['Priority Markers']
+  if (priorityClearingMarkerLocations[getDraftedMapNumber()] == nil) then return end
+  local my_rot = self.getRotation()
+  local objects = {}
+
+  local hirelingName = getHirelingName(hireling,demoted)
+
+  objects = EVERYTHING["Tools"]["Priority Markers"]['data']
+
+  local scale = self.getScale()
+  scale.x = 1/scale.x
+  scale.z = 1/scale.z
+
+  local counter = 1
+
+  for _,v in ipairs(objects) do
+      local vec = Vector(v.move_to) * scale
+      vec.y = vec.y - 0.1
+
+      vec = vec * Vector({-15.5, 1, 15.5})
+
+      local newVec = Vector({0,1,0})
+      newVec.x = vec.z
+      newVec.y = vec.y + 10.01
+      newVec.z = vec.x * -1
+
+      local new_pos = newVec
+      new_pos.x = new_pos.x + 45 + 6.31 -2.42
+      new_pos.y = new_pos.y+10-8.5+0.05
+      new_pos.z = new_pos.z + 23 - 11.5 * 1 - 0.42
+
+      spawnObjectJSON({
+          json              = v.json,
+          position          = new_pos,
+          callback_function = function(o)
+            if (priorityClearingMarkerLocations[getDraftedMapNumber()] != nil) then
+              if priorityClearingMarkerLocations[getDraftedMapNumber()][tonumber(mysplit(o.getName())[3])] == nil then
+                o.destruct()
+              end
+              if priorityClearingMarkerLocations[getDraftedMapNumber()][tonumber(mysplit(o.getName())[3])] != nil then
+                o.setPosition(Vector(priorityClearingMarkerLocations[getDraftedMapNumber()][tonumber(mysplit(o.getName())[3])]))
+              end
+            end
+          end
+      })
+  end
+end
+
+
+function goToSetupHirelings()
+
+  printToAll("Hey")
+
+  hirelingsSelected = true
+  local hirelings = {}
+  draftedHirelings = {}
+
+  for _, p in pairs(_G['DraftableFactions']) do
+    if p == "Vagabond1" then
+      if tableHasElement(_G['DraftableFactions'], "Vagabond1") and tableHasElement(_G['DraftableFactions'], "Vagabond2") and tableHasElement(_G['DraftableFactions'], "Knaves of the Deepwood") then
+        table.insert(hirelings,"Vagabond")
+      end
+    end
+    if p != "Vagabond1" and p!= "Vagabond2" and p != "Knaves of the Deepwood" then table.insert(hirelings,p) end
+  end
+
+
+
+  -- Add other non-faction hirelings
+
+  table.insert(hirelings,"Highway Bandits")
+  table.insert(hirelings,"Furious Protector")
+  table.insert(hirelings,"Woodland Band")
+  table.insert(hirelings,"Prosperous Farmers")
+
+  -- Cheese Hirelings Test
+  -- selectedHirelings = {hirelings[1],hirelings[5],hirelings[14]}
+  -- selectedHirelings = {hirelings[7],hirelings[8],hirelings[14]}
+
+for _, i in pairs(hirelings) do
+  printToAll(i)
+end
+
+  -- Good
+  hirelings = shuffle(hirelings)
+  selectedHirelings = {hirelings[1],hirelings[2],hirelings[3]}
+  ----
+
+  for i = 1, #selectedHirelings do
+    if selectedHirelings[i] == "Vagabond"
+      then 
+        removeFirst(_G['DraftableFactions'],"Vagabond1") 
+        removeFirst(_G['DraftableFactions'],"Vagabond2") 
+        removeFirst(_G['DraftableFactions'],"Knaves of the Deepwood") 
+      end
+    if selectedHirelings[i] != "Vagabond" then removeFirst(_G['DraftableFactions'],selectedHirelings[i]) end
+  end
+
+  -- G_['DraftableFactions'] has been decided and good to go
+  -- just set up the hirelings, then jump to DRAFTING FACTIONS
+
+  for i = 1, #selectedHirelings do
+    table.insert(_G['ColorsTaken'],colorOfFaction(selectedHirelings[i]))
+
+    local dem = 2
+    if #_G['FullRoster'] + i >= 6 then dem = 3 end
+    spawnHireling(selectedHirelings[i],i,dem)
+  end
+
+  
+  spawnDice()
+  spawnHirelingMarkers()
+  spawnControlMarkers()
+
+  local hirelingsWithRequiredSetup = {"Flame Bearers","Corvid Spies","Riverfolk Floatilla","Furious Protector","Spring Uprising","Lost Dynasty","Sunward Expedition","Highway Bandits","Vault Keepers","Popular Band","The Exile","Prosperous Farmers","Struggling Farmers","River Roamers","Sunny Advocates"}
+  for a = 1, #draftedHirelings do
+    if tableHasElement(hirelingsWithRequiredSetup,draftedHirelings[a]) then
+      setupHirelingsScreen()
+      return
+    end
+  end
+
+  goToBanBoard()
+
+end
+
+function spawnLandmark(n, name, totalCount)
+  local realLandmarkNames = {}
+  realLandmarkNames["draftBlackMarket"] = "Black Market"
+  realLandmarkNames["draftTheFerry"] = "The Ferry"
+  realLandmarkNames["draftLegendaryForge"] = "Legendary Forge"
+  realLandmarkNames["draftLostCity"] = "Lost City"
+  realLandmarkNames["draftTheTower"] = "The Tower"
+  realLandmarkNames["draftElderTreetop"] = "Elder Treetop"
+  realLandmarkNames["draftFoxburrow"] = "Foxburrow"
+  realLandmarkNames["draftRabbit-Town"] = "Rabbit-Town"
+  realLandmarkNames["draftMousehold"] = "Mousehold"
+
+  if totalCount == 1 then
+      makeLandmark("Landmarks",realLandmarkNames[name],-14.84 - 4.53,1.5,0)
+  end
+
+  if totalCount == 2 then
+      if n == 1 then
+        makeLandmark("Landmarks",realLandmarkNames[name],-14.84 - 4.53,1.5,3)
+      end
+      if n == 2 then
+        makeLandmark("Landmarks",realLandmarkNames[name],-14.84 - 4.53,1.5,-3)
+      end
+  end
+
+end
+
+function makeLandmark(category,name,x,y,z)
+  local my_rot = self.getRotation()
+  local objects = {}
+  objects = EVERYTHING[category][name]['data']
+  local scale = self.getScale()
+  scale.x = 1/scale.x
+  scale.z = 1/scale.z
+
+  function callback(o)
+      o.setRotation({o.getRotation().x, o.getRotation().y+90, o.getRotation().z})
+      if o.hasTag("Shuffleable") then o.shuffle() o.shuffle() end
+      if o.name == "CardCustom" then
+        o.setTags(table.insert(o.getTags(),"Landmark Card"))
+        -- o.locked = true
+      end
+  end
+  for _,v in ipairs(objects) do
+      local vec = Vector(v.move_to) * scale
+      vec.y = vec.y - 0.1
+
+      vec = vec * Vector({15.5, 1, 15.5})
+
+      local newVec = Vector({0,1,0})
+      newVec.x = vec.z
+      newVec.y = vec.y + 10.01
+      newVec.z = vec.x * -1
+
+      local new_pos = newVec
+      new_pos.y = new_pos.y+10-8.5+0.05 - 1.49 + y
+      new_pos.x = new_pos.x + 45 + 8.31 + x
+      new_pos.z = new_pos.z -1.38 + z
+
+
+      spawnObjectJSON({
+          json              = v.json,
+          position          = new_pos,
+          callback_function = callback
+      })
+  end
+end
+
+local redFactionTaken = false
+
+function draftLandmarks()
+  allButtonsOff()
+  redFactionTaken = false
+  self.UI.setAttribute("AdsetDraftLandmarkButtons","active","true")
+
+  _G['DraftableFactions'] = {"Marquise de Cat","Eyrie Dynasties","Woodland Alliance","Vagabond1",
+                              "Vagabond2","The Lizard Cult","Riverfolk Company",
+                              "Underground Duchy","Corvid Conspiracy","Lord of the Hundreds","Keepers in Iron",
+                              "Twilight Council","Lilypad Diaspora","Knaves of the Deepwood"
+                            }
+
+  for i = 1, #_G['BotRoster'] do
+      botName = _G['BotRoster'][i]
+      translatedBotName = translateBot(botName)
+
+      removeFirst(_G['DraftableFactions'],translatedBotName)
+      if botName == 'draftVagaBot' then
+        removeFirst(_G['DraftableFactions'],'Vagabond1')
+        removeFirst(_G['DraftableFactions'],'Knaves of the Deepwood')
+      end
+    
+      if translatedBotName == "Marquise de Cat" or
+        translatedBotName == "Eyrie Dynasties" or
+        translatedBotName == "Underground Duchy" or
+        translatedBotName == "Lord of the Hundreds" or
+        translatedBotName == "Keepers in Iron" or
+        translatedBotName == "Lilypad Diaspora" then
+          redFactionTaken = true
+      end
+  end
+end
+
+
+
+function seatPlayers()
+
+  kickPlayersFromSeats()
+  local setupColors = {"Red","Yellow","Orange","Teal","Green","Brown"}
+
+  _G['Roster']=shuffle(_G['Roster'])
+  if #_G['Roster'] == 1 then
+    for _, p in pairs(Player.getPlayers()) do
+      if p.steam_name == _G['Roster'][1] then placePlayer(p,setupColors[1],1,1) end
+    end
+  elseif #_G['Roster'] == 2 then
+    for _, p in pairs(Player.getPlayers()) do
+      if p.steam_name == _G['Roster'][1] then placePlayer(p,setupColors[1],1,1)
+      elseif p.steam_name == _G['Roster'][2] then placePlayer(p,setupColors[2],3,1) end
+    end
+  elseif #_G['Roster'] == 3 then
+    for _, p in pairs(Player.getPlayers()) do
+      if p.steam_name == _G['Roster'][1] then placePlayer(p,setupColors[1],1,1)
+      elseif p.steam_name == _G['Roster'][2] then placePlayer(p,setupColors[2],2,1)
+      elseif p.steam_name == _G['Roster'][3] then placePlayer(p,setupColors[3],3,1) end
+    end
+  elseif #_G['Roster'] == 4 then
+    for _, p in pairs(Player.getPlayers()) do
+      if p.steam_name == _G['Roster'][1] then placePlayer(p,setupColors[1],1,1)
+      elseif p.steam_name == _G['Roster'][2] then placePlayer(p,setupColors[2],3,1)
+      elseif p.steam_name == _G['Roster'][3] then placePlayer(p,setupColors[3],4,2)
+      elseif p.steam_name == _G['Roster'][4] then placePlayer(p,setupColors[4],6,2)end
+    end
+  elseif #_G['Roster'] == 5 then
+    for _, p in pairs(Player.getPlayers()) do
+      if p.steam_name == _G['Roster'][1] then placePlayer(p,setupColors[1],1,1)
+      elseif p.steam_name == _G['Roster'][2] then placePlayer(p,setupColors[2],2,1)
+      elseif p.steam_name == _G['Roster'][3] then placePlayer(p,setupColors[3],3,1)
+      elseif p.steam_name == _G['Roster'][4] then placePlayer(p,setupColors[4],4,2)
+      elseif p.steam_name == _G['Roster'][5] then placePlayer(p,setupColors[5],6,2)end
+    end
+  elseif #_G['Roster'] == 6 then
+    for _, p in pairs(Player.getPlayers()) do
+      if p.steam_name == _G['Roster'][1] then placePlayer(p,setupColors[1],1,1)
+      elseif p.steam_name == _G['Roster'][2] then placePlayer(p,setupColors[2],2,1)
+      elseif p.steam_name == _G['Roster'][3] then placePlayer(p,setupColors[3],3,1)
+      elseif p.steam_name == _G['Roster'][4] then placePlayer(p,setupColors[4],4,2)
+      elseif p.steam_name == _G['Roster'][5] then placePlayer(p,setupColors[5],5,2)
+      elseif p.steam_name == _G['Roster'][6] then placePlayer(p,setupColors[6],6,2)end
+    end
+  end
+end
+
+local vagabondsTaken = 0
+
+
+function resetStandardDraft()
+
+  vagabondsTaken = 0
+  local allFactions = {"Marquise de Cat","Eyrie Dynasties","Woodland Alliance",
+   "The Lizard Cult","Riverfolk Company","Underground Duchy","Corvid Conspiracy",
+   "Lord of the Hundreds","Keepers in Iron","Twilight Council","Lilypad Diaspora","Knaves of the Deepwood",
+   "Adventurer","Arbiter","Cheat","Gladiator","Harrier","Jailor","Ranger","Ronin","Scoundrel","Thief","Tinker","Vagrant"}
+
+  for _, v in ipairs(allFactions) do
+    self.UI.setAttribute("StandardSetup ".. v, "active", "true")
+  end
+
+  for _, v in ipairs(_G['BotRoster']) do
+    self.UI.setAttribute("StandardSetup ".. translateBot(v), "active", false)
+
+    if v == "draftVagaBot" then vagabondsTaken = vagabondsTaken + 1 end
+  end
+
+  for _, h in ipairs(selectedHirelings) do
+    self.UI.setAttribute("StandardSetup ".. h, "active", false)
+    if h == "Vagabond" then
+      for _, v in ipairs({"Adventurer","Arbiter","Cheat","Gladiator","Harrier","Jailor","Ranger","Ronin","Scoundrel","Thief","Tinker","Vagrant"}) do
+        self.UI.setAttribute("StandardSetup ".. v, "active", false)
+      end
+    end
+  end
+
+end
+
+function disableAllBans()
+    self.UI.setAttribute("BanCats","active","false")
+    self.UI.setAttribute("BanBirds","active","false")
+    self.UI.setAttribute("BanGreen","active","false")
+    self.UI.setAttribute("BanVagabond1","active","false")
+    self.UI.setAttribute("BanVagabond2","active","false")
+    self.UI.setAttribute("BanLizards","active","false")
+    self.UI.setAttribute("BanOtters","active","false")
+    self.UI.setAttribute("BanMoles","active","false")
+    self.UI.setAttribute("BanCrows","active","false")
+    self.UI.setAttribute("BanRats","active","false")
+    self.UI.setAttribute("BanBadgers","active","false")
+    self.UI.setAttribute("BanBats","active","false")
+    self.UI.setAttribute("BanFrogs","active","false")
+    self.UI.setAttribute("BanKnaves","active","false")
+end
+
+local allowedFactions = {false, false, false, false, false, false, false, false, false, false, false, false, false, false}
+
+
+function goToBanBoard()
+  disableAllBans()
+  
+  allowedFactions = {false, false, false, false, false, false, false, false, false, false, false, false, false, false}
+  
+  for _, obj in ipairs(_G['DraftableFactions']) do
+    
+    if obj == "Marquise de Cat" then self.UI.setAttribute("BanCats","active","true") allowedFactions[1] = true end
+    if obj == "Eyrie Dynasties" then self.UI.setAttribute("BanBirds","active","true") allowedFactions[2] = true end
+    if obj == "Woodland Alliance" then self.UI.setAttribute("BanGreen","active","true") allowedFactions[3] = true end
+    if obj == "Vagabond1" then self.UI.setAttribute("BanVagabond1","active","true") allowedFactions[4] = true end
+    if obj == "Vagabond2" then self.UI.setAttribute("BanVagabond2","active","true") allowedFactions[5] = true end
+    if obj == "The Lizard Cult" then self.UI.setAttribute("BanLizards","active","true") allowedFactions[6] = true end
+    if obj == "Riverfolk Company" then self.UI.setAttribute("BanOtters","active","true") allowedFactions[7] = true end
+    if obj == "Underground Duchy" then self.UI.setAttribute("BanMoles","active","true") allowedFactions[8] = true end
+    if obj == "Corvid Conspiracy" then self.UI.setAttribute("BanCrows","active","true") allowedFactions[9] = true end
+    if obj == "Lord of the Hundreds" then self.UI.setAttribute("BanRats","active","true") allowedFactions[10] = true end
+    if obj == "Keepers in Iron" then self.UI.setAttribute("BanBadgers","active","true") allowedFactions[11] = true end
+    if obj == "Twilight Council" then self.UI.setAttribute("BanBats","active","true") allowedFactions[12] = true end
+    if obj == "Lilypad Diaspora" then self.UI.setAttribute("BanFrogs","active","true") allowedFactions[13] = true end
+    if obj == "Knaves of the Deepwood" then self.UI.setAttribute("BanKnaves","active","true") allowedFactions[14] = false end    
+  end
+
+  if not hirelingsSelected and #_G['FullRoster'] == 2 and not redFactionTaken then
+    self.UI.setAttribute("BanGreen","active","false") allowedFactions[3] = false
+    self.UI.setAttribute("BanVagabond1","active","false") allowedFactions[4] = false
+    self.UI.setAttribute("BanVagabond2","active","false") allowedFactions[5] = false
+    self.UI.setAttribute("BanLizards","active","false") allowedFactions[6] = false
+    self.UI.setAttribute("BanOtters","active","false") allowedFactions[7] = false
+    self.UI.setAttribute("BanCrows","active","false") allowedFactions[9] = false
+    self.UI.setAttribute("BanBats","active","false") allowedFactions[12] = false
+    self.UI.setAttribute("BanKnaves","active","false") allowedFactions[14] = false
+  end
+
+  
+  resetStandardDraft()
+  self.UI.setAttribute("Draft Finished Setup Button","active","false")
+  self.UI.setAttribute("Faction Draft Next Button","active","false")
+
+  allButtonsOff()
+  self.UI.setAttribute("BanningFactions","active","true")
+
+  checkIfBanBoardIsOkay() 
+
+  colorBanFactions()
+end
+
+function checkIfBanBoardIsOkay()
+  
+  self.UI.setAttribute("ConfirmBanButton","active","false")
+  
+  if getAllowedFactionTrueCount() < #_G['Roster'] + 1 then return end
+
+  if redFactionTaken or hirelingsSelected then
+    self.UI.setAttribute("ConfirmBanButton","active","true")
+    return
+  end 
+
+  if allowedFactions[1] == false and allowedFactions[2] == false and allowedFactions[8] == false 
+    and allowedFactions[10] == false and allowedFactions[11] == false and allowedFactions[13] == false 
+  then 
+    return
+  end
+
+  self.UI.setAttribute("ConfirmBanButton","active","true")
+
+end
+
+function getAllowedFactionTrueCount()
+  local count = 0
+  for _, obj in ipairs(allowedFactions) do
+    if obj == true then count = count + 1 end
+  end
+  return count
+end
+
+function goToDraft()
+
+  _G['vagabondAlreadySpawned'] = false
+
+  resetStandardDraft()
+  self.UI.setAttribute("standardSelectSwitch","active","true")
+  self.UI.setAttribute("standardSelectSwitch","icon","standardSelection")
+
+  for _, obj in ipairs(getAllObjects()) do
+     if obj.hasTag("RandomBot") then
+        obj.destruct()
+     end
+  end
+
+  Wait.frames(
+    function()
+      if getDraftedMapNumber() == 7 then dealCards(6) end
+      if getDraftedMapNumber() != 7 then dealCards(5) end
+      --broadcastToAll(_G['Roster'][_G['RosterSelector']]..", SETUP your faction of choice and click NEXT.")
+    end,
+    30
+  )
+
+  while tableHasElement(draftBotNames, _G['FullRoster'][lastSuccess]) == true and lastSuccess >= 1 do
+    lastSuccess = lastSuccess - 1
+
+  end
+
+  _G['RosterSelector'] = lastSuccess
+
+  self.UI.setAttribute("Draft Finished Setup Button","active","false")
+  self.UI.setAttribute("Faction Draft Next Button","active","false")
+
+  allButtonsOff()
+  self.UI.setAttribute("FactionDrafting","active","true")
+  self.UI.setAttribute("DraftOptions","active","true")
+  self.UI.setAttribute("draftFactionInstructions","image","DraftFactionPick")
+  self.UI.setAttribute("draftFactionInstructions","active","true")
+  self.UI.setAttribute("DraftTurnIcon","icon","Tourn"..lastSuccess.."PlayerButton")
+
+  self.UI.setAttribute("draftBirdsong","image","Birdsong8")
+
+  local turnColors = {"#e53f36","#f5e850","#f68b57","#64bbbd","#6dba5a","#a07641"}
+  self.UI.setAttribute("DraftTurnIcon","color",turnColors[lastSuccess])
+
+  local redFactions = {"Marquise de Cat","Eyrie Dynasties","Underground Duchy","Lord of the Hundreds","Keepers in Iron","Lilypad Diaspora"}
+  local whiteFactions = {"Woodland Alliance","Vagabond1","Vagabond2","The Lizard Cult","Riverfolk Company","Corvid Conspiracy","Twilight Council","Knaves of the Deepwood"}
+
+  local possibleRedFactions = {}
+  local possibleWhiteFactions = {}
+
+    local allFactionsReference = {"Marquise de Cat","Eyrie Dynasties","Woodland Alliance","Vagabond1",
+  "Vagabond2","The Lizard Cult","Riverfolk Company","Underground Duchy","Corvid Conspiracy",
+  "Lord of the Hundreds","Keepers in Iron","Twilight Council","Lilypad Diaspora","Knaves of the Deepwood"}
+
+  for i = 1, #redFactions do
+    if tableHasElement(_G['DraftableFactions'],redFactions[i]) and allowedFactions[indexOf(allFactionsReference,redFactions[i])] then table.insert(possibleRedFactions, redFactions[i]) end
+  end
+
+  for i = 1, #whiteFactions do
+    if tableHasElement(_G['DraftableFactions'],whiteFactions[i]) and allowedFactions[indexOf(allFactionsReference,whiteFactions[i])] then table.insert(possibleWhiteFactions, whiteFactions[i]) end
+  end
+
+  redTaken = false
+
+  if tableHasElement(_G['BotRoster'],"draftCatBot") or tableHasElement(_G['BotRoster'],"draftBirdBot") or tableHasElement(_G['BotRoster'],"draftMoleBot")
+      or tableHasElement(_G['BotRoster'],"draftRatBot") or tableHasElement(_G['BotRoster'],"draftBadgerBot") then
+        redTaken = true
+  end
+
+  local factionPool = {}
+  local draftOptions = {}
+
+  if redTaken and #_G['FullRoster'] <= 2 and not hirelingsSelected then
+    factionPool = possibleRedFactions
+    factionPool = shuffle(factionPool)
+  elseif redTaken then
+    factionPool = concatTables(possibleRedFactions,possibleWhiteFactions)
+    factionPool = shuffle(factionPool)
+  else
+    factionPool = possibleRedFactions
+    factionPool = shuffle(factionPool)
+    factionPool = concatTables(factionPool,possibleWhiteFactions)
+  end
+  
+  draftOptions[1] = table.remove(factionPool,1)
+  factionPool = shuffle(factionPool)
+
+  -- final factionPool has been established
+
+  for i = 1, #_G['FullRoster'] - #_G['BotRoster'] do
+    draftOptions[i + 1] = table.remove(factionPool,1)
+  end
+
+  vagabondCards = {"Ronin","Adventurer","Vagrant","Tinker","Thief","Scoundrel","Ranger","Harrier","Arbiter","Jailor","Cheat","Gladiator"}
+  math.random()
+  math.random()
+  math.random()
+  vagabondCards = shuffle(vagabondCards)
+
+  draftCardOptions = {}
+
+  local count = 1
+  for _,i in ipairs(draftOptions) do
+    if i == "Vagabond1" then
+      self.UI.setAttribute("DraftOption"..count,"icon",vagabondCards[1])
+      table.insert(draftCardOptions,vagabondCards[1])
+    elseif i == "Vagabond2" then
+      self.UI.setAttribute("DraftOption"..count,"icon",vagabondCards[2])
+      table.insert(draftCardOptions,vagabondCards[2])
+    else
+      self.UI.setAttribute("DraftOption"..count,"icon",i)
+      table.insert(draftCardOptions,i)
+    end
+
+    self.UI.setAttribute("DraftOption"..count,"active",true)
+
+    if (isAWhiteFaction(i)) then
+      if count == #draftOptions and #_G['Roster'] != 1 and redTaken == false then
+        self.UI.setAttribute("DraftOption"..count,"color","")
+      else
+        self.UI.setAttribute("DraftOption"..count,"color","#F9F7E8")
+      end
+    else
+      self.UI.setAttribute("DraftOption"..count,"color","#E53F36")
+    end
+    count = count + 1
+
+  end
+
+  for i = count, 7 do
+    self.UI.setAttribute("DraftOption"..i,"active","False")
+  end
+
+  if #draftOptions == 2 then
+    self.UI.setAttribute("DraftOption1","position","35 10 -20")
+    self.UI.setAttribute("DraftOption2","position","35 -30 -20")
+  elseif #draftOptions == 3 then
+     self.UI.setAttribute("DraftOption1","position","35 10 -20")
+     self.UI.setAttribute("DraftOption2","position","15 -30 -20")
+     self.UI.setAttribute("DraftOption3","position","55 -30 -20")
+  elseif #draftOptions == 4 then
+     self.UI.setAttribute("DraftOption1","position","-5 10 -20")
+     self.UI.setAttribute("DraftOption2","position","35 10 -20")
+     self.UI.setAttribute("DraftOption3","position","75 10 -20")
+     self.UI.setAttribute("DraftOption4","position","35 -30 -20")
+   elseif #draftOptions == 5 then
+      self.UI.setAttribute("DraftOption1","position","-5 10 -20")
+      self.UI.setAttribute("DraftOption2","position","35 10 -20")
+      self.UI.setAttribute("DraftOption3","position","75 10 -20")
+      self.UI.setAttribute("DraftOption4","position","15 -30 -20")
+      self.UI.setAttribute("DraftOption5","position","55 -30 -20")
+    elseif #draftOptions == 6 then
+       self.UI.setAttribute("DraftOption1","position","-5 10 -20")
+       self.UI.setAttribute("DraftOption2","position","35 10 -20")
+       self.UI.setAttribute("DraftOption3","position","75 10 -20")
+       self.UI.setAttribute("DraftOption4","position","-5 -30 -20")
+       self.UI.setAttribute("DraftOption5","position","35 -30 -20")
+       self.UI.setAttribute("DraftOption6","position","75 -30 -20")
+     elseif #draftOptions == 7 then
+        self.UI.setAttribute("DraftOption1","position","-5 10 -20")
+        self.UI.setAttribute("DraftOption2","position","35 10 -20")
+        self.UI.setAttribute("DraftOption3","position","75 10 -20")
+        self.UI.setAttribute("DraftOption4","position","-25 -30 -20")
+        self.UI.setAttribute("DraftOption5","position","15 -30 -20")
+        self.UI.setAttribute("DraftOption6","position","55 -30 -20")
+        self.UI.setAttribute("DraftOption7","position","95 -30 -20")
+   end
+
+   self.UI.setAttribute("Return to Setup Menu","active","False")
+   makeFactionCardDraft(draftOptions)
+
+  for i = #_G['FullRoster'], 1 ,-1 do
+    if tableHasElement(draftBotNames,_G['FullRoster'][i]) == false then
+      _G['RosterSelector'] = i
+      return
+    end
+  end
+
+  -- make bottom label
+
+
+end
+
+
+
+
+function redCount(facs)
+  local count = 0;
+  for _,i in ipairs(facs) do
+    if i == "Marquise de Cat" or i == "Eyrie Dynasties" or i == "Underground Duchy" or i == "Lord of the Hundreds" or i == "Keepers in Iron" or i == "Lilypad Diaspora" then
+      count = count + 1
+    end
+  end
+  return count
+end
+
+function makeFactionTournamentDraftScreen()
+
+local count = 1
+  for _,i in ipairs(draftedFactions) do
+    if i == "Vagabond1" then
+      self.UI.setAttribute("TournamentDraftOption"..count,"icon",vagabondCards[1])
+    elseif i == "Vagabond2" then
+      self.UI.setAttribute("TournamentDraftOption"..count,"icon",vagabondCards[2])
+    else
+      self.UI.setAttribute("TournamentDraftOption"..count,"icon",i)
+    end
+
+    self.UI.setAttribute("TournamentDraftOption"..count,"active",true)
+
+    if (isAWhiteFaction(i)) then
+      if redCount(draftedFactions) == 1  and count == #_G['Roster']+1 and #_G['Roster'] != 1 then
+        self.UI.setAttribute("TournamentDraftOption"..count,"color","")
+      else
+        self.UI.setAttribute("TournamentDraftOption"..count,"color","#F9F7E8")
+      end
+    else
+      self.UI.setAttribute("TournamentDraftOption"..count,"color","#E53F36")
+    end
+    count = count + 1
+
+  end
+
+  for i = count, 7 do
+    self.UI.setAttribute("TournamentDraftOption"..i,"active","False")
+  end
+-- moveDraftedTournamentFactions(#draftedFactions)
+
+  makeTournamentFactionCardDraft()
+end
+
+
+function makeFactionCardDraft(draftOptions)
+
+  local playerCount = #_G['FullRoster'] - #_G['BotRoster']
+  local selectedFactions = draftOptions
+
+  -- Make Faction Cards
+  -- Spawn Cards
+  spawnSetupCards()
+  -- Shuffle Cards
+  
+  for _,v in ipairs(getObjectsWithTag("Setup Card")) do
+    if v.name == "Deck" then
+      v.shuffle()
+      v.locked = true
+      local count = 0
+      for _, fac in ipairs(selectedFactions) do
+        for _, c in ipairs(v.getObjects()) do
+          if c.name == fac then
+            local t = v.takeObject({
+              guid = c.guid,
+            })
+            if count == playerCount and isAWhiteFaction(t.getName()) and redCount(selectedFactions) == 1 then
+              t.setRotationSmooth({0,90,0})
+              if t.getName() == "Vagabond1" or t.getName() == "Vagabond2" then
+                t.setPositionSmooth({t.getPosition().x-1.33, t.getPosition().y, -0.42 + 5.22/2 * playerCount - 5.22 * count})
+              else
+                t.setPositionSmooth({t.getPosition().x, t.getPosition().y, -0.42 + 5.22/2 * playerCount - 5.22 * count})
+              end
+            else
+              t.setRotationSmooth({0,270,0})
+              t.setPositionSmooth({t.getPosition().x, t.getPosition().y, -0.42 + 5.22/2 * playerCount - 5.22 * count})
+            end
+
+            -- Vagabond Card Spawning In Draft
+            if t.getName() == "Vagabond1" or t.getName() == "Vagabond2" then
+              if count == playerCount then
+                if t.getName() == "Vagabond1" then
+                  local vcard = spawnVagabondCard(vagabondCards[1], {t.getPosition().x + 1.33 * 2 - 1.33, t.getPosition().y, -0.42 + 5.22/2 * playerCount - 5.22 * count})
+                  vcard.setRotation({0,0,0})
+                elseif t.getName() == "Vagabond2" then
+                  local vcard = spawnVagabondCard(vagabondCards[2], {t.getPosition().x + 1.33 * 2 - 1.33, t.getPosition().y, -0.42 + 5.22/2 * playerCount - 5.22 * count})
+                  vcard.setRotation({0,0,0})
+                end
+              else
+                if t.getName() == "Vagabond1" then spawnVagabondCard(vagabondCards[1], {t.getPosition().x, t.getPosition().y, -0.42 + 5.22/2 * playerCount - 5.22 * count})
+                elseif t.getName() == "Vagabond2" then spawnVagabondCard(vagabondCards[2], {t.getPosition().x, t.getPosition().y, -0.42 + 5.22/2 * playerCount - 5.22 * count}) end
+              end
+            end
+            
+            -- Knaves Cards Spawning in Draft
+            if t.getName() == "Knaves of the Deepwood" then
+              spawnKnaveCards()
+              for _,v in ipairs(getObjectsWithTag("Captain Cards")) do
+                v.shuffle()
+                v.shuffle()    
+                v.shuffle()
+                v.shuffle()
+                v.shuffle()
+              end
+            end
+
+            
+            t.locked = true
+            count = count + 1
+
+          end
+        end
+      end
+    end
+  end
+
+
+end
+
+function makeTournamentFactionCardDraft()
+
+  local playerCount = overallPlayerCount
+  local selectedFactions = draftedFactions
+  -- Make Faction Cards
+  -- Spawn Cards
+  spawnSetupCards()
+  -- Shuffle Cards
+  for _,v in ipairs(getObjectsWithTag("Setup Card")) do
+    if v.name == "Deck" then
+      v.shuffle()
+      v.locked = true
+      local count = 0
+      for _, fac in ipairs(selectedFactions) do
+        for _, c in ipairs(v.getObjects()) do
+          if c.name == fac then
+            local t = v.takeObject({
+              guid = c.guid,
+            })
+            if count == playerCount and isAWhiteFaction(t.getName()) and redCount(selectedFactions) == 1 then
+              t.setRotationSmooth({0,90,0})
+              if t.getName() == "Vagabond1" or t.getName() == "Vagabond2" then
+                t.setPositionSmooth({t.getPosition().x-1.33, t.getPosition().y, -0.42 + 5.22/2 * playerCount - 5.22 * count})
+              else
+                t.setPositionSmooth({t.getPosition().x, t.getPosition().y, -0.42 + 5.22/2 * playerCount - 5.22 * count})
+              end
+            else
+              t.setRotationSmooth({0,270,0})
+              t.setPositionSmooth({t.getPosition().x, t.getPosition().y, -0.42 + 5.22/2 * playerCount - 5.22 * count})
+            end
+
+            if t.getName() == "Vagabond1" or t.getName() == "Vagabond2" then
+              if count == playerCount then
+                if t.getName() == "Vagabond1" then
+                  local vcard = spawnVagabondCard(vagabondCards[1], {t.getPosition().x + 1.33 * 2 - 1.33, t.getPosition().y, -0.42 + 5.22/2 * playerCount - 5.22 * count})
+                  vcard.setRotation({0,0,0})
+                elseif t.getName() == "Vagabond2" then
+                  local vcard = spawnVagabondCard(vagabondCards[2], {t.getPosition().x + 1.33 * 2 - 1.33, t.getPosition().y, -0.42 + 5.22/2 * playerCount - 5.22 * count})
+                  vcard.setRotation({0,0,0})
+                end
+              else
+                if t.getName() == "Vagabond1" then spawnVagabondCard(vagabondCards[1], {t.getPosition().x, t.getPosition().y, -0.42 + 5.22/2 * playerCount - 5.22 * count})
+                elseif t.getName() == "Vagabond2" then spawnVagabondCard(vagabondCards[2], {t.getPosition().x, t.getPosition().y, -0.42 + 5.22/2 * playerCount - 5.22 * count}) end
+              end
+            end
+            t.locked = true
+            count = count + 1
+
+          end
+        end
+      end
+    end
+  end
+
+
+end
+
+function backToDeckDraft()
+  removeDeckItems()
+  allButtonsOff()
+  -- self.UI.setAttribute("reachMeter","active","False")
+  self.UI.setAttribute("draftDeckButtons","active","True")
+  setTile("deck","Clear Tile")
+
+end
+
+
+
+function infoEhssAndSlug() setInfo("Ehss and Slug Info") end
+function infoJustin() setInfo("JustinInExile Info") end
+
+
+
+function infoNevakanezah() setInfo("Nevakanezah Info") end
+function infoNevakanezahAndSlug() setInfo("Nevakanezah and Slug Info") end
+
+
+
+function infoOfficialContent() setInfo("Official Content Info") end
+
+
+
+function infoGinso() setInfo("Ginso Info") end
+
+
+
+function getRoster()
+  broadcastToAll("Current Roster:")
+  local names = {"","",""}
+
+  for i = 1, (#_G['Roster'] / 2 + 1) do
+      if #_G['Roster'] > (i-1) * 2 then
+        names[i] = _G["Roster"][(i - 1) * 2 + 1]
+      end
+      if #_G['Roster'] > (i-1) * 2 + 1 then
+        names[i] = names[i] .. ", ".. _G["Roster"][(i - 1) * 2 + 1 + 1]
+      end
+      if #_G['Roster'] > (i-1) * 2 + 2 then
+        names[i] = names[i] .. ", "
+      end
+    Wait.frames(
+      function()
+        if (names[i] != "") then
+          broadcastToAll(names[i])
+        end
+      end,
+      (i) * 50
+    )
+  end
+end
+
+function wwGetRoster()
+  broadcastToAll("Current Roster:")
+  local names = {"","",""}
+
+  for i = 1, (#_G['Roster'] / 2 + 1) do
+      if #_G['Roster'] > (i-1) * 2 then
+        names[i] = _G["Roster"][(i - 1) * 2 + 1]
+      end
+      if #_G['Roster'] > (i-1) * 2 + 1 then
+        names[i] = names[i] .. ", ".. _G["Roster"][(i - 1) * 2 + 1 + 1]
+      end
+      if #_G['Roster'] > (i-1) * 2 + 2 then
+        names[i] = names[i] .. ", "
+      end
+    Wait.frames(
+      function()
+        if (names[i] != "") then
+          broadcastToAll(names[i])
+        end
+      end,
+      (i) * 50
+    )
+  end
+end
+
+
+function acceptTournamentRoster()
+  if #_G['Roster'] < 1 then broadcastToAll("Please join the Roster before selecting Okay.") return end
+
+  allButtonsOff()
+  self.UI.setAttribute("mapTournamentDrafting","active","True")
+
+  Wait.frames(
+    function()
+        broadcastToAll("First Player, Choose a Map.")
+    end,
+    50
+  )
+
+
+  if #_G['Roster'] <= 2 then
+    makeDeck(player,value,"Exiles and Partisans Deck 2")
+  else
+    makeDeck(player,value,"Exiles and Partisans Deck")
+  end
+
+  getDraftedTournamentFactions(#_G['Roster'])
+  changeTournamentMapButtons("True")
+end
+
+_G['WWLineUp'] = {}
+_G['WWSelected'] = {"","","","","","","","","",""} -- 10 slots
+_G['WWTimer'] = 50
+
+
+function table.clone(org)
+  return {table.unpack(org)}
+end
+
+
+function wwAcceptRoster()
+
+  if #_G['Roster'] < 1 then broadcastToAll("Please join the Roster before selecting Done.") return end
+
+  self.UI.setAttribute("WWFactionLabelImage","active","true")
+  self.UI.setAttribute("WWMapAndDeckLabelImage","active","true")
+
+  _G['WWCanPickFaction'] = false
+
+  self.UI.setAttribute("WWJoinRosterButton","active","false")
+  self.UI.setAttribute("WWCheckRosterButton","active","false")
+  self.UI.setAttribute("WWLeaveRosterButton","active","false")
+  self.UI.setAttribute("WWAcceptRosterButton","active","false")
+
+  makeTool('','',"WW Colored Bags")
+
+-- -- --############ Testing#sluggy
+  -- table.insert(_G['Roster'],"")
+  -- table.insert(_G['Roster'],"")
+  -- table.insert(_G['Roster'],"")
+  -- table.insert(_G['Roster'],"")
+  -- table.insert(_G['Roster'],"")
+   -- ############
+
+  local x = math.random(0,1)
+  _G['WWLineUp'] = {}
+  _G['WWSelected'] = {}
+
+  _G['WWOfficialRedSubset'] = table.clone(_G['WWOfficialRed'])
+  _G['WWOfficialGraySubset'] = table.clone(_G['WWOfficialGray'])
+  _G['WWHomebrewRedSubset'] = table.clone(_G['WWHomebrewRed'])
+  _G['WWHomebrewGraySubset'] = table.clone(_G['WWHomebrewGray'])
+  _G['WWFacSelector'] = 1
+  _G['WWVagabondsTaken'] = 0
+
+  for a = 1, #_G['Roster'] + 3 do
+    if x == 1 then
+      table.insert(_G['WWLineUp'],"Official")
+    end
+    if x == 0 then
+      table.insert(_G['WWLineUp'],"Homebrew")
+    end
+    x = math.abs(x-1) -- switch between 1 and 0
+  end
+
+  _G['WWLineUp'] = shuffle(_G['WWLineUp'])
+
+
+  for a = 1, #_G['WWLineUp'] do
+    self.UI.setAttribute("WWFac"..(a - 2),"image","WW".._G['WWLineUp'][a].."Ticket")
+    self.UI.setAttribute("WWFac"..(a - 2),"active","true")
+  end
+
+    self.UI.setAttribute("WWLeftMenu","image","WWLeftMenuSit")
+  Wait.frames( function() wwSeatPlayers() end, _G['WWTimer'])
+  Wait.frames( function() playerSetup(#_G['Roster'],true) end, _G['WWTimer'] * 2)
+
+end
+
+_G['WWMaps'] = {}
+_G['WWMaps']['Official'] = {'Autumn','Winter','Lake','Mountain'}
+_G['WWMaps']['Homebrew'] = {'Australia','The Deep Woods','Gorge','Legends','Summer','Treasure Island','The Wastelands'}
+_G['WWDecks'] = {}
+_G['WWDecks']['Official'] = {'Standard','Exiles and Partisans'}
+_G['WWDecks']['Homebrew'] = {'Action! Deck Booster','Dark','60 Card Master','Sorcery of the Enchanted Woods','Upstarts and Renegades'}
+_G['WW54Decks'] = {'Standard','Exiles and Partisans','Upstarts and Renegades','Sorcery of the Enchanted Woods'}
+
+
+----#CHECKPOINT------
+
+function getRandom(array)
+  return array[math.random(1,#array)]
+end
+
+function wwSeatPlayers()
+  seatPlayers()
+  self.UI.setAttribute("WWLeftMenu","image","WWLeftMenuDot1")
+  Wait.frames( function() wwPickMap() end, _G['WWTimer'])
+end
+
+function wwBagJump(n)
+  if n == 3 or n == 4 then
+    for _,v in ipairs(getAllObjects()) do
+      if v.getName() == "WWRedBag" then
+        local y = v.getPosition().y
+        v.setPositionSmooth({v.getPosition().x, y + 2, v.getPosition().z},false,true)
+        Wait.frames(function() v.setPositionSmooth({v.getPosition().x, y, v.getPosition().z},false,true) end, 10)
+        return
+      end
+    end
+  end
+  for _,v in ipairs(getAllObjects()) do
+    if (v.getName() == "WWGoldBag" and _G['WWLineUp'][n] == 'Official') or (v.getName() == "WWBlackBag" and _G['WWLineUp'][n] == 'Homebrew') then
+      local y = v.getPosition().y
+      v.setPositionSmooth({v.getPosition().x, y + 2, v.getPosition().z},false,true)
+      Wait.frames(function() v.setPositionSmooth({v.getPosition().x, y, v.getPosition().z},false,true) end, 10)
+      return
+    end
+  end
+end
+
+function wwPickMap()
+
+  local map = getRandom(_G['WWMaps'][_G['WWLineUp'][1]])
+  self.UI.setAttribute("WWFac-1","image",map.."MapIcon")
+
+  wwBagJump(1)
+  makeMap("","",map .. " Map")
+  makeSpecialWithTag("Tools","Battle Mat",33.17,1.55,9.21,"Map Object")
+  _G['WWSelected'][1] = map
+
+  -- Remove Tower on Mountain Map
+  if _G['WWSelected'][1] == "Mountain" then
+    for _,v in ipairs(getObjectsWithTag("Tower")) do
+      v.destruct()
+    end
+  end
+
+  self.UI.setAttribute("WWLeftMenu","image","WWLeftMenuDot2")
+  Wait.frames(function() wwPickDeck() end, _G['WWTimer'])
+end
+
+function wwPickDeck()
+
+  local deck = getRandom(_G['WWDecks'][_G['WWLineUp'][2]])
+  self.UI.setAttribute("WWFac0","image",deck.."DeckIcon")
+
+  wwBagJump(2)
+  _G['WWSelected'][2] = deck
+
+  if deck == "Action! Deck Booster" then   -- Action! Deck Booster Selected
+
+    self.UI.setAttribute("WWMapAndDeckLabelImage", "image", "WWDeckPlus")
+    _G['WWSelected'][10] = getRandom(_G['WW54Decks'])
+
+    self.UI.setAttribute("WWFac8","image",_G['WWSelected'][10].."DeckIcon")
+
+    if (#_G['Roster'] == 2) then wwSummonDeck(_G['WWSelected'][10].." Deck 2") end
+    if (#_G['Roster'] != 2) then wwSummonDeck(_G['WWSelected'][10].." Deck") end
+
+    makeTool('', '', 'Weird Root Action Deck') -- make Action DECK
+    self.UI.setAttribute("WWFac8","active","true")
+      -- Make dual decks
+
+    Wait.frames(function() shuffleAction() end, _G['WWTimer'] * 3)
+
+  end
+
+  if deck != "Action! Deck Booster" then
+      self.UI.setAttribute("WWFac8","active","false")
+
+      if (#_G['Roster'] == 2) then wwSummonDeck(deck.." Deck 2") end
+      if (#_G['Roster'] != 2) then wwSummonDeck(deck.." Deck") end
+
+      Wait.frames(function() wwDealCards() end, _G['WWTimer'])
+  end
+  self.UI.setAttribute("WWLeftMenu","image","WWLeftMenuDot3")
+end
+
+function concatTables(t1,t2)
+  local newT = {}
+  for n = 1, #t1 do
+    table.insert(newT,t1[n])
+  end
+  for n = 1, #t2 do
+    table.insert(newT,t2[n])
+  end
+
+   return newT
+end
+
+function wwSummonDeck(deckName)
+  if (#_G['Roster'] == 2) then makeDeck("","",deckName) return end
+  if (#_G['Roster'] != 2) then makeDeck("","",deckName) return end
+end
+
+function shuffleAction()
+  for _,v in ipairs(getObjectsWithTag("Deck Object")) do
+    v.shuffle()
+  end
+  Wait.frames(function() wwDealCards() end, _G['WWTimer'])
+end
+
+function wwDealCards()
+  local d
+  for _, p in ipairs(getObjectsWithTag("Deck Object")) do
+    if (p.name == "Deck") then
+      d = p
+    end
+  end
+
+  local n = 5
+
+  if _G['WWSelected'][1] == "The Deep Woods" then n = 6
+    broadcastToAll("You must discard cards to settle clearings during setup. Consult the Law of Slug.") --#Message6
+  end
+
+  if Player["Red"].seated then d.deal(n,"Red") end
+  if Player["Yellow"].seated then d.deal(n,"Yellow") end
+  if Player["Orange"].seated then d.deal(n,"Orange") end
+  if Player["Teal"].seated then d.deal(n,"Teal") end
+  if Player["Green"].seated then d.deal(n,"Green") end
+  if Player["Brown"].seated then d.deal(n,"Brown") end
+
+  Wait.frames(function() wwPickFactions() end, _G['WWTimer'])
+end
+
+_G['WWOfficialRed'] = {"Marquise de Cat", "Eyrie Dynasties", "Underground Duchy", "Lord of the Hundreds", "Keepers in Iron"}
+_G['WWOfficialGray'] = {"Woodland Alliance", "Vagabond","The Lizard Cult", "Riverfolk Company", "Corvid Conspiracy"}
+_G['WWHomebrewRed'] = {"Eyrie\'s End", "Dawn of the Marquistadors", "Workshop Marquise", "Warriors Wake"}
+_G['WWHomebrewGray'] = {"Old Man Tinker", "Necropossums Cabal", "Arachnid Association II", "Croakers Coven", "The Noxious Battery",
+                      "Bone Patrol", "Black Creek Pirates II", "Spinners of Mercy", "The Winged Menace", "Woodland Revolution",
+                      "United Dove Corps II", "Doomed Swindler", "Grouch", "Doomed Berserker", "Doomed Bard", "Doomed Blacksmith",
+                      "Doomed Zealot", "Doomed Barkeep"}
+_G['WWVagabonds'] = {"Adventurer","Arbiter","Harrier","Ranger","Ronin","Scoundrel","Thief","Tinker","Vagrant"}
+_G['WWHomebrewVagabonds'] = {"Grouch","Doomed Blacksmith","Doomed Swindler","Doomed Bard","Doomed Barkeep","Doomed Zealot", "Doomed Berserker"}
+
+_G['WWOfficialRedSubset'] = {}
+_G['WWOfficialGraySubset'] = {}
+_G['WWHomebrewRedSubset'] = {}
+_G['WWHomebrewGraySubset'] = {}
+_G['WWFacSelector'] = 1
+_G['WWVagabondsTaken'] = 0
+
+function removeFirst(tbl, val)
+  for i, v in ipairs(tbl) do
+    if v == val then
+      return table.remove(tbl, i)
+    end
+  end
+end
+
+_G["WWAdsetCardFaces"] = {}
+
+_G["WWAdsetCardFaces"]["Marquise de Cat"] = "https://steamusercontent-a.akamaihd.net/ugc/1835788265934562341/94B4D774E074EF5BEADCB464EEC7F919CE5D97D4/"
+_G["WWAdsetCardFaces"]["Eyrie Dynasties"] = "https://steamusercontent-a.akamaihd.net/ugc/1835788265934563069/3299BEBC4C3BBBFE460DEF47340A0B15B2EA4D3C/"
+_G["WWAdsetCardFaces"]["Woodland Alliance"] = "https://steamusercontent-a.akamaihd.net/ugc/1835788265934565089/1CABD8BB3B69ECBD33E3B26737DCCFA49B6F5E73/"
+_G["WWAdsetCardFaces"]["Vagabond"] = "https://steamusercontent-a.akamaihd.net/ugc/1835787942529722117/BA5DC63CB14B76FE0B786AC2646C848A9A252BFD/"
+_G["WWAdsetCardFaces"]["The Lizard Cult"] = "https://steamusercontent-a.akamaihd.net/ugc/1835788265934567070/B8FF9D87E830C2046DA471192AAE30D349E55842/"
+_G["WWAdsetCardFaces"]["Riverfolk Company"] = "https://steamusercontent-a.akamaihd.net/ugc/1835788265934566692/C5C3A6295E2F6027FAC396F397105EB7C6F63811/"
+_G["WWAdsetCardFaces"]["Underground Duchy"] = "https://steamusercontent-a.akamaihd.net/ugc/1835788265934563504/7290C5EA6460B6272F606E7F2431DBC8E439358D/"
+_G["WWAdsetCardFaces"]["Corvid Conspiracy"] = "https://steamusercontent-a.akamaihd.net/ugc/1835788265934567421/7F3BBDAADF9B907E258264469E37D40299C156EE/"
+_G["WWAdsetCardFaces"]["Lord of the Hundreds"] = "https://steamusercontent-a.akamaihd.net/ugc/1835788265934563997/C48C8711373FAA1EC959B02DFCFA35CBAC608B04/"
+_G["WWAdsetCardFaces"]["Keepers in Iron"] = "https://steamusercontent-a.akamaihd.net/ugc/1835788265934564418/C438F3D3D4CF77DACEBA32F3735FCC45285D25B2/"
+
+_G["WWAdsetCardFaces"]["Adventurer"] = "https://steamusercontent-a.akamaihd.net/ugc/792008787920031568/9FDA298CAA9675B5DDAC29F1AA1C19DA44AC4BBF/"
+_G["WWAdsetCardFaces"]["Arbiter"] = "https://steamusercontent-a.akamaihd.net/ugc/792008787920017905/80BF0B8B6BC138E676AF31B3055DF2124E7F2F4B/"
+_G["WWAdsetCardFaces"]["Harrier"] = "https://steamusercontent-a.akamaihd.net/ugc/792008787920035989/3748A07E731D02DC842DFA4D3A92481E4B082D51/"
+_G["WWAdsetCardFaces"]["Ranger"] = "https://steamusercontent-a.akamaihd.net/ugc/792008787920013866/D250C9591D68B83499A8952BCA5C684F04E13980/"
+_G["WWAdsetCardFaces"]["Ronin"] = "https://steamusercontent-a.akamaihd.net/ugc/792008787920040196/8328799796E99F07C70A40E7672868F5167091DF/"
+_G["WWAdsetCardFaces"]["Scoundrel"] = "https://steamusercontent-a.akamaihd.net/ugc/792008787920022394/8AD75E0065109B2350D989D473EBEC170E92BB60/"
+_G["WWAdsetCardFaces"]["Thief"] = "https://steamusercontent-a.akamaihd.net/ugc/792008787920003055/2817F237F33C253197D96E9534C17004F2B3D661/"
+_G["WWAdsetCardFaces"]["Tinker"] = "https://steamusercontent-a.akamaihd.net/ugc/792008787920007980/31E9550DB276915F3EA1F27CD387ADCE81657B2E/"
+_G["WWAdsetCardFaces"]["Vagrant"] = "https://steamusercontent-a.akamaihd.net/ugc/792008787919989189/87AA5C7CE4192FBC0900B24EC7DEAB95110CAB94/"
+
+_G["WWAdsetCardFaces"]["Dawn of the Marquistadors"] = "https://steamusercontent-a.akamaihd.net/ugc/1830157803763364012/80D3E3F0DABD7DB5AD02576DE84C8D2C058E7DC9/"
+_G["WWAdsetCardFaces"]["Eyrie's End"] = "https://steamusercontent-a.akamaihd.net/ugc/1799745188602018545/D10E883DA9C8CA1D21A20107E8B3964B7C8FD6AF/"
+_G["WWAdsetCardFaces"]["Workshop Marquise"] = "https://steamusercontent-a.akamaihd.net/ugc/1838030727459786230/1D6F97882D0CA488F872BED20BF15A0E1FFC3CBC/"
+_G["WWAdsetCardFaces"]["Warriors Wake"] = "https://steamusercontent-a.akamaihd.net/ugc/1799745188598338285/D4B919631E3D2814A284A172AC724C8EBD97E638/"
+_G["WWAdsetCardFaces"]["United Dove Corps II"] = "https://steamusercontent-a.akamaihd.net/ugc/1838031283911363609/889CEB9A6EF31B493D306636680400D1A27CDD83/"
+_G["WWAdsetCardFaces"]["The Winged Menace"] = "https://steamusercontent-a.akamaihd.net/ugc/1799745188605443236/5430479DA59241216056C2DA927BA65654FC21AF/"
+_G["WWAdsetCardFaces"]["The Noxious Battery"] = "https://steamusercontent-a.akamaihd.net/ugc/1838031731706445734/09D94A6A0FE64441B673ACD1FC5604D06B13E6E5/"
+_G["WWAdsetCardFaces"]["Doomed Barkeep"] = "https://steamusercontent-a.akamaihd.net/ugc/1799745188602019195/FFEDDC03F92F3690B27BE82B04E6B619A4474692/"
+_G["WWAdsetCardFaces"]["Doomed Berserker"] = "https://steamusercontent-a.akamaihd.net/ugc/1799745188602019195/FFEDDC03F92F3690B27BE82B04E6B619A4474692/"
+_G["WWAdsetCardFaces"]["Arachnid Association II"] = "https://steamusercontent-a.akamaihd.net/ugc/1838030916025840794/8B1AFD7C2356027B4A7DB11275FFDBB26F92871B/"
+_G["WWAdsetCardFaces"]["Spinners of Mercy"] = "https://steamusercontent-a.akamaihd.net/ugc/1867301389180149376/CA21C6BD3BD6BDDFC59E2FAB811A40EB16BC36F2/"
+_G["WWAdsetCardFaces"]["Doomed Bard"] = "https://steamusercontent-a.akamaihd.net/ugc/1799745188602019195/FFEDDC03F92F3690B27BE82B04E6B619A4474692/"
+_G["WWAdsetCardFaces"]["Croakers Coven"] = "https://steamusercontent-a.akamaihd.net/ugc/1799745188605515942/3A871BCEA16174042234C178DEABD3B3F6BD0315/"
+_G["WWAdsetCardFaces"]["Doomed Blacksmith"] = "https://steamusercontent-a.akamaihd.net/ugc/1799745188602019195/FFEDDC03F92F3690B27BE82B04E6B619A4474692/"
+_G["WWAdsetCardFaces"]["Necropossums Cabal"] = "https://steamusercontent-a.akamaihd.net/ugc/1838030916025950391/20D12721D649E0FB360DB443E290E6CB62768538/"
+_G["WWAdsetCardFaces"]["Bone Patrol"] = "https://steamusercontent-a.akamaihd.net/ugc/1799745188604059656/45989E8388A73FB1BFC913EE09B77761BB00E702/"
+_G["WWAdsetCardFaces"]["Woodland Revolution"] = "https://steamusercontent-a.akamaihd.net/ugc/1838030916025497145/5FEF49903F35C2B7DE82ABCAC195434C19F64C73/"
+_G["WWAdsetCardFaces"]["Grouch"] = "https://steamusercontent-a.akamaihd.net/ugc/1835787942529722117/BA5DC63CB14B76FE0B786AC2646C848A9A252BFD/"
+_G["WWAdsetCardFaces"]["Black Creek Pirates II"] = "https://steamusercontent-a.akamaihd.net/ugc/1829027562284717626/0B768C5CCE87116FB5C13A2CE0314A04C099C135/"
+_G["WWAdsetCardFaces"]["Old Man Tinker"] = "https://steamusercontent-a.akamaihd.net/ugc/1871808701914097125/A1B303EAF2911FD003482BB2D511D2FBB4DCB403/"
+_G["WWAdsetCardFaces"]["Doomed Zealot"] = "https://steamusercontent-a.akamaihd.net/ugc/1799745188602019195/FFEDDC03F92F3690B27BE82B04E6B619A4474692/"
+_G["WWAdsetCardFaces"]["Doomed Swindler"] = "https://steamusercontent-a.akamaihd.net/ugc/1799745188602019195/FFEDDC03F92F3690B27BE82B04E6B619A4474692/"
+
+_G["WWHomebrewVagabondFaces"] = {}
+_G["WWHomebrewVagabondFaces"]["Doomed Swindler"] = "https://steamusercontent-a.akamaihd.net/ugc/1697277908217697184/3797D6BBB63EBA15DB63AE6D6F15111A311D0F56/"
+_G["WWHomebrewVagabondFaces"]["Doomed Zealot"] = "https://steamusercontent-a.akamaihd.net/ugc/1756947110726833658/F7591792EEC70DAA65F0202FC769E492EB014E53/"
+_G["WWHomebrewVagabondFaces"]["Doomed Blacksmith"] = "https://steamusercontent-a.akamaihd.net/ugc/1755820943818624505/791BAE685873E062B8EB8359006BD90230DDEA9C/"
+_G["WWHomebrewVagabondFaces"]["Doomed Berserker"] = "https://steamusercontent-a.akamaihd.net/ugc/1755820943820932760/09358C3415355BCD25C0B5204E48850ED250A451/"
+_G["WWHomebrewVagabondFaces"]["Doomed Bard"] = "https://steamusercontent-a.akamaihd.net/ugc/1756947477064412199/F552281EEEB312E45FE5657766CA79853DC64886/"
+_G["WWHomebrewVagabondFaces"]["Doomed Barkeep"] = "https://steamusercontent-a.akamaihd.net/ugc/1755820943820933573/EC1111A451825CAC4FF7942271ABA6D213EBEBAC/"
+_G["WWHomebrewVagabondFaces"]["Grouch"] = "https://steamusercontent-a.akamaihd.net/ugc/1758065039320526659/10CFC98366787FBC60F26C949F487B7D29852822/"
+
+function wwGetFace(fac)
+  if _G["WWAdsetCardFaces"][fac] ~= nil then
+      return _G["WWAdsetCardFaces"][fac]
+  end
+  return "https://steamusercontent-a.akamaihd.net/ugc/1830157803763364012/80D3E3F0DABD7DB5AD02576DE84C8D2C058E7DC9/"
+end
+
+function wwGetBack(fac)
+  return "https://steamusercontent-a.akamaihd.net/ugc/1857179401541152150/F7AF1F3347F9DC8A055AA6E3F1BEA24E1BA5F709/"
+end
+
+function wwPickFactions()
+  wwBagJump(_G['WWFacSelector'] + 2)
+  if _G['WWFacSelector'] <= #_G['Roster'] + 1 then
+
+    local chosenFaction = getRandom(_G['WW'.._G['WWLineUp'][_G['WWFacSelector'] + 2] .. 'RedSubset'])
+    removeFirst(_G['WW'.._G['WWLineUp'][_G['WWFacSelector'] + 2] .. 'RedSubset'],chosenFaction) -- remove chosen from pool
+
+    -- Deal Adset Card
+    makeSpecialCard("Tools","WWCard",33.17,1.55,-5.13 * _G['WWFacSelector'] + 10,wwGetFace(chosenFaction),wwGetBack(chosenFaction),chosenFaction .. " Adset Card")
+
+
+    if chosenFaction == "Doomed Bard" or chosenFaction == "Doomed Barkeep" or chosenFaction == "Doomed Berserker" or chosenFaction == "Doomed Blacksmith"
+    or chosenFaction == "Grouch" or chosenFaction == "Doomed Swindler" or chosenFaction == "Doomed Zealot" or chosenFaction == "Vagabond" then
+      _G['WWVagabondsTaken'] = _G['WWVagabondsTaken'] + 1
+    end
+
+    -- Vagabond Dealing
+    if chosenFaction == "Vagabond" then
+      chosenFaction = getRandom(_G["WWVagabonds"])
+      makeSpecialCard("Tools","WWCard",32.07-0.59,1.57,-5.13 * _G['WWFacSelector'] + 10,wwGetFace(chosenFaction),wwGetBack("Vagabond"),chosenFaction)
+    end
+
+        if _G["WWHomebrewVagabondFaces"][chosenFaction] ~= nil then
+        makeSpecialCard("Tools","WWCard",32.07-0.59,1.57,-5.13 * _G['WWFacSelector'] + 10,_G["WWHomebrewVagabondFaces"][chosenFaction],wwGetBack("Vagabond"),chosenFaction)
+    end
+
+    _G['WWSelected'][_G['WWFacSelector'] + 2] = chosenFaction;
+
+    -- Unique between MarquiseDeCat, WorkshopMarquise, EyriesEnd
+    if chosenFaction == "Marquise de Cat" then removeFirst(_G['WWHomebrewRedSubset'],"Workshop Marquise") removeFirst(_G['WWHomebrewRedSubset'],"Eyrie\'s End") end
+    if chosenFaction == "Workshop Marquise" then removeFirst(_G['WWOfficialRedSubset'],"Marquise de Cat") removeFirst(_G['WWHomebrewRedSubset'],"Eyrie\'s End") end
+    if chosenFaction == "Eyrie\'s End" then removeFirst(_G['WWOfficialRedSubset'],"Marquise de Cat") removeFirst(_G['WWHomebrewRedSubset'],"Workshop Marquise") end
+
+    -- Unique between WoodlandAlliance, WoodlandRevolution
+    if chosenFaction == "Woodland Alliance" then removeFirst(_G['WWHomebrewRedSubset'],"Woodland Revolution") end
+    if chosenFaction == "Woodland Revolution" then removeFirst(_G['WWOfficialRedSubset'],"Woodland Alliance") end
+
+    -- Vagabond Cleaning Up after 2 Taken
+    if _G['WWVagabondsTaken'] >= 2 then
+      removeFirst(_G['WWOfficialRedSubset'],"Vagabond")
+      removeFirst(_G['WWHomebrewRedSubset'],"Doomed Bard")
+      removeFirst(_G['WWHomebrewRedSubset'],"Doomed Barkeep")
+      removeFirst(_G['WWHomebrewRedSubset'],"Doomed Berserker")
+      removeFirst(_G['WWHomebrewRedSubset'],"Doomed Blacksmith")
+      removeFirst(_G['WWHomebrewRedSubset'],"Grouch")
+      removeFirst(_G['WWHomebrewRedSubset'],"Doomed Swindler")
+      removeFirst(_G['WWHomebrewRedSubset'],"Doomed Zealot")
+
+    end
+
+    if (_G['WWFacSelector'] == 2) then
+      _G['WWOfficialRedSubset'] = concatTables(_G['WWOfficialRedSubset'],_G['WWOfficialGraySubset'])
+      _G['WWHomebrewRedSubset'] = concatTables(_G['WWHomebrewRedSubset'],_G['WWHomebrewGraySubset'])
+    end
+
+    self.UI.setAttribute("WWFac".. (_G['WWFacSelector']),"image",chosenFaction.." Icon")
+
+    _G['WWFacSelector'] = _G['WWFacSelector'] + 1
+
+    self.UI.setAttribute("WWLeftMenu","image","WWLeftMenuDot" .. ((_G['WWFacSelector'] + 1) % 3 + 1))
+    Wait.frames(function() wwPickFactions() end, _G['WWTimer'])
+    return
+  end
+
+  self.UI.setAttribute("WWLeftMenu","image","WWLeftMenuFaction")
+  _G['WWRosterSelector'] = #_G['Roster']
+  _G['WWCanPickFaction'] = true
+
+  self.UI.setAttribute("WWFirstWarning","active","false")
+  self.UI.setAttribute("WWSecondWarning","active","true")
+
+  _G['WWRosterSelector'] = #_G['Roster']
+  self.UI.setAttribute("WWTurnNumber","icon","WW".. #_G['Roster'].."Turn")
+  self.UI.setAttribute("WWTurnNumber","color",_G['PlayerColors'][_G['WWRosterSelector']])
+  self.UI.setAttribute("WWTurnNumber","active","true")
+  self.UI.setAttribute("WWPlayerInstructions","image","WWSelectFaction")
+  self.UI.setAttribute("WWPlayerInstructions","active","true")
+
+  _G['WWPlayerSetupMode'] = false
+
+  for _,v in ipairs(getAllObjects()) do
+    if v.getName() == "WWGoldBag" or v.getName() == "WWBlackBag" or v.getName() == "WWRedBag" then
+      v.destruct()
+    end
+  end
+
+  --#Checkpoint3
+end
+
+_G['PlayerColors'] = {"#E53F36","#F5E850","#F68B57","#64BBBD","#6DBA5A","#A07641"}
+_G['WWRosterSelector'] = 0
+_G['WWPlayerSetupMode'] = false
+
+function trim(s)
+   return (s:gsub("^%s*(.-)%s*$", "%1"))
+end
+
+function wwFactionSelect(player,value,id)
+  -- #Checkpoint2
+
+  if _G['WWCanPickFaction'] == false then return end
+  if tonumber(string.sub(id, 6)) < 1 or tonumber(string.sub(id, 6)) == 8 then broadcastToColor("That's not a faction.",player.color) return end
+
+  if player.steam_name != _G['Roster'][_G['WWRosterSelector']] then broadcastToAll(makeFunnyMessage(), stringColorToRGB(player.color)) return end
+
+  if _G['WWPlayerSetupMode'] == true then
+    printToColor("Setup your faction, then hit Done, ".. player.steam_name ..".",player.color)
+  end
+
+  if _G['WWPlayerSetupMode'] == false then
+      for _, c in ipairs(getObjects()) do
+        if c.name == "CardCustom" then
+
+          if c.getName() == _G['WWSelected'][tonumber(string.sub(id, 6))+2].." Adset Card" then c.destruct() end
+          if c.getName() == _G['WWSelected'][tonumber(string.sub(id, 6))+2] then c.destruct() end
+
+          if tableHasElement(_G["WWVagabonds"],_G['WWSelected'][(tonumber(string.sub(id, 6))+2)]) then
+            if c.getName() == "Vagabond Adset Card" then c.destruct()end
+          end
+          --if _G["WWHomebrewVagabondFaces"][_G['WWSelected'][tonumber(string.sub(id, 6))+2]] ~= nil then           end
+        end
+      end
+
+
+
+      wwMakeDraftFaction(player,trim(_G['WWSelected'][tonumber(string.sub(id, 6))+2]),3)
+      _G['WWPlayerSetupMode'] = true
+      self.UI.setAttribute("WWSetupDoneButton","active","true")
+      self.UI.setAttribute("WWPlayerInstructions","image","WWSetupFaction")
+
+      self.UI.setAttribute(id,"active","false")
+  end
+end
+
+function wwFactionSetupDone(player,value,id)
+
+  if player.steam_name == _G['Roster'][_G['WWRosterSelector']] then
+    if _G['WWRosterSelector'] > 1 then
+
+      _G['WWRosterSelector'] = _G['WWRosterSelector'] - 1
+      _G['WWPlayerSetupMode'] = false
+      self.UI.setAttribute("WWSetupDoneButton","active","false")
+      self.UI.setAttribute("WWPlayerInstructions","image","WWSelectFaction")
+      self.UI.setAttribute("WWTurnNumber","color",_G['PlayerColors'][_G['WWRosterSelector']])
+      self.UI.setAttribute("WWTurnNumber","icon","WW".. _G['WWRosterSelector'].."Turn")
+
+      return
+    end
+    if _G['WWRosterSelector'] == 1 then
+      self.UI.setAttribute("WWSetupDoneButton","active","false")
+      self.UI.setAttribute("WWDraftHandsDoneButton","active","true")
+      self.UI.setAttribute("WWPlayerInstructions","image","WWDraftHands")
+
+      self.UI.setAttribute("WWSecondWarning","active","false")
+      self.UI.setAttribute("WWThirdWarning","active","true")
+
+      self.UI.setAttribute("WWLeftMenu","image","WWLeftMenuCards")
+
+      for a = 1, #_G['Roster'] + 1 do
+        local b = self.UI.getAttribute("WWFac"..a,"active") == "false"
+        self.UI.setAttribute("WWFac"..a,"active",tostring(b))
+      end
+    end
+
+  end
+end
+
+
+
+
+function wwDraftHandsDone(player,value,id)
+  if player.steam_name != _G['Roster'][_G['WWRosterSelector']] then
+    broadcastToAll("Be sure everyone has drafted their hands, and then have ".._G['Roster'][_G['WWRosterSelector']].. " hit Done!")
+    return
+  end
+
+  --lastbit
+  for _,x in ipairs(getObjectsWithTag("WWAdsetCards")) do
+      x.destruct()
+  end
+
+  --sortDraftColors()
+  Wait.frames(function() returnToSetupMenu() end, 10)
+
+end
+
+
+function isStandardFaction(faction)
+
+  for a = 0, #_G['WWOfficialRed'] do
+    if _G['WWOfficialRed'][a] == faction then
+      return true
+    end
+  end
+  for a = 0, #_G['WWOfficialGray'] do
+    if _G['WWOfficialGray'][a] == faction then
+      return true
+    end
+  end
+  for a = 0, #_G['WWVagabonds'] do
+    if _G['WWVagabonds'][a] == faction then
+      return true
+    end
+  end
+
+  if faction == "WW Vagabond Layout" or faction == "Vagabond Dice and VP" then
+    return true
+  end
+
+
+  return false
+
+end
+
+function tableHasElement(table, element)
+  for a = 0, #table do
+    if table[a] == element then
+      return true
+    end
+  end
+  return false
+end
+
+function isDoomedVagabond(faction)
+  local dvs = {"Doomed Swindler", "Grouch", "Doomed Berserker", "Doomed Bard", "Doomed Blacksmith", "Doomed Zealot", "Doomed Barkeep"}
+  return tableHasElement(dvs,faction)
+end
+
+function wwSpawnDraftFaction(i,faction,color)
+
+  local overallPlayerCount = #_G['Roster']
+  local pos = getPosition(color,overallPlayerCount)
+
+  -- makes vagabond basics board
+  if isVagabond(faction) then
+    wwSpawnDraftFaction(i,"WW Vagabond Layout",color)
+    wwSpawnDraftFaction(i,"Vagabond Dice and VP",color)
+  end
+
+  if isDoomedVagabond(faction) then
+    wwSpawnDraftFaction(i,"WW Doomed Vagabond Layout",color)
+    wwSpawnDraftFaction(i,"Doomed Vagabond Dice",color)
+  end
+
+  if faction == "Grouch" then
+    wwSpawnDraftFaction(i,"WW Vagabond Layout",color)
+  end
+
+  local objects = {}
+
+  local typeOfFaction = "Standard"
+
+  if isStandardFaction(faction) == false then
+    typeOfFaction = "Fan Factions"
+  end
+
+  if faction == "Eyrie Dynasties" and tableHasElement(_G['WWSelected'],"Eyrie\'s End") then
+    faction = "Brown Birds"
+    typeOfFaction = "Fan Factions"
+  end
+
+  if faction == "Marquise de Cat" and tableHasElement(_G['WWSelected'],"Dawn of the Marquistadors") then
+    faction = "Magenta Marquise"
+    typeOfFaction = "Fan Factions"
+  end
+
+  if faction == "Dawn of the Marquistadors" and tableHasElement(_G['WWSelected'],"Workshop Marquise") then
+    faction = "Dawn of the Marquistadors 2"
+    typeOfFaction = "Fan Factions"
+  end
+
+  objects = EVERYTHING[typeOfFaction][faction]['data']
+  local scale = self.getScale()
+  scale.x = 1/scale.x
+  scale.z = 1/scale.z
+  function callback(o)
+    if flipSide(color,overallPlayerCount) then
+      o.setRotation({o.getRotation().x, o.getRotation().y + 180, o.getRotation().z})
+    else
+      o.setRotation({o.getRotation().x, o.getRotation().y, o.getRotation().z})
+    end
+
+      if _G['vagabondAlreadySpawned'] then
+        if o.hasTag("Quest") then o.destroy() end
+      else
+        if o.hasTag("Ruin Set") then o.destroy() end
+      end
+
+
+      if o.hasTag("Shuffleable") then o.shuffle() o.shuffle() end
+
+  end
+  for _,v in ipairs(objects) do
+      local vec = Vector(v.move_to) * scale
+
+      if flipSide(color,overallPlayerCount) then
+        vec = vec * Vector(-15.5 , 1, -15.5)
+      else
+          vec = vec * Vector(15.5, 1, 15.5)
+      end
+      local new_pos = pos + vec
+      spawnObjectJSON({
+          json              = v.json,
+          position          = new_pos,
+          callback_function = callback
+      })
+  end
+end
+
+function wwMakeDraftFaction(player,factionName)
+  local i = 0
+  for a = 1, #_G['Roster'] do
+    if player.steam_name == _G['Roster'][a] then
+        i = a
+    end
+  end
+
+    wwSpawnDraftFaction(i,factionName,player.color)
+
+    _G['DraftedFactions'][_G['RosterSelector']] = faction
+    Wait.frames(
+      function()
+        if (tableHasElement(_G["WWVagabonds"], factionName) or tableHasElement(_G["WWHomebrewVagabonds"], factionName)) and _G['vagabondAlreadySpawned'] == false then
+          _G['vagabondAlreadySpawned'] = true
+        end
+      end,
+      20
+    )
+
+
+    if factionName == "Woodland Alliance" or factionName == "Woodland Revolution" then
+      spawnSupportersHand(player.color)
+    end
+    if factionName == "Corvid Conspiracy" then
+      shufflePlots(getPosition(color,overallPlayerCount))
+    end
+
+    if factionName == "The Winged Menace" then
+      spawnWingedMenaceExtraHand(player.color)
+    end
+
+
+  if factionName == "The Lizard Cult" then
+    makeSpecial("Tools","Lizard Wizard",-29.79-0.73,1.55,10.03)
+    summonLizardBlocker()
+  end
+  -- elseif draftedFactions[i] == "Vagabond1" then
+  --   for _,x in ipairs(getObjectsWithTag("Setup Card")) do
+  --     if x.getName() == vagabondCards[1] then
+  --       x.destruct()
+  --     end
+  --   end
+  -- elseif draftedFactions[i] == "Vagabond2" then
+  --   for _,x in ipairs(getObjectsWithTag("Setup Card")) do
+  --     if x.getName() == vagabondCards[2] then
+  --       x.destruct()
+  --     end
+  --   end
+
+  if factionName == "Woodland Alliance" or factionName == "Woodland Revolution" then
+    for _,x in ipairs(getObjectsWithTag("Deck Object")) do
+      if x.name == "Deck" then
+        if x.hasTag("Deck Aides") == false then
+          Wait.frames(function() x.deal(3,  player.color, 2)  end, 10)
+        end
+      end
+    end
+  end
+
+  if factionName == "Warriors Wake" then
+    summonSaltyOldStan()
+  end
+
+  for _,x in ipairs(getObjectsWithTag("DrawDraftX")) do
+      x.destruct()
+  end
+
+end
+
+function acceptRoster()
+  redTaken = false
+  if #_G['Roster'] < 1 then broadcastToAll("Please join the Roster before selecting Okay.") return end
+
+  allButtonsOff()
+  self.UI.setAttribute("mapDrafting","active","True")
+  self.UI.setAttribute("mapDraftingFan1","active","True")
+  self.UI.setAttribute("mapDraftingFan2","active","False")
+  broadcastToAll("Choose a Map.")
+end
+
+function wwMakePlayerCountButton()
+  for a = 2, 8 do
+    self.UI.setAttribute("WWFac"..a,"active","False")
+  end
+
+  for a = 2, #_G['Roster'] + 1 do
+    self.UI.setAttribute("WWFac"..a,"active","True")
+  end
+end
+
+function makePlayerCountButton()
+  if #_G['Roster'] == 0 then
+    setTile("List","Player 0 Tile")
+  else
+    setTile("List","Player "..(#_G['Roster']).." Tile")
+  end
+end
+
+
+function wwAddPlayerToRoster(player,value,id)
+  if contains(_G["Roster"],player.steam_name) then
+    printToAll(player.steam_name .. " is already on the Roster.")
+    return
+  end
+
+  if #_G["Roster"] >= 6 then
+    printToAll(player.steam_name .. " cannot join the Roster because the Roster is full.")
+    return
+  end
+
+  table.insert(_G["Roster"],player.steam_name)
+  wwMakePlayerCountButton()
+  local awesomes = {"Awesome!", "Stellar!", "Tubular!", "Bodacious!", "Most Excellent!", "Super!", "Glorious!", "Great!", "Wonderful!", "Cool!", "Fantastic!", "Phenomenal!", "Outstanding!", "Magnificent!","Radical!"}
+  printToAll(awesomes[math.random(1,#awesomes)] .. " " .. player.steam_name .. " joined the Roster.")
+
+end
+
+function addPlayerToRoster(player,value,id)
+  if contains(_G["Roster"],player.steam_name) then
+    printToAll(player.steam_name .. " is already on the Roster.")
+    return
+  end
+
+  if #_G["Roster"] >= 6 then
+    printToAll(player.steam_name .. " cannot join the Roster because the Roster is full.")
+    return
+  end
+
+  table.insert(_G["Roster"],player.steam_name)
+  makePlayerCountButton()
+  printToAll(player.steam_name .. " joined the Roster.")
+
+end
+
+
+
+local hirelings = {
+  {"Marquise de Cat","Forest Patrol","Feline Physicians"},
+  {"Eyrie Dynasties","Last Dynasty","Bluebird Nobles"},
+  {"Woodland Alliance","Spring Uprising","Rabbit Scouts"},
+  {"Vagabond","The Exile","The Brigand"},
+
+  {"The Lizard Cult","Warm Sun Prophets","Lizard Envoys"},
+  {"Riverfolk Company","Riverfolk Flotilla","Otter Divers"},
+  {"Underground Duchy","Sunward Expedition","Mole Artisans"},
+  {"Corvid Conspiracy","Corvid Spies","Raven Sentries"},
+
+  {"Lord of the Hundreds","Flame Bearers","Rat Smugglers"},
+  {"Keepers in Iron","Vault Keepers","Badger Bodyguards"},
+
+  {"Woodland Band","Popular Band","Street Band"},
+  {"Furious Protector","Furious Protector","Stoic Protector"},
+  {"Highway Bandits","Highway Bandits","Bandit Gangs"},
+
+  {"Twilight Council","Sunny Advocates","Bat Messengers"},
+  {"Lilypad Diaspora","River Roamers","Frog Tinkers"},
+  {"Prosperous Farmers","Prosperous Farmers","Struggling Farmers"},
+  -- {"Knaves of the Deepwood","The Exile","The Brigand"}  
+}
+
+function getHirelingName(h,n)
+  for a = 1, #hirelings do
+    if hirelings[a][1] == h then
+      return hirelings[a][n]
+    end
+  end
+end
+
+local hirelingMarkerLocations = {
+   -- Autumn
+   {{-4.74,11.66,-21.28},{-10.99,11.67,-21.29},{-17.23,11.68,-21.26}},
+   -- Winter
+   {{-4.68,11.66,-21.30},{-10.91,11.67,-21.36},{-17.18,11.68,-21.35}},
+   -- Lake
+   {{-4.74,11.66,-21.47},{-10.99,11.67,-21.47},{-17.25,11.68,-21.47}},
+   -- Mountain
+   {{-4.56,11.66,-21.32},{-10.81,11.67,-21.33},{-17.08,11.68,-21.34}},
+   -- Gorge
+   {{-4.69, 11.66, -21.36},{-10.97, 11.67, -21.36},{-17.25, 11.68, -21.36}},
+   -- Treasure Island
+   {{-4.62,11.66,-21.41},{-10.90,11.67,-21.41},{-17.16,11.68,-21.42}},
+   -- Deep Woods
+   {{-4.74,11.66,-21.32},{-10.92,11.67,-21.31},{-17.21,11.68,-21.35}},
+   -- The Wastelands
+   {{-4.74,11.70,-21.32},{-10.92,11.69,-21.31},{-17.21,11.69,-21.35}},
+   -- Australia
+   {{-4.80,11.66,-23.86},{-10.29,11.67,-23.86},{-15.78,11.67,-23.86}},
+   -- Narrows & Islets
+   {{-7.93,11.66,-20.67},{-13.42,11.67,-20.67},{-18.92,11.67,-20.67}},
+   -- Tunnel Unraveled
+   {{-8.41,11.67,-9.53},{-13.83,11.67,-9.53},{-19.26,11.68,-9.53}},
+   -- Tropics
+   {{-4.55,11.66,-20.19},{-10.59,11.67,-20.23},{-16.55,11.67,-20.20}},
+   -- Summer
+   {{-4.74,11.66,-21.28},{-10.99,11.67,-21.29},{-17.23,11.68,-21.26}},
+   -- Lost Woodland
+   {{-4.83,11.72,-24.16},{-11.11,11.72,-24.15},{-17.38,11.72,-24.14}},
+   -- Legends
+   {{-4.74,11.66,-21.28},{-10.99,11.67,-21.29},{-17.23,11.68,-21.26}},
+   -- Urban
+   {{-4.74,11.66,-21.28},{-10.99,11.67,-21.29},{-17.23,11.68,-21.26}},
+   -- River Town
+   {{-4.70, 11.65, -21.31},{-10.95, 11.66, -21.31},{-17.19, 11.67, -21.28}},
+   -- Mountainside
+   {{-4.70, 11.65, -21.31},{-10.95, 11.65, -21.31},{-17.20, 11.65, -21.28}},
+   -- Tidal Flats
+   {{-4.70, 11.66, -21.31},{-10.94, 11.67, -21.32},{-17.19, 11.68, -21.29}},
+   -- Blighted City
+   {{-4.70, 11.66, -21.11},{-10.93, 11.67, -21.07},{-17.18, 11.68, -21.08}},
+   -- Taiga
+   {{-4.72, 11.66, -21.30},{-10.97, 11.66, -21.30},{-17.21, 11.67, -21.27}},
+   -- Gloom
+   {{-4.70, 11.66, -21.31},{-10.94, 11.67, -21.32},{-17.19, 11.68, -21.29}},
+   -- Klacar's Volcano Island
+   {{-4.76, 11.66, -21.38},{-11.11, 11.67, -21.38},{-17.47, 11.68, -21.38}},
+   -- SPACEBALLS
+   {{-4.44, 11.66, -27.25},{-10.57, 11.67, -27.24},{-16.66, 11.68, -27.26}},
+   -- INFERNO
+   {{-1.94, 11.71, -24.82},{-8.07, 11.72, -24.81},{-14.16, 11.73, -24.82}},
+   -- Blighted Grove
+   {{-4.77, 11.69, -21.32},{-11.05, 11.69, -21.28},{-17.32, 11.70, -21.27}},
+   -- Gorge Original
+   {{-4.41,11.66,-22.99},{-10.40,11.67,-22.96},{-16.41,11.68,-22.96}},
+   -- Marsh
+   {{-4.67, 11.66, -21.31},{-10.92, 11.67, -21.32},{-17.16, 11.68, -21.29}},
+
+
+}
+
+local forestPatrolLocations = {
+  { -- Autumn
+    {-20.68,12.51,19.23},{20.73,12.45,13.13},{18.00,12.45,-15.49},{-21.48,12.50,-14.13},
+    {4.20,12.48,18.59},{22.79,12.45,-0.26},{5.99,12.47,-14.33},{-8.55,12.49,-15.36},
+    {-21.95,12.51,6.10},{-3.24,12.49,11.61},{8.49,12.47,2.23},{-10.69,12.49,-0.43},
+  },
+  { -- Winter
+    {-19.78,12.51,19.56},{-7.93,12.49,17.32},{2.74,12.48,14.02},{17.33,12.46,13.69},
+    {-20.81,12.51,5.17},{-5.31,12.49,2.04},{7.28,12.47,4.16},{23.11,12.45,-2.57},
+    {-18.18,12.50,-16.71},{-8.22,12.49,-14.59},{5.76,12.47,-8.86},{18.84,12.45,-14.66},
+  },
+  { -- Lake
+    {-20.38,12.51,17.29},{-3.52,12.49,20.51},{10.06,12.47,15.56},{21.24,12.45,10.48},
+    {-22.79,12.51,2.52},{-12.37,12.50,7.96},{9.67,12.47,-0.05},{17.38, 11.63, -4.74},
+    {-18.04,12.50,-12.16},{-6.16,12.49,-5.46},{-3.84,12.48,-15.39},{20.31,12.45,-14.43},
+  },
+  { -- Mountain
+    {-21.93,12.51,16.58},{-9.14,12.49,9.87},{1.83,12.48,18.41},{17.89,12.46,16.02},
+    {-23.34,12.51,-2.22},{-0.46,12.48,7.47},{8.25,12.47,-2.86},{19.13,12.45,2.42},
+    {-16.37,12.50,-12.74},{-11.00,12.49,-6.47},{5.65,12.47,-13.92},{16.49,12.45,-15.25},
+  },
+  { -- Gorge
+    {-19.68, 11.69, 18.87},{6.14, 11.66, 20.06},{18.53, 11.64, 17.80},
+    {-14.80, 11.68, 8.12},{-1.56, 11.66, 10.91},{13.30, 11.64, 9.15},
+    {-14.08, 11.68, -4.41},{-2.22, 11.66, -3.98},{21.43, 11.63, -2.50},
+    {-20.28, 11.68, -16.99},{-5.57, 11.66, -13.69},{13.61, 11.64, -16.36}
+  },
+  { -- Treasure Island
+    {-20.55,12.51,15.70},{-8.48,12.50,15.99},{4.70,12.48,10.84},{16.24,12.46,12.41},
+    {-19.94,12.51,-2.50},{-9.57,12.50,7.94},{7.73,12.47,-4.72},{19.75,12.45,-0.44},
+    {-15.98,12.50,-13.59},{-3.36,12.48,-10.17},{6.04,12.47,-17.67},{19.77,12.45,-15.23},
+  },
+  { -- Deep Woods
+    {-17.98,12.51,19.31},{6.03,12.48,20.45},{19.86,12.46,14.45},
+    {-6.17,12.49,11.35},{7.38,12.47,8.78},
+    {-17.79,12.51,3.65},{-6.41,12.49,-3.44},{9.05,12.47,-3.34},{21.31,12.45,1.46},
+    {-17.07,12.05,-12.18},{1.63,12.47,-13.10},{20.40,12.45,-12.78},
+  },
+  { -- Wastelands
+    {-22.01,12.52,12.76},{-5.76,12.53,21.15},{3.98,12.53,20.98},{22.27,12.53,6.90},
+    {-17.86,12.52,-4.45},{-6.08,12.52,4.16},{-4.39,12.52,-3.18},{3.37,12.53,1.51},{22.75,12.53,-1.55},
+    {-16.92,12.51,-17.60},{9.67,12.52,-14.88},{21.68,12.53,-14.27},
+  },
+  { -- Australia
+    {-8.53,12.53,16.08},{-2.66,12.52,10.50},{5.71,12.47,10.29},{15.12,12.46,13.25},
+    {-16.24,12.50,8.19},{-14.84,12.50,-0.69},{14.49,12.52,2.11},{16.43,12.51,-6.16},
+    {-16.77,12.53,-13.23},{-6.07,12.49,-4.75},{3.68,12.47,-5.76},{16.11,12.51,-17.86},
+  },
+  { -- Narrows & Islets
+    {-2.48,12.48,18.23},{12.41,12.51,15.86},
+    {-12.51,12.49,6.11},{1.90,12.47,5.49},{14.97,12.46,4.62},
+    {-23.20,12.50,-7.29},{-8.26,12.49,-1.69},{10.62,12.46,-1.89},
+    {-20.36,12.50,-15.54},{-10.59,12.52,-14.52},{2.57,12.47,-8.65},{12.16,12.45,-14.02},
+  },
+  { -- Tunnel Unraveled
+    {-22.90,12.53,2.43},{-15.54,12.50,5.29},{-18.27,12.50,-1.10},
+    {-10.61,12.49,5.29},{-10.51,12.49,-1.33},{-4.41,12.48,2.11},
+    {0.59,12.48,-3.19},{6.03,12.47,-0.35},{6.82,12.47,-6.91},
+    {14.97,12.46,4.62},{17.60,12.50,-3.36},{21.77,12.45,4.42},
+  },
+  { -- Tropics
+    {-14.96,12.50,15.24},{-21.22,12.51,4.73},{-4.54,12.49,7.55},
+    {6.88,12.47,14.47},{12.56,12.47,11.68},{15.77,12.46,2.35},
+    {-18.13,12.53,-9.14},{-4.55,12.52,-3.43},{-5.02,12.48,-16.32},
+    {2.52,12.47,-8.80},{15.03,12.46,-10.40},{12.73,12.46,-15.71},
+  },
+  { -- Summer
+    {-20.68,12.51,19.23},{20.73,12.45,13.13},{18.00,12.45,-15.49},{-21.48,12.50,-14.13},
+    {4.20,12.48,18.59},{22.79,12.45,-0.26},{5.99,12.47,-14.33},{-8.55,12.49,-15.36},
+    {-21.95,12.51,6.10},{-3.24,12.49,11.61},{8.49,12.47,2.23},{-10.69,12.49,-0.43},
+  },
+  { -- Lost Woodland
+    {-4.58, 12.50, -19.36},{7.54, 12.50, -8.23},
+    {-22.49, 12.50, -2.72},{-13.26, 12.50, -6.14},{-1.15, 12.50, 0.50},{16.12, 12.50, -0.86},
+    {-14.98, 12.50, 7.11},{-0.53, 12.50, 11.01},{10.07, 12.50, 11.90},{24.01, 12.50, 8.85},
+    {-7.19, 12.50, 22.05},{4.57, 12.50, 23.62},
+  },
+  { -- Legends
+    {-18.07, 11.67, 12.62},{-2.64, 11.65, 15.88},{19.00, 11.63, 14.64},
+    {-18.36, 11.68, 2.17},{-5.95, 11.66, 7.02},{10.07, 11.64, 11.90},{18.36, 11.63, 3.33},
+    {-9.34, 11.67, -4.97},{0.78, 11.65, -1.34},
+    {-17.78, 11.68, -13.25},{2.26, 11.65, -14.64},{21.47, 11.63, -12.39}
+  },
+  { -- Urban
+    {-23.07, 11.70, 19.42},{-4.61, 11.67, 20.86},{4.62, 11.66, 16.83},{19.72, 11.64, 17.41},
+    {-21.08, 11.69, 0.73},{-9.43, 11.68, 8.40},{6.49, 11.65, 5.75},{19.59, 11.63, 0.78},
+          {-3.36, 11.66, -4.24},
+    {-20.78, 11.69, -13.04},{-2.88, 11.66, -14.47},{18.27, 11.63, -12.97}
+  },
+  { -- River town
+    {-18.93, 11.69, 18.00},{-1.89, 11.67, 18.90},{18.12, 11.64, 15.88},{-19.99, 11.68, 1.50},
+    {-8.09, 11.67, 8.35},{4.73, 11.65, 8.93},{-10.53, 11.67, -2.18},{10.77, 11.64, -3.40},
+    {21.85, 11.63, -0.02},{-16.77, 11.67, -13.21},{18.22, 11.62, -17.62},{1.64, 11.65, -17.60}
+
+  },
+  { -- Mountainside
+    {-4.83, 11.65, 20.37},{-20.23, 11.65, 11.35},{-12.06, 11.65, 5.77},{0.09, 11.65, 7.08},
+    {16.07, 11.65, 12.44},{24.07, 11.65, 1.82},{5.24, 11.65, -4.75},{14.10, 11.65, -12.42},
+    {-18.20, 11.65, -6.94},{-7.98, 11.65, -10.29},{-2.18, 11.65, -18.38},{-14.63, 11.65, -16.75}
+  },
+  { -- Tidal Flats
+    {-21.34, 11.72, 19.34},{2.52, 11.66, 19.98},{22.13, 11.63, 18.51},{-19.34, 11.69, 6.98},
+    {15.70, 11.64, 8.01},{-23.02, 11.69, -5.36},{-10.57, 11.67, -3.93},{17.83, 11.63, -3.84},
+    {8.24, 11.65, -3.88},{-18.30, 11.68, -15.53},{-1.93, 11.66, -17.06},{18.11, 11.63, -14.87},
+  },
+  { -- Blighted City
+    {-23.11, 11.70, 18.18},{0.81, 11.66, 20.98},{19.56, 11.64, 18.87},{-9.00, 11.68, 11.32},
+    {5.78, 11.65, 8.06},{-22.96, 11.69, 1.12},{21.75, 11.63, 2.40},{-8.98, 11.67, -4.54},
+    {10.03, 11.64, -5.71},{-21.70, 11.69, -13.50},{-1.67, 11.66, -13.38},{17.46, 11.63, -13.58}
+  },
+  { -- Taiga
+    {-21.70, 11.69, 17.27},{-2.23, 11.66, 18.57},{18.24, 11.64, 18.18},{-9.36, 11.67, 8.78},
+    {3.81, 11.65, 8.27},{-22.96, 11.69, 1.12},{16.93, 11.64, 3.51},{-22.48, 11.68, -15.38},
+    {-9.21, 11.70, -1.90},{-1.01, 11.65, -8.95},{9.39, 11.64, -4.74},{21.08, 11.62, -12.29}
+  },
+  { -- Gloom
+    {-15.91, 11.69, 18.44},{4.84, 11.66, 16.70},{21.23, 11.64, 16.65},{-6.75, 11.67, 11.21},
+    {-22.00, 11.69, 2.84},{4.71, 11.70, 6.33},{18.96, 11.63, 1.07},{-22.90, 11.69, -14.24},
+    {-1.16, 11.66, -8.00},{-11.48, 11.67, -17.54},{6.78, 11.65, -15.27},{20.90, 11.63, -15.55}
+  },
+  {-- Klacar's Volcano Island
+    {-20.45, 11.69, 8.88},{-17.57, 11.68, 2.80},{-17.24, 11.68, -11.49},{-6.39, 11.67, 14.41},
+    {-3.90, 11.66, -8.26},{-5.50, 11.66, -14.54},{1.68, 11.66, 16.69},{5.76, 11.65, 9.27},
+    {4.72, 11.65, -9.36},{14.12, 11.64, 16.61},{15.73, 11.64, 0.81},{15.13, 11.64, -4.83},
+  },
+  {-- SPACEBALLS
+    {-22.08, 11.70, 18.66},{0.57, 11.67, 26.73},{2.01, 11.67, 26.73},{20.52, 11.64, 21.11},
+    {-3.98, 11.67, 13.53},{-14.32, 11.68, -3.99},{-12.88, 11.68, -3.99},{8.83, 11.65, 0.49},
+    {-20.23, 11.68, -19.77},{8.37, 11.64, -22.63},{9.81, 11.64, -22.63},{23.38, 11.62, -19.13},
+
+  },
+  {-- INFERNO
+    {-21.53, 11.75, 17.55},{0.08, 11.72, 24.72},{28.54, 11.68, 15.71},{-8.92, 11.73, 14.25},
+    {13.17, 11.70, 14.67},{-18.00, 11.74, 3.05},{15.83, 11.69, -4.62},{30.06, 11.67, -7.25},
+    {-24.52, 11.75, -7.14},{-4.63, 11.72, -10.12},{-11.18, 11.72, -16.08},{16.84, 11.68, -17.12},
+  },
+
+  {-- BLIGHTED GROVE
+    {-20.79, 11.70, 18.34},{-2.79, 11.67, 18.78},{16.42, 11.64, 19.04},{-6.23, 11.68, 8.90},
+    {-18.54, 11.70, 3.19},{16.80, 11.65, 2.44},{5.42, 11.67, -4.42},{-23.34, 11.71, -13.30},
+    {2.44, 11.67, -13.70},{19.31, 11.65, -11.67},{27.19, 11.56, -3.07},{28.62, 11.56, -3.07}
+  },
+
+  { -- Gorge original
+    {-9.97,12.50,20.61},{6.14,12.48,20.06},{20.00,12.46,20.22},
+    {-16.04,12.50,5.32},{3.15,12.48,9.63},{15.48,12.46,8.40},
+    {-17.80,12.50,-6.19},{0.61,12.48,-5.29},{15.05,12.46,-2.76},
+    {-16.36,12.50,-17.06},{0.87,12.47,-14.34},{14.51,12.45,-17.82},
+  },
+
+  { -- Marsh 
+    {-21.68, 11.70, 19.27},{-4.14, 11.67, 20.53},{22.51, 11.63, 16.34},{0.92, 11.56, 28.42},
+    {0.92, 11.56, 27.77},{0.92, 11.56, 27.12},{1.65, 11.66, 8.93},{-2.28, 11.66, -0.85},
+    {19.79, 11.63, -3.96},{16.11, 11.63, -15.82},{-8.60, 11.67, -10.39},{-19.47, 11.68, -14.36}
+
+  },
+
+
+
+}
+
+local warmSunProphetLocations = {
+  { -- Autumn
+    {-7.66, 11.67, -0.69},{-1.32, 11.66, 7.66},{7.13, 11.65, -1.13},{20.97, 11.63, 2.07}
+  },
+  { -- Winter
+    {-9.46, 11.67, 1.55},{3.24, 11.66, 3.41},{-8.81, 11.67, -17.65},{3.46, 11.65, -8.49}
+  },
+  { -- Lake
+    {-7.24, 11.67, 8.82},{6.87, 11.65, 3.97},{21.83, 11.63, -5.47},{-10.31, 11.67, -9.84}
+  },
+  { -- Mountain
+    {-11.20, 11.68, 9.51},{1.91, 11.66, 4.63},{-10.74, 11.67, -10.01},{4.56, 11.65, -3.49}
+  },
+  { -- Gorge
+    {2.13, 11.66, 6.95},{14.56, 11.64, 2.90},{-15.52, 11.68, -2.66},{2.85, 11.65, -7.97}
+  },
+  { -- Treasure Island
+    {-7.48, 11.67, 14.72},{-4.48, 11.66, -12.63},{15.12, 11.64, 14.35},{-12.10, 11.68, 7.97}
+  },
+  { -- Deep Woods
+    {-10.91, 11.68, 10.01},{-10.14, 11.67, -4.37},{2.87, 11.66, 7.67},{4.80, 11.65, -4.54}
+  },
+  { -- Wastelands
+    {-21.37, 11.70, -3.92},{-0.03, 11.71, 7.44},{-0.38, 11.70, -3.32},{6.55, 11.70, -12.90}
+  },
+  { -- Australia
+    {-4.80, 11.67, 7.78},{-8.77, 11.67, -1.36},{4.38, 11.70, 9.33},{3.77, 11.65, -1.41}
+  },
+  { -- Narrows & Islets
+    {-7.93, 11.67, 6.96},{2.15, 11.66, 9.73},{11.70, 11.64, 0.36},{-7.28, 11.66, -4.65}
+  },
+  { -- Tunnel Unraveled
+    {-7.71, 11.67, 2.61},{-7.28, 11.67, -2.03},{5.61, 11.65, 2.70},{6.65, 11.65, -3.60}
+  },
+  { -- Tropics
+    {-6.20, 11.67, 9.12},{-17.14, 11.68, -11.14},{12.35, 11.64, 5.60},{6.28, 11.65, -8.78}
+  },
+  { -- Summer
+    {-7.66, 11.67, -0.69},{-1.32, 11.66, 7.66},{7.13, 11.65, -1.13},{20.97, 11.63, 2.07}
+  },
+  { -- Lost Woodland
+    {-12.42, 11.72, 9.08},{-8.70, 11.72, -7.47},{7.04, 11.72, 10.50},{9.69, 11.72, -10.91}
+  },
+  { -- Legends
+    {-12.42, 11.72, 9.08},{7.04, 11.72, 10.50},{-8.70, 11.72, -7.47},{9.69, 11.72, -10.91}
+  },
+  { -- Urban
+    {-18.88, 11.69, -4.41},{-11.49, 11.68, 6.93},{7.08, 11.65, 1.17},
+    {1.40, 11.66, -6.94},{-6.91, 11.68, 21.25},{22.70, 11.64, 17.35},{22.41, 11.62, -14.22}
+  },
+  {-- River town
+    {-22.64, 11.68, -1.91},{-8.82, 11.67, 3.81},{7.25, 11.65, 4.28},{17.90, 11.63, 2.50}
+  },
+  {--Mountainside
+    {-18.56, 11.65, -18.57},{3.04, 11.65, 10.38},{2.82, 11.65, -3.83},{22.46, 11.65, 3.10}
+  },
+  {--Tidal Flats
+    {0.88, 11.66, 19.78},{-9.83, 11.67, -8.09},{4.32, 11.65, -4.09},{2.10, 11.65, -14.74}
+  },
+  {--Blighted City
+    {9.99, 11.64, -10.21},{-12.73, 11.68, -6.07},{-10.84, 11.71, 11.43},{5.89, 11.70, 9.51}
+  },
+  { --Taiga
+    {-11.03, 11.67, 8.52},{7.65, 11.65, 8.92},{5.97, 11.65, -5.41},{0.00, 11.65, -11.91}
+  },
+  {--Gloom
+    {5.81, 11.65, 2.70},{-4.56, 11.66, -5.69},{-11.72, 11.71, -14.61},{8.63, 11.64, -15.60}
+  },
+  {--Klacar's Volcano Island
+    {-18.02, 11.68, -1.87},{3.45, 11.66, 10.07},{14.90, 11.64, 2.47},{-5.39, 11.67, -7.17}
+  },
+  {--SPACEBALLS
+    {0.14, 11.66, 10.94},{13.12, 11.64, 2.89},{-8.08, 11.67, -0.33},{-0.06, 11.66, -12.06}
+  },
+  {--INFERNO
+    {5.59, 11.71, 25.25},{15.88, 11.70, 13.73},{20.05, 11.68, -5.54},{-18.51, 11.74, -1.54}
+  },
+  {--Blighted Grove
+    {-0.54, 11.67, 13.27},{-10.40, 11.68, 9.27},{6.68, 11.66, -0.60},{-4.08, 11.68, -13.37}
+  },
+  -- Gorge Original
+  {{-17.11, 11.68, -2.66},{-1.66, 11.66, 6.51},{3.76, 11.65, -5.98},{15.88, 11.64, 4.95}},
+  -- Marsh
+  {{0.94, 11.56, 25.19},{0.94, 11.56, 24.51},{5.40, 11.66, 9.08},{-2.05, 11.66, -2.36}},
+
+
+
+}
+
+function spawnHireling(hireling,placement,demoted)
+  local my_rot = self.getRotation()
+  local objects = {}
+
+  local hirelingName = getHirelingName(hireling,demoted)
+
+  objects = EVERYTHING["Hirelings"][hirelingName]['data']
+
+  table.insert(draftedHirelings,hirelingName)
+  local scale = self.getScale()
+  scale.x = 1/scale.x
+  scale.z = 1/scale.z
+
+  local counter = 1
+
+  for _,v in ipairs(objects) do
+      local vec = Vector(v.move_to) * scale
+      vec.y = vec.y - 0.1
+
+      vec = vec * Vector({-15.5, 1, 15.5})
+
+      local newVec = Vector({0,1,0})
+      newVec.x = vec.z
+      newVec.y = vec.y + 10.01
+      newVec.z = vec.x * -1
+
+      local new_pos = newVec
+      new_pos.x = new_pos.x + 45 + 6.31 -2.42
+      new_pos.y = new_pos.y+10-8.5+0.05
+      new_pos.z = new_pos.z + 23 - 11.5 * placement - 0.42
+
+      spawnObjectJSON({
+          json              = v.json,
+          position          = new_pos,
+          callback_function = function(o)
+            o.addTag("Hireling Object")
+            if hirelingName == "Forest Patrol" then
+              if o.name == "Custom_Model" then
+                o.setRotation({0.00, 180.0, 0.00})
+                if getDraftedMapNumber() == 3 and counter == 7 then o.setDescription("Milo") end
+                if getDraftedMapNumber() == 3 and counter == 10 then o.setDescription("Otis") end
+
+                o.setPosition(Vector(forestPatrolLocations[getDraftedMapNumber()][counter]))
+                counter = counter + 1
+              else
+                o.setRotation({o.getRotation().x, o.getRotation().y + 90, o.getRotation().z})
+              end
+            elseif hirelingName == "Warm Sun Prophets" then
+              if o.name == "Custom_Model" then
+                o.setRotation({0.00, 180.0, 0.00})
+                if getDraftedMapNumber() == 16 and counter == 4 then
+                  local d = 100
+                  local dLoc = -1
+                  local pairs = {{0.00,-8.34},{-4.18,18.22},{22.57,15.05},{20.21,-14.77}}
+                  for _,v in ipairs(getObjectsWithTag("Ruin")) do
+                    for m = 1, #pairs do
+                        if dist(v,pairs[m][1],pairs[m][2]) < d then
+                          d = dist(v,pairs[m][1],pairs[m][2])
+                          dLoc = m-1 end
+                    end
+                  end
+                  o.setPosition(Vector(warmSunProphetLocations[getDraftedMapNumber()][dLoc + counter]))
+                end
+                if getDraftedMapNumber() != 16 or counter != 4 then
+                  o.setPosition(Vector(warmSunProphetLocations[getDraftedMapNumber()][counter]))
+                end
+                counter = counter + 1
+              else
+                o.setRotation({o.getRotation().x, o.getRotation().y + 90, o.getRotation().z})
+              end
+            else
+              o.setRotation({o.getRotation().x, o.getRotation().y + 90, o.getRotation().z})
+            end
+          end
+      })
+  end
+end
+
+function dist(o,x,z)
+
+  return math.sqrt(math.pow(o.getPosition().x - x,2) + (math.pow(o.getPosition().z - z,2)))
+end
+
+
+function getDraftedMapNumber()
+  if self.UI.getAttribute("hirelingsDraftMapTile","image") == "Autumn Map Tile" then return 1
+  elseif self.UI.getAttribute("hirelingsDraftMapTile","image") == "Winter Map Tile" then return 2
+  elseif self.UI.getAttribute("hirelingsDraftMapTile","image") == "Lake Map Tile" then return 3
+  elseif self.UI.getAttribute("hirelingsDraftMapTile","image") == "Mountain Map Tile" then return 4
+  elseif self.UI.getAttribute("hirelingsDraftMapTile","image") == "Gorge Map Tile" then return 5
+  elseif self.UI.getAttribute("hirelingsDraftMapTile","image") == "Treasure Island Map Tile" then return 6
+  elseif self.UI.getAttribute("hirelingsDraftMapTile","image") == "The Deep Woods Map Tile" then return 7
+  elseif self.UI.getAttribute("hirelingsDraftMapTile","image") == "The Wastelands Map Tile" then return 8
+  elseif self.UI.getAttribute("hirelingsDraftMapTile","image") == "Australia Map Tile" then return 9
+  elseif self.UI.getAttribute("hirelingsDraftMapTile","image") == "Narrows and Islets Map Tile" then return 10
+  elseif self.UI.getAttribute("hirelingsDraftMapTile","image") == "Tunnel Unraveled Map Tile" then return 11
+  elseif self.UI.getAttribute("hirelingsDraftMapTile","image") == "Tropics Map Tile" then return 12
+  elseif self.UI.getAttribute("hirelingsDraftMapTile","image") == "Summer Map Tile" then return 13
+  elseif self.UI.getAttribute("hirelingsDraftMapTile","image") == "Lost Woodland Map Tile" then return 14
+  elseif self.UI.getAttribute("hirelingsDraftMapTile","image") == "Legends Map Tile" then return 15
+  elseif self.UI.getAttribute("hirelingsDraftMapTile","image") == "Urban Map Tile" then return 16
+  elseif self.UI.getAttribute("hirelingsDraftMapTile","image") == "River Town Map Tile" then return 17
+  elseif self.UI.getAttribute("hirelingsDraftMapTile","image") == "Mountainside Map Tile" then return 18
+  elseif self.UI.getAttribute("hirelingsDraftMapTile","image") == "Tidal Flats Map Tile" then return 19
+  elseif self.UI.getAttribute("hirelingsDraftMapTile","image") == "Blighted City Map Tile" then return 20
+  elseif self.UI.getAttribute("hirelingsDraftMapTile","image") == "Taiga Map Tile" then return 21
+  elseif self.UI.getAttribute("hirelingsDraftMapTile","image") == "Gloom Map Tile" then return 22
+  elseif self.UI.getAttribute("hirelingsDraftMapTile","image") == "Klacar's Volcano Island Map Tile" then return 23
+  elseif self.UI.getAttribute("hirelingsDraftMapTile","image") == "Spaceballs Map Tile" then return 24
+  elseif self.UI.getAttribute("hirelingsDraftMapTile","image") == "Inferno Map Tile" then return 25
+  elseif self.UI.getAttribute("hirelingsDraftMapTile","image") == "Blighted Grove Map Tile" then return 26
+  elseif self.UI.getAttribute("hirelingsDraftMapTile","image") == "Gorge Original Map Tile" then return 27
+  elseif self.UI.getAttribute("hirelingsDraftMapTile","image") == "Marsh Map Tile" then return 28
+
+  end
+end
+
+function spawnDice()
+  local my_rot = self.getRotation()
+  local objects = {}
+  objects = EVERYTHING["Hirelings"]["Dice"]['data']
+  local scale = self.getScale()
+  scale.x = 1/scale.x
+  scale.z = 1/scale.z
+
+  for _,v in ipairs(objects) do
+      local vec = Vector(v.move_to) * scale
+      vec.y = vec.y - 0.1
+
+      vec = vec * Vector({-15.5, 1, 15.5})
+
+      local newVec = Vector({0,1,0})
+      newVec.x = vec.z
+      newVec.y = vec.y + 10.01
+      newVec.z = vec.x * -1
+
+      local new_pos = newVec
+      new_pos.x = new_pos.x + 45 + 5.31 - 5 - 2.42
+      new_pos.y = new_pos.y+10-8.5+0.05
+      new_pos.z = new_pos.z - 1.93
+      spawnObjectJSON({
+          json              = v.json,
+          position          = new_pos,
+          callback_function = function(o)
+            o.addTag("Hireling Object")
+            o.setRotation({o.getRotation().x, o.getRotation().y + 90, o.getRotation().z})
+          end
+      })
+  end
+end
+
+function spawnControlMarkers()
+  local my_rot = self.getRotation()
+  local objects = {}
+  objects = EVERYTHING["Hirelings"]["Control Markers"]['data']
+  local scale = self.getScale()
+  scale.x = 1/scale.x
+  scale.z = 1/scale.z
+
+  for _,v in ipairs(objects) do
+      local vec = Vector(v.move_to) * scale
+      vec.y = vec.y - 0.1
+
+      vec = vec * Vector({-15.5, 1, 15.5})
+
+      local newVec = Vector({0,1,0})
+      newVec.x = vec.z
+      newVec.y = vec.y + 10.01
+      newVec.z = vec.x * -1
+
+      local new_pos = newVec
+      new_pos.x = new_pos.x + 45 + 5.31 - 5 - 2.42
+      new_pos.y = new_pos.y+10-8.5+0.05
+      new_pos.z = new_pos.z - 1.93
+      spawnObjectJSON({
+          json              = v.json,
+          position          = new_pos,
+          callback_function = function(o)
+            o.addTag("Hireling Object")
+            o.setRotation({o.getRotation().x, o.getRotation().y + 90, o.getRotation().z})
+          end
+      })
+  end
+end
+
+function spawnHirelingMarkers()
+  local my_rot = self.getRotation()
+  local objects = {}
+  objects = EVERYTHING["Hirelings"]["Hireling Markers"]['data']
+  local scale = self.getScale()
+  scale.x = 1/scale.x
+  scale.z = 1/scale.z
+
+  local counter = 1
+
+  for _,v in ipairs(objects) do
+      local vec = Vector(v.move_to) * scale
+      vec.y = vec.y - 0.1
+
+      vec = vec * Vector({-15.5, 1, 15.5})
+
+      local newVec = Vector({0,1,0})
+      newVec.x = vec.z
+      newVec.y = vec.y + 10.01
+      newVec.z = vec.x * -1
+
+      local new_pos = newVec
+      new_pos.x = new_pos.x + 45 + 5.31 - 5 - 2.42
+      new_pos.y = new_pos.y+10-8.5+0.05
+      new_pos.z = new_pos.z - 1.93 - 10
+
+      spawnObjectJSON({
+          json              = v.json,
+          position          = new_pos,
+          callback_function = function(o)
+            o.addTag("Hireling Object")
+            o.setRotation({o.getRotation().x, o.getRotation().y + 90, o.getRotation().z})
+            o.setRotation({0.00, 180.0, 0.00})
+            o.setPosition(Vector(hirelingMarkerLocations[getDraftedMapNumber()][counter]))
+            counter = counter + 1
+          end
+      })
+  end
+end
+
+function spawnKnaveCards()
+  local my_rot = self.getRotation()
+  local objects = {}
+  objects = EVERYTHING["Tools"]["Captain Cards"]['data']
+  local scale = self.getScale()
+  scale.x = 1/scale.x
+  scale.z = 1/scale.z
+
+  for _,v in ipairs(objects) do
+      local vec = Vector(v.move_to) * scale
+      vec.y = vec.y - 0.1
+
+      vec = vec * Vector({-15.5, 1, 35.5})
+
+      local newVec = Vector({0,1,0})
+      newVec.x = vec.z
+      newVec.y = vec.y + 10.01
+      newVec.z = vec.x * -1
+
+      local new_pos = newVec
+      new_pos.x = new_pos.x + 62.8 - 10 + 2.49
+      new_pos.y = new_pos.y + 1.55
+      new_pos.z = new_pos.z + 24.58 - 1.18 + -0.69
+      spawnObjectJSON({
+          json              = v.json,
+          position          = new_pos,
+          callback_function = function(o)
+            o.setRotation({o.getRotation().x, o.getRotation().y + 90, o.getRotation().z})
+          end
+      })
+  end
+end
+
+function spawnSetupCards()
+  local my_rot = self.getRotation()
+  local objects = {}
+  objects = EVERYTHING["Adset"]["Setup Cards"]['data']
+  local scale = self.getScale()
+  scale.x = 1/scale.x
+  scale.z = 1/scale.z
+
+  for _,v in ipairs(objects) do
+      local vec = Vector(v.move_to) * scale
+      vec.y = vec.y - 0.1
+
+      vec = vec * Vector({-15.5, 1, 15.5})
+
+      local newVec = Vector({0,1,0})
+      newVec.x = vec.z
+      newVec.y = vec.y + 10.01
+      newVec.z = vec.x * -1
+
+      local new_pos = newVec
+      new_pos.x = new_pos.x + 62.8
+      new_pos.y = new_pos.y + 1.55
+      new_pos.z = new_pos.z + 24.58 - 1.18
+      spawnObjectJSON({
+          json              = v.json,
+          position          = new_pos,
+          callback_function = function(o)
+            o.setRotation({o.getRotation().x, o.getRotation().y + 90, o.getRotation().z})
+          end
+      })
+  end
+end
+
+function wwRemovePlayerToRoster(player,value,id)
+  if contains(_G["Roster"],player.steam_name) then
+    table.remove(_G["Roster"], contains(_G["Roster"],player.steam_name))
+    printToAll(player.steam_name .. " left the Roster.")
+    wwMakePlayerCountButton()
+    return
+  end
+
+  printToAll(player.steam_name .. " is not currently in the Roster.")
+
+end
+
+
+function removePlayerToRoster(player,value,id)
+  if contains(_G["Roster"],player.steam_name) then
+    table.remove(_G["Roster"], contains(_G["Roster"],player.steam_name))
+    printToAll(player.steam_name .. " left the Roster.")
+    makePlayerCountButton()
+    return
+  end
+
+  printToAll(player.steam_name .. " is not currently in the Roster.")
+
+end
+
+function contains(tbl, item)
+  for key, value in pairs(tbl) do
+      if value == item then return key end
+  end
+  return false
+end
+
+
+function destroyHirelings()
+  for _,v in ipairs(getObjectsWithTag("Hireling Object")) do
+    v.destruct()
+  end
+end
+
+function clearAll()
+  for _, c in ipairs(getObjects()) do
+      if c.name != "HandTrigger"
+        and c.hasTag("Table Piece") == false
+        and c.hasTag("Landmark Object") == false
+        and c.getName() != "Flex Table Control"
+        and c.getName() != "Faction Selection"
+        and c.getName() != "Master Instructions"
+        then c.destruct()
+        end
+  end
+end
+
+redTaken = false
+_G['vagabondAlreadySpawned'] = false
+
+_G['DraftableFactions'] = {"Marquise de Cat","Eyrie Dynasties","Woodland Alliance","Vagabond1",
+                            "Vagabond2","The Lizard Cult","Riverfolk Company",
+                            "Underground Duchy","Corvid Conspiracy",
+                            "Lord of the Hundreds","Keepers in Iron",
+                            "Twilight Council","Lilypad Diaspora","Knaves of the Deepwood"
+                          }
+
+
+
+
+--###############################################
+--###############################################
+--###############################################
+--###############################################
+
+function getDraftedTournamentFactions(playerCount)
+
+
+redTaken = false
+_G['vagabondAlreadySpawned'] = false
+
+self.UI.setAttribute("Draft Finished Setup Button","active","False")
+self.UI.setAttribute("Faction Draft Next Button","active","False")
+_G['RosterSelector'] = playerCount
+
+--playerCount = 6
+
+local done = false
+local tries = 0
+
+-- making the playable factions
+  local playableFactions = {"Marquise de Cat","Eyrie Dynasties","Woodland Alliance","Vagabond1",
+    "Vagabond2","The Lizard Cult","Riverfolk Company","Underground Duchy","Corvid Conspiracy",
+    "Lord of the Hundreds","Keepers in Iron","Lilypad Diaspora","Twilight Council","Knaves of the Deepwood"}
+
+  --getRedFactions
+
+  local redFactions = {"Marquise de Cat","Eyrie Dynasties","Underground Duchy","Lord of the Hundreds","Keepers in Iron","Lilypad Diaspora"}
+  vagabondCards = {"Ronin","Adventurer","Vagrant","Tinker","Thief","Scoundrel","Ranger","Harrier","Arbiter"}
+  math.random()
+  math.random()
+  math.random()
+  vagabondCards = shuffle(vagabondCards)
+
+  local extractedRedFactions = {}
+
+  for i = 1, #redFactions do
+    for a = 1, #playableFactions do
+      if playableFactions[a] == redFactions[i] then
+        table.insert(extractedRedFactions,table.remove(playableFactions,a))
+        break
+      end
+    end
+  end
+
+  local extractedWhiteFactions = playableFactions
+
+  extractedRedFactions = shuffle(extractedRedFactions)
+
+  local selectedFactions = {}
+  -- grab first red card
+  table.insert(selectedFactions,table.remove(extractedRedFactions,1))
+  playableFactions = concat(extractedRedFactions,extractedWhiteFactions)
+
+  math.random()
+  math.random()
+  math.random()
+
+  playableFactions = shuffle(playableFactions)
+
+  for i = 1, playerCount do
+   table.insert(selectedFactions,table.remove(playableFactions,1))
+  end
+
+  playerSetup(playerCount,false)
+
+
+  Wait.frames(
+    function()
+      seatPlayers()
+    end,
+    20
+  )
+  Wait.frames(
+    function()
+      deal5Cards()
+    end,
+    30
+  )
+
+  draftedFactions = selectedFactions
+  overallPlayerCount = playerCount
+
+  makeFactionTournamentDraftScreen()
+
+  --hirelingsSetUpClear()
+
+end
+
+function changeTournamentMapButtons(b)
+  self.UI.setAttribute("Summer Map Tournament","active",b)
+  self.UI.setAttribute("Winter Map Tournament","active",b)
+  self.UI.setAttribute("Lake Map Tournament","active",b)
+  self.UI.setAttribute("Mountain Map Tournament","active",b)
+end
+
+function tournamentMapSelect(player,value,id)
+
+  if tournamentMapSelected == true then
+      broadcastToAll("The "..string.sub(id, 1, -12).." has already been selected.")
+      return
+  elseif player.steam_name == _G['Roster'][1] then
+
+    self.UI.setAttribute("Summer Map Tournament","color","#808080")
+    self.UI.setAttribute("Winter Map Tournament","color","#808080")
+    self.UI.setAttribute("Lake Map Tournament","color","#808080")
+    self.UI.setAttribute("Mountain Map Tournament","color","#808080")
+
+    local mapName = string.sub(id, 1, -12)
+    tournamentMapSelected = true
+    makeMap(player,value,mapName)
+    changeTournamentMapButtons("False")
+    self.UI.setAttribute(id,"active","True")
+    if mapName == "Mountain Map" then
+      for _,v in ipairs(getObjectsWithTag("Tower")) do
+        v.destruct()
+      end
+      --Take clearing marker in {-0.18, 11.72, 0.18} and change image to
+      for _,v in ipairs(getObjectsWithTag("Clearing Marker")) do
+        if v.getPosition().x > -0.18 and v.getPosition().x < -0.17 then
+          v.destruct()
+        end
+      end
+      makeSpecialWithTag("Tools","Lost City",0.0,0.0,0.0,"Map Object")
+      makeSpecialWithTag("Tools","Lost City Marker",0.0,1.55,0.0,"Map Object")
+      makeSpecialWithTag("Tools","Lost City Card",29.25,1.67,1.41,"Map Object")
+    end
+
+    makeDraftedBattleMat(player,value,id)
+    makeSpecialWithTag("Tools","Tournament Map Card",0.0,10.0,0.0,"Map Object")
+    self.UI.setAttribute("tournSideBar","image","TournSideMenu3Button")
+    self.UI.setAttribute("TournMessage","image","TournFacSelectMessage")
+    makePlayerTurnButton(#_G['Roster'])
+
+  else
+    broadcastToAll("Please have ".._G['Roster'][1].." select a Map.")
+    return
+  end
+end
+
+tournamentMapSelected = false
+
+function makePlayerTurnButton(n)
+  local turnColors = {"#e53f36","#f5e850","#f68b57","#64bbbd","#6dba5a","#a07641"}
+  self.UI.setAttribute("TournTurnIcon","icon","Tourn".. tostring(n) .."PlayerButton")
+  self.UI.setAttribute("TournTurnIcon","color",turnColors[n])
+end
+
+function EhssAndSlug()
+  if (tournamentMapSelected == false) then broadcastToAll("Have the First Player choose a Map.") return end
+
+  if self.UI.getAttribute("Tournament Faction Draft Next Button","active") == "True" or self.UI.getAttribute("Tournament Draft Finished Setup Button","active") == "True" then
+    broadcastToAll("Please have ".._G['Roster'][_G['RosterSelector']].." finish setting up and then click Done.")
+    return end
+
+  broadcastToAll("Please have ".._G['Roster'][_G['RosterSelector']].." choose and set up their faction.") return
+  --broadcastToAll("Uh uh! Wrong Button! Love, Ehss and slug")
+end
+
+function makeTournamentDraftFaction(player,value,id)
+  if tournamentMapSelected == false then
+      broadcastToAll("Please have ".._G['Roster'][1].." select a map before drafting factions.")
+      return
+  else if self.UI.getAttribute("Tournament Start","active") == "true" then
+      broadcastToAll("Draft Hands and hit Done!")
+      return
+    end
+  end
+
+  if self.UI.getAttribute("Tournament Faction Draft Next Button","active") == "True" or self.UI.getAttribute("Tournament Draft Finished Setup Button","active") == "True" then
+    broadcastToAll("Please have ".._G['Roster'][_G['RosterSelector']].." finish setting up and then click Done.")
+    return end
+  if player.steam_name != _G['Roster'][_G['RosterSelector']] then broadcastToAll("Please have ".._G['Roster'][_G['RosterSelector']].." choose their faction.") return end
+
+  local i = tonumber(string.sub(id,-1))
+  if self.UI.getAttribute("TournamentDraftOption"..i,"color") == "" or self.UI.getAttribute("TournamentDraftOption"..i,"color") == "#7D7D7D" then
+    return
+  end
+
+  local faction = getVagabond(draftedFactions[i])
+  if self.UI.getAttribute("TournamentDraftOption"..i,"color") == "#E53F36" and redTaken == false then
+    redTaken = true
+    for _,v in ipairs(getObjectsWithTag("Setup Card")) do
+      if isAWhiteFaction(v.getName()) and redCount(draftedFactions) == 1  then
+        v.setRotationSmooth(Vector({0,270,0}))
+        v.setPositionSmooth({64.54, v.getPosition().y, v.getPosition().z})
+        if v.getName() == "Vagabond1" then
+          for _,x in ipairs(getObjectsWithTag("Setup Card")) do
+            if x.getName() == vagabondCards[1] then
+              x.setRotationSmooth(Vector({0,270,0}))
+              x.setPositionSmooth({63.21, v.getPosition().y + 0.01, v.getPosition().z})
+            end
+          end
+        elseif v.getName() == "Vagabond2" then
+          for _,x in ipairs(getObjectsWithTag("Setup Card")) do
+            if x.getName() == vagabondCards[2] then
+              x.setRotationSmooth(Vector({0,270,0}))
+              x.setPositionSmooth({63.21, v.getPosition().y + 0.01, v.getPosition().z})
+            end
+          end
+        end
+      end
+    end
+    if self.UI.getAttribute("TournamentDraftOption"..#draftedFactions,"color") == "" then
+      self.UI.setAttribute("TournamentDraftOption"..#draftedFactions,"color","#F9F7E8")
+    end
+  end
+  self.UI.setAttribute("TournamentDraftOption"..i,"color","#7D7D7D")
+
+  tournamentSpawnDraftFaction(i,faction,player.color)
+
+  _G['DraftedFactions'][_G['RosterSelector']] = faction
+
+  Wait.frames(
+    function()
+      if (draftedFactions[i] == "Vagabond1" or draftedFactions[i] == "Vagabond2") and _G['vagabondAlreadySpawned'] == false then
+        _G['vagabondAlreadySpawned'] = true
+      end
+    end,
+    20
+  )
+
+  if faction == "Woodland Alliance" then
+    spawnSupportersHand(player.color)
+  elseif faction == "Corvid Conspiracy" or faction == "BBP Contraption Conspiracy" then
+    shufflePlots(getPosition(color,overallPlayerCount))
+  end
+
+  for _, a in ipairs(getObjectsWithTag("Setup Card")) do
+    if a.getName() == draftedFactions[i] then
+      --a.deal(1,player.color,1)
+      a.destruct()
+    end
+  end
+
+
+
+  if faction == "The Lizard Cult" then
+    makeSpecial("Tools","Lizard Wizard",-29.79-0.73,1.55,10.03)
+    makeSpecial("Tools","Lizard Blocker",-31.09,5,2.31)
+  elseif draftedFactions[i] == "Vagabond1" then
+    for _,x in ipairs(getObjectsWithTag("Setup Card")) do
+      if x.getName() == vagabondCards[1] then
+        x.destruct()
+      end
+    end
+  elseif draftedFactions[i] == "Vagabond2" then
+    for _,x in ipairs(getObjectsWithTag("Setup Card")) do
+      if x.getName() == vagabondCards[2] then
+        x.destruct()
+      end
+    end
+  elseif draftedFactions[i] == "Woodland Alliance" then
+    for _,x in ipairs(getObjectsWithTag("Deck Object")) do
+        if x.name == "Deck" then
+          Wait.frames(
+            function()
+              x.deal(3,  player.color, 2)
+            end,
+            10
+          )
+      end
+    end
+  end
+
+  Wait.frames(
+    function()
+
+
+
+  if _G['RosterSelector'] <= 1 then
+    self.UI.setAttribute("Tournament Draft Finished Setup Button","active","True")
+  else
+    self.UI.setAttribute("Tournament Faction Draft Next Button","active","True")
+
+    if _G['RosterSelector'] == 1 then
+      self.UI.setAttribute("Tournament Faction Draft Next Button","color","#e53f36")
+      self.UI.setAttribute("Tournament Faction Draft Next Button","icon","TournDoneButtonWhite")
+    elseif _G['RosterSelector'] == 2 then
+      self.UI.setAttribute("Tournament Faction Draft Next Button","color","#f5e850")
+      self.UI.setAttribute("Tournament Faction Draft Next Button","icon","TournDoneButton")
+    elseif _G['RosterSelector'] == 3 then
+      self.UI.setAttribute("Tournament Faction Draft Next Button","color","#f68b57")
+      self.UI.setAttribute("Tournament Faction Draft Next Button","icon","TournDoneButton")
+    elseif _G['RosterSelector'] == 4 then
+      self.UI.setAttribute("Tournament Faction Draft Next Button","color","#64bbbd")
+      self.UI.setAttribute("Tournament Faction Draft Next Button","icon","TournDoneButton")
+    elseif _G['RosterSelector'] == 5 then
+      self.UI.setAttribute("Tournament Faction Draft Next Button","color","#6dba5a")
+      self.UI.setAttribute("Tournament Faction Draft Next Button","icon","TournDoneButton")
+    elseif _G['RosterSelector'] == 6 then
+      self.UI.setAttribute("Tournament Faction Draft Next Button","color","#a07641")
+      self.UI.setAttribute("Tournament Faction Draft Next Button","icon","TournDoneButton")
+    end
+
+
+
+  end
+  self.UI.setAttribute("TournMessage","image","TournCompleteSetup")
+
+end,
+10
+)
+
+end
+
+function makeDraftFaction(player,value,id)
+
+  if self.UI.getAttribute("Faction Draft Next Button","active") == "True" or self.UI.getAttribute("Draft Finished Setup Button","active") == "True" then
+    broadcastToAll("Please have ".._G['FullRoster'][_G['RosterSelector']].." finish setting up and then click the Next button.")
+    return end
+  if player.steam_name != _G['FullRoster'][_G['RosterSelector']] then broadcastToAll("Please have ".._G['FullRoster'][_G['RosterSelector']].." choose their faction.") return end
+
+  local i = tonumber(string.sub(id,-1))
+  if self.UI.getAttribute("DraftOption"..i,"color") == "" or self.UI.getAttribute("DraftOption"..i,"color") == "#7D7D7D" then
+    return
+  end
+
+  if self.UI.getAttribute("Return to Setup Menu","active") == "true" then
+    return
+  end
+
+  local faction = getVagabond(draftCardOptions[i])
+
+  
+
+  if self.UI.getAttribute("DraftOption"..i,"color") == "#E53F36" and redTaken == false then
+    redTaken = true
+    if self.UI.getAttribute("DraftOption"..(#_G['FullRoster'] - #_G['BotRoster'] + 1),"color") == "" then
+      self.UI.setAttribute("DraftOption"..(#_G['FullRoster'] - #_G['BotRoster'] + 1),"color","#F9F7E8")
+    end
+    for _,v in ipairs(getObjectsWithTag("Setup Card")) do
+      if isAWhiteFaction(v.getName()) then
+        v.setRotationSmooth(Vector({0,270,0}))
+        v.setPositionSmooth({64.54, v.getPosition().y, v.getPosition().z})
+        if v.getName() == "Vagabond1" then
+          for _,x in ipairs(getObjectsWithTag("Setup Card")) do
+            if x.getName() == vagabondCards[1] then
+              x.setRotationSmooth(Vector({0,270,0}))
+              x.setPositionSmooth({63.21, v.getPosition().y + 0.01, v.getPosition().z})
+            end
+          end
+        elseif v.getName() == "Vagabond2" then
+          for _,x in ipairs(getObjectsWithTag("Setup Card")) do
+            if x.getName() == vagabondCards[2] then
+              x.setRotationSmooth(Vector({0,270,0}))
+              x.setPositionSmooth({63.21, v.getPosition().y + 0.01, v.getPosition().z})
+            end
+          end
+        end
+      end
+    end
+
+  end
+  self.UI.setAttribute("DraftOption"..i,"color","#7D7D7D")
+
+  self.UI.setAttribute("draftFactionInstructions","image","DraftFactionSetup")
+  spawnDraftFaction(i,faction,player.color)
+
+  self.UI.setAttribute("standardSelectSwitch","active","false")
+
+
+
+  _G['DraftedFactions'][_G['RosterSelector']] = faction
+  
+
+  Wait.frames(
+    function()
+        if tableHasElement({"Adventurer","Arbiter","Cheat","Gladiator","Harrier","Jailor","Ranger","Ronin","Scoundrel","Thief","Tinker","Vagrant"},faction) and _G['vagabondAlreadySpawned'] == false then
+          _G['vagabondAlreadySpawned'] = true
+        end
+      end,10
+    )
+
+  if faction == "Woodland Alliance" then
+    spawnSupportersHand(player.color)
+  elseif faction == "Corvid Conspiracy" or faction == "BBP Contraption Conspiracy" then
+    shufflePlots(getPosition(color,overallPlayerCount))
+  end
+
+  for _, a in ipairs(getObjectsWithTag("Setup Card")) do
+    if a.getName() == draftedFactions[i] then
+      --a.deal(1,player.color,1)
+      a.destruct()
+    end
+  end
+
+
+
+  if faction == "The Lizard Cult" then
+    makeSpecial("Tools","Lizard Wizard",-29.79-0.73,1.55,10.03)
+    summonLizardBlocker()
+  elseif faction == "Vagabond1" then
+    for _,x in ipairs(getObjectsWithTag("Setup Card")) do
+      if x.getName() == vagabondCards[1] then
+        x.destruct()
+      end
+    end
+  elseif faction == "Vagabond2" then
+    for _,x in ipairs(getObjectsWithTag("Setup Card")) do
+      if x.getName() == vagabondCards[2] then
+        x.destruct()
+      end
+    end
+  elseif faction == "Woodland Alliance" then
+    for _,x in ipairs(getObjectsWithTag("Deck Object")) do
+        if x.name == "Deck" then
+          Wait.frames(
+            function()
+              x.deal(3,  player.color, 2)
+            end,
+            10
+          )
+      end
+    end
+  end
+
+  if _G['RosterSelector'] <= 1 then
+
+    self.UI.setAttribute("Draft Finished Setup Button","active","True")
+  else
+    self.UI.setAttribute("Faction Draft Next Button","active","True")
+
+    if _G['RosterSelector'] == 1 then
+      self.UI.setAttribute("Faction Draft Next Button","color","#e53f36")
+      self.UI.setAttribute("Faction Draft Next Button","icon","WhiteNext")
+    elseif _G['RosterSelector'] == 2 then
+      self.UI.setAttribute("Faction Draft Next Button","color","#f5e850")
+      self.UI.setAttribute("Faction Draft Next Button","icon","NextButton")
+    elseif _G['RosterSelector'] == 3 then
+      self.UI.setAttribute("Faction Draft Next Button","color","#f68b57")
+      self.UI.setAttribute("Faction Draft Next Button","icon","NextButton")
+    elseif _G['RosterSelector'] == 4 then
+      self.UI.setAttribute("Faction Draft Next Button","color","#64bbbd")
+      self.UI.setAttribute("Faction Draft Next Button","icon","NextButton")
+    elseif _G['RosterSelector'] == 5 then
+      self.UI.setAttribute("Faction Draft Next Button","color","#6dba5a")
+      self.UI.setAttribute("Faction Draft Next Button","icon","NextButton")
+    elseif _G['RosterSelector'] == 6 then
+      self.UI.setAttribute("Faction Draft Next Button","color","#a07641")
+      self.UI.setAttribute("Faction Draft Next Button","icon","NextButton")
+    end
+
+  end
+end
+
+function turnOffStandardVagabonds()
+  local vagabonds = {"Adventurer","Arbiter","Cheat","Gladiator","Harrier","Jailor","Ranger","Ronin","Scoundrel","Thief","Tinker","Vagrant"}
+  for _, v in ipairs(vagabonds) do
+    self.UI.setAttribute("StandardSetup " .. v, "active", "false")
+  end
+end
+
+function makeStandardSetupDraftFaction(player,value,id)
+
+  if self.UI.getAttribute("Faction Draft Next Button","active") == "True" or self.UI.getAttribute("Draft Finished Setup Button","active") == "True" then
+    broadcastToAll("Please have ".._G['FullRoster'][_G['RosterSelector']].." finish setting up and then click the Next button.")
+    return end
+  if player.steam_name != _G['FullRoster'][_G['RosterSelector']] then broadcastToAll("Please have ".._G['FullRoster'][_G['RosterSelector']].." choose their faction.") return end
+
+  if self.UI.getAttribute("Return to Setup Menu","active") == "true" then
+    return
+  end
+
+  local faction = string.sub(id,15)
+
+  self.UI.setAttribute("StandardSetup " .. faction, "active", "false")
+
+  if isVagabond(faction) then vagabondsTaken = vagabondsTaken + 1
+    if vagabondsTaken >= 2 then
+      turnOffStandardVagabonds()
+    end
+  end
+
+  self.UI.setAttribute("standardSelectSwitch","active","false")
+
+  _G['DraftedFactions'][_G['RosterSelector']] = faction
+
+  self.UI.setAttribute("draftFactionInstructions","image","DraftFactionSetup")
+  spawnDraftFaction(_G['RosterSelector'],faction,player.color)
+
+
+  Wait.frames(
+    function()
+        if tableHasElement({"Adventurer","Arbiter","Cheat","Gladiator","Harrier","Jailor","Ranger","Ronin","Scoundrel","Thief","Tinker","Vagrant"},faction) and _G['vagabondAlreadySpawned'] == false then
+          _G['vagabondAlreadySpawned'] = true
+        end
+      end,10
+    )
+
+
+  if faction == "Woodland Alliance" then
+    spawnSupportersHand(player.color)
+  elseif faction == "Corvid Conspiracy" or faction == "BBP Contraption Conspiracy" then
+    shufflePlots(getPosition(color,overallPlayerCount))
+  end
+
+  if faction == "The Lizard Cult" then
+    makeSpecial("Tools","Lizard Wizard",-29.79-0.73,1.55,10.03)
+    summonLizardBlocker()
+  end
+
+  if faction == "Vagabond1" then -- These don't do anything because faction = vagabond name; not "Vagabond#"
+    for _,x in ipairs(getObjectsWithTag("Setup Card")) do
+      if x.getName() == vagabondCards[1] then
+        x.destruct()
+      end
+    end
+  end
+  if faction == "Vagabond2" then -- These don't do anything because faction = vagabond name; not "Vagabond#"
+    for _,x in ipairs(getObjectsWithTag("Setup Card")) do
+      if x.getName() == vagabondCards[2] then
+        x.destruct()
+      end
+    end
+  end
+
+  if faction == "Woodland Alliance" then
+    for _,x in ipairs(getObjectsWithTag("Deck Object")) do
+        if x.name == "Deck" then
+          Wait.frames(
+            function()
+              x.deal(3,  player.color, 2)
+            end,
+            10
+          )
+      end
+    end
+  end
+
+  if _G['RosterSelector'] <= 1 then
+
+    self.UI.setAttribute("Draft Finished Setup Button","active","True")
+  else
+    self.UI.setAttribute("Faction Draft Next Button","active","True")
+
+    if _G['RosterSelector'] == 1 then
+      self.UI.setAttribute("Faction Draft Next Button","color","#e53f36")
+      self.UI.setAttribute("Faction Draft Next Button","icon","WhiteNext")
+    elseif _G['RosterSelector'] == 2 then
+      self.UI.setAttribute("Faction Draft Next Button","color","#f5e850")
+      self.UI.setAttribute("Faction Draft Next Button","icon","NextButton")
+    elseif _G['RosterSelector'] == 3 then
+      self.UI.setAttribute("Faction Draft Next Button","color","#f68b57")
+      self.UI.setAttribute("Faction Draft Next Button","icon","NextButton")
+    elseif _G['RosterSelector'] == 4 then
+      self.UI.setAttribute("Faction Draft Next Button","color","#64bbbd")
+      self.UI.setAttribute("Faction Draft Next Button","icon","NextButton")
+    elseif _G['RosterSelector'] == 5 then
+      self.UI.setAttribute("Faction Draft Next Button","color","#6dba5a")
+      self.UI.setAttribute("Faction Draft Next Button","icon","NextButton")
+    elseif _G['RosterSelector'] == 6 then
+      self.UI.setAttribute("Faction Draft Next Button","color","#a07641")
+      self.UI.setAttribute("Faction Draft Next Button","icon","NextButton")
+    end
+
+  end
+end --------------- end of function
+
+local banFactionNames = {"BanCats","BanBirds","BanGreen","BanVagabond1","BanVagabond2","BanLizards","BanOtters","BanMoles","BanCrows","BanRats","BanBadgers","BanBats","BanFrogs","BanKnaves"}
+
+local banFactionColors = {"#d77435","#4776b6","#6bb659","#ffffff","#ffffff",
+"#e8e138","#5cbab4","#e4c0a2","#542c75","#f3461b",
+"#acadb1","#964E30","#B09804","#808080"}
+
+function banFaction(player,value,id)
+  local i = indexOf(banFactionNames, id)
+  allowedFactions[i] = not allowedFactions[i]
+
+  if id == "BanKnaves" and allowedFactions[i] == true then 
+    allowedFactions[4] = false allowedFactions[5] = false     
+  end
+  if id == "BanVagabond1" and allowedFactions[i] == true then 
+    allowedFactions[14] = false
+  end
+
+  if id == "BanVagabond2" and allowedFactions[i] == true then 
+    allowedFactions[14] = false 
+  end
+
+  colorBanFactions()
+  checkIfBanBoardIsOkay()
+
+end
+
+
+
+function colorBanFactions()
+   for i = 1, #banFactionNames, 1 do
+    if allowedFactions[i] == true then 
+      self.UI.setAttribute(banFactionNames[i],"color",banFactionColors[i])
+    else 
+      self.UI.setAttribute(banFactionNames[i],"color","#FFFFFF10")
+    end
+  end
+end
+
+function indexOf(array, value)
+    for i, v in ipairs(array) do
+        if v == value then
+            return i
+        end
+    end
+    return -1
+end
+
+function factionDraftNext(player,value,id)
+
+  if player.steam_name != _G['FullRoster'][_G['RosterSelector']] then broadcastToAll("Please have ".._G['FullRoster'][_G['RosterSelector']].." click Next.") return end
+
+  lastSuccess = _G['RosterSelector']
+
+  _G['RosterSelector'] = _G['RosterSelector'] - 1
+
+  while tableHasElement(draftBotNames,_G['FullRoster'][_G['RosterSelector']]) do
+    _G['RosterSelector'] = _G['RosterSelector'] - 1
+
+    if (_G['RosterSelector'] < 1) then break end
+  end
+
+  -- repeat
+  --   print(_G['FullRoster'][_G['RosterSelector']])
+  --   print(tableHasElement(draftBotNames,_G['FullRoster'][_G['RosterSelector']]))
+  --     _G['RosterSelector'] = _G['RosterSelector'] - 1
+  -- until (tableHasElement(draftBotNames,_G['FullRoster'][_G['RosterSelector']]) == true and _G['RosterSelector'] < 1) -- probably wrong
+
+  if _G['RosterSelector'] < 1 then
+
+    self.UI.setAttribute("draftFactionInstructions","active","false")
+    self.UI.setAttribute("Faction Draft Next Button","active","false")
+
+    self.UI.setAttribute("Return to Setup Menu","active","true")
+    self.UI.setAttribute("Draft Finished Setup Button","active","false")
+    self.UI.setAttribute("draftBirdsong","image","Birdsong9")
+
+  end
+
+  if _G['RosterSelector'] >= 1 then
+
+    self.UI.setAttribute("DraftTurnIcon","icon","Tourn".._G['RosterSelector'].."PlayerButton")
+    local turnColors = {"#e53f36","#f5e850","#f68b57","#64bbbd","#6dba5a","#a07641"}
+    self.UI.setAttribute("DraftTurnIcon","color",turnColors[_G['RosterSelector']])
+    self.UI.setAttribute("Faction Draft Next Button","active","False")
+    self.UI.setAttribute("draftFactionInstructions","image","DraftFactionPick")
+
+    broadcastToAll(_G['FullRoster'][_G['RosterSelector']]..", setup your faction of choice and click Next.")
+  end
+end
+
+function tournamentFactionDraftNext(player,value,id)
+  if player.steam_name != _G['Roster'][_G['RosterSelector']] then broadcastToAll("Please have ".._G['Roster'][_G['RosterSelector']].." click Done.") return end
+
+  _G['RosterSelector'] = _G['RosterSelector'] - 1
+  makePlayerTurnButton(_G['RosterSelector'])
+  self.UI.setAttribute("TournMessage","image","TournFacSelectMessage")
+
+  self.UI.setAttribute("Tournament Faction Draft Next Button","active","False")
+  self.UI.setAttribute("draftingOrderInstructions","image","TournamentDaylight".._G['RosterSelector'])
+
+  broadcastToAll(_G['Roster'][_G['RosterSelector']]..", setup your faction of choice and click Done.")
+end
+
+
+function getPosition(color,playerCount)
+  if playerCount == 1 then
+    if color == "Red" then return Vector(52.00, 11.56, -46.00) end
+  elseif playerCount == 2 then
+    if color == "Red" then return Vector(52.00, 11.56, -46.00)
+    elseif color == "Yellow" then return Vector(-52.00, 11.56, -46.00) end
+  elseif playerCount == 3 then
+    if color == "Red" then return Vector(52.00, 11.56, -46.00)
+    elseif color == "Yellow" then return Vector(0.00, 11.56, -46.00)
+    elseif color == "Orange" then return Vector(-52.00, 11.56, -46.00) end
+  elseif playerCount == 4 then
+    if color == "Red" then return Vector(52.00, 11.56, -46.00)
+    elseif color == "Yellow" then return Vector(-52.00, 11.56, -46.00)
+    elseif color == "Orange" then return Vector(-52.00, 11.56, 46.00)
+    elseif color == "Teal" then return Vector(52.00, 11.56, 46.00) end
+  elseif playerCount == 5 then
+    if color == "Red" then return Vector(52.00, 11.56, -46.00)
+    elseif color == "Yellow" then return Vector(0.00, 11.56, -46.00)
+    elseif color == "Orange" then return Vector(-52.00, 11.56, -46.00)
+    elseif color == "Teal" then return Vector(-52.00, 11.56, 46.00)
+    elseif color == "Green" then return Vector(52.00, 11.56, 46.00) end
+  elseif playerCount == 6 then
+    if color == "Red" then return Vector(52.00, 11.56, -46.00)
+    elseif color == "Yellow" then return Vector(0.00, 11.56, -46.00)
+    elseif color == "Orange" then return Vector(-52.00, 11.56, -46.00)
+    elseif color == "Teal" then return Vector(-52.00, 11.56, 46.00)
+    elseif color == "Green" then return Vector(0.00, 11.56, 46.00)
+    elseif color == "Brown" then return Vector(52.00, 11.56, 46.00) end
+  end
+
+end
+
+function flipSide(color,playerCount)
+
+  if color == "Red" or color == "Yellow" then return false end
+  if color == "Teal" or color == "Green" or color =="Brown" then return true end
+  if color == "Orange" then
+    if playerCount == 3 then return false end
+    if playerCount == 4 then return true end
+  end
+end
+
+
+function makeTournamentVagabondLayout(i,faction,color)
+  spawnTournamentDraftFaction(i,faction,color)
+  spawnTournamentDraftFaction(i,"Vagabond Dice and VP",color)
+end
+
+function makeVagabondLayout(i,faction,color)
+  spawnDraftFaction(i,faction,color)
+  spawnDraftFaction(i,"Vagabond Dice and VP",color)
+end
+
+
+function spawnTournamentDraftFaction(i,faction,color)
+
+  local pos = getPosition(color,#_G["Roster"])
+
+  -- makes vagabond basics board
+
+  if isVagabond(faction) then
+    makeVagabondLayout(i,"Vagabond Layout",color)
+  end
+
+  local objects = {}
+
+  objects = EVERYTHING['Standard'][faction]['data']
+  local scale = self.getScale()
+  scale.x = 1/scale.x
+  scale.z = 1/scale.z
+  function callback(o)
+
+    if flipSide(color,#_G['Roster']) then
+      o.setRotation({o.getRotation().x, o.getRotation().y + 180, o.getRotation().z})
+    else
+      o.setRotation({o.getRotation().x, o.getRotation().y, o.getRotation().z})
+    end
+
+    if _G['vagabondAlreadySpawned'] then
+      if o.hasTag("Quest") then o.destroy() end
+    else
+      if o.hasTag("Ruin Set") then o.destroy() end
+    end
+
+      if o.hasTag("Shuffleable") then o.shuffle() o.shuffle() end
+  end
+  for _,v in ipairs(objects) do
+      local vec = Vector(v.move_to) * scale
+      if flipSide(color,#_G['Roster']) then
+        vec = vec * Vector(-15.5 , 1, -15.5)
+      else
+          vec = vec * Vector(15.5, 1, 15.5)
+      end
+      local new_pos = pos + vec
+      new_pos.y = new_pos.y - 0.1
+      spawnObjectJSON({
+          json              = v.json,
+          position          = new_pos,
+          callback_function = callback
+      })
+  end
+end
+
+
+
+function spawnDraftFaction(i,faction,color)
+
+  local pos = getPosition(color,#_G["FullRoster"])
+
+  -- makes vagabond basics board
+
+  if isVagabond(faction) then
+    makeVagabondLayout(i,"Vagabond Layout",color)
+  end
+
+  local objects = {}
+
+  objects = EVERYTHING['Standard'][faction]['data']
+  local scale = self.getScale()
+  scale.x = 1/scale.x
+  scale.z = 1/scale.z
+  function callback(o)
+
+    if flipSide(color,#_G['FullRoster']) then
+      o.setRotation({o.getRotation().x, o.getRotation().y + 180, o.getRotation().z})
+    else
+      o.setRotation({o.getRotation().x, o.getRotation().y, o.getRotation().z})
+    end
+
+    if tableHasElement(_G['BotRoster'], "draftVagaBot") then
+      if o.hasTag("Quest") and o.name != "Custom_Tile" then
+        o.destroy()
+      end
+    elseif _G['vagabondAlreadySpawned'] then
+      if o.hasTag("Quest") then o.destroy() end
+    else
+      if o.hasTag("Ruin Set") then o.destroy() end
+    end
+
+
+
+      if o.hasTag("Shuffleable") then o.shuffle() o.shuffle() end
+  end
+  for _,v in ipairs(objects) do
+      local vec = Vector(v.move_to) * scale
+      if flipSide(color,#_G['FullRoster']) then
+        vec = vec * Vector(-15.5 , 1, -15.5)
+      else
+          vec = vec * Vector(15.5, 1, 15.5)
+      end
+      local new_pos = pos + vec
+      new_pos.y = new_pos.y - 0.1
+      spawnObjectJSON({
+          json              = v.json,
+          position          = new_pos,
+          callback_function = callback
+      })
+  end
+end
+
+function tournamentSpawnDraftFaction(i,faction,color)
+
+  local pos = getPosition(color,#_G["Roster"])
+
+  -- makes vagabond basics board
+
+  if isVagabond(faction) then
+    makeTournamentVagabondLayout(i,"Vagabond Layout",color)
+  end
+
+  local objects = {}
+
+
+  objects = EVERYTHING['Standard'][faction]['data']
+
+  local scale = self.getScale()
+  scale.x = 1/scale.x
+  scale.z = 1/scale.z
+  function callback(o)
+
+    if flipSide(color,#_G['Roster']) then
+      o.setRotation({o.getRotation().x, o.getRotation().y + 180, o.getRotation().z})
+    else
+      o.setRotation({o.getRotation().x, o.getRotation().y, o.getRotation().z})
+    end
+      if _G['vagabondAlreadySpawned'] then
+        if o.hasTag("Quest") then o.destroy() end
+      else
+        if o.hasTag("Ruin Set") then o.destroy() end
+      end
+
+      if o.hasTag("Shuffleable") then o.shuffle() o.shuffle() end
+  end
+  for _,v in ipairs(objects) do
+      local vec = Vector(v.move_to) * scale
+      if flipSide(color,#_G['Roster']) then
+        vec = vec * Vector(-15.5 , 1, -15.5)
+      else
+          vec = vec * Vector(15.5, 1, 15.5)
+      end
+      local new_pos = pos + vec
+      new_pos.y = new_pos.y - 0.1
+      spawnObjectJSON({
+          json              = v.json,
+          position          = new_pos,
+          callback_function = callback
+      })
+  end
+end
+
+function getVagabond(f)
+  if (f == "Vagabond1") then return vagabondCards[1] end
+  if (f == "Vagabond2") then return vagabondCards[2] end
+  return f
+end
+
+function backToDetailsDraft()
+  destroyHirelings()
+  allButtonsOff()
+  self.UI.setAttribute("ChooseDraftDetails","active","true")
+end
+
+function setupHirelingsScreen()
+  allButtonsOff()
+  self.UI.setAttribute("hirelingSetupScreen","active","true")
+  broadcastToAll("Setup the hirelings.")
+end
+
+
+
+function isAWhiteFaction(n)
+  return n == "Woodland Alliance" or
+    n == "Vagabond1" or
+    n == "Vagabond2" or
+    n == "The Lizard Cult" or
+    n == "Riverfolk Company" or
+    n == "Corvid Conspiracy" or
+    n == "Twilight Council" or
+    n == "Knaves of the Deepwood"
+
+end
+
+function spawnVagabondCard(vaga,pos)
+  local my_rot = self.getRotation()
+  local objects = {}
+  objects = EVERYTHING["Adset"][vaga]['data']
+  local scale = self.getScale()
+  scale.x = 1/scale.x
+  scale.z = 1/scale.z
+
+  local vCard
+
+  for _,v in ipairs(objects) do
+      local vec = Vector(v.move_to) * scale
+      vec.y = vec.y - 0.1
+
+      vec = vec * Vector({-15.5, 1, 15.5})
+
+      local newVec = Vector({0,1,0})
+      newVec.x = vec.z
+      newVec.y = vec.y + 10.01
+      newVec.z = vec.x * -1
+
+      local new_pos = newVec
+      new_pos.x = pos[1] - 1.33
+      new_pos.y = pos[2] + 0.01 + 100
+      new_pos.z = pos[3]
+      vCard = spawnObjectJSON({
+          json              = v.json,
+          position          = new_pos,
+          callback_function = function(o)
+            o.setRotation({o.getRotation().x, o.getRotation().y + 90, o.getRotation().z})
+            o.setPositionSmooth({o.getPosition().x, o.getPosition().y - 100, o.getPosition().z})
+            o.locked = true
+          end
+      })
+  end
+  return vCard
+end
+
+function makeFunnyMessage()
+  local name = _G["Roster"][_G["WWRosterSelector"]]
+  local messages = {"I wish ".. name.. " would hurry up already.",
+        "It's "..name.."'s turn to act.",
+        "What is taking ".. name .. " so long to make life choices?",
+        "C'mon, ".. name..", we have a game to play.",
+        name ..", it's your turn to set up your stuff.",
+        "Let's go, ".. name .. ", it's just a game.",
+        "Waiting on ".. name .. " to make some decicions."
+      }
+  return getRandom(messages)
+
+end
+
+function wwNotAButton(player,value,id)
+  local name = player.steam_name
+  local messages = {name.. ", that's not really a button.",
+        "Yeah... that only looks like a button, ".. name ..".",
+        "You don't need to click that, ".. name..".",
+        "You having fun there, ".. name .. "?",
+        name..", it only looks like a button."
+      }
+  return broadcastToColor(getRandom(messages),player.color)
+
+end
+
+
+local selectedColor = "#f3ecd1"
+
+
+function allButtonsOff()
+  self.UI.setAttribute("standardButtons","active","False")
+  self.UI.setAttribute("robotButtons","active","False")
+  self.UI.setAttribute("robotButtons2","active","False")
+  self.UI.setAttribute("toolsButtons","active","False")
+  self.UI.setAttribute("mapButtonsStandard","active","False")
+  self.UI.setAttribute("fanMapButtons1","active","False")
+  self.UI.setAttribute("fanMapButtons2","active","False")
+  self.UI.setAttribute("fanMapButtons3","active","False")
+  self.UI.setAttribute("fanMapButtons4","active","False")
+  self.UI.setAttribute("decksButtonStandard","active","False")
+  self.UI.setAttribute("deckPage2","active","False")
+  self.UI.setAttribute("tools1","Active","False")
+  self.UI.setAttribute("tools2","Active","False")
+
+  self.UI.setAttribute("decksButtonsStandard","active","False")
+  self.UI.setAttribute("fanDeckButtons1","active","False")
+
+  self.UI.setAttribute("fan1Buttons","active","False")
+  self.UI.setAttribute("fan2Buttons","active","False")
+  self.UI.setAttribute("fan3Buttons","active","False")
+  self.UI.setAttribute("fan4Buttons","active","False")
+  self.UI.setAttribute("vagabondButtons","active","False")
+  self.UI.setAttribute("setupButtons", "active", "False")
+  self.UI.setAttribute("RosterJoinButtons","active","False")
+  self.UI.setAttribute("draftDeckButtons","active","False")
+  self.UI.setAttribute("FactionDrafting","active","False")
+  self.UI.setAttribute("BanningFactions","active","False")      
+  self.UI.setAttribute("DraftOptions","active","False")
+  self.UI.setAttribute("mapDrafting","active","False")
+  self.UI.setAttribute("ChooseDraftDetails","active","False")
+  self.UI.setAttribute("hirelingSetupScreen","active","False")
+  self.UI.setAttribute("DiscardCardsScreen","active","False")
+  self.UI.setAttribute("RedFactionsScreen","active","False")
+
+  self.UI.setAttribute("mapDraftingFan1","active","False")
+  self.UI.setAttribute("mapDraftingFan2","active","False")
+  self.UI.setAttribute("mapDraftingFan3","active","False")
+  self.UI.setAttribute("mapDraftingFan4","active","False")
+
+  self.UI.setAttribute("standardButton","color","#c0b287")
+  self.UI.setAttribute("botButton","color","#c0b287")
+  self.UI.setAttribute("toolsButton","color","#c0b287")
+  self.UI.setAttribute("mapsButton","color","#c0b287")
+  self.UI.setAttribute("fan1Button","color","#c0b287")
+  self.UI.setAttribute("fan2Button","color","#c0b287")
+  self.UI.setAttribute("setupButton", "color", "#c0b287")
+
+  self.UI.setAttribute("toolsButtonMain","color","#c0b287")
+  self.UI.setAttribute("mapsButtonMain","color","#c0b287")
+  self.UI.setAttribute("setupButtonMain","color","#c0b287")
+
+  self.UI.setAttribute("TournamentRosterJoinButtons","active","False")
+  self.UI.setAttribute("mapTournamentDrafting","active","False")
+  self.UI.setAttribute("doomedVagabondButtons","active","False")
+  self.UI.setAttribute("slugRosterButtons","active","False")
+
+  self.UI.setAttribute("adsetDraftClockworkBotButtons","active","false")
+  self.UI.setAttribute("AdsetDraftClockworkSetup","active","false")
+  self.UI.setAttribute("AdsetDraftLandmarkButtons","active","false")
+
+  self.UI.setAttribute("AdsetDraftLandmarksSetup","active","false")
+  self.UI.setAttribute("AdsetDraftHirelingsButtons","active","false")
+
+  self.UI.setAttribute("standardSetupDraft","active","false")
+
+end
+
+function standard()
+  allButtonsOff()
+  self.UI.setAttribute("standardButtons","active","True")
+  self.UI.setAttribute("standardButton","color",selectedColor)
+
+end
+
+function configureFactionBoard(board)
+  board.UI.setAttribute("Main Nav Personal", "active", "True")
+  board.UI.setAttribute("Main Nav", "active", "False")
+  board.UI.setAttribute("standardButtons", "active", "True")
+
+  board.UI.setAttribute("setupButtons", "active", "False")
+  board.UI.setAttribute("mapButtonsStandard", "active", "False")
+  board.UI.setAttribute("decksButtonsStandard", "active", "False")
+  board.UI.setAttribute("toolsButtons", "active", "False")
+  board.UI.setAttribute("tools1", "active", "False")
+
+  board.UI.setAttribute("xButton", "active", "True")
+  board.UI.setAttribute("adDraft","onclick","addraftMessageReminder")
+  board.UI.setAttribute("Tournament","onclick","addraftMessageReminder")
+  board.UI.setAttribute("slugSetupButton","onclick","addraftMessageReminder")
+  board.UI.setAttribute("Setup All","active","false")
+
+end
+
+function setupFactionBoards(player, value, id)
+  local count = 4
+  if id == "fivePlayerSetup" then count = 5 end
+
+  for _, c in ipairs(getObjects()) do
+      if c.getName() == "Faction Board" then c.destruct() end
+  end
+
+  local xs = {52,-52,52,-52,0,52}
+  local ys = {11.56,11.56,11.56,11.56,11.56,11.56}
+  local zs = {-46,-46,46,46,-46,46}
+
+  for i = 1, count do
+    local board1 = self.clone({
+      snap_to_grid = true
+    })
+
+    if zs[i] > 0 then board1.setRotation({0,180,0})
+    else board1.setRotation({0,0,0}) end
+    board1.setPosition({xs[i],ys[i],zs[i]})
+    board1.setName("Faction Board")
+
+    Wait.frames(
+      function()
+        configureFactionBoard(board1)
+
+      end,
+      10
+    )
+  end
+end
+
+function addraftMessageReminder()
+  broadcastToAll("For this setup, please use the shared menu.")
+end
+
+function setup()
+  allButtonsOff()
+  self.UI.setAttribute("setupButtons", "active", "True")
+  self.UI.setAttribute("mapButtonsStandard", "active", "True")
+  self.UI.setAttribute("decksButtonsStandard", "active", "True")
+  self.UI.setAttribute("toolsButtons", "active", "True")
+  self.UI.setAttribute("tools1", "active", "True")
+  self.UI.setAttribute("setupButton", "color", selectedColor)
+  self.UI.setAttribute("setupButtonMain", "color", selectedColor)
+
+end
+
+function robots()
+  allButtonsOff()
+  self.UI.setAttribute("robotButtons","active","True")
+  self.UI.setAttribute("botButton","color",selectedColor)
+end
+
+function extra1()
+  allButtonsOff()
+  self.UI.setAttribute("toolsButtons","active","True")
+  self.UI.setAttribute("tools1", "active","True")
+  self.UI.setAttribute("toolsButton","color",selectedColor)
+  self.UI.setAttribute("toolsButtonMain","color",selectedColor)
+end
+
+
+  function fan1()
+  allButtonsOff()
+  self.UI.setAttribute("fan1Buttons","active","True")
+  self.UI.setAttribute("fan1Button","color",selectedColor)
+end
+
+
+
+
+
+
+
+
+function tools2()
+  self.UI.setAttribute("tools2","active","True")
+  self.UI.setAttribute("tools1","active","False")
+end
+
+function tools1()
+  self.UI.setAttribute("tools2","active","False")
+  self.UI.setAttribute("tools1","active","True")
+end
+
+
+
+
+
+
+
+function finishDraft(player,value,id)
+  if player.steam_name != _G['FullRoster'][_G['RosterSelector']] then broadcastToAll("Please have ".._G['FullRoster'][_G['RosterSelector']].." click Next.") return end
+
+  -- allButtonsOff()
+  -- self.UI.setAttribute("DiscardCardsScreen","active","True")
+  -- self.UI.setAttribute("DraftOptions","active","true")
+  self.UI.setAttribute("draftBirdsong","image","Birdsong9")
+  self.UI.setAttribute("Faction Draft Next Button","active","false")
+  self.UI.setAttribute("Draft Finished Setup Button","active","false")
+
+  self.UI.setAttribute("Return to Setup Menu","active","true")
+
+  self.UI.setAttribute("draftFactionInstructions","active","false")
+  broadcastToAll("Place Score Markers and draft your hands. When finished, have " .. _G['FullRoster'][_G['RosterSelector']].." click START GAME.")
+end
+
+function tournamentFinishDraft(player,value,id)
+  self.UI.setAttribute("tournSideBar","image","TournSideMenu4Button")
+  if player.steam_name != _G['Roster'][_G['RosterSelector']] then broadcastToAll("Please have ".._G['Roster'][_G['RosterSelector']].." click Done.") return end
+  broadcastToAll("Draft your starting hands. When finished, have " .. _G['Roster'][_G['RosterSelector']].." click Done.")
+  self.UI.setAttribute("Tournament Draft Finished Setup Button","active","false")
+  self.UI.setAttribute("Tournament Start","active","true")
+  self.UI.setAttribute("TournMessage","image","TournOnceAllButton")
+end
+
+function startTournament(player,id,value)
+if player.steam_name != _G["Roster"][1] then
+  broadcastToAll("Please have ".. _G["Roster"][1] .." click Done.")
+  return
+end
+
+tournamentSortDraftColors()
+Wait.frames(
+  function()
+    returnToSetupMenu()
+    recolorTournamentMapButtons()
+    self.UI.setAttribute("TournMessage","image","TournMapSelectMessage")
+  end,
+  50
+)
+
+end
+
+
+function returnToSetupMenu()
+  extra1()
+  self.UI.setAttribute("Main Nav","active","True")
+  -- self.UI.setAttribute("reachMeter","active","False")
+  deleteAllItemsWithTag("Setup Card")
+
+  Turns.enable = true
+
+
+  for _, p in ipairs(getObjectsWithTag("Deck Object")) do
+    if (p.name == "Deck") then
+      p.shuffle()
+    end
+  end
+end
+
+function makeFactionSelector()
+  local board1 = self.clone({
+    snap_to_grid = true
+  })
+
+  board1.setRotation({0,90,0})
+  board1.setPosition({54.81,-60,0})
+  board1.setName("Faction Board")
+  board1.locked = false
+  Wait.frames(function() pcall(function() board1.UI.setAttribute("Main Nav Personal", "active", "False") end) local _sp = {{"Marquise de Cat","-90 45 -20"},{"Eyrie Dynasties","-30 45 -20"},{"Woodland Alliance","30 45 -20"},{"Knaves of the Deepwood","90 45 -20"},{"The Lizard Cult","-90 -5 -20"},{"Riverfolk Company","-30 -5 -20"},{"Underground Duchy","30 -5 -20"},{"Corvid Conspiracy","90 -5 -20"},{"Lord of the Hundreds","-90 -55 -20"},{"Keepers in Iron","-30 -55 -20"},{"Twilight Council","30 -55 -20"},{"Lilypad Diaspora","90 -55 -20"}} for _, e in ipairs(_sp) do pcall(function() board1.UI.setAttribute(e[1], "position", e[2]) end) end board1.setPosition({54.81,11.56,0}) end, 14)
+
+  Wait.frames(
+    function()
+      configureFactionBoard(board1)
+    end,
+    10
+  )
+end
+
+function draftFanMaps1()
+  self.UI.setAttribute("mapDraftingFan1","active","True")
+  self.UI.setAttribute("mapDraftingFan2","active","False")
+end
+
+function draftFanMaps2()
+  self.UI.setAttribute("mapDraftingFan1","active","False")
+  self.UI.setAttribute("mapDraftingFan2","active","True")
+  self.UI.setAttribute("mapDraftingFan3","active","False")
+end
+
+function draftFanMaps3()
+  self.UI.setAttribute("mapDraftingFan2","active","False")
+  self.UI.setAttribute("mapDraftingFan3","active","True")
+  self.UI.setAttribute("mapDraftingFan4","active","False")
+end
+
+
+
+function resetHands()
+  Player['Red'].setHandTransform({position = {-77.50,14.62,-36}, rotation = {0,90,0}, scale = {10,6,4}}, 1)
+  Player['Yellow'].setHandTransform({position = {-77.50,14.62,-25}, rotation = {0,90,0}, scale = {10,6,4}}, 1)
+  Player['Orange'].setHandTransform({position = {-77.5,14.62,-14}, rotation = {0,90,0}, scale = {10,6,4}}, 1)
+
+  Player['Teal'].setHandTransform({position = {-77.5,14.62,14}, rotation = {0,90,0}, scale = {10,6,4}}, 1)
+  Player['Green'].setHandTransform({position = {-77.5,14.62,25}, rotation = {0,90,0}, scale = {10,6,4}}, 1)
+  Player['Brown'].setHandTransform({position = {-77.5,14.62,36}, rotation = {0,90,0}, scale = {10,6,4}}, 1)
+
+  Player['White'].setHandTransform({position = {77.5,14.62,-37}, rotation = {0,270,0}, scale = {10,6,4}}, 1)
+  Player['Blue'].setHandTransform({position = {77.5,14.62,-26}, rotation = {0,270,0}, scale = {10,6,4}}, 1)
+  Player['Purple'].setHandTransform({position = {77.5,14.62,26}, rotation = {0,270,0}, scale = {10,6,4}}, 1)
+  Player['Pink'].setHandTransform({position = {77.5,14.62,37}, rotation = {0,270,0}, scale = {10,6,4}}, 1)
+
+  Player['Red'].setHandTransform({position = {-75,5,4}, rotation = {0,0,0}, scale = {1,1,1}}, 2)
+  Player['Orange'].setHandTransform({position = {-75,5,3}, rotation = {0,0,0}, scale = {1,1,1}}, 2)
+  Player['Yellow'].setHandTransform({position = {-75,5,2}, rotation = {0,0,0}, scale = {1,1,1}}, 2)
+  Player['Green'].setHandTransform({position = {-75,5,1}, rotation = {0,0,0}, scale = {1,1,1}}, 2)
+  Player['Teal'].setHandTransform({position = {-75,5,-1}, rotation = {0,0,0}, scale = {1,1,1}}, 2)
+  Player['Blue'].setHandTransform({position = {-75,5,0}, rotation = {0,0,0}, scale = {1,1,1}}, 2)
+  Player['Pink'].setHandTransform({position = {-75,5,-2}, rotation = {0,0,0}, scale = {1,1,1}}, 2)
+  Player['Purple'].setHandTransform({position = {-75,5,-3}, rotation = {0,0,0}, scale = {1,1,1}}, 2)
+  Player['White'].setHandTransform({position = {-75,5,-4}, rotation = {0,0,0}, scale = {1,1,1}}, 2)
+  Player['Brown'].setHandTransform({position = {-75,5,-5}, rotation = {0,0,0}, scale = {1,1,1}}, 2)
+end
+
+function startDraftedGame(player,id,value)
+
+  local playerNumber = 1
+
+  while tableHasElement(draftBotNames, _G['FullRoster'][playerNumber]) do
+    playerNumber = playerNumber + 1
+  end
+
+  if player.steam_name != _G["FullRoster"][playerNumber] then
+    broadcastToAll("Please have ".. _G["FullRoster"][playerNumber] .." click Start Game.")
+    return
+  end
+
+  sortDraftColors()
+  Wait.frames(
+    function()
+      returnToSetupMenu()
+    end,
+    10
+  )
+
+end
+
+_G['TurnOrder'] = {}
+
+function tournamentSortDraftColors()
+
+  kickPlayersFromSeats()
+  resetHands()
+  local n = 1
+
+  for _, i in ipairs(_G["Roster"]) do
+    if tableHasElement(draftBotNames, i) == false then
+
+      local color = colorOfFaction(_G['DraftedFactions'][n])
+
+      table.insert(_G['TurnOrder'],color)
+
+      if #_G['Roster'] == 1 then
+        for _, p in pairs(Player.getPlayers()) do
+          if p.steam_name == _G['Roster'][1] then placePlayer(p,color,1,1) end
+        end
+      elseif #_G['Roster'] == 2 then
+        for _, p in pairs(Player.getPlayers()) do
+          if p.steam_name == i and n == 1 then placePlayer(p,color,1,1)
+          elseif p.steam_name == i and n == 2 then placePlayer(p,color,3,1) end
+        end
+      elseif #_G['Roster'] == 3 then
+        for _, p in pairs(Player.getPlayers()) do
+          if p.steam_name == i and n == 1 then placePlayer(p,color,1,1)
+          elseif p.steam_name == i and n == 2 then placePlayer(p,color,2,1)
+          elseif p.steam_name == i and n == 3 then placePlayer(p,color,3,1) end
+        end
+      elseif #_G['Roster'] == 4 then
+        for _, p in pairs(Player.getPlayers()) do
+          if p.steam_name == i and n == 1 then placePlayer(p,color,1,1)
+          elseif p.steam_name == i and n == 2 then placePlayer(p,color,3,1)
+          elseif p.steam_name == i and n == 3 then placePlayer(p,color,4,2)
+          elseif p.steam_name == i and n == 4 then placePlayer(p,color,6,2)end
+        end
+      elseif #_G['Roster'] == 5 then
+        for _, p in pairs(Player.getPlayers()) do
+          if p.steam_name == i and n == 1 then placePlayer(p,color,1,1)
+          elseif p.steam_name == i and n == 2 then placePlayer(p,color,2,1)
+          elseif p.steam_name == i and n == 3 then placePlayer(p,color,3,1)
+          elseif p.steam_name == i and n == 4 then placePlayer(p,color,4,2)
+          elseif p.steam_name == i and n == 5 then placePlayer(p,color,6,2)end
+        end
+      elseif #_G['Roster'] == 6 then
+        for _, p in pairs(Player.getPlayers()) do
+          if p.steam_name == i and n == 1 then placePlayer(p,color,1,1)
+          elseif p.steam_name == i and n == 2 then placePlayer(p,color,2,1)
+          elseif p.steam_name == i and n == 3 then placePlayer(p,color,3,1)
+          elseif p.steam_name == i and n == 4 then placePlayer(p,color,4,2)
+          elseif p.steam_name == i and n == 5 then placePlayer(p,color,5,2)
+          elseif p.steam_name == i and n == 6 then placePlayer(p,color,6,2)end
+        end
+      end
+      if color == "Green" and _G['DraftedFactions'][n] == "Woodland Alliance" then
+        Wait.frames(
+          function()
+            spawnSupportersHand("Green") end, 10
+        ) end
+    end
+    n = n + 1
+  end
+
+  Turns.order = _G['TurnOrder']
+
+end
+
+function sortDraftColors()
+
+  _G['ColorsTaken'] = {}
+
+  local colorFactionOrder = {"Marquise de Cat","Eyrie Dynasties","Woodland Alliance","The Lizard Cult","Riverfolk Company",
+    "Underground Duchy","Corvid Conspiracy","Lord of the Hundreds","Keepers in Iron","Twilight Council","Lilypad Diaspora",
+    "Adventurer","Arbiter","Cheat","Gladiator","Harrier","Jailor","Ranger","Ronin","Scoundrel","Thief","Tinker","Vagrant","Knaves of the Deepwood"}
+  
+  kickPlayersFromSeats()
+  resetHands()
+
+  local colors = {}
+
+  for _, i in ipairs(colorFactionOrder) do
+    if not tableHasElement(draftBotNames, i) then 
+      for d = 1, #_G['DraftedFactions'] do
+        if i == _G['DraftedFactions'][d] then
+          local color = colorOfFaction(_G['DraftedFactions'][d])
+          while #colors < d do
+            table.insert(colors,"")
+          end
+          colors[d] = color
+          table.insert(_G['TurnOrder'],color)    
+        end
+      end
+    end
+  end
+
+  local n = 1
+
+  for _, i in ipairs(_G["FullRoster"]) do
+    if tableHasElement(draftBotNames, i) == false then
+
+      if #_G['FullRoster'] == 1 then
+        for _, p in pairs(Player.getPlayers()) do
+          if p.steam_name == _G['FullRoster'][1] then placePlayer(p,colors[1],1,1) table.insert(_G['TurnOrder'],colors[1]) end
+        end
+       
+      elseif #_G['FullRoster'] == 2 then
+        for _, p in pairs(Player.getPlayers()) do
+          if p.steam_name == i and n == 1 then placePlayer(p,colors[1],1,1)  table.insert(_G['TurnOrder'],colors[1])
+          elseif p.steam_name == i and n == 2 then placePlayer(p,colors[2],3,1)  table.insert(_G['TurnOrder'],colors[2]) end
+        end
+      elseif #_G['FullRoster'] == 3 then
+        for _, p in pairs(Player.getPlayers()) do
+          if p.steam_name == i and n == 1 then placePlayer(p,colors[1],1,1) table.insert(_G['TurnOrder'],colors[1])
+          elseif p.steam_name == i and n == 2 then placePlayer(p,colors[2],2,1) table.insert(_G['TurnOrder'],colors[2])
+          elseif p.steam_name == i and n == 3 then placePlayer(p,colors[3],3,1) table.insert(_G['TurnOrder'],colors[3]) end
+        end
+      elseif #_G['FullRoster'] == 4 then
+        for _, p in pairs(Player.getPlayers()) do
+          if p.steam_name == i and n == 1 then placePlayer(p,colors[1],1,1) table.insert(_G['TurnOrder'],colors[1])
+          elseif p.steam_name == i and n == 2 then placePlayer(p,colors[2],3,1) table.insert(_G['TurnOrder'],colors[2])
+          elseif p.steam_name == i and n == 3 then placePlayer(p,colors[3],4,2) table.insert(_G['TurnOrder'],colors[3])
+          elseif p.steam_name == i and n == 4 then placePlayer(p,colors[4],6,2) table.insert(_G['TurnOrder'],colors[4])end
+        end
+      elseif #_G['FullRoster'] == 5 then
+        for _, p in pairs(Player.getPlayers()) do
+          if p.steam_name == i and n == 1 then placePlayer(p,colors[1],1,1) table.insert(_G['TurnOrder'],colors[1])
+          elseif p.steam_name == i and n == 2 then placePlayer(p,colors[2],2,1) table.insert(_G['TurnOrder'],colors[2])
+          elseif p.steam_name == i and n == 3 then placePlayer(p,colors[3],3,1) table.insert(_G['TurnOrder'],colors[3])
+          elseif p.steam_name == i and n == 4 then placePlayer(p,colors[4],4,2) table.insert(_G['TurnOrder'],colors[4])
+          elseif p.steam_name == i and n == 5 then placePlayer(p,colors[5],6,2) table.insert(_G['TurnOrder'],colors[5])end
+        end
+      elseif #_G['FullRoster'] == 6 then
+        for _, p in pairs(Player.getPlayers()) do
+          if p.steam_name == i and n == 1 then placePlayer(p,colors[1],1,1) table.insert(_G['TurnOrder'],colors[1])
+          elseif p.steam_name == i and n == 2 then placePlayer(p,colors[2],2,1) table.insert(_G['TurnOrder'],colors[2])
+          elseif p.steam_name == i and n == 3 then placePlayer(p,colors[3],3,1) table.insert(_G['TurnOrder'],colors[3])
+          elseif p.steam_name == i and n == 4 then placePlayer(p,colors[4],4,2) table.insert(_G['TurnOrder'],colors[4])
+          elseif p.steam_name == i and n == 5 then placePlayer(p,colors[5],5,2) table.insert(_G['TurnOrder'],colors[5])
+          elseif p.steam_name == i and n == 6 then placePlayer(p,colors[6],6,2) table.insert(_G['TurnOrder'],colors[6])end
+        end
+      end
+      if color == "Green" and _G['DraftedFactions'][n] == "Woodland Alliance" then
+        Wait.frames(
+          function()
+            spawnSupportersHand("Green") end, 10
+        ) end
+    end
+    n = n + 1
+  end
+
+  Turns.order = _G['TurnOrder']
+
+end
+
+local vagabondChosen = false
+
+function colorOfFaction(i)
+  local color = ""
+  if i == "Marquise de Cat" then color = "Orange"
+  elseif i == "Eyrie Dynasties" then color = "Blue"
+  elseif i == "Woodland Alliance" then color = "Green"
+  elseif i == "The Lizard Cult" then color = "Yellow"
+  elseif i == "Riverfolk Company" then color = "Teal"
+  elseif i == "Underground Duchy" then color = "Pink"
+  elseif i == "Corvid Conspiracy" then color = "Purple"
+  elseif i == "Lord of the Hundreds" then color = "Red"
+  elseif i == "Keepers in Iron" then color = "White"
+  elseif i == "Twilight Council" then color = "Brown"
+  
+  elseif i == "Lilypad Diaspora" then
+    local frogColors = {"Yellow","Green","Brown","Teal","Orange","White"}
+    for _, a in ipairs(frogColors) do
+      if color == "" and indexOf(_G['ColorsTaken'],a) == -1 then 
+        color = a
+      end
+    end
+  else -- vagabonds/knaves/others
+    local vagabondColors = {"White","Pink","Purple","Teal","Orange","Blue","Green","Yellow","Red","Brown"}
+    for _, a in ipairs(vagabondColors) do
+      if color == "" and indexOf(_G['ColorsTaken'],a) == -1 then 
+        color = a
+      end
+    end
+  end
+
+  
+
+  table.insert(_G['ColorsTaken'],color)
+
+  return color
+  
+end
+
+
+
+function wwExitDraft()
+  if self.UI.getAttribute("WWExitDraftButton","icon") == "WWExit" then
+    local exitButtons = {"WWAreYouSure","WWForReal","WWReally","WWYaChicken"}
+    self.UI.setAttribute("WWExitDraftButton","color","#e53f36")
+    self.UI.setAttribute("WWExitDraftButton","icon",getRandom(exitButtons))
+    Wait.frames(function() self.UI.setAttribute("WWExitDraftButton","icon","WWExit") end, 100)
+    Wait.frames(function() self.UI.setAttribute("WWExitDraftButton","color","#000000") end, 100)
+    return
+  end
+
+  exitDraft()
+--#EXIT
+    --<Button id="WWExitDraftButton" onclick="exitDraft" position="-90 -65 -15" width="60" height="20" icon="Back Button" color="#FFFFFF"/>
+end
+
+
+function exitDraft()
+
+  allButtonsOff()
+  -- self.UI.setAttribute("reachMeter","active","False")
+  --self.UI.setAttribute("RosterJoinButtons","active","False")
+  self.UI.setAttribute("Main Nav","active","True")
+
+  self.UI.setAttribute("setupButtons","active","True")
+  self.UI.setAttribute("setupButton","color",selectedColor)
+  self.UI.setAttribute("setupButtonMain","color",selectedColor)
+
+  clearDraftDetails()
+  --setupFactionBoards()
+  resetHands()
+
+  getObjectFromGUID("bd69bd").call("standardRootFelt")
+end
+
+function exitTournamentDraft()
+
+  allButtonsOff()
+  --self.UI.setAttribute("RosterJoinButtons","active","False")
+  self.UI.setAttribute("Main Nav","active","True")
+
+  self.UI.setAttribute("setupButtons","active","True")
+  self.UI.setAttribute("setupButton","color",selectedColor)
+  self.UI.setAttribute("setupButtonMain","color",selectedColor)
+
+  clearDraftDetails()
+  --setupFactionBoards()
+  resetHands()
+  tournamentMapSelected = false
+
+  self.UI.setAttribute("Tournament Draft Finished Setup Button","active","False")
+  self.UI.setAttribute("Tournament Faction Draft Next Button","active","False")
+end
+
+function clearDraftDetails()
+  setTile("List","Player 0 Tile")
+  setTile("Map","Clear Tile")
+  setTile("Deck","Clear Tile")
+  setTile("Rat","Clear Tile")
+  setTile("Badger","Clear Tile")
+  setTile("Hireling","Clear Tile")
+
+  self.UI.setAttribute("draftFinishBotsButton","icon","SkipLabel")
+  self.UI.setAttribute("draftFinishLandmarkButton","icon","SkipLabel")
+
+  for i = 1, #draftBotNames do
+    self.UI.setAttribute(draftBotNames[i], "color", draftBotDefaultColor)
+  end
+
+  for i = 1, # landmarkNames do
+    self.UI.setAttribute( landmarkNames[i], "color", inactiveLandmarkColor)
+  end
+
+  _G['Roster'] = {}
+  _G['TurnOrder'] = {}
+  _G['DraftedFactions'] = {"","","","","",""}
+  _G['RosterSelector'] = 0
+  _G['ColorsTaken'] = {}
+  clearAll()
+  vagabondChosen = false
+  Turns.order = {"Red","Yellow","Orange","Teal","Green","Brown"}
+
+  recolorTournamentMapButtons()
+  self.UI.setAttribute("TournMessage","image","TournMapSelectMessage")
+
+end
+
+function recolorTournamentMapButtons()
+  self.UI.setAttribute("Summer Map Tournament","color","#4b4d35")
+  self.UI.setAttribute("Winter Map Tournament","color","#739195")
+  self.UI.setAttribute("Lake Map Tournament","color","#47a3c2")
+  self.UI.setAttribute("Mountain Map Tournament","color","#7c4f59")
+
+  self.UI.setAttribute("TournTurnIcon","icon","Tourn1PlayerButton")
+  self.UI.setAttribute("TournTurnIcon","color","#E53F36")
+
+  self.UI.setAttribute("tournSideBar","image","TournSideMenu2Button")
+
+end
+
+function deleteThis()
+  Global.call('ImGone', {self})
+  self.destruct()
+end
+
+function setInfo(name)
+    --[[ hover credit removed ]]
+end
+
+function clearInfo()
+  self.UI.setAttribute("info","image","Blank Info")
+end
+
+function isDoomedVagabond(name)
+  if (name == "Doomed Berserker" or name == "Doomed Barkeep" or name == "Doomed Blacksmith" or name == "Doomed Swindler" or
+  name == "Doomed Bard" or name == "Doomed Zealot") then
+    return true
+  else
+    return false
+  end
+end
+
+function isVagabond(id)
+  if (id == "Adventurer" or id == "Arbiter" or id == "Harrier" or id == "Ranger" or id == "Ronin" or id == "Scoundrel" or id == "Thief" or id == "Tinker" or id == "Vagrant" or id == "Gladiator" 
+      or id == "Cheat" or id == "Jailor") then
+    return true
+  else
+    return false
+  end
+
+end
+
+
+RTT_MIL_CARDS = {[309]=[==[{"GUID":"39be49","Name":"Card","Transform":{"posX":-1.66627669,"posY":1.05879366,"posZ":-4.028566,"rotX":-0.0006826586,"rotY":179.990768,"rotZ":-0.00112713769,"scaleX":2.29997349,"scaleY":1.0,"scaleZ":2.29997349},"Nickname":"","Description":"","GMNotes":"","AltLookAngle":{"x":0.0,"y":0.0,"z":0.0},"ColorDiffuse":{"r":0.713235259,"g":0.713235259,"b":0.713235259},"LayoutGroupSortIndex":0,"Value":0,"Locked":false,"Grid":true,"Snap":true,"IgnoreFoW":false,"MeasureMovement":false,"DragSelectable":true,"Autoraise":true,"Sticky":true,"Tooltip":true,"GridProjection":false,"HideWhenFaceDown":true,"Hands":true,"CardID":309,"SidewaysCard":false,"CustomDeck":{"3":{"FaceURL":"https://steamusercontent-a.akamaihd.net/ugc/1859434225081947922/03DD57D219121078CF0C1952D6792FF19D9D373A/","BackURL":"https://steamusercontent-a.akamaihd.net/ugc/1833522185803078168/A2050800715C7861D93951496663C01554EF2E32/","NumWidth":6,"NumHeight":2,"BackIsHidden":true,"UniqueBack":false,"Type":0}},"LuaScript":"","LuaScriptState":"","XmlUI":""}]==],[307]=[==[{"GUID":"e8f093","Name":"Card","Transform":{"posX":-1.05922115,"posY":0.9735951,"posZ":-3.99652,"rotX":4.55595364e-05,"rotY":179.990768,"rotZ":-0.000284563663,"scaleX":2.29997349,"scaleY":1.0,"scaleZ":2.29997349},"Nickname":"","Description":"","GMNotes":"","AltLookAngle":{"x":0.0,"y":0.0,"z":0.0},"ColorDiffuse":{"r":0.713235259,"g":0.713235259,"b":0.713235259},"LayoutGroupSortIndex":0,"Value":0,"Locked":false,"Grid":true,"Snap":true,"IgnoreFoW":false,"MeasureMovement":false,"DragSelectable":true,"Autoraise":true,"Sticky":true,"Tooltip":true,"GridProjection":false,"HideWhenFaceDown":true,"Hands":true,"CardID":307,"SidewaysCard":false,"CustomDeck":{"3":{"FaceURL":"https://steamusercontent-a.akamaihd.net/ugc/1859434225081947922/03DD57D219121078CF0C1952D6792FF19D9D373A/","BackURL":"https://steamusercontent-a.akamaihd.net/ugc/1833522185803078168/A2050800715C7861D93951496663C01554EF2E32/","NumWidth":6,"NumHeight":2,"BackIsHidden":true,"UniqueBack":false,"Type":0}},"LuaScript":"","LuaScriptState":"","XmlUI":""}]==],[310]=[==[{"GUID":"ed28df","Name":"Card","Transform":{"posX":-1.00858307,"posY":1.15495336,"posZ":-3.80439377,"rotX":1.40676332,"rotY":179.996048,"rotZ":5.81672975e-05,"scaleX":2.29997349,"scaleY":1.0,"scaleZ":2.29997349},"Nickname":"","Description":"","GMNotes":"","AltLookAngle":{"x":0.0,"y":0.0,"z":0.0},"ColorDiffuse":{"r":0.713235259,"g":0.713235259,"b":0.713235259},"LayoutGroupSortIndex":0,"Value":0,"Locked":false,"Grid":true,"Snap":true,"IgnoreFoW":false,"MeasureMovement":false,"DragSelectable":true,"Autoraise":true,"Sticky":true,"Tooltip":true,"GridProjection":false,"HideWhenFaceDown":true,"Hands":true,"CardID":310,"SidewaysCard":false,"CustomDeck":{"3":{"FaceURL":"https://steamusercontent-a.akamaihd.net/ugc/1859434225081947922/03DD57D219121078CF0C1952D6792FF19D9D373A/","BackURL":"https://steamusercontent-a.akamaihd.net/ugc/1833522185803078168/A2050800715C7861D93951496663C01554EF2E32/","NumWidth":6,"NumHeight":2,"BackIsHidden":true,"UniqueBack":false,"Type":0}},"LuaScript":"","LuaScriptState":"","XmlUI":""}]==],[301]=[==[{"GUID":"8df1be","Name":"Card","Transform":{"posX":-0.282207727,"posY":1.04952276,"posZ":-3.6216743,"rotX":0.00066678843,"rotY":179.990768,"rotZ":-0.0006546988,"scaleX":2.29997349,"scaleY":1.0,"scaleZ":2.29997349},"Nickname":"","Description":"","GMNotes":"","AltLookAngle":{"x":0.0,"y":0.0,"z":0.0},"ColorDiffuse":{"r":0.713235259,"g":0.713235259,"b":0.713235259},"LayoutGroupSortIndex":0,"Value":0,"Locked":false,"Grid":true,"Snap":true,"IgnoreFoW":false,"MeasureMovement":false,"DragSelectable":true,"Autoraise":true,"Sticky":true,"Tooltip":true,"GridProjection":false,"HideWhenFaceDown":true,"Hands":true,"CardID":301,"SidewaysCard":false,"CustomDeck":{"3":{"FaceURL":"https://steamusercontent-a.akamaihd.net/ugc/1859434225081947922/03DD57D219121078CF0C1952D6792FF19D9D373A/","BackURL":"https://steamusercontent-a.akamaihd.net/ugc/1833522185803078168/A2050800715C7861D93951496663C01554EF2E32/","NumWidth":6,"NumHeight":2,"BackIsHidden":true,"UniqueBack":false,"Type":0}},"LuaScript":"","LuaScriptState":"","XmlUI":""}]==],[73200]=[==[{"GUID":"35b81a","Name":"CardCustom","Transform":{"posX":57.3735352,"posY":11.6722345,"posZ":22.0381832,"rotX":0.0005990316,"rotY":269.986877,"rotZ":-0.0033355006,"scaleX":2.29997349,"scaleY":1.0,"scaleZ":2.29997349},"Nickname":"","Description":"","GMNotes":"","AltLookAngle":{"x":0.0,"y":0.0,"z":0.0},"ColorDiffuse":{"r":0.713235259,"g":0.713235259,"b":0.713235259},"LayoutGroupSortIndex":0,"Value":0,"Locked":false,"Grid":true,"Snap":true,"IgnoreFoW":false,"MeasureMovement":false,"DragSelectable":true,"Autoraise":true,"Sticky":true,"Tooltip":true,"GridProjection":false,"HideWhenFaceDown":true,"Hands":true,"CardID":73200,"SidewaysCard":false,"CustomDeck":{"732":{"FaceURL":"https://steamusercontent-a.akamaihd.net/ugc/10042992881391430383/BAE426B4F4BD70FF7A6084DFA55961800C0F83DF/","BackURL":"https://steamusercontent-a.akamaihd.net/ugc/1799745188598220361/A2050800715C7861D93951496663C01554EF2E32/","NumWidth":1,"NumHeight":1,"BackIsHidden":true,"UniqueBack":false,"Type":0}},"LuaScript":"","LuaScriptState":"","XmlUI":""}]==],[300]=[==[{"GUID":"c8f4ed","Name":"Card","Transform":{"posX":-1.57336509,"posY":1.015244,"posZ":-3.802666,"rotX":0.000971112,"rotY":179.990768,"rotZ":-0.00130566931,"scaleX":2.29997349,"scaleY":1.0,"scaleZ":2.29997349},"Nickname":"","Description":"","GMNotes":"","AltLookAngle":{"x":0.0,"y":0.0,"z":0.0},"ColorDiffuse":{"r":0.713235259,"g":0.713235259,"b":0.713235259},"LayoutGroupSortIndex":0,"Value":0,"Locked":false,"Grid":true,"Snap":true,"IgnoreFoW":false,"MeasureMovement":false,"DragSelectable":true,"Autoraise":true,"Sticky":true,"Tooltip":true,"GridProjection":false,"HideWhenFaceDown":true,"Hands":true,"CardID":300,"SidewaysCard":false,"CustomDeck":{"3":{"FaceURL":"https://steamusercontent-a.akamaihd.net/ugc/1859434225081947922/03DD57D219121078CF0C1952D6792FF19D9D373A/","BackURL":"https://steamusercontent-a.akamaihd.net/ugc/1833522185803078168/A2050800715C7861D93951496663C01554EF2E32/","NumWidth":6,"NumHeight":2,"BackIsHidden":true,"UniqueBack":false,"Type":0}},"LuaScript":"","LuaScriptState":"","XmlUI":""}]==]}
+RTT_INS_CARDS = {[305]=[==[{"GUID":"bdce9c","Name":"Card","Transform":{"posX":-34.3895874,"posY":11.6095686,"posZ":27.29517,"rotX":359.7493,"rotY":180.002716,"rotZ":359.870728,"scaleX":2.29997349,"scaleY":1.0,"scaleZ":2.29997349},"Nickname":"","Description":"","GMNotes":"","AltLookAngle":{"x":0.0,"y":0.0,"z":0.0},"ColorDiffuse":{"r":0.713235259,"g":0.713235259,"b":0.713235259},"LayoutGroupSortIndex":0,"Value":0,"Locked":false,"Grid":true,"Snap":true,"IgnoreFoW":false,"MeasureMovement":false,"DragSelectable":true,"Autoraise":true,"Sticky":true,"Tooltip":true,"GridProjection":false,"HideWhenFaceDown":true,"Hands":true,"CardID":305,"SidewaysCard":false,"CustomDeck":{"3":{"FaceURL":"https://steamusercontent-a.akamaihd.net/ugc/1859434225081947922/03DD57D219121078CF0C1952D6792FF19D9D373A/","BackURL":"https://steamusercontent-a.akamaihd.net/ugc/1833522185803078168/A2050800715C7861D93951496663C01554EF2E32/","NumWidth":6,"NumHeight":2,"BackIsHidden":true,"UniqueBack":false,"Type":0}},"LuaScript":"","LuaScriptState":"","XmlUI":""}]==],[302]=[==[{"GUID":"c7b1d4","Name":"Card","Transform":{"posX":5.14010143,"posY":2.063494,"posZ":-4.39241171,"rotX":359.8631,"rotY":179.974548,"rotZ":-0.002107894,"scaleX":2.29997349,"scaleY":1.0,"scaleZ":2.29997349},"Nickname":"","Description":"","GMNotes":"","AltLookAngle":{"x":0.0,"y":0.0,"z":0.0},"ColorDiffuse":{"r":0.713235259,"g":0.713235259,"b":0.713235259},"LayoutGroupSortIndex":0,"Value":0,"Locked":false,"Grid":true,"Snap":true,"IgnoreFoW":false,"MeasureMovement":false,"DragSelectable":true,"Autoraise":true,"Sticky":true,"Tooltip":true,"GridProjection":false,"HideWhenFaceDown":true,"Hands":true,"CardID":302,"SidewaysCard":false,"CustomDeck":{"3":{"FaceURL":"https://steamusercontent-a.akamaihd.net/ugc/1859434225081947922/03DD57D219121078CF0C1952D6792FF19D9D373A/","BackURL":"https://steamusercontent-a.akamaihd.net/ugc/1833522185803078168/A2050800715C7861D93951496663C01554EF2E32/","NumWidth":6,"NumHeight":2,"BackIsHidden":true,"UniqueBack":false,"Type":0}},"LuaScript":"","LuaScriptState":"","XmlUI":""}]==],[73000]=[==[{"GUID":"9be262","Name":"CardCustom","Transform":{"posX":65.30026,"posY":11.7010155,"posZ":22.1271057,"rotX":0.000114221068,"rotY":269.986877,"rotZ":-0.0006956121,"scaleX":2.29997349,"scaleY":1.0,"scaleZ":2.29997349},"Nickname":"","Description":"","GMNotes":"","AltLookAngle":{"x":0.0,"y":0.0,"z":0.0},"ColorDiffuse":{"r":0.713235259,"g":0.713235259,"b":0.713235259},"LayoutGroupSortIndex":0,"Value":0,"Locked":false,"Grid":true,"Snap":true,"IgnoreFoW":false,"MeasureMovement":false,"DragSelectable":true,"Autoraise":true,"Sticky":true,"Tooltip":true,"GridProjection":false,"HideWhenFaceDown":true,"Hands":true,"CardID":73000,"SidewaysCard":false,"CustomDeck":{"730":{"FaceURL":"https://steamusercontent-a.akamaihd.net/ugc/17156148149837033890/98EA362B4304B9B9E5825AAE0D213A17FC4BBB7C/","BackURL":"https://steamusercontent-a.akamaihd.net/ugc/1799745188598220361/A2050800715C7861D93951496663C01554EF2E32/","NumWidth":1,"NumHeight":1,"BackIsHidden":true,"UniqueBack":false,"Type":0}},"LuaScript":"","LuaScriptState":"","XmlUI":""}]==],[304]=[==[{"GUID":"201005","Name":"Card","Transform":{"posX":-34.0781059,"posY":11.6981983,"posZ":27.2413673,"rotX":0.0345823355,"rotY":180.00032,"rotZ":0.0251624361,"scaleX":2.29997349,"scaleY":1.0,"scaleZ":2.29997349},"Nickname":"","Description":"","GMNotes":"","AltLookAngle":{"x":0.0,"y":0.0,"z":0.0},"ColorDiffuse":{"r":0.713235259,"g":0.713235259,"b":0.713235259},"LayoutGroupSortIndex":0,"Value":0,"Locked":false,"Grid":true,"Snap":true,"IgnoreFoW":false,"MeasureMovement":false,"DragSelectable":true,"Autoraise":true,"Sticky":true,"Tooltip":true,"GridProjection":false,"HideWhenFaceDown":true,"Hands":true,"CardID":304,"SidewaysCard":false,"CustomDeck":{"3":{"FaceURL":"https://steamusercontent-a.akamaihd.net/ugc/1859434225081947922/03DD57D219121078CF0C1952D6792FF19D9D373A/","BackURL":"https://steamusercontent-a.akamaihd.net/ugc/1833522185803078168/A2050800715C7861D93951496663C01554EF2E32/","NumWidth":6,"NumHeight":2,"BackIsHidden":true,"UniqueBack":false,"Type":0}},"LuaScript":"","LuaScriptState":"","XmlUI":""}]==],[308]=[==[{"GUID":"06ace2","Name":"Card","Transform":{"posX":49.28753,"posY":11.5751371,"posZ":22.6206779,"rotX":5.08970043e-05,"rotY":269.9901,"rotZ":-0.000322228385,"scaleX":2.29997349,"scaleY":1.0,"scaleZ":2.29997349},"Nickname":"","Description":"","GMNotes":"","AltLookAngle":{"x":0.0,"y":0.0,"z":0.0},"ColorDiffuse":{"r":0.713235259,"g":0.713235259,"b":0.713235259},"LayoutGroupSortIndex":0,"Value":0,"Locked":false,"Grid":true,"Snap":true,"IgnoreFoW":false,"MeasureMovement":false,"DragSelectable":true,"Autoraise":true,"Sticky":true,"Tooltip":true,"GridProjection":false,"HideWhenFaceDown":true,"Hands":true,"CardID":308,"SidewaysCard":false,"CustomDeck":{"3":{"FaceURL":"https://steamusercontent-a.akamaihd.net/ugc/1859434225081947922/03DD57D219121078CF0C1952D6792FF19D9D373A/","BackURL":"https://steamusercontent-a.akamaihd.net/ugc/1833522185803078168/A2050800715C7861D93951496663C01554EF2E32/","NumWidth":6,"NumHeight":2,"BackIsHidden":true,"UniqueBack":false,"Type":0}},"LuaScript":"","LuaScriptState":"","XmlUI":""}]==],[73300]=[==[{"GUID":"e88b64","Name":"CardCustom","Transform":{"posX":49.4498253,"posY":11.6168051,"posZ":23.0559349,"rotX":0.00105606078,"rotY":269.9901,"rotZ":-0.00123060483,"scaleX":2.29997349,"scaleY":1.0,"scaleZ":2.29997349},"Nickname":"","Description":"","GMNotes":"","AltLookAngle":{"x":0.0,"y":0.0,"z":0.0},"ColorDiffuse":{"r":0.713235259,"g":0.713235259,"b":0.713235259},"LayoutGroupSortIndex":0,"Value":0,"Locked":false,"Grid":true,"Snap":true,"IgnoreFoW":false,"MeasureMovement":false,"DragSelectable":true,"Autoraise":true,"Sticky":true,"Tooltip":true,"GridProjection":false,"HideWhenFaceDown":true,"Hands":true,"CardID":73300,"SidewaysCard":false,"CustomDeck":{"733":{"FaceURL":"https://steamusercontent-a.akamaihd.net/ugc/10654530041309384819/5D0D59497688830C050F1BA44431CAB1104B7F3F/","BackURL":"https://steamusercontent-a.akamaihd.net/ugc/1799745188598220361/A2050800715C7861D93951496663C01554EF2E32/","NumWidth":1,"NumHeight":1,"BackIsHidden":true,"UniqueBack":false,"Type":0}},"LuaScript":"","LuaScriptState":"","XmlUI":""}]==]}
+RTT_ORDER_JSON_4 = [==[{"GUID":"88257f","Name":"Deck","Transform":{"posX":64.33211,"posY":11.60173,"posZ":-25.0888042,"rotX":-1.91315461e-08,"rotY":270.0,"rotZ":-7.529847e-07,"scaleX":2.29997349,"scaleY":1.0,"scaleZ":2.29997349},"Nickname":"","Description":"","GMNotes":"","AltLookAngle":{"x":0.0,"y":0.0,"z":0.0},"ColorDiffuse":{"r":0.713235259,"g":0.713235259,"b":0.713235259},"LayoutGroupSortIndex":0,"Value":0,"Locked":false,"Grid":true,"Snap":true,"IgnoreFoW":false,"MeasureMovement":false,"DragSelectable":true,"Autoraise":true,"Sticky":true,"Tooltip":true,"GridProjection":false,"HideWhenFaceDown":true,"Hands":false,"SidewaysCard":true,"DeckIDs":[805,802,801,800],"CustomDeck":{"8":{"FaceURL":"https://steamusercontent-a.akamaihd.net/ugc/1835788265939406811/7679B10CF8ED042A245D14B569E9E3D9CDFE75BC/","BackURL":"https://steamusercontent-a.akamaihd.net/ugc/1799745188600310763/0C068F20F62D953FE96E73AB1E0014AABEECF74A/","NumWidth":5,"NumHeight":2,"BackIsHidden":true,"UniqueBack":false,"Type":0}},"LuaScript":"","LuaScriptState":"","XmlUI":"","ContainedObjects":[{"GUID":"8491fb","Name":"Card","Transform":{"posX":64.0154,"posY":11.5751534,"posZ":-32.2374573,"rotX":3.13927535e-06,"rotY":270.0,"rotZ":9.9273886e-05,"scaleX":2.29997349,"scaleY":1.0,"scaleZ":2.29997349},"Nickname":"","Description":"","GMNotes":"","AltLookAngle":{"x":0.0,"y":0.0,"z":0.0},"ColorDiffuse":{"r":0.713235259,"g":0.713235259,"b":0.713235259},"LayoutGroupSortIndex":0,"Value":0,"Locked":false,"Grid":true,"Snap":true,"IgnoreFoW":false,"MeasureMovement":false,"DragSelectable":true,"Autoraise":true,"Sticky":true,"Tooltip":true,"GridProjection":false,"HideWhenFaceDown":true,"Hands":true,"CardID":805,"SidewaysCard":true,"CustomDeck":{"8":{"FaceURL":"https://steamusercontent-a.akamaihd.net/ugc/1835788265939406811/7679B10CF8ED042A245D14B569E9E3D9CDFE75BC/","BackURL":"https://steamusercontent-a.akamaihd.net/ugc/1799745188600310763/0C068F20F62D953FE96E73AB1E0014AABEECF74A/","NumWidth":5,"NumHeight":2,"BackIsHidden":true,"UniqueBack":false,"Type":0}},"LuaScript":"","LuaScriptState":"","XmlUI":""},{"GUID":"bacbbf","Name":"Card","Transform":{"posX":64.60444,"posY":11.6144962,"posZ":-31.4052162,"rotX":-0.002876776,"rotY":270.0,"rotZ":359.994,"scaleX":2.29997349,"scaleY":1.0,"scaleZ":2.29997349},"Nickname":"","Description":"","GMNotes":"","AltLookAngle":{"x":0.0,"y":0.0,"z":0.0},"ColorDiffuse":{"r":0.713235259,"g":0.713235259,"b":0.713235259},"LayoutGroupSortIndex":0,"Value":0,"Locked":false,"Grid":true,"Snap":true,"IgnoreFoW":false,"MeasureMovement":false,"DragSelectable":true,"Autoraise":true,"Sticky":true,"Tooltip":true,"GridProjection":false,"HideWhenFaceDown":true,"Hands":true,"CardID":802,"SidewaysCard":true,"CustomDeck":{"8":{"FaceURL":"https://steamusercontent-a.akamaihd.net/ugc/1835788265939406811/7679B10CF8ED042A245D14B569E9E3D9CDFE75BC/","BackURL":"https://steamusercontent-a.akamaihd.net/ugc/1799745188600310763/0C068F20F62D953FE96E73AB1E0014AABEECF74A/","NumWidth":5,"NumHeight":2,"BackIsHidden":true,"UniqueBack":false,"Type":0}},"LuaScript":"","LuaScriptState":"","XmlUI":""},{"GUID":"7557a4","Name":"Card","Transform":{"posX":65.741,"posY":11.6480627,"posZ":-32.8092346,"rotX":359.991364,"rotY":270.0,"rotZ":0.002321583,"scaleX":2.29997349,"scaleY":1.0,"scaleZ":2.29997349},"Nickname":"","Description":"","GMNotes":"","AltLookAngle":{"x":0.0,"y":0.0,"z":0.0},"ColorDiffuse":{"r":0.713235259,"g":0.713235259,"b":0.713235259},"LayoutGroupSortIndex":0,"Value":0,"Locked":false,"Grid":true,"Snap":true,"IgnoreFoW":false,"MeasureMovement":false,"DragSelectable":true,"Autoraise":true,"Sticky":true,"Tooltip":true,"GridProjection":false,"HideWhenFaceDown":true,"Hands":true,"CardID":801,"SidewaysCard":true,"CustomDeck":{"8":{"FaceURL":"https://steamusercontent-a.akamaihd.net/ugc/1835788265939406811/7679B10CF8ED042A245D14B569E9E3D9CDFE75BC/","BackURL":"https://steamusercontent-a.akamaihd.net/ugc/1799745188600310763/0C068F20F62D953FE96E73AB1E0014AABEECF74A/","NumWidth":5,"NumHeight":2,"BackIsHidden":true,"UniqueBack":false,"Type":0}},"LuaScript":"","LuaScriptState":"","XmlUI":""},{"GUID":"17843f","Name":"Card","Transform":{"posX":64.41976,"posY":11.65809,"posZ":-32.54536,"rotX":0.001989416,"rotY":270.0,"rotZ":-0.00265754061,"scaleX":2.29997349,"scaleY":1.0,"scaleZ":2.29997349},"Nickname":"","Description":"","GMNotes":"","AltLookAngle":{"x":0.0,"y":0.0,"z":0.0},"ColorDiffuse":{"r":0.713235259,"g":0.713235259,"b":0.713235259},"LayoutGroupSortIndex":0,"Value":0,"Locked":false,"Grid":true,"Snap":true,"IgnoreFoW":false,"MeasureMovement":false,"DragSelectable":true,"Autoraise":true,"Sticky":true,"Tooltip":true,"GridProjection":false,"HideWhenFaceDown":true,"Hands":true,"CardID":800,"SidewaysCard":true,"CustomDeck":{"8":{"FaceURL":"https://steamusercontent-a.akamaihd.net/ugc/1835788265939406811/7679B10CF8ED042A245D14B569E9E3D9CDFE75BC/","BackURL":"https://steamusercontent-a.akamaihd.net/ugc/1799745188600310763/0C068F20F62D953FE96E73AB1E0014AABEECF74A/","NumWidth":5,"NumHeight":2,"BackIsHidden":true,"UniqueBack":false,"Type":0}},"LuaScript":"","LuaScriptState":"","XmlUI":""}]}]==]
+RTT_ORDER_JSON_5 = [==[{"GUID":"fdb993","Name":"Deck","Transform":{"posX":55.35494,"posY":11.6065445,"posZ":-24.9285755,"rotX":-6.83371937e-09,"rotY":270.0,"rotZ":-3.07726573e-08,"scaleX":2.29997349,"scaleY":1.0,"scaleZ":2.29997349},"Nickname":"","Description":"","GMNotes":"","AltLookAngle":{"x":0.0,"y":0.0,"z":0.0},"ColorDiffuse":{"r":0.713235259,"g":0.713235259,"b":0.713235259},"LayoutGroupSortIndex":0,"Value":0,"Locked":false,"Grid":true,"Snap":true,"IgnoreFoW":false,"MeasureMovement":false,"DragSelectable":true,"Autoraise":true,"Sticky":true,"Tooltip":true,"GridProjection":false,"HideWhenFaceDown":true,"Hands":false,"SidewaysCard":true,"DeckIDs":[806,805,802,801,800],"CustomDeck":{"8":{"FaceURL":"https://steamusercontent-a.akamaihd.net/ugc/1835788265939406811/7679B10CF8ED042A245D14B569E9E3D9CDFE75BC/","BackURL":"https://steamusercontent-a.akamaihd.net/ugc/1799745188600310763/0C068F20F62D953FE96E73AB1E0014AABEECF74A/","NumWidth":5,"NumHeight":2,"BackIsHidden":true,"UniqueBack":false,"Type":0}},"LuaScript":"","LuaScriptState":"","XmlUI":"","ContainedObjects":[{"GUID":"811ad9","Name":"Card","Transform":{"posX":55.44372,"posY":11.5751438,"posZ":-24.79723,"rotX":2.30794358e-05,"rotY":270.0,"rotZ":-0.0001306939,"scaleX":2.29997349,"scaleY":1.0,"scaleZ":2.29997349},"Nickname":"","Description":"","GMNotes":"","AltLookAngle":{"x":0.0,"y":0.0,"z":0.0},"ColorDiffuse":{"r":0.713235259,"g":0.713235259,"b":0.713235259},"LayoutGroupSortIndex":0,"Value":0,"Locked":false,"Grid":true,"Snap":true,"IgnoreFoW":false,"MeasureMovement":false,"DragSelectable":true,"Autoraise":true,"Sticky":true,"Tooltip":true,"GridProjection":false,"HideWhenFaceDown":true,"Hands":true,"CardID":806,"SidewaysCard":true,"CustomDeck":{"8":{"FaceURL":"https://steamusercontent-a.akamaihd.net/ugc/1835788265939406811/7679B10CF8ED042A245D14B569E9E3D9CDFE75BC/","BackURL":"https://steamusercontent-a.akamaihd.net/ugc/1799745188600310763/0C068F20F62D953FE96E73AB1E0014AABEECF74A/","NumWidth":5,"NumHeight":2,"BackIsHidden":true,"UniqueBack":false,"Type":0}},"LuaScript":"","LuaScriptState":"","XmlUI":""},{"GUID":"8491fb","Name":"Card","Transform":{"posX":64.0154,"posY":11.5751534,"posZ":-32.2374573,"rotX":3.13927535e-06,"rotY":270.0,"rotZ":9.9273886e-05,"scaleX":2.29997349,"scaleY":1.0,"scaleZ":2.29997349},"Nickname":"","Description":"","GMNotes":"","AltLookAngle":{"x":0.0,"y":0.0,"z":0.0},"ColorDiffuse":{"r":0.713235259,"g":0.713235259,"b":0.713235259},"LayoutGroupSortIndex":0,"Value":0,"Locked":false,"Grid":true,"Snap":true,"IgnoreFoW":false,"MeasureMovement":false,"DragSelectable":true,"Autoraise":true,"Sticky":true,"Tooltip":true,"GridProjection":false,"HideWhenFaceDown":true,"Hands":true,"CardID":805,"SidewaysCard":true,"CustomDeck":{"8":{"FaceURL":"https://steamusercontent-a.akamaihd.net/ugc/1835788265939406811/7679B10CF8ED042A245D14B569E9E3D9CDFE75BC/","BackURL":"https://steamusercontent-a.akamaihd.net/ugc/1799745188600310763/0C068F20F62D953FE96E73AB1E0014AABEECF74A/","NumWidth":5,"NumHeight":2,"BackIsHidden":true,"UniqueBack":false,"Type":0}},"LuaScript":"","LuaScriptState":"","XmlUI":""},{"GUID":"bacbbf","Name":"Card","Transform":{"posX":64.60444,"posY":11.6144962,"posZ":-31.4052162,"rotX":-0.002876776,"rotY":270.0,"rotZ":359.994,"scaleX":2.29997349,"scaleY":1.0,"scaleZ":2.29997349},"Nickname":"","Description":"","GMNotes":"","AltLookAngle":{"x":0.0,"y":0.0,"z":0.0},"ColorDiffuse":{"r":0.713235259,"g":0.713235259,"b":0.713235259},"LayoutGroupSortIndex":0,"Value":0,"Locked":false,"Grid":true,"Snap":true,"IgnoreFoW":false,"MeasureMovement":false,"DragSelectable":true,"Autoraise":true,"Sticky":true,"Tooltip":true,"GridProjection":false,"HideWhenFaceDown":true,"Hands":true,"CardID":802,"SidewaysCard":true,"CustomDeck":{"8":{"FaceURL":"https://steamusercontent-a.akamaihd.net/ugc/1835788265939406811/7679B10CF8ED042A245D14B569E9E3D9CDFE75BC/","BackURL":"https://steamusercontent-a.akamaihd.net/ugc/1799745188600310763/0C068F20F62D953FE96E73AB1E0014AABEECF74A/","NumWidth":5,"NumHeight":2,"BackIsHidden":true,"UniqueBack":false,"Type":0}},"LuaScript":"","LuaScriptState":"","XmlUI":""},{"GUID":"7557a4","Name":"Card","Transform":{"posX":65.741,"posY":11.6480627,"posZ":-32.8092346,"rotX":359.991364,"rotY":270.0,"rotZ":0.002321583,"scaleX":2.29997349,"scaleY":1.0,"scaleZ":2.29997349},"Nickname":"","Description":"","GMNotes":"","AltLookAngle":{"x":0.0,"y":0.0,"z":0.0},"ColorDiffuse":{"r":0.713235259,"g":0.713235259,"b":0.713235259},"LayoutGroupSortIndex":0,"Value":0,"Locked":false,"Grid":true,"Snap":true,"IgnoreFoW":false,"MeasureMovement":false,"DragSelectable":true,"Autoraise":true,"Sticky":true,"Tooltip":true,"GridProjection":false,"HideWhenFaceDown":true,"Hands":true,"CardID":801,"SidewaysCard":true,"CustomDeck":{"8":{"FaceURL":"https://steamusercontent-a.akamaihd.net/ugc/1835788265939406811/7679B10CF8ED042A245D14B569E9E3D9CDFE75BC/","BackURL":"https://steamusercontent-a.akamaihd.net/ugc/1799745188600310763/0C068F20F62D953FE96E73AB1E0014AABEECF74A/","NumWidth":5,"NumHeight":2,"BackIsHidden":true,"UniqueBack":false,"Type":0}},"LuaScript":"","LuaScriptState":"","XmlUI":""},{"GUID":"17843f","Name":"Card","Transform":{"posX":64.41976,"posY":11.65809,"posZ":-32.54536,"rotX":0.001989416,"rotY":270.0,"rotZ":-0.00265754061,"scaleX":2.29997349,"scaleY":1.0,"scaleZ":2.29997349},"Nickname":"","Description":"","GMNotes":"","AltLookAngle":{"x":0.0,"y":0.0,"z":0.0},"ColorDiffuse":{"r":0.713235259,"g":0.713235259,"b":0.713235259},"LayoutGroupSortIndex":0,"Value":0,"Locked":false,"Grid":true,"Snap":true,"IgnoreFoW":false,"MeasureMovement":false,"DragSelectable":true,"Autoraise":true,"Sticky":true,"Tooltip":true,"GridProjection":false,"HideWhenFaceDown":true,"Hands":true,"CardID":800,"SidewaysCard":true,"CustomDeck":{"8":{"FaceURL":"https://steamusercontent-a.akamaihd.net/ugc/1835788265939406811/7679B10CF8ED042A245D14B569E9E3D9CDFE75BC/","BackURL":"https://steamusercontent-a.akamaihd.net/ugc/1799745188600310763/0C068F20F62D953FE96E73AB1E0014AABEECF74A/","NumWidth":5,"NumHeight":2,"BackIsHidden":true,"UniqueBack":false,"Type":0}},"LuaScript":"","LuaScriptState":"","XmlUI":""}]}]==]
+RTT_MILITANT = {309,307,310,301,73200,300}
+RTT_INSURGENT = {305,302,73000,304,308,73300}
+-- five landing slots, centred on z=0; slot 5 (z=14) is the LEFT end.
+RTT_SLOTS = {{63.9,11.6,-14},{63.9,11.6,-7},{63.9,11.6,0},{63.9,11.6,7},{63.9,11.6,14}}
+-- the draft deck sits past the LEFT-most slot (z=14) with a ~10-unit gap: left of
+-- the cards, but not stranded far out.
+RTT_DECK = {63.9,11.6,24}
+RTT_SPAWNED = {}
+-- CardID -> faction name (matches EVERYTHING['Standard'][name]); used by the faction draft
+RTT_CARD_FACTION = {
+  [300]="Marquise de Cat", [301]="Eyrie Dynasties", [307]="Underground Duchy",
+  [309]="Lord of the Hundreds", [310]="Keepers in Iron", [73200]="Lilypad Diaspora",
+  [302]="Woodland Alliance", [304]="Riverfolk Company", [305]="The Lizard Cult",
+  [308]="Corvid Conspiracy", [73000]="Twilight Council", [73300]="Knaves of the Deepwood",
+}
+
+function rttShuffle(t)
+  for i=#t,2,-1 do local j=math.random(i) t[i],t[j]=t[j],t[i] end
+  return t
+end
+
+function rttSetup(player, value, id)
+  RTT_5P_MARSH = false
+  for _, o in ipairs(getObjectsWithTag("RTT Selector")) do pcall(function() o.destruct() end) end
+  for _, o in ipairs(getObjectsWithTag("RTT Faction")) do pcall(function() o.destruct() end) end
+  for _,g in ipairs(RTT_SPAWNED) do local o=getObjectFromGUID(g) if o then o.destruct() end end
+  RTT_SPAWNED = {}
+  -- NO os.time re-seed: the RNG is seeded once at load and advances per call, so each draft is
+  -- independent (see rtt-rng-bug). Re-seeding to os.time() made same-second launches identical.
+  local mil = {}
+  for _,c in ipairs(RTT_MILITANT) do mil[#mil+1]=c end
+  rttShuffle(mil)
+  local first = mil[1]
+  local pool = {}
+  if not RTT_THEME then for i=2,#mil do pool[#pool+1]=mil[i] end end RTT_THEME = nil
+  for _,c in ipairs(RTT_INSURGENT) do pool[#pool+1]=c end
+  rttShuffle(pool)
+  -- the 5 dealt (Militant first); the rest stay as the deck so EVERY faction card is
+  -- on the table. The full random order is fixed here, up front.
+  RTT_DN = RTT_DRAFT_N or 5 RTT_DRAFT_N = nil local draft = {first} for _di = 1, RTT_DN - 1 do draft[#draft + 1] = pool[_di] end
+  -- the 5 drafted faction NAMES, for the reverse-order faction draft (phase 3)
+  RTT_DRAFT_FACTIONS = {}
+  for _,cid in ipairs(draft) do RTT_DRAFT_FACTIONS[#RTT_DRAFT_FACTIONS+1] = RTT_CARD_FACTION[cid] end
+  -- ONLY the 5 drafted cards are put on the table (no leftover faction deck). The
+  -- draft empties these as factions are placed in the faction phase.
+  RTT_NLEFT = 0
+  local jsons = {}
+  for _,cid in ipairs(draft) do jsons[#jsons+1] = RTT_MIL_CARDS[cid] or RTT_INS_CARDS[cid] end
+  rttSpawnDeck(jsons, 1, {})
+end
+
+-- 1) a real face-down DECK resting ON the table at RTT_DECK: cards spawn in a tight
+--    stack at table height (y offsets are tiny) and are locked so it sits like a deck.
+function rttSpawnDeck(jsons, i, cards)
+  if i > #jsons then
+    Wait.time(function() rttSlideOut(cards, 1) end, 0.9)   -- let the deck sit, then deal
+    return
+  end
+  spawnObjectJSON({
+    json = jsons[i],
+    position = {RTT_DECK[1], RTT_DECK[2] + 0.05 * i, RTT_DECK[3]},
+    rotation = {0, 270, 180},
+    callback_function = function(o)
+      o.setLock(true)
+      RTT_SPAWNED[#RTT_SPAWNED+1] = o.getGUID()
+      cards[i] = o
+      Wait.time(function() rttSpawnDeck(jsons, i+1, cards) end, 0.1)
+    end
+  })
+end
+
+-- 2) deal from the deck: each card flies up in a small ARC (raised mid-point) to its
+--    slot. Card 1 (always the Militant) lands LEFT-most, each later card one right.
+function rttSlideOut(cards, k)
+  if k > (#cards - RTT_NLEFT) then                     -- deal ALL the drafted cards
+    Wait.time(function() rttFlipAll(cards, 1) end, 0.6)
+    return
+  end
+  local c = cards[RTT_NLEFT + k]                        -- the k-th draft card (top of the deck)
+  if c ~= nil then
+    c.setLock(false)
+    local _nd = #cards - RTT_NLEFT local _sp = (_nd > 1) and (28.0 / (_nd - 1)) or 0 local s = {63.9, 11.6, -14 + (_nd - k) * _sp}
+    local mid = {s[1], s[2] + 4, (RTT_DECK[3] + s[3]) / 2}   -- lift over -> arc
+    c.setPositionSmooth(mid, false, false)
+    Wait.time(function()
+      if c ~= nil then c.setPositionSmooth({s[1], s[2], s[3]}, false, true) end
+    end, 0.35)
+  end
+  Wait.time(function() rttSlideOut(cards, k+1) end, 0.6)
+end
+
+-- 3) flip face-up with the REAL flip mechanism (a natural flip, not a rotate that
+--    clips through the table), one card at a time so they all flip the same way.
+function rttFlipAll(cards, k)
+  if k > (#cards - RTT_NLEFT) then                     -- flip ALL the dealt cards
+    for i = 1, RTT_NLEFT do                            -- unlock the leftover deck so it's movable
+      if cards[i] ~= nil then cards[i].setLock(false) end
+    end
+    Wait.time(rttDealOrder, 1.0)
+    return
+  end
+  local c = cards[RTT_NLEFT + k]
+  if c ~= nil then c.flip() end
+  Wait.time(function() rttFlipAll(cards, k+1) end, 0.12)
+end
+
+function rttDealOrder()
+  spawnObjectJSON({
+    json = ((RTT_DN and RTT_DN >= 6) and RTT_ORDER_JSON_5 or RTT_ORDER_JSON_4),  -- 5-card deck only for 5p
+    position = {63.9, 13, -25},          -- on the table (turn order isn't secret); the leftover deck rests here
+    rotation = {0, 270, 0},
+    callback_function = function(ord)
+      ord.setLock(false)                 -- unlock so it isn't left floating
+      RTT_SPAWNED[#RTT_SPAWNED+1] = ord.getGUID()
+      Wait.time(function()
+        if ord ~= nil and ord.shuffle then ord.shuffle() end
+        Wait.time(function()
+          local seated = {}
+          for _,p in ipairs(Player.getPlayers()) do
+            if p.seated and p.color ~= "Grey" and p.color ~= "Black" then seated[#seated+1]=p end
+          end
+          -- joined players keep THEIR chosen colours; assign a RANDOM turn order.
+          local plist = {}
+          for _,p in ipairs(seated) do plist[#plist+1] = {color=p.color, name=p.steam_name} end
+          for i=#plist,2,-1 do local j=math.random(i) plist[i],plist[j]=plist[j],plist[i] end
+          -- N FIXED seats = draft size (RTT_DN-1), independent of how many humans joined
+          -- (this is what fixes 'only 2 boards with 2 players').
+          local _N = (RTT_DN or 5) - 1
+          RTT_ORDER = {}
+          for i=1,_N do RTT_ORDER[i] = plist[i] or {color=nil, name=''} end
+          RTT_ORDER_DECK = (ord ~= nil) and ord.getGUID() or nil   -- rttSeatAndDeal deals from it
+          Wait.time(function() rttBeginPick() end, 1.0)
+        end, 0.6)
+      end, 0.5)
+    end
+  })
+end
+
+function makeFaction(player,value,id)
+  if player.color == "Grey" then broadcastToAll("Before choosing a faction, you must have a player color.") return end
+  attrs = self.UI.getAttributes(id)
+  category = attrs.category
+
+  setupFaction(category,id,player.color,false)
+  do local cp = self.getPosition()
+    Wait.time(function() rttFactionExtras(id, cp.x, cp.z, cp.z > 0, false) end, 1.2) end
+
+  if id == "The Winged Menace" then
+    spawnWingedMenaceExtraHand(player.color)
+  end
+  if id == "Woodland Alliance" then
+    spawnSupportersHand(player.color)
+  elseif id == "Corvid Conspiracy" or id == "BBP Contraption Conspiracy" or id == "Cogwheel Corvids" then
+    shufflePlots(self.getPosition())
+  elseif id == "Warriors Wake" then
+    summonSaltyOldStan()
+  elseif id == "The Lizard Cult" then
+    --makeLizardWizard()
+  end
+
+  if (id == "Host of Light") then
+
+    for i, object in pairs(getObjects()) do
+      if object.hasTag("Pillar of Faith Cards") then
+        local GUID = object.getGUID()
+        local deck = getObjectFromGUID(GUID)
+        deck.randomize()
+
+        shuffleAssets("Firebrand Fox")
+        shuffleAssets("Firebrand Rabbit")
+        shuffleAssets("Firebrand Mouse")
+
+
+        deck.removeTag("Pillar of Faith Cards")
+        Wait.time(
+            function()
+
+              shuffleAssets("Firebrand Fox")
+              shuffleAssets("Firebrand Rabbit")
+              shuffleAssets("Firebrand Mouse")
+
+              removeTagFromAssets("Firebrand Fox")
+              removeTagFromAssets("Firebrand Rabbit")
+              removeTagFromAssets("Firebrand Mouse")
+
+              local distance = 24.4794138
+              local deckPos = deck.getPosition()
+              -- wonky math that makes radians, goes the right way with clockwise/counterclockwise, and adjusts for angle offset
+              local angle = -1 *  (deck.getRotation()[2] * math.pi/180) - math.pi * 2 * 0.0565
+
+              local xPos = deckPos[1] - distance * math.cos(angle)
+              local yPos = deckPos[2] + 1
+              local zPos = deckPos[3] - distance * math.sin(angle)
+
+              deck.takeObject({position = {xPos, yPos, zPos}})
+
+            end,
+            3
+        )
+
+        shuffleAssets("Firebrand Fox")
+        shuffleAssets("Firebrand Rabbit")
+        shuffleAssets("Firebrand Mouse")
+
+
+      end
+    end
+  end
+
+end
+
+
+
+function distance(p1,p2)
+  local xDist = p1[1] - p2[1]
+  local yDist = p1[2] - p2[2]
+  local zDist = p1[3] - p2[3]
+
+  local distanceSum = xDist * xDist + yDist * yDist + zDist * zDist
+
+  return math.sqrt(distanceSum)
+
+end
+
+function shufflePlots(pos)
+  local plots = getObjectsWithTag("Plot Token")
+
+  local positions = {}
+  for x, plot in ipairs(plots) do
+    positions[x] = plot.getPosition()
+  end
+  i=1,10 do plots = shuffle(plots) end
+  for x=1, #plots do
+    plots[x].setPosition(positions[x])
+    plots[x].removeTag("Plot Token")
+  end
+end
+
+function summonSaltyOldStan()
+  lizardBlocker = find_object_by_gm_note("Dragon God")
+  if lizardBlocker != nil then
+    lizardBlocker.destruct()
+  end
+
+  lizardBlocker = find_object_by_gm_note("Discard Blocking Dan")
+  if lizardBlocker != nil then
+    lizardBlocker.destruct()
+  end
+
+  makeSpecial("Tools","Salty Old Stan",-31.09 + 2.24,5,2.31)
+
+end
+
+function summonLizardBlocker()
+  stan = find_object_by_gm_note("Salty Old Stan")
+  if stan == nil then
+    makeSpecial("Tools","Lizard Blocker",-31.09,5,2.31)
+  end
+end
+
+
+function spawnWingedMenaceExtraHand(color)
+  local angleY = Player[color].getHandTransform(1).rotation.y
+  local posX = Player[color].getHandTransform(1).position.x
+  local posZ = Player[color].getHandTransform(1).position.z
+
+  local angle = 1.07 * 2 * math.pi/6 - (math.pi/180 * angleY)
+
+  local offsetX = math.cos(angle) * 13.53
+  local offsetZ = math.sin(angle) * 13.53
+
+  local posy = Vector({posX + offsetX,12.56,posZ + offsetZ})
+  local roty = Player[color].getHandTransform(1).rotation
+
+  Player[color].setHandTransform({
+      position = posy,
+      rotation = roty,
+      scale    = {5.99, 5.4, 5.50},
+  }, 2)
+end
+
+function spawnSupportersHand(color)
+  local angleY = Player[color].getHandTransform(1).rotation.y
+  local posX = Player[color].getHandTransform(1).position.x
+  local posZ = Player[color].getHandTransform(1).position.z
+
+  local angle = 2.517 - (math.pi/180 * angleY)
+
+  local offsetX = math.cos(angle) * 14.73
+  local offsetZ = math.sin(angle) * 14.73
+
+  local posy = Vector({posX + offsetX,12.56,posZ + offsetZ})
+  local roty = Player[color].getHandTransform(1).rotation
+
+  Player[color].setHandTransform({
+      position = posy,
+      rotation = roty,
+      scale    = {12, 5.4, 5.50},
+  }, 2)
+end
+
+
+function ends_with(str, ending)
+   return ending == "" or str:sub(-#ending) == ending
+end
+
+function starts_with(str, start)
+   return str:sub(1, #start) == start or start == str
+end
+
+function makeDeck(player,value,id)
+  clearInfo()
+  if id == "Dark Deck" or id == "Dark Deck 2" then
+    makeDarkDeckSpecials()
+  end
+  removeDeckItems()
+  local my_rot = self.getRotation()
+  local objects = {}
+  local scale = self.getScale()
+  scale.x = 1/scale.x
+  scale.z = 1/scale.z
+
+  if (starts_with(id,"Dark Deck")) then
+    if (ends_with(id,"2")) then
+      allObjects = {EVERYTHING["Decks"]['Dark Refill Card']['data'],EVERYTHING["Decks"][id]['data']}
+    else
+      allObjects = {EVERYTHING["Decks"]['Dark Refill Card']['data'],EVERYTHING["Decks"]["Dark Dominance Track Card"]['data'],EVERYTHING["Decks"][id]['data']}
+    end
+  else
+    if (ends_with(id,"2")) then
+      allObjects = {EVERYTHING["Decks"]['Refill Card']['data'],EVERYTHING["Decks"][id]['data']}
+    else
+      allObjects = {EVERYTHING["Decks"]['Refill Card']['data'],EVERYTHING["Decks"]["Dominance Track Card"]['data'],EVERYTHING["Decks"][id]['data']}
+    end
+  end
+
+  for _,n in ipairs(allObjects) do
+    for _,v in ipairs(n) do
+      local vec = Vector(v.move_to) * scale
+      vec.y = vec.y - 0.1
+
+      vec = vec * Vector({15.5, 1, 15.5})
+
+      local newVec = Vector({0,1,0})
+      newVec.x = vec.z * -1
+      newVec.y = vec.y + 10.01
+      newVec.z = vec.x
+
+
+      local new_pos = newVec
+      new_pos.y = new_pos.y+10-8.5+0.05
+      new_pos.x = new_pos.x - 45 + 8.01
+      spawnObjectJSON({
+          json              = v.json,
+          position          = new_pos,
+          callback_function = function(o)
+            o.setRotation({o.getRotation().x, o.getRotation().y-90, o.getRotation().z})
+            o.setTags(table.insert(o.getTags(),"Deck Object"))
+            if o.name == "Deck" then
+              o.shuffle()
+            end
+
+            for _,i in ipairs(getObjects()) do
+              if i.name == "Deck" and i.hasTag("Deck Object") then
+                for _,m in ipairs(i.getObjects()) do
+                  --m.addTag("Deck Object")
+                end
+              end
+            end
+          end
+      })
+    end
+  end
+end
+
+function spawnPlayerCards(keepCards)
+  local my_rot = self.getRotation()
+  local objects = {}
+  objects = EVERYTHING["Adset"]['Player Cards']['data']
+  local scale = self.getScale()
+  scale.x = 1/scale.x
+  scale.z = 1/scale.z
+
+  function callback(o)
+      o.setRotation({o.getRotation().x, o.getRotation().y, o.getRotation().z})
+  end
+  for _,v in ipairs(objects) do
+      local vec = Vector(v.move_to) * scale
+      vec.y = vec.y - 0.1
+
+      vec = vec * Vector({30, 10, 30})
+
+      local newVec = Vector({1,1,1})
+      newVec.x = vec.x
+      newVec.y = vec.y
+      newVec.z = vec.z
+
+      local new_pos = newVec
+      new_pos.y = new_pos.y + 15
+      new_pos.x = new_pos.x
+      new_pos.z = new_pos.z - 5
+      spawnObjectJSON({
+          json              = v.json,
+          position          = new_pos,
+          callback_function = callback
+      })
+  end
+end
+
+function removePlayerTurnCards()
+  for _, c in ipairs(getObjects()) do
+      if c.getName() == "Player 1" then c.destruct() end
+      if c.getName() == "Player 2" then c.destruct() end
+      if c.getName() == "Player 3" then c.destruct() end
+      if c.getName() == "Player 4" then c.destruct() end
+      if c.getName() == "Player 5" then c.destruct() end
+      if c.getName() == "Player 6" then c.destruct() end
+  end
+end
+
+function playerSetup(playerCount,keepCards)
+
+  removePlayerTurnCards()
+  spawnPlayerCards(keepCards)
+
+  for _, c in ipairs(getObjects()) do
+    local pos = c.getPosition()
+    local name = c.getName()
+    if name == "Player 1" or name == "Player 2" or name == "Player 3" or name == "Player 4" or name == "Player 5" or name == "Player 6" then
+      if keepCards == false then
+        c.addTag("Setup Card")
+      end
+    end
+    if playerCount == 1 then
+      if name == "Player 1" then c.setPositionSmooth({52, 11.58, -27}) c.locked = true end
+      if name == "Player 2" then c.destruct() end
+      if name == "Player 3" then c.destruct() end
+      if name == "Player 4" then c.destruct() end
+      if name == "Player 5" then c.destruct() end
+      if name == "Player 6" then c.destruct() end
+    elseif playerCount == 2 then
+      if name == "Player 1" then c.setPositionSmooth({52, 11.58, -27.00}) c.locked = true end
+      if name == "Player 2" then c.setPositionSmooth({-52, 11.58, -27.00}) c.locked = true end
+      if name == "Player 3" then c.destruct() end
+      if name == "Player 4" then c.destruct() end
+      if name == "Player 5" then c.destruct() end
+      if name == "Player 6" then c.destruct() end
+    elseif playerCount == 3 then
+      if name == "Player 1" then c.setPositionSmooth({52, 11.58, -27.00}) c.locked = true end
+      if name == "Player 2" then c.setPositionSmooth({0, 11.58, -27.00}) c.locked = true end
+      if name == "Player 3" then c.setPositionSmooth({-52, 11.58, -27.00}) c.locked = true end
+      if name == "Player 4" then c.destruct() end
+      if name == "Player 5" then c.destruct() end
+      if name == "Player 6" then c.destruct() end
+    elseif playerCount == 4 then
+      if name == "Player 1" then c.setPositionSmooth({52, 11.58, -27.00}) c.locked = true end
+      if name == "Player 2" then c.setPositionSmooth({-52, 11.58, -27.00}) c.locked = true end
+      if name == "Player 3" then c.setPositionSmooth({-52, 11.58, 27.00}) c.locked = true c.setRotation({c.getRotation()[1], 270.00, c.getRotation()[3]})end
+      if name == "Player 4" then c.setPositionSmooth({52, 11.58, 27.00}) c.locked = true c.setRotation({c.getRotation()[1], 270.00, c.getRotation()[3]})end
+      if name == "Player 5" then c.destruct() end
+      if name == "Player 6" then c.destruct() end
+    elseif playerCount == 5 then
+      if name == "Player 1" then c.setPositionSmooth({52, 11.58, -27.00}) c.locked = true end
+      if name == "Player 2" then c.setPositionSmooth({0, 11.58, -27.00}) c.locked = true end
+      if name == "Player 3" then c.setPositionSmooth({-52, 11.58, -27.00}) c.locked = true end
+      if name == "Player 4" then c.setPositionSmooth({-52, 11.58, 27.00}) c.locked = true c.setRotation({c.getRotation()[1], 270.00, c.getRotation()[3]})end
+      if name == "Player 5" then c.setPositionSmooth({52, 11.58, 27.00}) c.locked = true c.setRotation({c.getRotation()[1], 270.00, c.getRotation()[3]})end
+      if name == "Player 6" then c.destruct() end
+    elseif playerCount == 6 then
+      if name == "Player 1" then c.setPositionSmooth({52, 11.58, -27.00}) c.locked = true end
+      if name == "Player 2" then c.setPositionSmooth({0, 11.58, -27.00}) c.locked = true end
+      if name == "Player 3" then c.setPositionSmooth({-52, 11.58, -27.00}) c.locked = true end
+      if name == "Player 4" then c.setPositionSmooth({-52, 11.58, 27.00}) c.locked = true c.setRotation({c.getRotation()[1], 270.00, c.getRotation()[3]})end
+      if name == "Player 5" then c.setPositionSmooth({0, 11.58, 27.00}) c.locked = true c.setRotation({c.getRotation()[1], 270.00, c.getRotation()[3]})end
+      if name == "Player 6" then c.setPositionSmooth({52, 11.58, 27.00}) c.locked = true c.setRotation({c.getRotation()[1], 270.00, c.getRotation()[3]})end
+    end
+  end
+end
+
+
+function makeMapTool(id)
+  local my_rot = self.getRotation()
+  local objects = {}
+  objects = EVERYTHING["Tools"][id]['data']
+  local scale = self.getScale()
+  scale.x = 1/scale.x
+  scale.z = 1/scale.z
+
+  for _,v in ipairs(objects) do
+      local vec = Vector(v.move_to) * scale
+      vec.y = vec.y - 0.1
+
+      vec = vec * Vector({-15.5, 1, 15.5})
+
+      local newVec = Vector({0,1,0})
+      newVec.x = vec.z
+      newVec.y = vec.y + 10.01
+      newVec.z = vec.x
+
+      local new_pos = newVec
+      new_pos.y = new_pos.y + 10 - 8.5 + 0.05
+      new_pos.x = new_pos.x - 45 - 8.31 - 7.82
+      new_pos.z = new_pos.z -1.38
+      spawnObjectJSON({
+          json              = v.json,
+          position          = new_pos,
+          callback_function = function(o)
+            o.setTags(table.insert(o.getTags(),"Map Object"))
+            o.setRotation({o.getRotation().x, o.getRotation().y, o.getRotation().z})
+          end
+      })
+
+  end
+
+end
+
+
+
+
+
+
+function toggleTool(player,value,id)
+  local guid = ""
+
+  if id == "Supply Knight" then guid = "740edf" end
+  if id == "Ginso's Gizmo" then guid = "7d5fb5" end
+
+  for i, object in pairs(getObjects()) do
+    if (object.getGUID() == guid) then
+      object.destruct()
+      return
+    end
+  end
+
+  makeTool(player,value,id)
+
+end
+
+
+
+function rttMakeClearing()
+  makeTool(nil, nil, "Clearing Priorities")
+end
+
+function makeTool(player,value,id)
+  local my_rot = self.getRotation()
+  local objects = {}
+  objects = EVERYTHING["Tools"][id]['data']
+  local scale = self.getScale()
+  scale.x = 1/scale.x
+  scale.z = 1/scale.z
+
+  function callback(o)
+      o.setRotation({o.getRotation().x, o.getRotation().y+90, o.getRotation().z})
+      if o.hasTag("Shuffleable") then o.shuffle() o.shuffle() end
+  end
+  for _,v in ipairs(objects) do
+      local vec = Vector(v.move_to) * scale
+      vec.y = vec.y - 0.1
+
+      vec = vec * Vector({15.5, 1, 15.5})
+
+      local newVec = Vector({0,1,0})
+      newVec.x = vec.z
+      newVec.y = vec.y + 10.01
+      newVec.z = vec.x * -1
+
+      local new_pos = newVec
+      new_pos.y = new_pos.y+10-8.5+0.05
+      new_pos.x = new_pos.x + 45 + 8.31
+      new_pos.z = new_pos.z -1.38
+
+      if id == "Advanced Setup" then
+        new_pos.x = new_pos.x + 10 - 2.53
+        new_pos.z = new_pos.z + 20 + 4.37 - 0.55
+      end
+
+      spawnObjectJSON({
+          json              = v.json,
+          position          = new_pos,
+          callback_function = callback
+      })
+  end
+end
+
+
+
+
+
+
+function makeBattleMat(player,value,id)
+
+  makeSpecial("Tools","Battle Mat",33.17,1.55,9.21)
+end
+
+function makeDraftedBattleMat(player,value,id)
+  makeSpecialWithTag("Tools","Battle Mat",33.17,1.55,9.21,"Map Object")
+end
+
+function makeMovedDraftedBattleMat(moveAmount)
+  makeSpecialWithTag("Tools","Battle Mat",33.17 + moveAmount,1.55,9.21,"Map Object")
+end
+
+
+
+function makeLizardWizard(player,value,id)
+  makeSpecial("Tools","Lizard Wizard",-29.79-0.73,1.55,10.03,180)
+  summonLizardBlocker()
+end
+
+function makeDarkDeckSpecials()
+  makeSpecialWithTag("Tools","Dark Side Card",31.6,1.55,22.57,"Deck Object")
+  makeSpecialWithTag("Tools","Dark Deck Box",-71.18,1.56,9.24,"Deck Object")
+  makeSpecialWithTag("Decks","Dark Deck Instructions",-41.84,1.7,-16.69,"Deck Object")
+end
+
+
+function makeSpecialCard(category,name,x,y,z,face,back,fac)
+  local my_rot = self.getRotation()
+  local objects = {}
+  objects = EVERYTHING[category][name]['data']
+  objects[1].move_to= { -0.000177 + 32.62, 0.113605, 0.00006 + 10.02}
+  objects[1].json=
+    [[{
+      "GUID": "fd2510","Name": "CardCustom","Transform": {"posX": -48.9859734,"posY": 35.9249954,"posZ": -51.09336,"rotX": 0.0168779865,
+      "rotY": 270.0,"rotZ": 0.07987517,"scaleX": 2.3,"scaleY": 1.0,"scaleZ": 2.3},"Nickname": "]]..fac..[[","Description": "",
+      "GMNotes": "","ColorDiffuse": {"r": 0.713235259,"g": 0.713235259,"b": 0.713235259},"LayoutGroupSortIndex": 0,"Value": 0,"Locked": true,
+      "Grid": true,"Snap": true,"IgnoreFoW": false,"MeasureMovement": false,"DragSelectable": true,"Autoraise": true,"Sticky": true,
+      "Tooltip": true,"GridProjection": false,"HideWhenFaceDown": true,"Hands": true,"CardID": 71800,"SidewaysCard": false,"CustomDeck": {"718":
+      {"FaceURL": "]]..face..[[","BackURL": "]]..back..[[","NumWidth": 1,"NumHeight": 1,"BackIsHidden": true,"UniqueBack": false,"Type": 0}},
+      "LuaScript": "","LuaScriptState": "","Tags": ["WWAdsetCards"],"XmlUI": ""
+    }]]
+
+  local scale = self.getScale()
+  scale.x = 1/scale.x
+  scale.z = 1/scale.z
+
+  function callback(o)
+      o.setRotation({o.getRotation().x, o.getRotation().y, o.getRotation().z})
+  end
+
+  for _,v in ipairs(objects) do
+      local vec = Vector(v.move_to) * scale
+      vec.y = vec.y - 0.1
+
+      vec = vec * Vector({15.5, 1, 15.5})
+
+      local newVec = Vector({0,1,0})
+      newVec.x = vec.x
+      newVec.y = vec.y + 10.01
+      newVec.z = vec.z
+
+      local new_pos = newVec
+      new_pos.x = new_pos.x + x
+      new_pos.y = new_pos.y + y
+      new_pos.z = new_pos.z + z
+      spawnObjectJSON({
+          json              = v.json,
+          position          = new_pos,
+          callback_function = callback
+      })
+  end
+end
+
+function toggleSpecial(id)
+  local guids = {}
+  local names = {}
+
+  -- if id == "Lizard Wizard" then guids = {""} names = {"Outcast Marker","Lizard Wizard"} end
+  if id == "Lizard Blocker" then guids = {""} names = {"Dragon God"} end
+  if id == "Koffin Keeper" then names = {"Koffin Keeper"} end
+  if id == "Battle Mat" then names = {"Battle Mat"} end
+
+  local found = false
+
+  for i, object in pairs(getObjects()) do
+    for j, name in pairs(names) do
+
+      if object.getName() == name then
+
+        object.destruct()
+        found = true
+      end
+    end
+  end
+
+  return found
+end
+
+function makeSpecial(category,name,x,y,z,rotation)
+
+  if toggleSpecial(name) == true then return end
+
+  local my_rot = self.getRotation()
+  local objects = {}
+  objects = EVERYTHING[category][name]['data']
+  local scale = self.getScale()
+  scale.x = 1/scale.x
+  scale.z = 1/scale.z
+
+  local alterRotation = 180
+  if rotation != nil then
+    alterRotation = rotation
+  end
+
+  function callback(o)
+      o.setRotation({o.getRotation().x, o.getRotation().y + alterRotation, o.getRotation().z})
+  end
+  for _,v in ipairs(objects) do
+      local vec = Vector(v.move_to) * scale
+      vec.y = vec.y - 0.1
+
+      vec = vec * Vector({15.5, 1, 15.5})
+
+      local newVec = Vector({0,1,0})
+      newVec.x = vec.x
+      newVec.y = vec.y + 10.01
+      newVec.z = vec.z
+
+      local new_pos = newVec
+      new_pos.x = new_pos.x + x
+      new_pos.y = new_pos.y + y
+      new_pos.z = new_pos.z + z
+
+      local new_rot = Vector({0,0,0})
+      new_rot.x = new_rot.x
+      new_rot.y = new_rot.y
+      new_rot.z = new_rot.z
+
+      spawnObjectJSON({
+          json              = v.json,
+          position          = new_pos,
+          rotation          = new_rot,
+          callback_function = callback
+      })
+  end
+end
+
+function makeSpecialWithTag(category,name,x,y,z,tag)
+  local my_rot = self.getRotation()
+  local objects = {}
+  objects = EVERYTHING[category][name]['data']
+  local scale = self.getScale()
+  scale.x = 1/scale.x
+  scale.z = 1/scale.z
+
+  function callback(o)
+      o.setRotation({o.getRotation().x, o.getRotation().y, o.getRotation().z})
+  end
+  for _,v in ipairs(objects) do
+      local vec = Vector(v.move_to) * scale
+      vec.y = vec.y - 0.1
+
+      vec = vec * Vector({15.5, 1, 15.5})
+
+      local newVec = Vector({0,1,0})
+      newVec.x = vec.x
+      newVec.y = vec.y + 10.01
+      newVec.z = vec.z
+
+      local new_pos = newVec
+      new_pos.x = new_pos.x + x
+      new_pos.y = new_pos.y + y
+      new_pos.z = new_pos.z + z
+      spawnObjectJSON({
+          json              = v.json,
+          position          = new_pos,
+          callback_function = function(spawned_object)
+            spawned_object.setTags(table.insert(spawned_object.getTags(),tag))
+          end
+      })
+  end
+end
+
+
+function randomDraftMap(player,value,id)
+  math.random() math.random() math.random()
+  local chance = math.random(1,6)
+  math.random() math.random() math.random()
+  if chance == 1 then draftMap(player,value,"Summer Map")
+    elseif chance == 2 then draftMap(player,value,"Winter Map")
+    elseif chance == 3 then draftMap(player,value,"Lake Map")
+    elseif chance == 4 then draftMap(player,value,"Mountain Map")
+    elseif chance == 5 then draftMap(player,value,"Gorge Map")
+    elseif chance == 6 then draftMap(player,value,"Marsh Map")
+  end
+
+end
+
+function draftMap(player,value,id)
+  if (id == "Lost Woodland Map" and #_G["Roster"] >= 2 and #_G["Roster"] < 6) then
+      broadcastToAll("Sorry, this map is only available for groups of 6 to 8 players.")
+      return
+  end
+
+  if (id == "Inferno Map") then
+    makeMovedDraftedBattleMat(5.33)
+  elseif (id == "Spaceballs Map") then
+    makeMovedDraftedBattleMat(0.96)
+  else
+    makeDraftedBattleMat()
+  end
+
+  makeMap(player,value,id)
+
+  allButtonsOff()
+  setTile("Map",id.." Tile")
+
+  self.UI.setAttribute("draftDeckButtons","active","True")
+  clearInfo()
+  broadcastToAll("Choose a Deck.")
+end
+
+function setTile(slot,img)
+  self.UI.setAttribute("rosterDraft"..slot.."Tile","image",img)
+  self.UI.setAttribute("mapDraft"..slot.."Tile","image",img)
+  self.UI.setAttribute("deckDraft"..slot.."Tile","image",img)
+  self.UI.setAttribute("hirelingsDraft"..slot.."Tile","image",img)
+  self.UI.setAttribute("hirelingsSelectDraft"..slot.."Tile","image",img)
+  self.UI.setAttribute("factionDraft"..slot.."Tile","image",img)
+  self.UI.setAttribute("handsDraft"..slot.."Tile","image",img)
+  self.UI.setAttribute("redFactionDraft"..slot.."Tile","image",img)
+  self.UI.setAttribute("banDraft"..slot.."Tile","image",img)
+
+  self.UI.setAttribute("clockworkDraft"..slot.."Tile","image",img)
+  self.UI.setAttribute("clockwork2Draft"..slot.."Tile","image",img)
+  self.UI.setAttribute("landmarkDraft"..slot.."Tile","image",img)
+  self.UI.setAttribute("landmarkSetupDraft"..slot.."Tile","image",img)
+
+  if slot=="List" then
+    self.UI.setAttribute("playerDraftListTile","image",img)
+  end
+end
+
+function redefineFinishLandmarkButtonLabel()
+  if draftLandmarkCount() == 0 then
+    self.UI.setAttribute("draftFinishLandmarkButton","icon","SkipLabel")
+    return
+  end
+  if draftLandmarkCount() > 0 then
+    self.UI.setAttribute("draftFinishLandmarkButton","icon","SetupLabel")
+    return
+  end
+end
+
+function redefineFinishBotButtonLabel()
+  if draftBotCount() == 0 then
+    self.UI.setAttribute("draftFinishBotsButton","icon","SkipLabel")
+    return
+  end
+  if draftBotCount() > 0 then
+    self.UI.setAttribute("draftFinishBotsButton","icon","SetupLabel")
+    return
+  end
+
+end
+
+function refigureReach(step)
+
+  -- local reachStats = {}
+  --
+  -- reachStats["Marquise de Cat"] = {10, "#F4641D"}
+  -- reachStats["Eyrie Dynasties"] = {7, "#1E87FF"}
+  -- reachStats["Woodland Alliance"] = {3, "#31B32B"}
+  -- reachStats["Vagabond1"] = {5, "#868686"}
+  -- reachStats["Vagabond2"] = {2, "#434343"}
+  -- reachStats["The Lizard Cult"] = {2, "#E7E52C"}
+  -- reachStats["Riverfolk Company"] = {5, "#21B19B"}
+  -- reachStats["Underground Duchy"] = {8, "#F0B893"}
+  -- reachStats["Corvid Conspiracy"] = {3, "#A020F0"}
+  -- reachStats["Lord of the Hundreds"] = {9, "#DA1A18"}
+  -- reachStats["Keepers in Iron"] = {8, "#FFFFFF"}
+  --
+  -- reachStats["draftCatBot"] = {10, "#F4641D"}
+  -- reachStats["draftBirdBot"] = {7, "#1E87FF"}
+  -- reachStats["draftWABot"] = {3, "#31B32B"}
+  -- reachStats["draftVagaBot"] = {5, "#868686"}
+  -- reachStats["draftLizBot"] = {2, "#E7E52C"}
+  -- reachStats["draftOtterBot"] = {5, "#21B19B"}
+  -- reachStats["draftMoleBot"] = {8, "#F0B893"}
+  -- reachStats["draftCrowBot"] = {3, "#A020F0"}
+  -- reachStats["draftRatBot"] = {9, "#DA1A18"}
+  -- reachStats["draftBadgerBot"] = {8, "#FFFFFF"}
+  --
+  -- local counter = 1
+  --
+  -- for v = 1, 47 do
+  --   self.UI.setAttribute("reachMeter" .. v.."p", "color", "#00000000")
+  -- end
+  --
+  -- self.UI.setAttribute("reachMeter","active","true")
+  -- if #_G['BotRoster'] == 0 and step == 1 then self.UI.setAttribute("reachMeter","active","false") end
+  --
+  -- for _, v in ipairs(_G['BotRoster']) do
+  --       for i = 1, reachStats[v][1] do
+  --       self.UI.setAttribute("reachMeter" .. (counter).."p", "color", reachStats[v][2])
+  --       counter = counter + 1
+  --   end
+  -- end
+
+
+
+
+end
+
+function setDraftBot(player, value, id)
+
+  -- remove bot from roster
+  if self.UI.getAttribute(id,"color") == draftBotColors[id] then
+    self.UI.setAttribute(id,"color",draftBotDefaultColor)
+    removeFirst(_G['BotRoster'],id)
+  end
+
+  -- add bot to roster
+  if self.UI.getAttribute(id,"color") == draftBotDefaultColor then
+      if draftBotCount() + #_G["Roster"] + 1 <= 6 then
+        self.UI.setAttribute(id,"color",draftBotColors[id])
+        table.insert(_G['BotRoster'],id)
+      end
+  end
+
+  Wait.frames( function() redefineFinishBotButtonLabel() end, 5)
+
+  -- refigureReach(1)
+
+end
+
+function randomDraftLandmark()
+  if draftLandmarkCount() < 2 then
+    while true do
+      local r = landmarkNames[math.random(#landmarkNames)]
+      if self.UI.getAttribute(r,"color") == inactiveLandmarkColor then
+        self.UI.setAttribute(r,"color",activeLandmarkColor)
+        Wait.frames( function() redefineFinishLandmarkButtonLabel() end, 5)
+        return
+      end
+    end
+  end
+  return
+end
+
+function setDraftLandmark(player,value,id)
+  if self.UI.getAttribute(id,"color") == activeLandmarkColor then
+    self.UI.setAttribute(id,"color",inactiveLandmarkColor)
+  end
+
+  if self.UI.getAttribute(id,"color") == inactiveLandmarkColor then
+      if draftLandmarkCount() < 2 then
+        self.UI.setAttribute(id,"color",activeLandmarkColor)
+      end
+  end
+  Wait.frames( function() redefineFinishLandmarkButtonLabel() end, 5)
+end
+
+function draftLandmarkCount()
+  local count = 0
+
+  for i = 1, #landmarkNames do
+    if self.UI.getAttribute(landmarkNames[i],"color") != inactiveLandmarkColor then
+      count = count + 1
+    end
+  end
+
+  return count
+end
+
+function randomDraftBot()
+  if draftBotCount() + #_G["Roster"] + 1 <= 6 then
+      while true do
+        local r = draftBotNames[math.random(#draftBotNames)]
+        if self.UI.getAttribute(r,"color") == draftBotDefaultColor then
+          setDraftBot("","",r)
+          return
+        end
+      end
+
+    end
+  return
+
+end
+
+
+
+function draftBotCount()
+
+  local count = 0
+
+  for i = 1, #draftBotNames do
+    if self.UI.getAttribute(draftBotNames[i],"color") != draftBotDefaultColor then
+      count = count + 1
+    end
+  end
+
+  return count
+
+end
+
+
+function find_object_by_gm_note(gm_note)
+   local objects = {}
+   for _, obj in ipairs(getAllObjects()) do
+      if obj.getName() == gm_note then
+         table.insert(objects, obj)
+      end
+   end
+   return objects[1]
+end
+
+
+
+
+-- 9 always-present Marsh clearings: world x, y, z, rotY
+RTT_MARSH_SUIT9 = {
+  { 21.347, 11.684, -16.915, 75 }, { -11.094, 11.719, -16.054, 225 }, { -17.962, 11.719, -13.523, 30 },
+  { 22.784, 11.719, -11.850, 165 }, { -0.718, 11.719, -0.272, 75 }, { 6.024, 11.719, 2.893, 135 },
+  { 16.941, 11.719, 11.653, 240 }, { -23.584, 11.719, 19.613, 300 }, { -2.042, 11.719, 21.443, 30 },
+}
+-- 2 fixed ruin clearings: world x, y, z
+RTT_MARSH_RUIN_FIXED = { { 4.435, 11.656, 7.056 }, { -4.046, 11.665, -2.435 } }
+-- each marker's two candidate clearings, world positions:
+--   flood = { x, y, z, rotZ } (where the marker sits when this side floods)
+--   suit  = { x, y, z, rotY } (where a suit sits on this side when it is DRY)
+--   ruin  = { x, y, z }       (where a ruin sits when DRY; markers B and C only)
+RTT_MARSH = {
+  { key = "A", tag = "53E4E9F1",
+    up   = { flood = { -11.380, 11.720, 7.150, 0 },   suit = { -13.504, 11.739, 5.340, 225 } },
+    down = { flood = { -20.930, 11.790, -2.720, 180 }, suit = { -17.795, 11.742, -5.680, 135 } } },
+  { key = "B", tag = "C5C35E37",
+    up   = { flood = { 15.910, 11.639, 3.730, 0 },   suit = { 17.342, 11.695, 0.101, 165 }, ruin = { 14.323, 11.641, 3.736 } },
+    down = { flood = { 7.200, 11.750, -7.210, 180 }, suit = { 3.811, 11.711, -8.597, 240 }, ruin = { 6.153, 11.649, -6.705 } } },
+  { key = "C", tag = "B37C9A48",
+    up   = { flood = { 7.700, 11.654, 16.860, 0 },   suit = { 5.947, 11.717, 20.588, 345 }, ruin = { 8.081, 11.653, 15.388 } },
+    down = { flood = { 0.880, 11.750, -16.920, 180 }, suit = { 3.512, 11.710, -14.611, 45 }, ruin = { 0.461, 11.654, -19.318 } } },
+}
+
+-- correct single-pass Fisher-Yates; NO os.time re-seed
+function rttShuffleList(t)
+  for i = #t, 2, -1 do
+    local j = math.random(i)
+    t[i], t[j] = t[j], t[i]
+  end
+end
+
+function rttMarshPlan(objects)
+  -- NO os.time re-seed here: it made rapid re-clicks land in the same second -> same flood
+  -- (see rtt-rng-bug). The RNG is seeded once at load; each call advances it, so every click
+  -- re-randomises instantly.
+
+  -- world (x,z) of each clearing that floods this build; m460 uses this to drop the
+  -- priority-number token on each flooded (submerged, no-suit) clearing.
+  RTT_MARSH_FLOODED = {}
+  -- world (x,z) of the CLEARING CENTRE (suit position) that is inactive this build. m460's
+  -- number logic matches these against RTT_MARSH_RANK to skip the excluded clearings. The
+  -- flood MARKER sits ~2.8u off the clearing centre, so this is the suit slot, not the marker.
+  RTT_MARSH_EXCLUDED = {}
+
+  local floodIx = {}
+  local ruinIx = {}
+  local suitIx = {}
+  for idx, v in ipairs(objects) do
+    local j = v.json
+    if     string.find(j, "53E4E9F1", 1, true) then floodIx["A"] = idx
+    elseif string.find(j, "C5C35E37", 1, true) then floodIx["B"] = idx
+    elseif string.find(j, "B37C9A48", 1, true) then floodIx["C"] = idx
+    elseif string.find(j, "RUIN", 1, true) then ruinIx[#ruinIx + 1] = idx
+    elseif string.find(j, "Clearing Marker", 1, true) then suitIx[#suitIx + 1] = idx
+    end
+  end
+
+  local ov = {}
+  local drySuits = {}
+  local dryRuins = {}
+  for _, m in ipairs(RTT_MARSH) do
+    local flooded, dry
+    if math.random(2) == 1 then flooded = m.up; dry = m.down else flooded = m.down; dry = m.up end
+    RTT_MARSH_FLOODED[#RTT_MARSH_FLOODED + 1] = { flooded.flood[1], flooded.flood[3] }
+    RTT_MARSH_EXCLUDED[#RTT_MARSH_EXCLUDED + 1] = { flooded.suit[1], flooded.suit[3] }
+    local fi = floodIx[m.key]
+    if fi ~= nil then
+      local f = flooded.flood
+      ov[fi] = { world = { f[1], f[2], f[3] }, rot = { 0, 180, f[4] } }
+    end
+    local s = dry.suit
+    drySuits[#drySuits + 1] = { s[1], s[2], s[3], s[4] }
+    if dry.ruin ~= nil then
+      local r = dry.ruin
+      dryRuins[#dryRuins + 1] = { r[1], r[2], r[3] }
+    end
+  end
+
+  -- RUINS: 2 fixed + 2 dry world slots; shuffle across the 4 ruin entries (items randomised)
+  local ruinSlots = {}
+  for _, p in ipairs(RTT_MARSH_RUIN_FIXED) do ruinSlots[#ruinSlots + 1] = { p[1], p[2], p[3] } end
+  for _, p in ipairs(dryRuins) do ruinSlots[#ruinSlots + 1] = p end
+  rttShuffleList(ruinSlots)
+  for i, idx in ipairs(ruinIx) do
+    local p = ruinSlots[i]
+    if p ~= nil then ov[idx] = { world = { p[1], p[2], p[3] }, rot = nil } end
+  end
+
+  -- SUITS: all 12 clearings randomised (4 of each colour) across 9 fixed + 3 dry
+  local suitTargets = {}
+  for _, p in ipairs(RTT_MARSH_SUIT9) do suitTargets[#suitTargets + 1] = { p[1], p[2], p[3], p[4] } end
+  for _, p in ipairs(drySuits) do suitTargets[#suitTargets + 1] = p end
+  rttShuffleList(suitTargets)
+  for i, idx in ipairs(suitIx) do
+    local t = suitTargets[i]
+    if t ~= nil then ov[idx] = { world = { t[1], t[2], t[3] }, rot = { 0, t[4], 0 } } end
+  end
+
+  return ov
+end
+
+
+RTT_PRIO_PIECES = RTT_PRIO_PIECES or {}
+RTT_PRIO_MAP = RTT_PRIO_MAP or nil
+
+-- clear the current priority/number markers. They are tagged "RTT Priority" (NOT "Map Object") so
+-- makeMap's removeMapItems does NOT wipe them every click — we manage them here instead.
+function rttClearPriority()
+  for _, o in ipairs(getObjectsWithTag("RTT Priority")) do pcall(function() o.destruct() end) end
+  RTT_PRIO_PIECES = {}
+end
+
+-- Non-Marsh maps: the priority markers are FIXED, so on a SAME-map re-click leave them alone (no
+-- delete/respawn flicker). Only re-spawn when the map actually changed.
+function rttSpawnPriority(id, jsons)
+  if RTT_PRIO_MAP == id then return end
+  rttClearPriority()
+  for _, j in ipairs(jsons) do
+    local ob = spawnObjectJSON({
+      json = j,
+      callback_function = function(o)
+        o.setLock(true)
+        o.addTag("RTT Priority")
+      end
+    })
+    RTT_PRIO_PIECES[#RTT_PRIO_PIECES + 1] = ob
+  end
+  RTT_PRIO_MAP = id
+end
+
+-- Marsh number tokens (priority order, skip-excluded-and-renumber).
+--
+-- The 15 Marsh clearings have a FIXED priority RANK (RTT_MARSH_RANK, world x,y,z, rank 1
+-- first — recorded by Adrien, cross-checked against m440's suit positions). Exactly 3 are
+-- inactive each game: the flooded sides in 4-player, the town-landmark clearings in
+-- 5-player. Both mods export the 3 inactive clearing CENTRES as RTT_MARSH_EXCLUDED (world
+-- x,z). We walk the ranks; an excluded clearing gets NO token and does NOT consume a
+-- number — every ACTIVE clearing takes the next consecutive number 1..12 in rank order.
+-- So the numbers stay consecutive across the 12 active clearings and "shift up" past any
+-- excluded clearing, exactly per Adrien's rule.
+--
+-- RTT_MARSH_NUMJSON[n] is a full number-token JSON with number n's art baked in; we spawn
+-- it at the clearing's centre, upright (rotY 180, uniform so every number reads the same
+-- way), locked, tagged "Map Object" so the next map build clears it.
+-- each entry: { suitX, suitY, suitZ,  tokenX, tokenZ } — the SUIT centre is used only for the
+-- flood/landmark skip test; the number token is placed at Adrien's deliberate TOKEN position
+-- (offset beside the clearing so the suit stays visible), recorded per-clearing like every map.
+-- the number tokens' true resting height on the (flat) Marsh board — recorded ~11.63-11.66;
+-- 11.635 = map surface (~11.61) + half token thickness, so they sit ON the board, not floating.
+RTT_MARSH_TOKEN_Y = 11.635
+
+RTT_MARSH_RANK = {
+  { -23.584, 11.719,  19.613,  -22.723,  15.732 },   -- 1  FIX7
+  {  -2.042, 11.719,  21.443,   -6.780,  15.272 },   -- 2  FIX8
+  {   5.947, 11.717,  20.588,   10.119,  13.567 },   -- 3  C.up
+  {  16.941, 11.719,  11.653,   22.373,  17.238 },   -- 4  FIX6
+  { -13.504, 11.739,   5.340,  -10.991,  11.491 },   -- 5  A.up
+  {   6.024, 11.719,   2.893,    6.420,   8.630 },   -- 6  FIX5
+  {  17.342, 11.695,   0.101,   14.726,   6.362 },   -- 7  B.up
+  { -17.795, 11.742,  -5.680,  -23.281,   0.501 },   -- 8  A.down
+  {  -0.718, 11.719,  -0.272,   -3.829,   3.173 },   -- 9  FIX4
+  {   3.811, 11.711,  -8.597,    5.948,  -3.427 },   -- 10 B.down
+  {  22.784, 11.719, -11.850,   17.876,  -4.877 },   -- 11 FIX3
+  { -17.962, 11.719, -13.523,  -23.483, -13.564 },   -- 12 FIX2
+  { -11.094, 11.719, -16.054,  -10.851,  -9.377 },   -- 13 FIX1
+  {   3.512, 11.710, -14.611,   -0.883, -13.135 },   -- 14 C.down
+  {  21.347, 11.684, -16.915,   15.435, -13.961 },   -- 15 FIX0
+}
+
+function rttSpawnMarshNumbers()
+  rttClearPriority()                    -- Marsh ALWAYS re-places: the flood shifts which clearings get a number
+  local excl = RTT_MARSH_EXCLUDED or {}
+  local n = 0
+  for _, cl in ipairs(RTT_MARSH_RANK) do
+    local isEx = false
+    for _, e in ipairs(excl) do
+      local dx, dz = cl[1] - e[1], cl[3] - e[2]                 -- SUIT centre vs the excluded clearing
+      if dx * dx + dz * dz < 4.0 then isEx = true break end     -- within 2u = this clearing
+    end
+    if not isEx then
+      n = n + 1
+      local j = RTT_MARSH_NUMJSON[n]
+      if j ~= nil then
+        local ob = spawnObjectJSON({
+          json = j,
+          -- Adrien's TOKEN x,z; Y = the tokens' true resting height on the (flat) Marsh board.
+          -- (cl[2] is the SUIT marker's Y; number tokens rest ~0.05 lower, so cl[2]+0.10 floated.)
+          position = { cl[4], RTT_MARSH_TOKEN_Y, cl[5] },
+          rotation = { 0, 180, 0 },
+          callback_function = function(o)
+            o.setLock(true)
+            o.addTag("RTT Priority")
+          end
+        })
+        RTT_PRIO_PIECES[#RTT_PRIO_PIECES + 1] = ob
+      end
+    end
+  end
+  RTT_PRIO_MAP = "Marsh Map"
+end
+
+RTT_PRIO_SUMMERMAP = {
+[==[{"Name":"Custom_Tile","Transform":{"posX":19.4757576,"posY":11.6273184,"posZ":-18.6938076,"rotX":0.005635698,"rotY":179.989914,"rotZ":0.03719062,"scaleX":1.0,"scaleY":1.0,"scaleZ":1.0},"Nickname":"","Description":"","GMNotes":"","AltLookAngle":{"x":0.0,"y":0.0,"z":0.0},"ColorDiffuse":{"r":0.129411221,"g":0.129411221,"b":0.129411221},"LayoutGroupSortIndex":0,"Value":0,"Locked":false,"Grid":true,"Snap":true,"IgnoreFoW":false,"MeasureMovement":false,"DragSelectable":true,"Autoraise":true,"Sticky":true,"Tooltip":true,"GridProjection":false,"HideWhenFaceDown":false,"Hands":false,"CustomImage":{"ImageURL":"https://steamusercontent-a.akamaihd.net/ugc/1723164680735398757/2E2A197DCA52CB92E02E340E04872DFD58E42814/","ImageSecondaryURL":"https://steamusercontent-a.akamaihd.net/ugc/1723164680735388314/65B14443B80555C739C57BBACC5E57EFB6E263D1/","ImageScalar":1.0,"WidthScale":0.0,"CustomTile":{"Type":1,"Thickness":0.1,"Stackable":false,"Stretch":false}},"LuaScript":"","LuaScriptState":"","XmlUI":""}]==],
+[==[{"Name":"Custom_Tile","Transform":{"posX":23.3396435,"posY":11.62777,"posZ":1.06880569,"rotX":0.016964,"rotY":179.98999,"rotZ":0.0796116,"scaleX":1.0,"scaleY":1.0,"scaleZ":1.0},"Nickname":"","Description":"","GMNotes":"","AltLookAngle":{"x":0.0,"y":0.0,"z":0.0},"ColorDiffuse":{"r":0.129411221,"g":0.129411221,"b":0.129411221},"LayoutGroupSortIndex":0,"Value":0,"Locked":false,"Grid":true,"Snap":true,"IgnoreFoW":false,"MeasureMovement":false,"DragSelectable":true,"Autoraise":true,"Sticky":true,"Tooltip":true,"GridProjection":false,"HideWhenFaceDown":false,"Hands":false,"CustomImage":{"ImageURL":"https://steamusercontent-a.akamaihd.net/ugc/1723164680735395411/679034452BE6FA8F601CB172FA2C3168BFCDB7BE/","ImageSecondaryURL":"https://steamusercontent-a.akamaihd.net/ugc/1723164680735388314/65B14443B80555C739C57BBACC5E57EFB6E263D1/","ImageScalar":1.0,"WidthScale":0.0,"CustomTile":{"Type":1,"Thickness":0.1,"Stackable":false,"Stretch":false}},"LuaScript":"","LuaScriptState":"","XmlUI":""}]==],
+[==[{"Name":"Custom_Tile","Transform":{"posX":-2.73508215,"posY":11.6417341,"posZ":-18.65656,"rotX":0.005637319,"rotY":179.989853,"rotZ":0.0371895619,"scaleX":1.0,"scaleY":1.0,"scaleZ":1.0},"Nickname":"","Description":"","GMNotes":"","AltLookAngle":{"x":0.0,"y":0.0,"z":0.0},"ColorDiffuse":{"r":0.129411221,"g":0.129411221,"b":0.129411221},"LayoutGroupSortIndex":0,"Value":0,"Locked":false,"Grid":true,"Snap":true,"IgnoreFoW":false,"MeasureMovement":false,"DragSelectable":true,"Autoraise":true,"Sticky":true,"Tooltip":true,"GridProjection":false,"HideWhenFaceDown":false,"Hands":false,"CustomImage":{"ImageURL":"https://steamusercontent-a.akamaihd.net/ugc/1723164680735397129/76BA556B9D32B4C3C78D5ABF2A2A5BAB9749D814/","ImageSecondaryURL":"https://steamusercontent-a.akamaihd.net/ugc/1723164680735388314/65B14443B80555C739C57BBACC5E57EFB6E263D1/","ImageScalar":1.0,"WidthScale":0.0,"CustomTile":{"Type":1,"Thickness":0.1,"Stackable":false,"Stretch":false}},"LuaScript":"","LuaScriptState":"","XmlUI":""}]==],
+[==[{"Name":"Custom_Tile","Transform":{"posX":7.180888,"posY":11.6464376,"posZ":-11.7091885,"rotX":0.016964579,"rotY":179.98996,"rotZ":0.0796767,"scaleX":1.0,"scaleY":1.0,"scaleZ":1.0},"Nickname":"","Description":"","GMNotes":"","AltLookAngle":{"x":0.0,"y":0.0,"z":0.0},"ColorDiffuse":{"r":0.129411221,"g":0.129411221,"b":0.129411221},"LayoutGroupSortIndex":0,"Value":0,"Locked":false,"Grid":true,"Snap":true,"IgnoreFoW":false,"MeasureMovement":false,"DragSelectable":true,"Autoraise":true,"Sticky":true,"Tooltip":true,"GridProjection":false,"HideWhenFaceDown":false,"Hands":false,"CustomImage":{"ImageURL":"https://steamusercontent-a.akamaihd.net/ugc/1723164680735397926/DE6E0673828A0A7F634540A2B6ACBEAB5AAE216C/","ImageSecondaryURL":"https://steamusercontent-a.akamaihd.net/ugc/1723164680735388314/65B14443B80555C739C57BBACC5E57EFB6E263D1/","ImageScalar":1.0,"WidthScale":0.0,"CustomTile":{"Type":1,"Thickness":0.1,"Stackable":false,"Stretch":false}},"LuaScript":"","LuaScriptState":"","XmlUI":""}]==],
+[==[{"Name":"Custom_Tile","Transform":{"posX":-21.743782,"posY":11.6861992,"posZ":-13.15774,"rotX":0.0169652123,"rotY":179.98999,"rotZ":0.0796188042,"scaleX":1.0,"scaleY":1.0,"scaleZ":1.0},"Nickname":"","Description":"","GMNotes":"","AltLookAngle":{"x":0.0,"y":0.0,"z":0.0},"ColorDiffuse":{"r":0.129411221,"g":0.129411221,"b":0.129411221},"LayoutGroupSortIndex":0,"Value":0,"Locked":false,"Grid":true,"Snap":true,"IgnoreFoW":false,"MeasureMovement":false,"DragSelectable":true,"Autoraise":true,"Sticky":true,"Tooltip":true,"GridProjection":false,"HideWhenFaceDown":false,"Hands":false,"CustomImage":{"ImageURL":"https://steamusercontent-a.akamaihd.net/ugc/1723164680735396376/B30D28410D62CA39D329D63A29467BC3CA075A3D/","ImageSecondaryURL":"https://steamusercontent-a.akamaihd.net/ugc/1723164680735388314/65B14443B80555C739C57BBACC5E57EFB6E263D1/","ImageScalar":1.0,"WidthScale":0.0,"CustomTile":{"Type":1,"Thickness":0.1,"Stackable":false,"Stretch":false}},"LuaScript":"","LuaScriptState":"","XmlUI":""}]==],
+[==[{"Name":"Custom_Tile","Transform":{"posX":9.632904,"posY":11.6476526,"posZ":3.90398622,"rotX":0.0169640817,"rotY":179.98999,"rotZ":0.0796179548,"scaleX":1.0,"scaleY":1.0,"scaleZ":1.0},"Nickname":"","Description":"","GMNotes":"","AltLookAngle":{"x":0.0,"y":0.0,"z":0.0},"ColorDiffuse":{"r":0.129411221,"g":0.129411221,"b":0.129411221},"LayoutGroupSortIndex":0,"Value":0,"Locked":false,"Grid":true,"Snap":true,"IgnoreFoW":false,"MeasureMovement":false,"DragSelectable":true,"Autoraise":true,"Sticky":true,"Tooltip":true,"GridProjection":false,"HideWhenFaceDown":false,"Hands":false,"CustomImage":{"ImageURL":"https://steamusercontent-a.akamaihd.net/ugc/1723164680735394618/1C7937D88E8A996D14647B20DFF10A6202A69044/","ImageSecondaryURL":"https://steamusercontent-a.akamaihd.net/ugc/1723164680735388314/65B14443B80555C739C57BBACC5E57EFB6E263D1/","ImageScalar":1.0,"WidthScale":0.0,"CustomTile":{"Type":1,"Thickness":0.1,"Stackable":false,"Stretch":false}},"LuaScript":"","LuaScriptState":"","XmlUI":""}]==],
+[==[{"Name":"Custom_Tile","Transform":{"posX":-11.0734482,"posY":11.67535,"posZ":0.2815354,"rotX":0.016962165,"rotY":179.98999,"rotZ":0.07961434,"scaleX":1.0,"scaleY":1.0,"scaleZ":1.0},"Nickname":"","Description":"","GMNotes":"","AltLookAngle":{"x":0.0,"y":0.0,"z":0.0},"ColorDiffuse":{"r":0.129411221,"g":0.129411221,"b":0.129411221},"LayoutGroupSortIndex":0,"Value":0,"Locked":false,"Grid":true,"Snap":true,"IgnoreFoW":false,"MeasureMovement":false,"DragSelectable":true,"Autoraise":true,"Sticky":true,"Tooltip":true,"GridProjection":false,"HideWhenFaceDown":false,"Hands":false,"CustomImage":{"ImageURL":"https://steamusercontent-a.akamaihd.net/ugc/1723164680735393877/344FFF8AFA261E092936662D8124C9DBCF32B159/","ImageSecondaryURL":"https://steamusercontent-a.akamaihd.net/ugc/1723164680735388314/65B14443B80555C739C57BBACC5E57EFB6E263D1/","ImageScalar":1.0,"WidthScale":0.0,"CustomTile":{"Type":1,"Thickness":0.1,"Stackable":false,"Stretch":false}},"LuaScript":"","LuaScriptState":"","XmlUI":""}]==],
+[==[{"Name":"Custom_Tile","Transform":{"posX":-2.37778473,"posY":11.6667957,"posZ":12.2024059,"rotX":0.0169569813,"rotY":179.989975,"rotZ":0.0796125159,"scaleX":1.0,"scaleY":1.0,"scaleZ":1.0},"Nickname":"","Description":"","GMNotes":"","AltLookAngle":{"x":0.0,"y":0.0,"z":0.0},"ColorDiffuse":{"r":0.129411221,"g":0.129411221,"b":0.129411221},"LayoutGroupSortIndex":0,"Value":0,"Locked":false,"Grid":true,"Snap":true,"IgnoreFoW":false,"MeasureMovement":false,"DragSelectable":true,"Autoraise":true,"Sticky":true,"Tooltip":true,"GridProjection":false,"HideWhenFaceDown":false,"Hands":false,"CustomImage":{"ImageURL":"https://steamusercontent-a.akamaihd.net/ugc/1723164680735392271/B6E7F63F7F1271386331507F3198D2B7BAE69223/","ImageSecondaryURL":"https://steamusercontent-a.akamaihd.net/ugc/1723164680735388314/65B14443B80555C739C57BBACC5E57EFB6E263D1/","ImageScalar":1.0,"WidthScale":0.0,"CustomTile":{"Type":1,"Thickness":0.1,"Stackable":false,"Stretch":false}},"LuaScript":"","LuaScriptState":"","XmlUI":""}]==],
+[==[{"Name":"Custom_Tile","Transform":{"posX":1.64489985,"posY":11.6640606,"posZ":21.8496723,"rotX":0.0169646889,"rotY":179.990021,"rotZ":0.0796202347,"scaleX":1.0,"scaleY":1.0,"scaleZ":1.0},"Nickname":"","Description":"","GMNotes":"","AltLookAngle":{"x":0.0,"y":0.0,"z":0.0},"ColorDiffuse":{"r":0.129411221,"g":0.129411221,"b":0.129411221},"LayoutGroupSortIndex":0,"Value":0,"Locked":false,"Grid":true,"Snap":true,"IgnoreFoW":false,"MeasureMovement":false,"DragSelectable":true,"Autoraise":true,"Sticky":true,"Tooltip":true,"GridProjection":false,"HideWhenFaceDown":false,"Hands":false,"CustomImage":{"ImageURL":"https://steamusercontent-a.akamaihd.net/ugc/1723164680735390584/A5F4904F8845C55E96472FB9D6B81C72D8CCFF74/","ImageSecondaryURL":"https://steamusercontent-a.akamaihd.net/ugc/1723164680735388314/65B14443B80555C739C57BBACC5E57EFB6E263D1/","ImageScalar":1.0,"WidthScale":0.0,"CustomTile":{"Type":1,"Thickness":0.1,"Stackable":false,"Stretch":false}},"LuaScript":"","LuaScriptState":"","XmlUI":""}]==],
+[==[{"Name":"Custom_Tile","Transform":{"posX":-23.28659,"posY":11.6941137,"posZ":6.34996939,"rotX":0.0169601422,"rotY":179.98996,"rotZ":0.079614535,"scaleX":1.0,"scaleY":1.0,"scaleZ":1.0},"Nickname":"","Description":"","GMNotes":"","AltLookAngle":{"x":0.0,"y":0.0,"z":0.0},"ColorDiffuse":{"r":0.129411221,"g":0.129411221,"b":0.129411221},"LayoutGroupSortIndex":0,"Value":0,"Locked":false,"Grid":true,"Snap":true,"IgnoreFoW":false,"MeasureMovement":false,"DragSelectable":true,"Autoraise":true,"Sticky":true,"Tooltip":true,"GridProjection":false,"HideWhenFaceDown":false,"Hands":false,"CustomImage":{"ImageURL":"https://steamusercontent-a.akamaihd.net/ugc/1723164680735393030/9033BAB1D546F62067327382403806E3B097D915/","ImageSecondaryURL":"https://steamusercontent-a.akamaihd.net/ugc/1723164680735388314/65B14443B80555C739C57BBACC5E57EFB6E263D1/","ImageScalar":1.0,"WidthScale":0.0,"CustomTile":{"Type":1,"Thickness":0.1,"Stackable":false,"Stretch":false}},"LuaScript":"","LuaScriptState":"","XmlUI":""}]==],
+[==[{"Name":"Custom_Tile","Transform":{"posX":21.8361168,"posY":11.6290245,"posZ":14.2142534,"rotX":0.005636237,"rotY":179.990021,"rotZ":0.03718929,"scaleX":1.0,"scaleY":1.0,"scaleZ":1.0},"Nickname":"","Description":"","GMNotes":"","AltLookAngle":{"x":0.0,"y":0.0,"z":0.0},"ColorDiffuse":{"r":0.129411221,"g":0.129411221,"b":0.129411221},"LayoutGroupSortIndex":0,"Value":0,"Locked":false,"Grid":true,"Snap":true,"IgnoreFoW":false,"MeasureMovement":false,"DragSelectable":true,"Autoraise":true,"Sticky":true,"Tooltip":true,"GridProjection":false,"HideWhenFaceDown":false,"Hands":false,"CustomImage":{"ImageURL":"https://steamusercontent-a.akamaihd.net/ugc/1723164680735391630/1D520705DC560E7D5D8FF7BABC8310879513DBA4/","ImageSecondaryURL":"https://steamusercontent-a.akamaihd.net/ugc/1723164680735388314/65B14443B80555C739C57BBACC5E57EFB6E263D1/","ImageScalar":1.0,"WidthScale":0.0,"CustomTile":{"Type":1,"Thickness":0.1,"Stackable":false,"Stretch":false}},"LuaScript":"","LuaScriptState":"","XmlUI":""}]==],
+[==[{"Name":"Custom_Tile","Transform":{"posX":-20.2646275,"posY":11.6939926,"posZ":20.1305485,"rotX":0.0169394929,"rotY":179.999969,"rotZ":0.07961516,"scaleX":1.0,"scaleY":1.0,"scaleZ":1.0},"Nickname":"","Description":"","GMNotes":"","AltLookAngle":{"x":0.0,"y":0.0,"z":0.0},"ColorDiffuse":{"r":0.12941125,"g":0.12941125,"b":0.12941125},"LayoutGroupSortIndex":0,"Value":0,"Locked":false,"Grid":true,"Snap":true,"IgnoreFoW":false,"MeasureMovement":false,"DragSelectable":true,"Autoraise":true,"Sticky":true,"Tooltip":true,"GridProjection":false,"HideWhenFaceDown":false,"Hands":false,"CustomImage":{"ImageURL":"https://steamusercontent-a.akamaihd.net/ugc/1723164680735388728/5C589936BB09A04B26C29FD602219A1C24318F94/","ImageSecondaryURL":"https://steamusercontent-a.akamaihd.net/ugc/1723164680735388314/65B14443B80555C739C57BBACC5E57EFB6E263D1/","ImageScalar":1.0,"WidthScale":0.0,"CustomTile":{"Type":1,"Thickness":0.1,"Stackable":false,"Stretch":false}},"LuaScript":"","LuaScriptState":"","XmlUI":""}]==]
+}
+
+RTT_PRIO_LAKEMAP = {
+[==[{"Name":"Custom_Tile","Transform":{"posX":20.72045,"posY":11.6269884,"posZ":-14.075,"rotX":0.01707049,"rotY":179.980621,"rotZ":0.07928706,"scaleX":1.0,"scaleY":1.0,"scaleZ":1.0},"Nickname":"","Description":"","GMNotes":"","AltLookAngle":{"x":0.0,"y":0.0,"z":0.0},"ColorDiffuse":{"r":0.129411221,"g":0.129411221,"b":0.129411221},"LayoutGroupSortIndex":0,"Value":0,"Locked":false,"Grid":true,"Snap":true,"IgnoreFoW":false,"MeasureMovement":false,"DragSelectable":true,"Autoraise":true,"Sticky":true,"Tooltip":true,"GridProjection":false,"HideWhenFaceDown":false,"Hands":false,"CustomImage":{"ImageURL":"https://steamusercontent-a.akamaihd.net/ugc/1723164680735398757/2E2A197DCA52CB92E02E340E04872DFD58E42814/","ImageSecondaryURL":"https://steamusercontent-a.akamaihd.net/ugc/1723164680735388314/65B14443B80555C739C57BBACC5E57EFB6E263D1/","ImageScalar":1.0,"WidthScale":0.0,"CustomTile":{"Type":1,"Thickness":0.1,"Stackable":false,"Stretch":false}},"LuaScript":"","LuaScriptState":"","XmlUI":""}]==],
+[==[{"Name":"Custom_Tile","Transform":{"posX":17.20348,"posY":11.63603,"posZ":-0.0392068624,"rotX":0.01706977,"rotY":179.980621,"rotZ":0.07928523,"scaleX":1.0,"scaleY":1.0,"scaleZ":1.0},"Nickname":"","Description":"","GMNotes":"","AltLookAngle":{"x":0.0,"y":0.0,"z":0.0},"ColorDiffuse":{"r":0.129411221,"g":0.129411221,"b":0.129411221},"LayoutGroupSortIndex":0,"Value":0,"Locked":false,"Grid":true,"Snap":true,"IgnoreFoW":false,"MeasureMovement":false,"DragSelectable":true,"Autoraise":true,"Sticky":true,"Tooltip":true,"GridProjection":false,"HideWhenFaceDown":false,"Hands":false,"CustomImage":{"ImageURL":"https://steamusercontent-a.akamaihd.net/ugc/1723164680735395411/679034452BE6FA8F601CB172FA2C3168BFCDB7BE/","ImageSecondaryURL":"https://steamusercontent-a.akamaihd.net/ugc/1723164680735388314/65B14443B80555C739C57BBACC5E57EFB6E263D1/","ImageScalar":1.0,"WidthScale":0.0,"CustomTile":{"Type":1,"Thickness":0.1,"Stackable":false,"Stretch":false}},"LuaScript":"","LuaScriptState":"","XmlUI":""}]==],
+[==[{"Name":"Custom_Tile","Transform":{"posX":-11.6628141,"posY":11.6736336,"posZ":-7.893329,"rotX":0.01707028,"rotY":179.980637,"rotZ":0.07928673,"scaleX":1.0,"scaleY":1.0,"scaleZ":1.0},"Nickname":"","Description":"","GMNotes":"","AltLookAngle":{"x":0.0,"y":0.0,"z":0.0},"ColorDiffuse":{"r":0.129411221,"g":0.129411221,"b":0.129411221},"LayoutGroupSortIndex":0,"Value":0,"Locked":false,"Grid":true,"Snap":true,"IgnoreFoW":false,"MeasureMovement":false,"DragSelectable":true,"Autoraise":true,"Sticky":true,"Tooltip":true,"GridProjection":false,"HideWhenFaceDown":false,"Hands":false,"CustomImage":{"ImageURL":"https://steamusercontent-a.akamaihd.net/ugc/1723164680735397129/76BA556B9D32B4C3C78D5ABF2A2A5BAB9749D814/","ImageSecondaryURL":"https://steamusercontent-a.akamaihd.net/ugc/1723164680735388314/65B14443B80555C739C57BBACC5E57EFB6E263D1/","ImageScalar":1.0,"WidthScale":0.0,"CustomTile":{"Type":1,"Thickness":0.1,"Stackable":false,"Stretch":false}},"LuaScript":"","LuaScriptState":"","XmlUI":""}]==],
+[==[{"Name":"Custom_Tile","Transform":{"posX":-6.53558969,"posY":11.664403,"posZ":-15.0769644,"rotX":0.0170617625,"rotY":179.980621,"rotZ":0.07928014,"scaleX":1.0,"scaleY":1.0,"scaleZ":1.0},"Nickname":"","Description":"","GMNotes":"","AltLookAngle":{"x":0.0,"y":0.0,"z":0.0},"ColorDiffuse":{"r":0.129411221,"g":0.129411221,"b":0.129411221},"LayoutGroupSortIndex":0,"Value":0,"Locked":false,"Grid":true,"Snap":true,"IgnoreFoW":false,"MeasureMovement":false,"DragSelectable":true,"Autoraise":true,"Sticky":true,"Tooltip":true,"GridProjection":false,"HideWhenFaceDown":false,"Hands":false,"CustomImage":{"ImageURL":"https://steamusercontent-a.akamaihd.net/ugc/1723164680735397926/DE6E0673828A0A7F634540A2B6ACBEAB5AAE216C/","ImageSecondaryURL":"https://steamusercontent-a.akamaihd.net/ugc/1723164680735388314/65B14443B80555C739C57BBACC5E57EFB6E263D1/","ImageScalar":1.0,"WidthScale":0.0,"CustomTile":{"Type":1,"Thickness":0.1,"Stackable":false,"Stretch":false}},"LuaScript":"","LuaScriptState":"","XmlUI":""}]==],
+[==[{"Name":"Custom_Tile","Transform":{"posX":-23.1215343,"posY":11.6882038,"posZ":-12.2128506,"rotX":0.0170709752,"rotY":179.9806,"rotZ":0.07928791,"scaleX":1.0,"scaleY":1.0,"scaleZ":1.0},"Nickname":"","Description":"","GMNotes":"","AltLookAngle":{"x":0.0,"y":0.0,"z":0.0},"ColorDiffuse":{"r":0.129411221,"g":0.129411221,"b":0.129411221},"LayoutGroupSortIndex":0,"Value":0,"Locked":false,"Grid":true,"Snap":true,"IgnoreFoW":false,"MeasureMovement":false,"DragSelectable":true,"Autoraise":true,"Sticky":true,"Tooltip":true,"GridProjection":false,"HideWhenFaceDown":false,"Hands":false,"CustomImage":{"ImageURL":"https://steamusercontent-a.akamaihd.net/ugc/1723164680735396376/B30D28410D62CA39D329D63A29467BC3CA075A3D/","ImageSecondaryURL":"https://steamusercontent-a.akamaihd.net/ugc/1723164680735388314/65B14443B80555C739C57BBACC5E57EFB6E263D1/","ImageScalar":1.0,"WidthScale":0.0,"CustomTile":{"Type":1,"Thickness":0.1,"Stackable":false,"Stretch":false}},"LuaScript":"","LuaScriptState":"","XmlUI":""}]==],
+[==[{"Name":"Custom_Tile","Transform":{"posX":7.31433249,"posY":11.6512995,"posZ":5.29380369,"rotX":0.0170678366,"rotY":179.980621,"rotZ":0.07928414,"scaleX":1.0,"scaleY":1.0,"scaleZ":1.0},"Nickname":"","Description":"","GMNotes":"","AltLookAngle":{"x":0.0,"y":0.0,"z":0.0},"ColorDiffuse":{"r":0.129411221,"g":0.129411221,"b":0.129411221},"LayoutGroupSortIndex":0,"Value":0,"Locked":false,"Grid":true,"Snap":true,"IgnoreFoW":false,"MeasureMovement":false,"DragSelectable":true,"Autoraise":true,"Sticky":true,"Tooltip":true,"GridProjection":false,"HideWhenFaceDown":false,"Hands":false,"CustomImage":{"ImageURL":"https://steamusercontent-a.akamaihd.net/ugc/1723164680735394618/1C7937D88E8A996D14647B20DFF10A6202A69044/","ImageSecondaryURL":"https://steamusercontent-a.akamaihd.net/ugc/1723164680735388314/65B14443B80555C739C57BBACC5E57EFB6E263D1/","ImageScalar":1.0,"WidthScale":0.0,"CustomTile":{"Type":1,"Thickness":0.1,"Stackable":false,"Stretch":false}},"LuaScript":"","LuaScriptState":"","XmlUI":""}]==],
+[==[{"Name":"Custom_Tile","Transform":{"posX":-10.6409292,"posY":11.6777563,"posZ":10.7174692,"rotX":0.01707013,"rotY":179.980591,"rotZ":0.07928907,"scaleX":1.0,"scaleY":1.0,"scaleZ":1.0},"Nickname":"","Description":"","GMNotes":"","AltLookAngle":{"x":0.0,"y":0.0,"z":0.0},"ColorDiffuse":{"r":0.129411221,"g":0.129411221,"b":0.129411221},"LayoutGroupSortIndex":0,"Value":0,"Locked":false,"Grid":true,"Snap":true,"IgnoreFoW":false,"MeasureMovement":false,"DragSelectable":true,"Autoraise":true,"Sticky":true,"Tooltip":true,"GridProjection":false,"HideWhenFaceDown":false,"Hands":false,"CustomImage":{"ImageURL":"https://steamusercontent-a.akamaihd.net/ugc/1723164680735393877/344FFF8AFA261E092936662D8124C9DBCF32B159/","ImageSecondaryURL":"https://steamusercontent-a.akamaihd.net/ugc/1723164680735388314/65B14443B80555C739C57BBACC5E57EFB6E263D1/","ImageScalar":1.0,"WidthScale":0.0,"CustomTile":{"Type":1,"Thickness":0.1,"Stackable":false,"Stretch":false}},"LuaScript":"","LuaScriptState":"","XmlUI":""}]==],
+[==[{"Name":"Custom_Tile","Transform":{"posX":22.6365871,"posY":11.6314344,"posZ":9.784296,"rotX":0.0170676541,"rotY":179.980637,"rotZ":0.07928429,"scaleX":1.0,"scaleY":1.0,"scaleZ":1.0},"Nickname":"","Description":"","GMNotes":"","AltLookAngle":{"x":0.0,"y":0.0,"z":0.0},"ColorDiffuse":{"r":0.129411221,"g":0.129411221,"b":0.129411221},"LayoutGroupSortIndex":0,"Value":0,"Locked":false,"Grid":true,"Snap":true,"IgnoreFoW":false,"MeasureMovement":false,"DragSelectable":true,"Autoraise":true,"Sticky":true,"Tooltip":true,"GridProjection":false,"HideWhenFaceDown":false,"Hands":false,"CustomImage":{"ImageURL":"https://steamusercontent-a.akamaihd.net/ugc/1723164680735392271/B6E7F63F7F1271386331507F3198D2B7BAE69223/","ImageSecondaryURL":"https://steamusercontent-a.akamaihd.net/ugc/1723164680735388314/65B14443B80555C739C57BBACC5E57EFB6E263D1/","ImageScalar":1.0,"WidthScale":0.0,"CustomTile":{"Type":1,"Thickness":0.1,"Stackable":false,"Stretch":false}},"LuaScript":"","LuaScriptState":"","XmlUI":""}]==],
+[==[{"Name":"Custom_Tile","Transform":{"posX":-3.76704073,"posY":11.6710424,"posZ":20.1207924,"rotX":0.0170686953,"rotY":179.980682,"rotZ":0.0792811,"scaleX":1.0,"scaleY":1.0,"scaleZ":1.0},"Nickname":"","Description":"","GMNotes":"","AltLookAngle":{"x":0.0,"y":0.0,"z":0.0},"ColorDiffuse":{"r":0.129411221,"g":0.129411221,"b":0.129411221},"LayoutGroupSortIndex":0,"Value":0,"Locked":false,"Grid":true,"Snap":true,"IgnoreFoW":false,"MeasureMovement":false,"DragSelectable":true,"Autoraise":true,"Sticky":true,"Tooltip":true,"GridProjection":false,"HideWhenFaceDown":false,"Hands":false,"CustomImage":{"ImageURL":"https://steamusercontent-a.akamaihd.net/ugc/1723164680735390584/A5F4904F8845C55E96472FB9D6B81C72D8CCFF74/","ImageSecondaryURL":"https://steamusercontent-a.akamaihd.net/ugc/1723164680735388314/65B14443B80555C739C57BBACC5E57EFB6E263D1/","ImageScalar":1.0,"WidthScale":0.0,"CustomTile":{"Type":1,"Thickness":0.1,"Stackable":false,"Stretch":false}},"LuaScript":"","LuaScriptState":"","XmlUI":""}]==],
+[==[{"Name":"Custom_Tile","Transform":{"posX":-22.8958645,"posY":11.6924343,"posZ":3.05817413,"rotX":0.0170696452,"rotY":179.980621,"rotZ":0.07928663,"scaleX":1.0,"scaleY":1.0,"scaleZ":1.0},"Nickname":"","Description":"","GMNotes":"","AltLookAngle":{"x":0.0,"y":0.0,"z":0.0},"ColorDiffuse":{"r":0.129411221,"g":0.129411221,"b":0.129411221},"LayoutGroupSortIndex":0,"Value":0,"Locked":false,"Grid":true,"Snap":true,"IgnoreFoW":false,"MeasureMovement":false,"DragSelectable":true,"Autoraise":true,"Sticky":true,"Tooltip":true,"GridProjection":false,"HideWhenFaceDown":false,"Hands":false,"CustomImage":{"ImageURL":"https://steamusercontent-a.akamaihd.net/ugc/1723164680735393030/9033BAB1D546F62067327382403806E3B097D915/","ImageSecondaryURL":"https://steamusercontent-a.akamaihd.net/ugc/1723164680735388314/65B14443B80555C739C57BBACC5E57EFB6E263D1/","ImageScalar":1.0,"WidthScale":0.0,"CustomTile":{"Type":1,"Thickness":0.1,"Stackable":false,"Stretch":false}},"LuaScript":"","LuaScriptState":"","XmlUI":""}]==],
+[==[{"Name":"Custom_Tile","Transform":{"posX":10.2253971,"posY":11.65028,"posZ":15.4044313,"rotX":0.0170671344,"rotY":179.980621,"rotZ":0.079255186,"scaleX":1.0,"scaleY":1.0,"scaleZ":1.0},"Nickname":"","Description":"","GMNotes":"","AltLookAngle":{"x":0.0,"y":0.0,"z":0.0},"ColorDiffuse":{"r":0.129411221,"g":0.129411221,"b":0.129411221},"LayoutGroupSortIndex":0,"Value":0,"Locked":false,"Grid":true,"Snap":true,"IgnoreFoW":false,"MeasureMovement":false,"DragSelectable":true,"Autoraise":true,"Sticky":true,"Tooltip":true,"GridProjection":false,"HideWhenFaceDown":false,"Hands":false,"CustomImage":{"ImageURL":"https://steamusercontent-a.akamaihd.net/ugc/1723164680735391630/1D520705DC560E7D5D8FF7BABC8310879513DBA4/","ImageSecondaryURL":"https://steamusercontent-a.akamaihd.net/ugc/1723164680735388314/65B14443B80555C739C57BBACC5E57EFB6E263D1/","ImageScalar":1.0,"WidthScale":0.0,"CustomTile":{"Type":1,"Thickness":0.1,"Stackable":false,"Stretch":false}},"LuaScript":"","LuaScriptState":"","XmlUI":""}]==],
+[==[{"Name":"Custom_Tile","Transform":{"posX":-19.7764969,"posY":11.6924505,"posZ":17.6140862,"rotX":0.0170700829,"rotY":179.98056,"rotZ":0.0792297,"scaleX":1.0,"scaleY":1.0,"scaleZ":1.0},"Nickname":"","Description":"","GMNotes":"","AltLookAngle":{"x":0.0,"y":0.0,"z":0.0},"ColorDiffuse":{"r":0.12941125,"g":0.12941125,"b":0.12941125},"LayoutGroupSortIndex":0,"Value":0,"Locked":false,"Grid":true,"Snap":true,"IgnoreFoW":false,"MeasureMovement":false,"DragSelectable":true,"Autoraise":true,"Sticky":true,"Tooltip":true,"GridProjection":false,"HideWhenFaceDown":false,"Hands":false,"CustomImage":{"ImageURL":"https://steamusercontent-a.akamaihd.net/ugc/1723164680735388728/5C589936BB09A04B26C29FD602219A1C24318F94/","ImageSecondaryURL":"https://steamusercontent-a.akamaihd.net/ugc/1723164680735388314/65B14443B80555C739C57BBACC5E57EFB6E263D1/","ImageScalar":1.0,"WidthScale":0.0,"CustomTile":{"Type":1,"Thickness":0.1,"Stackable":false,"Stretch":false}},"LuaScript":"","LuaScriptState":"","XmlUI":""}]==]
+}
+
+RTT_PRIO_MOUNTAINMAP = {
+[==[{"Name":"Custom_Tile","Transform":{"posX":21.884304,"posY":11.6631622,"posZ":-11.543458,"rotX":-0.00303634955,"rotY":179.982666,"rotZ":0.0071030343,"scaleX":1.0,"scaleY":1.0,"scaleZ":1.0},"Nickname":"","Description":"","GMNotes":"","AltLookAngle":{"x":0.0,"y":0.0,"z":0.0},"ColorDiffuse":{"r":0.129411221,"g":0.129411221,"b":0.129411221},"LayoutGroupSortIndex":0,"Value":0,"Locked":false,"Grid":true,"Snap":true,"IgnoreFoW":false,"MeasureMovement":false,"DragSelectable":true,"Autoraise":true,"Sticky":true,"Tooltip":true,"GridProjection":false,"HideWhenFaceDown":false,"Hands":false,"CustomImage":{"ImageURL":"https://steamusercontent-a.akamaihd.net/ugc/1723164680735398757/2E2A197DCA52CB92E02E340E04872DFD58E42814/","ImageSecondaryURL":"https://steamusercontent-a.akamaihd.net/ugc/1723164680735388314/65B14443B80555C739C57BBACC5E57EFB6E263D1/","ImageScalar":1.0,"WidthScale":0.0,"CustomTile":{"Type":1,"Thickness":0.1,"Stackable":false,"Stretch":false}},"LuaScript":"","LuaScriptState":"","XmlUI":""}]==],
+[==[{"Name":"Custom_Tile","Transform":{"posX":-10.2404976,"posY":11.666153,"posZ":-4.12470961,"rotX":-0.004594014,"rotY":179.971451,"rotZ":0.00683123572,"scaleX":1.0,"scaleY":1.0,"scaleZ":1.0},"Nickname":"","Description":"","GMNotes":"","AltLookAngle":{"x":0.0,"y":0.0,"z":0.0},"ColorDiffuse":{"r":0.129411221,"g":0.129411221,"b":0.129411221},"LayoutGroupSortIndex":0,"Value":0,"Locked":false,"Grid":true,"Snap":true,"IgnoreFoW":false,"MeasureMovement":false,"DragSelectable":true,"Autoraise":true,"Sticky":true,"Tooltip":true,"GridProjection":false,"HideWhenFaceDown":false,"Hands":false,"CustomImage":{"ImageURL":"https://steamusercontent-a.akamaihd.net/ugc/1723164680735395411/679034452BE6FA8F601CB172FA2C3168BFCDB7BE/","ImageSecondaryURL":"https://steamusercontent-a.akamaihd.net/ugc/1723164680735388314/65B14443B80555C739C57BBACC5E57EFB6E263D1/","ImageScalar":1.0,"WidthScale":0.0,"CustomTile":{"Type":1,"Thickness":0.1,"Stackable":false,"Stretch":false}},"LuaScript":"","LuaScriptState":"","XmlUI":""}]==],
+[==[{"Name":"Custom_Tile","Transform":{"posX":-16.25037,"posY":11.6674938,"posZ":-11.9075613,"rotX":-0.005424547,"rotY":180.179626,"rotZ":0.006536457,"scaleX":1.0,"scaleY":1.0,"scaleZ":1.0},"Nickname":"","Description":"","GMNotes":"","AltLookAngle":{"x":0.0,"y":0.0,"z":0.0},"ColorDiffuse":{"r":0.129411221,"g":0.129411221,"b":0.129411221},"LayoutGroupSortIndex":0,"Value":0,"Locked":false,"Grid":true,"Snap":true,"IgnoreFoW":false,"MeasureMovement":false,"DragSelectable":true,"Autoraise":true,"Sticky":true,"Tooltip":true,"GridProjection":false,"HideWhenFaceDown":false,"Hands":false,"CustomImage":{"ImageURL":"https://steamusercontent-a.akamaihd.net/ugc/1723164680735397129/76BA556B9D32B4C3C78D5ABF2A2A5BAB9749D814/","ImageSecondaryURL":"https://steamusercontent-a.akamaihd.net/ugc/1723164680735388314/65B14443B80555C739C57BBACC5E57EFB6E263D1/","ImageScalar":1.0,"WidthScale":0.0,"CustomTile":{"Type":1,"Thickness":0.1,"Stackable":false,"Stretch":false}},"LuaScript":"","LuaScriptState":"","XmlUI":""}]==],
+[==[{"Name":"Custom_Tile","Transform":{"posX":0.07380072,"posY":11.6662464,"posZ":-17.7458229,"rotX":-0.00540374964,"rotY":179.951675,"rotZ":0.0065832925,"scaleX":1.0,"scaleY":1.0,"scaleZ":1.0},"Nickname":"","Description":"","GMNotes":"","AltLookAngle":{"x":0.0,"y":0.0,"z":0.0},"ColorDiffuse":{"r":0.129411221,"g":0.129411221,"b":0.129411221},"LayoutGroupSortIndex":0,"Value":0,"Locked":false,"Grid":true,"Snap":true,"IgnoreFoW":false,"MeasureMovement":false,"DragSelectable":true,"Autoraise":true,"Sticky":true,"Tooltip":true,"GridProjection":false,"HideWhenFaceDown":false,"Hands":false,"CustomImage":{"ImageURL":"https://steamusercontent-a.akamaihd.net/ugc/1723164680735397926/DE6E0673828A0A7F634540A2B6ACBEAB5AAE216C/","ImageSecondaryURL":"https://steamusercontent-a.akamaihd.net/ugc/1723164680735388314/65B14443B80555C739C57BBACC5E57EFB6E263D1/","ImageScalar":1.0,"WidthScale":0.0,"CustomTile":{"Type":1,"Thickness":0.1,"Stackable":false,"Stretch":false}},"LuaScript":"","LuaScriptState":"","XmlUI":""}]==],
+[==[{"Name":"Custom_Tile","Transform":{"posX":3.74582529,"posY":11.6644344,"posZ":-3.1141448,"rotX":-0.00408026,"rotY":179.990463,"rotZ":0.00595906563,"scaleX":1.0,"scaleY":1.0,"scaleZ":1.0},"Nickname":"","Description":"","GMNotes":"","AltLookAngle":{"x":0.0,"y":0.0,"z":0.0},"ColorDiffuse":{"r":0.129411221,"g":0.129411221,"b":0.129411221},"LayoutGroupSortIndex":0,"Value":0,"Locked":false,"Grid":true,"Snap":true,"IgnoreFoW":false,"MeasureMovement":false,"DragSelectable":true,"Autoraise":true,"Sticky":true,"Tooltip":true,"GridProjection":false,"HideWhenFaceDown":false,"Hands":false,"CustomImage":{"ImageURL":"https://steamusercontent-a.akamaihd.net/ugc/1723164680735396376/B30D28410D62CA39D329D63A29467BC3CA075A3D/","ImageSecondaryURL":"https://steamusercontent-a.akamaihd.net/ugc/1723164680735388314/65B14443B80555C739C57BBACC5E57EFB6E263D1/","ImageScalar":1.0,"WidthScale":0.0,"CustomTile":{"Type":1,"Thickness":0.1,"Stackable":false,"Stretch":false}},"LuaScript":"","LuaScriptState":"","XmlUI":""}]==],
+[==[{"Name":"Custom_Tile","Transform":{"posX":-24.3214741,"posY":11.667593,"posZ":-0.434426934,"rotX":-0.005161778,"rotY":180.179077,"rotZ":0.0072455043,"scaleX":1.0,"scaleY":1.0,"scaleZ":1.0},"Nickname":"","Description":"","GMNotes":"","AltLookAngle":{"x":0.0,"y":0.0,"z":0.0},"ColorDiffuse":{"r":0.129411221,"g":0.129411221,"b":0.129411221},"LayoutGroupSortIndex":0,"Value":0,"Locked":false,"Grid":true,"Snap":true,"IgnoreFoW":false,"MeasureMovement":false,"DragSelectable":true,"Autoraise":true,"Sticky":true,"Tooltip":true,"GridProjection":false,"HideWhenFaceDown":false,"Hands":false,"CustomImage":{"ImageURL":"https://steamusercontent-a.akamaihd.net/ugc/1723164680735394618/1C7937D88E8A996D14647B20DFF10A6202A69044/","ImageSecondaryURL":"https://steamusercontent-a.akamaihd.net/ugc/1723164680735388314/65B14443B80555C739C57BBACC5E57EFB6E263D1/","ImageScalar":1.0,"WidthScale":0.0,"CustomTile":{"Type":1,"Thickness":0.1,"Stackable":false,"Stretch":false}},"LuaScript":"","LuaScriptState":"","XmlUI":""}]==],
+[==[{"Name":"Custom_Tile","Transform":{"posX":17.6621685,"posY":11.6627684,"posZ":2.43875885,"rotX":-0.00175636751,"rotY":179.97435,"rotZ":0.00843545049,"scaleX":1.0,"scaleY":1.0,"scaleZ":1.0},"Nickname":"","Description":"","GMNotes":"","AltLookAngle":{"x":0.0,"y":0.0,"z":0.0},"ColorDiffuse":{"r":0.129411221,"g":0.129411221,"b":0.129411221},"LayoutGroupSortIndex":0,"Value":0,"Locked":false,"Grid":true,"Snap":true,"IgnoreFoW":false,"MeasureMovement":false,"DragSelectable":true,"Autoraise":true,"Sticky":true,"Tooltip":true,"GridProjection":false,"HideWhenFaceDown":false,"Hands":false,"CustomImage":{"ImageURL":"https://steamusercontent-a.akamaihd.net/ugc/1723164680735393877/344FFF8AFA261E092936662D8124C9DBCF32B159/","ImageSecondaryURL":"https://steamusercontent-a.akamaihd.net/ugc/1723164680735388314/65B14443B80555C739C57BBACC5E57EFB6E263D1/","ImageScalar":1.0,"WidthScale":0.0,"CustomTile":{"Type":1,"Thickness":0.1,"Stackable":false,"Stretch":false}},"LuaScript":"","LuaScriptState":"","XmlUI":""}]==],
+[==[{"Name":"Custom_Tile","Transform":{"posX":-14.5032682,"posY":11.668087,"posZ":8.235988,"rotX":0.0008922803,"rotY":180.0274,"rotZ":0.008705587,"scaleX":1.0,"scaleY":1.0,"scaleZ":1.0},"Nickname":"","Description":"","GMNotes":"","AltLookAngle":{"x":0.0,"y":0.0,"z":0.0},"ColorDiffuse":{"r":0.129411221,"g":0.129411221,"b":0.129411221},"LayoutGroupSortIndex":0,"Value":0,"Locked":false,"Grid":true,"Snap":true,"IgnoreFoW":false,"MeasureMovement":false,"DragSelectable":true,"Autoraise":true,"Sticky":true,"Tooltip":true,"GridProjection":false,"HideWhenFaceDown":false,"Hands":false,"CustomImage":{"ImageURL":"https://steamusercontent-a.akamaihd.net/ugc/1723164680735392271/B6E7F63F7F1271386331507F3198D2B7BAE69223/","ImageSecondaryURL":"https://steamusercontent-a.akamaihd.net/ugc/1723164680735388314/65B14443B80555C739C57BBACC5E57EFB6E263D1/","ImageScalar":1.0,"WidthScale":0.0,"CustomTile":{"Type":1,"Thickness":0.1,"Stackable":false,"Stretch":false}},"LuaScript":"","LuaScriptState":"","XmlUI":""}]==],
+[==[{"Name":"Custom_Tile","Transform":{"posX":3.66186762,"posY":11.6655617,"posZ":18.9243889,"rotX":0.00267338054,"rotY":180.0508,"rotZ":0.0087387925,"scaleX":1.0,"scaleY":1.0,"scaleZ":1.0},"Nickname":"","Description":"","GMNotes":"","AltLookAngle":{"x":0.0,"y":0.0,"z":0.0},"ColorDiffuse":{"r":0.129411221,"g":0.129411221,"b":0.129411221},"LayoutGroupSortIndex":0,"Value":0,"Locked":false,"Grid":true,"Snap":true,"IgnoreFoW":false,"MeasureMovement":false,"DragSelectable":true,"Autoraise":true,"Sticky":true,"Tooltip":true,"GridProjection":false,"HideWhenFaceDown":false,"Hands":false,"CustomImage":{"ImageURL":"https://steamusercontent-a.akamaihd.net/ugc/1723164680735390584/A5F4904F8845C55E96472FB9D6B81C72D8CCFF74/","ImageSecondaryURL":"https://steamusercontent-a.akamaihd.net/ugc/1723164680735388314/65B14443B80555C739C57BBACC5E57EFB6E263D1/","ImageScalar":1.0,"WidthScale":0.0,"CustomTile":{"Type":1,"Thickness":0.1,"Stackable":false,"Stretch":false}},"LuaScript":"","LuaScriptState":"","XmlUI":""}]==],
+[==[{"Name":"Custom_Tile","Transform":{"posX":-4.656818,"posY":11.6647377,"posZ":2.88496566,"rotX":359.9924,"rotY":180.023514,"rotZ":0.00467696646,"scaleX":1.0,"scaleY":1.0,"scaleZ":1.0},"Nickname":"","Description":"","GMNotes":"","AltLookAngle":{"x":0.0,"y":0.0,"z":0.0},"ColorDiffuse":{"r":0.129411221,"g":0.129411221,"b":0.129411221},"LayoutGroupSortIndex":0,"Value":0,"Locked":false,"Grid":true,"Snap":true,"IgnoreFoW":false,"MeasureMovement":false,"DragSelectable":true,"Autoraise":true,"Sticky":true,"Tooltip":true,"GridProjection":false,"HideWhenFaceDown":false,"Hands":false,"CustomImage":{"ImageURL":"https://steamusercontent-a.akamaihd.net/ugc/1723164680735393030/9033BAB1D546F62067327382403806E3B097D915/","ImageSecondaryURL":"https://steamusercontent-a.akamaihd.net/ugc/1723164680735388314/65B14443B80555C739C57BBACC5E57EFB6E263D1/","ImageScalar":1.0,"WidthScale":0.0,"CustomTile":{"Type":1,"Thickness":0.1,"Stackable":false,"Stretch":false}},"LuaScript":"","LuaScriptState":"","XmlUI":""}]==],
+[==[{"Name":"Custom_Tile","Transform":{"posX":14.3778887,"posY":11.6628695,"posZ":16.1211967,"rotX":-0.001728588,"rotY":180.085632,"rotZ":0.007958697,"scaleX":1.0,"scaleY":1.0,"scaleZ":1.0},"Nickname":"","Description":"","GMNotes":"","AltLookAngle":{"x":0.0,"y":0.0,"z":0.0},"ColorDiffuse":{"r":0.129411221,"g":0.129411221,"b":0.129411221},"LayoutGroupSortIndex":0,"Value":0,"Locked":false,"Grid":true,"Snap":true,"IgnoreFoW":false,"MeasureMovement":false,"DragSelectable":true,"Autoraise":true,"Sticky":true,"Tooltip":true,"GridProjection":false,"HideWhenFaceDown":false,"Hands":false,"CustomImage":{"ImageURL":"https://steamusercontent-a.akamaihd.net/ugc/1723164680735391630/1D520705DC560E7D5D8FF7BABC8310879513DBA4/","ImageSecondaryURL":"https://steamusercontent-a.akamaihd.net/ugc/1723164680735388314/65B14443B80555C739C57BBACC5E57EFB6E263D1/","ImageScalar":1.0,"WidthScale":0.0,"CustomTile":{"Type":1,"Thickness":0.1,"Stackable":false,"Stretch":false}},"LuaScript":"","LuaScriptState":"","XmlUI":""}]==],
+[==[{"Name":"Custom_Tile","Transform":{"posX":-17.3411045,"posY":11.66811,"posZ":18.3029881,"rotX":0.00438719941,"rotY":179.776474,"rotZ":0.011177633,"scaleX":1.0,"scaleY":1.0,"scaleZ":1.0},"Nickname":"","Description":"","GMNotes":"","AltLookAngle":{"x":0.0,"y":0.0,"z":0.0},"ColorDiffuse":{"r":0.12941125,"g":0.12941125,"b":0.12941125},"LayoutGroupSortIndex":0,"Value":0,"Locked":false,"Grid":true,"Snap":true,"IgnoreFoW":false,"MeasureMovement":false,"DragSelectable":true,"Autoraise":true,"Sticky":true,"Tooltip":true,"GridProjection":false,"HideWhenFaceDown":false,"Hands":false,"CustomImage":{"ImageURL":"https://steamusercontent-a.akamaihd.net/ugc/1723164680735388728/5C589936BB09A04B26C29FD602219A1C24318F94/","ImageSecondaryURL":"https://steamusercontent-a.akamaihd.net/ugc/1723164680735388314/65B14443B80555C739C57BBACC5E57EFB6E263D1/","ImageScalar":1.0,"WidthScale":0.0,"CustomTile":{"Type":1,"Thickness":0.1,"Stackable":false,"Stretch":false}},"LuaScript":"","LuaScriptState":"","XmlUI":""}]==]
+}
+
+RTT_PRIO_WINTERMAP = {
+[==[{"Name":"Custom_Tile","Transform":{"posX":13.1429644,"posY":11.6360836,"posZ":-18.0989914,"rotX":0.01725648,"rotY":179.997,"rotZ":0.0783196,"scaleX":1.0,"scaleY":1.0,"scaleZ":1.0},"Nickname":"","Description":"","GMNotes":"","AltLookAngle":{"x":0.0,"y":0.0,"z":0.0},"ColorDiffuse":{"r":0.129411221,"g":0.129411221,"b":0.129411221},"LayoutGroupSortIndex":0,"Value":0,"Locked":false,"Grid":true,"Snap":true,"IgnoreFoW":false,"MeasureMovement":false,"DragSelectable":true,"Autoraise":true,"Sticky":true,"Tooltip":true,"GridProjection":false,"HideWhenFaceDown":false,"Hands":false,"CustomImage":{"ImageURL":"https://steamusercontent-a.akamaihd.net/ugc/1723164680735398757/2E2A197DCA52CB92E02E340E04872DFD58E42814/","ImageSecondaryURL":"https://steamusercontent-a.akamaihd.net/ugc/1723164680735388314/65B14443B80555C739C57BBACC5E57EFB6E263D1/","ImageScalar":1.0,"WidthScale":0.0,"CustomTile":{"Type":1,"Thickness":0.1,"Stackable":false,"Stretch":false}},"LuaScript":"","LuaScriptState":"","XmlUI":""}]==],
+[==[{"Name":"Custom_Tile","Transform":{"posX":17.53493,"posY":11.635251,"posZ":-0.928741932,"rotX":0.0172520317,"rotY":179.996964,"rotZ":0.07831473,"scaleX":1.0,"scaleY":1.0,"scaleZ":1.0},"Nickname":"","Description":"","GMNotes":"","AltLookAngle":{"x":0.0,"y":0.0,"z":0.0},"ColorDiffuse":{"r":0.129411221,"g":0.129411221,"b":0.129411221},"LayoutGroupSortIndex":0,"Value":0,"Locked":false,"Grid":true,"Snap":true,"IgnoreFoW":false,"MeasureMovement":false,"DragSelectable":true,"Autoraise":true,"Sticky":true,"Tooltip":true,"GridProjection":false,"HideWhenFaceDown":false,"Hands":false,"CustomImage":{"ImageURL":"https://steamusercontent-a.akamaihd.net/ugc/1723164680735395411/679034452BE6FA8F601CB172FA2C3168BFCDB7BE/","ImageSecondaryURL":"https://steamusercontent-a.akamaihd.net/ugc/1723164680735388314/65B14443B80555C739C57BBACC5E57EFB6E263D1/","ImageScalar":1.0,"WidthScale":0.0,"CustomTile":{"Type":1,"Thickness":0.1,"Stackable":false,"Stretch":false}},"LuaScript":"","LuaScriptState":"","XmlUI":""}]==],
+[==[{"Name":"Custom_Tile","Transform":{"posX":-9.196553,"posY":11.6679935,"posZ":-13.5150642,"rotX":0.0172522459,"rotY":179.996964,"rotZ":0.0783165246,"scaleX":1.0,"scaleY":1.0,"scaleZ":1.0},"Nickname":"","Description":"","GMNotes":"","AltLookAngle":{"x":0.0,"y":0.0,"z":0.0},"ColorDiffuse":{"r":0.129411221,"g":0.129411221,"b":0.129411221},"LayoutGroupSortIndex":0,"Value":0,"Locked":false,"Grid":true,"Snap":true,"IgnoreFoW":false,"MeasureMovement":false,"DragSelectable":true,"Autoraise":true,"Sticky":true,"Tooltip":true,"GridProjection":false,"HideWhenFaceDown":false,"Hands":false,"CustomImage":{"ImageURL":"https://steamusercontent-a.akamaihd.net/ugc/1723164680735397129/76BA556B9D32B4C3C78D5ABF2A2A5BAB9749D814/","ImageSecondaryURL":"https://steamusercontent-a.akamaihd.net/ugc/1723164680735388314/65B14443B80555C739C57BBACC5E57EFB6E263D1/","ImageScalar":1.0,"WidthScale":0.0,"CustomTile":{"Type":1,"Thickness":0.1,"Stackable":false,"Stretch":false}},"LuaScript":"","LuaScriptState":"","XmlUI":""}]==],
+[==[{"Name":"Custom_Tile","Transform":{"posX":0.9956113,"posY":11.6556015,"posZ":-8.410915,"rotX":0.0172554348,"rotY":179.996948,"rotZ":0.0783173144,"scaleX":1.0,"scaleY":1.0,"scaleZ":1.0},"Nickname":"","Description":"","GMNotes":"","AltLookAngle":{"x":0.0,"y":0.0,"z":0.0},"ColorDiffuse":{"r":0.129411221,"g":0.129411221,"b":0.129411221},"LayoutGroupSortIndex":0,"Value":0,"Locked":false,"Grid":true,"Snap":true,"IgnoreFoW":false,"MeasureMovement":false,"DragSelectable":true,"Autoraise":true,"Sticky":true,"Tooltip":true,"GridProjection":false,"HideWhenFaceDown":false,"Hands":false,"CustomImage":{"ImageURL":"https://steamusercontent-a.akamaihd.net/ugc/1723164680735397926/DE6E0673828A0A7F634540A2B6ACBEAB5AAE216C/","ImageSecondaryURL":"https://steamusercontent-a.akamaihd.net/ugc/1723164680735388314/65B14443B80555C739C57BBACC5E57EFB6E263D1/","ImageScalar":1.0,"WidthScale":0.0,"CustomTile":{"Type":1,"Thickness":0.1,"Stackable":false,"Stretch":false}},"LuaScript":"","LuaScriptState":"","XmlUI":""}]==],
+[==[{"Name":"Custom_Tile","Transform":{"posX":-21.30375,"posY":11.685112,"posZ":-11.6129856,"rotX":0.0172520019,"rotY":179.996964,"rotZ":0.0783166438,"scaleX":1.0,"scaleY":1.0,"scaleZ":1.0},"Nickname":"","Description":"","GMNotes":"","AltLookAngle":{"x":0.0,"y":0.0,"z":0.0},"ColorDiffuse":{"r":0.129411221,"g":0.129411221,"b":0.129411221},"LayoutGroupSortIndex":0,"Value":0,"Locked":false,"Grid":true,"Snap":true,"IgnoreFoW":false,"MeasureMovement":false,"DragSelectable":true,"Autoraise":true,"Sticky":true,"Tooltip":true,"GridProjection":false,"HideWhenFaceDown":false,"Hands":false,"CustomImage":{"ImageURL":"https://steamusercontent-a.akamaihd.net/ugc/1723164680735396376/B30D28410D62CA39D329D63A29467BC3CA075A3D/","ImageSecondaryURL":"https://steamusercontent-a.akamaihd.net/ugc/1723164680735388314/65B14443B80555C739C57BBACC5E57EFB6E263D1/","ImageScalar":1.0,"WidthScale":0.0,"CustomTile":{"Type":1,"Thickness":0.1,"Stackable":false,"Stretch":false}},"LuaScript":"","LuaScriptState":"","XmlUI":""}]==],
+[==[{"Name":"Custom_Tile","Transform":{"posX":2.47328329,"posY":11.6574059,"posZ":4.287547,"rotX":0.0172535349,"rotY":179.996948,"rotZ":0.07831349,"scaleX":1.0,"scaleY":1.0,"scaleZ":1.0},"Nickname":"","Description":"","GMNotes":"","AltLookAngle":{"x":0.0,"y":0.0,"z":0.0},"ColorDiffuse":{"r":0.129411221,"g":0.129411221,"b":0.129411221},"LayoutGroupSortIndex":0,"Value":0,"Locked":false,"Grid":true,"Snap":true,"IgnoreFoW":false,"MeasureMovement":false,"DragSelectable":true,"Autoraise":true,"Sticky":true,"Tooltip":true,"GridProjection":false,"HideWhenFaceDown":false,"Hands":false,"CustomImage":{"ImageURL":"https://steamusercontent-a.akamaihd.net/ugc/1723164680735394618/1C7937D88E8A996D14647B20DFF10A6202A69044/","ImageSecondaryURL":"https://steamusercontent-a.akamaihd.net/ugc/1723164680735388314/65B14443B80555C739C57BBACC5E57EFB6E263D1/","ImageScalar":1.0,"WidthScale":0.0,"CustomTile":{"Type":1,"Thickness":0.1,"Stackable":false,"Stretch":false}},"LuaScript":"","LuaScriptState":"","XmlUI":""}]==],
+[==[{"Name":"Custom_Tile","Transform":{"posX":-4.83030224,"posY":11.6670837,"posZ":3.27984762,"rotX":0.0172490049,"rotY":180.000656,"rotZ":0.078317,"scaleX":1.0,"scaleY":1.0,"scaleZ":1.0},"Nickname":"","Description":"","GMNotes":"","AltLookAngle":{"x":0.0,"y":0.0,"z":0.0},"ColorDiffuse":{"r":0.129411221,"g":0.129411221,"b":0.129411221},"LayoutGroupSortIndex":0,"Value":0,"Locked":false,"Grid":true,"Snap":true,"IgnoreFoW":false,"MeasureMovement":false,"DragSelectable":true,"Autoraise":true,"Sticky":true,"Tooltip":true,"GridProjection":false,"HideWhenFaceDown":false,"Hands":false,"CustomImage":{"ImageURL":"https://steamusercontent-a.akamaihd.net/ugc/1723164680735393877/344FFF8AFA261E092936662D8124C9DBCF32B159/","ImageSecondaryURL":"https://steamusercontent-a.akamaihd.net/ugc/1723164680735388314/65B14443B80555C739C57BBACC5E57EFB6E263D1/","ImageScalar":1.0,"WidthScale":0.0,"CustomTile":{"Type":1,"Thickness":0.1,"Stackable":false,"Stretch":false}},"LuaScript":"","LuaScriptState":"","XmlUI":""}]==],
+[==[{"Name":"Custom_Tile","Transform":{"posX":21.48837,"posY":11.634676,"posZ":15.1060982,"rotX":0.017253736,"rotY":179.997025,"rotZ":0.0783196762,"scaleX":1.0,"scaleY":1.0,"scaleZ":1.0},"Nickname":"","Description":"","GMNotes":"","AltLookAngle":{"x":0.0,"y":0.0,"z":0.0},"ColorDiffuse":{"r":0.129411221,"g":0.129411221,"b":0.129411221},"LayoutGroupSortIndex":0,"Value":0,"Locked":false,"Grid":true,"Snap":true,"IgnoreFoW":false,"MeasureMovement":false,"DragSelectable":true,"Autoraise":true,"Sticky":true,"Tooltip":true,"GridProjection":false,"HideWhenFaceDown":false,"Hands":false,"CustomImage":{"ImageURL":"https://steamusercontent-a.akamaihd.net/ugc/1723164680735392271/B6E7F63F7F1271386331507F3198D2B7BAE69223/","ImageSecondaryURL":"https://steamusercontent-a.akamaihd.net/ugc/1723164680735388314/65B14443B80555C739C57BBACC5E57EFB6E263D1/","ImageScalar":1.0,"WidthScale":0.0,"CustomTile":{"Type":1,"Thickness":0.1,"Stackable":false,"Stretch":false}},"LuaScript":"","LuaScriptState":"","XmlUI":""}]==],
+[==[{"Name":"Custom_Tile","Transform":{"posX":-3.2374208,"posY":11.669322,"posZ":17.9463711,"rotX":0.0172648039,"rotY":179.996933,"rotZ":0.07831443,"scaleX":1.0,"scaleY":1.0,"scaleZ":1.0},"Nickname":"","Description":"","GMNotes":"","AltLookAngle":{"x":0.0,"y":0.0,"z":0.0},"ColorDiffuse":{"r":0.129411221,"g":0.129411221,"b":0.129411221},"LayoutGroupSortIndex":0,"Value":0,"Locked":false,"Grid":true,"Snap":true,"IgnoreFoW":false,"MeasureMovement":false,"DragSelectable":true,"Autoraise":true,"Sticky":true,"Tooltip":true,"GridProjection":false,"HideWhenFaceDown":false,"Hands":false,"CustomImage":{"ImageURL":"https://steamusercontent-a.akamaihd.net/ugc/1723164680735390584/A5F4904F8845C55E96472FB9D6B81C72D8CCFF74/","ImageSecondaryURL":"https://steamusercontent-a.akamaihd.net/ugc/1723164680735388314/65B14443B80555C739C57BBACC5E57EFB6E263D1/","ImageScalar":1.0,"WidthScale":0.0,"CustomTile":{"Type":1,"Thickness":0.1,"Stackable":false,"Stretch":false}},"LuaScript":"","LuaScriptState":"","XmlUI":""}]==],
+[==[{"Name":"Custom_Tile","Transform":{"posX":-22.1138458,"posY":11.6915245,"posZ":5.9496,"rotX":0.0173868928,"rotY":180.003479,"rotZ":0.07773717,"scaleX":1.0,"scaleY":1.0,"scaleZ":1.0},"Nickname":"","Description":"","GMNotes":"","AltLookAngle":{"x":0.0,"y":0.0,"z":0.0},"ColorDiffuse":{"r":0.129411221,"g":0.129411221,"b":0.129411221},"LayoutGroupSortIndex":0,"Value":0,"Locked":false,"Grid":true,"Snap":true,"IgnoreFoW":false,"MeasureMovement":false,"DragSelectable":true,"Autoraise":true,"Sticky":true,"Tooltip":true,"GridProjection":false,"HideWhenFaceDown":false,"Hands":false,"CustomImage":{"ImageURL":"https://steamusercontent-a.akamaihd.net/ugc/1723164680735393030/9033BAB1D546F62067327382403806E3B097D915/","ImageSecondaryURL":"https://steamusercontent-a.akamaihd.net/ugc/1723164680735388314/65B14443B80555C739C57BBACC5E57EFB6E263D1/","ImageScalar":1.0,"WidthScale":0.0,"CustomTile":{"Type":1,"Thickness":0.1,"Stackable":false,"Stretch":false}},"LuaScript":"","LuaScriptState":"","XmlUI":""}]==],
+[==[{"Name":"Custom_Tile","Transform":{"posX":7.699822,"posY":11.6536627,"posZ":15.5816736,"rotX":0.0172642227,"rotY":179.996918,"rotZ":0.07831384,"scaleX":1.0,"scaleY":1.0,"scaleZ":1.0},"Nickname":"","Description":"","GMNotes":"","AltLookAngle":{"x":0.0,"y":0.0,"z":0.0},"ColorDiffuse":{"r":0.129411221,"g":0.129411221,"b":0.129411221},"LayoutGroupSortIndex":0,"Value":0,"Locked":false,"Grid":true,"Snap":true,"IgnoreFoW":false,"MeasureMovement":false,"DragSelectable":true,"Autoraise":true,"Sticky":true,"Tooltip":true,"GridProjection":false,"HideWhenFaceDown":false,"Hands":false,"CustomImage":{"ImageURL":"https://steamusercontent-a.akamaihd.net/ugc/1723164680735391630/1D520705DC560E7D5D8FF7BABC8310879513DBA4/","ImageSecondaryURL":"https://steamusercontent-a.akamaihd.net/ugc/1723164680735388314/65B14443B80555C739C57BBACC5E57EFB6E263D1/","ImageScalar":1.0,"WidthScale":0.0,"CustomTile":{"Type":1,"Thickness":0.1,"Stackable":false,"Stretch":false}},"LuaScript":"","LuaScriptState":"","XmlUI":""}]==],
+[==[{"Name":"Custom_Tile","Transform":{"posX":-17.4910069,"posY":11.6894283,"posZ":20.02479,"rotX":0.0172506,"rotY":179.996964,"rotZ":0.07830751,"scaleX":1.0,"scaleY":1.0,"scaleZ":1.0},"Nickname":"","Description":"","GMNotes":"","AltLookAngle":{"x":0.0,"y":0.0,"z":0.0},"ColorDiffuse":{"r":0.12941125,"g":0.12941125,"b":0.12941125},"LayoutGroupSortIndex":0,"Value":0,"Locked":false,"Grid":true,"Snap":true,"IgnoreFoW":false,"MeasureMovement":false,"DragSelectable":true,"Autoraise":true,"Sticky":true,"Tooltip":true,"GridProjection":false,"HideWhenFaceDown":false,"Hands":false,"CustomImage":{"ImageURL":"https://steamusercontent-a.akamaihd.net/ugc/1723164680735388728/5C589936BB09A04B26C29FD602219A1C24318F94/","ImageSecondaryURL":"https://steamusercontent-a.akamaihd.net/ugc/1723164680735388314/65B14443B80555C739C57BBACC5E57EFB6E263D1/","ImageScalar":1.0,"WidthScale":0.0,"CustomTile":{"Type":1,"Thickness":0.1,"Stackable":false,"Stretch":false}},"LuaScript":"","LuaScriptState":"","XmlUI":""}]==]
+}
+
+RTT_PRIO_GORGEMAP = {
+[==[{"Name":"Custom_Tile","Transform":{"posX":15.2794857,"posY":11.6335535,"posZ":-17.3521748,"rotX":0.0169799142,"rotY":180.00119,"rotZ":0.07935182,"scaleX":1.0,"scaleY":1.0,"scaleZ":1.0},"Nickname":"","Description":"","GMNotes":"","AltLookAngle":{"x":0.0,"y":0.0,"z":0.0},"ColorDiffuse":{"r":0.129411221,"g":0.129411221,"b":0.129411221},"LayoutGroupSortIndex":0,"Value":0,"Locked":false,"Grid":true,"Snap":true,"IgnoreFoW":false,"MeasureMovement":false,"DragSelectable":true,"Autoraise":true,"Sticky":true,"Tooltip":true,"GridProjection":false,"HideWhenFaceDown":false,"Hands":false,"CustomImage":{"ImageURL":"https://steamusercontent-a.akamaihd.net/ugc/1723164680735398757/2E2A197DCA52CB92E02E340E04872DFD58E42814/","ImageSecondaryURL":"https://steamusercontent-a.akamaihd.net/ugc/1723164680735388314/65B14443B80555C739C57BBACC5E57EFB6E263D1/","ImageScalar":1.0,"WidthScale":0.0,"CustomTile":{"Type":1,"Thickness":0.1,"Stackable":false,"Stretch":false}},"LuaScript":"","LuaScriptState":"","XmlUI":""}]==],
+[==[{"Name":"Custom_Tile","Transform":{"posX":-1.36980677,"posY":11.6612177,"posZ":-1.80235875,"rotX":0.0169796534,"rotY":180.001221,"rotZ":0.07935352,"scaleX":1.0,"scaleY":1.0,"scaleZ":1.0},"Nickname":"","Description":"","GMNotes":"","AltLookAngle":{"x":0.0,"y":0.0,"z":0.0},"ColorDiffuse":{"r":0.129411221,"g":0.129411221,"b":0.129411221},"LayoutGroupSortIndex":0,"Value":0,"Locked":false,"Grid":true,"Snap":true,"IgnoreFoW":false,"MeasureMovement":false,"DragSelectable":true,"Autoraise":true,"Sticky":true,"Tooltip":true,"GridProjection":false,"HideWhenFaceDown":false,"Hands":false,"CustomImage":{"ImageURL":"https://steamusercontent-a.akamaihd.net/ugc/1723164680735395411/679034452BE6FA8F601CB172FA2C3168BFCDB7BE/","ImageSecondaryURL":"https://steamusercontent-a.akamaihd.net/ugc/1723164680735388314/65B14443B80555C739C57BBACC5E57EFB6E263D1/","ImageScalar":1.0,"WidthScale":0.0,"CustomTile":{"Type":1,"Thickness":0.1,"Stackable":false,"Stretch":false}},"LuaScript":"","LuaScriptState":"","XmlUI":""}]==],
+[==[{"Name":"Custom_Tile","Transform":{"posX":-15.59134,"posY":11.6772356,"posZ":-14.201973,"rotX":0.0169804189,"rotY":180.0012,"rotZ":0.07935612,"scaleX":1.0,"scaleY":1.0,"scaleZ":1.0},"Nickname":"","Description":"","GMNotes":"","AltLookAngle":{"x":0.0,"y":0.0,"z":0.0},"ColorDiffuse":{"r":0.129411221,"g":0.129411221,"b":0.129411221},"LayoutGroupSortIndex":0,"Value":0,"Locked":false,"Grid":true,"Snap":true,"IgnoreFoW":false,"MeasureMovement":false,"DragSelectable":true,"Autoraise":true,"Sticky":true,"Tooltip":true,"GridProjection":false,"HideWhenFaceDown":false,"Hands":false,"CustomImage":{"ImageURL":"https://steamusercontent-a.akamaihd.net/ugc/1723164680735397129/76BA556B9D32B4C3C78D5ABF2A2A5BAB9749D814/","ImageSecondaryURL":"https://steamusercontent-a.akamaihd.net/ugc/1723164680735388314/65B14443B80555C739C57BBACC5E57EFB6E263D1/","ImageScalar":1.0,"WidthScale":0.0,"CustomTile":{"Type":1,"Thickness":0.1,"Stackable":false,"Stretch":false}},"LuaScript":"","LuaScriptState":"","XmlUI":""}]==],
+[==[{"Name":"Custom_Tile","Transform":{"posX":-6.058814,"posY":11.6645575,"posZ":-12.4414024,"rotX":0.0169744249,"rotY":180.001266,"rotZ":0.07934895,"scaleX":1.0,"scaleY":1.0,"scaleZ":1.0},"Nickname":"","Description":"","GMNotes":"","AltLookAngle":{"x":0.0,"y":0.0,"z":0.0},"ColorDiffuse":{"r":0.129411221,"g":0.129411221,"b":0.129411221},"LayoutGroupSortIndex":0,"Value":0,"Locked":false,"Grid":true,"Snap":true,"IgnoreFoW":false,"MeasureMovement":false,"DragSelectable":true,"Autoraise":true,"Sticky":true,"Tooltip":true,"GridProjection":false,"HideWhenFaceDown":false,"Hands":false,"CustomImage":{"ImageURL":"https://steamusercontent-a.akamaihd.net/ugc/1723164680735397926/DE6E0673828A0A7F634540A2B6ACBEAB5AAE216C/","ImageSecondaryURL":"https://steamusercontent-a.akamaihd.net/ugc/1723164680735388314/65B14443B80555C739C57BBACC5E57EFB6E263D1/","ImageScalar":1.0,"WidthScale":0.0,"CustomTile":{"Type":1,"Thickness":0.1,"Stackable":false,"Stretch":false}},"LuaScript":"","LuaScriptState":"","XmlUI":""}]==],
+[==[{"Name":"Custom_Tile","Transform":{"posX":21.7972431,"posY":11.6292524,"posZ":-1.40007865,"rotX":0.0169818923,"rotY":180.001221,"rotZ":0.079445906,"scaleX":1.0,"scaleY":1.0,"scaleZ":1.0},"Nickname":"","Description":"","GMNotes":"","AltLookAngle":{"x":0.0,"y":0.0,"z":0.0},"ColorDiffuse":{"r":0.129411221,"g":0.129411221,"b":0.129411221},"LayoutGroupSortIndex":0,"Value":0,"Locked":false,"Grid":true,"Snap":true,"IgnoreFoW":false,"MeasureMovement":false,"DragSelectable":true,"Autoraise":true,"Sticky":true,"Tooltip":true,"GridProjection":false,"HideWhenFaceDown":false,"Hands":false,"CustomImage":{"ImageURL":"https://steamusercontent-a.akamaihd.net/ugc/1723164680735396376/B30D28410D62CA39D329D63A29467BC3CA075A3D/","ImageSecondaryURL":"https://steamusercontent-a.akamaihd.net/ugc/1723164680735388314/65B14443B80555C739C57BBACC5E57EFB6E263D1/","ImageScalar":1.0,"WidthScale":0.0,"CustomTile":{"Type":1,"Thickness":0.1,"Stackable":false,"Stretch":false}},"LuaScript":"","LuaScriptState":"","XmlUI":""}]==],
+[==[{"Name":"Custom_Tile","Transform":{"posX":-19.65621,"posY":11.6867771,"posZ":-1.00397861,"rotX":0.01698038,"rotY":180.001221,"rotZ":0.07935612,"scaleX":1.0,"scaleY":1.0,"scaleZ":1.0},"Nickname":"","Description":"","GMNotes":"","AltLookAngle":{"x":0.0,"y":0.0,"z":0.0},"ColorDiffuse":{"r":0.129411221,"g":0.129411221,"b":0.129411221},"LayoutGroupSortIndex":0,"Value":0,"Locked":false,"Grid":true,"Snap":true,"IgnoreFoW":false,"MeasureMovement":false,"DragSelectable":true,"Autoraise":true,"Sticky":true,"Tooltip":true,"GridProjection":false,"HideWhenFaceDown":false,"Hands":false,"CustomImage":{"ImageURL":"https://steamusercontent-a.akamaihd.net/ugc/1723164680735394618/1C7937D88E8A996D14647B20DFF10A6202A69044/","ImageSecondaryURL":"https://steamusercontent-a.akamaihd.net/ugc/1723164680735388314/65B14443B80555C739C57BBACC5E57EFB6E263D1/","ImageScalar":1.0,"WidthScale":0.0,"CustomTile":{"Type":1,"Thickness":0.1,"Stackable":false,"Stretch":false}},"LuaScript":"","LuaScriptState":"","XmlUI":""}]==],
+[==[{"Name":"Custom_Tile","Transform":{"posX":12.952342,"posY":11.6448812,"posZ":9.99319649,"rotX":0.0169803649,"rotY":180.001236,"rotZ":0.0793563649,"scaleX":1.0,"scaleY":1.0,"scaleZ":1.0},"Nickname":"","Description":"","GMNotes":"","AltLookAngle":{"x":0.0,"y":0.0,"z":0.0},"ColorDiffuse":{"r":0.129411221,"g":0.129411221,"b":0.129411221},"LayoutGroupSortIndex":0,"Value":0,"Locked":false,"Grid":true,"Snap":true,"IgnoreFoW":false,"MeasureMovement":false,"DragSelectable":true,"Autoraise":true,"Sticky":true,"Tooltip":true,"GridProjection":false,"HideWhenFaceDown":false,"Hands":false,"CustomImage":{"ImageURL":"https://steamusercontent-a.akamaihd.net/ugc/1723164680735393877/344FFF8AFA261E092936662D8124C9DBCF32B159/","ImageSecondaryURL":"https://steamusercontent-a.akamaihd.net/ugc/1723164680735388314/65B14443B80555C739C57BBACC5E57EFB6E263D1/","ImageScalar":1.0,"WidthScale":0.0,"CustomTile":{"Type":1,"Thickness":0.1,"Stackable":false,"Stretch":false}},"LuaScript":"","LuaScriptState":"","XmlUI":""}]==],
+[==[{"Name":"Custom_Tile","Transform":{"posX":-17.92166,"posY":11.68724,"posZ":8.662028,"rotX":0.01696891,"rotY":180.001221,"rotZ":0.0793511346,"scaleX":1.0,"scaleY":1.0,"scaleZ":1.0},"Nickname":"","Description":"","GMNotes":"","AltLookAngle":{"x":0.0,"y":0.0,"z":0.0},"ColorDiffuse":{"r":0.129411221,"g":0.129411221,"b":0.129411221},"LayoutGroupSortIndex":0,"Value":0,"Locked":false,"Grid":true,"Snap":true,"IgnoreFoW":false,"MeasureMovement":false,"DragSelectable":true,"Autoraise":true,"Sticky":true,"Tooltip":true,"GridProjection":false,"HideWhenFaceDown":false,"Hands":false,"CustomImage":{"ImageURL":"https://steamusercontent-a.akamaihd.net/ugc/1723164680735392271/B6E7F63F7F1271386331507F3198D2B7BAE69223/","ImageSecondaryURL":"https://steamusercontent-a.akamaihd.net/ugc/1723164680735388314/65B14443B80555C739C57BBACC5E57EFB6E263D1/","ImageScalar":1.0,"WidthScale":0.0,"CustomTile":{"Type":1,"Thickness":0.1,"Stackable":false,"Stretch":false}},"LuaScript":"","LuaScriptState":"","XmlUI":""}]==],
+[==[{"Name":"Custom_Tile","Transform":{"posX":7.404812,"posY":11.6554928,"posZ":19.8760548,"rotX":0.0169815477,"rotY":180.001251,"rotZ":0.0793575,"scaleX":1.0,"scaleY":1.0,"scaleZ":1.0},"Nickname":"","Description":"","GMNotes":"","AltLookAngle":{"x":0.0,"y":0.0,"z":0.0},"ColorDiffuse":{"r":0.129411221,"g":0.129411221,"b":0.129411221},"LayoutGroupSortIndex":0,"Value":0,"Locked":false,"Grid":true,"Snap":true,"IgnoreFoW":false,"MeasureMovement":false,"DragSelectable":true,"Autoraise":true,"Sticky":true,"Tooltip":true,"GridProjection":false,"HideWhenFaceDown":false,"Hands":false,"CustomImage":{"ImageURL":"https://steamusercontent-a.akamaihd.net/ugc/1723164680735390584/A5F4904F8845C55E96472FB9D6B81C72D8CCFF74/","ImageSecondaryURL":"https://steamusercontent-a.akamaihd.net/ugc/1723164680735388314/65B14443B80555C739C57BBACC5E57EFB6E263D1/","ImageScalar":1.0,"WidthScale":0.0,"CustomTile":{"Type":1,"Thickness":0.1,"Stackable":false,"Stretch":false}},"LuaScript":"","LuaScriptState":"","XmlUI":""}]==],
+[==[{"Name":"Custom_Tile","Transform":{"posX":-1.65581763,"posY":11.66551,"posZ":11.357152,"rotX":0.0169833116,"rotY":180.0012,"rotZ":0.07945639,"scaleX":1.0,"scaleY":1.0,"scaleZ":1.0},"Nickname":"","Description":"","GMNotes":"","AltLookAngle":{"x":0.0,"y":0.0,"z":0.0},"ColorDiffuse":{"r":0.129411221,"g":0.129411221,"b":0.129411221},"LayoutGroupSortIndex":0,"Value":0,"Locked":false,"Grid":true,"Snap":true,"IgnoreFoW":false,"MeasureMovement":false,"DragSelectable":true,"Autoraise":true,"Sticky":true,"Tooltip":true,"GridProjection":false,"HideWhenFaceDown":false,"Hands":false,"CustomImage":{"ImageURL":"https://steamusercontent-a.akamaihd.net/ugc/1723164680735393030/9033BAB1D546F62067327382403806E3B097D915/","ImageSecondaryURL":"https://steamusercontent-a.akamaihd.net/ugc/1723164680735388314/65B14443B80555C739C57BBACC5E57EFB6E263D1/","ImageScalar":1.0,"WidthScale":0.0,"CustomTile":{"Type":1,"Thickness":0.1,"Stackable":false,"Stretch":false}},"LuaScript":"","LuaScriptState":"","XmlUI":""}]==],
+[==[{"Name":"Custom_Tile","Transform":{"posX":20.0446281,"posY":11.6377363,"posZ":19.021677,"rotX":0.0169724859,"rotY":180.001144,"rotZ":0.07935147,"scaleX":1.0,"scaleY":1.0,"scaleZ":1.0},"Nickname":"","Description":"","GMNotes":"","AltLookAngle":{"x":0.0,"y":0.0,"z":0.0},"ColorDiffuse":{"r":0.129411221,"g":0.129411221,"b":0.129411221},"LayoutGroupSortIndex":0,"Value":0,"Locked":false,"Grid":true,"Snap":true,"IgnoreFoW":false,"MeasureMovement":false,"DragSelectable":true,"Autoraise":true,"Sticky":true,"Tooltip":true,"GridProjection":false,"HideWhenFaceDown":false,"Hands":false,"CustomImage":{"ImageURL":"https://steamusercontent-a.akamaihd.net/ugc/1723164680735391630/1D520705DC560E7D5D8FF7BABC8310879513DBA4/","ImageSecondaryURL":"https://steamusercontent-a.akamaihd.net/ugc/1723164680735388314/65B14443B80555C739C57BBACC5E57EFB6E263D1/","ImageScalar":1.0,"WidthScale":0.0,"CustomTile":{"Type":1,"Thickness":0.1,"Stackable":false,"Stretch":false}},"LuaScript":"","LuaScriptState":"","XmlUI":""}]==],
+[==[{"Name":"Custom_Tile","Transform":{"posX":-19.01597,"posY":11.6920776,"posZ":19.8693466,"rotX":0.016982127,"rotY":180.001236,"rotZ":0.0793578,"scaleX":1.0,"scaleY":1.0,"scaleZ":1.0},"Nickname":"","Description":"","GMNotes":"","AltLookAngle":{"x":0.0,"y":0.0,"z":0.0},"ColorDiffuse":{"r":0.12941125,"g":0.12941125,"b":0.12941125},"LayoutGroupSortIndex":0,"Value":0,"Locked":false,"Grid":true,"Snap":true,"IgnoreFoW":false,"MeasureMovement":false,"DragSelectable":true,"Autoraise":true,"Sticky":true,"Tooltip":true,"GridProjection":false,"HideWhenFaceDown":false,"Hands":false,"CustomImage":{"ImageURL":"https://steamusercontent-a.akamaihd.net/ugc/1723164680735388728/5C589936BB09A04B26C29FD602219A1C24318F94/","ImageSecondaryURL":"https://steamusercontent-a.akamaihd.net/ugc/1723164680735388314/65B14443B80555C739C57BBACC5E57EFB6E263D1/","ImageScalar":1.0,"WidthScale":0.0,"CustomTile":{"Type":1,"Thickness":0.1,"Stackable":false,"Stretch":false}},"LuaScript":"","LuaScriptState":"","XmlUI":""}]==]
+}
+
+RTT_MARSH_NUMJSON = {
+[1] = [==[{"Name":"Custom_Tile","Transform":{"posX":-22.8256683,"posY":11.6962337,"posZ":15.0386505,"rotX":0.016887866,"rotY":180.005692,"rotZ":0.07977283,"scaleX":1.0,"scaleY":1.0,"scaleZ":1.0},"Nickname":"","Description":"","GMNotes":"","AltLookAngle":{"x":0.0,"y":0.0,"z":0.0},"ColorDiffuse":{"r":0.12941125,"g":0.12941125,"b":0.12941125},"LayoutGroupSortIndex":0,"Value":0,"Locked":false,"Grid":true,"Snap":true,"IgnoreFoW":false,"MeasureMovement":false,"DragSelectable":true,"Autoraise":true,"Sticky":true,"Tooltip":true,"GridProjection":false,"HideWhenFaceDown":false,"Hands":false,"CustomImage":{"ImageURL":"https://steamusercontent-a.akamaihd.net/ugc/1723164680735388728/5C589936BB09A04B26C29FD602219A1C24318F94/","ImageSecondaryURL":"https://steamusercontent-a.akamaihd.net/ugc/1723164680735388314/65B14443B80555C739C57BBACC5E57EFB6E263D1/","ImageScalar":1.0,"WidthScale":0.0,"CustomTile":{"Type":1,"Thickness":0.1,"Stackable":false,"Stretch":false}},"LuaScript":"","LuaScriptState":"","XmlUI":""}]==],
+[2] = [==[{"Name":"Custom_Tile","Transform":{"posX":-6.936001,"posY":11.6743279,"posZ":15.7647591,"rotX":0.0168983359,"rotY":180.005615,"rotZ":0.07977534,"scaleX":1.0,"scaleY":1.0,"scaleZ":1.0},"Nickname":"","Description":"","GMNotes":"","AltLookAngle":{"x":0.0,"y":0.0,"z":0.0},"ColorDiffuse":{"r":0.129411221,"g":0.129411221,"b":0.129411221},"LayoutGroupSortIndex":0,"Value":0,"Locked":false,"Grid":true,"Snap":true,"IgnoreFoW":false,"MeasureMovement":false,"DragSelectable":true,"Autoraise":true,"Sticky":true,"Tooltip":true,"GridProjection":false,"HideWhenFaceDown":false,"Hands":false,"CustomImage":{"ImageURL":"https://steamusercontent-a.akamaihd.net/ugc/1723164680735390584/A5F4904F8845C55E96472FB9D6B81C72D8CCFF74/","ImageSecondaryURL":"https://steamusercontent-a.akamaihd.net/ugc/1723164680735388314/65B14443B80555C739C57BBACC5E57EFB6E263D1/","ImageScalar":1.0,"WidthScale":0.0,"CustomTile":{"Type":1,"Thickness":0.1,"Stackable":false,"Stretch":false}},"LuaScript":"","LuaScriptState":"","XmlUI":""}]==],
+[3] = [==[{"Name":"Custom_Tile","Transform":{"posX":3.86553,"posY":11.658967,"posZ":14.6660137,"rotX":0.0168985724,"rotY":180.005615,"rotZ":0.07977536,"scaleX":1.0,"scaleY":1.0,"scaleZ":1.0},"Nickname":"","Description":"","GMNotes":"","AltLookAngle":{"x":0.0,"y":0.0,"z":0.0},"ColorDiffuse":{"r":0.129411221,"g":0.129411221,"b":0.129411221},"LayoutGroupSortIndex":0,"Value":0,"Locked":false,"Grid":true,"Snap":true,"IgnoreFoW":false,"MeasureMovement":false,"DragSelectable":true,"Autoraise":true,"Sticky":true,"Tooltip":true,"GridProjection":false,"HideWhenFaceDown":false,"Hands":false,"CustomImage":{"ImageURL":"https://steamusercontent-a.akamaihd.net/ugc/1723164680735391630/1D520705DC560E7D5D8FF7BABC8310879513DBA4/","ImageSecondaryURL":"https://steamusercontent-a.akamaihd.net/ugc/1723164680735388314/65B14443B80555C739C57BBACC5E57EFB6E263D1/","ImageScalar":1.0,"WidthScale":0.0,"CustomTile":{"Type":1,"Thickness":0.1,"Stackable":false,"Stretch":false}},"LuaScript":"","LuaScriptState":"","XmlUI":""}]==],
+[4] = [==[{"Name":"Custom_Tile","Transform":{"posX":23.1922112,"posY":11.6326418,"posZ":16.6250629,"rotX":0.0168937836,"rotY":180.005539,"rotZ":0.0797789,"scaleX":1.0,"scaleY":1.0,"scaleZ":1.0},"Nickname":"","Description":"","GMNotes":"","AltLookAngle":{"x":0.0,"y":0.0,"z":0.0},"ColorDiffuse":{"r":0.129411221,"g":0.129411221,"b":0.129411221},"LayoutGroupSortIndex":0,"Value":0,"Locked":false,"Grid":true,"Snap":true,"IgnoreFoW":false,"MeasureMovement":false,"DragSelectable":true,"Autoraise":true,"Sticky":true,"Tooltip":true,"GridProjection":false,"HideWhenFaceDown":false,"Hands":false,"CustomImage":{"ImageURL":"https://steamusercontent-a.akamaihd.net/ugc/1723164680735392271/B6E7F63F7F1271386331507F3198D2B7BAE69223/","ImageSecondaryURL":"https://steamusercontent-a.akamaihd.net/ugc/1723164680735388314/65B14443B80555C739C57BBACC5E57EFB6E263D1/","ImageScalar":1.0,"WidthScale":0.0,"CustomTile":{"Type":1,"Thickness":0.1,"Stackable":false,"Stretch":false}},"LuaScript":"","LuaScriptState":"","XmlUI":""}]==],
+[5] = [==[{"Name":"Custom_Tile","Transform":{"posX":-15.101325,"posY":11.683238,"posZ":7.438606,"rotX":0.0169268027,"rotY":179.984329,"rotZ":0.07976854,"scaleX":1.0,"scaleY":1.0,"scaleZ":1.0},"Nickname":"","Description":"","GMNotes":"","AltLookAngle":{"x":0.0,"y":0.0,"z":0.0},"ColorDiffuse":{"r":0.129411221,"g":0.129411221,"b":0.129411221},"LayoutGroupSortIndex":0,"Value":0,"Locked":false,"Grid":true,"Snap":true,"IgnoreFoW":false,"MeasureMovement":false,"DragSelectable":true,"Autoraise":true,"Sticky":true,"Tooltip":true,"GridProjection":false,"HideWhenFaceDown":false,"Hands":false,"CustomImage":{"ImageURL":"https://steamusercontent-a.akamaihd.net/ugc/1723164680735393030/9033BAB1D546F62067327382403806E3B097D915/","ImageSecondaryURL":"https://steamusercontent-a.akamaihd.net/ugc/1723164680735388314/65B14443B80555C739C57BBACC5E57EFB6E263D1/","ImageScalar":1.0,"WidthScale":0.0,"CustomTile":{"Type":1,"Thickness":0.1,"Stackable":false,"Stretch":false}},"LuaScript":"","LuaScriptState":"","XmlUI":""}]==],
+[6] = [==[{"Name":"Custom_Tile","Transform":{"posX":6.93981743,"posY":11.652935,"posZ":8.72676,"rotX":0.016900504,"rotY":180.00563,"rotZ":0.0797798261,"scaleX":1.0,"scaleY":1.0,"scaleZ":1.0},"Nickname":"","Description":"","GMNotes":"","AltLookAngle":{"x":0.0,"y":0.0,"z":0.0},"ColorDiffuse":{"r":0.129411221,"g":0.129411221,"b":0.129411221},"LayoutGroupSortIndex":0,"Value":0,"Locked":false,"Grid":true,"Snap":true,"IgnoreFoW":false,"MeasureMovement":false,"DragSelectable":true,"Autoraise":true,"Sticky":true,"Tooltip":true,"GridProjection":false,"HideWhenFaceDown":false,"Hands":false,"CustomImage":{"ImageURL":"https://steamusercontent-a.akamaihd.net/ugc/1723164680735393877/344FFF8AFA261E092936662D8124C9DBCF32B159/","ImageSecondaryURL":"https://steamusercontent-a.akamaihd.net/ugc/1723164680735388314/65B14443B80555C739C57BBACC5E57EFB6E263D1/","ImageScalar":1.0,"WidthScale":0.0,"CustomTile":{"Type":1,"Thickness":0.1,"Stackable":false,"Stretch":false}},"LuaScript":"","LuaScriptState":"","XmlUI":""}]==],
+[7] = [==[{"Name":"Custom_Tile","Transform":{"posX":14.5138464,"posY":11.6417446,"posZ":6.53542757,"rotX":0.016899284,"rotY":180.00563,"rotZ":0.07977588,"scaleX":1.0,"scaleY":1.0,"scaleZ":1.0},"Nickname":"","Description":"","GMNotes":"","AltLookAngle":{"x":0.0,"y":0.0,"z":0.0},"ColorDiffuse":{"r":0.129411221,"g":0.129411221,"b":0.129411221},"LayoutGroupSortIndex":0,"Value":0,"Locked":false,"Grid":true,"Snap":true,"IgnoreFoW":false,"MeasureMovement":false,"DragSelectable":true,"Autoraise":true,"Sticky":true,"Tooltip":true,"GridProjection":false,"HideWhenFaceDown":false,"Hands":false,"CustomImage":{"ImageURL":"https://steamusercontent-a.akamaihd.net/ugc/1723164680735394618/1C7937D88E8A996D14647B20DFF10A6202A69044/","ImageSecondaryURL":"https://steamusercontent-a.akamaihd.net/ugc/1723164680735388314/65B14443B80555C739C57BBACC5E57EFB6E263D1/","ImageScalar":1.0,"WidthScale":0.0,"CustomTile":{"Type":1,"Thickness":0.1,"Stackable":false,"Stretch":false}},"LuaScript":"","LuaScriptState":"","XmlUI":""}]==],
+[8] = [==[{"Name":"Custom_Tile","Transform":{"posX":-23.3667736,"posY":11.692584,"posZ":0.1327615,"rotX":0.0169014316,"rotY":180.0056,"rotZ":0.07986645,"scaleX":1.0,"scaleY":1.0,"scaleZ":1.0},"Nickname":"","Description":"","GMNotes":"","AltLookAngle":{"x":0.0,"y":0.0,"z":0.0},"ColorDiffuse":{"r":0.129411221,"g":0.129411221,"b":0.129411221},"LayoutGroupSortIndex":0,"Value":0,"Locked":false,"Grid":true,"Snap":true,"IgnoreFoW":false,"MeasureMovement":false,"DragSelectable":true,"Autoraise":true,"Sticky":true,"Tooltip":true,"GridProjection":false,"HideWhenFaceDown":false,"Hands":false,"CustomImage":{"ImageURL":"https://steamusercontent-a.akamaihd.net/ugc/1723164680735395411/679034452BE6FA8F601CB172FA2C3168BFCDB7BE/","ImageSecondaryURL":"https://steamusercontent-a.akamaihd.net/ugc/1723164680735388314/65B14443B80555C739C57BBACC5E57EFB6E263D1/","ImageScalar":1.0,"WidthScale":0.0,"CustomTile":{"Type":1,"Thickness":0.1,"Stackable":false,"Stretch":false}},"LuaScript":"","LuaScriptState":"","XmlUI":""}]==],
+[9] = [==[{"Name":"Custom_Tile","Transform":{"posX":-8.586024,"posY":11.6709509,"posZ":-3.46062636,"rotX":0.0168996248,"rotY":180.005646,"rotZ":0.07977662,"scaleX":1.0,"scaleY":1.0,"scaleZ":1.0},"Nickname":"","Description":"","GMNotes":"","AltLookAngle":{"x":0.0,"y":0.0,"z":0.0},"ColorDiffuse":{"r":0.129411221,"g":0.129411221,"b":0.129411221},"LayoutGroupSortIndex":0,"Value":0,"Locked":false,"Grid":true,"Snap":true,"IgnoreFoW":false,"MeasureMovement":false,"DragSelectable":true,"Autoraise":true,"Sticky":true,"Tooltip":true,"GridProjection":false,"HideWhenFaceDown":false,"Hands":false,"CustomImage":{"ImageURL":"https://steamusercontent-a.akamaihd.net/ugc/1723164680735396376/B30D28410D62CA39D329D63A29467BC3CA075A3D/","ImageSecondaryURL":"https://steamusercontent-a.akamaihd.net/ugc/1723164680735388314/65B14443B80555C739C57BBACC5E57EFB6E263D1/","ImageScalar":1.0,"WidthScale":0.0,"CustomTile":{"Type":1,"Thickness":0.1,"Stackable":false,"Stretch":false}},"LuaScript":"","LuaScriptState":"","XmlUI":""}]==],
+[10] = [==[{"Name":"Custom_Tile","Transform":{"posX":6.003087,"posY":11.6505346,"posZ":-3.82328582,"rotX":0.0168997254,"rotY":180.005585,"rotZ":0.07977611,"scaleX":1.0,"scaleY":1.0,"scaleZ":1.0},"Nickname":"","Description":"","GMNotes":"","AltLookAngle":{"x":0.0,"y":0.0,"z":0.0},"ColorDiffuse":{"r":0.129411221,"g":0.129411221,"b":0.129411221},"LayoutGroupSortIndex":0,"Value":0,"Locked":false,"Grid":true,"Snap":true,"IgnoreFoW":false,"MeasureMovement":false,"DragSelectable":true,"Autoraise":true,"Sticky":true,"Tooltip":true,"GridProjection":false,"HideWhenFaceDown":false,"Hands":false,"CustomImage":{"ImageURL":"https://steamusercontent-a.akamaihd.net/ugc/1723164680735397129/76BA556B9D32B4C3C78D5ABF2A2A5BAB9749D814/","ImageSecondaryURL":"https://steamusercontent-a.akamaihd.net/ugc/1723164680735388314/65B14443B80555C739C57BBACC5E57EFB6E263D1/","ImageScalar":1.0,"WidthScale":0.0,"CustomTile":{"Type":1,"Thickness":0.1,"Stackable":false,"Stretch":false}},"LuaScript":"","LuaScriptState":"","XmlUI":""}]==],
+[11] = [==[{"Name":"Custom_Tile","Transform":{"posX":18.10021,"posY":11.6334057,"posZ":-4.80220127,"rotX":0.0168997757,"rotY":180.00563,"rotZ":0.079775244,"scaleX":1.0,"scaleY":1.0,"scaleZ":1.0},"Nickname":"","Description":"","GMNotes":"","AltLookAngle":{"x":0.0,"y":0.0,"z":0.0},"ColorDiffuse":{"r":0.129411221,"g":0.129411221,"b":0.129411221},"LayoutGroupSortIndex":0,"Value":0,"Locked":false,"Grid":true,"Snap":true,"IgnoreFoW":false,"MeasureMovement":false,"DragSelectable":true,"Autoraise":true,"Sticky":true,"Tooltip":true,"GridProjection":false,"HideWhenFaceDown":false,"Hands":false,"CustomImage":{"ImageURL":"https://steamusercontent-a.akamaihd.net/ugc/1723164680735397926/DE6E0673828A0A7F634540A2B6ACBEAB5AAE216C/","ImageSecondaryURL":"https://steamusercontent-a.akamaihd.net/ugc/1723164680735388314/65B14443B80555C739C57BBACC5E57EFB6E263D1/","ImageScalar":1.0,"WidthScale":0.0,"CustomTile":{"Type":1,"Thickness":0.1,"Stackable":false,"Stretch":false}},"LuaScript":"","LuaScriptState":"","XmlUI":""}]==],
+[12] = [==[{"Name":"Custom_Tile","Transform":{"posX":-23.08647,"posY":11.6879168,"posZ":-14.3724012,"rotX":0.0168999266,"rotY":180.005646,"rotZ":0.07977729,"scaleX":1.0,"scaleY":1.0,"scaleZ":1.0},"Nickname":"","Description":"","GMNotes":"","AltLookAngle":{"x":0.0,"y":0.0,"z":0.0},"ColorDiffuse":{"r":0.129411221,"g":0.129411221,"b":0.129411221},"LayoutGroupSortIndex":0,"Value":0,"Locked":false,"Grid":true,"Snap":true,"IgnoreFoW":false,"MeasureMovement":false,"DragSelectable":true,"Autoraise":true,"Sticky":true,"Tooltip":true,"GridProjection":false,"HideWhenFaceDown":false,"Hands":false,"CustomImage":{"ImageURL":"https://steamusercontent-a.akamaihd.net/ugc/1723164680735398757/2E2A197DCA52CB92E02E340E04872DFD58E42814/","ImageSecondaryURL":"https://steamusercontent-a.akamaihd.net/ugc/1723164680735388314/65B14443B80555C739C57BBACC5E57EFB6E263D1/","ImageScalar":1.0,"WidthScale":0.0,"CustomTile":{"Type":1,"Thickness":0.1,"Stackable":false,"Stretch":false}},"LuaScript":"","LuaScriptState":"","XmlUI":""}]==]
+}
+
+function rttTheme(player, value, id)
+  -- Theme = ranked draft, but the pool is 1 mandatory Militant + ALL Insurgents (no extra
+  -- Militants). Everything else (deal, pick, faction phase) is identical to ranked.
+  RTT_THEME = true
+  rttSetup(player, value, id)
+end
+
+-- ===== RTT lightweight per-player selectors + P1/P2 map/deck pick =====
+RTT_SELECTOR_TAG = "RTT Selector"
+RTT_ORDER = RTT_ORDER or {}
+RTT_CLONES = {}
+RTT_PICKED = { map = nil, deck = nil }
+RTT_PICK_STAGE = 0
+RTT_SOLO = false
+RTT_SELECTOR_JSON = [===[{"Name":"Custom_Tile","Transform":{"posX":0.0,"posY":11.56,"posZ":0.0,"rotX":0.0,"rotY":0.0,"rotZ":0.0,"scaleX":15.5,"scaleY":1.0,"scaleZ":15.5},"Nickname":"","Description":"","GMNotes":"","Locked":true,"Grid":false,"Snap":false,"IgnoreFoW":false,"CustomImage":{"ImageURL":"https://cdn.jsdelivr.net/gh/mrdrouf/root-tabletop-tournament@main/assets/board/board_clean_v3.png","ImageSecondaryURL":"https://steamusercontent-a.akamaihd.net/ugc/1725416402718254700/C6F00394AFEE245DFFA53CD358F5F966AA754BC9/","ImageScalar":1.0,"WidthScale":0.0,"CustomTile":{"Type":0,"Thickness":0.1,"Stackable":false,"Stretch":true}},"LuaScript":"RTT_COORD_GUID = \"bab7e1\"\nfunction rttPickRelay(player, value, id)\n  local c = getObjectFromGUID(RTT_COORD_GUID)\n  if c ~= nil then c.call(\"rttCoordPick\", { color = player.color, id = id }) end\nend\nfunction rttFacRelay(player, value, id)\n  local c = getObjectFromGUID(RTT_COORD_GUID)\n  if c ~= nil then c.call(\"rttCoordFaction\", { color = player.color, id = id, board = self.getGUID() }) end\nend","XmlUI":"<ToggleGroup id=\"rttPickMapDeck\" active=\"false\"><Text id=\"rttPickTitle\" text=\"\" position=\"0 60 -20\" width=\"240\" height=\"14\" fontSize=\"11\" color=\"#f3e9cf\"/><Button id=\"rttPickMap1\" onclick=\"rttPickRelay\" icon=\"Autumn Map\"   color=\"#4b4d35\" position=\"-40 34 -20\" width=\"34\" height=\"34\" fontSize=\"8\"/><Button id=\"rttPickMap2\" onclick=\"rttPickRelay\" icon=\"Winter Map\"   color=\"#6b8a8f\" position=\"0 34 -20\" width=\"34\" height=\"34\" fontSize=\"8\"/><Button id=\"rttPickMap3\" onclick=\"rttPickRelay\" icon=\"Lake Map\"     color=\"#42a0c2\" position=\"40 34 -20\" width=\"34\" height=\"34\" fontSize=\"8\"/><Button id=\"rttPickMap4\" onclick=\"rttPickRelay\" icon=\"Marsh Map\"    color=\"#9b8551\" position=\"-40 -2 -20\" width=\"34\" height=\"34\" fontSize=\"8\"/><Button id=\"rttPickMap5\" onclick=\"rttPickRelay\" icon=\"Mountain Map\" color=\"#764a52\" position=\"0 -2 -20\" width=\"34\" height=\"34\" fontSize=\"8\"/><Button id=\"rttPickMap6\" onclick=\"rttPickRelay\" icon=\"Gorge Map\"    color=\"#61746b\" position=\"40 -2 -20\" width=\"34\" height=\"34\" fontSize=\"8\"/><Button id=\"rttPickDeck1\" onclick=\"rttPickRelay\" icon=\"Standard Deck\"              color=\"#8d7f81\" position=\"-40 -38 -20\" width=\"34\" height=\"34\" fontSize=\"8\"/><Button id=\"rttPickDeck2\" onclick=\"rttPickRelay\" icon=\"Exiles and Partisans Deck\"  color=\"#378f90\" position=\"0 -38 -20\" width=\"34\" height=\"34\" fontSize=\"8\"/><Button id=\"rttPickDeck3\" onclick=\"rttPickRelay\" icon=\"Squires and Disciples Deck\" color=\"#AB6894\" position=\"40 -38 -20\" width=\"34\" height=\"34\" fontSize=\"8\"/></ToggleGroup><ToggleGroup id=\"rttFactions\" active=\"false\"><Text id=\"rttFacTitle\" text=\"\" position=\"0 64 -20\" width=\"260\" height=\"26\" fontSize=\"20\" color=\"#f3e9cf\"/><Button id=\"rttFac1\" onclick=\"rttFacRelay\" position=\"-46 30 -20\" width=\"42\" height=\"42\"/><Button id=\"rttFac2\" onclick=\"rttFacRelay\" position=\"0 30 -20\" width=\"42\" height=\"42\"/><Button id=\"rttFac3\" onclick=\"rttFacRelay\" position=\"46 30 -20\" width=\"42\" height=\"42\"/><Button id=\"rttFac4\" onclick=\"rttFacRelay\" position=\"-46 -18 -20\" width=\"42\" height=\"42\"/><Button id=\"rttFac5\" onclick=\"rttFacRelay\" position=\"0 -18 -20\" width=\"42\" height=\"42\"/><Button id=\"rttFac6\" onclick=\"rttFacRelay\" position=\"46 -18 -20\" width=\"42\" height=\"42\"/></ToggleGroup>","CustomUIAssets":[{"Type":0,"Name":"Marquise de Cat","URL":"https://steamusercontent-a.akamaihd.net/ugc/1861696999739429295/F6CF523AAA7DCC91AF3812339EBB3354F6D9891A/"},{"Type":0,"Name":"Eyrie Dynasties","URL":"https://steamusercontent-a.akamaihd.net/ugc/1728793291755958213/960DFA43E52D99A3250863FC63F3BA3AE5104325/"},{"Type":0,"Name":"Woodland Alliance","URL":"https://steamusercontent-a.akamaihd.net/ugc/1728793291755956632/E99D3C9B246A94F6A898EC0D8098A05FA9467473/"},{"Type":0,"Name":"The Lizard Cult","URL":"https://steamusercontent-a.akamaihd.net/ugc/1728793291755960838/D88CBE9192488A678AF3EC6DFC45B4C728C9A169/"},{"Type":0,"Name":"Riverfolk Company","URL":"https://steamusercontent-a.akamaihd.net/ugc/1728793291755963912/C9589D96259534C6FB15DD91F78E7E90A073FDD8/"},{"Type":0,"Name":"Underground Duchy","URL":"https://steamusercontent-a.akamaihd.net/ugc/1728793291755961872/1E2748C8EDD0BDE039B81658AFD0B19C771569BD/"},{"Type":0,"Name":"Corvid Conspiracy","URL":"https://steamusercontent-a.akamaihd.net/ugc/1728793291755959858/69B8EC707AD26EF2F558ACAB65B39163B812D3F6/"},{"Type":0,"Name":"Lord of the Hundreds","URL":"https://steamusercontent-a.akamaihd.net/ugc/1833522185818578726/CE952087E18A1C0B6B94E44EF53EB009A97A7122/"},{"Type":0,"Name":"Keepers in Iron","URL":"https://steamusercontent-a.akamaihd.net/ugc/1833522185818579404/C0D7197A109DBF0C2EFB34DF50AE2CA70A66C25B/"},{"Type":0,"Name":"Twilight Council","URL":"https://steamusercontent-a.akamaihd.net/ugc/2452866064845174396/6228F6A71DDC36CD883777CA958857CB123D7ECB/"},{"Type":0,"Name":"Lilypad Diaspora","URL":"https://steamusercontent-a.akamaihd.net/ugc/2508034524425991747/77C277526C0042FE2754C83836A1E2C3C03FAD38/"},{"Type":0,"Name":"Knaves of the Deepwood","URL":"https://steamusercontent-a.akamaihd.net/ugc/14468202139363768412/1012F7145C45B86F395C099B9AE80EA536529DD3/"},{"Type":0,"Name":"Autumn Map","URL":"https://steamusercontent-a.akamaihd.net/ugc/9338841708247799860/688C6CB9F5A34B2A2B067C6DA493AD653B7D9C6A/"},{"Type":0,"Name":"Winter Map","URL":"https://steamusercontent-a.akamaihd.net/ugc/12863190738702993416/F9C676622A48D6E15BB3AE235E26CE7BC8D11283/"},{"Type":0,"Name":"Lake Map","URL":"https://steamusercontent-a.akamaihd.net/ugc/11224158918879846636/C034E1855CED11FD28D76E3020D629478FABD195/"},{"Type":0,"Name":"Mountain Map","URL":"https://steamusercontent-a.akamaihd.net/ugc/17146621840035729417/55256EFBD832F89B16ADAF98A382D4BF09162487/"},{"Type":0,"Name":"Marsh Map","URL":"https://steamusercontent-a.akamaihd.net/ugc/12189840401890527004/1A5500DF801E01874A28C059E04D049043948426/"},{"Type":0,"Name":"Gorge Map","URL":"https://steamusercontent-a.akamaihd.net/ugc/17163206417596942920/65DEC204EF54C27F6BAFE8202D3AE63F73D28DD3/"},{"Type":0,"Name":"Standard Deck","URL":"https://steamusercontent-a.akamaihd.net/ugc/1791848789393178780/9438FC204F346D081D3E66A95BBEAC918288004A/"},{"Type":0,"Name":"Exiles and Partisans Deck","URL":"https://steamusercontent-a.akamaihd.net/ugc/1791848789393180099/504416827060BE54A0038F2C9BCF5D5A9475367F/"},{"Type":0,"Name":"Squires and Disciples Deck","URL":"https://steamusercontent-a.akamaihd.net/ugc/16423108253239612/4B2CC3EBFD87C25AD92E61110CF80A5C0E461BD6/"}],"Tags":["RTT Selector"]}]===]
+RTT_BOXSCORE_JSON = [====[{"Name":"BlockSquare","Transform":{"posX":0.0,"posY":2.0,"posZ":0.0,"rotX":0.0,"rotY":270.0,"rotZ":0.0,"scaleX":33.18,"scaleY":0.18,"scaleZ":9.07},"Nickname":"Root Box Score","Description":"Automatic box score for Root - Ultimate Collection.\nReads each faction's VP marker on the map's score track and records a per-round box score, following the TTS turn system. The INFO button on the sheet is the manual.","GMNotes":"","ColorDiffuse":{"r":0.17,"g":0.1,"b":0.05},"Locked":false,"Grid":true,"Snap":true,"IgnoreFoW":false,"MeasureMovement":false,"DragSelectable":true,"Autoraise":true,"Sticky":true,"Tooltip":false,"GridProjection":false,"HideWhenFaceDown":false,"Hands":false,"LuaScript":"-- Root Box Score\n-- Automated per-turn scorekeeping for Root - Ultimate Collection (workshop 2516434159).\n--\n-- Score reading (no vision): every faction's VP marker is a named object\n-- (\"Marquise VP\", ...). The map token carries the printed 0-30 track as snap\n-- points (31 columns x 3 sub-rows on every map checked), found geometrically\n-- in the map's LOCAL coordinates - any map, anywhere, any rotation. A marker's\n-- score is the nearest track column to positionToLocal(marker position).\n--\n-- Turn integration: with the TTS turn system running, row order mirrors the\n-- turn order, the active faction follows Turns.turn_color, and every turn pass\n-- locks the score of the faction whose turn just ended. Seats are matched to\n-- factions by hand zone <-> \"<Faction> Supply\" distance (the supply bag sits\n-- with the faction board in front of its player), which also fills in player\n-- names. Without the turn system, rows order themselves clockwise by seat and\n-- END TURN cycles them manually.\n--\n-- The object IS the sheet: the walnut slab resizes itself to exactly match\n-- the rendered scoresheet (TTS object UI renders at 250 px per world unit),\n-- and every non-interactive element lets clicks through, so grabbing anywhere\n-- that is not a button drags the cardboard.\n--\n-- Silent by design: nothing is written to chat in normal play. DIAGNOSE\n-- (right-click menu) is the only thing that ever broadcasts.\n\n------------------------------------------------------------------ constants --\nlocal BUILD = \"b25.1810\"\n-- log() is NOT editor-only: it also lands in the in-game chat log, so every\n-- debug message must stay behind this gate (the sheet is silent by contract).\n-- Flip at runtime with boxDebug(true) over the External Editor API.\nlocal DEBUG = false\nlocal function dbg(m) if DEBUG then log(m) end end\nfunction boxDebug(v)\n  if type(v) == \"table\" then v = v[1] end\n  DEBUG = (v == true)\nend\nlocal POLL_SECONDS   = 1.2\nlocal SNAP_MIN       = 40\nlocal ROW_TOL        = 0.13\nlocal COL_TOL        = 0.45\nlocal MIN_CELLS      = 28\nlocal MAX_CELLS      = 60\nlocal PX_PER_UNIT    = 100    -- TTS object-UI render density (measured on a\n                              -- live table: the sheet drew 2.5x larger than a\n                              -- slab sized with the documented 250)\nlocal BASE_SCALE     = 5.4    -- sheet size multiplier at size 1.0\n\n-- palette: walnut board, parchment sheet, ink, rust and wax-seal gold\nlocal WALNUT  = \"#2B1A0C\"\nlocal PARCH   = \"#F1E5C8\"\nlocal PARCH2  = \"#E7D8B4\"\nlocal GOLD    = \"#C9A05C\"\nlocal GOLDHI  = \"#E4C88E\"\nlocal INKTXT  = \"#26170B\"\nlocal RUST    = \"#7E4A1E\"\n\nlocal DECKS = { \"Base Deck\", \"Exiles and Partisans\", \"Squires and Disciples\" }\n\n-- the group's map pool, offered as one-click chips in setup\nlocal MAPS = { \"Summer\", \"Winter\", \"Lake\", \"Mountain\", \"Marsh\", \"Gorge\" }\n\n-- card-back artwork -> deck (extracted from the mod's own deck definitions)\nlocal DECK_BACKS = {\n  [\"CAF7209CF51CE857\"] = \"Base Deck\",\n  [\"2EEC952526C7E80D\"] = \"Exiles and Partisans\",\n  [\"CD47EFAA7F885F2A\"] = \"Squires and Disciples\",\n}\n\n-- vagabond characters / captains, for the per-row variant auto-detect\nlocal CHARS = { \"Thief\", \"Tinker\", \"Ranger\", \"Vagrant\", \"Arbiter\", \"Scoundrel\",\n  \"Adventurer\", \"Ronin\", \"Harrier\", \"Jailor\", \"Cheat\", \"Gladiator\" }\n\n-- which factions carry a pickable detail, and its options\nlocal LEADERS = { \"Builder\", \"Charismatic\", \"Commander\", \"Despot\" }\nlocal function variantOptions(fac)\n  if fac == \"Eyrie\" then return LEADERS end\n  if fac == \"Vagabond\" or fac == \"Knaves\" then return CHARS end\n  return nil\nend\n\n-- toggle one item inside a comma-joined selection, keeping the list's order\nlocal function toggleCSV(csv, item, order)\n  local set = {}\n  for w in (csv or \"\"):gmatch(\"[^,]+\") do\n    set[w:match(\"^%s*(.-)%s*$\")] = true\n  end\n  if set[item] then set[item] = nil else set[item] = true end\n  local out = {}\n  for _, c in ipairs(order) do\n    if set[c] then table.insert(out, c) end\n  end\n  return table.concat(out, \", \")\nend\n\n-- the full faction roster (short names = VP marker names in the mod)\nlocal ROSTER = { \"Marquise\", \"Eyrie\", \"Alliance\", \"Vagabond\", \"Riverfolk\",\n  \"Lizard\", \"Duchy\", \"Crows\", \"Rats\", \"Badgers\", \"Knaves\", \"Council\", \"Diaspora\" }\n\n-- image-URL tail -> map name (extracted from the mod's own content registry)\nlocal MAP_NAMES = {\n  [\"gurcomPgXS0oWpng\"] = \"Tidal Flats\",   [\"BC18C7488CACA234\"] = \"Blighted City\",\n  [\"gurcombfYkkjcpng\"] = \"Mountainside\",  [\"FEDD130951792687\"] = \"River Town\",\n  [\"05CCC6DAE105DB80\"] = \"Taiga\",         [\"F09464EE61C0DEF8\"] = \"Gloom\",\n  [\"3FE895F51EC40B24\"] = \"Autumn\",        [\"7210583BE261317B\"] = \"Summer\",\n  [\"06452B5C93B62E68\"] = \"Winter\",        [\"4CFA846E1B68EB75\"] = \"Lake\",\n  [\"93D8213D360FBA8F\"] = \"Mountain\",      [\"5F33E4FEEE8089AB\"] = \"The Deep Woods\",\n  [\"664D1C3ABA5F3913\"] = \"The Wastelands\",[\"9BE9CA5E53B4C887\"] = \"Gorge\",\n  [\"D75950B3E5643325\"] = \"Gorge\",         [\"2D67B5C0F7D82E46\"] = \"Treasure Island\",\n  [\"3BBF750AB82C04EE\"] = \"Narrows and Islets\", [\"C2F717CB7259B659\"] = \"Australia\",\n  [\"27FB3B5790E593C9\"] = \"Tunnel Unraveled\",   [\"3AFD6922B0E9466F\"] = \"Tropics\",\n  [\"E183A0B6769D4C69\"] = \"Marsh\",         [\"7C8340140D11A8F2\"] = \"Lost Woodland\",\n  [\"D17AC01A7B9FA8C4\"] = \"Legends\",       [\"EF774E3AECED67F1\"] = \"Urban\",\n  [\"6A1B83F0415249F8\"] = \"Inferno\",       [\"A21F7344C4FEF62D\"] = \"Spaceballs\",\n  [\"78DE2047BA1B663E\"] = \"Blighted Grove\",\n}\n\n-- Whether attached UI inherits the object's scale is machine-dependent; both\n-- interpretations ship (right-click \"panel scale mode\" toggles). Mode 1\n-- (inherit) is the default and self-cancels so the sheet always matches the\n-- slab the script sizes for itself.\nlocal UI_POSES = {\n  { pos = \"0 0 -60\", rot = \"0 0 0\" },\n  { pos = \"0 0 -60\", rot = \"0 0 180\" },\n  { pos = \"0 0 -60\", rot = \"180 180 0\" },\n  { pos = \"0 0 -60\", rot = \"180 180 180\" },\n}\nlocal SIZE_MULS = { 0.55, 0.7, 0.85, 1.05, 1.3, 1.6 }\n\n----------------------------------------------------------------------- state --\nlocal S = {\n  rows      = {},   -- { fac, player, nameAuto, color, tintHex, iconUrl, guid,\n                    --   score, locks={}, edits={} }\n  active    = 1,\n  turns     = 0,\n  cols      = 10,   -- round columns always shown: fixed size during the game,\n                    -- growing only past round 10 (setup-editable)\n  flip      = false,\n  hidden    = false,\n  setup     = false,\n  pose      = 1,\n  scaleMode = 1,\n  sizeIdx   = 2,\n  meta      = { map = \"\", deck = \"\", hook = \"\", thread = \"\", game = \"\" },\n  unpicked  = {},   -- fac -> true (picked by hand from the roster)\n  unpickedVar = {}, -- fac -> \"cap1, cap2\" (captains available in the draft)\n  varRow    = 1,\n  experimental = false,\n  lastExport = \"\",\n  log       = {},\n  undo      = {},   -- faction NAMES (row order can change underneath)\n}\n\nlocal TRACK = nil\nlocal lastTrackLogged = nil\nlocal pollCount = 0\n\n------------------------------------------------------------------- utilities --\nlocal function now() return os.time() end\n\nlocal function logev(ev, fac, a, b)\n  table.insert(S.log, { t = now(), ev = ev, fac = fac, a = a, b = b })\n  if #S.log > 3000 then table.remove(S.log, 1) end\nend\n\nlocal function esc(s)\n  -- No ampersand survives TTS's XML pipeline (&amp; and &#38; both render as\n  -- literal \"&amp;\", raw & is a parse error) - substitute \"+\" and be done\n  s = tostring(s or \"\")\n  s = s:gsub(\"&\", \"+\"):gsub(\"<\", \"&#60;\"):gsub(\">\", \"&#62;\"):gsub('\"', \"&#34;\")\n  return s\nend\n\nlocal function spaced(s)\n  return (s:gsub(\"(.)\", \"%1 \"):gsub(\" $\", \"\"))\nend\n\nlocal function tintHex(o)\n  local ok, c = pcall(function() return o.getColorTint() end)\n  if not ok or c == nil then return \"888888\" end\n  return string.format(\"%02X%02X%02X\",\n    math.floor(c.r * 255 + 0.5), math.floor(c.g * 255 + 0.5), math.floor(c.b * 255 + 0.5))\nend\n\nlocal function markerImage(o)\n  local ok, co = pcall(function() return o.getCustomObject() end)\n  if not ok or co == nil then return nil end\n  return co.image or co.face or co.diffuse\nend\n\nlocal function urlTail(u)\n  if u == nil then return \"\" end\n  u = u:gsub(\"[^A-Za-z0-9]\", \"\")\n  return u:sub(-16)\nend\n\nlocal function turnsRunning()\n  return Turns.enable and Turns.order ~= nil and #Turns.order > 0\nend\n\nlocal function assetName(fac)\n  return \"vp\" .. fac:gsub(\"%W\", \"\")\nend\n\n--------------------------------------------------------------- track finding --\nlocal function detectTrackOn(obj)\n  local ok, sp = pcall(function() return obj.getSnapPoints() end)\n  if not ok or sp == nil or #sp < SNAP_MIN then return nil end\n  local bandsFound = {}\n  for _, axis in ipairs({ \"x\", \"z\" }) do\n    local other = (axis == \"x\") and \"z\" or \"x\"\n    local pts = {}\n    for _, s in ipairs(sp) do\n      table.insert(pts, { a = s.position[axis], b = s.position[other] })\n    end\n    table.sort(pts, function(p, q) return p.b < q.b end)\n    local bands, cur = {}, {}\n    for _, p in ipairs(pts) do\n      if #cur > 0 and (p.b - cur[#cur].b) > 0.03 then table.insert(bands, cur); cur = {} end\n      table.insert(cur, p)\n    end\n    if #cur > 0 then table.insert(bands, cur) end\n    for _, band in ipairs(bands) do\n      if #band >= 25 then\n        local xs = {}\n        for _, p in ipairs(band) do table.insert(xs, p.a) end\n        table.sort(xs)\n        local diffs = {}\n        for i = 2, #xs do table.insert(diffs, xs[i] - xs[i - 1]) end\n        table.sort(diffs)\n        local s = diffs[math.ceil(#diffs / 2)]\n        local even = s > 0.01\n        if even then\n          for _, d in ipairs(diffs) do\n            local m = math.floor(d / s + 0.5)\n            if m < 1 or m > 2 or math.abs(d - m * s) > 0.25 * s then even = false end\n          end\n        end\n        if even then\n          local n = math.floor((xs[#xs] - xs[1]) / s + 0.5) + 1\n          if n >= MIN_CELLS and n <= MAX_CELLS and #xs >= 0.85 * n then\n            table.insert(bandsFound, { axis = axis, other = other,\n              a0 = xs[1], s = s, n = n, b = band[1].b })\n          end\n        end\n      end\n    end\n  end\n  if #bandsFound == 0 then return nil end\n  local best = nil\n  for _, band in ipairs(bandsFound) do\n    if best == nil then\n      best = { axis = band.axis, other = band.other, a0 = band.a0, s = band.s,\n               n = band.n, rows = { band.b } }\n    elseif band.axis == best.axis\n      and math.abs(band.s - best.s) < 0.1 * best.s\n      and math.abs(band.a0 - best.a0) < 0.5 * best.s then\n      table.insert(best.rows, band.b)\n      if band.n > best.n then best.n = band.n end\n    end\n  end\n  table.sort(best.rows)\n  -- keep the raw snap coordinates belonging to the track: markers are placed\n  -- exactly ON the mod's own snap points, so centering matches TTS snapping\n  best.pts = {}\n  local bmin, bmax = best.rows[1] - 0.05, best.rows[#best.rows] + 0.05\n  for _, s2 in ipairs(sp) do\n    local a = (best.axis == \"x\") and s2.position.x or s2.position.z\n    local b = (best.axis == \"x\") and s2.position.z or s2.position.x\n    if b >= bmin and b <= bmax then\n      table.insert(best.pts, { a = a, b = b })\n    end\n  end\n  best.guid = obj.getGUID()\n  return best\nend\n\nlocal function findTrack()\n  local best, bestSnaps = nil, 0\n  for _, o in ipairs(getAllObjects()) do\n    local ok, sp = pcall(function() return o.getSnapPoints() end)\n    if ok and sp and #sp >= SNAP_MIN and #sp > bestSnaps then\n      local t = detectTrackOn(o)\n      if t then best, bestSnaps = t, #sp end\n    end\n  end\n  TRACK = best\n  if TRACK then\n    local mapObj = getObjectFromGUID(TRACK.guid)\n    if mapObj and S.mapAuto ~= false then\n      -- read the board's identity from its artwork; a manual chip click\n      -- (uiRowBtn \"map\") turns this off for the session\n      local okc, co = pcall(function() return mapObj.getCustomObject() end)\n      local img = okc and co and (co.image or co.diffuse) or nil\n      local auto = MAP_NAMES[urlTail(img)]\n      if auto and auto ~= \"\" then S.meta.map = auto end\n    end\n    if TRACK.guid ~= lastTrackLogged then\n      lastTrackLogged = TRACK.guid\n      dbg(\"BoxScore: track on \" .. TRACK.guid .. \" axis=\" .. TRACK.axis\n        .. \" cells=\" .. TRACK.n .. \" rows=\" .. #TRACK.rows)\n    end\n  else\n    dbg(\"BoxScore: no score track found on any snap holder\")\n  end\nend\n\n---------------------------------------------------------------- score reads --\nlocal function readCell(markerObj)\n  if TRACK == nil then return nil end\n  local mapObj = getObjectFromGUID(TRACK.guid)\n  if mapObj == nil then TRACK = nil; return nil end\n  if markerObj.held_by_color ~= nil then return nil end\n  local okm, moving = pcall(function() return markerObj.isSmoothMoving() end)\n  if okm and moving then return nil end\n  local lp = mapObj.positionToLocal(markerObj.getPosition())\n  local a, b = lp[TRACK.axis], lp[TRACK.other]\n  local nearRow = false\n  for _, rb in ipairs(TRACK.rows) do\n    if math.abs(b - rb) <= ROW_TOL + 0.12 then nearRow = true end\n  end\n  if not nearRow then return nil end\n  local idx = math.floor((a - TRACK.a0) / TRACK.s + 0.5)\n  if idx < 0 or idx > TRACK.n - 1 then return nil end\n  if math.abs(a - (TRACK.a0 + idx * TRACK.s)) > COL_TOL * TRACK.s then return nil end\n  return idx\nend\n\n-- Printed 0 sits at the track's MAXIMUM local coordinate (established three\n-- ways: markers parked on the printed 0 cell sit at local max; the on-table\n-- world view shows 0 bottom-left with the token's usual 180 rotation; and the\n-- map artwork places 0 at the image edge that maps to local max). So scores\n-- DESCEND along the local axis. S.flip reverses this for exotic maps only.\nlocal function cellToScore(idx)\n  if S.flip then return idx end\n  return TRACK.n - 1 - idx\nend\n\nlocal function scoreToCell(score)\n  if S.flip then return score end\n  return TRACK.n - 1 - score\nend\n\nlocal function findMarker(row)\n  local o = row.guid and getObjectFromGUID(row.guid) or nil\n  if o ~= nil and (o.getName() or \"\") == (row.fac .. \" VP\") then return o end\n  -- cached marker gone: re-find by name. Some kits spawn a spare copy (the\n  -- Vagabond's does), so prefer the one standing on the score track.\n  local loose = nil\n  for _, c in ipairs(getAllObjects()) do\n    if (c.getName() or \"\") == (row.fac .. \" VP\") then\n      if readCell(c) ~= nil then\n        row.guid = c.getGUID()\n        return c\n      end\n      if loose == nil then loose = c end\n    end\n  end\n  if loose ~= nil then row.guid = loose.getGUID() end\n  return loose\nend\n\n-- Track orientation is NOT inferred: on every map in this mod the printed 0\n-- sits at the track's minimum local coordinate and 30 at the maximum\n-- (verified against the artwork of all cached maps - the mod's authoring is\n-- uniform, matching the table rule \"bottom-left is 0, bottom-right is 30\").\n-- S.flip stays false unless manually toggled for some exotic future map.\n\n------------------------------------------------------- players and factions --\nlocal function rowByFac(fac)\n  for i, r in ipairs(S.rows) do\n    if r.fac == fac then return i end\n  end\n  return nil\nend\n\nlocal function rowByColor(color)\n  for i, r in ipairs(S.rows) do\n    if r.color == color then return i end\n  end\n  return nil\nend\n\nlocal function addRow(fac, obj)\n  table.insert(S.rows, { fac = fac, player = \"\", nameAuto = false, color = nil,\n    variant = \"\", variantAuto = true,\n    tintHex = tintHex(obj), iconUrl = markerImage(obj), guid = obj.getGUID(),\n    score = -1, locks = {}, edits = {} })\n  logev(\"join\", fac)\n  S.unpicked[fac] = nil   -- a playing faction cannot be the unpicked one\nend\n\n-- The point that marks a faction's play area: its supply bag when one\n-- exists. Some kits name theirs differently (the Rats play from the\n-- \"Hundreds Supply\", the Crows from the \"Corvid Supply\", the Badgers from\n-- the \"Keeper Supply\" - verified against the mod's own spawn data). The\n-- Vagabond has no supply at all: his FACTION BOARD anchors him, identified\n-- by its artwork since boards carry no usable name - the board never moves\n-- once set up, unlike his pawn, which wanders the map (and can do so before\n-- the VP marker ever reaches the track). The named pawn figurine\n-- (\"Vagabond - Thief\", ...) is only a last resort.\nlocal SUPPLY_ALIAS = { Rats = \"Hundreds\", Crows = \"Corvid\", Badgers = \"Keeper\" }\nlocal BOARD_ART = {\n  Vagabond = \"E9FFF39312426A1A13695C984510BB94B663436F\",\n}\n\nlocal function facAnchor(fac, byName)\n  local o = byName[fac .. \" Supply\"]\n  if o == nil and SUPPLY_ALIAS[fac] ~= nil then\n    o = byName[SUPPLY_ALIAS[fac] .. \" Supply\"]\n  end\n  if o == nil and BOARD_ART[fac] ~= nil then\n    for _, c in ipairs(getAllObjects()) do\n      local img = markerImage(c)\n      if img ~= \"\" and img:find(BOARD_ART[fac], 1, true) then\n        o = c\n        break\n      end\n    end\n  end\n  if o == nil then\n    local pre = fac .. \" - \"\n    for _, c in ipairs(getAllObjects()) do\n      local n = c.getName() or \"\"\n      if n:sub(1, #pre) == pre or n:sub(1, #pre - 1) == (fac .. \" -\") then\n        o = c\n        break\n      end\n    end\n  end\n  return o\nend\n\n-- Best effort: find the chosen vagabond character / captain card standing\n-- near the faction's supply. Fills the variant only while it is auto-managed;\n-- a hand-typed variant always wins.\nlocal function refreshVariants(byName)\n  local changed = false\n  for _, row in ipairs(S.rows) do\n    if row.variantAuto ~= false then\n      local bag = facAnchor(row.fac, byName)\n      if bag then\n        local bp = bag.getPosition()\n        local best, bestD = nil, 18 * 18\n        for _, ch in ipairs(CHARS) do\n          local o = byName[ch] or byName[\"Vagabond - \" .. ch]\n            or byName[\"Vagabond -\" .. ch]\n          if o then\n            local op = o.getPosition()\n            local dx, dz = op.x - bp.x, op.z - bp.z\n            local d = dx * dx + dz * dz\n            if d < bestD then best, bestD = ch, d end\n          end\n        end\n        if row.fac == \"Knaves\" then\n          local caps = {}\n          for _, ch in ipairs(CHARS) do\n            local o = byName[\"Captain - \" .. ch] or byName[\"Captain -\" .. ch]\n            if o then\n              local op = o.getPosition()\n              local dx, dz = op.x - bp.x, op.z - bp.z\n              if dx * dx + dz * dz < 18 * 18 then table.insert(caps, ch) end\n            end\n          end\n          best = (#caps > 0 and #caps <= 4) and table.concat(caps, \", \") or nil\n        end\n        if best and row.variant ~= best then\n          row.variant = best\n          changed = true\n        end\n      end\n    end\n  end\n  return changed\nend\n\n-- read the deck in play from the draw pile's card back; a manual chip click\n-- (uiRowBtn \"deck\") turns the automation off\nlocal function refreshDeck()\n  if S.deckAuto == false then return false end\n  -- several decks can sit on the table (draft leftovers, spares): trust the\n  -- one closest to the map, which is where the draw pile lives\n  local mapObj = TRACK and getObjectFromGUID(TRACK.guid) or nil\n  if mapObj == nil then return false end\n  local mp = mapObj.getPosition()\n  local best, bestD = nil, math.huge\n  for _, o in ipairs(getAllObjects()) do\n    if o.type == \"Deck\" then\n      local q = 0\n      pcall(function() q = o.getQuantity() end)\n      if q >= 15 then\n        local ok, data = pcall(function() return o.getData() end)\n        if ok and data and data.CustomDeck then\n          for _, cd in pairs(data.CustomDeck) do\n            local name = DECK_BACKS[urlTail(cd.BackURL)]\n            if name then\n              local op = o.getPosition()\n              local dx, dz = op.x - mp.x, op.z - mp.z\n              local d = dx * dx + dz * dz\n              if d < bestD then best, bestD = name, d end\n            end\n          end\n        end\n      end\n    end\n  end\n  if best and S.meta.deck ~= best then\n    S.meta.deck = best\n    return true\n  end\n  return false\nend\n\nlocal function seatedHands()\n  local hands = {}\n  for _, p in ipairs(Player.getPlayers()) do\n    if p.seated and p.color ~= \"Black\" and p.color ~= \"Grey\" then\n      local ok, ht = pcall(function() return p.getHandTransform() end)\n      if ok and ht then\n        table.insert(hands, { color = p.color, name = p.steam_name, pos = ht.position })\n      end\n    end\n  end\n  return hands\nend\n\n-- Seat -> faction: nearest hand zone to the faction's supply bag (the supply\n-- sits with the faction board in front of its player), greedily one-to-one.\nlocal function refreshSeats(byName)\n  local hands = seatedHands()\n  if #hands == 0 then return false end\n  local cand = {}\n  for _, row in ipairs(S.rows) do\n    local bag = facAnchor(row.fac, byName)\n    if bag then\n      local bp = bag.getPosition()\n      for _, h in ipairs(hands) do\n        local dx, dz = h.pos.x - bp.x, h.pos.z - bp.z\n        table.insert(cand, { d = dx * dx + dz * dz, fac = row.fac,\n                             color = h.color, name = h.name })\n      end\n    end\n  end\n  table.sort(cand, function(x, y) return x.d < y.d end)\n  local usedC, usedF, changed = {}, {}, false\n  for _, c in ipairs(cand) do\n    if not usedC[c.color] and not usedF[c.fac] then\n      usedC[c.color], usedF[c.fac] = true, true\n      local row = S.rows[rowByFac(c.fac)]\n      if row.color ~= c.color then row.color = c.color; changed = true end\n      if row.player == \"\" or row.nameAuto then\n        if row.player ~= c.name then row.player = c.name; changed = true end\n        row.nameAuto = true\n      end\n    end\n  end\n  return changed\nend\n\nlocal function resort(cmp)\n  local activeRow = S.rows[S.active]\n  table.sort(S.rows, cmp)\n  for i, r in ipairs(S.rows) do\n    if r == activeRow then S.active = i end\n  end\nend\n\n-- The turn system can only drive the sheet when every faction row belongs to\n-- a seated color. Solo and hotseat games (one player running several\n-- factions) fall back to the manual END TURN button.\nlocal function fullTurnCoverage()\n  if not turnsRunning() or #S.rows == 0 then return false end\n  -- The turn system can drive the sheet only when >= 2 real seats exist AND\n  -- every faction row's player is seated RIGHT NOW. Stale colors (saved\n  -- games, disconnects) collapse to manual mode so END TURN reappears.\n  local seatedSet, seats = {}, 0\n  for _, p in ipairs(Player.getPlayers()) do\n    if p.seated and p.color ~= \"Black\" and p.color ~= \"Grey\" then\n      seatedSet[p.color] = true\n      seats = seats + 1\n    end\n  end\n  if seats < 2 then return false end\n  for _, r in ipairs(S.rows) do\n    if r.color == nil or not seatedSet[r.color] then return false end\n  end\n  return true\nend\n\nlocal function followTurns()\n  if not fullTurnCoverage() then return false end\n  local changed = false\n  if not S.manualOrder then\n    local pos = {}\n    for i, c in ipairs(Turns.order) do pos[c] = i end\n    local before = {}\n    for i, r in ipairs(S.rows) do before[i] = r end\n    resort(function(x, y)\n      local kx = (x.color and pos[x.color]) or 999\n      local ky = (y.color and pos[y.color]) or 999\n      return kx < ky\n    end)\n    for i, r in ipairs(S.rows) do\n      if before[i] ~= r then changed = true end\n    end\n  end\n  local tc = Turns.turn_color\n  if tc and tc ~= \"\" then\n    local i = rowByColor(tc)\n    if i and i ~= S.active then S.active = i; changed = true end\n  end\n  return changed\nend\n\n-- Without the turn system and before anything is locked, order rows clockwise\n-- around the table by seat position - Root's usual turn order convention.\nlocal function seatOrder()\n  if S.manualOrder or turnsRunning() or S.turns > 0 then return false end\n  for _, row in ipairs(S.rows) do\n    if #row.locks > 0 then return false end\n  end\n  local hands = {}\n  for _, h in ipairs(seatedHands()) do hands[h.color] = h.pos end\n  local before = {}\n  for i, r in ipairs(S.rows) do before[i] = r end\n  resort(function(x, y)\n    local px, py = x.color and hands[x.color], y.color and hands[y.color]\n    if px == nil or py == nil then return (px ~= nil) and py == nil end\n    return math.atan2(px.z, px.x) > math.atan2(py.z, py.x)\n  end)\n  for i, r in ipairs(S.rows) do\n    if before[i] ~= r then return true end\n  end\n  return false\nend\n\n--------------------------------------------------------------------- export --\nlocal function unpickedList()\n  local out = {}\n  for _, fac in ipairs(ROSTER) do\n    if S.unpicked[fac] == true then\n      local v = S.unpickedVar and S.unpickedVar[fac] or \"\"\n      table.insert(out, v ~= \"\" and (fac .. \" (\" .. v .. \")\") or fac)\n    end\n  end\n  return out\nend\n\nlocal function exportPayload(kind, extra)\n  local p = { type = kind, t = now(), meta = S.meta, turns = S.turns,\n              turnOrder = Turns.order, unpicked = unpickedList(),\n              unpickedVariants = S.unpickedVar, rows = {} }\n  for _, row in ipairs(S.rows) do\n    table.insert(p.rows, { faction = row.fac, player = row.player,\n      variant = row.variant, color = row.color, score = row.score,\n      locks = row.locks, edits = row.edits, crafts = row.crafts })\n  end\n  if extra ~= nil then\n    for k, v in pairs(extra) do p[k] = v end\n  end\n  return p\nend\n\n-- Post straight to a Discord webhook - no companion program needed. The URL\n-- is pasted once into EDIT's DISCORD field (or baked into GMNotes) and\n-- then travels with the object inside every save.\nlocal function postDiscord(chunks)\n  local hook = S.meta.hook or \"\"\n  if hook == \"\" or #chunks == 0 then return false end\n  local thread = (S.meta.thread or \"\"):match(\"(%d%d%d%d%d%d+)%s*$\")\n  hook = hook .. (hook:find(\"%?\") and \"&\" or \"?\") .. \"wait=true\"\n  if thread then hook = hook .. \"&thread_id=\" .. thread end\n  local idx = 0\n  local function sendNext()\n    idx = idx + 1\n    local text = chunks[idx]\n    if text == nil then\n      S.lastExport = os.date(\"%H:%M\") .. \" &#183; confirmed with Discord\"\n        .. (#chunks > 1 and (\" (\" .. #chunks .. \" msgs)\") or \"\")\n      rebuildUI()\n      return\n    end\n    local body = JSON.encode({ content = text })\n    local function report(req)\n      if req and (req.is_error or (req.response_code or 0) >= 300) then\n        S.lastExport = os.date(\"%H:%M\") .. \" &#183; Discord failed (msg \" .. idx .. \")\"\n        dbg(\"BoxScore discord error: \" .. tostring(req.error) .. \" code=\"\n          .. tostring(req.response_code) .. \" body=\" .. tostring(req.text):sub(1, 200))\n        rebuildUI()\n      else\n        sendNext()\n      end\n    end\n    local ok = pcall(function()\n      WebRequest.custom(hook, \"POST\", false, body,\n        { [\"Content-Type\"] = \"application/json\" }, report)\n    end)\n    if not ok then\n      pcall(function() WebRequest.post(hook, { content = text }, report) end)\n    end\n  end\n  sendNext()\n  return true\nend\n\n-- split lines into fenced messages under Discord's 2000-char limit\nlocal function fencedChunks(lines)\n  local chunks, cur, len = {}, {}, 0\n  for _, l in ipairs(lines) do\n    if len + #l + 10 > 1800 and #cur > 0 then\n      table.insert(chunks, \"```\\n\" .. table.concat(cur, \"\\n\") .. \"\\n```\")\n      cur, len = {}, 0\n    end\n    table.insert(cur, l)\n    len = len + #l + 1\n  end\n  if #cur > 0 then\n    table.insert(chunks, \"```\\n\" .. table.concat(cur, \"\\n\") .. \"\\n```\")\n  end\n  return chunks\nend\n\n--------------------------------------------------- experimental: crafting --\n-- Watch the craftable-item supply on the map (the edge opposite the score\n-- track). An item leaving the map = a craft: attributed to whoever carried\n-- it (or the active faction), with the VP taken from that faction's next\n-- score change within 30 seconds.\n-- craftable-item artwork -> item name (the tokens are unnamed in this mod)\nlocal ITEMS = {\n  [\"4C4E490133888321E24E3F77DC20E1A4A7369B6E\"] = \"Coins\",\n  [\"FF9D60BC2A7E6A38BE74773188B30F57C14E9FB5\"] = \"Tea\",\n  [\"366FF0B1EDD8B091B881287CF72CFBAA584B742B\"] = \"Sword\",\n  [\"0BEAA5BC0CC9AA3ADB7BEB4A59C124603DA73CD7\"] = \"Hammer\",\n  [\"639F7EE379C0EBF83B49BF9BE165BBD7345E7F5C\"] = \"Crossbow\",\n  [\"81AC7B7422C963CCFB711E0134FF957117DC1528\"] = \"Boot\",\n  [\"459F031CFC2B05BFD5597460610B20DD58D14843\"] = \"Bag\",\n}\nlocal ITEM_NAMES = { \"Coins\", \"Tea\", \"Sword\", \"Hammer\", \"Crossbow\", \"Boot\", \"Bag\" }\nlocal function itemTail(u)\n  if u == nil then return \"\" end\n  return (u:gsub(\"[^A-Za-z0-9]\", \"\")):sub(-40)\nend\n\nlocal ITEMWATCH = nil     -- guid -> { name, holder, img }\nlocal INFLIGHT = {}       -- guid -> { name, img, holder, tLeft }\nlocal SUPPLYPOS = {}      -- fac -> world position of its supply bag\nlocal CATCHUP = false     -- one adopt-existing-crafts sweep after (re)arming\n\nlocal function initItemWatch()\n  ITEMWATCH = {}\n  if TRACK == nil then return end\n  local mapObj = getObjectFromGUID(TRACK.guid)\n  if mapObj == nil then return end\n  local trackB = TRACK.rows[math.ceil(#TRACK.rows / 2)]\n  local count = 0\n  for _, o in ipairs(getAllObjects()) do\n    if o ~= self and o.getGUID() ~= TRACK.guid then\n      local n = o.getName() or \"\"\n      -- the item tokens are UNNAMED small tiles; named map furniture (VP\n      -- markers, ruins, landmarks) is excluded, everything else small in the\n      -- supply region is an item\n      local excluded = n:match(\" VP$\") or n:match(\"Supply$\") or n:match(\"Board$\")\n        or n == \"RUIN\" or o.type == \"Deck\" or o.type == \"Card\"\n      local sc = o.getScale()\n      if not excluded and sc.x < 1.0 then\n        local ok, lp = pcall(function() return mapObj.positionToLocal(o.getPosition()) end)\n        if ok and lp and math.abs(lp.x) < 1.95 and math.abs(lp.z) < 1.95 then\n          local b = (TRACK.axis == \"x\") and lp.z or lp.x\n          if b * trackB < 0 and math.abs(b) > 0.85 then\n            local img = markerImage(o)\n            local nm = ITEMS[itemTail(img)] or ((n ~= \"\") and n or \"Item\")\n            if ITEMS[itemTail(img)] and img ~= \"\" then S.itemImgs[nm] = img end\n            ITEMWATCH[o.getGUID()] = { name = nm, holder = nil, img = img }\n            count = count + 1\n          end\n        end\n      end\n    end\n  end\n  dbg(\"BoxScore experimental: watching \" .. count .. \" supply items\")\nend\n\n-- the item's crafting VP: the faction's first score increase since the item\n-- left the supply (the marker usually moves at craft time even when the item\n-- is moved to the board later)\nlocal function inferCraftVP(fac, tLeft)\n  for k = #S.log, 1, -1 do\n    local e = S.log[k]\n    if e.t ~= nil and e.t < tLeft then break end\n    if e.ev == \"score\" and e.fac == fac and type(e.a) == \"number\"\n      and type(e.b) == \"number\" and e.b > e.a and e.a >= 0 then\n      return e.b - e.a\n    end\n  end\n  return 0\nend\n\nlocal function inferRound(fac, t, activeFac)\n  local n = 0\n  for _, e in ipairs(S.log) do\n    if e.ev == \"lock\" and e.fac == fac and (e.t or 0) <= t then n = n + 1 end\n  end\n  if activeFac ~= nil and activeFac ~= fac then\n    -- the item moved while another faction was playing: it belongs to the\n    -- crafting faction's last noted turn, not their upcoming one\n    return math.max(1, n)\n  end\n  return n + 1\nend\n\n-- is this object back in the map's item-supply region?\nlocal function inSupplyRegion(mapObj, o)\n  if TRACK == nil then return false end\n  local ok, lp = pcall(function() return mapObj.positionToLocal(o.getPosition()) end)\n  if not (ok and lp) then return false end\n  if math.abs(lp.x) >= 1.95 or math.abs(lp.z) >= 1.95 then return false end\n  local trackB = TRACK.rows[math.ceil(#TRACK.rows / 2)]\n  local b = (TRACK.axis == \"x\") and lp.z or lp.x\n  return b * trackB < 0 and math.abs(b) > 0.85\nend\n\nlocal function attributeCraft(i, entry, guid)\n  local row = S.rows[i]\n  if row == nil then return end\n  row.crafts = row.crafts or {}\n  table.insert(row.crafts, { item = entry.name, img = entry.img, guid = guid,\n    vp = inferCraftVP(row.fac, entry.tLeft),\n    r = inferRound(row.fac, entry.tLeft, entry.activeFac) })\n  if entry.img and entry.img ~= \"\" then S.itemImgs[entry.name] = entry.img end\n  logev(\"craft\", row.fac, entry.name)\n  refreshAssets()\nend\n\n-- items already sitting beside a faction board when the watch (re)starts are\n-- adopted as crafts, so late activation or missed flights still count\nlocal function catchUpCrafts(mapObj)\n  local counted = {}\n  for _, row in ipairs(S.rows) do\n    for _, c in ipairs(row.crafts or {}) do\n      if c.guid then counted[c.guid] = true end\n    end\n  end\n  for _, o in ipairs(getAllObjects()) do\n    local guid = o.getGUID()\n    if not counted[guid] and ITEMWATCH[guid] == nil and o.type == \"Tile\" then\n      local img = markerImage(o)\n      local nm = ITEMS[itemTail(img)]\n      if nm then\n        local okl, lp = pcall(function() return mapObj.positionToLocal(o.getPosition()) end)\n        local offMap = not (okl and lp and math.abs(lp.x) < 2.0 and math.abs(lp.z) < 2.0)\n        if offMap then\n          local op = o.getPosition()\n          local bestFac, bestD = nil, 30 * 30\n          for fac, sp2 in pairs(SUPPLYPOS) do\n            local dx, dz = op.x - sp2.x, op.z - sp2.z\n            local d = dx * dx + dz * dz\n            if d < bestD then bestFac, bestD = fac, d end\n          end\n          local i2 = bestFac and rowByFac(bestFac) or nil\n          if i2 then\n            attributeCraft(i2, { name = nm, img = img, tLeft = now(),\n              activeFac = S.rows[S.active] and S.rows[S.active].fac or nil }, guid)\n          end\n        end\n      end\n    end\n  end\nend\n\nfunction uiCraftMenu()\n  S.overlay = (S.overlay == \"craft\") and nil or \"craft\"\n  S.craftAdd = nil\n  S.craftPick = nil\n  rebuildUI()\nend\n\nfunction uiCraftBtn(player, _, id)\n  local i, k = id:match(\"^cfr_(%d+)_(%d+)$\")\n  if i then\n    -- clicking a craft's T# opens the round row below; clicking again closes\n    if S.craftPick ~= nil and S.craftPick.i == tonumber(i)\n      and S.craftPick.k == tonumber(k) then\n      S.craftPick = nil\n    else\n      S.craftPick = { i = tonumber(i), k = tonumber(k) }\n      S.craftAdd = nil\n    end\n    rebuildUI()\n    return\n  end\n  local pr = id:match(\"^cfpick_(%d+)$\")\n  if pr then\n    if S.craftPick ~= nil then\n      local row = S.rows[S.craftPick.i]\n      local c = row and (row.crafts or {})[S.craftPick.k] or nil\n      if c then c.r = tonumber(pr) end\n      S.craftPick = nil\n    end\n    rebuildUI()\n    return\n  end\n  i, k = id:match(\"^cfx_(%d+)_(%d+)$\")\n  if i then\n    local row = S.rows[tonumber(i)]\n    if row and row.crafts then\n      table.remove(row.crafts, tonumber(k))\n      refreshAssets()\n    end\n    rebuildUI()\n    return\n  end\n  i = id:match(\"^cfadd_(%d+)$\")\n  if i then\n    S.craftAdd = (S.craftAdd == tonumber(i)) and nil or tonumber(i)\n    S.craftPick = nil\n    rebuildUI()\n    return\n  end\n  k = id:match(\"^cfnew_(%d+)$\")\n  if k then\n    local row = S.rows[S.craftAdd or 0]\n    local nm = ITEM_NAMES[tonumber(k)]\n    if row and nm then\n      row.crafts = row.crafts or {}\n      table.insert(row.crafts, { item = nm, img = S.itemImgs[nm] or \"\",\n        vp = 0, r = math.floor(S.turns / math.max(1, #S.rows)) + 1 })\n      logev(\"craft\", row.fac, nm)\n      S.craftAdd = nil\n      refreshAssets()\n    end\n    rebuildUI()\n  end\nend\n\nfunction uiExperimental()\n  S.experimental = not S.experimental\n  ITEMWATCH = nil\n  INFLIGHT = {}\n  if S.overlay == \"craft\" then S.overlay = nil end\n  rebuildUI()\nend\n\n------------------------------------------------------------------- the poll --\nlocal dirty = false\n\n-- forward declaration, so anything above lockRow's definition can call it\nlocal lockRow\n\nlocal function poll()\n  pollCount = pollCount + 1\n  -- Track detection does no steady-state work. The every-poll scan runs\n  -- only until the first map is found; afterwards the sole periodic cost\n  -- is one object lookup every 25th poll, and a full re-detection happens\n  -- only when the mapped object has actually been deleted (a map swap).\n  -- A stale map NAME is acceptable - the MAP chip in EDIT corrects it.\n  if TRACK ~= nil and pollCount % 25 == 0\n    and getObjectFromGUID(TRACK.guid) == nil then\n    TRACK = nil\n  end\n  if TRACK == nil then\n    findTrack()\n    if TRACK ~= nil then dirty = true end\n  end\n  if TRACK == nil then return end\n\n  for _, o in ipairs(getAllObjects()) do\n    local n = o.getName() or \"\"\n    local fac = n:match(\"^(.+) VP$\")\n    if fac and rowByFac(fac) == nil and readCell(o) ~= nil then\n      addRow(fac, o)\n      refreshAssets()\n      dirty = true\n    end\n  end\n\n  for ri, row in ipairs(S.rows) do\n    local m = findMarker(row)\n    local idx = m and readCell(m) or nil\n    if idx ~= nil then\n      local sc = cellToScore(idx)\n      if sc ~= row.score then\n        logev(\"score\", row.fac, row.score, sc)\n        row.score = sc\n        dirty = true\n      end\n      -- Reaching 30 ends the game: the 30 is printed into the CURRENT\n      -- round column and the world stops - the turn does NOT pass, the\n      -- pointer does not move, nothing locks any more. Moving that marker\n      -- off 30 to a lower score means it was a mistake: the cell returns\n      -- to exactly what it held before and play resumes.\n      if S.winner == nil and sc >= 30 then\n        local r = math.max(1, math.floor(S.turns / math.max(1, #S.rows)) + 1)\n        S.winnerLock = { fac = row.fac, r = r,\n          prevLock = row.locks[r], prevEdit = row.edits[tostring(r)] }\n        row.edits[tostring(r)] = nil\n        while #row.locks < r - 1 do table.insert(row.locks, -1) end\n        row.locks[r] = sc\n        S.winner = row.fac\n        logev(\"gameover\", row.fac, r, sc)\n        dirty = true\n      elseif S.winner == row.fac and sc < 30 then\n        local wl = S.winnerLock\n        if wl ~= nil and wl.fac == row.fac then\n          if wl.prevLock ~= nil then\n            row.locks[wl.r] = wl.prevLock\n          else\n            row.locks[wl.r] = -1\n            while #row.locks > 0\n              and (row.locks[#row.locks] == -1 or row.locks[#row.locks] == nil) do\n              table.remove(row.locks)\n            end\n          end\n          if wl.prevEdit ~= nil then row.edits[tostring(wl.r)] = wl.prevEdit end\n        end\n        S.winner = nil\n        S.winnerLock = nil\n        logev(\"resume\", row.fac)\n        dirty = true\n      end\n    end\n  end\n\n  if S.experimental and TRACK ~= nil then\n    if ITEMWATCH == nil then\n      initItemWatch()\n      CATCHUP = true\n    end\n    local mapObj = getObjectFromGUID(TRACK.guid)\n    -- the catch-up sweep needs the supply anchors, which fill on the first\n    -- fifth-poll scan; run it once they exist\n    if CATCHUP and mapObj and ITEMWATCH and next(SUPPLYPOS) ~= nil then\n      catchUpCrafts(mapObj)\n      CATCHUP = false\n      dirty = true\n    end\n    if mapObj and ITEMWATCH then\n      for guid, w in pairs(ITEMWATCH) do\n        local o = getObjectFromGUID(guid)\n        if o ~= nil and o.held_by_color ~= nil then w.holder = o.held_by_color end\n        local gone = (o == nil)\n        if not gone then\n          local okl, lp = pcall(function() return mapObj.positionToLocal(o.getPosition()) end)\n          if okl and lp and (math.abs(lp.x) > 2.1 or math.abs(lp.z) > 2.1) then gone = true end\n        end\n        if gone then\n          ITEMWATCH[guid] = nil\n          INFLIGHT[guid] = { name = w.name, img = w.img, holder = w.holder,\n            tLeft = now(),\n            activeFac = S.rows[S.active] and S.rows[S.active].fac or nil }\n          dbg(\"EXP leave: \" .. w.name .. \" \" .. guid)\n        end\n      end\n      -- a crafted item put BACK in the supply was a mistake: undo the craft\n      -- and watch the item again as if it had never been taken\n      for _, row in ipairs(S.rows) do\n        if row.crafts then\n          for ci3 = #row.crafts, 1, -1 do\n            local c = row.crafts[ci3]\n            if c.guid then\n              local o2 = getObjectFromGUID(c.guid)\n              if o2 and o2.held_by_color == nil and inSupplyRegion(mapObj, o2) then\n                logev(\"uncraft\", row.fac, c.item)\n                table.remove(row.crafts, ci3)\n                ITEMWATCH[c.guid] = { name = c.item, holder = nil, img = c.img }\n                dirty = true\n              end\n            end\n          end\n        end\n      end\n      -- items in flight settle where they were crafted: the faction board\n      -- whose supply they end up beside claims them\n      for guid, fl in pairs(INFLIGHT) do\n        local o = getObjectFromGUID(guid)\n        if o ~= nil then\n          if o.held_by_color ~= nil then fl.holder = o.held_by_color end\n          if o.held_by_color == nil and inSupplyRegion(mapObj, o) then\n            -- returned to the supply: never crafted\n            INFLIGHT[guid] = nil\n            ITEMWATCH[guid] = { name = fl.name, holder = nil, img = fl.img }\n          elseif o.held_by_color == nil then\n            local op = o.getPosition()\n            local bestFac, bestD = nil, 30 * 30\n            for fac, sp2 in pairs(SUPPLYPOS) do\n              local dx, dz = op.x - sp2.x, op.z - sp2.z\n              local d = dx * dx + dz * dz\n              if d < bestD then bestFac, bestD = fac, d end\n            end\n            dbg(\"EXP inflight \" .. guid .. \" bestFac=\" .. tostring(bestFac)\n              .. \" supplies=\" .. tostring((function() local c = 0\n                for _ in pairs(SUPPLYPOS) do c = c + 1 end\n                return c end)()))\n            if bestFac then\n              local i2 = rowByFac(bestFac)\n              if i2 then\n                INFLIGHT[guid] = nil\n                attributeCraft(i2, fl, guid)\n                dirty = true\n              end\n            elseif now() - fl.tLeft > 300 then\n              INFLIGHT[guid] = nil\n            end\n          end\n        else\n          -- object vanished (bagged): fall back to whoever carried it last\n          INFLIGHT[guid] = nil\n          local i2 = fl.holder and rowByColor(fl.holder) or nil\n          if i2 then\n            attributeCraft(i2, fl, guid)\n            dirty = true\n          end\n        end\n      end\n    end\n  end\n\n  if pollCount % 5 == 1 then\n    local byName = {}\n    for _, o in ipairs(getAllObjects()) do\n      byName[o.getName() or \"\"] = o\n    end\n    SUPPLYPOS = {}\n    for _, row in ipairs(S.rows) do\n      local bag = facAnchor(row.fac, byName)\n      if bag then SUPPLYPOS[row.fac] = bag.getPosition() end\n    end\n    if refreshSeats(byName) then dirty = true end\n    if refreshDeck() then dirty = true end\n    if refreshVariants(byName) then dirty = true end\n    if followTurns() then dirty = true end\n  end\n\n  if dirty then\n    dirty = false\n    rebuildUI()\n  end\nend\n\n------------------------------------------------------------------ turn flow --\nfunction lockRow(i)\n  local row = S.rows[i]\n  if row == nil then return end\n  -- the game is over once someone reached 30: nothing locks any more\n  if S.winner ~= nil then return end\n  -- re-read the marker right now: the polled score can be a beat stale, and a\n  -- lock is forever (it is what gets exported)\n  local m = findMarker(row)\n  local idx = m and readCell(m) or nil\n  if idx ~= nil then\n    local sc = cellToScore(idx)\n    if sc ~= row.score then\n      logev(\"score\", row.fac, row.score, sc)\n      row.score = sc\n    end\n  end\n  -- The HIGHLIGHTED round column is the single truth for where a lock\n  -- lands: the lock goes exactly there, overwriting whatever the cell\n  -- holds (lock or hand edit). A wrong column is corrected by clicking\n  -- the right column number in EDIT, never by the sheet second-guessing.\n  local r = math.max(1, math.floor(S.turns / math.max(1, #S.rows)) + 1)\n  row.edits[tostring(r)] = nil\n  while #row.locks < r - 1 do\n    table.insert(row.locks, -1)\n  end\n  row.locks[r] = row.score\n  table.insert(S.undo, { fac = row.fac, r = r })\n  logev(\"lock\", row.fac, r, row.score)\n  S.turns = S.turns + 1\n  rebuildUI()\nend\n\n-- With full coverage the TTS turn system locks turns; otherwise END TURN.\nlocal function lockActive()\n  if S.winner ~= nil then return end\n  if #S.rows == 0 or fullTurnCoverage() then return end\n  if S.active > #S.rows then S.active = 1 end\n  local i = S.active\n  S.active = (S.active % #S.rows) + 1\n  lockRow(i)\nend\n\nfunction uiEndTurn() lockActive() end\n\nfunction onPlayerTurn(player, previous)\n  dbg(\"BoxScore onPlayerTurn: now=\" .. tostring(player and player.color)\n    .. \" prev=\" .. tostring(previous and previous.color)\n    .. \" coverage=\" .. tostring(fullTurnCoverage()))\n  -- ONE lock source per mode: with full coverage the event locks; in every\n  -- other situation the END TURN button is visible and is the only source.\n  if not fullTurnCoverage() then return end\n  -- Only a REAL turn pass counts (previous player seated): toggling the turn\n  -- system bursts through unseated colors and none of those may lock.\n  if previous == nil or previous.seated ~= true then return end\n  -- A pass by a seated color with no faction row (an observer) locks nothing.\n  local i = rowByColor(previous.color)\n  if i then lockRow(i) end\n  -- sync the pointer immediately instead of waiting for the next poll\n  local j = player and player.color and rowByColor(player.color) or nil\n  if j then S.active = j end\nend\n\n------------------------------------------------------------ marker movement --\n-- +/- moves the faction's marker along the track: a fast glide with a small\n-- hop, so rapid clicks load several points in a couple of seconds. Sub-row\n-- rule so every marker stays visible: an empty cell takes the marker dead\n-- centre; an occupied cell pushes the newcomer one step up, then down, then\n-- two up - never on top of another marker.\nlocal function subRowSequence()\n  local byB = {}\n  for _, b in ipairs(TRACK.rows) do table.insert(byB, b) end\n  table.sort(byB)\n  local mid = byB[math.ceil(#byB / 2)]\n  local step = 0.11\n  if #byB >= 2 then step = (byB[#byB] - byB[1]) / (#byB - 1) end\n  return { mid, mid - step, mid + step, mid - 2 * step, mid + 2 * step }\nend\n\nlocal function nudge(i, delta)\n  local row = S.rows[i]\n  if row == nil or TRACK == nil then return end\n  local m = findMarker(row)\n  if m == nil then dbg(\"BoxScore: cannot find \" .. row.fac .. \" VP\") return end\n  if m.held_by_color ~= nil then return end\n  local base = row.score >= 0 and row.score or 0\n  local target = row.score >= 0 and (base + delta) or 0\n  target = math.max(0, math.min(TRACK.n - 1, target))\n  if target == row.score then return end\n  local mapObj = getObjectFromGUID(TRACK.guid)\n  if mapObj == nil then return end\n  local cellA = TRACK.a0 + scoreToCell(target) * TRACK.s\n\n  -- candidate positions = the map's own snap points in this column, tried\n  -- centre-first so a lone marker sits exactly on the printed number\n  local mid = TRACK.rows[math.ceil(#TRACK.rows / 2)]\n  local cands = {}\n  for _, p in ipairs(TRACK.pts or {}) do\n    if math.abs(p.a - cellA) < 0.45 * TRACK.s then\n      table.insert(cands, p)\n    end\n  end\n  table.sort(cands, function(p, q)\n    return math.abs(p.b - mid) < math.abs(q.b - mid)\n  end)\n  -- extrapolated overflow spots keep every marker visible past 3 stacked\n  local seq = subRowSequence()\n  table.insert(cands, { a = cellA, b = seq[4] })\n  table.insert(cands, { a = cellA, b = seq[5] })\n\n  local chosen = cands[#cands]\n  for _, c in ipairs(cands) do\n    local free = true\n    for _, other in ipairs(S.rows) do\n      if other ~= row then\n        local om = other.guid and getObjectFromGUID(other.guid) or nil\n        if om then\n          local lp2 = mapObj.positionToLocal(om.getPosition())\n          if math.abs(lp2[TRACK.axis] - c.a) < 0.5 * TRACK.s\n            and math.abs(lp2[TRACK.other] - c.b) < 0.09 then free = false end\n        end\n      end\n    end\n    if free then chosen = c break end\n  end\n\n  local lp = { x = 0, y = 2.0, z = 0 }\n  lp[TRACK.axis] = chosen.a\n  lp[TRACK.other] = chosen.b\n  local wp = mapObj.positionToWorld(lp)\n  m.setPositionSmooth({ wp.x, wp.y + 0.12, wp.z }, false, true)\n  logev(\"score\", row.fac, row.score, target)\n  row.score = target\n  rebuildUI()\nend\n\n-------------------------------------------------------------------- buttons --\nfunction uiUndo()\n  if #S.undo == 0 then return end\n  local entry = table.remove(S.undo)\n  local fac = type(entry) == \"table\" and entry.fac or entry\n  local col = type(entry) == \"table\" and entry.r or nil\n  local i = rowByFac(fac)\n  local row = i and S.rows[i] or nil\n  if row and #row.locks > 0 then\n    col = col or #row.locks\n    logev(\"undo\", row.fac, col, row.locks[col])\n    row.locks[col] = -1\n    while #row.locks > 0 and (row.locks[#row.locks] == -1 or row.locks[#row.locks] == nil) do\n      table.remove(row.locks)\n    end\n    S.turns = math.max(0, S.turns - 1)\n    if not fullTurnCoverage() then S.active = i end\n    rebuildUI()\n  end\nend\n\nfunction uiInfo()\n  S.overlay = (S.overlay == \"info\") and nil or \"info\"\n  rebuildUI()\nend\n\nfunction uiSetup()\n  S.setup = not S.setup\n  S.overlay = nil\n  rebuildUI()\nend\n\nfunction uiReset()\n  logev(\"reset\")\n  S.rows = {}\n  S.active = 1\n  S.turns = 0\n  S.winner = nil\n  S.winnerLock = nil\n  S.undo = {}\n  S.log = {}\n  S.unpicked = {}\n  S.unpickedVar = {}\n  S.meta.map = \"\"\n  S.meta.deck = \"\"\n  S.mapAuto = nil\n  S.deckAuto = nil\n  S.flip = false\n  S.manualOrder = nil\n  S.lastExport = \"\"\n  TRACK = nil\n  findTrack()\n  refreshAssets()\n  rebuildUI()\nend\n\nfunction uiPicker()\n  S.overlay = \"picker\"\n  rebuildUI()\nend\n\nfunction uiMapMenu()\n  S.overlay = \"map\"\n  rebuildUI()\nend\n\nfunction uiGameMenu()\n  S.overlay = \"game\"\n  rebuildUI()\nend\n\nfunction uiDeckMenu()\n  S.overlay = \"deck\"\n  rebuildUI()\nend\n\nfunction uiDiscord()\n  S.overlay = \"discord\"\n  rebuildUI()\nend\n\nfunction uiOverlayClose()\n  S.overlay = nil\n  rebuildUI()\nend\n\nfunction uiExport(player)\n  local by = player and player.steam_name or \"\"\n  S.exportBy = by\n  local payload = exportPayload(\"export\", { log = S.log, exportedBy = by })\n  local toDiscord = postDiscord(fencedChunks(boxText()))\n  local body = JSON.encode(payload)\n  local title = \"BoxScore\"\n  local done = false\n  for _, t in ipairs(Notes.getNotebookTabs()) do\n    if t.title == title then\n      Notes.editNotebookTab({ index = t.index, title = title, body = body })\n      done = true\n    end\n  end\n  if not done then Notes.addNotebookTab({ title = title, body = body }) end\n  S.lastExport = os.date(\"%H:%M\")\n    .. (toDiscord and \" &#183; discord&#8230;\" or \" (no webhook set)\")\n  dbg(\"BoxScore: exported\" .. (toDiscord and \" (discord)\" or \"\"))\n  rebuildUI()\nend\n\nfunction uiFlip()\n  S.flip = not S.flip\n  for _, row in ipairs(S.rows) do row.score = -1 end\n  rebuildUI()\nend\n\nfunction uiSpin()\n  S.pose = (S.pose % #UI_POSES) + 1\n  rebuildUI()\nend\n\nfunction uiScaleMode()\n  S.scaleMode = (S.scaleMode % 2) + 1\n  rebuildUI()\nend\n\nfunction uiSize()\n  S.sizeIdx = (S.sizeIdx % #SIZE_MULS) + 1\n  rebuildUI()\nend\n\nfunction uiHide()\n  S.hidden = not S.hidden\n  rebuildUI()\nend\n\nfunction uiDiag()\n  local lines = {}\n  if TRACK then\n    lines[1] = \"map=\" .. TRACK.guid .. \" (\" .. (S.meta.map ~= \"\" and S.meta.map or \"?\")\n      .. \") cells 0-\" .. (TRACK.n - 1) .. \", \" .. #TRACK.rows .. \" sub-rows, flip=\" .. tostring(S.flip)\n  else\n    lines[1] = \"NO TRACK FOUND - is a map on the table?\"\n  end\n  table.insert(lines, \"turn system: \" .. (turnsRunning() and \"following\" or \"manual\"))\n  table.insert(lines, \"unpicked: \" .. table.concat(unpickedList(), \", \"))\n  for _, row in ipairs(S.rows) do\n    local m = findMarker(row)\n    local idx = m and readCell(m) or nil\n    table.insert(lines, row.fac .. \" [\" .. tostring(row.color) .. \"/\" .. row.player\n      .. \"]: score=\" .. tostring(row.score) .. \" cell=\" .. tostring(idx)\n      .. \" locks=\" .. #row.locks)\n  end\n  broadcastToAll(\"Box Score diagnose:\\n\" .. table.concat(lines, \"\\n\"), { 0.91, 0.86, 0.74 })\n  log(\"BoxScore diagnose: \" .. JSON.encode({ track = TRACK, state = S }))\nend\n\nfunction uiRowBtn(player, _, id)\n  local uvF, uvC = id:match(\"^uv_(%d+)_(%d+)$\")\n  if uvF then\n    local fac = ROSTER[tonumber(uvF)]\n    local opts = fac and variantOptions(fac) or nil\n    if opts and opts[tonumber(uvC)] then\n      S.unpickedVar[fac] = toggleCSV(S.unpickedVar[fac], opts[tonumber(uvC)], opts)\n      rebuildUI()\n    end\n    return\n  end\n  local kind, i = id:match(\"^(%a+)_(%d+)$\")\n  i = tonumber(i)\n  if kind == \"plus\" then nudge(i, 1)\n  elseif kind == \"minus\" then nudge(i, -1)\n  elseif kind == \"up\" then\n    if i > 1 then\n      S.rows[i], S.rows[i - 1] = S.rows[i - 1], S.rows[i]\n      if S.active == i then S.active = i - 1 elseif S.active == i - 1 then S.active = i end\n      S.manualOrder = true\n      rebuildUI()\n    end\n  elseif kind == \"del\" then\n    local row = S.rows[i]\n    if row then\n      logev(\"leave\", row.fac)\n      table.remove(S.rows, i)\n      if i < S.active then S.active = S.active - 1 end\n      if S.active > #S.rows or S.active < 1 then S.active = 1 end\n      refreshAssets()\n      rebuildUI()\n    end\n  elseif kind == \"pick\" then\n    local fac = ROSTER[i]\n    if fac then\n      S.unpicked[fac] = (S.unpicked[fac] ~= true) and true or nil\n      rebuildUI()\n    end\n  elseif kind == \"act\" then\n    if S.rows[i] then\n      S.active = i\n      rebuildUI()\n    end\n  elseif kind == \"fv\" then\n    S.varRow = i\n    S.overlay = \"var\"\n    rebuildUI()\n  elseif kind == \"vc\" then\n    local row = S.rows[S.varRow]\n    if row then\n      local opts = variantOptions(row.fac)\n      if opts and opts[i] then\n        row.variant = toggleCSV(row.variant, opts[i], opts)\n        row.variantAuto = false\n        rebuildUI()\n      end\n    end\n  elseif kind == \"deck\" then\n    local d = DECKS[i]\n    S.meta.deck = (S.meta.deck == d) and \"\" or d\n    S.deckAuto = false\n    S.overlay = nil\n    rebuildUI()\n  elseif kind == \"map\" then\n    local m = MAPS[i]\n    S.meta.map = (S.meta.map == m) and \"\" or m\n    S.mapAuto = false\n    S.overlay = nil\n    rebuildUI()\n  elseif kind == \"colh\" then\n    -- clicking a round-column number in setup declares \"we are in round i\";\n    -- locks always land in the declared (highlighted) column\n    S.turns = (i - 1) * math.max(1, #S.rows)\n    logev(\"setturn\", nil, S.turns)\n    rebuildUI()\n  end\nend\n\n--------------------------------------------------------------- text editing --\nfunction uiCellEdit(player, value, id)\n  local i, r = id:match(\"^cl_(%d+)_(%d+)$\")\n  i, r = tonumber(i), tonumber(r)\n  local row = S.rows[i]\n  if row == nil then return end\n  value = tostring(value or \"\"):gsub(\"^%s+\", \"\"):gsub(\"%s+$\", \"\")\n  -- an emptied cell stays empty: \"\" is an explicit blank that overrides the\n  -- locked value (it would otherwise reappear on the next rebuild)\n  if value == \"\" and row.locks[r] == nil then\n    row.edits[tostring(r)] = nil\n  else\n    row.edits[tostring(r)] = value\n    logev(\"edit\", row.fac, r, value)\n  end\nend\n\nfunction uiLiveEdit(player, value, id)\n  value = tostring(value or \"\")\n  local ni = id:match(\"^nm_(%d+)$\")\n  if ni then\n    local row = S.rows[tonumber(ni)]\n    if row then row.player = value; row.nameAuto = false end\n  else\n    local ci, r = id:match(\"^cl_(%d+)_(%d+)$\")\n    if ci then\n      local row = S.rows[tonumber(ci)]\n      if row then row.edits[tostring(tonumber(r))] = value end\n    elseif id == \"mt_hook\" then S.meta.hook = value\n    elseif id == \"mt_thread\" then S.meta.thread = value\n    elseif id == \"mt_game\" then\n      S.meta.game = value:gsub(\"^%s+\", \"\"):gsub(\"%s+$\", \"\")\n    end\n  end\n  -- push the keystroke to every client without rebuilding the sheet\n  pcall(function() self.UI.setAttribute(id, \"text\", value) end)\nend\n\nfunction uiNameEdit(player, value, id)\n  local i = tonumber(id:match(\"^nm_(%d+)$\"))\n  if S.rows[i] then\n    S.rows[i].player = tostring(value or \"\")\n    S.rows[i].nameAuto = false\n  end\nend\n\n\nfunction uiMetaEdit(player, value, id)\n  local key = id:match(\"^mt_(%a+)$\")\n  value = tostring(value or \"\"):gsub(\"^%s+\", \"\"):gsub(\"%s+$\", \"\")\n  if key == \"turns\" then\n    S.turns = math.max(0, math.floor(tonumber(value) or S.turns))\n    rebuildUI()\n  elseif key and S.meta[key] ~= nil then\n    S.meta[key] = value\n  end\nend\n\n--------------------------------------------------------------------- the UI --\nfunction refreshAssets()\n  local assets = {}\n  local seen = {}\n  for _, row in ipairs(S.rows) do\n    if row.iconUrl and row.iconUrl ~= \"\" then\n      table.insert(assets, { name = assetName(row.fac), url = row.iconUrl })\n    end\n    for _, c in ipairs(row.crafts or {}) do\n      if c.img and c.img ~= \"\" then\n        local nm = \"it\" .. urlTail(c.img)\n        if not seen[nm] then\n          seen[nm] = true\n          table.insert(assets, { name = nm, url = c.img })\n        end\n      end\n    end\n  end\n  for _, url in pairs(S.itemImgs or {}) do\n    if url ~= \"\" then\n      local an = \"it\" .. urlTail(url)\n      if not seen[an] then\n        seen[an] = true\n        table.insert(assets, { name = an, url = url })\n      end\n    end\n  end\n  self.UI.setCustomAssets(assets)\nend\n\nlocal function fieldText(v)\n  if v == nil or v == \"\" then return \" \" end\n  return esc(v)\nend\n\nlocal function cellText(row, r)\n  local e = row.edits[tostring(r)]\n  if e ~= nil then return e end\n  local v = row.locks[r]\n  if v == nil or v < 0 then return \"\" end\n  return tostring(v)\nend\n\n-- fenced plain-text box score, as posted to Discord (global on purpose:\n-- uiExport is defined above and resolves it at call time)\nfunction boxText()\n  local bits = {}\n  if S.meta.map ~= \"\" then table.insert(bits, S.meta.map) end\n  if S.meta.deck ~= \"\" then table.insert(bits, S.meta.deck) end\n  local unp = unpickedList()\n  if #unp > 0 then table.insert(bits, \"Unpicked: \" .. table.concat(unp, \", \")) end\n  local R = 0\n  for _, row in ipairs(S.rows) do\n    R = math.max(R, #row.locks)\n    for k, v in pairs(row.edits or {}) do\n      local rn = tonumber(k)\n      if rn and v ~= \"\" and rn > R then R = rn end\n    end\n  end\n  local round = math.floor(S.turns / math.max(1, #S.rows)) + 1\n  local title = \"ROOT BOX SCORE\"\n  if S.meta.game ~= nil and S.meta.game ~= \"\" then\n    title = title .. \" - \" .. S.meta.game\n  end\n  local stamp = \"round \" .. round .. \" - \" .. os.date(\"%Y-%m-%d %H:%M\")\n  if S.exportBy ~= nil and S.exportBy ~= \"\" then\n    stamp = stamp .. \" - by \" .. S.exportBy\n  end\n  local lines = { title .. \" - \" .. table.concat(bits, \" / \"), stamp }\n  local head = string.format(\"%-11s %-17s\", \"faction\", \"player\")\n  for r = 1, R do head = head .. string.format(\"%4d\", r) end\n  table.insert(lines, head)\n  for _, row in ipairs(S.rows) do\n    local line = string.format(\"%-11s %-17s\", row.fac:sub(1, 11),\n      (row.player or \"\"):sub(1, 17))\n    for r = 1, R do line = line .. string.format(\"%4s\", cellText(row, r)) end\n    table.insert(lines, line)\n    if row.variant ~= nil and row.variant ~= \"\" then\n      table.insert(lines, \"  > \" .. row.variant)\n    end\n    if S.experimental and row.crafts ~= nil and #row.crafts > 0 then\n      local cs = {}\n      for _, c in ipairs(row.crafts) do\n        local tags = {}\n        if c.r then table.insert(tags, \"T\" .. c.r) end\n        if c.vp and c.vp > 0 then table.insert(tags, \"+\" .. c.vp) end\n        table.insert(cs, c.item\n          .. (#tags > 0 and (\" (\" .. table.concat(tags, \", \") .. \")\") or \"\"))\n      end\n      table.insert(lines, \"  > crafted: \" .. table.concat(cs, \", \"))\n    end\n  end\n  return lines\nend\n\n-- fields are invisible until touched: transparent at rest, white while hovered\n-- or being edited, so SETUP reads exactly like the printed sheet\nlocal IF_COLORS = 'placeholder=\" \" colors=\"#00000000|#FFFFFFC0|#FFFFFF|#00000000\"'\nlocal BTN_DARK = 'colors=\"' .. WALNUT .. '|' .. RUST .. '|' .. GOLD .. '|#00000000\" textColor=\"' .. PARCH .. '\"'\nlocal BTN_GOLD = 'colors=\"' .. GOLD .. '|' .. GOLDHI .. '|' .. RUST .. '|#00000000\" textColor=\"' .. INKTXT .. '\"'\nlocal BTN_SOFT = 'colors=\"' .. PARCH2 .. '|' .. GOLDHI .. '|' .. GOLD .. '|#00000000\" textColor=\"' .. RUST .. '\"'\nlocal NOClick = ' raycastTarget=\"false\"' \n\nlocal lastScaleKey = \"\"\n\nlocal function renderMinRows()\n  local n = tonumber(Global.getVar(\"RTT_BOXSCORE_MIN\"))\n  if not n then\n    local dn = tonumber(Global.getVar(\"RTT_DN\"))\n    if dn then n = dn - 1 end\n  end\n  return math.max(1, n or 4)\nend\n\nfunction rebuildUI()\n  if S.hidden then\n    self.UI.setXml(\"\")\n    return\n  end\n  local maxLocks = 0\n  for _, row in ipairs(S.rows) do maxLocks = math.max(maxLocks, #row.locks) end\n  local showR = math.min((S.cols or 10) + 1, 41)   -- FIXED: no maxLocks growth\n  local cellW = showR > 14 and 36 or 44\n  local iconW, facW, nameW, liveW = 30, 118, 130, 48\n  local btnW = 117\n  local W = 54 + iconW + facW + nameW + (showR - 1) * cellW + liveW + btnW\n  local rowH, headH = 40, 26\n  local nMin = renderMinRows()\n  local H = 56 + headH + math.max(nMin, #S.rows) * (rowH + 3) + 42\n  local mul = SIZE_MULS[S.sizeIdx]\n\n  -- The walnut cardboard extends FRAME px beyond the sheet on every side.\n  -- That rim is bare object surface - outside the UI canvas entirely - so it\n  -- is grabbable by construction, no matter how the UI treats clicks. The\n  -- parchment area additionally lets clicks through via raycastTarget.\n  local FRAME = 5\n  local k = BASE_SCALE * mul / PX_PER_UNIT\n  local ww = (W + 2 * FRAME) * k\n  local wh = (H + 2 * FRAME) * k\n  ww = 31.80 wh = 10.42  -- FIXED to Adrien 4-card box-score rectangle\n  local key = string.format(\"%.2f|%.2f\", ww, wh)\n  if key ~= lastScaleKey and self.held_by_color == nil then\n    lastScaleKey = key\n    self.setScale({ ww, 0.18, wh })\n  end\n  local sx, sy\n  if S.scaleMode == 1 then\n    sx, sy = PX_PER_UNIT / (W + 2 * FRAME), PX_PER_UNIT / (H + 2 * FRAME)\n  else\n    sx, sy = BASE_SCALE * mul, BASE_SCALE * mul\n  end\n  local pose = UI_POSES[S.pose]\n\n  local seatedNow = {}\n  for _, p in ipairs(Player.getPlayers()) do\n    if p.seated then seatedNow[p.color] = true end\n  end\n\n  local x = {}\n  local function add(s) table.insert(x, s) end\n\n  -- a Button whose label lives in a child Text: entities render correctly\n  -- there (attribute strings do not decode them), and the label can be bold\n  local function chip(id, handler, style, w, fs, textColor, label)\n    local wattr = (w == 0) and 'flexibleWidth=\"1\"' or ('preferredWidth=\"' .. w .. '\"')\n    add('<Button id=\"' .. id .. '\" ' .. wattr .. ' ' .. style .. ' onClick=\"' .. handler .. '\">'\n      .. '<Text fontSize=\"' .. fs .. '\" fontStyle=\"Bold\" color=\"' .. textColor\n      .. '\" raycastTarget=\"false\">' .. label .. '</Text></Button>')\n  end\n\n  add(string.format(\n    '<Panel position=\"%s\" rotation=\"%s\" scale=\"%.4f %.4f 1\" width=\"%d\" height=\"%d\" color=\"%s\"%s>',\n    pose.pos, pose.rot, sx, sy, W, H, PARCH, NOClick))\n  add('<VerticalLayout padding=\"12 12 8 8\" spacing=\"4\">')\n\n  -- header band: the printed title and game facts in play; the map / deck /\n  -- unpicked / discord choices in setup - same height either way\n  add('<HorizontalLayout preferredHeight=\"34\" spacing=\"6\">')\n  local unp = unpickedList()\n  if S.setup then\n    add('<Text fontSize=\"15\" fontStyle=\"Bold\" color=\"' .. RUST .. '\" alignment=\"MiddleLeft\"'\n      .. ' preferredWidth=\"44\"' .. NOClick .. '>EDIT</Text>')\n    add('<InputField id=\"mt_game\" fontSize=\"13\" preferredWidth=\"130\" preferredHeight=\"20\"'\n      .. ' placeholder=\"GAME NAME\" colors=\"' .. WALNUT .. '|#52381E|#52381E|#00000000\"'\n      .. ' textColor=\"' .. PARCH .. '\" onValueChanged=\"uiLiveEdit\" text=\"' .. esc(S.meta.game)\n      .. '\" onEndEdit=\"uiMetaEdit\"/>')\n    chip(\"mpbtn\", \"uiMapMenu\", (S.overlay == \"map\") and BTN_GOLD or BTN_DARK, 84, 11,\n      (S.overlay == \"map\") and INKTXT or PARCH,\n      S.meta.map ~= \"\" and esc(S.meta.map) or \"MAP\")\n    add('<Button id=\"dkbtn\" preferredWidth=\"112\" '\n      .. ((S.overlay == \"deck\") and BTN_GOLD or BTN_DARK) .. ' onClick=\"uiDeckMenu\">'\n      .. '<Text fontSize=\"11\" resizeTextForBestFit=\"true\" resizeTextMinSize=\"8\"'\n      .. ' resizeTextMaxSize=\"11\" fontStyle=\"Bold\" color=\"'\n      .. ((S.overlay == \"deck\") and INKTXT or PARCH) .. '\" raycastTarget=\"false\">'\n      .. (S.meta.deck ~= \"\" and esc(S.meta.deck) or \"DECK\") .. '</Text></Button>')\n    chip(\"pkbtn\", \"uiPicker\", (S.overlay == \"picker\") and BTN_GOLD or BTN_DARK, 92, 11,\n      (S.overlay == \"picker\") and INKTXT or PARCH, \"UNPICKED\")\n    chip(\"dcbtn\", \"uiDiscord\", (S.overlay == \"discord\") and BTN_GOLD or BTN_DARK, 70, 10,\n      (S.overlay == \"discord\") and INKTXT or PARCH, \"DISCORD\")\n    chip(\"xpbtn\", \"uiExperimental\", S.experimental and BTN_GOLD or BTN_DARK, 62, 10,\n      S.experimental and INKTXT or PARCH, \"CRAFT\")\n    if S.experimental then\n      chip(\"cebtn\", \"uiCraftMenu\", (S.overlay == \"craft\") and BTN_GOLD or BTN_DARK, 58, 10,\n        (S.overlay == \"craft\") and INKTXT or PARCH, \"ITEMS\")\n    end\n    chip(\"rsbtn\", \"uiReset\", BTN_DARK, 56, 10, PARCH, \"RESET\")\n  else\n    add('<Text fontSize=\"18\" fontStyle=\"Bold\" color=\"' .. INKTXT .. '\" alignment=\"MiddleLeft\"'\n      .. ' preferredWidth=\"330\"' .. NOClick .. '>' .. spaced(\"ROOT\") .. '&#160;&#160;&#183;&#160;&#160;'\n      .. spaced(\"BOX SCORE\") .. '</Text>')\n    local bits = {}\n    if S.meta.game ~= \"\" then table.insert(bits, esc(S.meta.game)) end\n    if S.meta.map ~= \"\" then table.insert(bits, esc(S.meta.map)) end\n    if S.meta.deck ~= \"\" then table.insert(bits, esc(S.meta.deck)) end\n    if #unp > 0 then table.insert(bits, \"Unpicked: \" .. esc(table.concat(unp, \", \"))) end\n    add('<Text fontSize=\"15\" fontStyle=\"Italic\" color=\"' .. RUST .. '\" alignment=\"MiddleRight\"'\n      .. ' flexibleWidth=\"1\"' .. NOClick .. '>' .. table.concat(bits, \"&#160;&#160;&#183;&#160;&#160;\") .. '</Text>')\n  end\n  add('</HorizontalLayout>')\n\n  add('<Panel preferredHeight=\"2\" color=\"' .. GOLD .. '\"' .. NOClick .. '/>')\n\n  -- column headers; in setup the round numbers are buttons that set the turn\n  add('<HorizontalLayout preferredHeight=\"' .. headH .. '\" spacing=\"3\">')\n  add('<Text preferredWidth=\"' .. iconW .. '\"' .. NOClick .. '> </Text>')\n  add('<Text preferredWidth=\"' .. facW .. '\"' .. NOClick .. '> </Text>')\n  add('<Text preferredWidth=\"' .. nameW .. '\"' .. NOClick .. '> </Text>')\n  local curRound = math.floor(S.turns / math.max(1, #S.rows)) + 1\n  for r = 1, showR - 1 do\n    local isCur = (r == curRound)\n    if S.setup then\n      add('<Button id=\"colh_' .. r .. '\" fontSize=\"15\" fontStyle=\"Bold\" preferredWidth=\"' .. cellW\n        .. '\" colors=\"' .. (isCur and GOLD or \"#00000000\") .. '|#FFFFFFC0|' .. GOLDHI\n        .. '|#00000000\" textColor=\"' .. (isCur and INKTXT or RUST)\n        .. '\" text=\"' .. r .. '\" onClick=\"uiRowBtn\"/>')\n    elseif isCur then\n      add('<Panel preferredWidth=\"' .. cellW .. '\" color=\"' .. GOLD .. '\"' .. NOClick\n        .. '><Text fontSize=\"15\" fontStyle=\"Bold\" color=\"' .. INKTXT\n        .. '\" alignment=\"MiddleCenter\"' .. NOClick .. '>' .. r .. '</Text></Panel>')\n    else\n      add('<Text fontSize=\"15\" fontStyle=\"Bold\" color=\"' .. RUST .. '\" alignment=\"MiddleCenter\" preferredWidth=\"'\n        .. cellW .. '\"' .. NOClick .. '>' .. r .. '</Text>')\n    end\n  end\n  add('<Text preferredWidth=\"10\"' .. NOClick .. '> </Text>')\n  add('<Text preferredWidth=\"' .. liveW .. '\"' .. NOClick .. '> </Text>')\n  add('<Text preferredWidth=\"28\"' .. NOClick .. '> </Text>')\n  add('<Text preferredWidth=\"28\"' .. NOClick .. '> </Text>')\n  add('<Text preferredWidth=\"26\"' .. NOClick .. '> </Text>')\n  add('<Text preferredWidth=\"26\"' .. NOClick .. '> </Text>')\n  add('</HorizontalLayout>')\n\n  -- faction rows\n  local EMPTY_ROW = { fac=\"\", player=\"\", tintHex=\"3A2A1A\", iconUrl=\"\", variant=\"\", score=-1, locks={}, edits={}, crafts=nil }\n  for i = 1, math.max(nMin, #S.rows) do\n    local row = S.rows[i] or EMPTY_ROW\n    local placeholder = (S.rows[i] == nil)\n    local isActive = (not placeholder) and (i == S.active) and (fullTurnCoverage() or not turnsRunning())\n    if #S.rows == 0 then isActive = false end\n    local bg = isActive and GOLDHI or ((i % 2 == 1) and \"#00000000\" or PARCH2)\n    add('<HorizontalLayout preferredHeight=\"' .. rowH .. '\" spacing=\"3\" color=\"' .. bg .. '\"' .. NOClick .. '>')\n    if S.setup and not placeholder then\n      add('<Button id=\"act_' .. i .. '\" preferredWidth=\"' .. iconW\n        .. '\" colors=\"#00000000|#FFFFFFC0|' .. GOLDHI .. '|#00000000\" onClick=\"uiRowBtn\">')\n      if row.iconUrl and row.iconUrl ~= \"\" then\n        add('<Image image=\"' .. assetName(row.fac) .. '\" width=\"26\" height=\"26\"' .. NOClick .. '/>')\n      else\n        add('<Panel width=\"16\" height=\"16\" color=\"#' .. row.tintHex .. '\"' .. NOClick .. '/>')\n      end\n      add('</Button>')\n    elseif row.iconUrl and row.iconUrl ~= \"\" then\n      add('<Panel preferredWidth=\"' .. iconW .. '\"' .. NOClick .. '><Image image=\"' .. assetName(row.fac)\n        .. '\" width=\"26\" height=\"26\"' .. NOClick .. '/></Panel>')\n    else\n      add('<Panel preferredWidth=\"' .. iconW .. '\"' .. NOClick .. '><Panel width=\"20\" height=\"20\" color=\"'\n        .. WALNUT .. '\"' .. NOClick .. '><Panel width=\"16\" height=\"16\" color=\"#' .. row.tintHex .. '\"' .. NOClick .. '/></Panel></Panel>')\n    end\n    add('<VerticalLayout preferredWidth=\"' .. facW .. '\" spacing=\"0\">')\n    local facName = esc(row.fac)\n    add('<HorizontalLayout preferredHeight=\"22\" spacing=\"2\" childForceExpandWidth=\"false\">')\n    add('<Text fontSize=\"15\" fontStyle=\"Bold\" color=\"' .. INKTXT .. '\" preferredWidth=\"'\n      .. (facW - 30) .. '\" alignment=\"MiddleLeft\"' .. NOClick .. '>' .. facName .. '</Text>')\n    if S.setup and not placeholder and variantOptions(row.fac) then\n      chip(\"fv_\" .. i, \"uiRowBtn\", 'colors=\"#00000000|#FFFFFFC0|' .. GOLDHI .. '|#00000000\"',\n        26, 18, \"#8A7A64\", \"&#9660;\")\n    else\n      add('<Text preferredWidth=\"26\"' .. NOClick .. '> </Text>')\n    end\n    add('</HorizontalLayout>')\n    if row.variant ~= nil and row.variant ~= \"\" then\n      add('<Text fontSize=\"11\" resizeTextForBestFit=\"true\" resizeTextMinSize=\"6\"'\n        .. ' resizeTextMaxSize=\"11\" fontStyle=\"Italic\" color=\"' .. RUST .. '\" preferredHeight=\"14\"'\n        .. ' alignment=\"UpperLeft\"' .. NOClick .. '>' .. esc(row.variant) .. '</Text>')\n    end\n    add('</VerticalLayout>')\n    if S.setup and not placeholder then\n      add('<InputField id=\"nm_' .. i .. '\" fontSize=\"15\" textAlignment=\"MiddleCenter\"'\n        .. ' preferredWidth=\"' .. nameW\n        .. '\" ' .. IF_COLORS .. ' textColor=\"' .. RUST\n        .. '\" text=\"' .. fieldText(row.player) .. '\" onValueChanged=\"uiLiveEdit\" onEndEdit=\"uiNameEdit\"/>')\n    else\n      add('<Text fontSize=\"15\" color=\"' .. RUST .. '\" alignment=\"MiddleCenter\" preferredWidth=\"' .. nameW\n        .. '\"' .. NOClick .. '>' .. esc(row.player) .. '</Text>')\n    end\n    local craftIcons = {}\n    if S.experimental then\n      for _, c in ipairs(row.crafts or {}) do\n        if c.r and c.img and c.img ~= \"\" then\n          craftIcons[c.r] = craftIcons[c.r] or {}\n          table.insert(craftIcons[c.r], c.img)\n        end\n      end\n    end\n    for r = 1, showR - 1 do\n      add('<Panel preferredWidth=\"' .. cellW .. '\"' .. NOClick .. '>')\n      if S.setup and not placeholder then\n        add('<InputField id=\"cl_' .. i .. '_' .. r .. '\" fontSize=\"15\" textAlignment=\"MiddleCenter\"'\n          .. ' width=\"' .. cellW .. '\" height=\"' .. (rowH - 6)\n          .. '\" characterLimit=\"3\" ' .. IF_COLORS .. ' textColor=\"' .. INKTXT\n          .. '\" text=\"' .. fieldText(cellText(row, r)) .. '\" onValueChanged=\"uiLiveEdit\" onEndEdit=\"uiCellEdit\"/>')\n      else\n        add('<Text fontSize=\"15\" color=\"' .. INKTXT\n          .. '\" alignment=\"MiddleCenter\" width=\"' .. cellW .. '\" height=\"' .. rowH .. '\"' .. NOClick .. '>'\n          .. esc(cellText(row, r)) .. '</Text>')\n      end\n      -- crafted-item figures climb the cell's right edge, clear of the number\n      local ic = craftIcons[r]\n      if ic then\n        for k = 1, math.min(#ic, 6) do\n          local col = math.floor((k - 1) / 3)\n          local rw = (k - 1) % 3\n          add('<Image image=\"it' .. urlTail(ic[k]) .. '\" width=\"13\" height=\"13\"'\n            .. ' rectAlignment=\"LowerRight\" offsetXY=\"' .. (-1 - col * 13) .. ' ' .. (1 + rw * 13)\n            .. '\"' .. NOClick .. '/>')\n        end\n      end\n      add('</Panel>')\n    end\n    local live = row.score >= 0 and tostring(row.score) or \"&#8211;\"\n    add('<Text preferredWidth=\"10\"' .. NOClick .. '> </Text>')\n    add('<Panel preferredWidth=\"' .. liveW .. '\" color=\"' .. GOLD .. '\"' .. NOClick .. '>'\n      .. '<Text fontSize=\"16\" fontStyle=\"Bold\" color=\"' .. INKTXT .. '\" alignment=\"MiddleCenter\"' .. NOClick .. '>'\n      .. live .. '</Text></Panel>')\n    if placeholder then\n      add('<Text preferredWidth=\"28\"' .. NOClick .. '> </Text>')\n      add('<Text preferredWidth=\"28\"' .. NOClick .. '> </Text>')\n    else\n      chip(\"minus_\" .. i, \"uiRowBtn\", BTN_SOFT, 28, 14, RUST, \"&#8722;\")\n      chip(\"plus_\" .. i, \"uiRowBtn\", BTN_SOFT, 28, 14, RUST, \"+\")\n    end\n    if S.setup and i > 1 and not placeholder then\n      chip(\"up_\" .. i, \"uiRowBtn\", BTN_SOFT, 26, 11, RUST, \"&#9650;\")\n    else\n      add('<Text preferredWidth=\"26\"' .. NOClick .. '> </Text>')\n    end\n    if S.setup and not placeholder then\n      chip(\"del_\" .. i, \"uiRowBtn\", BTN_SOFT, 26, 11, RUST, \"&#215;\")\n    else\n      add('<Text preferredWidth=\"26\"' .. NOClick .. '> </Text>')\n    end\n    add('</HorizontalLayout>')\n  end\n\n  -- footer\n  add('<HorizontalLayout preferredHeight=\"30\" spacing=\"6\" childForceExpandWidth=\"false\">')\n  if #S.rows > 0 and not fullTurnCoverage() then\n    add('<Button fontSize=\"12\" fontStyle=\"Bold\" preferredWidth=\"84\" ' .. BTN_GOLD\n      .. ' text=\"END TURN\" onClick=\"uiEndTurn\"/>')\n  end\n  add('<Button fontSize=\"12\" fontStyle=\"Bold\" preferredWidth=\"66\" ' .. BTN_SOFT .. ' text=\"EXPORT\" onClick=\"uiExport\"/>')\n  add('<Button fontSize=\"12\" fontStyle=\"Bold\" preferredWidth=\"56\" ' .. (S.setup and BTN_GOLD or BTN_SOFT)\n    .. ' text=\"' .. (S.setup and \"DONE\" or \"EDIT\") .. '\" onClick=\"uiSetup\"/>')\n  add('<Button fontSize=\"12\" fontStyle=\"Bold\" preferredWidth=\"52\" '\n    .. ((S.overlay == \"info\") and BTN_GOLD or BTN_SOFT) .. ' text=\"INFO\" onClick=\"uiInfo\"/>')\n  local right = \"made by MrDrouf&#160;&#160;&#183;&#160;&#160;\" .. BUILD\n  if S.lastExport ~= \"\" then\n    right = \"exported \" .. S.lastExport .. \"&#160;&#160;&#183;&#160;&#160;\" .. right\n  end\n  add('<Text fontSize=\"12\" fontStyle=\"Italic\" color=\"' .. RUST .. '\" alignment=\"MiddleRight\" flexibleWidth=\"1\"' .. NOClick .. '>'\n    .. right .. '</Text>')\n  add('</HorizontalLayout>')\n\n  add('</VerticalLayout>')\n\n  -- overlays float over the rows, so the sheet never changes size\n  local PICK_DARK = 'colors=\"#57402A|' .. RUST .. '|' .. GOLD .. '|#00000000\"'\n  if S.setup and S.overlay == \"picker\" then\n    -- character chips flow in rows of six so long names never wrap; the\n    -- panel is pinned by its TOP edge, so selecting a faction only grows\n    -- it downward - nothing shifts or recenters\n    -- the Eyrie is excluded: its leader is chosen in play, never in the\n    -- draft, so an unpicked Eyrie has no leader options to note (captains\n    -- and vagabond characters ARE distinct unpicked cards)\n    local extra = 0\n    for _, fac in ipairs(ROSTER) do\n      local opts = (S.unpicked[fac] == true and fac ~= \"Eyrie\")\n        and variantOptions(fac) or nil\n      if opts then extra = extra + math.ceil(#opts / 6) end\n    end\n    local baseH = 118\n    local topY = math.max(8, math.floor((H - baseH) / 2))\n    add('<Panel width=\"' .. (W - 80) .. '\" height=\"' .. (baseH + extra * 30)\n      .. '\" rectAlignment=\"UpperCenter\" offsetXY=\"0 -' .. topY .. '\"'\n      .. ' color=\"' .. WALNUT .. '\">')\n    add('<VerticalLayout padding=\"10 10 10 10\" spacing=\"6\" childForceExpandHeight=\"false\">')\n    for half = 1, 2 do\n      add('<HorizontalLayout preferredHeight=\"46\" spacing=\"5\">')\n      local from = (half - 1) * 7 + 1\n      for ri = from, math.min(from + 6, #ROSTER) do\n        local fac = ROSTER[ri]\n        local sel = (S.unpicked[fac] == true)\n        chip(\"pick_\" .. ri, \"uiRowBtn\", sel and BTN_GOLD or PICK_DARK,\n          0, 12, sel and INKTXT or PARCH, esc(fac))\n      end\n      if half == 2 then\n        chip(\"pkdone\", \"uiOverlayClose\", BTN_GOLD, 0, 12, INKTXT, \"DONE\")\n      end\n      add('</HorizontalLayout>')\n    end\n    for fi, fac in ipairs(ROSTER) do\n      local opts = variantOptions(fac)\n      if S.unpicked[fac] == true and fac ~= \"Eyrie\" and opts then\n        local chosen = {}\n        for w in (S.unpickedVar[fac] or \"\"):gmatch(\"[^,]+\") do\n          chosen[w:match(\"^%s*(.-)%s*$\")] = true\n        end\n        for from = 1, #opts, 6 do\n          add('<HorizontalLayout preferredHeight=\"24\" spacing=\"4\">')\n          add('<Text fontSize=\"12\" fontStyle=\"Bold\" color=\"' .. PARCH .. '\" preferredWidth=\"64\"'\n            .. ' alignment=\"MiddleRight\"' .. NOClick .. '>'\n            .. (from == 1 and (esc(fac) .. ':') or ' ') .. '</Text>')\n          for ci2 = from, math.min(from + 5, #opts) do\n            chip(\"uv_\" .. fi .. \"_\" .. ci2, \"uiRowBtn\",\n              chosen[opts[ci2]] and BTN_GOLD or PICK_DARK, 0, 10,\n              chosen[opts[ci2]] and INKTXT or PARCH, esc(opts[ci2]))\n          end\n          add('</HorizontalLayout>')\n        end\n      end\n    end\n    add('</VerticalLayout></Panel>')\n  elseif S.overlay == \"info\" then\n    add('<Panel width=\"' .. (W - 110) .. '\" height=\"420\" color=\"' .. WALNUT .. '\">')\n    add('<VerticalLayout padding=\"20 20 14 10\" spacing=\"3\">')\n    local function section(t, h, b, last)\n      add('<Text fontSize=\"12\" fontStyle=\"Bold\" color=\"' .. GOLD .. '\" preferredHeight=\"17\"'\n        .. ' alignment=\"MiddleLeft\"' .. NOClick .. '>' .. t .. '</Text>')\n      add('<Text fontSize=\"11\" color=\"' .. PARCH .. '\" preferredHeight=\"' .. h .. '\"'\n        .. ' alignment=\"UpperLeft\"' .. NOClick .. '>' .. b .. '</Text>')\n      if not last then\n        add('<Panel preferredHeight=\"1\" color=\"#C9A05C50\"' .. NOClick .. '/>')\n      end\n    end\n    section(\"SCORES\", 30,\n      \"Read automatically from the VP markers on the score track. The + and &#8722; buttons move the marker itself. A marker reaching 30 records that faction's score at once &#8211; the game is over and nothing further locks; move it off 30 to undo a mistake and resume.\")\n    section(\"TURNS\", 44,\n      \"Everything runs automatically once the TTS turn order is set and every faction has its seated player: each turn pass records the finishing faction by itself. Without that, END TURN records the highlighted faction. A lock always writes the highlighted round column, overwriting whatever it holds.\")\n    section(\"EDIT\", 44,\n      \"Correct anything: scores (click a cell), the round (click a column number), whose turn it is (click a portrait), faction order (&#9650;), player names, the Eyrie commander / Knaves captains / vagabond character (&#9660;), map, deck, game name and the unpicked faction.\")\n    section(\"EXPORT\", 30,\n      \"Posts the box score to Discord (set the webhook under DISCORD) and to the notebook. The footer reads confirmed with Discord once Discord has acknowledged the message.\")\n    section(\"CRAFT\", 44,\n      \"Watches the map's item supply. An item taken from it and placed by a faction's board is recorded as crafted that round, with its picture on the round's score cell. Returning an item to the supply cancels the craft. In EDIT, the ITEMS button corrects or adds crafts: click T# to pick the round, &#215; removes, + adds. Turning CRAFT off hides all crafts, exports included.\")\n    section(\"RESET\", 16,\n      \"Clears the sheet for a new game and re-detects map, deck, seats and markers.\", true)\n    add('<HorizontalLayout preferredHeight=\"30\" spacing=\"6\" childForceExpandWidth=\"false\">')\n    add('<Text flexibleWidth=\"1\"' .. NOClick .. '> </Text>')\n    add('<Button fontSize=\"13\" fontStyle=\"Bold\" preferredWidth=\"80\" ' .. BTN_GOLD\n      .. ' text=\"DONE\" onClick=\"uiOverlayClose\"/>')\n    add('</HorizontalLayout>')\n    add('</VerticalLayout></Panel>')\n  elseif S.setup and S.overlay == \"game\" then\n    add('<Panel width=\"' .. (W - 420) .. '\" height=\"66\" color=\"' .. WALNUT .. '\">')\n    add('<HorizontalLayout padding=\"12 12 12 12\" spacing=\"6\">')\n    add('<Text fontSize=\"13\" fontStyle=\"Bold\" color=\"' .. PARCH .. '\" preferredWidth=\"90\"'\n      .. ' alignment=\"MiddleRight\"' .. NOClick .. '>game name</Text>')\n    add('<InputField id=\"mt_game\" fontSize=\"13\" flexibleWidth=\"1\"'\n      .. ' colors=\"#F1E5C8|#FFFFFF|#FFFFFF|#00000000\" textColor=\"' .. INKTXT\n      .. '\" onValueChanged=\"uiLiveEdit\" text=\"' .. fieldText(S.meta.game)\n      .. '\" onEndEdit=\"uiMetaEdit\"/>')\n    add('<Button fontSize=\"13\" fontStyle=\"Bold\" preferredWidth=\"70\" ' .. BTN_GOLD\n      .. ' text=\"DONE\" onClick=\"uiOverlayClose\"/>')\n    add('</HorizontalLayout></Panel>')\n  elseif S.setup and S.overlay == \"map\" then\n    add('<Panel width=\"' .. (W - 200) .. '\" height=\"64\" color=\"' .. WALNUT .. '\">')\n    add('<HorizontalLayout padding=\"10 10 10 10\" spacing=\"5\">')\n    for mi, m in ipairs(MAPS) do\n      local sel = (S.meta.map == m)\n      chip(\"map_\" .. mi, \"uiRowBtn\", sel and BTN_GOLD or PICK_DARK, 0, 12,\n        sel and INKTXT or PARCH, esc(m))\n    end\n    chip(\"mpdone\", \"uiOverlayClose\", BTN_GOLD, 0, 12, INKTXT, \"DONE\")\n    add('</HorizontalLayout></Panel>')\n  elseif S.setup and S.overlay == \"deck\" then\n    add('<Panel width=\"' .. (W - 200) .. '\" height=\"64\" color=\"' .. WALNUT .. '\">')\n    add('<HorizontalLayout padding=\"10 10 10 10\" spacing=\"5\">')\n    for di, d in ipairs(DECKS) do\n      local sel = (S.meta.deck == d)\n      chip(\"deck_\" .. di, \"uiRowBtn\", sel and BTN_GOLD or PICK_DARK, 0, 12,\n        sel and INKTXT or PARCH, esc(d))\n    end\n    chip(\"dkdone\", \"uiOverlayClose\", BTN_GOLD, 0, 12, INKTXT, \"DONE\")\n    add('</HorizontalLayout></Panel>')\n  elseif S.setup and S.overlay == \"var\" then\n    local row = S.rows[S.varRow]\n    local opts = row and variantOptions(row.fac) or nil\n    if row and opts then\n      local chosen = {}\n      for w in (row.variant or \"\"):gmatch(\"[^,]+\") do\n        chosen[w:match(\"^%s*(.-)%s*$\")] = true\n      end\n      add('<Panel width=\"' .. (W - 140) .. '\" height=\"118\" color=\"' .. WALNUT .. '\">')\n      add('<VerticalLayout padding=\"10 10 10 10\" spacing=\"6\" childForceExpandHeight=\"false\">')\n      add('<Text fontSize=\"14\" fontStyle=\"Bold\" color=\"' .. PARCH .. '\" preferredHeight=\"18\"' .. NOClick .. '>'\n        .. esc(row.fac) .. ' &#8211; pick the character(s)</Text>')\n      for half = 1, 2 do\n        add('<HorizontalLayout preferredHeight=\"34\" spacing=\"4\">')\n        local from = (half - 1) * 6 + 1\n        for oi = from, math.min(from + 5, #opts) do\n          chip(\"vc_\" .. oi, \"uiRowBtn\", chosen[opts[oi]] and BTN_GOLD or PICK_DARK,\n            0, 10, chosen[opts[oi]] and INKTXT or PARCH, esc(opts[oi]))\n        end\n        if half == 2 then\n          chip(\"vcdone\", \"uiOverlayClose\", BTN_GOLD, 0, 11, INKTXT, \"DONE\")\n        end\n        add('</HorizontalLayout>')\n      end\n      add('</VerticalLayout></Panel>')\n    end\n  elseif S.setup and S.experimental and S.overlay == \"craft\" then\n    -- pinned by the top edge like the picker: opening the round or add row\n    -- grows the panel downward without shifting what is already there\n    local baseH = 64 + #S.rows * 32\n    local hh = baseH + ((S.craftAdd or S.craftPick) and 30 or 0)\n    local topY = math.max(8, math.floor((H - baseH) / 2))\n    add('<Panel width=\"' .. (W - 120) .. '\" height=\"' .. hh\n      .. '\" rectAlignment=\"UpperCenter\" offsetXY=\"0 -' .. topY .. '\"'\n      .. ' color=\"' .. WALNUT .. '\">')\n    add('<VerticalLayout padding=\"10 10 8 8\" spacing=\"4\" childForceExpandHeight=\"false\">')\n    add('<Text fontSize=\"12\" fontStyle=\"Bold\" color=\"' .. PARCH .. '\" preferredHeight=\"16\"'\n      .. ' alignment=\"MiddleLeft\"' .. NOClick\n      .. '>CRAFTED ITEMS &#8211; click T# to set the round, &#215; removes, + adds</Text>')\n    for ci3, row in ipairs(S.rows) do\n      add('<HorizontalLayout preferredHeight=\"28\" spacing=\"4\" childForceExpandWidth=\"false\">')\n      add('<Text fontSize=\"12\" fontStyle=\"Bold\" color=\"' .. PARCH .. '\" preferredWidth=\"90\"'\n        .. ' alignment=\"MiddleRight\"' .. NOClick .. '>' .. esc(row.fac) .. '</Text>')\n      for k, c in ipairs(row.crafts or {}) do\n        if c.img and c.img ~= \"\" then\n          add('<Panel preferredWidth=\"20\"' .. NOClick .. '><Image image=\"it' .. urlTail(c.img)\n            .. '\" width=\"18\" height=\"18\"' .. NOClick .. '/></Panel>')\n        end\n        add('<Text fontSize=\"11\" color=\"' .. PARCH .. '\" preferredWidth=\"56\" alignment=\"MiddleLeft\"'\n          .. NOClick .. '>' .. esc(c.item) .. '</Text>')\n        local selT = S.craftPick ~= nil and S.craftPick.i == ci3 and S.craftPick.k == k\n        chip(\"cfr_\" .. ci3 .. \"_\" .. k, \"uiCraftBtn\", selT and BTN_GOLD or PICK_DARK, 32, 10,\n          selT and INKTXT or PARCH, \"T\" .. tostring(c.r or \"?\"))\n        chip(\"cfx_\" .. ci3 .. \"_\" .. k, \"uiCraftBtn\", PICK_DARK, 24, 10, PARCH, \"&#215;\")\n        add('<Text preferredWidth=\"4\"' .. NOClick .. '> </Text>')\n      end\n      chip(\"cfadd_\" .. ci3, \"uiCraftBtn\", (S.craftAdd == ci3) and BTN_GOLD or PICK_DARK, 26, 12,\n        (S.craftAdd == ci3) and INKTXT or PARCH, \"+\")\n      add('</HorizontalLayout>')\n    end\n    if S.craftPick ~= nil then\n      add('<HorizontalLayout preferredHeight=\"26\" spacing=\"4\" childForceExpandWidth=\"false\">')\n      add('<Text fontSize=\"11\" fontStyle=\"Bold\" color=\"' .. GOLD .. '\" preferredWidth=\"90\"'\n        .. ' alignment=\"MiddleRight\"' .. NOClick .. '>round:</Text>')\n      for r2 = 1, math.max(1, S.cols or 10) do\n        chip(\"cfpick_\" .. r2, \"uiCraftBtn\", PICK_DARK, 34, 10, PARCH, \"T\" .. r2)\n      end\n      add('</HorizontalLayout>')\n    end\n    if S.craftAdd ~= nil and S.rows[S.craftAdd] ~= nil then\n      add('<HorizontalLayout preferredHeight=\"26\" spacing=\"4\" childForceExpandWidth=\"false\">')\n      add('<Text fontSize=\"11\" fontStyle=\"Bold\" color=\"' .. GOLD .. '\" preferredWidth=\"90\"'\n        .. ' alignment=\"MiddleRight\"' .. NOClick .. '>add:</Text>')\n      for k, nm in ipairs(ITEM_NAMES) do\n        chip(\"cfnew_\" .. k, \"uiCraftBtn\", PICK_DARK, 74, 10, PARCH, esc(nm))\n      end\n      add('</HorizontalLayout>')\n    end\n    add('<HorizontalLayout preferredHeight=\"26\" spacing=\"6\" childForceExpandWidth=\"false\">')\n    add('<Text flexibleWidth=\"1\"' .. NOClick .. '> </Text>')\n    add('<Button fontSize=\"12\" fontStyle=\"Bold\" preferredWidth=\"70\" ' .. BTN_GOLD\n      .. ' text=\"DONE\" onClick=\"uiOverlayClose\"/>')\n    add('</HorizontalLayout>')\n    add('</VerticalLayout></Panel>')\n  elseif S.setup and S.overlay == \"discord\" then\n    add('<Panel width=\"' .. (W - 160) .. '\" height=\"118\" color=\"' .. WALNUT .. '\">')\n    add('<VerticalLayout padding=\"12 12 10 10\" spacing=\"6\">')\n    add('<HorizontalLayout preferredHeight=\"30\" spacing=\"6\">')\n    add('<Text fontSize=\"14\" fontStyle=\"Bold\" color=\"' .. PARCH .. '\" preferredWidth=\"72\" alignment=\"MiddleRight\"' .. NOClick .. '>webhook</Text>')\n    add('<InputField id=\"mt_hook\" fontSize=\"13\" flexibleWidth=\"1\" colors=\"#F1E5C8|#FFFFFF|#FFFFFF|#00000000\"'\n      .. ' textColor=\"' .. INKTXT .. '\" placeholder=\"Discord webhook URL\"'\n      .. ' text=\"' .. fieldText(S.meta.hook) .. '\" onEndEdit=\"uiMetaEdit\"/>')\n    add('</HorizontalLayout>')\n    add('<HorizontalLayout preferredHeight=\"30\" spacing=\"6\">')\n    add('<Text fontSize=\"14\" fontStyle=\"Bold\" color=\"' .. PARCH .. '\" preferredWidth=\"72\" alignment=\"MiddleRight\"' .. NOClick .. '>thread</Text>')\n    add('<InputField id=\"mt_thread\" fontSize=\"13\" flexibleWidth=\"1\" colors=\"#F1E5C8|#FFFFFF|#FFFFFF|#00000000\"'\n      .. ' textColor=\"' .. INKTXT .. '\" placeholder=\"thread link (optional)\"'\n      .. ' text=\"' .. fieldText(S.meta.thread) .. '\" onEndEdit=\"uiMetaEdit\"/>')\n    add('<Button fontSize=\"13\" fontStyle=\"Bold\" preferredWidth=\"70\" ' .. BTN_GOLD\n      .. ' text=\"DONE\" onClick=\"uiOverlayClose\"/>')\n    add('</HorizontalLayout>')\n    add('</VerticalLayout></Panel>')\n  end\n\n  add('</Panel>')\n  self.UI.setXml(table.concat(x))\nend\n\n---------------------------------------------------------------- persistence --\nfunction onSave()\n  return JSON.encode(S)\nend\n\nfunction onLoad(saved)\n  if saved ~= nil and saved ~= \"\" then\n    local ok, d = pcall(function() return JSON.decode(saved) end)\n    if ok and d ~= nil and d.rows ~= nil then S = d end\n  end\n  S.meta = S.meta or { map = \"\", deck = \"\", hook = \"\", thread = \"\" }\n  S.meta.deck = S.meta.deck or \"\"\n  -- old builds stored pre-escaped text; normalize once so it can never\n  -- round-trip into the display again\n  S.meta.deck = S.meta.deck:gsub(\"&amp;\", \"+\"):gsub(\"&#38;\", \"+\"):gsub(\"&\", \"+\")\n  S.meta.map = (S.meta.map or \"\"):gsub(\"&amp;\", \"&\"):gsub(\"&#38;\", \"&\")\n  S.meta.hook = S.meta.hook or \"\"\n  S.meta.thread = S.meta.thread or \"\"\n  S.meta.game = S.meta.game or \"\"\n  -- a webhook baked into GMNotes (by build.py) is the default\n  if S.meta.hook == \"\" then\n    local gm = self.getGMNotes() or \"\"\n    if gm:match(\"^https?://\") then S.meta.hook = gm:gsub(\"%s+$\", \"\") end\n  end\n  S.undo = S.undo or {}\n  S.log = S.log or {}\n  S.unpicked = S.unpicked or {}\n  S.unpickedVar = S.unpickedVar or {}\n  S.varRow = S.varRow or 1\n  S.experimental = S.experimental or false\n  S.itemImgs = S.itemImgs or {}\n  S.turns = S.turns or 0\n  S.active = S.active or 1\n  if S.active > math.max(1, #S.rows) then S.active = 1 end\n  for _, row in ipairs(S.rows) do\n    row.locks = row.locks or {}\n    row.edits = row.edits or {}\n    row.crafts = row.crafts or nil\n    row.score = row.score or -1\n    row.player = row.player or \"\"\n  end\n  S.cols = S.cols or 10\n  S.scaleMode = S.scaleMode or 1\n  S.sizeIdx = S.sizeIdx or 2\n  S.setup = S.setup or false\n  S.overlay = nil\n  S.lastExport = S.lastExport or \"\"\n\n  self.addContextMenuItem(\"setup / done\", uiSetup, false)\n  self.addContextMenuItem(\"reset box score\", uiReset, false)\n  self.addContextMenuItem(\"hide / show\", uiHide, false)\n  self.addContextMenuItem(\"export\", uiExport, false)\n  self.addContextMenuItem(\"flip track\", uiFlip, false)\n  self.addContextMenuItem(\"spin panel\", uiSpin, false)\n  self.addContextMenuItem(\"panel size\", uiSize, false)\n  self.addContextMenuItem(\"panel scale mode\", uiScaleMode, false)\n  self.addContextMenuItem(\"diagnose\", uiDiag, false)\n\n  Wait.time(function()\n    findTrack()\n    for _, row in ipairs(S.rows) do\n      local m = findMarker(row)\n      if m then row.iconUrl = markerImage(m) end\n    end\n    refreshAssets()\n    rebuildUI()\n    Wait.time(poll, POLL_SECONDS, -1)\n  end, 2)\nend\n","LuaScriptState":"","XmlUI":""}]====]
+RTT_BOXSCORE_TAG = "RTT BoxScore"
+
+RTT_PICK_DEFS = {
+  rttPickMap1  = { kind = "map",  id = "Summer Map",   label = "Autumn" },
+  rttPickMap2  = { kind = "map",  id = "Winter Map",   label = "Winter" },
+  rttPickMap3  = { kind = "map",  id = "Lake Map",     label = "Lake" },
+  rttPickMap4  = { kind = "map",  id = "Marsh Map",    label = "Marsh" },
+  rttPickMap5  = { kind = "map",  id = "Mountain Map", label = "Mountain" },
+  rttPickMap6  = { kind = "map",  id = "Gorge Map",    label = "Gorge" },
+  rttPickDeck1 = { kind = "deck", id = "Standard Deck",              label = "Standard" },
+  rttPickDeck2 = { kind = "deck", id = "Exiles and Partisans Deck",  label = "Exiles & Partisans" },
+  rttPickDeck3 = { kind = "deck", id = "Squires and Disciples Deck", label = "Squires & Disciples" },
+}
+RTT_MAP_BTNS  = { "rttPickMap1", "rttPickMap2", "rttPickMap3", "rttPickMap4", "rttPickMap5", "rttPickMap6" }
+RTT_DECK_BTNS = { "rttPickDeck1", "rttPickDeck2", "rttPickDeck3" }
+-- the six board positions (from the old 6-board spawner)
+RTT_POS = { { 52, -46 }, { -52, -46 }, { 52, 46 }, { -52, 46 }, { 0, -46 }, { 0, 46 } }
+-- counterclockwise seating: P4 sits across from P1 (pos3 vs pos1), P3 across from P2
+-- (pos4 vs pos2). RTT_POS: 1=(52,-46) 2=(-52,-46) 3=(52,46) 4=(-52,46).
+RTT_LAYOUT = {
+  [1] = { 1 }, [2] = { 1, 3 }, [3] = { 1, 2, 3 },
+  [4] = { 1, 2, 4, 3 }, [5] = { 1, 5, 2, 4, 3 }, [6] = { 1, 2, 5, 6, 4, 3 },
+}
+
+-- hand transform for each board position (base handPositions/handRotations, by x,z sign): the
+-- player's hand sits just behind their board (z=±64 behind the board at z=±46).
+RTT_SEAT_HAND = {
+  { pos = { 52, 14.62, -64 }, rot = { 0, 0, 0 } },     -- pos1 (52,-46)
+  { pos = { -52, 14.62, -64 }, rot = { 0, 0, 0 } },    -- pos2 (-52,-46)
+  { pos = { 52, 14.62, 64 }, rot = { 0, 180, 0 } },    -- pos3 (52,46)
+  { pos = { -52, 14.62, 64 }, rot = { 0, 180, 0 } },   -- pos4 (-52,46)
+  { pos = { 0, 14.62, -64 }, rot = { 0, 0, 0 } },      -- pos5 (0,-46)
+  { pos = { 0, 14.62, 64 }, rot = { 0, 180, 0 } },     -- pos6 (0,46)
+}
+RTT_SEATS = {}          -- [seat] = { board=obj, color=<colour|nil>, pos={x,z}, hand=<RTT_SEAT_HAND entry> }
+RTT_BOARD_SEAT = {}     -- [board guid] = seat index
+
+-- ==== seat-by-turn-order-card tables (RTT seating restore) ==================
+RTT_SETUP_COLORS   = { "Red", "Yellow", "Orange", "Teal", "Green", "Brown" }   -- base setupColors: seat N -> colour N
+RTT_HAND_SCALE     = { 20, 6, 4 }                                              -- base handScale (RTT had dropped it)
+RTT_CARDID_FOR_N   = { 800, 801, 802, 805, 806 }                              -- seat N -> "Player N" order-card CardID
+RTT_ORDER_CARD_NUM = { [800]=1, [801]=2, [802]=3, [805]=4, [806]=5 }           -- inverse: order-card CardID -> its number
+
+function rttSpawnSelectors()
+  for _, o in ipairs(getObjectsWithTag(RTT_SELECTOR_TAG)) do o.destruct() end
+  RTT_CLONES = {}
+  RTT_SEATS = {}
+  RTT_BOARD_SEAT = {}
+  local n = #RTT_ORDER                          -- the FIXED N seats (built in rttDealOrder)
+  local layout = RTT_LAYOUT[n] or RTT_LAYOUT[4]
+  for i = 1, n do
+    local pi = layout[i] or i
+    local p = RTT_POS[pi] or RTT_POS[1]
+    local board = spawnObjectJSON({
+      json = RTT_SELECTOR_JSON,
+      position = { p[1], 11.56, p[2] },
+      rotation = { 0, (p[2] > 0) and 180 or 0, 0 },
+      callback_function = function(o) o.setLock(true) o.addTag(RTT_SELECTOR_TAG) end
+    })
+    RTT_BOARD_SEAT[board.getGUID()] = i
+    RTT_SEATS[i] = { board = board, color = nil, pos = p, hand = RTT_SEAT_HAND[pi] }
+  end
+end
+
+-- Seat by TURN-ORDER CARD, restoring the base placePlayer path (changeColor + base handPositions
+-- geometry + base handScale) but TRIGGERED at turn-order time instead of on faction pick. ONE
+-- shuffle sets the turn order; each player is seated at the seat matching their card's number and
+-- then handed the matching "Player N" card, so it lands in the seated hand (not the off-table reset
+-- strip at x=-77.5 that looked like "trash"). Uses the base's exact SAFE sequence: kick everyone to
+-- Grey FIRST, then a FRESH getPlayers() loop matched by steam_name -- a pre-kick Player ref is stale
+-- after the colour change, which is why capturing refs then kicking would seat nobody.
+function rttSeatPlayers()
+  -- real humans (steam_names survive the kick; Player refs don't).
+  local humans = {}
+  for _, p in ipairs(Player.getPlayers()) do
+    if p.seated and p.color ~= "Grey" and p.color ~= "Black" then humans[#humans + 1] = p.steam_name end
+  end
+  -- Assign each human a RANDOM seat NUMBER out of ALL N seats, so the turn-order card is random for
+  -- everyone -- including a lone tester, who previously always landed in seat 1 / "First Player".
+  local N = #RTT_SEATS
+  local seatNums = {}
+  for i = 1, N do seatNums[i] = i end
+  for i = N, 2, -1 do local j = math.random(i) seatNums[i], seatNums[j] = seatNums[j], seatNums[i] end
+  local seatOf = {}                                      -- steam_name -> seat number
+  for i, name in ipairs(humans) do seatOf[name] = seatNums[i] end
+  pcall(function() kickPlayersFromSeats() end)           -- base: everyone -> Grey (frees the colours; no hand reset)
+  local seated = {}                                      -- [seat N] = seat colour, for the deferred card
+  for _, p in ipairs(Player.getPlayers()) do             -- FRESH, post-kick (base pattern): refs are valid
+    local sN = seatOf[p.steam_name]
+    if sN ~= nil then
+      local seat = RTT_SEATS[sN]
+      if seat ~= nil and seat.board ~= nil and seat.hand ~= nil then
+        local color = RTT_SETUP_COLORS[sN]
+        pcall(function() p.changeColor(color) end)       -- base placePlayer op 1: put the player INTO the seat colour
+        pcall(function()                                 -- base placePlayer op 2: move that colour's hand zone (+ base scale)
+          Player[color].setHandTransform(
+            { position = seat.hand.pos, rotation = seat.hand.rot, scale = RTT_HAND_SCALE }, 1)
+        end)
+        seat.color = color
+        RTT_CLONES[color] = seat.board
+        seated[sN] = color
+      end
+    end
+  end
+  -- base pattern: seat, ~20-frame settle, THEN deliver the matching order card.
+  Wait.frames(function() rttDealOrderCards(seated) end, 20)
+end
+
+-- world point just above seat N's hand zone: a card dropped here falls into the owned hand.
+function rttSeatHandWorld(N)
+  local h = RTT_SEATS[N].hand.pos
+  return { h[1], (h[2] or 14.62) + 2, h[3] }
+end
+
+-- Give each seated player the "Player N" card that MATCHES their seat, addressed by intrinsic CardID
+-- (robust to runtime GUID reassignment), delivered into their hand. Seat colour was forced to
+-- RTT_SETUP_COLORS[N] and the card is RTT_CARDID_FOR_N[N], so card number == seat by construction.
+function rttDealOrderCards(seated)
+  local deck = getObjectFromGUID(RTT_ORDER_DECK or "")
+  if deck == nil then return end
+  -- map CardID -> contained-card GUID ONCE, up front (guids stay stable as others are taken; the
+  -- guid of the last card survives even after the deck collapses to a single Card).
+  local guidFor = {}
+  local ok, d = pcall(function() return deck.getData() end)
+  if ok and d ~= nil then
+    if d.ContainedObjects ~= nil then
+      for _, c in ipairs(d.ContainedObjects) do guidFor[c.CardID] = c.GUID end
+    elseif d.CardID ~= nil then
+      guidFor[d.CardID] = deck.getGUID()
+    end
+  end
+  local order = {}
+  for N in pairs(seated) do order[#order + 1] = N end
+  table.sort(order)
+  local function deliver(i)
+    if i > #order then return end
+    local N     = order[i]
+    local color = seated[N]
+    local cid   = RTT_CARDID_FOR_N[N]
+    local g     = (cid ~= nil) and guidFor[cid] or nil
+    if g ~= nil and color ~= nil then
+      local hp = rttSeatHandWorld(N)
+      local o  = getObjectFromGUID(RTT_ORDER_DECK or "")
+      local isDeck = false
+      if o ~= nil then
+        local ok2, dd = pcall(function() return o.getData() end)
+        if ok2 and dd ~= nil and dd.ContainedObjects ~= nil then isDeck = true end
+      end
+      if isDeck then
+        pcall(function()
+          o.takeObject({ guid = g, position = hp, rotation = RTT_SEATS[N].hand.rot, smooth = false })
+        end)
+      else                                               -- deck collapsed: the card is loose now
+        local c = getObjectFromGUID(g)
+        if c ~= nil then pcall(function() c.setPositionSmooth(hp, false, false) end) end
+      end
+    end
+    Wait.time(function() deliver(i + 1) end, 0.25)       -- one at a time = no deck-busy / collapse race
+  end
+  deliver(1)
+end
+
+function rttBeginPick()
+  if #RTT_ORDER < 1 then return end
+  RTT_PICKED = { map = nil, deck = nil }
+  RTT_PICK_STAGE = 0                             -- map/deck pick REMOVED (Adrien places them manually)
+  if RTT_5P_MARSH then rttPlaceMap("Marsh Map") end   -- the 5-player button still auto-places its Marsh map
+  rttSpawnSelectors()
+  Wait.frames(function() rttSeatPlayers() rttStartFactionDraft() end, 10)
+end
+
+function rttShowPick(stage)
+  local seat = (stage == 1) and RTT_ORDER[1] or (RTT_ORDER[2] or RTT_ORDER[1])
+  local clone = RTT_CLONES[seat.color]
+  if clone == nil then return end
+  clone.UI.setAttribute("rttPickMapDeck", "active", "true")
+  for _, b in ipairs(RTT_MAP_BTNS)  do clone.UI.setAttribute(b, "active", (RTT_PICKED.map  == nil) and "true" or "false") end
+  for _, b in ipairs(RTT_DECK_BTNS) do clone.UI.setAttribute(b, "active", (RTT_PICKED.deck == nil) and "true" or "false") end
+  local what
+  if RTT_5P_MARSH then what = "Pick a DECK"
+  else what = (stage == 1) and "Pick a MAP or a DECK" or ("Pick the " .. ((RTT_PICKED.map == nil) and "MAP" or "DECK")) end
+  clone.UI.setAttribute("rttPickTitle", "text", what)
+end
+
+function rttPlaceMap(mapId)
+  makeMap("", "", mapId)
+  Wait.frames(function() makeSpecialWithTag("Tools", "Battle Mat", 33.17, 1.55, 9.21, "Map Object") end, 2)
+end
+
+function rttPlaceDeck(deckId)
+  local id = deckId
+  if #RTT_ORDER <= 2 then id = id .. " 2" end
+  makeDeck("", "", id)
+end
+
+-- runs on the COORDINATOR (relayed from a selector)
+function rttCoordPick(args)
+  local def = RTT_PICK_DEFS[args.id]
+  if def == nil or RTT_PICK_STAGE == 0 then return end
+  local seat = (RTT_PICK_STAGE == 1) and RTT_ORDER[1] or (RTT_ORDER[2] or RTT_ORDER[1])
+  if (not RTT_SOLO) and args.color ~= seat.color then return end
+  local clone = RTT_CLONES[seat.color]
+
+  if RTT_PICK_STAGE == 1 then
+    if def.kind == "map" then RTT_PICKED.map = def.id rttPlaceMap(def.id)
+    else RTT_PICKED.deck = def.id rttPlaceDeck(def.id) end
+    if clone ~= nil then clone.UI.setAttribute("rttPickMapDeck", "active", "false") end
+    if RTT_5P_MARSH then rttPlaceMap("Marsh Map") RTT_PICK_STAGE = 0 rttStartFactionDraft() return end
+    RTT_PICK_STAGE = 2
+    rttShowPick(2)
+    return
+  end
+
+  if RTT_PICKED.map == nil and def.kind ~= "map" then return end
+  if RTT_PICKED.deck == nil and def.kind ~= "deck" then return end
+  if def.kind == "map" then RTT_PICKED.map = def.id rttPlaceMap(def.id)
+  else RTT_PICKED.deck = def.id rttPlaceDeck(def.id) end
+  if clone ~= nil then clone.UI.setAttribute("rttPickMapDeck", "active", "false") end
+  RTT_PICK_STAGE = 0
+  rttStartFactionDraft()
+end
+
+-- ===== phase 3: reverse-order faction draft off the 5 dealt cards =====
+RTT_FAC_STAGE = 0
+RTT_FAC_TAKEN = {}
+RTT_FAC_CURRENT = {}
+
+-- spawn the Root Box Score sheet at Adrien's placed spot (read from his TTS save),
+-- rotated 270 to face the camera, sized to fill the board-design rectangle (scale up
+-- ~1.3x wide / ~1.1x tall baked into _boxscore.json), locked to the table.
+function rttSpawnBoxScore()
+  for _, o in ipairs(getObjectsWithTag(RTT_BOXSCORE_TAG)) do o.destruct() end
+  -- tell the box score how many player rows to pre-format for (4 ranked / 5 for 5p Marsh); it reads
+  -- this Global each rebuild and grows past it only if more players are added.
+  Global.setVar("RTT_BOXSCORE_MIN", (RTT_DN or 5) - 1)
+  spawnObjectJSON({
+    json = RTT_BOXSCORE_JSON,
+    position = { -58.36, 11.652, -0.05 },   -- centre of Adrien's 4-card box-score rectangle
+    rotation = { 0, 270, 0 },
+    callback_function = function(o) o.addTag(RTT_BOXSCORE_TAG) o.setLock(true) end
+  })
+end
+
+function rttStartFactionDraft()
+  RTT_FAC_TAKEN = {}
+  RTT_VP_PLACED = 0
+  rttSpawnBoxScore()
+  _G['Roster'] = {}
+  for i = 1, #RTT_ORDER do _G['Roster'][i] = RTT_ORDER[i].name or "" end
+  if _G['vagabondAlreadySpawned'] == nil then _G['vagabondAlreadySpawned'] = false end
+  -- (Adrien: never auto-deal starting hands. rttDealHands removed.)
+  rttDraftKnavesCaptains()                          -- 4 captains under the draft cards (if Knaves drafted)
+  Wait.frames(function() rttShowFactions() end, 40) -- light EVERY board at once (simultaneous pick)
+end
+
+-- Knaves: if Knaves is one of the drafted factions, spawn its 12-card Captain deck directly under
+-- the faction-card row DURING the draft, keep 4 at random, discard the rest. (No longer spawned
+-- with the faction board.) The deck blob lives in the Knaves faction data (its FaceURL is unique).
+-- the 4 drafted Knave captains, laid FACE UP in a line below the draft cards (Adrien's placed spots)
+RTT_KNAVE_CAP = {
+  { 53.495, 11.7, -7.992 },
+  { 53.495, 11.7, -2.870 },
+  { 53.495, 11.7,  2.253 },
+  { 53.495, 11.7,  7.375 },
+}
+
+function rttDraftKnavesCaptains()
+  local has = false
+  for _, f in ipairs(RTT_DRAFT_FACTIONS or {}) do
+    if f == "Knaves of the Deepwood" then has = true break end
+  end
+  if not has then return end
+  local kd = EVERYTHING['Standard']['Knaves of the Deepwood']
+  if kd == nil or kd['data'] == nil then return end
+  local blob = nil
+  for _, v in ipairs(kd['data']) do
+    if string.find(v.json, "FA78C0F952724D77A33BECEC0651802808037E95", 1, true) then blob = v.json break end
+  end
+  if blob == nil then return end
+  spawnObjectJSON({
+    json = blob,
+    position = { 53.495, -50, 0 },                  -- BELOW the table: only the 4 drafted captains show
+    rotation = { 0, 270, 0 },
+    callback_function = function(deck)
+      deck.setLock(true)
+      pcall(function() deck.shuffle() end)
+      Wait.time(function()
+        if deck == nil then return end
+        for i = 1, 4 do
+          pcall(function() deck.takeObject({
+            position = RTT_KNAVE_CAP[i],
+            rotation = { 0, 270, 0 }, smooth = false,        -- face up (captain art), NOT locked
+            callback_function = function(o) o.setLock(false) o.addTag("RTT Faction") end }) end)
+        end
+        Wait.time(function() if deck ~= nil then pcall(function() deck.destruct() end) end end, 0.8)
+      end, 0.5)
+    end
+  })
+end
+
+function rttDealHands()
+  local d = nil
+  for _, p in ipairs(getObjectsWithTag("Deck Object")) do
+    if p.name == "Deck" then d = p end
+  end
+  if d == nil then return end
+  local seated = {}
+  for _, p in ipairs(Player.getPlayers()) do
+    if p.seated and p.color ~= "Grey" and p.color ~= "Black" then seated[#seated + 1] = p.color end
+  end
+  if #seated == 0 then return end        -- real players only; never deal into the void
+  rttDealOne(d, seated, 1, 1)            -- one card at a time, around the table
+end
+
+function rttDealOne(d, seated, card, who)
+  if card > 5 then return end
+  if who > #seated then rttDealOne(d, seated, card + 1, 1) return end
+  if d ~= nil and d.deal then d.deal(1, seated[who]) end
+  Wait.time(function() rttDealOne(d, seated, card, who + 1) end, 0.15)
+end
+
+-- light the faction menu on EVERY live board at once (simultaneous pick). Factions keep FIXED
+-- button positions (slot i = RTT_DRAFT_FACTIONS[i]); a taken faction's slot just goes inactive, so
+-- a click's button index always resolves to the same faction even as others are taken (no race).
+function rttShowFactions()
+  for _, seat in ipairs(RTT_SEATS or {}) do
+    local clone = seat.board
+    if clone ~= nil then
+      clone.UI.setAttribute("rttPickMapDeck", "active", "false")
+      clone.UI.setAttribute("rttFactions", "active", "true")
+      for i = 1, 6 do
+        local f = (RTT_DRAFT_FACTIONS or {})[i]
+        if f ~= nil and not RTT_FAC_TAKEN[f] then
+          clone.UI.setAttribute("rttFac" .. i, "icon", f)
+          clone.UI.setAttribute("rttFac" .. i, "active", "true")
+        else
+          clone.UI.setAttribute("rttFac" .. i, "active", "false")
+        end
+      end
+    end
+  end
+end
+
+-- a player clicked a faction on some board. Resolve by the BOARD they clicked (not by whose turn
+-- it is — all boards are live at once). First click on a faction takes it; the board is removed and
+-- the faction spawns at that seat; the other boards refresh so the taken faction disappears.
+function rttCoordFaction(args)
+  local seat = RTT_BOARD_SEAT[args.board or ""]
+  if seat == nil then return end
+  local s = RTT_SEATS[seat]
+  if s == nil or s.board == nil then return end        -- board already drafted
+  if s.color ~= nil and args.color ~= s.color then return end   -- only YOUR own seat's board (no seat conflicts)
+  local idx = tonumber(string.sub(args.id, -1))
+  if idx == nil then return end
+  local faction = (RTT_DRAFT_FACTIONS or {})[idx]
+  if faction == nil or RTT_FAC_TAKEN[faction] then return end
+  RTT_FAC_TAKEN[faction] = true                        -- lock immediately (guards double-clicks)
+  local clone = s.board
+  local bp = clone.getPosition()
+  s.board = nil
+  RTT_BOARD_SEAT[clone.getGUID()] = nil
+  if s.color ~= nil then RTT_CLONES[s.color] = nil end
+  clone.destruct()                                     -- board gone first, then the faction spawns there
+  rttSpawnFaction(faction, bp.x, bp.z, bp.z > 0)       -- no dice; warriors baked in the data
+  Wait.time(function() rttFactionExtras(faction, bp.x, bp.z, bp.z > 0, true) end, 1.2)
+  RTT_VP_PLACED = (RTT_VP_PLACED or 0) + 1
+  local vpN, vpF = RTT_VP_PLACED, faction
+  Wait.time(function() rttPlaceVP(vpF, vpN) end, 1.2)
+  if faction == "Woodland Alliance" then spawnSupportersHand(s.color or "Red") end
+  Wait.frames(function() rttShowFactions() end, 10)    -- refresh remaining boards
+end
+
+-- spawn a faction's pieces at (cx,cz), WITHOUT dice (m060). Warrior placements (m290
+-- Lizard, m300 Duchy) are baked into the faction data, so they come along. flip rotates
+-- the setup 180 for a far-side (z>0) seat. Mirrors tournamentSpawnDraftFaction's math.
+function rttSpawnFaction(faction, cx, cz, flip)
+  local objects = {}
+  for _, v in ipairs(EVERYTHING['Standard'][faction]['data']) do
+    if not string.find(v.json, '"Name": "Custom_Dice"', 1, true) then objects[#objects + 1] = v end
+  end
+  local scale = self.getScale()
+  scale.x = 1 / scale.x
+  scale.z = 1 / scale.z
+  local function cb(o)
+    o.addTag("RTT Faction")
+    if flip then o.setRotation({ o.getRotation().x, o.getRotation().y + 180, o.getRotation().z }) end
+    if o.hasTag("Ruin Set") then o.destroy() end
+    if o.hasTag("Shuffleable") then o.shuffle() o.shuffle() end
+  end
+  for _, v in ipairs(objects) do
+    local vec = Vector(v.move_to) * scale
+    if flip then vec = vec * Vector(-15.5, 1, -15.5) else vec = vec * Vector(15.5, 1, 15.5) end
+    local new_pos = Vector(cx, 11.56, cz) + vec
+    new_pos.y = new_pos.y - 0.1
+    spawnObjectJSON({ json = v.json, position = new_pos, callback_function = cb })
+  end
+end
+
+-- Knaves: draw 4 random Captains from the Knave board's captain deck (best-effort by name)
+function rttKnavesCaptains(color)
+  for _, o in ipairs(getAllObjects()) do
+    local nm = o.getName() or ""
+    if o.name == "Deck" and (string.find(nm, "Captain", 1, true) or string.find(nm, "Knave", 1, true)) then
+      o.shuffle()
+      o.deal(4, color)
+      return
+    end
+  end
+end
+
+-- ===== RTT: move drafted-faction VP markers onto the map score track (col 0) =====
+-- Ports the box-score tool's proven track detection + geometry.
+RTT_TRACK          = RTT_TRACK or nil
+RTT_SCORE0_AT_MIN  = false              -- score 0 sits at the track's LOCAL MAX (base-mod convention)
+RTT_VP_PLACED      = RTT_VP_PLACED or 0
+
+RTT_VP_SHORT = {
+  ["Marquise de Cat"]        = "Marquise",
+  ["Eyrie Dynasties"]        = "Eyrie",
+  ["Woodland Alliance"]      = "Alliance",
+  ["The Lizard Cult"]        = "Lizard",
+  ["Riverfolk Company"]      = "Riverfolk",
+  ["Underground Duchy"]      = "Duchy",
+  ["Corvid Conspiracy"]      = "Crows",
+  ["Lord of the Hundreds"]   = "Rats",
+  ["Keepers in Iron"]        = "Badgers",
+  ["Twilight Council"]       = "Council",
+  ["Lilypad Diaspora"]       = "Diaspora",
+  ["Knaves of the Deepwood"] = "Knaves",
+}
+
+function rttDetectTrackOn(obj)
+  local ok, sp = pcall(function() return obj.getSnapPoints() end)
+  if not ok or sp == nil or #sp < 40 then return nil end
+  local bandsFound = {}
+  for _, axis in ipairs({ "x", "z" }) do
+    local other = (axis == "x") and "z" or "x"
+    local pts = {}
+    for _, s in ipairs(sp) do table.insert(pts, { a = s.position[axis], b = s.position[other] }) end
+    table.sort(pts, function(p, q) return p.b < q.b end)
+    local bands, cur = {}, {}
+    for _, p in ipairs(pts) do
+      if #cur > 0 and (p.b - cur[#cur].b) > 0.03 then table.insert(bands, cur); cur = {} end
+      table.insert(cur, p)
+    end
+    if #cur > 0 then table.insert(bands, cur) end
+    for _, band in ipairs(bands) do
+      if #band >= 25 then
+        local xs = {}
+        for _, p in ipairs(band) do table.insert(xs, p.a) end
+        table.sort(xs)
+        local diffs = {}
+        for i = 2, #xs do table.insert(diffs, xs[i] - xs[i - 1]) end
+        table.sort(diffs)
+        local s = diffs[math.ceil(#diffs / 2)]
+        local even = s and s > 0.01
+        if even then
+          for _, d in ipairs(diffs) do
+            local mrep = math.floor(d / s + 0.5)
+            if mrep < 1 or mrep > 2 or math.abs(d - mrep * s) > 0.25 * s then even = false end
+          end
+        end
+        if even then
+          local n = math.floor((xs[#xs] - xs[1]) / s + 0.5) + 1
+          if n >= 28 and n <= 60 and #xs >= 0.85 * n then
+            table.insert(bandsFound, { axis = axis, other = other, a0 = xs[1], s = s, n = n, b = band[1].b })
+          end
+        end
+      end
+    end
+  end
+  if #bandsFound == 0 then return nil end
+  local best = nil
+  for _, band in ipairs(bandsFound) do
+    if best == nil then
+      best = { axis = band.axis, other = band.other, a0 = band.a0, s = band.s, n = band.n, rows = { band.b } }
+    elseif band.axis == best.axis
+      and math.abs(band.s - best.s) < 0.1 * best.s
+      and math.abs(band.a0 - best.a0) < 0.5 * best.s then
+      table.insert(best.rows, band.b)
+      if band.n > best.n then best.n = band.n end
+    end
+  end
+  table.sort(best.rows)
+  best.pts = {}
+  local bmin, bmax = best.rows[1] - 0.05, best.rows[#best.rows] + 0.05
+  for _, s2 in ipairs(sp) do
+    local a = (best.axis == "x") and s2.position.x or s2.position.z
+    local b = (best.axis == "x") and s2.position.z or s2.position.x
+    if b >= bmin and b <= bmax then table.insert(best.pts, { a = a, b = b }) end
+  end
+  best.guid = obj.getGUID()
+  return best
+end
+
+function rttFindScoreTrack()
+  if RTT_TRACK ~= nil then
+    local o = getObjectFromGUID(RTT_TRACK.guid)
+    if o ~= nil then return o end
+    RTT_TRACK = nil
+  end
+  local best, bestSnaps = nil, 0
+  for _, o in ipairs(getAllObjects()) do
+    local ok, sp = pcall(function() return o.getSnapPoints() end)
+    if ok and sp and #sp >= 40 and #sp > bestSnaps then
+      local t = rttDetectTrackOn(o)
+      if t then best, bestSnaps = t, #sp end
+    end
+  end
+  RTT_TRACK = best
+  if best == nil then return nil end
+  return getObjectFromGUID(best.guid)
+end
+
+function rttZeroColumnSlots()
+  if rttFindScoreTrack() == nil then return {} end
+  local t = RTT_TRACK
+  local cellIdx = RTT_SCORE0_AT_MIN and 0 or (t.n - 1)
+  local cellA   = t.a0 + cellIdx * t.s
+  local mid     = t.rows[math.ceil(#t.rows / 2)]
+  -- the score-0 column's REAL snap rows (Adrien places the VP markers exactly on these).
+  local real = {}
+  for _, p in ipairs(t.pts or {}) do
+    if math.abs(p.a - cellA) < 0.45 * t.s then real[#real + 1] = p.b end
+  end
+  table.sort(real)
+  -- centre-out ladder over the real snaps: zero (centre), then up, then down, then
+  -- further up/down (Adrien's requested stack order), extending past the ends by the
+  -- exact row spacing only when more factions than snap rows.
+  local step = 0.11
+  if #real >= 2 then step = (real[#real] - real[1]) / (#real - 1)
+  elseif #t.rows >= 2 then step = (t.rows[#t.rows] - t.rows[1]) / (#t.rows - 1) end
+  local cidx = 1
+  for i = 2, #real do if math.abs(real[i] - mid) < math.abs(real[cidx] - mid) then cidx = i end end
+  local order = { real[cidx] }
+  local up, dn = cidx + 1, cidx - 1
+  while up <= #real or dn >= 1 do
+    if up <= #real then order[#order + 1] = real[up]; up = up + 1 end
+    if dn >= 1 then order[#order + 1] = real[dn]; dn = dn - 1 end
+  end
+  local top, bot = real[#real], real[1]
+  local ext = { top + step, bot - step, top + 2 * step, bot - 2 * step }
+  local slots = {}
+  for _, b in ipairs(order) do slots[#slots + 1] = { a = cellA, b = b } end
+  for _, b in ipairs(ext) do
+    slots[#slots + 1] = { a = cellA, b = b }
+  end
+  return slots
+end
+
+function rttSlotWorld(slot)
+  if RTT_TRACK == nil or slot == nil then return nil end
+  local map = getObjectFromGUID(RTT_TRACK.guid)
+  if map == nil then return nil end
+  local lp = { x = 0, y = 2.0, z = 0 }
+  lp[RTT_TRACK.axis]  = slot.a
+  lp[RTT_TRACK.other] = slot.b
+  return map.positionToWorld(lp)
+end
+
+function rttFindVPMarker(faction)
+  local short = RTT_VP_SHORT[faction] or faction
+  local want  = short .. " VP"
+  local held  = nil
+  for _, o in ipairs(getAllObjects()) do
+    if o ~= nil and (o.getName() or "") == want then
+      if o.held_by_color == nil then return o end
+      held = held or o
+    end
+  end
+  return held
+end
+
+function rttPlaceVP(faction, n)
+  if faction == nil then return false end
+  if rttFindScoreTrack() == nil then return false end
+  local m = rttFindVPMarker(faction)
+  if m == nil then return false end
+  local slots = rttZeroColumnSlots()
+  if #slots == 0 then return false end
+  local idx = math.max(1, math.min(#slots, n or 1))
+  local wp  = rttSlotWorld(slots[idx])
+  if wp == nil then return false end
+  if m.getLock and m.getLock() then m.setLock(false) end
+  -- Orientation fix: VP markers spawn at their faction board, and a far-side (z>0) seat
+  -- spawns flipped 180, so its marker lands upside-down on the track. Normalise every
+  -- placed marker to the score track's own facing so they all read the same way.
+  local trackRy = 0
+  local map = getObjectFromGUID(RTT_TRACK.guid)
+  if map ~= nil then trackRy = map.getRotation().y end
+  m.setRotationSmooth({ 0, trackRy, 0 }, false, true)
+  m.setPositionSmooth({ wp.x, wp.y + 0.12, wp.z }, false, true)
+  return true
+end
+
+
+-- ===== RTT per-faction setup extras =====
+-- Seed the RNG ONCE at load. Everything random (floods, landmark, draft) then just advances this
+-- stream per call, so rapid re-clicks always differ. Never re-seed with os.time() per action —
+-- that made same-second clicks collide (see rtt-rng-bug).
+math.randomseed(os.time())
+for _rw = 1, 5 do math.random() end
+RTT_FOREST_UV = {
+  ["Summer Map"] = { {-0.0119,0.3133}, {-0.2622,0.1541}, {0.1303,0.0818}, {0.0918,-0.1710}, {0.2914,-0.1245}, {-0.3226,-0.0941}, {-0.1570,-0.2591} },
+  ["Winter Map"] = { {-0.0014,0.2102}, {-0.2874,0.1472}, {-0.2859,-0.0771}, {0.3033,0.0681}, {0.1848,-0.1880}, {-0.2064,-0.2222}, {-0.0119,-0.1395}, {0.2912,-0.1394} },
+  ["Lake Map"] = { {0.2982,-0.1413}, {-0.1985,0.2776}, {-0.3180,0.1555}, {-0.2027,-0.2886}, {0.2872,0.1004}, {0.1029,0.2260}, {-0.2866,-0.0828}, {-0.0255,0.1771}, {0.0432,-0.3023} },
+  ["Marsh Map"] = { {-0.1656,0.2634}, {-0.2773,0.1135}, {0.3171,-0.0629}, {0.1611,0.2492}, {0.0420,-0.2351}, {-0.2695,-0.1750}, {0.0338,0.0396} },
+  ["Mountain Map"] = { {-0.3392,0.1382}, {0.2882,0.0603}, {0.1637,0.1715}, {0.3020,-0.1292}, {0.1001,-0.2291}, {-0.2885,-0.1012}, {0.0524,0.1094}, {-0.0613,0.1989}, {-0.1274,0.0278}, {-0.0138,-0.0616} },
+  ["Gorge Map"] = { {-0.0901,0.3034}, {0.2470,0.2817}, {0.0620,-0.2785}, {-0.2465,-0.2728}, {-0.2369,0.2194}, {-0.1792,-0.1109}, {0.2202,-0.1168}, {0.1241,0.2268} }
+}
+RTT_RELIC_POS = {
+  ["Mountain Map"] = { {-1.2752,0.4425}, {1.0450,0.1418}, {0.5335,-0.2283}, {1.3380,-0.4530}, {0.2831,-0.6898}, {-1.1410,-0.2198}, {0.0122,0.2455}, {-0.0305,0.7701}, {-0.6567,-0.7852}, {-0.2753,-0.4889} },
+  ["Marsh Map"] = { {-0.0678,0.8178}, {-1.1516,0.3882}, {1.2343,-0.2220}, {1.0673,0.5145}, {0.5968,-0.9808}, {-0.6581,-0.8845}, {-0.2989,0.0212} },
+  ["Summer Map"] = { {0.7320,0.8958}, {-0.0560,0.4389}, {1.2627,0.3846}, {-1.1418,0.4037}, {0.9997,-0.5831}, {-0.3121,-0.3603}, {0.2862,-1.1748} }
+}
+
+
+RTT_LIZ_WIZ = { -29.878, 1.552, 9.915 }
+RTT_LIZ_WIZ_ROTY = 90
+RTT_LIZ_OUTCAST = { -29.220, 11.760, 15.020 }
+RTT_POND_SHIFT = { -31.217, 11.562, 21.567 }
+RTT_POND_FROG = { -30.882, 11.562, 10.661 }
+
+function rttFactionExtras(faction, cx, cz, flip, isDraft)
+  if faction == "The Lizard Cult" then rttLizardSetup()
+  elseif faction == "Lilypad Diaspora" then rttFrogsSetup()
+  elseif faction == "Keepers in Iron" then rttBadgerRelics()
+  -- Twilight Council (bats) now spawns from the baked blueprint (m560) — no runtime setup
+  elseif faction == "Corvid Conspiracy" then rttCrowsPlots(cx, cz, flip, isDraft)
+  -- Underground Duchy (moles) now spawns 7 loose + 13 bagged from the blueprint (m300) — no tuck
+  -- Knaves captains now spawn under the DRAFT CARDS (rttDraftKnavesCaptains), not with the board
+  elseif faction == "Marquise de Cat" then rttMarquiseCats(cx, cz, flip)
+  end
+end
+
+-- ---- Marquise de Cat: one warrior in the CENTRE of every clearing -------------------------
+-- The 3 staging warriors + buildings + Keep are baked (m570/m550) so they spawn in place. Here
+-- we only handle the 12 cats on the map: taken STRAIGHT from the Marquise Supply bag onto each
+-- clearing CENTRE, so they appear at their spot directly (no default-then-move).
+--
+-- RTT_CLEARING_CENTRES[map] = the world (x,z) centre of every clearing, converted from the eyes
+-- tile-local geometry (root_engine/eyes + maps_data/*_geometry.json) via the shared map transform
+-- (scale 12.97936, rotY 180, origin ~0). 12 clearings on the standard maps; 15 positions on Marsh
+-- (9 dry + both sides of the 3 flood pairs), of which the 3 inactive ones are skipped so exactly
+-- 12 cats land — matched to RTT_MARSH_EXCLUDED (the inactive clearing centres from m440/m500).
+-- CALIBRATED 2026-08-28: my raw eyes centres were rotated 180deg the wrong way (systematic error).
+-- Flipping x,z (verified against Adrien's placed cats on Gorge: mean error 3.9u -> 1.0u) fixes every
+-- map. Gorge uses Adrien's exact recorded cat positions (0 residual). Other maps can be swapped to
+-- exact recorded positions the same way if Adrien places cats on them.
+RTT_CLEARING_CENTRES = {
+  ["Summer Map"] = {
+    {-19.93,17.20},{18.64,12.35},{16.63,-16.88},{-19.64,-14.75},{2.61,19.06},{20.57,-0.96},
+    {4.35,-12.68},{-7.15,-17.75},{-19.97,4.46},{-3.86,9.80},{6.98,0.73},{-9.48,-2.60},
+  },
+  ["Winter Map"] = {
+    {-18.44,17.15},{19.13,11.93},{17.29,-16.97},{-18.21,-14.11},{-6.15,15.14},{5.33,13.16},
+    {20.40,-3.59},{4.25,-10.36},{-6.29,-16.89},{-18.38,3.32},{-6.94,0.25},{6.45,1.36},
+  },
+  ["Lake Map"] = {
+    {17.60,-16.47},{-18.05,14.78},{-19.77,-14.57},{20.53,8.42},{19.38,-3.77},{9.91,13.41},
+    {-2.61,17.40},{-20.76,0.44},{-3.08,-17.80},{-9.60,6.61},{8.23,0.81},{-8.05,-7.53},
+  },
+  ["Mountain Map"] = {
+    {-19.90,15.43},{16.43,13.40},{18.52,-13.08},{-18.60,-14.71},{1.80,15.93},{20.73,0.39},
+    {3.35,-16.20},{-21.00,-3.24},{-10.72,7.35},{-0.48,4.73},{6.54,-5.15},{-8.25,-7.98},
+  },
+  ["Marsh Map"] = {
+    {-19.09,17.22},{20.91,13.56},{16.19,-17.23},{-20.63,-16.61},{-5.29,17.90},{7.54,16.61},
+    {20.53,-6.91},{0.28,-16.65},{-8.35,-12.21},{-20.89,-2.52},{-11.46,7.53},{15.31,3.58},
+    {7.21,-7.24},{-4.84,-0.88},{2.18,6.55},
+  },
+  ["Gorge Map"] = {
+    {-19.39,16.52},{-18.72,-4.28},{-18.52,-17.16},{-15.54,5.94},{-2.33,-14.98},{-0.95,-4.64},
+    {-0.21,7.80},{4.71,17.37},{11.38,-17.08},{14.73,6.66},{17.98,-3.87},{18.48,16.10},
+  },
+}
+
+function rttMarquiseCats(cx, cz, flip)
+  -- resolve the current map (same fallback chain as rttBadgerRelics: clone -> main board bab7e1)
+  local mapId = RTT_CURRENT_MAP or (RTT_PICKED or {}).map
+  if mapId == nil then
+    local mb = getObjectFromGUID("bab7e1")
+    if mb ~= nil then
+      local ok, mid = pcall(function() return mb.call("rttGetCurrentMap") end)
+      if ok and type(mid) == "string" then mapId = mid end
+    end
+  end
+  local centres = RTT_CLEARING_CENTRES[mapId]
+  if centres == nil then return end
+  local bag = nil
+  for _, o in ipairs(getAllObjects()) do
+    if (o.getName() or "") == "Marquise Supply" then bag = o break end
+  end
+  if bag == nil then return end
+  -- Marsh clearings depend on player count: 4-player floods 3 clearings (skip them -> 12 cats);
+  -- 5-player has no floods, all 15 clearings are active (place 15). Every other map is 12.
+  local excl = {}
+  if mapId == "Marsh Map" then
+    local is5p = RTT_5P_MARSH
+    if is5p == nil then
+      local mb = getObjectFromGUID("bab7e1")
+      if mb ~= nil then
+        local ok, v = pcall(function() return mb.call("rttGet5pMarsh") end)
+        if ok then is5p = v end
+      end
+    end
+    if not is5p then                               -- 4-player: skip the 3 flooded clearing centres
+      excl = RTT_MARSH_EXCLUDED
+      if excl == nil then
+        local mb = getObjectFromGUID("bab7e1")
+        if mb ~= nil then
+          local ok, ex = pcall(function() return mb.call("rttGetMarshExcluded") end)
+          if ok and type(ex) == "table" then excl = ex end
+        end
+      end
+      excl = excl or {}
+    end
+  end
+  for _, c in ipairs(centres) do
+    local skip = false
+    for _, e in ipairs(excl) do                    -- Marsh: skip the 3 inactive clearing centres
+      local dx, dz = c[1] - e[1], c[2] - e[2]
+      if dx * dx + dz * dz < 20.0 then skip = true break end   -- ~4.5u = same clearing
+    end
+    if not skip then
+      pcall(function() bag.takeObject({ position = { c[1], 12.6, c[2] }, rotation = { 0, 180, 0 }, smooth = false }) end)  -- upright (standing)
+    end
+  end
+end
+
+-- ---- Knaves of the Deepwood: draft 4 RANDOM captains, remove the other 8 -----------------
+-- The faction spawns a 12-card Captain deck (DeckIDs 73400-73411, shared face sheet
+-- FA78C0...037E95) with an EMPTY nickname, so the base rttKnavesCaptains name-match never
+-- fires and all 12 just sit there. Adrien wants only 4 random captains kept, laid out in a
+-- visible row where the deck spawned; the rest are discarded. Identify the deck by its face
+-- sheet (nickname/GMNotes are all blank), scoped to this seat.
+-- find the 12-card Captain deck near the seat. Prefer the deck whose face sheet is the Captain
+-- sheet (FA78C0...), but fall back to the nearest Deck within 20u of the seat (the Knaves faction
+-- has only one deck near its board), so a getData() quirk can't leave all 12 captains in play.
+
+-- keep polling until the faction spawn has produced the Captain deck, then keep 4 random
+
+
+-- pick the big faction-board tile that just spawned nearest a seat (cx,cz)
+function rttFindSeatBoard(cx, cz)
+  local board, bestD = nil, 1e9
+  for _, o in ipairs(getAllObjects()) do
+    if o.name == "Custom_Tile" then
+      local s = o.getScale()
+      if s ~= nil and s.x >= 7.5 then
+        local p = o.getPosition()
+        local d = (p.x - cx) ^ 2 + (p.z - cz) ^ 2
+        if d < bestD and d < 900 then bestD = d; board = o end
+      end
+    end
+  end
+  return board
+end
+
+-- ---- Corvid Conspiracy (crows): 12 plots, 3 of each type, in a clean 4x3 grid --------
+RTT_CROW_COLS = { -0.400, -0.577, -0.754, -0.931 }
+RTT_CROW_ROWS = { -1.166, -1.353, -1.540 }
+-- the 4 starting Corvid warriors, board-local (recorded from Adrien's save): a row by the supply
+RTT_CROW_WAR = { { 0.330, -1.157 }, { 0.499, -1.157 }, { 0.668, -1.157 }, { 0.837, -1.157 } }
+
+function rttCrowsPlots(cx, cz, flip, isDraft)
+  local board = rttFindSeatBoard(cx, cz)
+  if board == nil then return end
+  for _, o in ipairs(getAllObjects()) do
+    if (o.getName() or "") == "Plot" then pcall(function() o.destruct() end) end
+  end
+  -- the base does NOT spawn loose "Plot" objects, so RTT_CROW_PLOTS is the only source: spawn
+  -- the 12 plots straight into the 4x3 grid, FACE DOWN (rotZ 180 — the recorded blobs are face
+  -- up), in ONE step. Clear any leftover plots from a prior setup first.
+  for _, o in ipairs(getAllObjects()) do
+    if (o.getName() or "") == "Plot" then pcall(function() o.destruct() end) end
+  end
+  local ry = board.getRotation().y
+  for i, blob in ipairs(RTT_CROW_PLOTS or {}) do
+    local idx = i - 1
+    local col = math.floor(idx / 3) + 1
+    local row = (idx % 3) + 1
+    local w = board.positionToWorld({ RTT_CROW_COLS[col], 0.03, RTT_CROW_ROWS[row] })
+    spawnObjectJSON({
+      json = blob,
+      position = { w.x, w.y + 0.2, w.z },
+      rotation = { 0, ry, 180 },            -- face DOWN
+      callback_function = function(o) o.setLock(false) end
+    })
+  end
+  -- the 4 starting warriors + moved supply are BAKED into the blueprint now (m620) — no reposition.
+  -- spawn Adrien's hidden-plot cover (a Hidden Zone), coloured to the crow player's seat so only they
+  -- can see their plots (the parked cover was grey = visible to all).
+  rttCrowsHiddenZone(board, cx, cz, isDraft)
+  -- drop the Corvid "Bot Interactions" reference card (CardID 29900) — human tournament, no bots
+  for _, o in ipairs(getAllObjects()) do
+    if o.name == "Card" or o.name == "CardCustom" then
+      local ok, dt = pcall(function() return o.getData() end)
+      if ok and dt ~= nil and dt.CardID == 29900 then pcall(function() o.destruct() end) end
+    end
+  end
+end
+
+-- Adrien's hidden-plot cover: a Hidden Zone (FogOfWarTrigger) parked to the RIGHT of the plot grid.
+-- Its FogColor decides who can see inside; grey/White = everyone, so we recolour it to the crow
+-- player's own colour (the seated player nearest the crow board) so only they can see their plots.
+function rttCrowsHiddenZone(board, cx, cz, isDraft)
+  if board == nil or RTT_CROW_HZ_JSON == nil then return end
+  if not isDraft then return end                 -- only the automated draft, not the faction selector
+  -- 5-player game: skip for the 1st/2nd/3rd seats (Adrien's exception)
+  local seat, sbest = nil, nil
+  if RTT_SEATS ~= nil then
+    for i, s in ipairs(RTT_SEATS) do
+      local d = (s.pos[1] - cx) ^ 2 + (s.pos[2] - cz) ^ 2
+      if sbest == nil or d < sbest then sbest = d; seat = i end
+    end
+  end
+  if RTT_5P_MARSH and seat ~= nil and seat <= 3 then return end
+  -- crow player's colour = the seated player nearest the crow board
+  local color, best = "White", nil
+  for _, p in ipairs(Player.getPlayers()) do
+    if p.seated and p.color ~= "Grey" and p.color ~= "Black" then
+      local ht = nil
+      pcall(function() ht = p.getHandTransform().position end)
+      if ht ~= nil then
+        local d = (ht.x - cx) ^ 2 + (ht.z - cz) ^ 2
+        if best == nil or d < best then best = d; color = p.color end
+      end
+    end
+  end
+  -- board-LOCAL sideways spot of Adrien's cover. Default = board-RIGHT of the plots (-3.163). For the
+  -- 1st and 3rd seats the board faces the other way, so the cover must go to board-LEFT (+3.163) to stay
+  -- OUTSIDE the play area. Pull it ~one card width closer to the plots (toward x=0) now that the
+  -- card-improvement area is gone (board scale ~8.8, a ~2.5u card ≈ 0.28 board-local -- estimate).
+  local lx = -3.163
+  if seat == 1 or seat == 3 then lx = 3.163 end
+  local closer = 0.28
+  if lx < 0 then lx = lx + closer else lx = lx - closer end
+  local w = board.positionToWorld({ lx, 0.30, -0.404 })
+  local blob = string.gsub(RTT_CROW_HZ_JSON, '"FogColor":"White"', '"FogColor":"' .. color .. '"')
+  spawnObjectJSON({
+    json = blob,
+    position = { w.x, 14.11, w.z },
+    rotation = { 0, board.getRotation().y, 0 },
+    callback_function = function(o) o.setLock(true) o.addTag("RTT Faction") end
+  })
+end
+
+-- ---- Lizard Cult ----------------------------------------------------------
+function rttLizardSetup()
+  -- keep the Outcast Marker (it belongs ON the Lizard Wizard) — do NOT destruct it.
+  makeSpecialWithTag("Tools", "Lizard Wizard",
+    RTT_LIZ_WIZ[1], RTT_LIZ_WIZ[2], RTT_LIZ_WIZ[3], "Faction")
+  -- makeSpecialWithTag can't set the facing, and the Outcast Marker spawns elsewhere, so orient
+  -- the wizard and snap the marker onto it (instant, no slide).
+  Wait.time(function()
+    for _, o in ipairs(getAllObjects()) do
+      local nm = o.getName() or ""
+      if nm == "Lizard Wizard" then
+        if o.getLock and o.getLock() then o.setLock(false) end
+        o.setRotation({ 0, RTT_LIZ_WIZ_ROTY, 0 })
+      elseif nm == "Outcast Marker" then
+        if o.getLock and o.getLock() then o.setLock(false) end
+        o.setPosition({ RTT_LIZ_OUTCAST[1], RTT_LIZ_OUTCAST[2], RTT_LIZ_OUTCAST[3] })
+        o.setRotation({ 0, RTT_LIZ_WIZ_ROTY, 0 })
+      end
+    end
+  end, 0.8)
+end
+
+-- ---- Lilypad Diaspora (frogs) --------------------------------------------
+function rttFrogsSetup()
+  rttShuffleFrogsIntoDeck()
+  rttSpawnPond()
+end
+
+-- The Pond is MAP-relative (a fixed world spot, independent of the frog's seat), so it can't be a
+-- seat-local blueprint move_to. m580 removes it from the frog blueprint and hands its object JSON
+-- here as RTT_POND_JSON; we spawn it DIRECTLY at its world spot — no seat-relative default, no
+-- reposition, no below-table trick.
+function rttSpawnPond()
+  if RTT_POND_JSON == nil then return end
+  local lizard = (RTT_FAC_TAKEN or {})["The Lizard Cult"] == true
+  local p = lizard and RTT_POND_SHIFT or RTT_POND_FROG
+  spawnObjectJSON({
+    json = RTT_POND_JSON,
+    position = { p[1], p[2], p[3] },
+    rotation = { 0, 90, 0 },
+    callback_function = function(o) o.setLock(true) end,
+  })
+end
+
+function rttShuffleFrogsIntoDeck()
+  local mainDeck, frogObjs = nil, {}
+  for _, o in ipairs(getAllObjects()) do
+    local nm = o.name
+    if nm == "Deck" then
+      local cards = o.getObjects() or {}
+      local frog, total = 0, #cards
+      for _, c in ipairs(cards) do if (c.description or "") == "Frog" then frog = frog + 1 end end
+      if total > 0 and frog == total then frogObjs[#frogObjs + 1] = o
+      elseif total >= 20 and frog == 0 and mainDeck == nil then mainDeck = o end
+    elseif (nm == "Card" or nm == "CardCustom") and (o.getDescription() or "") == "Frog" then
+      frogObjs[#frogObjs + 1] = o
+    end
+  end
+  if mainDeck == nil then return end
+  for _, f in ipairs(frogObjs) do pcall(function() mainDeck.putObject(f) end) end
+  Wait.time(function() if mainDeck ~= nil then pcall(function() mainDeck.shuffle() end) end end, 1.0)
+end
+
+-- ---- Keepers in Iron (badgers): relics onto Adrien's recorded per-map spots -----------
+function rttFindMapObject()
+  local best, bestN = nil, 0
+  for _, o in ipairs(getAllObjects()) do
+    local ok, sp = pcall(function() return o.getSnapPoints() end)
+    if ok and sp and #sp > bestN then best, bestN = o, #sp end
+  end
+  return best
+end
+
+function rttForestWorldCenters(mapId)   -- fallback for maps with no recorded relic spots
+  local cents = RTT_FOREST_UV[mapId]
+  if cents == nil then return {} end
+  local m = rttFindMapObject()
+  if m == nil then return {} end
+  local b = m.getBounds()
+  local a = math.rad(m.getRotation().y)
+  local sx, sz = b.size.x, b.size.z
+  local out = {}
+  for _, uv in ipairs(cents) do
+    local lx, lz = uv[1] * sx, uv[2] * sz
+    out[#out + 1] = {
+      b.center.x + lx * math.cos(a) - lz * math.sin(a),
+      b.center.z + lx * math.sin(a) + lz * math.cos(a),
+    }
+  end
+  return out
+end
+
+-- the map buttons + makeMap live on the MAIN board (bab7e1); clones (the solo/standard faction
+-- selectors) have their own Lua globals, so a clone's RTT_CURRENT_MAP is nil. This getter lets
+-- any clone read the main board's current map by GUID.
+function rttGetCurrentMap() return RTT_CURRENT_MAP end
+function rttGetMarshExcluded() return RTT_MARSH_EXCLUDED end
+function rttGet5pMarsh() return RTT_5P_MARSH end
+
+function rttBadgerRelics()
+  -- RTT_PICKED.map is only set by the ranked-draft coordinator; on the solo/standard faction
+  -- board it is nil. Fall back to RTT_CURRENT_MAP (this board's last makeMap); and if THIS
+  -- object is a selector clone (its own RTT_CURRENT_MAP is nil), read the main board bab7e1.
+  local mapId = RTT_CURRENT_MAP or (RTT_PICKED or {}).map
+  if mapId == nil then
+    local mb = getObjectFromGUID("bab7e1")
+    if mb ~= nil then
+      local ok, mid = pcall(function() return mb.call("rttGetCurrentMap") end)
+      if ok and type(mid) == "string" then mapId = mid end
+    end
+  end
+  if mapId == nil then return end
+  local bag = nil
+  for _, o in ipairs(getAllObjects()) do
+    if o.name == "Bag" and (o.getName() or "") == "Relics" then bag = o break end
+  end
+  if bag == nil then return end
+  pcall(function() bag.shuffle() end)              -- placement is ALWAYS random (per Adrien)
+  local targets = {}
+  local recorded = RTT_RELIC_POS[mapId]
+  if recorded ~= nil then                          -- Adrien's exact per-map spots (map-local)
+    local m = rttFindMapObject()
+    if m == nil then return end
+    for _, lc in ipairs(recorded) do
+      local w = m.positionToWorld({ lc[1], 0.05, lc[2] })
+      targets[#targets + 1] = { w.x, w.z }
+    end
+  else
+    targets = rttForestWorldCenters(mapId)          -- fallback: forest centroids
+  end
+  if #targets == 0 then return end
+  for _, c in ipairs(targets) do
+    pcall(function()
+      bag.takeObject({ position = { c[1], 12.0, c[2] }, rotation = { 0, 180, 0 }, smooth = false })
+    end)
+  end
+end
+
+-- ---- Twilight Council (bats) ---------------------------------------------
+RTT_BATS_ASM = { -0.032, -0.253 }
+RTT_BATS_WAR = {
+  { 0.657, -1.241 }, { 0.657, -1.167 }, { 0.797, -1.167 }, { 0.797, -1.241 },  -- pack of 4
+  { 0.375, -1.167 }, { 0.375, -1.241 },                                        -- pack of 2
+}
+
+
+-- ---- Mountain: read the centre-clearing suit, then stand a landmark there ---------------
+-- suit textures on the "Clearing Marker" mesh (verified by eye): yellow=rabbit, orange=mouse,
+-- red=fox. Matched by the steam UGC handle in the marker's diffuse URL.
+RTT_SUIT_TEX = {
+  ["1725416554252055237"] = "rabbit",
+  ["1725416554252058449"] = "mouse",
+  ["1725416554252050523"] = "fox",
+}
+RTT_SUIT_LM = { rabbit = "Rabbit-Town", fox = "Foxburrow", mouse = "Mousehold" }
+RTT_MTN_LM = { -0.116, 11.660, 0.187 }
+RTT_MTN_CARD = { -29.303, 11.575, -19.899 }
+RTT_MTN_CARD_SCALE = 2.299
+
+RTT_MTN_LANDMARKS = { "Lost City", "Rabbit-Town", "Foxburrow", "Mousehold" }
+RTT_MTN_LM_PIECES = RTT_MTN_LM_PIECES or {}
+
+function rttMountainLandmark()
+  -- clear the PREVIOUS landmark first, so a fast re-click replaces it (no stacking, no stale piece)
+  for _, o in ipairs(RTT_MTN_LM_PIECES or {}) do
+    if o ~= nil then pcall(function() o.destruct() end) end
+  end
+  RTT_MTN_LM_PIECES = {}
+  -- The central clearing has NO suit marker (m590) and the Tower is hidden, so the landmark spawns
+  -- DIRECTLY at RTT_MTN_LM — no marker flash. Advancing RNG (seeded once at load) => a fresh random
+  -- landmark on every click, instantly. The landmark card itself defines the clearing's suit.
+  local name = RTT_MTN_LANDMARKS[math.random(1, #RTT_MTN_LANDMARKS)]
+  RTT_MTN_LM_PIECES = rttSpawnLandmarkAt(name, RTT_MTN_LM[1], RTT_MTN_LM[2], RTT_MTN_LM[3],
+                     RTT_MTN_CARD[1], RTT_MTN_CARD[2], RTT_MTN_CARD[3],
+                     165, 180, RTT_MTN_CARD_SCALE)  -- crotZ 180 = RULES face up (BackURL)
+end
+
+-- spawn a landmark's model (standing) + its rules card (rules side up) DIRECTLY at their
+-- final transforms, so they appear in place and just settle onto the board like the other
+-- map pieces — no visible slide/rotate. spawnObjectJSON's position/rotation override the
+-- data's baked (flat) transform. EVERYTHING is on this board (self), so it's in scope.
+-- mrotY  = standing-model world rotY (Mountain=165; Marsh towns pass the clearing's suit rotY)
+-- crotZ  = rules-card rotZ; 180 = RULES/BackURL face up (Mountain=180, Marsh towns=180)
+-- cscale = rules-card XZ scale, or nil to leave the card at its blueprint scale (Marsh towns)
+-- both the model and the card spawn LOCKED (Adrien wants landmarks + their cards fixed).
+function rttSpawnLandmarkAt(name, mx, my, mz, cx, cy, cz, mrotY, crotZ, cscale)
+  mrotY = mrotY or 165
+  crotZ = crotZ or 0
+  local pieces = {}
+  local lm = EVERYTHING['Landmarks'][name]
+  if lm == nil or lm['data'] == nil then return pieces end
+  for _, v in ipairs(lm['data']) do
+    local ob
+    if string.find(v.json, "CardID", 1, true) ~= nil then
+      ob = spawnObjectJSON({
+        json = v.json,
+        position = { cx, cy, cz },
+        rotation = { 0, 180, crotZ },
+        callback_function = function(o)
+          o.setLock(true)
+          o.addTag("Map Object")
+          if cscale ~= nil then pcall(function() o.setScale({ cscale, 1.0, cscale }) end) end
+        end
+      })
+    else
+      ob = spawnObjectJSON({
+        json = v.json,
+        position = { mx, my, mz },
+        rotation = { 0, mrotY, 0 },                 -- standing signpost, in place
+        callback_function = function(o)
+          o.setLock(true)
+          o.addTag("Map Object")
+        end
+      })
+    end
+    pieces[#pieces + 1] = ob
+  end
+  return pieces                                     -- caller (rttMountainLandmark) tracks these to clear on re-click
+end
+
+RTT_CROW_PLOTS = {
+[==[{"GUID":"21305a","Name":"Custom_Tile","Transform":{"posX":-0.3543687,"posY":11.5615435,"posZ":-35.416317,"rotX":-1.21530479e-06,"rotY":180.000351,"rotZ":1.37646862e-06,"scaleX":0.703911364,"scaleY":1.0,"scaleZ":0.703911364},"Nickname":"Plot","Description":"","GMNotes":"","AltLookAngle":{"x":0.0,"y":0.0,"z":0.0},"ColorDiffuse":{"r":0.539603055,"g":0.391118348,"b":0.632404268},"LayoutGroupSortIndex":0,"Value":0,"Locked":false,"Grid":true,"Snap":true,"IgnoreFoW":false,"MeasureMovement":false,"DragSelectable":true,"Autoraise":true,"Sticky":true,"Tooltip":true,"GridProjection":false,"HideWhenFaceDown":false,"Hands":false,"CustomImage":{"ImageURL":"https://steamusercontent-a.akamaihd.net/ugc/1807607729518131475/4ADB942FAFC5E1B1B8944104EE78BCC49D314E74/","ImageSecondaryURL":"https://steamusercontent-a.akamaihd.net/ugc/1807607729518125572/1C3B0C57CFFD05BB8AF1B9412849D054E6D7131E/","ImageScalar":1.0,"WidthScale":0.0,"CustomTile":{"Type":2,"Thickness":0.1,"Stackable":false,"Stretch":true}},"LuaScript":"","LuaScriptState":"","XmlUI":""}]==],
+[==[{"GUID":"e59fb6","Name":"Custom_Tile","Transform":{"posX":-0.603453934,"posY":11.5615435,"posZ":-36.994133,"rotX":4.16742978e-07,"rotY":180.015182,"rotZ":-9.556643e-07,"scaleX":0.703911364,"scaleY":1.0,"scaleZ":0.703911364},"Nickname":"Plot","Description":"","GMNotes":"","AltLookAngle":{"x":0.0,"y":0.0,"z":0.0},"ColorDiffuse":{"r":0.539603055,"g":0.391118348,"b":0.632404268},"LayoutGroupSortIndex":0,"Value":0,"Locked":false,"Grid":true,"Snap":true,"IgnoreFoW":false,"MeasureMovement":false,"DragSelectable":true,"Autoraise":true,"Sticky":true,"Tooltip":true,"GridProjection":false,"HideWhenFaceDown":false,"Hands":false,"CustomImage":{"ImageURL":"https://steamusercontent-a.akamaihd.net/ugc/1807607729518131475/4ADB942FAFC5E1B1B8944104EE78BCC49D314E74/","ImageSecondaryURL":"https://steamusercontent-a.akamaihd.net/ugc/1807607729518125572/1C3B0C57CFFD05BB8AF1B9412849D054E6D7131E/","ImageScalar":1.0,"WidthScale":0.0,"CustomTile":{"Type":2,"Thickness":0.1,"Stackable":false,"Stretch":true}},"LuaScript":"","LuaScriptState":"","XmlUI":""}]==],
+[==[{"GUID":"0546e8","Name":"Custom_Tile","Transform":{"posX":-0.3954289,"posY":11.5615435,"posZ":-33.8944244,"rotX":2.263754e-08,"rotY":180.000015,"rotZ":-1.62602646e-06,"scaleX":0.703911364,"scaleY":1.0,"scaleZ":0.703911364},"Nickname":"Plot","Description":"","GMNotes":"","AltLookAngle":{"x":0.0,"y":0.0,"z":0.0},"ColorDiffuse":{"r":0.539603055,"g":0.391118348,"b":0.632404268},"LayoutGroupSortIndex":0,"Value":0,"Locked":false,"Grid":true,"Snap":true,"IgnoreFoW":false,"MeasureMovement":false,"DragSelectable":true,"Autoraise":true,"Sticky":true,"Tooltip":true,"GridProjection":false,"HideWhenFaceDown":false,"Hands":false,"CustomImage":{"ImageURL":"https://steamusercontent-a.akamaihd.net/ugc/1807607729518131475/4ADB942FAFC5E1B1B8944104EE78BCC49D314E74/","ImageSecondaryURL":"https://steamusercontent-a.akamaihd.net/ugc/1807607729518125572/1C3B0C57CFFD05BB8AF1B9412849D054E6D7131E/","ImageScalar":1.0,"WidthScale":0.0,"CustomTile":{"Type":2,"Thickness":0.1,"Stackable":false,"Stretch":true}},"LuaScript":"","LuaScriptState":"","XmlUI":""}]==],
+[==[{"GUID":"ca3fff","Name":"Custom_Tile","Transform":{"posX":-2.01368332,"posY":11.5615435,"posZ":-35.4446754,"rotX":-2.17247452e-06,"rotY":179.998016,"rotZ":-3.34748984e-06,"scaleX":0.703911364,"scaleY":1.0,"scaleZ":0.703911364},"Nickname":"Plot","Description":"","GMNotes":"","AltLookAngle":{"x":0.0,"y":0.0,"z":0.0},"ColorDiffuse":{"r":0.539603055,"g":0.391118348,"b":0.632404268},"LayoutGroupSortIndex":0,"Value":0,"Locked":false,"Grid":true,"Snap":true,"IgnoreFoW":false,"MeasureMovement":false,"DragSelectable":true,"Autoraise":true,"Sticky":true,"Tooltip":true,"GridProjection":false,"HideWhenFaceDown":false,"Hands":false,"CustomImage":{"ImageURL":"https://steamusercontent-a.akamaihd.net/ugc/1807607729518126214/F1899491A241A1C0D2B675B376D2CE214EB9F09E/","ImageSecondaryURL":"https://steamusercontent-a.akamaihd.net/ugc/1807607729518125572/1C3B0C57CFFD05BB8AF1B9412849D054E6D7131E/","ImageScalar":1.0,"WidthScale":0.0,"CustomTile":{"Type":2,"Thickness":0.1,"Stackable":false,"Stretch":true}},"LuaScript":"","LuaScriptState":"","XmlUI":""}]==],
+[==[{"GUID":"f1b260","Name":"Custom_Tile","Transform":{"posX":-2.07250881,"posY":11.5615435,"posZ":-37.2397423,"rotX":-2.30690011e-06,"rotY":179.999435,"rotZ":-3.11298777e-06,"scaleX":0.703911364,"scaleY":1.0,"scaleZ":0.703911364},"Nickname":"Plot","Description":"","GMNotes":"","AltLookAngle":{"x":0.0,"y":0.0,"z":0.0},"ColorDiffuse":{"r":0.539603055,"g":0.391118348,"b":0.632404268},"LayoutGroupSortIndex":0,"Value":0,"Locked":false,"Grid":true,"Snap":true,"IgnoreFoW":false,"MeasureMovement":false,"DragSelectable":true,"Autoraise":true,"Sticky":true,"Tooltip":true,"GridProjection":false,"HideWhenFaceDown":false,"Hands":false,"CustomImage":{"ImageURL":"https://steamusercontent-a.akamaihd.net/ugc/1807607729518126214/F1899491A241A1C0D2B675B376D2CE214EB9F09E/","ImageSecondaryURL":"https://steamusercontent-a.akamaihd.net/ugc/1807607729518125572/1C3B0C57CFFD05BB8AF1B9412849D054E6D7131E/","ImageScalar":1.0,"WidthScale":0.0,"CustomTile":{"Type":2,"Thickness":0.1,"Stackable":false,"Stretch":true}},"LuaScript":"","LuaScriptState":"","XmlUI":""}]==],
+[==[{"GUID":"36116f","Name":"Custom_Tile","Transform":{"posX":-1.8903209,"posY":11.5615435,"posZ":-33.8944244,"rotX":-1.601876e-06,"rotY":179.992828,"rotZ":-1.19916251e-06,"scaleX":0.703911364,"scaleY":1.0,"scaleZ":0.703911364},"Nickname":"Plot","Description":"","GMNotes":"","AltLookAngle":{"x":0.0,"y":0.0,"z":0.0},"ColorDiffuse":{"r":0.539603055,"g":0.391118348,"b":0.632404268},"LayoutGroupSortIndex":0,"Value":0,"Locked":false,"Grid":true,"Snap":true,"IgnoreFoW":false,"MeasureMovement":false,"DragSelectable":true,"Autoraise":true,"Sticky":true,"Tooltip":true,"GridProjection":false,"HideWhenFaceDown":false,"Hands":false,"CustomImage":{"ImageURL":"https://steamusercontent-a.akamaihd.net/ugc/1807607729518126214/F1899491A241A1C0D2B675B376D2CE214EB9F09E/","ImageSecondaryURL":"https://steamusercontent-a.akamaihd.net/ugc/1807607729518125572/1C3B0C57CFFD05BB8AF1B9412849D054E6D7131E/","ImageScalar":1.0,"WidthScale":0.0,"CustomTile":{"Type":2,"Thickness":0.1,"Stackable":false,"Stretch":true}},"LuaScript":"","LuaScriptState":"","XmlUI":""}]==],
+[==[{"GUID":"39035d","Name":"Custom_Tile","Transform":{"posX":1.14516747,"posY":11.5615444,"posZ":-35.4543076,"rotX":1.19232618e-06,"rotY":179.972031,"rotZ":-5.448114e-07,"scaleX":0.703911364,"scaleY":1.0,"scaleZ":0.703911364},"Nickname":"Plot","Description":"","GMNotes":"","AltLookAngle":{"x":0.0,"y":0.0,"z":0.0},"ColorDiffuse":{"r":0.539603055,"g":0.391118348,"b":0.632404268},"LayoutGroupSortIndex":0,"Value":0,"Locked":false,"Grid":true,"Snap":true,"IgnoreFoW":false,"MeasureMovement":false,"DragSelectable":true,"Autoraise":true,"Sticky":true,"Tooltip":true,"GridProjection":false,"HideWhenFaceDown":false,"Hands":false,"CustomImage":{"ImageURL":"https://steamusercontent-a.akamaihd.net/ugc/1807607729518129410/B4639216F003288DDA4A03229C73008EEABCABCE/","ImageSecondaryURL":"https://steamusercontent-a.akamaihd.net/ugc/1807607729518125572/1C3B0C57CFFD05BB8AF1B9412849D054E6D7131E/","ImageScalar":1.0,"WidthScale":0.0,"CustomTile":{"Type":2,"Thickness":0.1,"Stackable":false,"Stretch":true}},"LuaScript":"","LuaScriptState":"","XmlUI":""}]==],
+[==[{"GUID":"134809","Name":"Custom_Tile","Transform":{"posX":1.16691959,"posY":11.5615435,"posZ":-37.17794,"rotX":-1.41008577e-05,"rotY":180.031372,"rotZ":3.91094272e-06,"scaleX":0.703911364,"scaleY":1.0,"scaleZ":0.703911364},"Nickname":"Plot","Description":"","GMNotes":"","AltLookAngle":{"x":0.0,"y":0.0,"z":0.0},"ColorDiffuse":{"r":0.539603055,"g":0.391118348,"b":0.632404268},"LayoutGroupSortIndex":0,"Value":0,"Locked":false,"Grid":true,"Snap":true,"IgnoreFoW":false,"MeasureMovement":false,"DragSelectable":true,"Autoraise":true,"Sticky":true,"Tooltip":true,"GridProjection":false,"HideWhenFaceDown":false,"Hands":false,"CustomImage":{"ImageURL":"https://steamusercontent-a.akamaihd.net/ugc/1807607729518129410/B4639216F003288DDA4A03229C73008EEABCABCE/","ImageSecondaryURL":"https://steamusercontent-a.akamaihd.net/ugc/1807607729518125572/1C3B0C57CFFD05BB8AF1B9412849D054E6D7131E/","ImageScalar":1.0,"WidthScale":0.0,"CustomTile":{"Type":2,"Thickness":0.1,"Stackable":false,"Stretch":true}},"LuaScript":"","LuaScriptState":"","XmlUI":""}]==],
+[==[{"GUID":"edd824","Name":"Custom_Tile","Transform":{"posX":1.09946644,"posY":11.5615435,"posZ":-33.8944244,"rotX":2.987837e-06,"rotY":180.002747,"rotZ":-1.87574437e-06,"scaleX":0.703911364,"scaleY":1.0,"scaleZ":0.703911364},"Nickname":"Plot","Description":"","GMNotes":"","AltLookAngle":{"x":0.0,"y":0.0,"z":0.0},"ColorDiffuse":{"r":0.539603055,"g":0.391118348,"b":0.632404268},"LayoutGroupSortIndex":0,"Value":0,"Locked":false,"Grid":true,"Snap":true,"IgnoreFoW":false,"MeasureMovement":false,"DragSelectable":true,"Autoraise":true,"Sticky":true,"Tooltip":true,"GridProjection":false,"HideWhenFaceDown":false,"Hands":false,"CustomImage":{"ImageURL":"https://steamusercontent-a.akamaihd.net/ugc/1807607729518129410/B4639216F003288DDA4A03229C73008EEABCABCE/","ImageSecondaryURL":"https://steamusercontent-a.akamaihd.net/ugc/1807607729518125572/1C3B0C57CFFD05BB8AF1B9412849D054E6D7131E/","ImageScalar":1.0,"WidthScale":0.0,"CustomTile":{"Type":2,"Thickness":0.1,"Stackable":false,"Stretch":true}},"LuaScript":"","LuaScriptState":"","XmlUI":""}]==],
+[==[{"GUID":"6c25d9","Name":"Custom_Tile","Transform":{"posX":2.68634152,"posY":11.5615435,"posZ":-37.33003,"rotX":-5.253496e-07,"rotY":179.997269,"rotZ":-2.14995e-06,"scaleX":0.703911364,"scaleY":1.0,"scaleZ":0.703911364},"Nickname":"Plot","Description":"","GMNotes":"","AltLookAngle":{"x":0.0,"y":0.0,"z":0.0},"ColorDiffuse":{"r":0.539603055,"g":0.391118348,"b":0.632404268},"LayoutGroupSortIndex":0,"Value":0,"Locked":false,"Grid":true,"Snap":true,"IgnoreFoW":false,"MeasureMovement":false,"DragSelectable":true,"Autoraise":true,"Sticky":true,"Tooltip":true,"GridProjection":false,"HideWhenFaceDown":false,"Hands":false,"CustomImage":{"ImageURL":"https://steamusercontent-a.akamaihd.net/ugc/1807607729518134114/5AC4FA97221C50C053365BA874BA837016D5C4DA/","ImageSecondaryURL":"https://steamusercontent-a.akamaihd.net/ugc/1807607729518125572/1C3B0C57CFFD05BB8AF1B9412849D054E6D7131E/","ImageScalar":1.0,"WidthScale":0.0,"CustomTile":{"Type":2,"Thickness":0.1,"Stackable":false,"Stretch":true}},"LuaScript":"","LuaScriptState":"","XmlUI":""}]==],
+[==[{"GUID":"ef396f","Name":"Custom_Tile","Transform":{"posX":2.6341083,"posY":11.5615435,"posZ":-35.4670753,"rotX":2.09103382e-06,"rotY":180.003647,"rotZ":-3.06159359e-06,"scaleX":0.703911364,"scaleY":1.0,"scaleZ":0.703911364},"Nickname":"Plot","Description":"","GMNotes":"","AltLookAngle":{"x":0.0,"y":0.0,"z":0.0},"ColorDiffuse":{"r":0.539603055,"g":0.391118348,"b":0.632404268},"LayoutGroupSortIndex":0,"Value":0,"Locked":false,"Grid":true,"Snap":true,"IgnoreFoW":false,"MeasureMovement":false,"DragSelectable":true,"Autoraise":true,"Sticky":true,"Tooltip":true,"GridProjection":false,"HideWhenFaceDown":false,"Hands":false,"CustomImage":{"ImageURL":"https://steamusercontent-a.akamaihd.net/ugc/1807607729518134114/5AC4FA97221C50C053365BA874BA837016D5C4DA/","ImageSecondaryURL":"https://steamusercontent-a.akamaihd.net/ugc/1807607729518125572/1C3B0C57CFFD05BB8AF1B9412849D054E6D7131E/","ImageScalar":1.0,"WidthScale":0.0,"CustomTile":{"Type":2,"Thickness":0.1,"Stackable":false,"Stretch":true}},"LuaScript":"","LuaScriptState":"","XmlUI":""}]==],
+[==[{"GUID":"d87fa8","Name":"Custom_Tile","Transform":{"posX":2.59436,"posY":11.5615435,"posZ":-33.8944244,"rotX":1.47051026e-07,"rotY":180.000031,"rotZ":7.15139436e-07,"scaleX":0.703911364,"scaleY":1.0,"scaleZ":0.703911364},"Nickname":"Plot","Description":"","GMNotes":"","AltLookAngle":{"x":0.0,"y":0.0,"z":0.0},"ColorDiffuse":{"r":0.539603055,"g":0.391118348,"b":0.632404268},"LayoutGroupSortIndex":0,"Value":0,"Locked":false,"Grid":true,"Snap":true,"IgnoreFoW":false,"MeasureMovement":false,"DragSelectable":true,"Autoraise":true,"Sticky":true,"Tooltip":true,"GridProjection":false,"HideWhenFaceDown":false,"Hands":false,"CustomImage":{"ImageURL":"https://steamusercontent-a.akamaihd.net/ugc/1807607729518134114/5AC4FA97221C50C053365BA874BA837016D5C4DA/","ImageSecondaryURL":"https://steamusercontent-a.akamaihd.net/ugc/1807607729518125572/1C3B0C57CFFD05BB8AF1B9412849D054E6D7131E/","ImageScalar":1.0,"WidthScale":0.0,"CustomTile":{"Type":2,"Thickness":0.1,"Stackable":false,"Stretch":true}},"LuaScript":"","LuaScriptState":"","XmlUI":""}]==]
+}
+
+RTT_CROW_HZ_JSON = [==[{"GUID":"8719cd","Name":"FogOfWarTrigger","Transform":{"posX":-27.8318653,"posY":14.1115437,"posZ":-46.7588654,"rotX":0.0,"rotY":359.8908,"rotZ":0.0,"scaleX":14.3045025,"scaleY":5.1,"scaleZ":12.5832348},"Nickname":"","Description":"","GMNotes":"","AltLookAngle":{"x":0.0,"y":0.0,"z":0.0},"ColorDiffuse":{"r":1.0,"g":1.0,"b":1.0,"a":0.25},"LayoutGroupSortIndex":0,"Value":0,"Locked":true,"Grid":true,"Snap":true,"IgnoreFoW":false,"MeasureMovement":false,"DragSelectable":true,"Autoraise":true,"Sticky":true,"Tooltip":true,"GridProjection":false,"HideWhenFaceDown":false,"Hands":false,"FogColor":"White","FogHidePointers":false,"FogReverseHiding":false,"FogSeethrough":true,"LuaScript":"","LuaScriptState":"","XmlUI":""}]==]
+
+-- ===== RTT 5-player Marsh draft =====
+RTT_5P_MARSH = RTT_5P_MARSH or false
+
+function rttFivePStart(player, value, id)
+  RTT_DRAFT_N = 6               -- 5 players draft 6 faction cards (players + 1 leftover)
+  rttSetup(player, value, id)   -- resets RTT_5P_MARSH=false at its start; we set it after
+  RTT_5P_MARSH = true
+end
+
+-- place the 5-player Marsh MAP only (no draft/selectors/seating). Sets the flag that the makeMap
+-- Marsh branch + landmark hook + number-token hook all read, then reuses the base rttPlaceMap path
+-- exactly like a plain map button. RTT_5P_MARSH is left true (the async landmark/number hooks
+-- early-return on false); rttSetup resets it on the next ranked/5p launch.
+function rttPlaceMarsh5P(player, value, id)
+  RTT_5P_MARSH = true
+  rttPlaceMap("Marsh Map")
+end
+
+-- 5-player Marsh plan: no flooding; all 15 clearings active; 3 random -> town landmarks,
+-- the other 12 -> the 12 suit markers. Reuses m440's RTT_MARSH_SUIT9 / RTT_MARSH data.
+function rttMarshPlan5P(objects)
+  -- NO os.time re-seed (see rtt-rng-bug): seeded once at load, advance per call so fast re-clicks
+  -- re-randomise instantly.
+
+  local floodIx, ruinIx, suitIx = {}, {}, {}
+  for idx, v in ipairs(objects) do
+    local j = v.json
+    if string.find(j, "53E4E9F1", 1, true) or string.find(j, "C5C35E37", 1, true)
+       or string.find(j, "B37C9A48", 1, true) then floodIx[#floodIx + 1] = idx
+    elseif string.find(j, "RUIN", 1, true) then ruinIx[#ruinIx + 1] = idx
+    elseif string.find(j, "Clearing Marker", 1, true) then suitIx[#suitIx + 1] = idx
+    end
+  end
+
+  -- 15 clearing suit positions = 9 fixed + both sides of the 3 pairs
+  local clearings = {}
+  for _, p in ipairs(RTT_MARSH_SUIT9) do clearings[#clearings + 1] = { p[1], p[2], p[3], p[4] } end
+  for _, m in ipairs(RTT_MARSH) do
+    local u, d = m.up.suit, m.down.suit
+    clearings[#clearings + 1] = { u[1], u[2], u[3], u[4] }
+    clearings[#clearings + 1] = { d[1], d[2], d[3], d[4] }
+  end
+  rttShuffleList(clearings)
+
+  -- first 3 -> town landmarks; the rest -> suits
+  local towns = { "Rabbit-Town", "Foxburrow", "Mousehold" }
+  rttShuffleList(towns)
+  RTT_MARSH_LANDMARKS = {}
+  RTT_MARSH_FLOODED = {}    -- the 3 "no-number" clearings (m460 drops their number tokens)
+  RTT_MARSH_EXCLUDED = {}   -- same 3 clearing centres, for m460's rank-walk skip logic
+  for i = 1, 3 do
+    local c = clearings[i]
+    RTT_MARSH_LANDMARKS[i] = { x = c[1], z = c[3], name = towns[i], rotY = c[4] }
+    RTT_MARSH_FLOODED[i] = { c[1], c[3] }
+    RTT_MARSH_EXCLUDED[i] = { c[1], c[3] }
+  end
+
+  local ov = {}
+  -- 12 suit markers onto clearings 4..15
+  for i, idx in ipairs(suitIx) do
+    local c = clearings[3 + i]
+    if c ~= nil then ov[idx] = { world = { c[1], c[2], c[3] }, rot = { 0, c[4], 0 } } end
+  end
+  -- no flooding: send the 3 flood tiles below the table
+  for _, idx in ipairs(floodIx) do
+    ov[idx] = { world = { 0, -50, 0 }, rot = nil }
+  end
+  -- ruins: 2 fixed + the pair ruin spots (best-effort onto valid clearings)
+  local ruinSlots = {}
+  for _, p in ipairs(RTT_MARSH_RUIN_FIXED) do ruinSlots[#ruinSlots + 1] = { p[1], p[2], p[3] } end
+  for _, m in ipairs(RTT_MARSH) do
+    if m.up.ruin ~= nil then ruinSlots[#ruinSlots + 1] = m.up.ruin end
+    if m.down.ruin ~= nil then ruinSlots[#ruinSlots + 1] = m.down.ruin end
+  end
+  rttShuffleList(ruinSlots)
+  for i, idx in ipairs(ruinIx) do
+    local p = ruinSlots[i]
+    if p ~= nil then ov[idx] = { world = { p[1], p[2], p[3] }, rot = nil } end
+  end
+  return ov
+end
+
+-- each town's rules card has its OWN fixed spot (Adrien placed + locked them in the save);
+-- keyed by town name so a card always lands in the same place regardless of which clearing
+-- the town landmark spawns on. All three: y 11.575, z -19.135, rotZ 180, unscaled.
+RTT_MARSH_CARD_POS = {
+  ["Rabbit-Town"] = { -40.156, 11.575, -19.135 },
+  ["Foxburrow"]   = { -35.098, 11.575, -19.135 },
+  ["Mousehold"]   = { -45.214, 11.575, -19.135 },
+}
+
+-- spawn each town standing on its clearing (model rotY = the clearing's suit rotY) + its
+-- rules card at that town's fixed locked spot, all DIRECTLY at their final transforms
+-- (rttSpawnLandmarkAt, from m490) so they appear in place and settle — no slide/rotate.
+function rttMarshLandmarks()
+  if not RTT_5P_MARSH then return end
+  for _, lm in ipairs(RTT_MARSH_LANDMARKS or {}) do
+    local slot = RTT_MARSH_CARD_POS[lm.name] or { -40.156, 11.575, -19.135 }
+    rttSpawnLandmarkAt(lm.name, lm.x, 11.66, lm.z, slot[1], slot[2], slot[3],
+                       lm.rotY or 165, 180, nil)
+  end
+end
+
+-- Mountain: the Tower is never used (a landmark replaces it), so spawn it BELOW the table
+-- from frame one instead of spawning it on the board and destroying it (no visible flash).
+-- rttMountainLandmark still destroys the (hidden) tower via its "Tower" tag afterwards.
+function rttMountainHideTower(objects)
+  local ov = {}
+  for idx, v in ipairs(objects) do
+    if string.find(v.json, "\"Tower\"", 1, true) ~= nil then
+      ov[idx] = { world = { 0, -60, 0 }, rot = nil }
+    end
+  end
+  return ov
+end
+
+RTT_POND_JSON = [==[{"GUID": "347917","Name": "Custom_Tile","Transform": {"posX": -20.61854,"posY": 35.8698158,"posZ": -58.718235,"rotX": 0.016451491,"rotY": 179.94725,"rotZ": 0.08010805,"scaleX": 4.238119,"scaleY": 1.0,"scaleZ": 4.238119},"Nickname": "The Pond","Description": "","GMNotes": "","AltLookAngle": {"x": 0.0,"y": 0.0,"z": 0.0},"ColorDiffuse": {"r": 0.6901961,"g": 0.5960784,"b": 0.0156862754},"LayoutGroupSortIndex": 0,"Value": 0,"Locked": false,"Grid": true,"Snap": true,"IgnoreFoW": false,"MeasureMovement": false,"DragSelectable": true,"Autoraise": true,"Sticky": true,"Tooltip": true,"GridProjection": false,"HideWhenFaceDown": false,"Hands": false,"CustomImage": {"ImageURL": "https://steamusercontent-a.akamaihd.net/ugc/12393369561771611633/E59B2DE66EC1B0F68F19F6E7C071F8B8D38718B8/","ImageSecondaryURL": "https://steamusercontent-a.akamaihd.net/ugc/12393369561771611633/E59B2DE66EC1B0F68F19F6E7C071F8B8D38718B8/","ImageScalar": 1.0,"WidthScale": 0.0,"CustomTile": {"Type": 0,"Thickness": 0.2,"Stackable": false,"Stretch": true}},"LuaScript": "","LuaScriptState": "","XmlUI": "","AttachedSnapPoints": [{"Position": {"x": -0.000120528261,"y": 0.200000748,"z": -0.08064375},"Rotation": {"x": 3.824257E-06,"y": 0.00134896243,"z": 180.0}}]
+  }]==]
+function makeMap(player,value,id)
+  if id == "Marsh Map" and RTT_5P_MARSH then Wait.time(function() rttMarshLandmarks() end, 1.4) end
+  RTT_CURRENT_MAP = id
+  if id == "Mountain Map" then Wait.frames(function() rttMountainLandmark() end, 2) end
+  if id == "Summer Map" then Wait.frames(function() rttSpawnPriority("Summer Map", RTT_PRIO_SUMMERMAP) end, 2) end
+  if id == "Lake Map" then Wait.frames(function() rttSpawnPriority("Lake Map", RTT_PRIO_LAKEMAP) end, 2) end
+  if id == "Mountain Map" then Wait.frames(function() rttSpawnPriority("Mountain Map", RTT_PRIO_MOUNTAINMAP) end, 2) end
+  if id == "Winter Map" then Wait.frames(function() rttSpawnPriority("Winter Map", RTT_PRIO_WINTERMAP) end, 2) end
+  if id == "Gorge Map" then Wait.frames(function() rttSpawnPriority("Gorge Map", RTT_PRIO_GORGEMAP) end, 2) end
+  if id == "Marsh Map" then Wait.frames(function() rttSpawnMarshNumbers() end, 3) end
+  removeMapItems()
+  if id == "The Wastelands Map" or id == "The Deep Woods Map" then
+    makeMapTool("The Law of Slug")
+  end
+
+  if id == "Narrows and Islets Map" then
+    makeMapTool("Narrows and Islets Instructions")
+  end
+
+  if id == "Tropics Map" then
+    makeMapTool("Tropics Instructions")
+  end
+
+
+  --local my_rot = self.getRotation()
+  local objects = {}
+  objects = EVERYTHING["Maps"][id]['data']
+  local RTT_OV = nil
+  if id == "Marsh Map" then
+    for _,o in ipairs(RTT_MARSH_PIECES or {}) do if o ~= nil then pcall(function() o.destruct() end) end end
+    RTT_MARSH_PIECES = {}
+    if RTT_5P_MARSH then RTT_OV = rttMarshPlan5P(objects) else RTT_OV = rttMarshPlan(objects) end
+  end
+  if id == "Mountain Map" then RTT_OV = rttMountainHideTower(objects) end
+  local scale = self.getScale()
+  scale.x = 1/scale.x
+  scale.z = 1/scale.z
+
+  for idx,v in ipairs(objects) do
+    local rtt_rot = nil
+    local rtt_ov = false
+    local new_pos
+    if RTT_OV ~= nil and RTT_OV[idx] ~= nil then
+      rtt_rot = RTT_OV[idx].rot
+      rtt_ov = true
+      new_pos = RTT_OV[idx].world
+    else
+      local vec = Vector(v.move_to) * scale
+      vec.y = vec.y - 0.1
+      vec = vec * Vector({15.5, 1, 15.5})
+      new_pos = vec
+      new_pos.y = new_pos.y+10-8.5+0.05-0.07+10.08
+    end
+    local ob = spawnObjectJSON({
+        json              = v.json,
+        position          = new_pos,
+        rotation          = rtt_rot,
+        callback_function = function(spawned_object)
+
+        if rtt_ov then spawned_object.setLock(true) end
+        if spawned_object.name == "Bag" then spawned_object.shuffle() end
+        -- Treasure Island Treasure
+        if spawned_object.getName() == "Treasure" then
+          spawned_object.shuffle()
+          spawned_object.addTag("Map Object")
+          end
+        spawned_object.addTag("Map Object")
+        end
+    })
+    if rtt_ov and RTT_MARSH_PIECES ~= nil then RTT_MARSH_PIECES[#RTT_MARSH_PIECES + 1] = ob end
+  end
+  if id ~= "Marsh Map" then shuffleMaps(id) end
+end
+
+function shuffleMaps(id)
+
+  -- shuffle and remove random swords from Urban Map
+  local ruins = getObjectsWithTag("Dummy")
+
+  if #ruins > 1 then
+    local n = math.random(4) -- gets number 1 through four
+
+    for i=1, #ruins do
+      if i != n then
+        ruins[i].destroy()
+      else
+        ruins[i].removeTag("Dummy")
+      end
+    end
+  end
+
+  -- Blighted Grove Map Setup
+  if id == "Blighted Grove Map" then
+    local deletables = getObjectsWithTag("BlightedPair" .. tostring(math.random(2)))
+
+    for i = 1, #deletables do
+      deletables[i].destroy()
+    end
+
+  end
+
+
+  local ruins = getObjectsWithTag("Ruin")
+  local positions = {}
+  for x, ruin in ipairs(ruins) do
+    positions[x] = ruin.getPosition()
+  end
+  for i=1,30 do ruins = shuffle(ruins) end
+  for x=1, #ruins do
+    ruins[x].setPosition(positions[x])
+  end
+
+  local clearingMarkers = getObjectsWithTag("Clearing Marker")
+  local positions = {}
+  local rotations = {}
+  for x, clearingMarker in ipairs(clearingMarkers) do
+    positions[x] = clearingMarker.getPosition()
+    rotations[x] = clearingMarker.getRotation()
+  end
+  i=1,10 do clearingMarkers = shuffle(clearingMarkers) end
+  for x=1, #clearingMarkers do
+    clearingMarkers[x].setPosition(positions[x])
+    clearingMarkers[x].setRotation(rotations[x])
+  end
+
+  local shuffleableDecks = getObjectsWithTag("Shuffleable")
+  for x=1, #shuffleableDecks do
+      shuffleableDecks[x].shuffle()
+      shuffleableDecks[x].removeTag("Shuffleable")
+  end
+
+
+  local tools = getObjectsWithTag("Tool")
+  local cityMarkers = getObjectsWithTag("City Marker")
+
+  if #cityMarkers != 0 and #tools != 0 then
+    local chance = math.random(1,6)
+    if chance == 1 then
+      -- nothing
+    elseif chance == 2 then
+      local tp1 = tools[1].getPosition()
+      local tp2 = tools[2].getPosition()
+
+      tools[1].setPosition(tp2)
+      tools[2].setPosition(tp1)
+
+      local mp1 = cityMarkers[1].getPosition()
+      local mp2 = cityMarkers[2].getPosition()
+      local mr1 = cityMarkers[1].getRotation()
+      local mr2 = cityMarkers[2].getRotation()
+
+      cityMarkers[1].setPosition(mp2)
+      cityMarkers[2].setPosition(mp1)
+      cityMarkers[1].setRotation(mr2)
+      cityMarkers[2].setRotation(mr1)
+    elseif chance == 3 then
+      local tp1 = tools[1].getPosition()
+      local tp2 = tools[3].getPosition()
+
+      tools[1].setPosition(tp2)
+      tools[3].setPosition(tp1)
+
+      local mp1 = cityMarkers[1].getPosition()
+      local mp2 = cityMarkers[3].getPosition()
+      local mr1 = cityMarkers[1].getRotation()
+      local mr2 = cityMarkers[3].getRotation()
+
+      cityMarkers[1].setPosition(mp2)
+      cityMarkers[3].setPosition(mp1)
+      cityMarkers[1].setRotation(mr2)
+      cityMarkers[3].setRotation(mr1)
+    elseif chance == 4 then
+      local tp1 = tools[2].getPosition()
+      local tp2 = tools[3].getPosition()
+
+      tools[2].setPosition(tp2)
+      tools[3].setPosition(tp1)
+
+      local mp1 = cityMarkers[2].getPosition()
+      local mp2 = cityMarkers[3].getPosition()
+      local mr1 = cityMarkers[2].getRotation()
+      local mr2 = cityMarkers[3].getRotation()
+
+      cityMarkers[2].setPosition(mp2)
+      cityMarkers[3].setPosition(mp1)
+      cityMarkers[2].setRotation(mr2)
+      cityMarkers[3].setRotation(mr1)
+    elseif chance == 5 then
+      local tp1 = tools[1].getPosition()
+      local tp2 = tools[2].getPosition()
+      local tp3 = tools[3].getPosition()
+
+      tools[1].setPosition(tp2)
+      tools[2].setPosition(tp3)
+      tools[3].setPosition(tp1)
+
+      local mp1 = cityMarkers[1].getPosition()
+      local mp2 = cityMarkers[2].getPosition()
+      local mp3 = cityMarkers[3].getPosition()
+      local mr1 = cityMarkers[1].getRotation()
+      local mr2 = cityMarkers[2].getRotation()
+      local mr3 = cityMarkers[3].getRotation()
+
+      cityMarkers[1].setPosition(mp2)
+      cityMarkers[2].setPosition(mp3)
+      cityMarkers[3].setPosition(mp1)
+      cityMarkers[1].setRotation(mr2)
+      cityMarkers[2].setRotation(mr3)
+      cityMarkers[3].setRotation(mr1)
+    elseif chance == 6 then
+      local tp1 = tools[1].getPosition()
+      local tp2 = tools[2].getPosition()
+      local tp3 = tools[3].getPosition()
+
+      tools[1].setPosition(tp3)
+      tools[2].setPosition(tp1)
+      tools[3].setPosition(tp2)
+
+      local mp1 = cityMarkers[1].getPosition()
+      local mp2 = cityMarkers[2].getPosition()
+      local mp3 = cityMarkers[3].getPosition()
+      local mr1 = cityMarkers[1].getRotation()
+      local mr2 = cityMarkers[2].getRotation()
+      local mr3 = cityMarkers[3].getRotation()
+
+      cityMarkers[1].setPosition(mp3)
+      cityMarkers[2].setPosition(mp1)
+      cityMarkers[3].setPosition(mp2)
+      cityMarkers[1].setRotation(mr3)
+      cityMarkers[2].setRotation(mr1)
+      cityMarkers[3].setRotation(mr2)
+    end
+  end
+
+  for i=1,5 do
+    local clearingMarkers = getObjectsWithTag("Clearing "..i)
+
+    if #clearingMarkers != 0 then
+      if i == 3 then
+        local freeCityMarkers = getObjectsWithTag("Lost City Marker")
+        if math.random(1,2) == 2 then
+          local n = 2
+
+          local freeCity = getObjectsWithTag("Free City")
+          local lcLoc = freeCity[1].getPosition()
+          local lcRot = freeCity[1].getRotation()
+
+          local mp1 = clearingMarkers[n].getPosition()
+          local mr1 = clearingMarkers[n].getRotation()
+
+          freeCity[1].setPosition(mp1)
+          freeCity[1].setRotation(mr1)
+
+          clearingMarkers[n].setPosition(lcLoc)
+          clearingMarkers[n].setRotation(lcRot)
+
+          freeCityMarkers[1].destroy()
+        else
+          freeCityMarkers[2].destroy()
+        end
+      end
+
+      local chance = math.random(1,6)
+      if chance == 1 then
+        -- nothing
+      elseif chance == 2 then
+        local mp1 = clearingMarkers[1].getPosition()
+        local mp2 = clearingMarkers[2].getPosition()
+        local mr1 = clearingMarkers[1].getRotation()
+        local mr2 = clearingMarkers[2].getRotation()
+
+        clearingMarkers[1].setPosition(mp2)
+        clearingMarkers[2].setPosition(mp1)
+        clearingMarkers[1].setRotation(mr2)
+        clearingMarkers[2].setRotation(mr1)
+
+      elseif chance == 3 then
+        local mp1 = clearingMarkers[1].getPosition()
+        local mp2 = clearingMarkers[3].getPosition()
+        local mr1 = clearingMarkers[1].getRotation()
+        local mr2 = clearingMarkers[3].getRotation()
+
+        clearingMarkers[1].setPosition(mp2)
+        clearingMarkers[3].setPosition(mp1)
+        clearingMarkers[1].setRotation(mr2)
+        clearingMarkers[3].setRotation(mr1)
+      elseif chance == 4 then
+        local mp1 = clearingMarkers[2].getPosition()
+        local mp2 = clearingMarkers[3].getPosition()
+        local mr1 = clearingMarkers[2].getRotation()
+        local mr2 = clearingMarkers[3].getRotation()
+
+        clearingMarkers[2].setPosition(mp2)
+        clearingMarkers[3].setPosition(mp1)
+        clearingMarkers[2].setRotation(mr2)
+        clearingMarkers[3].setRotation(mr1)
+      elseif chance == 5 then
+
+        local mp1 = clearingMarkers[1].getPosition()
+        local mp2 = clearingMarkers[2].getPosition()
+        local mp3 = clearingMarkers[3].getPosition()
+        local mr1 = clearingMarkers[1].getRotation()
+        local mr2 = clearingMarkers[2].getRotation()
+        local mr3 = clearingMarkers[3].getRotation()
+
+        clearingMarkers[1].setPosition(mp2)
+        clearingMarkers[2].setPosition(mp3)
+        clearingMarkers[3].setPosition(mp1)
+        clearingMarkers[1].setRotation(mr2)
+        clearingMarkers[2].setRotation(mr3)
+        clearingMarkers[3].setRotation(mr1)
+
+      elseif chance == 6 then
+        local mp1 = clearingMarkers[1].getPosition()
+        local mp2 = clearingMarkers[2].getPosition()
+        local mp3 = clearingMarkers[3].getPosition()
+        local mr1 = clearingMarkers[1].getRotation()
+        local mr2 = clearingMarkers[2].getRotation()
+        local mr3 = clearingMarkers[3].getRotation()
+
+        clearingMarkers[1].setPosition(mp3)
+        clearingMarkers[2].setPosition(mp1)
+        clearingMarkers[3].setPosition(mp2)
+        clearingMarkers[1].setRotation(mr3)
+        clearingMarkers[2].setRotation(mr1)
+        clearingMarkers[3].setRotation(mr2)
+      end
+    end
+  end
+
+end
+
+function shuffleAssets(tag)
+  local assets = getObjectsWithTag(tag)
+  -- List of object GUIDs
+
+   -- Get current positions of all objects
+   local positions = {}
+   for _, asset in pairs(assets) do
+       local obj = asset
+       if obj then
+           table.insert(positions, obj.getPosition())
+       else
+           print("Object with GUID " .. guid .. " not found!")
+           return
+       end
+   end
+
+   -- Shuffle the positions
+   for i = #positions, 2, -1 do
+       local j = math.random(1, i) -- Random index
+       positions[i], positions[j] = positions[j], positions[i] -- Swap positions
+   end
+
+   -- Reassign positions to objects
+   for i, asset in pairs(assets) do
+       local obj = asset
+       if obj then
+           obj.setPosition(positions[i])
+       end
+   end
+end
+
+function removeTagFromAssets(tag)
+  local assets = getObjectsWithTag(tag)
+  for x=1, #assets do
+    assets[x].removeTag(tag)
+  end
+end
+
+
+
+
+
+
+math.randomseed( os.time() )  -- Seed the pseudo-random number generator
+
+function shuffle( t )
+  if type(t) ~= "table" then return false end
+  for i = #t, 2, -1 do
+    local j = math.random( i )
+    t[i], t[j] = t[j], t[i]
+  end
+  return t
+end
+
+
+
+
+
+function backToRosterDraft()
+  removePlayerTurnCards()
+  allButtonsOff()
+  self.UI.setAttribute("RosterJoinButtons","active","True")
+end
+
+function backToMapDraft()
+  removeMapItems()
+  allButtonsOff()
+  self.UI.setAttribute("mapDrafting","active","True")
+  self.UI.setAttribute("mapDraftingFan1","active","True")
+  self.UI.setAttribute("mapDraftingFan2","active","False")
+  setTile("Map","Clear Tile")
+end
+
+function removeMapItems()
+    for _,v in ipairs(getObjectsWithTag("Map Object")) do
+      v.destruct()
+    end
+end
+
+
+function removeDeckItems()
+    for _,v in ipairs(getObjectsWithTag("Deck Object")) do
+      v.destruct()
+    end
+end
+
+
+
+
+function setupFaction(category,name,color,random)
+  if category == "Standard" and isVagabond(name) then setupFaction("Standard","Vagabond Layout",color,false) setupFaction("Standard","Vagabond Dice and VP",color,false)
+  elseif category == "Fan Factions" and isDoomedVagabond(name) then setupFaction("Fan Factions","Doomed Vagabond Layout",color,false) setupFaction("Fan Factions","Doomed Vagabond Dice",color,false)
+  elseif category == "Fan Factions" and name == "Grouch" then setupFaction("Standard","Vagabond Layout",color,false) end
+
+    local my_rot = self.getRotation()
+    local objects = {}
+    objects = EVERYTHING[category][name]['data']
+    do
+      local filtered = {}
+      for _,v in ipairs(objects) do
+        if not string.find(v.json, '"Name": "Custom_Dice"', 1, true) then filtered[#filtered+1] = v end
+      end
+      objects = filtered
+    end
+    local scale = self.getScale()
+    scale.x = 1/scale.x
+    scale.z = 1/scale.z
+
+    self.destruct()
+    function callback(o)
+        o.setRotation({o.getRotation().x, o.getRotation().y+my_rot.y, o.getRotation().z})
+        if o.hasTag("Shuffleable") then o.shuffle() o.shuffle() end
+    end
+    for _,v in ipairs(objects) do
+        local vec = Vector(v.move_to) * scale
+        vec.y = vec.y - 0.1
+        if random then
+            vec = vec * Vector({-1, -0.9, 1})
+        end
+        local new_pos = self.positionToWorld(vec)
+        spawnObjectJSON({
+            json              = v.json,
+            position          = new_pos,
+            callback_function = callback
+        })
+    end
+        local direction = Vector(0, 4, -18)
+        local pos = self.getPosition()
+        pos.y = 10.62
+    direction:rotateOver("y", my_rot.y)
+    Player[color].setHandTransform({
+        position = pos+direction,
+
+        rotation = {0, my_rot.y, 0},
+        scale = {16, 6, 4}
+    },1)
+    Global.call("spawned", {character})
+end
+
+function concat(t1,t2)
+    for i=1,#t2 do
+        t1[#t1+1] = t2[i]  --corrected bug. if t1[#t1+i] is used, indices will be skipped
+    end
+    return t1
+end
