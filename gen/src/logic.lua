@@ -5338,6 +5338,7 @@ function rttFlipAll(cards, k)
       if cards[i] ~= nil then cards[i].setLock(false) end
     end
     Wait.time(rttDealOrder, 1.0)
+    Wait.time(rttDraftKnavesCaptains, 1.6)             -- captains spawn AFTER every draft card has flipped
     return
   end
   local c = cards[RTT_NLEFT + k]
@@ -6809,7 +6810,7 @@ function rttStartFactionDraft()
   for i = 1, #RTT_ORDER do _G['Roster'][i] = RTT_ORDER[i].name or "" end
   if _G['vagabondAlreadySpawned'] == nil then _G['vagabondAlreadySpawned'] = false end
   -- (Adrien: never auto-deal starting hands. rttDealHands removed.)
-  rttDraftKnavesCaptains()                          -- randomise 4 captains under the draft cards (if Knaves drafted)
+  -- (Knaves captains now spawn from rttFlipAll, AFTER every draft card has flipped -- not here.)
   Wait.frames(function() rttShowFactions() end, 40) -- light EVERY board at once (simultaneous pick)
 end
 
@@ -6916,9 +6917,9 @@ function rttCaptainSnaps(board)
     local off = (0.5 - RTT_CAP_SLOT_FRAC[i]) * H
     local wp = { bp.x + up.x * off, bp.y + 0.1, bp.z + up.z * off }
     local lp = board.positionToLocal(wp)
-    -- position-only snaps: cards keep the orientation they're dealt in (the board is what we size, not
-    -- the cards). Snapping just drops a card into the slot centre.
-    snaps[i] = { position = { lp.x, lp.y, lp.z } }
+    -- rotation_snap {0,0,0} (board-local) => a dropped card takes the board's own rotation = UPRIGHT
+    -- (the Crafted Improvements card sits at rel-board 0 and is upright; rel-board 90 was the landscape).
+    snaps[i] = { position = { lp.x, lp.y, lp.z }, rotation = { 0, 0, 0 }, rotation_snap = true }
   end
   pcall(function() board.setSnapPoints(snaps) end)
 end
