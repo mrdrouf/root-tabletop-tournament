@@ -6839,7 +6839,7 @@ RTT_CRAFT_IMG    = "4BA764A734D1B56B4D0737E5D33E99FD553C8253"  -- Crafted Improv
 RTT_CAP_OFF_X    = 31.32    -- captains-board offset in the CRAFTED board's LOCAL frame (= Adrien's spot)
 RTT_CAP_OFF_Z    = 0.57
 RTT_CAP_POOL_GAP = 2.4      -- world gap between the board and the pick-pool
-RTT_CAP_CARD_YAW = 0        -- captain-card yaw relative to the board (PORTRAIT, as Adrien places them)
+RTT_CAP_CARD_YAW = 90       -- captain-card yaw vs the board = PORTRAIT (long axis down the Z column)
 RTT_CAP_IMG_H    = 2469     -- board art height (px)  -- self-size: boardWorldHeight = cardLong*IMG_H/SLOT_H
 RTT_CAP_SLOT_H   = 747      -- one slot's height (px)  -- so a slot's world height == the card's long side
 -- slots TOUCH (spacing == slot height), so once self-sized the 3 cards stack on top of each other
@@ -6916,8 +6916,9 @@ function rttCaptainSnaps(board)
     local off = (0.5 - RTT_CAP_SLOT_FRAC[i]) * H
     local wp = { bp.x + up.x * off, bp.y + 0.1, bp.z + up.z * off }
     local lp = board.positionToLocal(wp)
-    -- rotation_snap {0,0,0} (board-local) makes a snapped card PORTRAIT (aligned to the board), face up
-    snaps[i] = { position = { lp.x, lp.y, lp.z }, rotation = { 0, 0, 0 }, rotation_snap = true }
+    -- rotation_snap {0,90,0} (board-local) rotates a snapped card 90 deg off the board so its LONG
+    -- axis runs down the column (Z) -> PORTRAIT (vertical), face up. (board-aligned {0,0,0} was landscape.)
+    snaps[i] = { position = { lp.x, lp.y, lp.z }, rotation = { 0, 90, 0 }, rotation_snap = true }
   end
   pcall(function() board.setSnapPoints(snaps) end)
 end
