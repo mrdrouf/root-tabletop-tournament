@@ -6827,59 +6827,54 @@ RTT_KNAVE_CAP = {
   { 53.495, 11.7,  7.375 },
 }
 
--- ---- Knaves Captains board (a 2nd "Crafted Improvements"-style board, to its right) --------------
--- Root-style parchment board (Mason type, ink border) with 3 landscape slots labelled Captain 1/2/3.
--- The draft RANDOMISES 4 captains; the player PICKS 3 among the 4 (Law of Root Step 2) — nothing is
--- auto-filled. When Knaves is placed we spawn the board just to the RIGHT of the Crafted Improvements
--- board, SELF-SIZE it so one slot exactly frames a captain card (measured live, once the remote image
--- has loaded), and lay the 4 drafted captains in a pick-pool beside it for the player to choose from.
-RTT_CRAFT_IMG    = "4BA764A734D1B56B4D0737E5D33E99FD553C8253"  -- Crafted Improvements board face (to find it)
-RTT_CAP_GAP      = 1.4      -- world gap between the two boards (before self-size)
+-- ---- Knaves Captains board (a 2nd "Crafted Improvements"-style board) -----------------------------
+-- Portrait parchment board (Mason type, ink border) with 3 card slots labelled Captain 1/2/3. The
+-- draft RANDOMISES 4 captains; the player PICKS 3 (Law of Root Step 2) — nothing is auto-filled.
+-- When Knaves is placed we spawn the board at Adrien's chosen spot (LEFT of the faction rules board,
+-- faction-local offset RTT_CAP_OFF_*), and lay the 4 captains in a pick-pool beside it.
+-- Board scale (10.2, so a slot frames a portrait captain card) + 3 slot snap points are BAKED into
+-- RTT_CAPTAIN_BOARD_JSON (getBounds self-sizing over-measures this Stretch tile). Scale from Adrien's
+-- 3 fits: slots too big at 13.565, cards overflow at 8.4 -> card=slot ~9.7, +margin -> 10.2. Snap
+-- z = (0.5-yfrac)*2.0 = +-0.5898 (scale-independent -> stays on the slots at any scale).
+RTT_KNAVE_BOARD_IMG = "84529E736BDD4EF6B70CA79E3F99E2D07FA75A2C"  -- Knaves faction rules board face
+RTT_CAP_OFF_X    = 15.68    -- captains-board offset in the faction board's LOCAL frame (Adrien's spot)
+RTT_CAP_OFF_Z    = 0.28
 RTT_CAP_POOL_GAP = 2.4      -- world gap between the board and the pick-pool
 RTT_CAP_CARD_YAW = 0        -- captain-card yaw relative to the board (PORTRAIT, as Adrien places them)
--- (board scale + the 3 slot snap points are baked into RTT_CAPTAIN_BOARD_JSON below, so a slot frames
--- a card and cards snap in — no fragile runtime getBounds self-sizing.)
--- scale 8.4 = hardcoded so a slot frames a captain card (from f=0.60 fill at scale 13.565 ->
--- 0.60*13.565=8.14, +~3% margin). getBounds self-sizing was unreliable (aspect-dependent). Snap
--- points BAKED at the 3 slot centres in local z = (0.5-yfrac)*2.0 = {+0.5808,0,-0.5808} -- validated
--- from Adrien's snapped cards; local coords are scale-independent so they stay on the slots.
-RTT_CAPTAIN_BOARD_JSON = [==[{"Name":"Custom_Tile","Transform":{"posX":0.0,"posY":11.5,"posZ":0.0,"rotX":0.0,"rotY":0.0,"rotZ":0.0,"scaleX":8.4,"scaleY":1.0,"scaleZ":8.4},"Nickname":"Knaves Captains","Description":"","ColorDiffuse":{"r":1.0,"g":1.0,"b":1.0},"Locked":true,"Grid":true,"Snap":true,"IgnoreFoW":false,"MeasureMovement":false,"DragSelectable":true,"Autoraise":true,"Sticky":true,"Tooltip":true,"GridProjection":false,"HideWhenFaceDown":false,"Hands":false,"AttachedSnapPoints":[{"Position":{"x":0.0,"y":0.05,"z":0.5808}},{"Position":{"x":0.0,"y":0.05,"z":0.0}},{"Position":{"x":0.0,"y":0.05,"z":-0.5808}}],"CustomImage":{"ImageURL":"https://cdn.jsdelivr.net/gh/mrdrouf/root-tabletop-tournament@main/assets/labels/knaves_captains_board.png","ImageSecondaryURL":"","ImageScalar":1.0,"WidthScale":0.0,"CustomTile":{"Type":0,"Thickness":0.1,"Stackable":false,"Stretch":true}}}]==]
+RTT_CAPTAIN_BOARD_JSON = [==[{"Name":"Custom_Tile","Transform":{"posX":0.0,"posY":11.5,"posZ":0.0,"rotX":0.0,"rotY":0.0,"rotZ":0.0,"scaleX":10.2,"scaleY":1.0,"scaleZ":10.2},"Nickname":"Knaves Captains","Description":"","ColorDiffuse":{"r":1.0,"g":1.0,"b":1.0},"Locked":true,"Grid":true,"Snap":true,"IgnoreFoW":false,"MeasureMovement":false,"DragSelectable":true,"Autoraise":true,"Sticky":true,"Tooltip":true,"GridProjection":false,"HideWhenFaceDown":false,"Hands":false,"AttachedSnapPoints":[{"Position":{"x":0.0,"y":0.05,"z":0.5898}},{"Position":{"x":0.0,"y":0.05,"z":0.0}},{"Position":{"x":0.0,"y":0.05,"z":-0.5898}}],"CustomImage":{"ImageURL":"https://cdn.jsdelivr.net/gh/mrdrouf/root-tabletop-tournament@main/assets/labels/knaves_captains_board.png","ImageSecondaryURL":"","ImageScalar":1.0,"WidthScale":0.0,"CustomTile":{"Type":0,"Thickness":0.1,"Stackable":false,"Stretch":true}}}]==]
 
--- spawn the Captains board to the right of the Crafted Improvements board
+-- spawn the Captains board at Adrien's spot: the faction-local offset from the Knaves rules board
 function rttKnaveCaptainBoard(cx, cz, flip)
   if RTT_CAPTAIN_BOARD_JSON == nil then return end
-  local craft = nil
+  local fac = nil
   for _, o in ipairs(getAllObjects()) do
     local ok, d = pcall(function() return o.getCustomObject() end)
-    if ok and d ~= nil and type(d.image) == "string" and string.find(d.image, RTT_CRAFT_IMG, 1, true) then
-      craft = o break
+    if ok and d ~= nil and type(d.image) == "string" and string.find(d.image, RTT_KNAVE_BOARD_IMG, 1, true) then
+      fac = o break
     end
   end
-  if craft == nil then return end                       -- no crafted-improvement board found; bail
-  local cp = craft.getPosition()
-  local cb = craft.getBounds()
-  -- direction from the seat centre out to the crafted board -> continue BEYOND it = to its right
-  local dx, dz = cp.x - cx, cp.z - cz
-  local dl = math.sqrt(dx * dx + dz * dz)
-  if dl < 0.01 then dx, dz, dl = 1, 0, 1 end
-  dx, dz = dx / dl, dz / dl
-  local off = cb.size.x * 0.5 + RTT_CAP_GAP + 2.2        -- clear the crafted board + the captains board
-  local pos = { cp.x + dx * off, cp.y, cp.z + dz * off }
-  local ry = craft.getRotation().y
+  if fac == nil then return end                          -- no Knaves rules board found; bail
+  local fp = fac.getPosition()
+  local fry = fac.getRotation().y
+  local ang = math.rad(fry)
+  -- captain board = faction pos + Ry(fry)*(OFF_X,OFF_Z) so it rotates with the seat (flip-safe)
+  local wx = fp.x + RTT_CAP_OFF_X * math.cos(ang) + RTT_CAP_OFF_Z * math.sin(ang)
+  local wz = fp.z - RTT_CAP_OFF_X * math.sin(ang) + RTT_CAP_OFF_Z * math.cos(ang)
+  local pos = { wx, fp.y, wz }
   spawnObjectJSON({
-    json = RTT_CAPTAIN_BOARD_JSON,                        -- carries a baked scale (8.4) + baked snap points
+    json = RTT_CAPTAIN_BOARD_JSON,                        -- carries a baked scale (10.2) + baked snap points
     position = pos,
-    rotation = { 0, ry, 0 },
+    rotation = { 0, fry, 0 },
     callback_function = function(board)
       pcall(function() board.setLock(true) end)
       -- just wait for the tile to exist, then lay the 4 captains in a pick-pool beside it
       Wait.condition(
-        function() rttPoolCaptains(board, cp) end,
+        function() rttPoolCaptains(board, fp) end,
         function()
           local ok, b = pcall(function() return board.getBounds().size end)
           return ok and b ~= nil and math.max(b.x, b.z) > 2
         end, 8,
-        function() rttPoolCaptains(board, cp) end)
+        function() rttPoolCaptains(board, fp) end)
     end
   })
 end
