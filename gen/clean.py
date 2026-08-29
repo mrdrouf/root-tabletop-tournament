@@ -101,8 +101,18 @@ def main():
         k, name = classify(chunks[i])
         if k == "function" and name in dead:
             return True
-        if k == "data" and name.split("/")[0] in bloat and name not in force_keep:
-            return True
+        if k == "data":
+            if "/" not in name:
+                return False                           # unparseable / master EVERYTHING={} init -> keep
+            cat, sub = name.split("/", 1)
+            if cat in bloat:
+                if name in force_keep:
+                    return False                       # explicitly-kept block (referenced)
+                # keep the category's `= {}` initializer if ANY of its blocks is kept, else
+                # `EVERYTHING['cat']['x'] = ...` indexes a nil table and crashes at load
+                if sub == "<init>" and cat in {k.split("/")[0] for k in force_keep}:
+                    return False
+                return True
         return False
 
     # self-consistency fixpoint: nothing kept may reference an excluded name/category
@@ -165,7 +175,11 @@ def main():
     kept_text = corpus_ex_board + clean
     for f in dead:
         assert not re.search(r"(?<![A-Za-z0-9_])" + re.escape(f) + r"(?![A-Za-z0-9_])", kept_text), f
-    print("SAFETY OK: no kept code references any dropped function or category")
+    # INIT guard: every category that still has an EVERYTHING['cat']['x']=... assignment MUST keep
+    # its EVERYTHING['cat'] = {} initializer, else the assignment indexes a nil table (load crash).
+    for cat in set(re.findall(r"EVERYTHING\['([^']+)'\]\['", clean)):
+        assert ("EVERYTHING['%s'] = {}" % cat) in clean, "MISSING INIT for '%s' (would crash at load)" % cat
+    print("SAFETY OK: no kept code references any dropped function/category; every category init kept")
 
 
 if __name__ == "__main__":
