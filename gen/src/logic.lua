@@ -7450,7 +7450,8 @@ function rttCrowsPlots(cx, cz, flip, isDraft)
       json = blob,
       position = { w.x, w.y + 0.2, w.z },
       rotation = { 0, ry, 180 },            -- face DOWN
-      callback_function = function(o) o.setLock(false) end
+      -- tag "RTT Faction" so a draft RESET (rttSetup) clears the plots with the rest of the faction
+      callback_function = function(o) o.setLock(false) o.addTag("RTT Faction") end
     })
   end
   -- the 4 starting warriors + moved supply are BAKED into the blueprint now (m620) — no reposition.
