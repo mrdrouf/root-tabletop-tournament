@@ -1,100 +1,87 @@
 # Root Tabletop Tournament (RTT)
 
-A tournament-oriented fork of the **Root – Ultimate Collection** Tabletop
-Simulator mod, built as an ordered **sequence of modifications** on top of an
-untouched base — not as a hand-edited copy of the mod's 12.9 MB save file.
+A tournament build of Root for Tabletop Simulator: a streamlined ranked / theme / 5‑player draft
+pipeline, per‑map clearing‑priority markers, faction pieces baked to their final positions, and a
+clean fast‑loading save. It is **self‑contained** — everything needed to build and play it lives in
+this repo. There is no external mod to subscribe to and nothing to strip at load; the code assembles
+the finished save from scratch.
 
-**The initial build is an exact copy of the base**, rebranded as *Root Tabletop
-Tournament*. It is the anchor point from which every later change is layered.
-(Release/version numbers are tracked outside this repo.)
+---
 
-## Why it is built this way
+## Install (players) — one file
 
-The base mod is a single ~12.9 MB JSON save whose logic is one 11.4 MB Lua script
-on the object nicknamed *Faction Selection*. Hand-editing that blob is unworkable
-and produces no meaningful git diffs — this is essentially what stranded the
-original mod's maintainers. So here the **source of truth is the base plus a list
-of small modification steps**, and `build.py` compiles them into the installable
-mod. You diff and review the *steps*, never the blob.
+The finished mod is a single self‑contained save:
 
-One caveat carried over from the base: it contains **2 Unity AssetBundles** (a
-decorative table border). AssetBundles are the one component that needs the Unity
-Editor + TTS SDK to change; everything else — all Lua, cards, boards, pieces,
-UI — is editable here with no compile step. The border is cosmetic, so this does
-not constrain gameplay modifications.
+> **`dist/Root_Tabletop_Tournament.json`**
 
-## Layout
+Drop that one file into your Tabletop Simulator **Saves** folder (no subfolder):
+
+- **Windows:** `C:\Users\<you>\Documents\My Games\Tabletop Simulator\Saves\`
+- **macOS:** `~/Library/Tabletop Simulator/Saves/`
+- **Linux:** `~/.local/share/Tabletop Simulator/Saves/`
+
+Then in TTS: **Games → Save & Load → “Root Tabletop Tournament”**, and load it fresh (don’t “Continue”).
+All art is streamed from remote hosts, so nothing else needs to ship with it. (`dist/Root_Tabletop_Tournament.png`
+is an optional save‑list thumbnail.)
+
+---
+
+## The buttons (setup board)
+
+Only the live tournament controls are on the board; the base game’s dead menu subsystems have been
+removed entirely.
+
+### Start a game (top row)
+| Button | What it does |
+|--------|--------------|
+| **Ranked** (owl) | Ranked draft: players join → random turn order → a light per‑seat board spawns for each player → each seat gets its colour, hand and the turn‑order card matching its number → faction draft in reverse turn order. Pool = 1 Militant + 4 others. |
+| **Theme** (fox) | Same flow, but the pool is 1 Militant + all Insurgents. |
+| **Marsh 5P** (5‑player art) | The 5‑player Marsh ranked draft: Marsh map with all 15 clearings, 3 town landmarks + 12 suit markers, 6‑card draft. |
+| **Marsh 5P map** (Marsh icon) | Places **only** the 5‑player Marsh board — no draft, no seating (for manual setup). |
+
+### Maps
+**Summer**, **Lake**, **Marsh**, **Winter**, **Mountain**, **Gorge**. Each clears the previous map,
+spawns the board, and runs its per‑map hooks: fixed clearing‑priority markers; Marsh number tokens +
+flood randomisation; the Mountain central landmark + tower removal; and, via the draft, the Battle Mat.
+
+### Decks
+**Standard**, **Exiles & Partisans**, **Squires & Disciples** — spawns the chosen deck (the small‑count
+variant is used automatically in a 1–2 player game).
+
+### Tools row
+**Faction Select** (opens the 12‑faction + Knaves tile picker for manual setup) · **Battle Mat** ·
+**Lizard Wizard** · **Clearing Markers** · **Clearing Priorities** · **Vagabond Cards** ·
+**Landmarks** · **Mini‑Mood Manager** (Rats/Hundreds mood) · **Mob Lobber**.
+
+### During a draft
+Each player gets a light selector board showing the drafted faction icons; the first click takes that
+faction — the board despawns, the faction’s pieces spawn at that seat, and the other boards refresh.
+
+---
+
+## What RTT changes vs. plain Root
+
+- **Setup flow:** ranked / theme / 5‑player Marsh draft instead of the base menus.
+- **Per‑map clearing‑priority markers** placed in a fixed, locked layout on map spawn.
+- **Faction pieces baked to final positions** in the blueprint (no runtime spawn‑then‑move).
+- **RNG fixed** (proper Fisher–Yates, seeded once at load — the base reseeded every iteration, making
+  ruins and Marsh floods deterministic‑per‑second).
+- **Fast cold load** — the setup board’s UI asset table was trimmed to what it uses, so the buttons
+  render on the first load instead of needing a second load.
+- **Marsh 5‑player mode**, plus a pile of duplicate‑id / overlapping‑button cleanups.
+
+---
+
+## Building (maintainers)
+
+The mod is generated from this repo — see **[`gen/README.md`](gen/README.md)**:
 
 ```
-root_tabletop_tournament/
-  build.py              base + ordered mods -> dist/ + install to TTS Saves
-  base.lock             pinned base version + hash (committed; no mod content)
-  mods/
-    framework.py        splice/rename helpers (write literal Lua, auto-escaped)
-    registry.py         MODS = the ordered, enabled modification list
-    m000_identity.py    rename to Root Tabletop Tournament (no gameplay change)
-    m010_no_marquise_dice.py   worked EXAMPLE (disabled) of a spawn tweak
-  dist/                 build output (gitignored)
-  base/                 optional pinned copy of the base mod (gitignored — IP)
+python gen/assemble.py     # -> gen/build/Root_Tabletop_Tournament.json (then copy to dist/ + Saves)
 ```
 
-The base mod is **not committed** (it is Leder Games + the original authors' IP).
-`build.py` reads it from the local TTS cache
-(`~/Documents/My Games/Tabletop Simulator/Mods/Workshop/2516434159.json`), so the
-repo contains only our own work and is safe to keep private.
+Source of truth is `gen/src/`: **`content.lua`** (Root’s object data) + **`logic.lua`** (our code —
+setup, draft, seating, factions, maps, box score). The generator owns everything and assembles the
+finished save; nothing is inherited‑then‑removed.
 
-## Build
-
-```
-python build.py
-```
-
-This reads the base, applies every enabled mod in order, re-validates the result
-as JSON, writes `dist/Root_Tabletop_Tournament.json`, and installs a loadable
-copy into the TTS Saves folder.
-
-## Load / test in TTS
-
-**Games → Save & Load →** load **“Root Tabletop Tournament”** (load fresh;
-don't continue an already-open game).
-
-## Adding the next modification
-
-1. Create `mods/mNNN_short_name.py`:
-
-   ```python
-   from . import framework
-
-   NAME = "what this step does"
-
-   def apply(text):
-       # literal Lua; framework escapes it for you
-       return framework.splice_into_setup_faction(text, '''
-           -- your Lua here
-       ''')
-   ```
-
-2. Import it in `mods/registry.py` and append it to `MODS` in the right order.
-3. `python build.py` and test in TTS.
-
-Helpers in `framework.py`: `rename_save`, `set_gamemode`,
-`splice_after_unique(text, anchor, lua)`, and
-`splice_into_setup_faction(text, lua)` (the standard Faction-Selector spawn path,
-`makeFaction → setupFaction`). Each raises `BuildError` if its anchor is missing
-or ambiguous, so a broken step fails the build instead of silently doing nothing.
-
-## Base version
-
-Mods are written against base **v13.3**, pinned in `base.lock`. If the upstream
-mod updates, `build.py` warns that anchors may have shifted; re-verify affected
-steps against the new base.
-
-## Sharing / IP
-
-This repository contains only our build tooling — **no mod content** — so it is
-safe to be public. What must **not** be redistributed publicly is the *compiled
-mod* (the `dist/` save, or a Workshop upload): that carries Leder Games' Root IP
-and the original authors' work. Keep those within your group / tournament and seek
-the original authors' blessing + credit before any public release. `build.py`
-reads the base from your local TTS cache, and `dist/` and `base/` are gitignored,
-so none of that content ever lands in git. See `CHANGELOG.md` for provenance.
+`base/` + `mods/` + `build.py` are the previous base‑plus‑patches pipeline, kept only as history.
