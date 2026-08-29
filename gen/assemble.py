@@ -29,7 +29,11 @@ def _set_board_lua(objs, lua):
 
 def build():
     save = json.load(open(os.path.join(SRC, "save.json"), encoding="utf-8"))
-    board_lua = open(os.path.join(SRC, "board.lua"), encoding="utf-8").read()
+    # prefer the CLEAN board Lua (bloat + dead code omitted, gen/clean.py) once it exists; the
+    # identity board.lua stays as the reproducibility reference for --verify.
+    clean = os.path.join(SRC, "board.clean.lua")
+    src_lua = clean if ("--identity" not in sys.argv and os.path.exists(clean)) else os.path.join(SRC, "board.lua")
+    board_lua = open(src_lua, encoding="utf-8").read()
     _set_board_lua(save["ObjectStates"], board_lua)
     os.makedirs(OUT_DIR, exist_ok=True)
     with open(OUT, "w", encoding="utf-8", newline="") as f:

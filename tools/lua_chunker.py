@@ -98,8 +98,12 @@ def classify(ch):
         m = re.match(r"function\s+([A-Za-z0-9_.:]+)", t)
         return ("function", m.group(1) if m else "?")
     if t.startswith("EVERYTHING"):
-        m = re.match(r"EVERYTHING\['([^']+)'\]\['([^']+)'\]", t)
-        return ("data", "%s/%s" % (m.group(1), m.group(2))) if m else ("data", "?")
+        # EVERYTHING['cat']['name'] = ...  OR the table init  EVERYTHING['cat'] = {}
+        # (name may contain escaped quotes, e.g. Eyrie\'s End)
+        m = re.match(r"EVERYTHING\['([^']+)'\](?:\['((?:[^'\\]|\\.)*)'\])?", t)
+        if m:
+            return ("data", "%s/%s" % (m.group(1), m.group(2) if m.group(2) is not None else "<init>"))
+        return ("data", "?")
     if t.startswith("_G"):
         return ("_G", None)
     if t.startswith("local "):
