@@ -6841,10 +6841,10 @@ RTT_CAP_OFF_X    = 31.32    -- captains-board offset in the CRAFTED board's LOCA
 RTT_CAP_OFF_Z    = 0.57
 RTT_CAP_POOL_GAP = 2.4      -- world gap between the board and the pick-pool
 RTT_CAP_CARD_YAW = 270      -- captain-card yaw = as they are dealt (rotY 270); pool keeps that angle
-RTT_CAP_IMG_H    = 2469     -- board art height (px)  -- self-size: boardWorldHeight = cardLong*IMG_H/SLOT_H
-RTT_CAP_SLOT_H   = 747      -- one slot's height (px)  -- so a slot's world height == the card's long side
--- slots TOUCH (spacing == slot height), so once self-sized the 3 cards stack on top of each other
-RTT_CAP_SLOT_FRAC = { 0.1974, 0.5, 0.8026 }   -- slot-centre y-fractions (for the snap points)
+RTT_CAP_IMG_H    = 1845     -- board art height (px)  -- self-size: boardWorldHeight = cardShort*IMG_H/SLOT_H
+RTT_CAP_SLOT_H   = 535      -- one (LANDSCAPE) slot's height (px)  -- its world height == the card's SHORT side
+-- slots are LANDSCAPE (wide) and TOUCH: 3 wide cards stack on top of each other, reading like the faction board
+RTT_CAP_SLOT_FRAC = { 0.21, 0.5, 0.79 }   -- slot-centre y-fractions (for the snap points)
 RTT_CAPTAIN_BOARD_JSON = [==[{"Name":"Custom_Tile","Transform":{"posX":0.0,"posY":11.5,"posZ":0.0,"rotX":0.0,"rotY":0.0,"rotZ":0.0,"scaleX":12.0,"scaleY":1.0,"scaleZ":12.0},"Nickname":"Knaves Captains","Description":"","ColorDiffuse":{"r":1.0,"g":1.0,"b":1.0},"Locked":true,"Grid":true,"Snap":true,"IgnoreFoW":false,"MeasureMovement":false,"DragSelectable":true,"Autoraise":true,"Sticky":true,"Tooltip":true,"GridProjection":false,"HideWhenFaceDown":false,"Hands":false,"CustomImage":{"ImageURL":"https://cdn.jsdelivr.net/gh/mrdrouf/root-tabletop-tournament@main/assets/labels/knaves_captains_board.png","ImageSecondaryURL":"","ImageScalar":1.0,"WidthScale":0.0,"CustomTile":{"Type":0,"Thickness":0.1,"Stackable":false,"Stretch":true}}}]==]
 
 -- spawn the Captains board at Adrien's spot: offset from the (always-present) Crafted Improvements board
@@ -6890,12 +6890,12 @@ function rttFitCaptainBoard(board, facPos)
   for _, o in ipairs(getObjectsWithTag("RTT Knave Captain")) do caps[#caps + 1] = o end
   if #caps == 0 then return end
   local cs = caps[1].getBounds().size
-  local cardLong = math.max(cs.x, cs.z)
+  local cardShort = math.min(cs.x, cs.z)
   local bb = board.getBounds().size
   local curH = math.max(bb.x, bb.z)
-  if curH > 0.01 and cardLong > 0.01 then
-    -- slot height (SLOT_H/IMG_H of the board) must equal the card's long side
-    local desiredH = cardLong * (RTT_CAP_IMG_H / RTT_CAP_SLOT_H)
+  if curH > 0.01 and cardShort > 0.01 then
+    -- LANDSCAPE slot: its height (SLOT_H/IMG_H of the board) must equal the card's SHORT side
+    local desiredH = cardShort * (RTT_CAP_IMG_H / RTT_CAP_SLOT_H)
     local ns = board.getScale().x * desiredH / curH
     pcall(function() board.setScale({ ns, 1, ns }) end)
   end
@@ -6917,9 +6917,8 @@ function rttCaptainSnaps(board)
     local off = (0.5 - RTT_CAP_SLOT_FRAC[i]) * H
     local wp = { bp.x + up.x * off, bp.y + 0.1, bp.z + up.z * off }
     local lp = board.positionToLocal(wp)
-    -- rotation_snap {0,0,0} (board-local) => a dropped card takes the board's own rotation = UPRIGHT
-    -- (the Crafted Improvements card sits at rel-board 0 and is upright; rel-board 90 was the landscape).
-    snaps[i] = { position = { lp.x, lp.y, lp.z }, rotation = { 0, 0, 0 }, rotation_snap = true }
+    -- position-only snap (Adrien sets the card angle himself); just a drop spot at the slot centre
+    snaps[i] = { position = { lp.x, lp.y, lp.z } }
   end
   pcall(function() board.setSnapPoints(snaps) end)
 end
@@ -6954,7 +6953,7 @@ function rttPoolCaptains(board, craftPos)
                  base.z + widAxis[3] * col * colGap + lenAxis[3] * row * rowGap }
     local c = caps[i]
     pcall(function() c.setLock(false) end)
-    pcall(function() c.setPositionSmooth(wp, false, true) end)   -- move only; keep the dealt angle
+    pcall(function() c.setPositionSmooth(wp, false, true) end)   -- move only; Adrien sets the card angle
   end
 end
 
