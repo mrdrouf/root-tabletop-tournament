@@ -6809,20 +6809,92 @@ function rttStartFactionDraft()
   for i = 1, #RTT_ORDER do _G['Roster'][i] = RTT_ORDER[i].name or "" end
   if _G['vagabondAlreadySpawned'] == nil then _G['vagabondAlreadySpawned'] = false end
   -- (Adrien: never auto-deal starting hands. rttDealHands removed.)
-  rttDraftKnavesCaptains()                          -- 4 captains under the draft cards (if Knaves drafted)
+  rttDraftKnavesCaptains()                          -- 3 captains under the draft cards (if Knaves drafted)
   Wait.frames(function() rttShowFactions() end, 40) -- light EVERY board at once (simultaneous pick)
 end
 
 -- Knaves: if Knaves is one of the drafted factions, spawn its 12-card Captain deck directly under
--- the faction-card row DURING the draft, keep 4 at random, discard the rest. (No longer spawned
+-- the faction-card row DURING the draft, keep 3 at random, discard the rest. (No longer spawned
 -- with the faction board.) The deck blob lives in the Knaves faction data (its FaceURL is unique).
--- the 4 drafted Knave captains, laid FACE UP in a line below the draft cards (Adrien's placed spots)
+-- the 3 drafted Knave captains, laid FACE UP in a line below the draft cards (Adrien's placed spots)
+-- draft-time display spots for the 3 kept captains (Law of Root Knaves setup Step 2 = "Choose 3
+-- Captain cards"). They are tagged "RTT Knave Captain" and RELOCATED onto the Captains board when
+-- the Knaves faction is placed (rttKnaveCaptainBoard).
 RTT_KNAVE_CAP = {
-  { 53.495, 11.7, -7.992 },
-  { 53.495, 11.7, -2.870 },
-  { 53.495, 11.7,  2.253 },
-  { 53.495, 11.7,  7.375 },
+  { 53.495, 11.7, -5.122 },
+  { 53.495, 11.7,  0.000 },
+  { 53.495, 11.7,  5.122 },
 }
+
+-- ---- Knaves Captains board (a 2nd "Crafted Improvements"-style board, to its right) --------------
+-- A parchment board (Mason type, Root ink border) with 3 landscape captain-card slots labelled
+-- Captain 1/2/3. It spawns to the RIGHT of the Crafted Improvements board when Knaves is placed, and
+-- the 3 drafted captains hop onto its slots. Card fit / board size are driven by these constants so a
+-- single tweak recalibrates them (or place it in TTS + save and recover the transform, like relics).
+RTT_CAP_IMG      = "knaves_captains_board.png"   -- our board face (locate the spawned tile by this)
+RTT_CRAFT_IMG    = "4BA764A734D1B56B4D0737E5D33E99FD553C8253"  -- the Crafted Improvements board face
+RTT_CAP_GAP      = 1.2      -- world gap left between the two boards
+RTT_CAP_HALFW    = 5.4      -- captain board half-width (world)
+RTT_CAP_SIGN     = 1        -- which column end is the title (flip to -1 if captains land upside-down)
+RTT_CAP_CARD_YAW = 270      -- captain-card yaw relative to the board (landscape, matches the deal)
+-- slot-centre fractions down the board face (from the rendered art: 800x1960, slots centred at these
+-- y-fractions). Used as (0.5 - frac) * board_world_height offsets from the board centre.
+RTT_CAP_SLOT_FRAC = { 0.288, 0.570, 0.853 }
+RTT_CAPTAIN_BOARD_JSON = [==[{"Name":"Custom_Tile","Transform":{"posX":0.0,"posY":11.5,"posZ":0.0,"rotX":0.0,"rotY":0.0,"rotZ":0.0,"scaleX":26.0,"scaleY":1.0,"scaleZ":26.0},"Nickname":"Knaves Captains","Description":"","ColorDiffuse":{"r":1.0,"g":1.0,"b":1.0},"Locked":true,"Grid":true,"Snap":true,"IgnoreFoW":false,"MeasureMovement":false,"DragSelectable":true,"Autoraise":true,"Sticky":true,"Tooltip":true,"GridProjection":false,"HideWhenFaceDown":false,"Hands":false,"CustomImage":{"ImageURL":"https://cdn.jsdelivr.net/gh/mrdrouf/root-tabletop-tournament@main/assets/labels/knaves_captains_board.png","ImageSecondaryURL":"","ImageScalar":1.0,"WidthScale":0.0,"CustomTile":{"Type":0,"Thickness":0.1,"Stackable":false,"Stretch":true}}}]==]
+
+-- spawn the Captains board to the right of the Crafted Improvements board, then seat the 3 captains
+function rttKnaveCaptainBoard(cx, cz, flip)
+  if RTT_CAPTAIN_BOARD_JSON == nil then return end
+  local craft = nil
+  for _, o in ipairs(getAllObjects()) do
+    local ok, d = pcall(function() return o.getCustomObject() end)
+    if ok and d ~= nil and type(d.image) == "string" and string.find(d.image, RTT_CRAFT_IMG, 1, true) then
+      craft = o break
+    end
+  end
+  if craft == nil then return end                       -- no crafted-improvement board found; bail
+  local cp = craft.getPosition()
+  local cb = craft.getBounds()
+  -- direction from the seat centre out to the crafted board -> continue BEYOND it = to its right
+  local dx, dz = cp.x - cx, cp.z - cz
+  local dl = math.sqrt(dx * dx + dz * dz)
+  if dl < 0.01 then dx, dz, dl = 1, 0, 1 end
+  dx, dz = dx / dl, dz / dl
+  local off = cb.size.x * 0.5 + RTT_CAP_GAP + RTT_CAP_HALFW
+  local pos = { cp.x + dx * off, cp.y, cp.z + dz * off }
+  local ry = craft.getRotation().y
+  spawnObjectJSON({
+    json = RTT_CAPTAIN_BOARD_JSON,
+    position = pos,
+    rotation = { 0, ry, 0 },
+    callback_function = function(board)
+      pcall(function() board.setLock(true) end)
+      Wait.time(function() rttSeatKnaveCaptainsOn(board) end, 0.4)
+    end
+  })
+end
+
+-- drop the 3 tagged captain cards onto the board's 3 slots (positions from the board's real bounds,
+-- so they land correctly whatever the board's final scale is)
+function rttSeatKnaveCaptainsOn(board)
+  if board == nil then return end
+  local bp = board.getPosition()
+  local sz = board.getBounds().size
+  local H, dir
+  if sz.z >= sz.x then H = sz.z; dir = board.getTransformForward()
+  else H = sz.x; dir = board.getTransformRight() end
+  local ry = board.getRotation().y
+  local caps = {}
+  for _, o in ipairs(getObjectsWithTag("RTT Knave Captain")) do caps[#caps + 1] = o end
+  for i = 1, math.min(3, #caps) do
+    local frac = RTT_CAP_SIGN * (0.5 - (RTT_CAP_SLOT_FRAC[i] or 0.5))
+    local wp = { bp.x + dir.x * frac * H, bp.y + 0.5, bp.z + dir.z * frac * H }
+    local c = caps[i]
+    pcall(function() c.setLock(false) end)
+    pcall(function() c.setPositionSmooth(wp, false, true) end)
+    pcall(function() c.setRotationSmooth({ 0, ry + RTT_CAP_CARD_YAW, 0 }, false, true) end)
+  end
+end
 
 function rttDraftKnavesCaptains()
   local has = false
@@ -6846,11 +6918,11 @@ function rttDraftKnavesCaptains()
       pcall(function() deck.shuffle() end)
       Wait.time(function()
         if deck == nil then return end
-        for i = 1, 4 do
+        for i = 1, 3 do                                    -- Knaves keep 3 captains (Law of Root setup)
           pcall(function() deck.takeObject({
             position = RTT_KNAVE_CAP[i],
             rotation = { 0, 270, 0 }, smooth = false,        -- face up (captain art), NOT locked
-            callback_function = function(o) o.setLock(false) o.addTag("RTT Faction") end }) end)
+            callback_function = function(o) o.setLock(false) o.addTag("RTT Faction") o.addTag("RTT Knave Captain") end }) end)
         end
         Wait.time(function() if deck ~= nil then pcall(function() deck.destruct() end) end end, 0.8)
       end, 0.5)
@@ -6962,7 +7034,7 @@ function rttKnavesCaptains(color)
     local nm = o.getName() or ""
     if o.name == "Deck" and (string.find(nm, "Captain", 1, true) or string.find(nm, "Knave", 1, true)) then
       o.shuffle()
-      o.deal(4, color)
+      o.deal(3, color)
       return
     end
   end
@@ -7189,7 +7261,9 @@ function rttFactionExtras(faction, cx, cz, flip, isDraft)
   -- Twilight Council (bats) now spawns from the baked blueprint (m560) — no runtime setup
   elseif faction == "Corvid Conspiracy" then rttCrowsPlots(cx, cz, flip, isDraft)
   -- Underground Duchy (moles) now spawns 7 loose + 13 bagged from the blueprint (m300) — no tuck
-  -- Knaves captains now spawn under the DRAFT CARDS (rttDraftKnavesCaptains), not with the board
+  -- Knaves: captains are drafted under the draft cards (rttDraftKnavesCaptains); here we spawn the
+  -- Captains board to the right of the Crafted Improvements board and hop the 3 captains onto it.
+  elseif faction == "Knaves of the Deepwood" then rttKnaveCaptainBoard(cx, cz, flip)
   elseif faction == "Marquise de Cat" then rttMarquiseCats(cx, cz, flip)
   end
 end
