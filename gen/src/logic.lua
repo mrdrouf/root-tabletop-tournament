@@ -6839,7 +6839,7 @@ RTT_CRAFT_IMG    = "4BA764A734D1B56B4D0737E5D33E99FD553C8253"  -- Crafted Improv
 RTT_CAP_OFF_X    = 31.32    -- captains-board offset in the CRAFTED board's LOCAL frame (= Adrien's spot)
 RTT_CAP_OFF_Z    = 0.57
 RTT_CAP_POOL_GAP = 2.4      -- world gap between the board and the pick-pool
-RTT_CAP_CARD_YAW = 90       -- captain-card yaw vs the board = PORTRAIT (long axis down the Z column)
+RTT_CAP_CARD_YAW = 270      -- captain-card yaw = as they are dealt (rotY 270); pool keeps that angle
 RTT_CAP_IMG_H    = 2469     -- board art height (px)  -- self-size: boardWorldHeight = cardLong*IMG_H/SLOT_H
 RTT_CAP_SLOT_H   = 747      -- one slot's height (px)  -- so a slot's world height == the card's long side
 -- slots TOUCH (spacing == slot height), so once self-sized the 3 cards stack on top of each other
@@ -6916,9 +6916,9 @@ function rttCaptainSnaps(board)
     local off = (0.5 - RTT_CAP_SLOT_FRAC[i]) * H
     local wp = { bp.x + up.x * off, bp.y + 0.1, bp.z + up.z * off }
     local lp = board.positionToLocal(wp)
-    -- rotation_snap {0,90,0} (board-local) rotates a snapped card 90 deg off the board so its LONG
-    -- axis runs down the column (Z) -> PORTRAIT (vertical), face up. (board-aligned {0,0,0} was landscape.)
-    snaps[i] = { position = { lp.x, lp.y, lp.z }, rotation = { 0, 90, 0 }, rotation_snap = true }
+    -- position-only snaps: cards keep the orientation they're dealt in (the board is what we size, not
+    -- the cards). Snapping just drops a card into the slot centre.
+    snaps[i] = { position = { lp.x, lp.y, lp.z } }
   end
   pcall(function() board.setSnapPoints(snaps) end)
 end
@@ -6953,8 +6953,7 @@ function rttPoolCaptains(board, craftPos)
                  base.z + widAxis[3] * col * colGap + lenAxis[3] * row * rowGap }
     local c = caps[i]
     pcall(function() c.setLock(false) end)
-    pcall(function() c.setPositionSmooth(wp, false, true) end)
-    pcall(function() c.setRotationSmooth({ 0, ry + RTT_CAP_CARD_YAW, 0 }, false, true) end)
+    pcall(function() c.setPositionSmooth(wp, false, true) end)   -- move only; keep the dealt angle
   end
 end
 
@@ -6983,7 +6982,7 @@ function rttDraftKnavesCaptains()
         for i = 1, 4 do                                    -- randomise 4; the player picks 3 (Law of Root)
           pcall(function() deck.takeObject({
             position = RTT_KNAVE_CAP[i],
-            rotation = { 0, 0, 0 }, smooth = false,          -- face up, PORTRAIT (vertical), NOT locked
+            rotation = { 0, 270, 0 }, smooth = false,        -- face up (as before), NOT locked
             callback_function = function(o) o.setLock(false) o.addTag("RTT Faction") o.addTag("RTT Knave Captain") end }) end)
         end
         Wait.time(function() if deck ~= nil then pcall(function() deck.destruct() end) end end, 0.8)
