@@ -7171,7 +7171,8 @@ RTT_FOREST_UV = {
 RTT_RELIC_POS = {
   ["Mountain Map"] = { {-1.2752,0.4425}, {1.0450,0.1418}, {0.5335,-0.2283}, {1.3380,-0.4530}, {0.2831,-0.6898}, {-1.1410,-0.2198}, {0.0122,0.2455}, {-0.0305,0.7701}, {-0.6567,-0.7852}, {-0.2753,-0.4889} },
   ["Marsh Map"] = { {-0.0678,0.8178}, {-1.1516,0.3882}, {1.2343,-0.2220}, {1.0673,0.5145}, {0.5968,-0.9808}, {-0.6581,-0.8845}, {-0.2989,0.0212} },
-  ["Summer Map"] = { {0.7320,0.8958}, {-0.0560,0.4389}, {1.2627,0.3846}, {-1.1418,0.4037}, {0.9997,-0.5831}, {-0.3121,-0.3603}, {0.2862,-1.1748} }
+  ["Summer Map"] = { {0.7320,0.8958}, {-0.0560,0.4389}, {1.2627,0.3846}, {-1.1418,0.4037}, {0.9997,-0.5831}, {-0.3121,-0.3603}, {0.2862,-1.1748} },
+  ["Lake Map"] = { {-1.1211,-0.2959}, {-0.9108,0.3943}, {-0.2940,-0.9465}, {-0.0594,0.8413}, {0.0996,-0.7737}, {0.7977,-1.0885}, {0.8064,1.1831}, {1.3309,-0.5795}, {1.3855,0.5549} }
 }
 
 
@@ -7388,12 +7389,16 @@ function rttCrowsHiddenZone(board, cx, cz, isDraft)
       end
     end
   end
-  -- board-LOCAL sideways spot of Adrien's cover. Default = board-RIGHT of the plots (-3.163). For the
-  -- 1st and 3rd seats the board faces the other way, so the cover must go to board-LEFT (+3.163) to stay
-  -- OUTSIDE the play area. Pull it ~one card width closer to the plots (toward x=0) now that the
-  -- card-improvement area is gone (board scale ~8.8, a ~2.5u card ≈ 0.28 board-local -- estimate).
-  local lx = -3.163
-  if seat == 1 or seat == 3 then lx = 3.163 end
+  -- board-LOCAL sideways spot of Adrien's cover: always OUTSIDE the play area (away from table centre
+  -- x=0). Derive the side from board GEOMETRY, not the seat index. A card ~3.163 board-local to the
+  -- side lands further from centre only if the board faces that way, so the sign is sign(cx) for a
+  -- near-row board (rotY~0) and flips for a far-row board (rotY~180). The old seat==1|3 rule matched
+  -- ONLY the 4p layout and put the 5p seat-4 cover INSIDE the arena (RTT_LAYOUT[5]={1,5,2,4,3} maps
+  -- seat 4 to a far-left board). This form reproduces every 4p seat identically and fixes 5p seat 4.
+  -- Then pull it ~one card width toward the plots (board scale ~8.8, a ~2.5u card ≈ 0.28 board-local).
+  local bry = board.getRotation().y % 360
+  local facingFlip = (bry > 90 and bry < 270) and -1 or 1   -- far-row boards (rotY~180) mirror board-x
+  local lx = 3.163 * ((cx >= 0) and 1 or -1) * facingFlip
   local closer = 0.28
   if lx < 0 then lx = lx + closer else lx = lx - closer end
   local w = board.positionToWorld({ lx, 0.30, -0.404 })
