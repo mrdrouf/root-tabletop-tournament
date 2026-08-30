@@ -7555,6 +7555,15 @@ end
 
 -- ---- Lizard Cult ----------------------------------------------------------
 function rttLizardSetup()
+  -- if the frog's Pond is already on the table (frog picked BEFORE the lizard), push it to the shifted
+  -- spot so the Lizard Wizard doesn't land on top of it. (Lizard-FIRST already spawns the pond shifted,
+  -- because rttSpawnPond checks RTT_FAC_TAKEN; this handles the OTHER order.)
+  for _, o in ipairs(getObjectsWithTag("RTT Pond")) do
+    pcall(function() o.setLock(false) end)
+    pcall(function() o.setPosition({ RTT_POND_SHIFT[1], RTT_POND_SHIFT[2], RTT_POND_SHIFT[3] }) end)
+    pcall(function() o.setRotation({ 0, 90, 0 }) end)
+    pcall(function() o.setLock(true) end)
+  end
   -- keep the Outcast Marker (it belongs ON the Lizard Wizard) — do NOT destruct it.
   makeSpecialWithTag("Tools", "Lizard Wizard",
     RTT_LIZ_WIZ[1], RTT_LIZ_WIZ[2], RTT_LIZ_WIZ[3], "Faction")
@@ -7593,7 +7602,8 @@ function rttSpawnPond()
     json = RTT_POND_JSON,
     position = { p[1], p[2], p[3] },
     rotation = { 0, 90, 0 },
-    callback_function = function(o) o.setLock(true) end,
+    -- tag it so the Lizard setup can find + shift it if the frog was picked FIRST (see rttLizardSetup)
+    callback_function = function(o) o.setLock(true) o.addTag("RTT Pond") end,
   })
 end
 
