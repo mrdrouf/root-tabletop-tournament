@@ -6831,22 +6831,24 @@ RTT_KNAVE_CAP = {
 -- ---- Knaves Captains board (a 2nd "Crafted Improvements"-style board) -----------------------------
 -- Portrait parchment board (Mason type, ink border) with 3 card slots labelled Captain 1/2/3. The
 -- draft RANDOMISES 4 captains; the player PICKS 3 (Law of Root Step 2) — nothing is auto-filled.
--- When Knaves is placed we spawn the board at the maintainer's chosen spot (LEFT of the faction rules board,
--- faction-local offset RTT_CAP_OFF_*), and lay the 4 captains in a pick-pool beside it.
--- SELF-SIZED so a slot exactly frames a portrait captain card: boardWorldHeight = cardLong *
--- (RTT_CAP_IMG_H/RTT_CAP_SLOT_H), measured live (getBounds is reliable for a flat card once the
--- remote image loads). 3 snap points are set at the slot centres at runtime.
+-- When Knaves is placed we spawn the board at the maintainer's chosen spot (LEFT of the faction rules
+-- board, faction-local offset RTT_CAP_OFF_*), and lay the 4 captains in a pick-pool beside it.
+-- The tile's scaleX:scaleZ is locked to the art's imgW:imgH (else the square tile squishes the portrait
+-- slots into landscape). It self-sizes so the drawn slots hit the placed 7.42 card spacing, and its 3
+-- snap points land exactly on the maintainer's recorded card positions. If it still needs tuning,
+-- unlock it in-game, resize/move it until the slots frame the 3 cards, save, and rebake from the save.
 RTT_KNAVE_BOARD_IMG = "84529E736BDD4EF6B70CA79E3F99E2D07FA75A2C"  -- Knaves rules board face (the maintainer's anchor)
 RTT_CAP_OFF_X    = 15.68    -- captains-board CENTRE in the FACTION board's LOCAL frame (= the maintainer's placed spot)
 RTT_CAP_OFF_Z    = -2.11
 RTT_CAP_POOL_GAP = 2.4      -- world gap between the board and the pick-pool
-RTT_CAP_IMG_H    = 2000     -- board art height (px)
+RTT_CAP_IMG_W    = 431      -- board art WIDTH (px)  -- tile scaleX:scaleZ MUST match imgW:imgH or the
+RTT_CAP_IMG_H    = 2000     -- board art height (px) -- portrait slots get squished to landscape on a square
 RTT_CAP_SLOT_FRAC = { 0.241, 0.5, 0.759 }   -- slot-centre y-fractions (PORTRAIT slots)
 -- the maintainer's 3 PLACED captain positions, in the FACTION board's LOCAL frame (x, z). Portrait/upright
 -- (card rotY == faction rotY). The board's 3 snaps are set EXACTLY here at runtime, and the board
 -- self-sizes so the drawn slots line up with this spacing (7.42) -- so a slot frames each card.
 RTT_CAP_CARDS = { { 15.68, -9.53 }, { 15.68, -2.11 }, { 15.68, 5.32 } }
-RTT_CAPTAIN_BOARD_JSON = [==[{"Name":"Custom_Tile","Transform":{"posX":0.0,"posY":11.5,"posZ":0.0,"rotX":0.0,"rotY":0.0,"rotZ":0.0,"scaleX":12.0,"scaleY":1.0,"scaleZ":12.0},"Nickname":"Knaves Captains","Description":"","ColorDiffuse":{"r":1.0,"g":1.0,"b":1.0},"Locked":true,"Grid":true,"Snap":true,"IgnoreFoW":false,"MeasureMovement":false,"DragSelectable":true,"Autoraise":true,"Sticky":true,"Tooltip":true,"GridProjection":false,"HideWhenFaceDown":false,"Hands":false,"CustomImage":{"ImageURL":"https://cdn.jsdelivr.net/gh/mrdrouf/root-tabletop-tournament@main/assets/labels/knaves_captains_board.png","ImageSecondaryURL":"","ImageScalar":1.0,"WidthScale":0.0,"CustomTile":{"Type":0,"Thickness":0.1,"Stackable":false,"Stretch":true}}}]==]
+RTT_CAPTAIN_BOARD_JSON = [==[{"Name":"Custom_Tile","Transform":{"posX":0.0,"posY":11.5,"posZ":0.0,"rotX":0.0,"rotY":0.0,"rotZ":0.0,"scaleX":2.586,"scaleY":1.0,"scaleZ":12.0},"Nickname":"Knaves Captains","Description":"","ColorDiffuse":{"r":1.0,"g":1.0,"b":1.0},"Locked":true,"Grid":true,"Snap":true,"IgnoreFoW":false,"MeasureMovement":false,"DragSelectable":true,"Autoraise":true,"Sticky":true,"Tooltip":true,"GridProjection":false,"HideWhenFaceDown":false,"Hands":false,"CustomImage":{"ImageURL":"https://cdn.jsdelivr.net/gh/mrdrouf/root-tabletop-tournament@main/assets/labels/knaves_captains_board.png","ImageSecondaryURL":"","ImageScalar":1.0,"WidthScale":0.0,"CustomTile":{"Type":0,"Thickness":0.1,"Stackable":false,"Stretch":true}}}]==]
 
 -- spawn the Captains board at the maintainer's spot, LEFT of the Knaves rules board (faction-local offset).
 -- Tagged "RTT Faction" so it is cleared together with the faction (never left as an orphan).
@@ -6896,10 +6898,13 @@ function rttFitCaptainBoard(board, fp, fry)
   local frac = 0.5 - RTT_CAP_SLOT_FRAC[1]                     -- slot-centre offset from board centre (0.259)
   local desiredH = spacing / frac                            -- board visual height so slot@frac == spacing
   local bb = board.getBounds().size
-  local curH = math.max(bb.x, bb.z)
+  local curH = math.max(bb.x, bb.z)          -- current column (long, Z) world extent
   if curH > 0.01 and frac > 0.001 then
-    local ns = board.getScale().x * desiredH / curH
-    pcall(function() board.setScale({ ns, 1, ns }) end)
+    -- scale BOTH axes by the same factor k so scaleX:scaleZ (the image aspect) is PRESERVED
+    -- (setting them equal makes a square tile and squishes the portrait slots into landscape)
+    local k = desiredH / curH
+    local sc = board.getScale()
+    pcall(function() board.setScale({ sc.x * k, 1, sc.z * k }) end)
   end
   Wait.frames(function()
     rttCaptainSnaps(board, fp, fry)
