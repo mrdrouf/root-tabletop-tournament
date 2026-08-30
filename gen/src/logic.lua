@@ -6875,7 +6875,7 @@ function rttKnaveCaptainBoard(cx, cz, flip)
     rotation = { 0, fry, 0 },
     callback_function = function(board)
       pcall(function() board.addTag("RTT Faction") end)  -- goes out WITH the faction on re-draft
-      pcall(function() board.setLock(true) end)
+      pcall(function() board.setLock(false) end)         -- UNLOCKED: resize/move it in-game, then save to rebake
       -- wait for the remote image to LOAD (getBounds is ~0 until then), THEN self-size + snap + pool
       Wait.condition(
         function() rttFitCaptainBoard(board, fp, fry) end,
@@ -6907,8 +6907,8 @@ function rttFitCaptainBoard(board, fp, fry)
     pcall(function() board.setScale({ sc.x * k, 1, sc.z * k }) end)
   end
   Wait.frames(function()
-    rttCaptainSnaps(board, fp, fry)
-    rttPoolCaptains(board, fp)
+    pcall(function() rttCaptainSnaps(board, fp, fry) end)
+    pcall(function() rttPoolCaptains(board, fp) end)   -- never let the pool crash the board spawn
   end, 20)
 end
 
@@ -7686,7 +7686,9 @@ function rttBadgerRelics()
   if #targets == 0 then return end
   for _, c in ipairs(targets) do
     pcall(function()
-      bag.takeObject({ position = { c[1], 12.0, c[2] }, rotation = { 0, 180, 0 }, smooth = false })
+      bag.takeObject({ position = { c[1], 12.0, c[2] }, rotation = { 0, 180, 0 }, smooth = false,
+        -- tag "RTT Faction" so the relics go out WITH the badger faction on re-draft (not orphaned on the map)
+        callback_function = function(o) pcall(function() o.addTag("RTT Faction") end) end })
     end)
   end
 end
