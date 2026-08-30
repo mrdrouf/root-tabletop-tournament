@@ -1,0 +1,941 @@
+<Button id="xButton" onclick="deleteThis" position="117 85 -15" width="15" height="15" fontSize="8" padding="4 4 4" icon = "Xmark" color="#bd2608" active="false"/>
+<Image id="info" image="Blank Info" position="35 -85 -20" width="156" height="6"/>
+<Image id="rootLogo" position="-87.5 80 -20" width="75" height="25" image="Root Logo"/>
+
+
+
+<!--<Button id="Clear All" onclick="clearAll"  icon = "Xmark" position="90 -80 -20" width="20" height="20" color="#808080"/>-->
+
+<ToggleGroup id="slugRosterButtons" active = "False">
+  
+  <Image id="WWFirstWarning" image="WWWarning" position="35 -85 -20" width="140" height="12"/>
+  <Image id="WWSecondWarning" image="WWWarning2" position="35 -85 -20" width="140" height="12" active="false"/>
+  <Image id="WWThirdWarning" image="WWWarning3" position="35 -85 -20" width="140" height="12" active="false"/>
+  <Image id="WWLeftMenu" image="WWLeftMenu1" position="-87.5 6 -20" width="68" height="110"/>
+
+  <Image id="WWMapAndDeckLabelImage" position="36 55 -20" width="165" height="12" image="WWMapAndDeckLabel" active="false"/>
+  <Image id="WWFactionLabelImage" position="36 -48 -20" width="165" height="12" image="WWFactionLabel" active="false"/>
+
+  <Button id="WWTurnNumber" onclick="wwNotAButton" position="-25 -65 -20" width="40" height="20" active="false"/>
+  <Image id="WWPlayerInstructions" position="36 -65 -20" width="80" height="10" active="false"/>
+
+  <Button id="WWFac-1"  onclick="wwFactionSelect" position="-30 27 -20" width="30" height="42" image="WW5050Ticket" color="#ffffff" active="true" padding="2"/>
+  <Button id="WWFac0" onclick="wwFactionSelect" position="3 27 -20" width="30" height="42" image="WW5050Ticket" color="#ffffff" active="true" padding="2"/>
+  <Button id="WWFac8" onclick="wwFactionSelect" position="36 27 -20" width="30" height="42" image="WW5050Ticket" color="#ffffff" active="false" padding="2"/>
+  <Button id="WWFac7" onclick="wwFactionSelect" position="69 27 -20" width="30" height="42" image="WW5050Ticket" color="#ffffff" active="false" padding="2"/>
+  <Button id="WWFac6" onclick="wwFactionSelect" position="102 27 -20" width="30" height="42" image="WW5050Ticket" color="#ffffff" active="false" padding="2"/>
+
+  <Button id="WWFac1" onclick="wwFactionSelect" position="-30 -18 -20" width="30" height="42" image="WW5050Ticket" color="#ffffff" active ="true" padding="2"/>
+  <Button id="WWFac2" onclick="wwFactionSelect" position="3 -18 -20" width="30" height="42" image="WW5050Ticket" color="#ffffff" active="false" padding="2"/>
+  <Button id="WWFac3" onclick="wwFactionSelect" position="36 -18 -20" width="30" height="42" image="WW5050Ticket" color="#ffffff" active="false" padding="2"/>
+  <Button id="WWFac4" onclick="wwFactionSelect" position="69 -18 -20" width="30" height="42" image="WW5050Ticket" color="#ffffff" active="false" padding="2"/>
+  <Button id="WWFac5" onclick="wwFactionSelect" position="102 -18 -20" width="30" height="42" image="WW5050Ticket" color="#ffffff" active="false" padding="2"/>
+
+  <Button id="WWJoinRosterButton" onclick="wwAddPlayerToRoster" position="-25 -65 -20" width="40" height="20" icon="WWJoin" color="#228a00"/>
+  <Button id="WWCheckRosterButton" onclick="wwGetRoster" position="15 -65 -20" width="40" height="20" icon = "WWCheckRoster" color="#eac833"/>
+  <Button id="WWLeaveRosterButton" onclick="wwRemovePlayerToRoster" position="55 -65 -20" width="40" height="20" icon="WWLeave" color="#e53f36"/>
+
+  <Button id="WWAcceptRosterButton" onclick="wwAcceptRoster" position="100 -65 -20" width="40" height="20" icon="WWDone" color="#000000"/>
+
+  <Button id="WWSetupDoneButton" onclick="wwFactionSetupDone" position="100 -65 -20" width="40" height="20" icon="WWDone" color="#000000" active = "false"/>
+  <Button id="WWDraftHandsDoneButton" onclick="wwDraftHandsDone" position="100 -65 -20" width="40" height="20" icon="WWDone" color="#228a00" active = "false"/>
+  <Button id="WWExitDraftButton" onclick="wwExitDraft" position="-90 -65 -15" width="60" height="20" icon="WWExit" color="#000000"/>
+
+</ToggleGroup>
+
+
+<ToggleGroup id="Main Nav" active="True">
+  <Text id="rttCredit" text="+ MrDrouf &amp; Claude" position="-72 88 -20" rotation="0 0 -6" width="60" height="11" fontSize="7" fontStyle="Italic" color="#241f18"/>
+  
+  
+  
+
+</ToggleGroup>
+
+<ToggleGroup id="Main Nav Personal" active="False">
+  <Button id="standardButton" onclick="standard" position="-90 55 -15" width="60" height="20" fontSize="8" icon = "Core Factions" color="#f3ecd1"/>
+  <Button id="botButton" onclick="robots" position="-90 35 -15" width="60" height="20" fontSize="8" icon = "Bots" color="#c0b287"/>
+
+  
+  <Button id="fan1Button" onclick="fan1" position="-90 -15 -15" width="60" height="20" fontSize="8" icon = "Fan Factions" color="#c0b287"/>
+
+  <Button id="setupButton" onclick="setup" position="-90 -45 -15" width="60" height="20" fontSize="8" icon = "Setups" color="#c0b287"/>
+  <Button id="toolsButton" onclick="extra1" position="-90 -65 -15" width="60" height="20" fontSize="8" icon = "Tools" color="#c0b287"/>
+</ToggleGroup>
+
+<ToggleGroup id="standardButtons" active="False">
+  <Button onclick="makeFaction" onMouseEnter="infoOfficialContent" onMouseExit="clearInfo" category="Standard" id="Knaves of the Deepwood" position="90 45 -20" width="40" height="40" fontSize="8" icon="Knaves of the Deepwood" color="gray"/>
+
+    <Button onclick="makeFaction" onMouseEnter="infoOfficialContent" onMouseExit="clearInfo" category="Standard" id="Marquise de Cat" position="-25 45 -20" width="40" height="40" fontSize="8" icon="Marquise de Cat" color="#d77435"/>
+    <Button onclick="makeFaction" onMouseEnter="infoOfficialContent" onMouseExit="clearInfo" category="Standard" id="Eyrie Dynasties" position="15 45 -20" width="40" height="40" fontSize="8" icon="Eyrie Dynasties" color="#4776b6"/>
+    <Button onclick="makeFaction" onMouseEnter="infoOfficialContent" onMouseExit="clearInfo" category="Standard" id="Woodland Alliance" position="55 45 -20" width="40" height="40" fontSize="8" icon="Woodland Alliance" color="#6bb659"/>
+    
+
+    <Button onclick="makeFaction" onMouseEnter="infoOfficialContent" onMouseExit="clearInfo" category="Standard" id="The Lizard Cult" position="-25 -5 -20" width="40" height="40" fontSize="8" icon="The Lizard Cult" color="#e8e138"/>
+    <Button onclick="makeFaction" onMouseEnter="infoOfficialContent" onMouseExit="clearInfo" category="Standard" id="Riverfolk Company" position="15 -5 -20" width="40" height="40" fontSize="8" icon="Riverfolk Company" color="#5cbab4"/>
+    <Button onclick="makeFaction" onMouseEnter="infoOfficialContent" onMouseExit="clearInfo" category="Standard" id="Underground Duchy" position="55 -5 -20" width="40" height="40" fontSize="8" icon="Underground Duchy" color="#e4c0a2"/>
+    <Button onclick="makeFaction" onMouseEnter="infoOfficialContent" onMouseExit="clearInfo" category="Standard" id="Corvid Conspiracy" position="95 -5 -20" width="40" height="40" fontSize="8" icon="Corvid Conspiracy" color="#542c75"/>
+
+    <Button onclick="makeFaction" onMouseEnter="infoOfficialContent" onMouseExit="clearInfo" category="Standard" id="Lord of the Hundreds" position="-25 -55 -20" width="40" height="40" fontSize="8" icon="Lord of the Hundreds" color="#f3461b"/>
+    <Button onclick="makeFaction" onMouseEnter="infoOfficialContent" onMouseExit="clearInfo" category="Standard" id="Keepers in Iron" position="15 -55 -20" width="40" height="40" fontSize="8" icon="Keepers in Iron" color="#acadb1"/>
+    <Button onclick="makeFaction" onMouseEnter="infoOfficialContent" onMouseExit="clearInfo" category="Standard" id="Twilight Council" position="55 -55 -20" width="40" height="40" fontSize="8" icon="Twilight Council" color="#964E30"/>
+    <Button onclick="makeFaction" onMouseEnter="infoOfficialContent" onMouseExit="clearInfo" category="Standard" id="Lilypad Diaspora" position="95 -55 -20" width="40" height="40" fontSize="8" icon="Lilypad Diaspora" color="#B09804"/>
+
+</ToggleGroup>
+
+<ToggleGroup id="vagabondButtons" active="False">
+    <Button onclick="standard" onMouseEnter="infoOfficialContent" onMouseExit="clearInfo" position="95 45 -20" width="40" height="40" fontSize="8" icon="VagabondAndKnaves" color="gray"/>
+    <Button onclick="makeFaction" onMouseEnter="infoOfficialContent" onMouseExit="clearInfo" category="Standard" id = "Adventurer" position="-30 45 -20" width="30" height="40" fontSize="8" icon="Adventurer" color="gray"/>
+    <Button onclick="makeFaction" onMouseEnter="infoOfficialContent" onMouseExit="clearInfo" category="Standard" id = "Arbiter" position="0 45 -20" width="30" height="40" fontSize="8" icon="Arbiter" color="gray"/>
+    <Button onclick="makeFaction" onMouseEnter="infoOfficialContent" onMouseExit="clearInfo" category="Standard" id = "Cheat" position="30 45 -20" width="30" height="40" fontSize="8" icon="Cheat" color="gray"/>
+    <Button onclick="makeFaction" onMouseEnter="infoOfficialContent" onMouseExit="clearInfo" category="Standard" id = "Gladiator" position="60 45 -20" width="30" height="40" fontSize="8" icon="Gladiator" color="gray"/>
+
+    <Button onclick="makeFaction" onMouseEnter="infoOfficialContent" onMouseExit="clearInfo" category="Standard" id = "Harrier" position="-30 -5 -20" width="30" height="40" fontSize="8" icon="Harrier" color="gray"/>
+    <Button onclick="makeFaction" onMouseEnter="infoOfficialContent" onMouseExit="clearInfo" category="Standard" id = "Jailor" position="0 -5 -20" width="30" height="40" fontSize="8" icon="Jailor" color="gray"/>
+    <Button onclick="makeFaction" onMouseEnter="infoOfficialContent" onMouseExit="clearInfo" category="Standard" id = "Ranger" position="30 -5 -20" width="30" height="40" fontSize="8" icon="Ranger" color="gray"/>
+    <Button onclick="makeFaction" onMouseEnter="infoOfficialContent" onMouseExit="clearInfo" category="Standard" id = "Ronin" position="60 -5 -20" width="30" height="40" fontSize="8" icon="Ronin" color="gray"/>
+    
+    <Button onclick="makeFaction" onMouseEnter="infoOfficialContent" onMouseExit="clearInfo" category="Standard" id = "Knaves of the Deepwood" position="95 -5 -20" width="40" height="40" fontSize="8" icon="Knaves of the Deepwood" color="gray"/>
+
+    <Button onclick="makeFaction" onMouseEnter="infoOfficialContent" onMouseExit="clearInfo" category="Standard" id = "Scoundrel" position="-30 -55 -20" width="30" height="40" fontSize="8" icon="Scoundrel" color="gray"/>
+    <Button onclick="makeFaction" onMouseEnter="infoOfficialContent" onMouseExit="clearInfo" category="Standard" id = "Thief" position="0 -55 -20" width="30" height="40" fontSize="8" icon="Thief" color="gray"/>
+    <Button onclick="makeFaction" onMouseEnter="infoOfficialContent" onMouseExit="clearInfo" category="Standard" id = "Tinker" position="30 -55 -20" width="30" height="40" fontSize="8" icon="Tinker" color="gray"/>
+    <Button onclick="makeFaction" onMouseEnter="infoOfficialContent" onMouseExit="clearInfo" category="Standard" id = "Vagrant" position="60 -55 -20" width="30" height="40" fontSize="8" icon="Vagrant" color="gray"/>
+</ToggleGroup>
+
+<TableLayout id="robotButtons" active="False">
+    
+    
+    
+    
+
+    <Image image = "Clockwork Expansion Tag" position="35 20 -20" width="160" height="10"/>
+
+    
+    
+    
+    
+
+    
+    
+    
+    
+</TableLayout>
+
+<TableLayout id="robotButtons2" active="False">
+    
+    
+    
+    
+
+    <Image image = "Better Bot Project Tag" position="35 20 -20" width="160" height="10"/>
+
+    
+    
+    
+    
+
+    
+
+    
+
+    
+    
+    
+
+    
+    
+</TableLayout>
+
+<ToggleGroup id="mapButtonsStandard" active="True">
+    
+    <Button id="Winter Map" onMouseEnter="infoOfficialContent" onMouseExit="clearInfo" onclick="makeMap" position="19 25 -20" width="34" height="34" fontSize="8" icon ="Winter Map" color="#6b8a8f"/>
+    
+    <Button id="Lake Map" onMouseEnter="infoOfficialContent" onMouseExit="clearInfo" onclick="makeMap" position="-57 25 -20" width="34" height="34" fontSize="8" icon ="Lake Map" color="#42a0c2"/>
+    <Button id="Mountain Map" onMouseEnter="infoOfficialContent" onMouseExit="clearInfo" onclick="makeMap" position="57 25 -20" width="34" height="34" fontSize="8" icon ="Mountain Map" color="#764a52"/>
+    
+    <Button id="Marsh Map" onMouseEnter="infoOfficialContent" onMouseExit="clearInfo" onclick="makeMap" position="-19 25 -20" width="34" height="34" fontSize="8" icon ="Marsh Map" color="#9b8551"/>
+    <Button id="Gorge Map" onMouseEnter="infoOfficialContent" onMouseExit="clearInfo" onclick="makeMap" position="95 25 -20" width="34" height="34" fontSize="8" icon ="Gorge Map" color="#61746b"/>
+
+    <Button id="Summer Map" onClick="makeMap" onMouseEnter = "infoNevakanezahAndSlug" onMouseExit="clearInfo" position="-95 25 -20" width="34" height="34" fontSize="8" icon ="Autumn Map" color="#4b4d35"/>
+    
+    
+    
+
+    
+
+</ToggleGroup>
+
+<ToggleGroup id="fanMapButtons1" active="False">
+    
+    
+    
+     
+
+    
+    
+    
+    
+        
+    
+    
+    
+    
+
+    
+    
+    
+    
+
+    
+
+</ToggleGroup>
+
+
+
+<ToggleGroup id="fanMapButtons2" active="False">
+  
+  
+  
+  
+  
+
+  
+  
+  
+
+</ToggleGroup>
+
+
+<ToggleGroup id="decksButtonsStandard" active="True">
+    <Button id="Standard Deck" onMouseEnter="infoOfficialContent" onMouseExit="clearInfo" onclick="makeDeck" position="-38 -15 -20" width="34" height="34" fontSize="8" icon="Standard Deck" color="#8d7f81"/>
+    <Button id="Exiles and Partisans Deck" onMouseEnter="infoOfficialContent" onMouseExit="clearInfo" onclick="makeDeck" position="0 -15 -20" width="34" height="34" fontSize="8" icon ="Exiles and Partisans Deck" color="#378f90"/>
+    <Button id="Squires and Disciples Deck" onMouseEnter="infoOfficialContent" onMouseExit="clearInfo" onclick="makeDeck" position="38 -15 -20" width="34" height="34" fontSize="8" icon ="Squires and Disciples Deck" color="#AB6894"/>
+    
+
+    
+</ToggleGroup>
+
+<ToggleGroup id="deckPage2" active="False">
+    
+    
+    
+    
+
+    
+    
+    
+
+
+</ToggleGroup>
+
+<ToggleGroup id="setupButtons" active="True">
+  <Button id="rttThemeBtn" onclick="rttTheme" icon="ThemeArt" color="#49514b" position="19 60 -20" width="34" height="34"/>
+  <Button id="rttRankedBtn" onclick="rttSetup" icon="RankedArt" color="#030411" position="-19 60 -20" width="34" height="34"/>
+  <Button id="Marsh5P" onclick="rttFivePStart" icon="FivePlayerArt" position="57 -69.5 -20" width="34" height="17" color="#ffffff"/><Button id="Marsh5PMap" onclick="rttPlaceMarsh5P" icon="Marsh Map" position="95 -69.5 -20" width="34" height="17" color="#9b8551"/>
+  
+   <!--######-->
+
+  
+  <Button id="Vagabond Cards" onclick="makeTool" onMouseEnter="infoOfficialContent" onMouseExit="clearInfo" position="95 -46.5 -20" width="34" height="17" fontSize="8" icon ="Vagabond Cards" color="#777879"/>
+  
+  
+
+
+  <Button id="RTTClearingPriorities" onclick="rttMakeClearing" onMouseEnter="infoOfficialContent" onMouseExit="clearInfo" position="19 -46.5 -20" width="34" height="17" fontSize="8" icon="Clearing Priorities Big" color="#61654d"/>
+
+  
+  <Button id="Landmarks" onclick ="makeTool" onMouseEnter="infoOfficialContent" onMouseExit="clearInfo" position="19 -69.5 -20" width="34" height="17" fontSize="8" icon ="Landmarks" color="#724a42"/>
+  
+  
+
+  
+  
+
+
+  
+
+  
+  
+  
+  
+
+  
+  
+  
+  
+
+</ToggleGroup>
+
+<ToggleGroup id="toolsButtons" active="True">
+    
+    
+    
+    
+</ToggleGroup>
+
+<ToggleGroup id = "tools1" active="True">
+    
+
+    <Button id="Faction Select" onclick="makeFactionSelector" onMouseEnter="infoEhssAndSlug" onMouseExit="clearInfo" position="-95 -46.5 -20" width="34" height="17" fontSize="7" icon="Faction Selector Tool" color="#2c231a"/>  
+    <Button id="Battle Mat" onclick="makeBattleMat" position="-57 -46.5 -20" onMouseEnter = "infoJustin" onMouseExit="clearInfo" width="34" height="17" fontSize="7" icon ="Battle Mat" color="#863c56"/>
+    
+    <Button id="Lizard Wizard" onclick="makeLizardWizard" onMouseEnter="infoNevakanezah" onMouseExit="clearInfo" position="-95 -69.5 -20" width="34" height="17" fontSize="7" icon ="Lizard Wizard" color="#5a6728"/>
+
+    
+    <Button id="Clearing Markers" onclick="makeTool" onMouseEnter="infoOfficialContent" onMouseExit="clearInfo" position="57 -46.5 -20" width="34" height="17" fontSize="7" icon="Clearing Markers" color="#393a33"/>
+    
+    
+
+    
+    
+    <Button id="Mini-Mood Manager" onclick="makeTool" onMouseEnter = "infoEhssAndSlug" onMouseExit="clearInfo" position="-57 -69.5 -20" width="34" height="17" fontSize="7" icon ="Mini-Mood Manager" color="#eb4c27"/>
+    <Button id="Ginso's Gizmo" onclick="toggleTool" onMouseEnter = "infoGinso" onMouseExit="clearInfo" position="-19 -46.5 -20" width="34" height="17" fontSize="7" icon ="Ginso's Gizmo" color="#453b2b"/>
+
+    
+    
+    <Button id="Mob Lobber" onclick="makeTool" onMouseEnter = "infoNevakanezah" onMouseExit="clearInfo" position="-19 -69.5 -20" width="34" height="17" fontSize="7" icon ="Mob Lobber" color="#eb4c27"/>
+
+    
+</ToggleGroup>
+
+<TableLayout id="tools2" active="False">
+  
+    
+  
+  
+  
+  
+  
+
+  
+  
+
+
+  
+  
+
+
+
+  <!--  -->
+
+  
+</TableLayout>
+
+<TableLayout id="fan1Buttons" active="False">
+    
+    
+    <!---->
+    
+    
+
+    
+    
+    
+    
+
+    
+    
+    
+    
+
+    
+    
+    
+    
+
+    
+    
+    
+    
+
+    
+    
+    
+
+    
+</TableLayout>
+
+<TableLayout id="fan2Buttons" active="False">
+  
+  
+  
+  
+
+  
+  
+  
+  
+
+  
+  
+  
+  
+
+  
+  
+  
+  
+
+  
+  
+  
+  
+
+  
+  <Image image = "Rootjam 21" position="35 -65 -20" width="80" height="20"/>
+  
+
+</TableLayout>
+
+<TableLayout id = "fan3Buttons" active="False">
+
+  
+  
+  
+  
+
+  
+  
+  
+  
+
+
+  
+  
+  
+  
+
+  
+  
+  
+  
+  <!--  -->
+
+  
+  
+  
+  
+
+  
+  
+
+
+  
+  
+
+</TableLayout>
+
+<TableLayout id = "fan4Buttons" active="False">
+
+  
+  
+
+
+  
+</TableLayout>
+
+<TableLayout id = "doomedVagabondButtons" active="False">
+  
+
+  
+  
+  
+  
+  
+  
+  
+
+</TableLayout>
+
+<ToggleGroup id="RosterJoinButtons" active = "False">
+  <Image image="DraftBanner" position="35 80 -20" width="140" height="24"/>
+  <Image image="Birdsong0" position="-87.5 6 -20" width="73" height="120"/>
+  <image id="rosterDraftListTile" position="35 50 -20" width="36" height="30" image="Player 0 Tile"/>
+
+  <Button id="Join Roster Button" onclick="addPlayerToRoster" position="15 20 -20" width="40" height="20" icon="draftJoinButton" color="#6BB659"/>
+  <Button id="Leave Roster Button" onclick="removePlayerToRoster" position="55 20 -20" width="40" height="20" icon="draftLeaveButton" color="#e53f36"/>
+  <Button id="Check Roster Button" onclick="getRoster" position="35 0 -20" width="60" height="20" icon = "draftCheckRosterButton" color="#fae5b3"/>
+
+  <Button id="Accept Roster Button" onclick="acceptRoster" position="35 -65 -20" width="40" height="20" icon="draftOkayButton" color="#fae5b3"/>
+  <Button id="exitDraftButton" onclick="exitDraft" position="-90 -65 -15" width="60" height="20" icon = "TournExitButton" color="#e53f36"/>
+</ToggleGroup>
+
+<ToggleGroup id="TournamentRosterJoinButtons" active = "False">
+  <Image image="GSGBanner" position="35 80 -20" width="157" height="24"/>
+  <Image image="TournSideMenu1Button" position="-87.5 6 -20" width="73" height="120"/>
+
+  <Button id="Join Roster Button" onclick="addPlayerToRoster" position="15 10 -20" width="40" height="20" icon="TournJoinButton" color="#f7ed1b"/>
+  <Button id="Leave Roster Button" onclick="removePlayerToRoster" position="15 -10 -20" width="40" height="20" icon="TournLeaveButton" color="#e02438"/>
+  <Button id="Accept Roster Button" onclick="acceptTournamentRoster" position="55 0 -20" width="40" height="40" icon="TournStartDraftButton" color="#38b9e6"/>
+
+  <Button id="exitTournamentDraftButton" onclick="exitTournamentDraft" position="-90 -65 -15" width="60" height="20" icon = "TournExitButton" color="#e53f36"/>
+  <Button id="Check Roster Button" onclick="getRoster" position="90 -65 -20" width="40" height="20" icon = "TournCheckRosterButton" color="#000000"/>
+</ToggleGroup>
+
+<ToggleGroup id="mapTournamentDrafting" active="False">
+  <Image image="TournTitleButton" position="35 80 -20" width="157" height="24"/>
+  <Image image="TournMapButton" position="-25 55 -20" width="35" height="17"/>
+  <Image image="TournDraftPoolButton" position="-25 5 -20" width="35" height="24"/>
+  <Image id="tournSideBar" image="TournSideMenu2Button" position="-87.5 6 -20" width="73" height="120"/>
+  <Image id ="TournMessage" image="TournMapSelectMessage" position="35 -65 -20" width="80" height="8"/>
+
+  <Button id ="TournTurnIcon" onclick="EhssAndSlug" icon="TournFirstPlayerButton" position="-25 -65 -20" width="40" height="20" color ="#E53F36"/>
+
+  <Button id="Summer Map Tournament" onClick="tournamentMapSelect" onMouseEnter = "infoNevakanezahAndSlug" onMouseExit="clearInfo" position="-25 35 -20" width="40" height="20" fontSize="8" icon ="Autumn Map" color="#4b4d35"/>
+  <Button id="Winter Map Tournament" onMouseEnter="infoOfficialContent" onMouseExit="clearInfo" onclick="tournamentMapSelect" position="15 45 -20" width="40" height="40" fontSize="8" icon ="Winter Map" color="#739195"/>
+  <Button id="Lake Map Tournament" onMouseEnter="infoOfficialContent" onMouseExit="clearInfo" onclick="tournamentMapSelect" position="55 45 -20" width="40" height="40" fontSize="8" icon ="Lake Map" color="#47a3c2"/>
+  <Button id="Mountain Map Tournament" onMouseEnter="infoOfficialContent" onMouseExit="clearInfo" onclick="tournamentMapSelect" position="95 45 -20" width="40" height="40" fontSize="8" icon ="TournMountainButton" color="#7c4f59"/>
+
+  <Button id="TournamentDraftOption1" onclick="makeTournamentDraftFaction" position="15 5 -20" width="40" height="40" fontSize="8" icon="Marquise de Cat" color="#E53F36"/>
+  <Button id="TournamentDraftOption2" onclick="makeTournamentDraftFaction" position="55 5 -20" width="40" height="40" fontSize="8" icon="Marquise de Cat" color="#E53F36"/>
+  <Button id="TournamentDraftOption3" onclick="makeTournamentDraftFaction" position="95 5 -20" width="40" height="40" fontSize="8" icon="Marquise de Cat" color="#E53F36"/>
+  <Button id="TournamentDraftOption4" onclick="makeTournamentDraftFaction" position="95 -35 -20" width="40" height="40" fontSize="8" icon="Marquise de Cat" color="#E53F36"/>
+  <Button id="TournamentDraftOption5" onclick="makeTournamentDraftFaction" position="55 -35 -20" width="40" height="40" fontSize="8" icon="Marquise de Cat" color="#E53F36"/>
+  <Button id="TournamentDraftOption6" onclick="makeTournamentDraftFaction" position="15 -35 -20" width="40" height="40" fontSize="8" icon="Marquise de Cat" color="#E53F36"/>
+  <Button id="TournamentDraftOption7" onclick="makeTournamentDraftFaction" position="-25 -35 -20" width="40" height="40" fontSize="8" icon="Marquise de Cat" color="#E53F36"/>
+
+  <Button id="exitDraftButton" onclick="exitTournamentDraft" position="-90 -65 -15" width="60" height="20" icon = "TournExitButton" color="#e53f36"/>
+  <Button id="Tournament Faction Draft Next Button" onclick="tournamentFactionDraftNext" position="95 -65 -20" width="40" height="20" icon="TournDoneButton" color="#FFFFFF" active="false"/>
+  <Button id="Tournament Draft Finished Setup Button" onclick="tournamentFinishDraft" position="95 -65 -20" width="40" height="20" icon="TournDoneButtonWhite" color="#E53F36" active="false"/>
+  <Button id="Tournament Start" onclick="startTournament" position="95 -65 -20" width="40" height="20" icon="TournDoneButton" color="#FFFFFF" active="false"/>\
+
+
+</ToggleGroup>
+
+<ToggleGroup id="mapDrafting" active="False">
+  <Image image="DraftBanner" position="35 80 -20" width="140" height="24"/>
+  <Image image="Birdsong1" position="-87.5 6 -20" width="73" height="120"/>
+
+  <image id="mapDraftListTile" position="35 50 -20" width="36" height="30" image="Player 0 Tile"/>
+
+  <Button id="backToMapDraftButton" onclick="backToRosterDraft" position="-90 -65 -15" width="60" height="20" fontSize="8" icon = "draftBackButton" color="#fae5b3"/>
+
+<ToggleGroup id="mapDraftingFan1" active="False">
+
+  
+  <Button id="Lake Map" onMouseEnter="infoOfficialContent" onMouseExit="clearInfo" onclick="draftMap" position="15 10 -20" width="34" height="30" fontSize="8" icon ="Lake Map" color="#42a0c2"/>
+  <Button id="Marsh Map" onClick="draftMap" onMouseEnter = "infoOfficialContent" onMouseExit="clearInfo" position="55 10 -20" width="34" height="30" fontSize="8" icon ="Marsh Map" color="#9b8551"/>
+  
+  <Button id="Winter Map" onMouseEnter="infoOfficialContent" onMouseExit="clearInfo" onclick="draftMap" position="-25 -30 -20" width="34" height="30" fontSize="8" icon ="Winter Map" color="#6b8a8f"/>
+  <Button id="Mountain Map" onMouseEnter="infoOfficialContent" onMouseExit="clearInfo" onclick="draftMap" position="15 -30 -20" width="34" height="30" fontSize="8" icon ="Mountain Map" color="#764a52"/>
+  <Button id="Gorge Map" onClick="draftMap" onMouseEnter = "infoOfficialContent" onMouseExit="clearInfo" position="55 -30 -20" width="34" height="30" fontSize="8" icon ="Gorge Map" color="#61746b"/>
+
+  <Button id="Summer Map" onClick="draftMap" onMouseEnter = "infoNevakanezahAndSlug" onMouseExit="clearInfo" position="95 20 -20" width="34" height="30" fontSize="8" icon ="Autumn Map" color="#4b4d35"/>
+  
+  
+
+  <Button onclick="draftFanMaps2" position="95 -40 -20" width="40" height="20" fontSize="8" icon ="More Button" color="#f3ecd1"/>
+  <Button id="mapRandomButton" onclick="randomDraftMap" position="35 -65 -15" width="60" height="20" fontSize="8" icon = "Random White" color="#e53f36"/>
+</ToggleGroup>
+
+</ToggleGroup>
+
+<ToggleGroup id="mapDraftingFan2" active="False">
+  
+  
+  
+  
+  
+  
+  
+  
+  
+
+  
+  
+  
+  
+
+  <Button onclick="draftFanMaps1" position="-25 -40 -20" width="40" height="20" fontSize="8" icon ="Back Button" color="#f3ecd1"/>
+  
+  
+  <Button onclick="draftFanMaps3" position="95 -40 -20" width="40" height="20" fontSize="8" icon ="More Button" color="#f3ecd1"/>
+
+</ToggleGroup>
+
+<ToggleGroup id="mapDraftingFan3" active="False">
+  
+  
+  
+  
+  
+  
+
+  <Button onclick="draftFanMaps2" position="-25 -40 -20" width="40" height="20" fontSize="8" icon ="Back Button" color="#f3ecd1"/>
+  
+</ToggleGroup>
+
+
+<ToggleGroup id="draftDeckButtons" active="false">
+  <Image image="DraftBanner" position="35 80 -20" width="140" height="24"/>
+  <Image image="Birdsong2" position="-87.5 6 -20" width="73" height="120"/>
+
+  <image id="deckDraftMapTile" position="-3 50 -20" width="30" height="30" image="Clear Tile"/>
+  <image id="deckDraftListTile" position="35 50 -20" width="36" height="30" image="Player 0 Tile"/>
+
+  <Button id="Standard Deck" onMouseEnter="infoOfficialContent" onMouseExit="clearInfo" onclick="draftDeck" position="-5 10 -20" width="40" height="40" fontSize="8" icon="Standard Deck" color="#8d7f81"/>
+  <Button id="Exiles and Partisans Deck" onMouseEnter="infoOfficialContent" onMouseExit="clearInfo" onclick="draftDeck" position="35 10 -20" width="40" height="40" fontSize="8" icon ="Exiles and Partisans Deck" color="#378f90"/>
+  <Button id="Squires and Disciples Deck" onMouseEnter="infoOfficialContent" onMouseExit="clearInfo" onclick="draftDeck" position="75 10 -20" width="40" height="40" fontSize="8" icon ="Squires and Disciples Deck" color="#AB6894"/>
+
+  
+  
+  
+  
+
+  
+  
+  
+
+  <Button id="deckRandomButton" onclick="draftRandomDeck" position="35 -65 -15" width="60" height="20" fontSize="8" icon = "Random White" color="#e53f36"/>
+
+  <Button id="backToMapDraftButton" onclick="backToMapDraft" position="-90 -65 -15" width="60" height="20" fontSize="8" icon = "draftBackButton" color="#fae5b3"/>
+</ToggleGroup>
+
+<ToggleGroup id="BanningFactions" active = "False">
+ <Image image="DraftBanner" position="35 80 -20" width="140" height="24"/>
+  <Image id="draftBirdsong" image="Birdsong8" position="-87.5 6 -20" width="73" height="120"/>
+
+  <image id="banDraftMapTile" position="-3 50 -20" width="30" height="30" image="Clear Tile"/>
+  <image id="banDraftListTile" position="35 50 -20" width="36" height="30" image="Player 0 Tile"/>
+  <image id="banDraftDeckTile" position="73 50 -20" width="30" height="30" image="Clear Tile"/>
+
+  <Button id="BanCats" onclick="banFaction" position="-37 10 -20" width="25" height="40" fontSize="8" icon="Marquise de Cat" color="#d77435" active="false"/>
+  <Button id="BanBirds" onclick="banFaction" position="-12 10 -20" width="25" height="40" fontSize="8" icon="Eyrie Dynasties" color="#4776b6" active="false"/>
+  <Button id="BanGreen" onclick="banFaction" position="13 10 -20" width="25" height="40" fontSize="8" icon="Woodland Alliance" color="#6bb659" active="false"/>
+  <Button id="BanVagabond1" onclick="banFaction" position="38 10 -20" width="25" height="40" fontSize="8" icon="Vagabond" color="#ffffff" active="false"/>
+  <Button id="BanVagabond2" onclick="banFaction" position="63 10 -20" width="25" height="40" fontSize="8" icon="Vagabond" color="#ffffff" active="false"/>
+  <Button id="BanLizards" onclick="banFaction" position="88 10 -20" width="25" height="40" fontSize="8" icon="The Lizard Cult" color="#e8e138" active="false"/>
+  <Button id="BanOtters" onclick="banFaction" position="113 10 -20" width="25" height="40" fontSize="8" icon="Riverfolk Company" color="#5cbab4" active="false"/>
+  
+  <Button id="BanMoles" onclick="banFaction" position="-37 -35 -20" width="25" height="40" fontSize="8" icon="Underground Duchy" color="#e4c0a2" active="false"/>
+  <Button id="BanCrows" onclick="banFaction" position="-12 -35 -20" width="25" height="40" fontSize="8" icon="Corvid Conspiracy" color="#542c75" active="false"/>
+  <Button id="BanRats" onclick="banFaction" position="13 -35 -20" width="25" height="40" fontSize="8" icon="Lord of the Hundreds" color="#f3461b" active="false"/>
+  <Button id="BanBadgers" onclick="banFaction" position="38 -35 -20" width="25" height="40" fontSize="8" icon="Keepers in Iron" color="#acadb1" active="false"/>
+  <Button id="BanBats" onclick="banFaction" position="63 -35 -20" width="25" height="40" fontSize="8" icon="Twilight Council" color="#964E30" active="false"/>
+  <Button id="BanFrogs" onclick="banFaction" position="88 -35 -20" width="25" height="40" fontSize="8" icon="Lilypad Diaspora" color="#B09804" active="false"/>
+  <Button id="BanKnaves" onclick="banFaction" position="113 -35 -20" width="25" height="40" fontSize="8" icon="Knaves of the Deepwood" color="#80808000" active="false"/>
+
+  <Button id="ConfirmBanButton" onclick="goToDraft" position="35 -65 -15" width="60" height="20" fontSize="8" icon = "ContinueLabel" color="#fae5b3"/>
+
+  <Button onclick="exitDraft" position="-90 -65 -15" width="60" height="20" icon="WWExit" color="#000000"/>
+  
+</ToggleGroup>
+
+<ToggleGroup id="FactionDrafting" active = "false">
+  <Image image="DraftBanner" position="35 80 -20" width="140" height="24"/>
+  <Image id="draftBirdsong" image="Birdsong8" position="-87.5 6 -20" width="73" height="120"/>
+
+  <image id="factionDraftMapTile" position="-3 50 -20" width="30" height="30" image="Clear Tile"/>
+  <image id="factionDraftListTile" position="35 50 -20" width="36" height="30" image="Player 0 Tile"/>
+  <image id="factionDraftDeckTile" position="73 50 -20" width="30" height="30" image="Clear Tile"/>
+
+  <Button id="standardSelectSwitch" onclick="selectStandardDraft" position="103 50 -20" width="30" height="30" padding="3" icon="standardSelection" color="#222222"/>
+
+  <Button id="Faction Draft Next Button" onclick="factionDraftNext" position="95 -65 -20" width="40" height="20" icon="NextButton" color="#FFFFFF" active="false"/>
+  <Button id="Draft Finished Setup Button" onclick="finishDraft" position="95 -65 -20" width="40" height="20" icon="WhiteNext" color="#E53F36" active="false"/>
+  <!-- <Button id="exitDraftButton" onclick="exitDraft" position="-90 -65 -15" width="60" height="20" fontSize="8" icon = "Big Exit Button" color="#fae5b3"/> -->
+  <Button onclick="exitDraft" position="-90 -65 -15" width="60" height="20" icon="WWExit" color="#000000"/>
+
+  <Image id="draftFactionInstructions" image ="DraftFactionPick" position="35 -65 -15" width="80" height="20" active="true"/>
+
+  <Button id ="DraftTurnIcon" icon="Tourn1PlayerButton" position="-25 -65 -20" width="40" height="20" color ="#E53F36"/>
+  <Button id="Return to Setup Menu" onclick="startDraftedGame" position="35 -65 -20" width="60" height="20" icon="StartGameButton" color="#6DBA5A" active="false"/>
+</ToggleGroup>
+
+<ToggleGroup id="DraftOptions" active="false">
+  <Button id="DraftOption1" onclick="makeDraftFaction" position="-25 10 -20" width="40" height="40" fontSize="8" icon="Marquise de Cat" color="#E53F36"/>
+  <Button id="DraftOption2" onclick="makeDraftFaction" position="15 10 -20" width="40" height="40" fontSize="8" icon="Marquise de Cat" color="#E53F36"/>
+  <Button id="DraftOption3" onclick="makeDraftFaction" position="55 10 -20" width="40" height="40" fontSize="8" icon="Marquise de Cat" color="#E53F36"/>
+  <Button id="DraftOption4" onclick="makeDraftFaction" position="95 10 -20" width="40" height="40" fontSize="8" icon="Marquise de Cat" color="#E53F36"/>
+  <Button id="DraftOption5" onclick="makeDraftFaction" position="-25 -30 -20" width="40" height="40" fontSize="8" icon="Marquise de Cat" color="#E53F36"/>
+  <Button id="DraftOption6" onclick="makeDraftFaction" position="15 -30 -20" width="40" height="40" fontSize="8" icon="Marquise de Cat" color="#E53F36"/>
+  <Button id="DraftOption7" onclick="makeDraftFaction" position="55 -30 -20" width="40" height="40" fontSize="8" icon="Marquise de Cat" color="#E53F36"/>
+</ToggleGroup>
+
+<ToggleGroup id="DiscardCardsScreen" active = "false">
+  <image id="handsDraftMapTile" position="-3 50 -20" width="30" height="30" image="Clear Tile"/>
+  <image id="handsDraftListTile" position="35 50 -20" width="36" height="30" image="Player 0 Tile"/>
+  <image id="handsDraftDeckTile" position="73 50 -20" width="30" height="30" image="Clear Tile"/>
+
+  <Image image="DraftBanner" position="35 80 -20" width="140" height="24"/>
+  <Image image="Birdsong9" position="-87.5 6 -20" width="73" height="120"/>
+
+</ToggleGroup>
+
+<ToggleGroup id="RedFactionsScreen" active = "false">
+  <image id="redFactionDraftMapTile" position="-3 50 -20" width="30" height="30" image="Clear Tile"/>
+  <image id="redFactionDraftListTile" position="35 50 -20" width="36" height="30" image="Player 0 Tile"/>
+  <image id="redFactionDraftDeckTile" position="73 50 -20" width="30" height="30" image="Clear Tile"/>
+
+  <Image image="RedOnlyText" position="35 0 -20" width="120" height="45"/>
+  <Button id="redOnly" onclick="redFactionChoice" position="35 -45 -20" width="60" height="20" icon="StayRed" color="#e53f36" active="true"/>
+  <Button id="redAndWhite" onclick="redFactionChoice" position="35 -65 -20" width="60" height="20" icon="BringItOn" color="#fae5b3" active="true"/>
+  <Image image="DraftBanner" position="35 80 -20" width="140" height="24"/>
+  <Image image="Birdsong8" position="-87.5 6 -20" width="73" height="120"/>
+  <Button id="backToDetailsButton" onclick="backToDetailsDraft" position="-90 -65 -15" width="60" height="20" fontSize="8" icon = "draftBackButton" color="#fae5b3"/>
+</ToggleGroup>
+
+
+<ToggleGroup id="AdsetDraftClockworkBotButtons" active="false">
+
+  <Image image="DraftBanner" position="35 80 -20" width="140" height="24"/>
+
+  <image id="clockworkDraftMapTile" position="-3 50 -20" width="30" height="30" image="Clear Tile" />
+  <image id="clockworkDraftListTile" position="35 50 -20" width="36" height="30" image="Player 0 Tile" />
+  <image id="clockworkDraftDeckTile" position="73 50 -20" width="30" height="30" image="Clear Tile" />
+
+  <Image image="Birdsong3" position="-87.5 6 -20" width="73" height="120"/>
+
+  <Button id="draftCatBot" onclick="setDraftBot" position="-25 10 -20" width="40" height="40" fontSize="8" icon="Mechanical Marquise" color="#DDDDFF"/>
+  <Button id="draftBirdBot" onclick="setDraftBot" position="15 10 -20" width="40" height="40" fontSize="8" icon="Electric Eyrie" color="#DDDDFF"/>
+  <Button id="draftWABot" onclick="setDraftBot" position="55 10 -20" width="40" height="40" fontSize="8" icon="Automated Alliance" color="#DDDDFF"/>
+  <Button id="draftVagaBot" onclick="setDraftBot" position="95 10 -20" width="40" height="40" fontSize="8" icon="Vagabot" color="#DDDDFF"/>
+  <Button id="draftLizBot" onclick="setDraftBot" position="-25 -30 -20" width="40" height="40" fontSize="8" icon="Logical Lizards" color="#DDDDFF"/>
+  <Button id="draftOtterBot" onclick="setDraftBot" position="15 -30 -20" width="40" height="40" fontSize="8" icon="Riverfolk Robots" color="#DDDDFF"/>
+  <Button id="draftMoleBot" onclick="setDraftBot" position="55 -30 -20" width="40" height="40" fontSize="8" icon="Drillbit Duchy" color="#DDDDFF"/>
+  <Button id="draftCrowBot" onclick="setDraftBot" position="95 -30 -20" width="40" height="40" fontSize="8" icon="Cogwheel Corvids" color="#DDDDFF"/>
+
+  <Button id="backToDeckDraftButton" onclick="backToDeckDraft" position="-90 -65 -15" width="60" height="20" fontSize="8" icon = "draftBackButton" color="#fae5b3"/>
+  <Button id="randomDraftBotButton" onclick="randomDraftBot" position="-15 -65 -15" width="60" height="20" fontSize="8" icon = "Random White" color="#e53f36"/>
+  <Button id="draftFinishBotsButton" onclick="seatPlayersAndBots" position="85 -65 -15" width="60" height="20" fontSize="8" icon = "SkipLabel" color="#fae5b3"/>
+
+</ToggleGroup>
+
+<ToggleGroup id="AdsetDraftClockworkSetup" active="false">
+  <Image image="DraftBanner" position="35 80 -20" width="140" height="24"/>
+
+  <image id="clockwork2DraftMapTile" position="-3 50 -20" width="30" height="30" image="Clear Tile" />
+  <image id="clockwork2DraftListTile" position="35 50 -20" width="36" height="30" image="Player 0 Tile" />
+  <image id="clockwork2DraftDeckTile" position="73 50 -20" width="30" height="30" image="Clear Tile" />
+
+  <Image image="TheClockworkBotsSetup" position="35 -10 -20" width="160" height="80"/>
+
+  <Image image="Birdsong3" position="-87.5 6 -20" width="73" height="120"/>
+
+  <Button id="adsetExitDraftButton" onclick="exitDraft" position="-90 -65 -15" width="60" height="20" icon="WWExit" color="#000000"/>
+  <Button id="draftFinishBotsSetupButton" onclick="draftLandmarks" position="35 -65 -15" width="60" height="20" fontSize="8" icon = "ContinueLabel" color="#fae5b3"/>
+
+</ToggleGroup>
+
+<ToggleGroup id="AdsetDraftLandmarkButtons" active="false">
+
+  <Image image="DraftBanner" position="35 80 -20" width="140" height="24"/>
+
+  <image id="landmarkDraftMapTile" position="-3 50 -20" width="30" height="30" image="Clear Tile" />
+  <image id="landmarkDraftListTile" position="35 50 -20" width="36" height="30" image="Player 0 Tile" />
+  <image id="landmarkDraftDeckTile" position="73 50 -20" width="30" height="30" image="Clear Tile" />
+
+  <Image image="Birdsong5" position="-87.5 6 -20" width="73" height="120"/>
+
+  <Button id="draftLegendaryForge" onclick="setDraftLandmark" position="-10 10 -20" width="30" height="40" fontSize="8" icon="Legendary Forge" color="#222222"/>
+  <Button id="draftElderTreetop" onclick="setDraftLandmark" position="20 10 -20" width="30" height="40" fontSize="8" icon="Elder Treetop" color="#222222"/>
+  <Button id="draftBlackMarket" onclick="setDraftLandmark" position="50 10 -20" width="30" height="40" fontSize="8" icon="Black Market" color="#222222"/>
+  <Button id="draftTheFerry" onclick="setDraftLandmark" position="80 10 -20" width="30" height="40" fontSize="8" icon="The Ferry" color="#222222"/>
+  
+  <Button id="draftTheTower" onclick="setDraftLandmark" position="-25 -30 -20" width="30" height="40" fontSize="8" icon="The Tower" color="#222222"/>
+  <Button id="draftLostCity" onclick="setDraftLandmark" position="5 -30 -20" width="30" height="40" fontSize="8" icon="Lost City" color="#222222"/>
+  <Button id="draftFoxburrow" onclick="setDraftLandmark" position="35 -30 -20" width="30" height="40" fontSize="8" icon="Foxburrow" color="#222222"/>
+  <Button id="draftRabbit-Town" onclick="setDraftLandmark" position="65 -30 -20" width="30" height="40" fontSize="8" icon="Rabbit-Town" color="#222222"/>
+  <Button id="draftMousehold" onclick="setDraftLandmark" position="95 -30 -20" width="30" height="40" fontSize="8" icon="Mousehold" color="#222222"/>
+
+  <Button id="adsetExitDraftButton" onclick="exitDraft" position="-90 -65 -15" width="60" height="20" icon="WWExit" color="#000000"/>
+  <Button id="randomDraftLandmarkButton" onclick="randomDraftLandmark" position="-15 -65 -15" width="60" height="20" fontSize="8" icon = "Random White" color="#e53f36"/>
+
+  <Button id="draftFinishLandmarkButton" onclick="landmarksSelected" position="85 -65 -15" width="60" height="20" fontSize="8" icon = "SkipLabel" color="#fae5b3"/>
+
+</ToggleGroup>
+
+<ToggleGroup id="AdsetDraftLandmarksSetup" active="false">
+
+  <Image image="Birdsong5" position="-87.5 6 -20" width="73" height="120"/>
+  <Button onclick="exitDraft" position="-90 -65 -15" width="60" height="20" icon="WWExit" color="#000000"/>
+
+  <Image image="DraftBanner" position="35 80 -20" width="140" height="24"/>
+
+  <Image image="LandmarkSetup" position="35 -10 -20" width="160" height="80"/>
+
+  <image id="landmarkSetupDraftMapTile" position="-3 50 -20" width="30" height="30" image="Clear Tile" />
+  <image id="landmarkSetupDraftListTile" position="35 50 -20" width="36" height="30" image="Player 0 Tile" />
+  <image id="landmarkSetupDraftDeckTile" position="73 50 -20" width="30" height="30" image="Clear Tile" />
+
+  <Button id="draftFinishLandmarkSetupButton" onclick="goToHirelings" position="85 -65 -15" width="60" height="20" fontSize="8" icon = "ContinueLabel" color="#fae5b3"/>
+
+</ToggleGroup>
+
+<ToggleGroup id="AdsetDraftHirelingsButtons" active="false">
+
+  <Image image="DraftBanner" position="35 80 -20" width="140" height="24"/>
+
+  <Image image="Birdsong6" position="-87.5 6 -20" width="73" height="120"/>
+
+  <image id="hirelingsSelectDraftMapTile" position="-3 50 -20" width="30" height="30" image="Clear Tile" />
+  <image id="hirelingsSelectDraftListTile" position="35 50 -20" width="36" height="30" image="Player 0 Tile" />
+  <image id="hirelingsSelectDraftDeckTile" position="73 50 -20" width="30" height="30" image="Clear Tile" />
+
+  <image position="35 -10 -20" width="160" height="80" image="TheHirelings" />
+
+  <Button onclick="goToBanBoard" position="85 -65 -15" width="60" height="20" fontSize="8" icon = "No Thanks Label" color="#fae5b3"/>
+
+  <Button onclick="goToSetupHirelings" position="-15 -65 -15" width="60" height="20" fontSize="8" icon="Sure Label" color="#fae5b3"/>
+
+  <Button onclick="exitDraft" position="-90 -65 -15" width="60" height="20" icon="WWExit" color="#000000"/>
+</ToggleGroup>
+
+<ToggleGroup id="hirelingSetupScreen" active = "False">
+
+  <Image image="Birdsong6" position="-87.5 6 -20" width="73" height="120"/>
+
+  <Image image="DraftBanner" position="35 80 -20" width="140" height="24"/>
+
+  <Image image="HirelingsSetup" position="35 -10 -20" width="160" height="80"/>
+
+
+  <image id="hirelingsDraftMapTile" position="-3 50 -20" width="30" height="30" image="Clear Tile" />
+  <image id="hirelingsDraftListTile" position="35 50 -20" width="36" height="30" image="Player 0 Tile" />
+  <image id="hirelingsDraftDeckTile" position="73 50 -20" width="30" height="30" image="Clear Tile" />
+
+
+  <image id="hireling1" position="-17 -38 -20" width="50" height="29" image="Forest Patrol" active="false"/>
+  <image id="hireling2" position="35 -38 -20" width="50" height="29" image="The Outcast" active="false"/>
+  <image id="hireling3" position="87 -38 -20" width="50" height="29" image="The Outcast" active="false"/>
+
+  <Button onclick="exitDraft" position="-90 -65 -15" width="60" height="20" icon="WWExit" color="#000000"/>
+
+  <!--<Button id="exitDraftButton" onclick="exitDraft" position="-90 -65 -15" width="60" height="20" fontSize="8" icon = "Big Exit Button" color="#fae5b3"/>-->
+  <Button id="Accept Hirelings Setup Button" onclick="goToBanBoard" position="35 -65 -20" width="40" height="20" icon="DoneButton" color="#fae5b3"/>
+</ToggleGroup>
+
+
+<ToggleGroup id="reachMeter" active="false">
+
+  <Image id="reachMeter1p" position="-34 -85 -22" width="3" height="10" color="#00000000"/>
+  <Image id="reachMeter2p" position="-31 -85 -22" width="3" height="10" color="#00000000"/>
+  <Image id="reachMeter3p" position="-28 -85 -22" width="3" height="10" color="#00000000"/>
+  <Image id="reachMeter4p" position="-25 -85 -22" width="3" height="10" color="#00000000"/>
+  <Image id="reachMeter5p" position="-22 -85 -22" width="3" height="10" color="#00000000"/>
+  <Image id="reachMeter6p" position="-19 -85 -22" width="3" height="10" color="#00000000"/>
+  <Image id="reachMeter7p" position="-16 -85 -22" width="3" height="10" color="#00000000"/>
+  <Image id="reachMeter8p" position="-13 -85 -22" width="3" height="10" color="#00000000"/>
+  <Image id="reachMeter9p" position="-10 -85 -22" width="3" height="10" color="#00000000"/>
+    <Image id="reachMeter10p" position="-6 -85 -22" width="6" height="10" color="#00000000"/>
+  <Image id="reachMeter11p" position="-2 -85 -22" width="3" height="10" color="#00000000"/>
+  <Image id="reachMeter12p" position="1 -85 -22" width="3" height="10" color="#00000000"/>
+  <Image id="reachMeter13p" position="4 -85 -22" width="3" height="10" color="#00000000"/>
+  <Image id="reachMeter14p" position="7 -85 -22" width="3" height="10" color="#00000000"/>
+  <Image id="reachMeter15p" position="10 -85 -22" width="3" height="10" color="#00000000"/>
+  <Image id="reachMeter16p" position="13 -85 -22" width="3" height="10" color="#00000000"/>
+  <Image id="reachMeter17p" position="16 -85 -22" width="3" height="10" color="#00000000"/>
+  <Image id="reachMeter18p" position="19 -85 -22" width="3" height="10" color="#00000000"/>
+  <Image id="reachMeter19p" position="22 -85 -22" width="3" height="10" color="#00000000"/>
+    <Image id="reachMeter20p" position="26 -85 -22" width="6" height="10" color="#00000000"/>
+  <Image id="reachMeter21p" position="30 -85 -22" width="3" height="10" color="#00000000"/>
+  <Image id="reachMeter22p" position="33 -85 -22" width="3" height="10" color="#00000000"/>
+  <Image id="reachMeter23p" position="36 -85 -22" width="3" height="10" color="#00000000"/>
+  <Image id="reachMeter24p" position="39 -85 -22" width="3" height="10" color="#00000000"/>
+  <Image id="reachMeter25p" position="42 -85 -22" width="3" height="10" color="#00000000"/>
+  <Image id="reachMeter26p" position="45 -85 -22" width="3" height="10" color="#00000000"/>
+  <Image id="reachMeter27p" position="48 -85 -22" width="3" height="10" color="#00000000"/>
+  <Image id="reachMeter28p" position="51 -85 -22" width="3" height="10" color="#00000000"/>
+  <Image id="reachMeter29p" position="54 -85 -22" width="3" height="10" color="#00000000"/>
+    <Image id="reachMeter30p" position="58 -85 -22" width="6" height="10" color="#00000000"/>
+  <Image id="reachMeter31p" position="62 -85 -22" width="3" height="10" color="#00000000"/>
+  <Image id="reachMeter32p" position="65 -85 -22" width="3" height="10" color="#00000000"/>
+  <Image id="reachMeter33p" position="68 -85 -22" width="3" height="10" color="#00000000"/>
+  <Image id="reachMeter34p" position="71 -85 -22" width="3" height="10" color="#00000000"/>
+  <Image id="reachMeter35p" position="74 -85 -22" width="3" height="10" color="#00000000"/>
+  <Image id="reachMeter36p" position="77 -85 -22" width="3" height="10" color="#00000000"/>
+  <Image id="reachMeter37p" position="80 -85 -22" width="3" height="10" color="#00000000"/>
+  <Image id="reachMeter38p" position="83 -85 -22" width="3" height="10" color="#00000000"/>
+  <Image id="reachMeter39p" position="86 -85 -22" width="3" height="10" color="#00000000"/>
+    <Image id="reachMeter40p" position="90 -85 -22" width="6" height="10" color="#00000000"/>
+  <Image id="reachMeter41p" position="94 -85 -22" width="3" height="10" color="#00000000"/>
+  <Image id="reachMeter42p" position="97 -85 -22" width="3" height="10" color="#00000000"/>
+  <Image id="reachMeter43p" position="100 -85 -22" width="3" height="10" color="#00000000"/>
+  <Image id="reachMeter44p" position="103 -85 -22" width="3" height="10" color="#00000000"/>
+  <Image id="reachMeter45p" position="106 -85 -22" width="3" height="10" color="#00000000"/>
+  <Image id="reachMeter46p" position="109 -85 -22" width="3" height="10" color="#00000000"/>
+  <Image id="reachMeter47p" position="112 -85 -22" width="3" height="10" color="#00000000"/>
+
+  <Image id="reachMeter1" image = "Reach Cell" position="-34 -85 -22" width="3" height="10"/>
+  <Image id="reachMeter2" image = "Reach Cell" position="-31 -85 -22" width="3" height="10"/>
+  <Image id="reachMeter3" image = "Reach Cell" position="-28 -85 -22" width="3" height="10"/>
+  <Image id="reachMeter4" image = "Reach Cell" position="-25 -85 -22" width="3" height="10"/>
+  <Image id="reachMeter5" image = "Reach Cell" position="-22 -85 -22" width="3" height="10"/>
+  <Image id="reachMeter6" image = "Reach Cell" position="-19 -85 -22" width="3" height="10"/>
+  <Image id="reachMeter7" image = "Reach Cell" position="-16 -85 -22" width="3" height="10"/>
+  <Image id="reachMeter8" image = "Reach Cell" position="-13 -85 -22" width="3" height="10"/>
+  <Image id="reachMeter9" image = "Reach Cell" position="-10 -85 -22" width="3" height="10"/>
+    <Image id="reachMeter10" image = "Reach Cell 10" position="-6 -85 -22" width="6" height="10"/>
+  <Image id="reachMeter11" image = "Reach Cell" position="-2 -85 -22" width="3" height="10"/>
+  <Image id="reachMeter12" image = "Reach Cell" position="1 -85 -22" width="3" height="10"/>
+  <Image id="reachMeter13" image = "Reach Cell" position="4 -85 -22" width="3" height="10"/>
+  <Image id="reachMeter14" image = "Reach Cell" position="7 -85 -22" width="3" height="10"/>
+  <Image id="reachMeter15" image = "Reach Cell" position="10 -85 -22" width="3" height="10"/>
+  <Image id="reachMeter16" image = "Reach Cell" position="13 -85 -22" width="3" height="10"/>
+  <Image id="reachMeter17" image = "Reach Cell Dots" position="16 -85 -22" width="3" height="10"/>
+  <Image id="reachMeter18" image = "Reach Cell Dot" position="19 -85 -22" width="3" height="10"/>
+  <Image id="reachMeter19" image = "Reach Cell" position="22 -85 -22" width="3" height="10"/>
+    <Image id="reachMeter20" image = "Reach Cell 20" position="26 -85 -22" width="6" height="10"/>
+  <Image id="reachMeter21" image = "Reach Cell Dot" position="30 -85 -22" width="3" height="10"/>
+  <Image id="reachMeter22" image = "Reach Cell" position="33 -85 -22" width="3" height="10"/>
+  <Image id="reachMeter23" image = "Reach Cell" position="36 -85 -22" width="3" height="10"/>
+  <Image id="reachMeter24" image = "Reach Cell" position="39 -85 -22" width="3" height="10"/>
+  <Image id="reachMeter25" image = "Reach Cell Dot" position="42 -85 -22" width="3" height="10"/>
+  <Image id="reachMeter26" image = "Reach Cell" position="45 -85 -22" width="3" height="10"/>
+  <Image id="reachMeter27" image = "Reach Cell" position="48 -85 -22" width="3" height="10"/>
+  <Image id="reachMeter28" image = "Reach Cell Dot" position="51 -85 -22" width="3" height="10"/>
+  <Image id="reachMeter29" image = "Reach Cell" position="54 -85 -22" width="3" height="10"/>
+    <Image id="reachMeter30" image = "Reach Cell 30" position="58 -85 -22" width="6" height="10"/>
+  <Image id="reachMeter31" image = "Reach Cell" position="62 -85 -22" width="3" height="10"/>
+  <Image id="reachMeter32" image = "Reach Cell" position="65 -85 -22" width="3" height="10"/>
+  <Image id="reachMeter33" image = "Reach Cell" position="68 -85 -22" width="3" height="10"/>
+  <Image id="reachMeter34" image = "Reach Cell" position="71 -85 -22" width="3" height="10"/>
+  <Image id="reachMeter35" image = "Reach Cell" position="74 -85 -22" width="3" height="10"/>
+  <Image id="reachMeter36" image = "Reach Cell" position="77 -85 -22" width="3" height="10"/>
+  <Image id="reachMeter37" image = "Reach Cell" position="80 -85 -22" width="3" height="10"/>
+  <Image id="reachMeter38" image = "Reach Cell" position="83 -85 -22" width="3" height="10"/>
+  <Image id="reachMeter39" image = "Reach Cell" position="86 -85 -22" width="3" height="10"/>
+    <Image id="reachMeter40" image = "Reach Cell 40" position="90 -85 -22" width="6" height="10"/>
+  <Image id="reachMeter41" image = "Reach Cell" position="94 -85 -22" width="3" height="10"/>
+  <Image id="reachMeter42" image = "Reach Cell" position="97 -85 -22" width="3" height="10"/>
+  <Image id="reachMeter43" image = "Reach Cell" position="100 -85 -22" width="3" height="10"/>
+  <Image id="reachMeter44" image = "Reach Cell" position="103 -85 -22" width="3" height="10"/>
+  <Image id="reachMeter45" image = "Reach Cell" position="106 -85 -22" width="3" height="10"/>
+  <Image id="reachMeter46" image = "Reach Cell" position="109 -85 -22" width="3" height="10"/>
+  <Image id="reachMeter47" image = "Reach Cell" position="112 -85 -22" width="3" height="10"/>
+</ToggleGroup>
+
+<ToggleGroup id="standardSetupDraft" active="false">
+    <Button onclick="makeStandardSetupDraftFaction" id="StandardSetup Marquise de Cat" position="-32 17 -20" width="26" height="20" fontSize="8" icon="Marquise de Cat" color="#d77435"/>
+    <Button onclick="makeStandardSetupDraftFaction" id="StandardSetup Eyrie Dynasties" position="-6 17 -20" width="26" height="20" fontSize="8" icon="Eyrie Dynasties" color="#4776b6"/>
+    <Button onclick="makeStandardSetupDraftFaction" id="StandardSetup Woodland Alliance" position="20 17 -20" width="26" height="20" fontSize="8" icon="Woodland Alliance" color="#6bb659"/>
+
+    <Button onclick="makeStandardSetupDraftFaction" id="StandardSetup The Lizard Cult" position="-32 -3 -20" width="26" height="20" fontSize="8" icon="The Lizard Cult" color="#e8e138"/>
+    <Button onclick="makeStandardSetupDraftFaction" id="StandardSetup Riverfolk Company" position="-6 -3 -20" width="26" height="20" fontSize="8" icon="Riverfolk Company" color="#5cbab4"/>
+    <Button onclick="makeStandardSetupDraftFaction" id="StandardSetup Underground Duchy" position="20 -3 -20" width="26" height="20" fontSize="8" icon="Underground Duchy" color="#e4c0a2"/>
+
+    <Button onclick="makeStandardSetupDraftFaction" id="StandardSetup Corvid Conspiracy" position="-32 -23 -20" width="26" height="20" fontSize="8" icon="Corvid Conspiracy" color="#542c75"/>
+    <Button onclick="makeStandardSetupDraftFaction" id="StandardSetup Lord of the Hundreds" position="-6 -23 -20" width="26" height="20" fontSize="8" icon="Lord of the Hundreds" color="#f3461b"/>
+    <Button onclick="makeStandardSetupDraftFaction" id="StandardSetup Keepers in Iron" position="20 -23 -20" width="26" height="20" fontSize="8" icon="Keepers in Iron" color="#acadb1"/>
+
+    <Button onclick="makeStandardSetupDraftFaction" id="StandardSetup Twilight Council" position="-32 -43 -20" width="26" height="20" fontSize="8" icon="Twilight Council" color="#964E30"/>
+    <Button onclick="makeStandardSetupDraftFaction" id="StandardSetup Lilypad Diaspora" position="-6 -43 -20" width="26" height="20" fontSize="8" icon="Lilypad Diaspora" color="#B09804"/>
+    <Button onclick="makeStandardSetupDraftFaction" id="StandardSetup Knaves of the Deepwood" position="20 -43 -20" width="26" height="20" fontSize="8" icon="Knaves of the Deepwood" color="gray"/>
+
+    <Button onclick="makeStandardSetupDraftFaction" id="StandardSetup Adventurer" position="50 17 -20" width="26" height="20" fontSize="8" icon="Adventurer" color="gray"/>
+    <Button onclick="makeStandardSetupDraftFaction" id="StandardSetup Arbiter" position="76 17 -20" width="26" height="20" fontSize="8" icon="Arbiter" color="gray"/>
+    <Button onclick="makeStandardSetupDraftFaction" id="StandardSetup Cheat" position="102 17 -20" width="26" height="20" fontSize="8" icon="Cheat" color="gray"/>
+
+    <Button onclick="makeStandardSetupDraftFaction" id="StandardSetup Gladiator" position="50 -3 -20" width="26" height="20" fontSize="8" icon="Gladiator" color="gray"/>
+    <Button onclick="makeStandardSetupDraftFaction" id="StandardSetup Harrier" position="76 -3 -20" width="26" height="20" fontSize="8" icon="Harrier" color="gray"/>
+    <Button onclick="makeStandardSetupDraftFaction" id="StandardSetup Jailor" position="102 -3 -20" width="26" height="20" fontSize="8" icon="Jailor" color="gray"/>
+
+    <Button onclick="makeStandardSetupDraftFaction" id="StandardSetup Ranger" position="50 -23 -20" width="26" height="20" fontSize="8" icon="Ranger" color="gray"/>
+    <Button onclick="makeStandardSetupDraftFaction" id="StandardSetup Ronin" position="76 -23 -20" width="26" height="20" fontSize="8" icon="Ronin" color="gray"/>
+    <Button onclick="makeStandardSetupDraftFaction" id="StandardSetup Scoundrel" position="102 -23 -20" width="26" height="20" fontSize="8" icon="Scoundrel" color="gray"/>
+
+    <Button onclick="makeStandardSetupDraftFaction" id="StandardSetup Thief" position="50 -43 -20" width="26" height="20" fontSize="8" icon="Thief" color="gray"/>
+    <Button onclick="makeStandardSetupDraftFaction" id="StandardSetup Tinker" position="76 -43 -20" width="26" height="20" fontSize="8" icon="Tinker" color="gray"/>
+    <Button onclick="makeStandardSetupDraftFaction" id="StandardSetup Vagrant" position="102 -43 -20" width="26" height="20" fontSize="8" icon="Vagrant" color="gray"/>
+</ToggleGroup>  

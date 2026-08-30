@@ -7,7 +7,7 @@ Ordered backlog. Newest big items at the bottom.
   reverse faction draft, board-removed-then-faction spawn, Knaves captains, box score.
 - **RGBA Ranked/Theme buttons** (`m480`) — wired to the 150×150 RGBA uploads.
 - **5-player setup button art** (`m240`) — top-down `5players.png` (Steam-hosted RGBA).
-- **Box score** (`m470`/`_boxscore.json`) — spawns at Adrien's placed spot
+- **Box score** (`m470`/`_boxscore.json`) — spawns at the maintainer's placed spot
   (-59.09,11.65,-3.15) rotY270, scaled to fill the board rectangle (~1.3× wide, 1.1× tall).
 - **Priority markers** all fixed-clearing maps (`m460`) + **Marsh flood-aware** (drop the
   token on each flooded clearing; `m440` exports `RTT_MARSH_FLOODED`).
@@ -26,7 +26,7 @@ Ordered backlog. Newest big items at the bottom.
   - *Mountain map*: never the Tower — roll a d4; 0 → Lost City, else the middle-clearing
     suit's landmark; place the landmark's rules card at the map's lower-left.
 
-## Needs an in-TTS visual pass / a decision from Adrien
+## Needs an in-TTS visual pass / a decision from the maintainer
 1. **Mountain middle-clearing suit** — I can't find a suit token in the save to read
    (suits look printed), so `rttMiddleSuit()` returns nil and the roll currently always
    yields **Lost City**. Tell me how the middle clearing's suit is encoded (a token image?

@@ -5,6 +5,8 @@ __pycache__/
 # local machine setup helpers (paths + settings edits specific to this machine)
 /setup/
 
-# NOTE: dist/ (the compiled self-contained save) and base/ (the source mod) are BOTH committed
-# on purpose -- Adrien has full authorization; the repo is self-contained so GitHub holds the
-# final one-file product AND can rebuild it with nothing external.
+# generator build output (reproduced from gen/src by gen/assemble.py)
+gen/build/
+
+# NOTE: dist/ (the compiled self-contained save) is committed on purpose -- the repo is
+# self-contained, so GitHub holds the final one-file product AND can rebuild it from gen/src.

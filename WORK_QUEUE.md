@@ -1,10 +1,10 @@
 # RTT Work Queue
 
 Single source of truth for outstanding tasks. Nothing is "done" until it's built, committed, and
-Adrien has confirmed it in TTS. Keep this file live: add every new request here the moment it lands,
-tick items only when committed, and re-open anything Adrien reports still broken.
+the maintainer has confirmed it in TTS. Keep this file live: add every new request here the moment it lands,
+tick items only when committed, and re-open anything the maintainer reports still broken.
 
-## Golden rule (Adrien, repeated + hardened)
+## Golden rule (the maintainer, repeated + hardened)
 **Fix the BLUEPRINT, never patch at runtime.** No dirty tricks — no spawn-then-move, no
 spawn-below-the-table-then-reveal, no runtime tuck. Modify the faction's data so every piece
 starts in its final container/position:
@@ -18,7 +18,7 @@ starts in its final container/position:
 - [ ] **Battle mat**: spawn ONE battle mat with EVERY map placement; never duplicated / bundled with
       another item. Live flow = rttPlaceMap spawns it once (OK); dead paths (rttCoordPick, rttMarsh5P)
       to be removed in the cleanup. Make the single-spawn bulletproof (fold into cleanup).
-- [ ] **Duchy (moles) tunnel position**: Adrien moved the TUNNEL when the Duchy spawns and saved it.
+- [ ] **Duchy (moles) tunnel position**: the maintainer moved the TUNNEL when the Duchy spawns and saved it.
       Recover the new tunnel move_to from his recent save (board-frame reproject) + bake into the Duchy
       blueprint (m300) so it spawns there every time, from any faction board / setup. NEED: which save.
 - [ ] **Thorough code cleanup** (workflow wbindjqke running): drop obsolete/dead code + bloat, no
@@ -73,7 +73,7 @@ starts in its final container/position:
 
 ## OPEN
 
-### Randomization / RNG (Adrien: "very dangerous") — DONE + PROVEN
+### Randomization / RNG (the maintainer: "very dangerous") — DONE + PROVEN
 - [x] **ROOT CAUSE fixed**: base shuffle() reseeded math.randomseed(os.time()) 101x/call + next
       frame -> deterministic-per-second, and shuffleMaps() runs it right before the landmark. m600
       replaces it with one clean Fisher-Yates, no reseed. Removed the per-draft reseed (m250) too.
@@ -83,7 +83,7 @@ starts in its final container/position:
 - [x] Marsh number tokens rest on the board (11.635).
 
 ### Seating / hand placement — REWORKED to restore the base (2026-08-28, multi-agent workflow)
-- [~] **Seat on turn-order-card by CARD NUMBER** (per Adrien: "same code, different trigger"): the base
+- [~] **Seat on turn-order-card by CARD NUMBER** (per the maintainer: "same code, different trigger"): the base
       seated correctly on faction-pick via `placePlayer` (changeColor + setHandTransform into base
       handPositions + handScale). RTT's `rttSeatPlayers` had dropped that: a 2nd shuffle (seat != card),
       a bare setHandTransform (no changeColor/scale, never seated the player), and same-frame `ord.deal`
@@ -99,13 +99,13 @@ starts in its final container/position:
 - [x] **Remove pick-map / pick-deck**: rttBeginPick skips the pick, spawns boards immediately.
       5-player button still auto-places Marsh.
 - [x] **Fixed board/seat count** = RTT_DN-1 -> fixes the 2-player bug.
-- [x] **Seating (REVISED per Adrien's report)**: do NOT move hands / change colour (that caused the
+- [x] **Seating (REVISED per the maintainer's report)**: do NOT move hands / change colour (that caused the
       "hand under the table" + wrong-seat bug). rttSeatPlayers matches each seated player to the board
       at THEIR OWN seat (nearest to where they sit) and deals the turn-order card into their existing
       hand. Order deck stays ON the table (turn order isn't secret). Turn order is random.
 - [x] **Restrict**: rttCoordFaction only lets a player pick on their OWN seat's board (no seat conflicts).
 - [x] **Simultaneous**: every board lights at once; fixed faction slots (no race).
-- [x] **Knave Captains**: unlocked, laid FACE-UP in Adrien's line (x 53.5, z -8..+7.4); source deck
+- [x] **Knave Captains**: unlocked, laid FACE-UP in the maintainer's line (x 53.5, z -8..+7.4); source deck
       spawned below the table so the 8 undrafted captains never show. "Pick your faction" text removed.
   VERIFY in TTS: nearest-seat board matching, restrict, captain line, real 4-player draft resolves.
 
@@ -121,16 +121,16 @@ starts in its final container/position:
 - [x] **Landmark explanation cards — flip** (DONE): m490 Mountain landmark now passes crotZ 180
       (RULES/BackURL face up). Marsh 5p towns already correct.
 - [x] **Lost City rules-card art (outdated)** (DONE, verified): m610 swapped the card's outdated RULES
-      face (BackURL) to Adrien's new Steam upload. Verified in dist: new URL `.../11026657163450986659/
+      face (BackURL) to the maintainer's new Steam upload. Verified in dist: new URL `.../11026657163450986659/
       01C4A12996D5C47049E1BA794CC33AC10F9AF662/` present, old `.../1859433736252751364/0DC4B26C.../` gone.
 
 ### Golden-rule cleanup — DONE
-- [x] **Crows warriors** (DONE): Adrien set up Corvid + saved; m620 bakes the 4 warriors the verified
+- [x] **Crows warriors** (DONE): the maintainer set up Corvid + saved; m620 bakes the 4 warriors the verified
       way (3 loose move_to'd 8b4f9c/b66f9e/d78475 + un-stow the 4th 29769e from the supply bag) plus the
       moved supply bag 653be4. Runtime warrior reposition removed from rttCrowsPlots. All 5 GUIDs verified
       present in the dist blueprint.
 
-## DONE (this session, pending Adrien's confirmation in TTS)
+## DONE (this session, pending the maintainer's confirmation in TTS)
 - [x] Bats (Twilight Council): 6 warriors + 6 assemblies baked into blueprint (m560); rttBatsSetup removed.
 - [x] **Marquise (proper blueprint fix)**: 8 of the 11 loose warriors MOVED into the supply bag
       (framework.stow_loose_in_bag); 3 staging warriors baked below the 3 starting buildings (z 5.4,

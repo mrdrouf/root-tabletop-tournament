@@ -80,8 +80,6 @@ The mod is generated from this repo — see **[`gen/README.md`](gen/README.md)**
 python gen/assemble.py     # -> gen/build/Root_Tabletop_Tournament.json (then copy to dist/ + Saves)
 ```
 
-Source of truth is `gen/src/`: **`content.lua`** (Root’s object data) + **`logic.lua`** (our code —
-setup, draft, seating, factions, maps, box score). The generator owns everything and assembles the
-finished save; nothing is inherited‑then‑removed.
-
-`base/` + `mods/` + `build.py` are the previous base‑plus‑patches pipeline, kept only as history.
+Source of truth is `gen/src/`: **`save.json`** (the object layout) + **`content.lua`** (Root’s object
+data) + **`logic.lua`** (our code — setup, draft, seating, factions, maps, box score). The generator
+owns everything and assembles the finished save from scratch; nothing is inherited‑then‑removed.

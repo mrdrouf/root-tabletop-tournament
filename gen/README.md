@@ -3,21 +3,19 @@
 The mod is **built from this code**, not from the base game + patches. Everything it needs is owned here.
 
     python gen/assemble.py            # -> gen/build/Root_Tabletop_Tournament.json  (the finished save)
-    python gen/assemble.py --verify   # assert byte-identity to the identity reference
+    python gen/assemble.py --verify   # also assert it matches dist/ (the shipped reference)
 
 ## Source (`gen/src/`)
-- **`content.lua`** — Root's object DATA (the 12 factions, 6 maps, decks, landmarks, tools we use). ~84%.
-- **`logic.lua`**   — OUR CODE: the setup board, draft & seating, faction setup, maps, box score, plus
-  the RTT constants/tables. This is the file you edit. ~16%.
-- `save.json` — the scene/table/hand-zones + save metadata (the board's Lua is injected at assemble).
-- `board.lua` — the identity original (bloat+dead still in), kept only for `--verify`.
+- **`save.json`** — the scene: table, hand zones, object layout / blueprint, save metadata. The setup
+  board's Lua is injected at assemble time (the `@@BOARD_LUA@@` placeholder).
+- **`content.lua`** — Root's object DATA (the 12 factions, 6 maps, decks, landmarks, tools we use).
+- **`logic.lua`** — OUR CODE: the setup board, draft & seating, faction setup, maps, box score, plus
+  the RTT constants/tables. **This is the file you edit.**
 
-## How it was cleaned (`gen/clean.py`, `tools/lua_chunker.py`)
-Started from the working mod, then **omitted** (never emitted) 109 dead functions + unused data
-(bots/hirelings/fan-factions/scenarios/adset) — 19.3% smaller — behind layered safety: reachability
-across every object's Lua, self-consistency, the build's dangling-ref oracle, a category-init guard,
-and a no-dynamic-dispatch check. Nothing is "removed from a base"; junk is simply not there.
+## Build
+`assemble.py` reads `save.json`, injects `content.lua + logic.lua` as the board Lua, and writes the
+finished self-contained save to `gen/build/` (copy it to `dist/` and your TTS `Saves/` to play).
+There is no external base and no patch pipeline — the whole save is assembled from scratch, so GitHub
+holds both the finished one-file product (`dist/`) and everything needed to rebuild it.
 
-## Legacy
-The old `base/` + `mods/` + `build.py` pipeline is kept for history/reference. It is no longer the
-build path — edits go in `gen/src/logic.lua` (or `content.lua`), then `python gen/assemble.py`.
+`tools/lua_chunker.py` is a helper that validates the board Lua is balanced (used when editing).

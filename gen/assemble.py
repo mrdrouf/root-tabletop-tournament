@@ -1,10 +1,11 @@
 """
-assemble.py — the RTT generator (identity stage).
+assemble.py — the RTT generator.
 
-Builds the finished self-contained save from owned source in gen/src/ — no external base, no
-patch pipeline, nothing removed at runtime. Right now it reassembles the mod exactly (identity
-stage, proving the generator owns and reproduces every byte); the board Lua is then split into
-clean modules and the bloat/dead code is simply never emitted (subtractive-by-omission).
+Builds the finished self-contained save from owned source in gen/src/:
+    save.json    -- the object layout / blueprint (with an @@BOARD_LUA@@ placeholder)
+    content.lua  -- Root's object DATA
+    logic.lua    -- OUR code (setup, draft, seating, factions, maps, box score)
+There is no external base and no patch pipeline; the finished save is assembled from scratch.
 
     python gen/assemble.py            # -> gen/build/Root_Tabletop_Tournament.json
     python gen/assemble.py --verify   # also assert it matches dist/ (the reference) structurally
@@ -28,20 +29,10 @@ def _set_board_lua(objs, lua):
 
 
 def _board_lua():
-    """The board Lua, from the most-modular source available.
-      content.lua + logic.lua   -> Root's object DATA (content) + OUR CODE (logic)   [preferred]
-      board.clean.lua           -> the cleaned single file
-      board.lua                 -> the identity original (for --identity/--verify)
-    """
+    """The board Lua = Root's object DATA (content.lua) + OUR CODE (logic.lua)."""
     content = os.path.join(SRC, "content.lua")
     logic = os.path.join(SRC, "logic.lua")
-    clean = os.path.join(SRC, "board.clean.lua")
-    identity = "--identity" in sys.argv
-    if not identity and os.path.exists(content) and os.path.exists(logic):
-        return open(content, encoding="utf-8").read() + open(logic, encoding="utf-8").read()
-    if not identity and os.path.exists(clean):
-        return open(clean, encoding="utf-8").read()
-    return open(os.path.join(SRC, "board.lua"), encoding="utf-8").read()
+    return open(content, encoding="utf-8").read() + open(logic, encoding="utf-8").read()
 
 
 def build():
