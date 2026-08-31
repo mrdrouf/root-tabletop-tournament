@@ -6914,6 +6914,7 @@ function rttKnaveCaptainBoard(cx, cz, flip)
     rotation = { 0, fry, 0 },
     callback_function = function(board)
       pcall(function() board.addTag("RTT Faction") end)  -- goes out WITH the faction on re-draft
+      pcall(function() board.addTag("RTT Captains") end) -- so the size-panel buttons can find it
       pcall(function() board.setLock(false) end)         -- UNLOCKED design tool
       -- DESIGN TOOL: the board keeps the FIXED aspect-correct scale baked in the JSON. NO self-size
       -- (the Custom_Tile's getBounds is unreliable and produced the wrong dimensions every time).
@@ -6922,61 +6923,52 @@ function rttKnaveCaptainBoard(cx, cz, flip)
       Wait.frames(function()
         pcall(function() rttCaptainSnaps(board, fp, fry) end)
         pcall(function() rttPoolCaptains(board, fp) end)
-        pcall(function() rttCaptainHandles(board) end)
+        pcall(function() rttCaptainControlPanel(board) end)
       end, 15)
     end
   })
 end
 
--- ---- Captain board resize HANDLES (drag the 4 red corner blocks; the board follows) ---------------
--- TTS can't resize a tile from a menu, and buttons on a stretched tile render wrong. So spawn 4
--- DRAGGABLE corner blocks; a poll keeps the board sized + centred to the rectangle they form. Drag
--- the corners until the board frames the 3 cards, then SAVE -- we read the resulting scale from the
--- save and bake it (and drop the handles). Tagged "RTT Cap Handle" (poll finds them) + "RTT Faction"
--- (cleared with the faction).
-RTT_CAP_HANDLE_TAG = "RTT Cap Handle"
-function rttCaptainHandles(board)
+-- ---- Captain board SIZE control panel (stable buttons on a SEPARATE tile) --------------------------
+-- The 4-corner drag was unstable (the squares fought the board). Instead spawn a small control tile
+-- BESIDE the board with resize buttons (uniform + per-axis, so you can shape the card slot). Each
+-- click just does setScale on the board (instant, stable, no collision). Size it to frame the 3
+-- cards, then SAVE and I bake the resulting scale (the panel is tagged "RTT Faction" -> cleared with
+-- the faction). The board carries tag "RTT Captains" so the buttons find it.
+RTT_CAPTAINS_TAG = "RTT Captains"
+function rttCapBoard()
+  local ok, hs = pcall(function() return getObjectsWithTag(RTT_CAPTAINS_TAG) end)
+  return (ok and hs and hs[1]) or nil
+end
+function rttCapBigger()   local b = rttCapBoard(); if b then local s = b.getScale(); pcall(function() b.setScale({ s.x * 1.1, 1, s.z * 1.1 }) end) end end
+function rttCapSmaller()  local b = rttCapBoard(); if b then local s = b.getScale(); pcall(function() b.setScale({ math.max(0.4, s.x * 0.9), 1, math.max(1, s.z * 0.9) }) end) end end
+function rttCapWider()    local b = rttCapBoard(); if b then local s = b.getScale(); pcall(function() b.setScale({ s.x * 1.12, 1, s.z }) end) end end
+function rttCapNarrower() local b = rttCapBoard(); if b then local s = b.getScale(); pcall(function() b.setScale({ math.max(0.4, s.x * 0.89), 1, s.z }) end) end end
+function rttCapTaller()   local b = rttCapBoard(); if b then local s = b.getScale(); pcall(function() b.setScale({ s.x, 1, s.z * 1.12 }) end) end end
+function rttCapShorter()  local b = rttCapBoard(); if b then local s = b.getScale(); pcall(function() b.setScale({ s.x, 1, math.max(1, s.z * 0.89) }) end) end end
+function rttCaptainControlPanel(board)
   if board == nil then return end
   local bp = board.getPosition()
   local bb = board.getBounds().size
-  local hx, hz = math.max(1, bb.x / 2), math.max(1, bb.z / 2)
-  local corners = { { bp.x - hx, bp.z - hz }, { bp.x + hx, bp.z - hz }, { bp.x + hx, bp.z + hz }, { bp.x - hx, bp.z + hz } }
-  for _, c in ipairs(corners) do
-    spawnObject({
-      type = "BlockSquare",
-      position = { c[1], bp.y + 0.6, c[2] },
-      scale = { 0.7, 0.4, 0.7 },
-      callback_function = function(o)
-        pcall(function() o.setColorTint({ 0.9, 0.15, 0.15 }) end)
-        pcall(function() o.addTag(RTT_CAP_HANDLE_TAG) end)
-        pcall(function() o.addTag("RTT Faction") end)
-        pcall(function() o.setName("drag to size the Captains board") end)
-        pcall(function() o.setLock(false) end)
+  spawnObject({
+    type = "BlockSquare",
+    position = { bp.x - (bb.x / 2 + 5), bp.y + 0.3, bp.z },
+    scale = { 4.5, 0.3, 4.5 },
+    callback_function = function(panel)
+      pcall(function() panel.setColorTint({ 0.15, 0.12, 0.09 }) end)
+      pcall(function() panel.setLock(true) end)
+      pcall(function() panel.addTag("RTT Faction") end)
+      pcall(function() panel.setName("Captains board size -- resize, then Save") end)
+      local function mk(lbl, px, pz, fn)
+        panel.createButton({ click_function = fn, function_owner = nil, label = lbl,
+          position = { px, 0.7, pz }, width = 360, height = 240, font_size = 78,
+          color = { 0.9, 0.85, 0.7 }, font_color = { 0.1, 0.08, 0.05 } })
       end
-    })
-  end
-  rttCapFollowHandles(board)
-end
-function rttCapFollowHandles(board)
-  if board == nil then return end
-  local ok, hs = pcall(function() return getObjectsWithTag(RTT_CAP_HANDLE_TAG) end)
-  if ok and hs and #hs >= 4 then
-    local minx, maxx, minz, maxz = 1e9, -1e9, 1e9, -1e9
-    for _, h in ipairs(hs) do
-      local p = h.getPosition()
-      minx = math.min(minx, p.x); maxx = math.max(maxx, p.x)
-      minz = math.min(minz, p.z); maxz = math.max(maxz, p.z)
+      mk("Bigger", -0.25, 0.30, "rttCapBigger");  mk("Smaller", 0.25, 0.30, "rttCapSmaller")
+      mk("Wider", -0.25, 0.0, "rttCapWider");      mk("Narrower", 0.25, 0.0, "rttCapNarrower")
+      mk("Taller", -0.25, -0.30, "rttCapTaller");  mk("Shorter", 0.25, -0.30, "rttCapShorter")
     end
-    local W, H = maxx - minx, maxz - minz
-    local bb = board.getBounds().size
-    if W > 1 and H > 1 and bb.x > 0.1 and bb.z > 0.1 then
-      local sc = board.getScale()
-      pcall(function() board.setScale({ sc.x * W / bb.x, 1, sc.z * H / bb.z }) end)
-      local bp = board.getPosition()
-      pcall(function() board.setPositionSmooth({ (minx + maxx) / 2, bp.y, (minz + maxz) / 2 }, false, true) end)
-    end
-  end
-  Wait.time(function() rttCapFollowHandles(board) end, 0.3)
+  })
 end
 
 -- put a snap point at each of the maintainer's 3 EXACT card positions (faction-local -> world -> board-local)
