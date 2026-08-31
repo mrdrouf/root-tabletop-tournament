@@ -6876,7 +6876,7 @@ RTT_CAP_SLOT_FRAC = { 0.241, 0.5, 0.759 }   -- slot-centre y-fractions (PORTRAIT
 -- (card rotY == faction rotY). The board's 3 snaps are set EXACTLY here at runtime, and the board
 -- self-sizes so the drawn slots line up with this spacing (7.42) -- so a slot frames each card.
 RTT_CAP_CARDS = { { 15.68, -9.53 }, { 15.68, -2.11 }, { 15.68, 5.32 } }
-RTT_CAPTAIN_BOARD_JSON = [==[{"Name":"Custom_Tile","Transform":{"posX":0.0,"posY":11.5,"posZ":0.0,"rotX":0.0,"rotY":0.0,"rotZ":0.0,"scaleX":2.586,"scaleY":1.0,"scaleZ":12.0},"Nickname":"Knaves Captains","Description":"","ColorDiffuse":{"r":1.0,"g":1.0,"b":1.0},"Locked":true,"Grid":true,"Snap":true,"IgnoreFoW":false,"MeasureMovement":false,"DragSelectable":true,"Autoraise":true,"Sticky":true,"Tooltip":true,"GridProjection":false,"HideWhenFaceDown":false,"Hands":false,"CustomImage":{"ImageURL":"https://cdn.jsdelivr.net/gh/mrdrouf/root-tabletop-tournament@main/assets/labels/knaves_captains_board.png","ImageSecondaryURL":"","ImageScalar":1.0,"WidthScale":0.0,"CustomTile":{"Type":0,"Thickness":0.1,"Stackable":false,"Stretch":true}}}]==]
+RTT_CAPTAIN_BOARD_JSON = [==[{"Name":"Custom_Tile","Transform":{"posX":0.0,"posY":11.5,"posZ":0.0,"rotX":0.0,"rotY":0.0,"rotZ":0.0,"scaleX":2.155,"scaleY":1.0,"scaleZ":10.0},"Nickname":"Knaves Captains","Description":"","ColorDiffuse":{"r":1.0,"g":1.0,"b":1.0},"Locked":true,"Grid":true,"Snap":true,"IgnoreFoW":false,"MeasureMovement":false,"DragSelectable":true,"Autoraise":true,"Sticky":true,"Tooltip":true,"GridProjection":false,"HideWhenFaceDown":false,"Hands":false,"CustomImage":{"ImageURL":"https://cdn.jsdelivr.net/gh/mrdrouf/root-tabletop-tournament@main/assets/labels/knaves_captains_board.png","ImageSecondaryURL":"","ImageScalar":1.0,"WidthScale":0.0,"CustomTile":{"Type":0,"Thickness":0.1,"Stackable":false,"Stretch":true}}}]==]
 
 -- spawn the Captains board at the maintainer's spot, LEFT of the Knaves rules board (faction-local offset).
 -- Tagged "RTT Faction" so it is cleared together with the faction (never left as an orphan).
@@ -6898,46 +6898,22 @@ function rttKnaveCaptainBoard(cx, cz, flip)
   local wz = fp.z - RTT_CAP_OFF_X * math.sin(ang) + RTT_CAP_OFF_Z * math.cos(ang)
   local pos = { wx, fp.y, wz }
   spawnObjectJSON({
-    json = RTT_CAPTAIN_BOARD_JSON,                        -- initial scale 12; self-sized below
+    json = RTT_CAPTAIN_BOARD_JSON,                        -- FIXED aspect-correct scale; resize in-game + save
     position = pos,
     rotation = { 0, fry, 0 },
     callback_function = function(board)
       pcall(function() board.addTag("RTT Faction") end)  -- goes out WITH the faction on re-draft
-      pcall(function() board.setLock(false) end)         -- UNLOCKED: resize/move it in-game, then save to rebake
-      -- wait for the remote image to LOAD (getBounds is ~0 until then), THEN self-size + snap + pool
-      Wait.condition(
-        function() rttFitCaptainBoard(board, fp, fry) end,
-        function()
-          local ok, b = pcall(function() return board.getBounds().size end)
-          return ok and b ~= nil and math.max(b.x, b.z) > 4
-        end, 8,
-        function() rttFitCaptainBoard(board, fp, fry) end)
+      pcall(function() board.setLock(false) end)         -- UNLOCKED design tool
+      -- DESIGN TOOL: the board keeps the FIXED aspect-correct scale baked in the JSON. NO self-size
+      -- (the Custom_Tile's getBounds is unreliable and produced the wrong dimensions every time).
+      -- Adrien resizes the unlocked board to frame the 3 cards, saves, and we rebake scaleX/scaleZ
+      -- from that save. No 8s image-load wait, so it appears promptly with the faction.
+      Wait.frames(function()
+        pcall(function() rttCaptainSnaps(board, fp, fry) end)
+        pcall(function() rttPoolCaptains(board, fp) end)
+      end, 15)
     end
   })
-end
-
--- self-size the board so the DRAWN slot spacing == the maintainer's card spacing (7.42), then snap + pool.
--- Sizing to the placed spacing (not the card getBounds) is what makes the printed slots frame the cards.
-function rttFitCaptainBoard(board, fp, fry)
-  if board == nil then return end
-  local dx = RTT_CAP_CARDS[2][1] - RTT_CAP_CARDS[1][1]
-  local dz = RTT_CAP_CARDS[2][2] - RTT_CAP_CARDS[1][2]
-  local spacing = math.sqrt(dx * dx + dz * dz)               -- world gap between adjacent slots (7.42)
-  local frac = 0.5 - RTT_CAP_SLOT_FRAC[1]                     -- slot-centre offset from board centre (0.259)
-  local desiredH = spacing / frac                            -- board visual height so slot@frac == spacing
-  local bb = board.getBounds().size
-  local curH = math.max(bb.x, bb.z)          -- current column (long, Z) world extent
-  if curH > 0.01 and frac > 0.001 then
-    -- scale BOTH axes by the same factor k so scaleX:scaleZ (the image aspect) is PRESERVED
-    -- (setting them equal makes a square tile and squishes the portrait slots into landscape)
-    local k = desiredH / curH
-    local sc = board.getScale()
-    pcall(function() board.setScale({ sc.x * k, 1, sc.z * k }) end)
-  end
-  Wait.frames(function()
-    pcall(function() rttCaptainSnaps(board, fp, fry) end)
-    pcall(function() rttPoolCaptains(board, fp) end)   -- never let the pool crash the board spawn
-  end, 20)
 end
 
 -- put a snap point at each of the maintainer's 3 EXACT card positions (faction-local -> world -> board-local)
