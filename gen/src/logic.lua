@@ -4649,6 +4649,28 @@ function standard()
 
 end
 
+local RTT_FACTION_GRID = {
+  {"Marquise de Cat", "-90 45 -20"},
+  {"Eyrie Dynasties", "-30 45 -20"},
+  {"Woodland Alliance", "30 45 -20"},
+  {"Knaves of the Deepwood", "90 45 -20"},
+  {"The Lizard Cult", "-90 -5 -20"},
+  {"Riverfolk Company", "-30 -5 -20"},
+  {"Underground Duchy", "30 -5 -20"},
+  {"Corvid Conspiracy", "90 -5 -20"},
+  {"Lord of the Hundreds", "-90 -55 -20"},
+  {"Keepers in Iron", "-30 -55 -20"},
+  {"Twilight Council", "30 -55 -20"},
+  {"Lilypad Diaspora", "90 -55 -20"}
+}
+
+local function cleanFactionBoard(board)
+  pcall(function() board.UI.setAttribute("Main Nav Personal", "active", "False") end)
+  for _, faction in ipairs(RTT_FACTION_GRID) do
+    pcall(function() board.UI.setAttribute(faction[1], "position", faction[2]) end)
+  end
+end
+
 function configureFactionBoard(board)
   board.UI.setAttribute("Main Nav Personal", "active", "True")
   board.UI.setAttribute("Main Nav", "active", "False")
@@ -4696,6 +4718,12 @@ function setupFactionBoards(player, value, id)
 
       end,
       10
+    )
+    Wait.frames(
+      function()
+        cleanFactionBoard(board1)
+      end,
+      14
     )
   end
 end
@@ -4829,7 +4857,7 @@ function makeFactionSelector()
   board1.setPosition({54.81,-60,0})
   board1.setName("Faction Board")
   board1.locked = false
-  Wait.frames(function() pcall(function() board1.UI.setAttribute("Main Nav Personal", "active", "False") end) local _sp = {{"Marquise de Cat","-90 45 -20"},{"Eyrie Dynasties","-30 45 -20"},{"Woodland Alliance","30 45 -20"},{"Knaves of the Deepwood","90 45 -20"},{"The Lizard Cult","-90 -5 -20"},{"Riverfolk Company","-30 -5 -20"},{"Underground Duchy","30 -5 -20"},{"Corvid Conspiracy","90 -5 -20"},{"Lord of the Hundreds","-90 -55 -20"},{"Keepers in Iron","-30 -55 -20"},{"Twilight Council","30 -55 -20"},{"Lilypad Diaspora","90 -55 -20"}} for _, e in ipairs(_sp) do pcall(function() board1.UI.setAttribute(e[1], "position", e[2]) end) end board1.setPosition({54.81,11.56,0}) end, 14)
+  Wait.frames(function() cleanFactionBoard(board1) board1.setPosition({54.81,11.56,0}) end, 14)
 
   Wait.frames(
     function()
@@ -5379,7 +5407,7 @@ function rttDealOrder()
 end
 
 function makeFaction(player,value,id)
-  if player.color == "Grey" then broadcastToAll("Before choosing a faction, you must have a player color.") return end
+  if player.color == "Grey" then return end
   attrs = self.UI.getAttributes(id)
   category = attrs.category
 
