@@ -5414,6 +5414,11 @@ function makeFaction(player,value,id)
   setupFaction(category,id,player.color,false)
   do local cp = self.getPosition()
     Wait.time(function() rttFactionExtras(id, cp.x, cp.z, cp.z > 0, false) end, 1.2) end
+  -- UNIFY with the ranked path (rttCoordFaction): a manual pick ALSO puts this faction's VP marker
+  -- on the score track, so the box score picks it up -- same automation as ranked.
+  RTT_VP_PLACED = (RTT_VP_PLACED or 0) + 1
+  do local vpN, vpF = RTT_VP_PLACED, id
+     Wait.time(function() rttPlaceVP(vpF, vpN) end, 1.2) end
 
   if id == "The Winged Menace" then
     spawnWingedMenaceExtraHand(player.color)
