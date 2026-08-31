@@ -6948,25 +6948,27 @@ function rttCapTaller()   local b = rttCapBoard(); if b then local s = b.getScal
 function rttCapShorter()  local b = rttCapBoard(); if b then local s = b.getScale(); pcall(function() b.setScale({ s.x, 1, math.max(1, s.z * 0.89) }) end) end end
 function rttCaptainControlPanel(board)
   if board == nil then return end
+  local owner = getObjectFromGUID("bab7e1") or self   -- the buttons' functions live on the setup board
   local bp = board.getPosition()
   local bb = board.getBounds().size
   spawnObject({
     type = "BlockSquare",
-    position = { bp.x - (bb.x / 2 + 5), bp.y + 0.3, bp.z },
-    scale = { 4.5, 0.3, 4.5 },
+    position = { bp.x - (bb.x / 2 + 16), bp.y + 2, bp.z },   -- well clear of the board
+    rotation = { 0, 0, 0 },
+    scale = { 5, 0.3, 5 },
     callback_function = function(panel)
       pcall(function() panel.setColorTint({ 0.15, 0.12, 0.09 }) end)
-      pcall(function() panel.setLock(true) end)
+      pcall(function() panel.setLock(false) end)             -- MOVABLE: drag it wherever you like
       pcall(function() panel.addTag("RTT Faction") end)
-      pcall(function() panel.setName("Captains board size -- resize, then Save") end)
+      pcall(function() panel.setName("Captains board size (movable) -- resize, then Save") end)
       local function mk(lbl, px, pz, fn)
-        panel.createButton({ click_function = fn, function_owner = nil, label = lbl,
-          position = { px, 0.7, pz }, width = 360, height = 240, font_size = 78,
+        panel.createButton({ click_function = fn, function_owner = owner, label = lbl,
+          position = { px, 0.6, pz }, width = 420, height = 260, font_size = 80,
           color = { 0.9, 0.85, 0.7 }, font_color = { 0.1, 0.08, 0.05 } })
       end
-      mk("Bigger", -0.25, 0.30, "rttCapBigger");  mk("Smaller", 0.25, 0.30, "rttCapSmaller")
-      mk("Wider", -0.25, 0.0, "rttCapWider");      mk("Narrower", 0.25, 0.0, "rttCapNarrower")
-      mk("Taller", -0.25, -0.30, "rttCapTaller");  mk("Shorter", 0.25, -0.30, "rttCapShorter")
+      mk("Bigger", -0.26, 0.30, "rttCapBigger");  mk("Smaller", 0.26, 0.30, "rttCapSmaller")
+      mk("Wider", -0.26, 0.0, "rttCapWider");      mk("Narrower", 0.26, 0.0, "rttCapNarrower")
+      mk("Taller", -0.26, -0.30, "rttCapTaller");  mk("Shorter", 0.26, -0.30, "rttCapShorter")
     end
   })
 end
