@@ -6911,9 +6911,34 @@ function rttKnaveCaptainBoard(cx, cz, flip)
       Wait.frames(function()
         pcall(function() rttCaptainSnaps(board, fp, fry) end)
         pcall(function() rttPoolCaptains(board, fp) end)
+        pcall(function() rttCaptainResizeButtons(board) end)
       end, 15)
     end
   })
+end
+
+-- ---- Captain board resize buttons -----------------------------------------------------------------
+-- TTS has no easy way to resize a tile, so give Adrien buttons: click to size the board to frame the
+-- 3 cards, then SAVE -- we rebake scaleX/scaleZ from the save. Width buttons step scaleX; height
+-- buttons step scaleZ (~4x, since the board is ~4.6x taller than wide). Buttons re-drawn after each
+-- resize so they stay put.
+RTT_CAP_SC_STEP = 0.15
+function rttCapWmore(o) local s = o.getScale(); o.setScale({ s.x + RTT_CAP_SC_STEP, 1, s.z }); rttCaptainResizeButtons(o) end
+function rttCapWless(o) local s = o.getScale(); o.setScale({ math.max(0.4, s.x - RTT_CAP_SC_STEP), 1, s.z }); rttCaptainResizeButtons(o) end
+function rttCapHmore(o) local s = o.getScale(); o.setScale({ s.x, 1, s.z + RTT_CAP_SC_STEP * 4 }); rttCaptainResizeButtons(o) end
+function rttCapHless(o) local s = o.getScale(); o.setScale({ s.x, 1, math.max(2, s.z - RTT_CAP_SC_STEP * 4) }); rttCaptainResizeButtons(o) end
+function rttCaptainResizeButtons(board)
+  if board == nil then return end
+  pcall(function() board.clearButtons() end)
+  local function mk(lbl, pz, fn)
+    board.createButton({ click_function = fn, function_owner = nil, label = lbl,
+      position = { 0, 0.6, pz }, width = 700, height = 150, font_size = 90,
+      color = { 0.13, 0.1, 0.07 }, font_color = { 1, 0.95, 0.8 } })
+  end
+  mk("wider", 0.63, "rttCapWmore")
+  mk("narrower", 0.575, "rttCapWless")
+  mk("taller", 0.52, "rttCapHmore")
+  mk("shorter", 0.465, "rttCapHless")
 end
 
 -- put a snap point at each of the maintainer's 3 EXACT card positions (faction-local -> world -> board-local)
