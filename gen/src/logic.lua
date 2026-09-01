@@ -3159,9 +3159,92 @@ function rttSpawnCaptainsFor(rulesBoard)
         Wait.frames(function()
           pcall(function() rttPoolCaptains(board, fp) end)
         end, 5)
+        -- start the captain DETECTOR for this board: when a captain card lands in a slot, spawn that
+        -- captain's meeple above the Knaves board (items TODO once the item-supply source is known).
+        RTT_CAP_BOARD_GUID = board.getGUID()
+        RTT_CAP_KNAVE_GUID = rulesBoard.getGUID()
+        RTT_CAP_SPAWNED = {}; RTT_CAP_SPAWN_N = 0
+        pcall(function() rttBuildCaptainMeeples() end)
+        Wait.time(rttCaptainDetect, 2.0)
       end
     })
   end, 1)
+end
+
+-- ===== Knaves Captain DETECTION ==================================================================
+-- The Knaves blueprint carries all 12 "Captain - <Name>" meeples (Custom_Model) + their card deck.
+-- rttSpawnFaction SKIPS spawning the 12 meeples; this detector spawns ONLY the chosen captains' meeples
+-- (above the Knaves board) when their card lands in a captain-board slot. A captain is spawned ONCE --
+-- a remove-then-replace of the SAME captain does nothing (tracked in RTT_CAP_SPAWNED). Items are TODO:
+-- they are NOT in the Knaves blueprint (they come from the shared item supply), so rttSpawnCaptainMeeple
+-- has a hook to add RTT_CAP_ITEMS[name] to the Stash once that source is identified.
+RTT_CAP_CARDID = { [73400]="Arbiter",[73401]="Cheat",[73402]="Gladiator",[73403]="Adventurer",
+  [73404]="Harrier",[73405]="Jailor",[73406]="Ranger",[73407]="Tinker",[73408]="Ronin",
+  [73409]="Scoundrel",[73410]="Thief",[73411]="Vagrant" }
+RTT_CAP_ITEMS = { Arbiter={"Sword","Coins"}, Cheat={"Boot","Tea"}, Gladiator={"Sword","Hammer"},
+  Adventurer={"Hammer","Coins"}, Harrier={"Boot","Crossbow"}, Jailor={"Crossbow","Bag"},
+  Ranger={"Sword","Crossbow"}, Tinker={"Bag","Hammer"}, Ronin={"Boot","Sword"},
+  Scoundrel={"Crossbow","Tea"}, Thief={"Boot","Bag"}, Vagrant={"Tea","Coins"} }
+RTT_CAP_MEEPLE_JSON = nil
+RTT_CAP_BOARD_GUID  = nil
+RTT_CAP_KNAVE_GUID  = nil
+RTT_CAP_SPAWNED     = {}
+RTT_CAP_SPAWN_N     = 0
+
+function rttBuildCaptainMeeples()
+  if RTT_CAP_MEEPLE_JSON ~= nil then return end
+  RTT_CAP_MEEPLE_JSON = {}
+  local def = EVERYTHING["Standard"] and EVERYTHING["Standard"]["Knaves of the Deepwood"]
+  if def == nil or def.data == nil then return end
+  for _, v in ipairs(def.data) do
+    local m = string.match(v.json or "", '"Nickname":%s*"Captain %-%s*(%a+)"')
+    if m then RTT_CAP_MEEPLE_JSON[m] = v.json end
+  end
+end
+
+-- spawn one captain's meeple above the Knaves faction board, in a left-to-right row (idx 0,1,2,...).
+function rttSpawnCaptainMeeple(name, idx)
+  if RTT_CAP_MEEPLE_JSON == nil then rttBuildCaptainMeeples() end
+  local blob = RTT_CAP_MEEPLE_JSON and RTT_CAP_MEEPLE_JSON[name]
+  local kb = getObjectFromGUID(RTT_CAP_KNAVE_GUID or "")
+  if blob == nil or kb == nil then return end
+  local fp = kb.getPosition(); local fry = kb.getRotation().y; local ang = math.rad(fry)
+  local ox = -6.0 + (idx % 6) * 2.4      -- spread the row along the board's local X (above the board)
+  local oz = -14.0                       -- board-local Z: above/behind the faction board
+  local wx = fp.x + ox * math.cos(ang) + oz * math.sin(ang)
+  local wz = fp.z - ox * math.sin(ang) + oz * math.cos(ang)
+  spawnObjectJSON({
+    json = blob,
+    position = { wx, fp.y + 2.0, wz },
+    rotation = { 0, fry, 0 },
+    callback_function = function(o) pcall(function() o.addTag("RTT Faction") end) end
+  })
+  -- TODO(items): add RTT_CAP_ITEMS[name] to the Stash once the shared item-supply source is known.
+end
+
+function rttCaptainDetect()
+  local board = getObjectFromGUID(RTT_CAP_BOARD_GUID or "")
+  if board == nil then return end        -- board gone (faction cleared) -> stop polling
+  local bb = board.getBounds()
+  for _, o in ipairs(getAllObjects()) do
+    if o.name == "Card" or o.name == "CardCustom" then
+      local p = o.getPosition()
+      if math.abs(p.x - bb.center.x) <= bb.size.x / 2 + 1.0
+         and math.abs(p.z - bb.center.z) <= bb.size.z / 2 + 1.0
+         and math.abs(p.y - bb.center.y) <= 3.0 then
+        local ok, dt = pcall(function() return o.getData() end)
+        if ok and dt ~= nil and dt.CardID ~= nil and RTT_CAP_CARDID[dt.CardID] ~= nil then
+          local nm = RTT_CAP_CARDID[dt.CardID]
+          if not RTT_CAP_SPAWNED[nm] then
+            RTT_CAP_SPAWNED[nm] = true
+            rttSpawnCaptainMeeple(nm, RTT_CAP_SPAWN_N)
+            RTT_CAP_SPAWN_N = RTT_CAP_SPAWN_N + 1
+          end
+        end
+      end
+    end
+  end
+  Wait.time(rttCaptainDetect, 1.5)
 end
 
 -- lay the 4 drafted captains in a 2x2 grid beside the board (side away from the faction board),
@@ -3309,7 +3392,11 @@ function rttSpawnFaction(faction, cx, cz, flip, category, rotationY)
   if def == nil then return false end
   local objects = {}
   for _, v in ipairs(def['data']) do
-    if not string.find(v.json, '"Name": "Custom_Dice"', 1, true) then objects[#objects + 1] = v end
+    local isDice = string.find(v.json, '"Name": "Custom_Dice"', 1, true)
+    -- Knaves: do NOT spawn the 12 "Captain - <Name>" meeples with the faction; the captain DETECTOR
+    -- spawns only the chosen ones (rttCaptainDetect). Their blueprints are read from def.data directly.
+    local isCapMeeple = (faction == "Knaves of the Deepwood") and string.find(v.json, '"Nickname": "Captain -', 1, true)
+    if not isDice and not isCapMeeple then objects[#objects + 1] = v end
   end
   local scale = self.getScale()
   scale.x = 1 / scale.x
