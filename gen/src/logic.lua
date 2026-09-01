@@ -3991,22 +3991,18 @@ function rttCrowsHiddenZone(board, cx, cz, isDraft)
       end
     end
   end
-  -- Maintainer's rule: player's RIGHT for seats 2 & 3, player's LEFT for seats 1 & 4. But board-local
-  -- +x is the player's RIGHT only on a near-row board (rotY~0); on a far-row board (rotY~180) +x is the
-  -- player's LEFT. So map the wanted player-side into board-local x via the board's rotation (this is
-  -- what seat 4 needs). The Crafted Improvements board sits at board-local +x, so going +x pushes PAST
-  -- it (5.6); the opposite side is closer (3.3).
-  local ry = board.getRotation().y % 360
-  local plusIsRight = not (ry > 90 and ry < 270)    -- near row: board-local +x = player's right
-  local wantRight = (seat == 2 or seat == 3)
-  local lx = (wantRight == plusIsRight) and 5.6 or -2.0   -- +x clears the crafted column; -x side pulled in
-                                                          -- closer (was -3.3 = way off the table for seat 1)
-  local w = board.positionToWorld({ lx, 0.30, -0.404 })
+  -- FIXED board-local spot, the SAME for every seat. The Crafted Improvements board sits at board-local
+  -- x ~= -1.79 for EVERY seat (it spawns with the faction, so it rotates with the crow board); the hidden
+  -- box goes just PAST it at x = -3.07, near the board's depth centre. positionToWorld carries the seat's
+  -- rotation, so this one placement is correct for all 4 seats. This is exactly where the maintainer put
+  -- it by hand -- NO per-seat left/right branching, NO magnitude guessing (that threw it ~49u off table).
+  local w = board.positionToWorld({ RTT_CROW_HZ_LX, 0.30, RTT_CROW_HZ_LZ })
   local blob = string.gsub(RTT_CROW_HZ_JSON, '"FogColor":"White"', '"FogColor":"' .. color .. '"')
   spawnObjectJSON({
     json = blob,
     position = { w.x, 14.11, w.z },
-    rotation = { 0, board.getRotation().y, 0 },
+    rotation = { 0, board.getRotation().y, 0 },        -- straightened: aligned to the crow board
+    scale = { RTT_CROW_HZ_SX, RTT_CROW_HZ_SY, RTT_CROW_HZ_SZ },  -- uniform dimensions for every seat
     callback_function = function(o) o.setLock(true) o.addTag("RTT Faction") end
   })
 end
@@ -4264,6 +4260,14 @@ RTT_CROW_PLOTS = {
 [==[{"GUID":"ef396f","Name":"Custom_Tile","Transform":{"posX":2.6341083,"posY":11.5615435,"posZ":-35.4670753,"rotX":2.09103382e-06,"rotY":180.003647,"rotZ":-3.06159359e-06,"scaleX":0.703911364,"scaleY":1.0,"scaleZ":0.703911364},"Nickname":"Plot","Description":"","GMNotes":"","AltLookAngle":{"x":0.0,"y":0.0,"z":0.0},"ColorDiffuse":{"r":0.539603055,"g":0.391118348,"b":0.632404268},"LayoutGroupSortIndex":0,"Value":0,"Locked":false,"Grid":true,"Snap":true,"IgnoreFoW":false,"MeasureMovement":false,"DragSelectable":true,"Autoraise":true,"Sticky":true,"Tooltip":true,"GridProjection":false,"HideWhenFaceDown":false,"Hands":false,"CustomImage":{"ImageURL":"https://steamusercontent-a.akamaihd.net/ugc/1807607729518134114/5AC4FA97221C50C053365BA874BA837016D5C4DA/","ImageSecondaryURL":"https://steamusercontent-a.akamaihd.net/ugc/1807607729518125572/1C3B0C57CFFD05BB8AF1B9412849D054E6D7131E/","ImageScalar":1.0,"WidthScale":0.0,"CustomTile":{"Type":2,"Thickness":0.1,"Stackable":false,"Stretch":true}},"LuaScript":"","LuaScriptState":"","XmlUI":""}]==],
 [==[{"GUID":"d87fa8","Name":"Custom_Tile","Transform":{"posX":2.59436,"posY":11.5615435,"posZ":-33.8944244,"rotX":1.47051026e-07,"rotY":180.000031,"rotZ":7.15139436e-07,"scaleX":0.703911364,"scaleY":1.0,"scaleZ":0.703911364},"Nickname":"Plot","Description":"","GMNotes":"","AltLookAngle":{"x":0.0,"y":0.0,"z":0.0},"ColorDiffuse":{"r":0.539603055,"g":0.391118348,"b":0.632404268},"LayoutGroupSortIndex":0,"Value":0,"Locked":false,"Grid":true,"Snap":true,"IgnoreFoW":false,"MeasureMovement":false,"DragSelectable":true,"Autoraise":true,"Sticky":true,"Tooltip":true,"GridProjection":false,"HideWhenFaceDown":false,"Hands":false,"CustomImage":{"ImageURL":"https://steamusercontent-a.akamaihd.net/ugc/1807607729518134114/5AC4FA97221C50C053365BA874BA837016D5C4DA/","ImageSecondaryURL":"https://steamusercontent-a.akamaihd.net/ugc/1807607729518125572/1C3B0C57CFFD05BB8AF1B9412849D054E6D7131E/","ImageScalar":1.0,"WidthScale":0.0,"CustomTile":{"Type":2,"Thickness":0.1,"Stackable":false,"Stretch":true}},"LuaScript":"","LuaScriptState":"","XmlUI":""}]==]
 }
+
+-- Hidden-box placement, read from the maintainer's hand-placed save (the SAME board-local spot + size for
+-- every seat -- straightened and uniform, per his instruction). Past the crafted board, near depth-centre.
+RTT_CROW_HZ_LX = -3.074   -- board-local X: just past the Crafted Improvements board (which sits at ~ -1.79)
+RTT_CROW_HZ_LZ = -0.565   -- board-local Z: near the crow board's depth centre
+RTT_CROW_HZ_SX = 13.29    -- uniform box dimensions for every seat (his hand-placed size)
+RTT_CROW_HZ_SY = 5.10
+RTT_CROW_HZ_SZ = 9.50
 
 RTT_CROW_HZ_JSON = [==[{"GUID":"8719cd","Name":"FogOfWarTrigger","Transform":{"posX":-27.8318653,"posY":14.1115437,"posZ":-46.7588654,"rotX":0.0,"rotY":359.8908,"rotZ":0.0,"scaleX":14.3045025,"scaleY":5.1,"scaleZ":12.5832348},"Nickname":"","Description":"","GMNotes":"","AltLookAngle":{"x":0.0,"y":0.0,"z":0.0},"ColorDiffuse":{"r":1.0,"g":1.0,"b":1.0,"a":0.25},"LayoutGroupSortIndex":0,"Value":0,"Locked":true,"Grid":true,"Snap":true,"IgnoreFoW":false,"MeasureMovement":false,"DragSelectable":true,"Autoraise":true,"Sticky":true,"Tooltip":true,"GridProjection":false,"HideWhenFaceDown":false,"Hands":false,"FogColor":"White","FogHidePointers":false,"FogReverseHiding":false,"FogSeethrough":true,"LuaScript":"","LuaScriptState":"","XmlUI":""}]==]
 
