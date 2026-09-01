@@ -3376,6 +3376,10 @@ function rttSpawnFaction(faction, cx, cz, flip, category, rotationY)
   local spawnRy = rotationY or (flip and 180 or 0)
   local function cb(o)
     o.addTag("RTT Faction")
+    -- Tag THIS spawn's own fresh VP marker. Two of the same faction on the table (solo testing) share
+    -- the marker name "<short> VP", so a name-only search grabbed the FIRST (already-placed) marker and
+    -- moved it again. The tag lets rttPlaceVP move the marker THIS spawn just created, then clears it.
+    if (o.getName() or "") == ((RTT_VP_SHORT[faction] or faction) .. " VP") then o.addTag("RTT VP Unplaced") end
     if spawnRy ~= 0 then o.setRotation({ o.getRotation().x, o.getRotation().y + spawnRy, o.getRotation().z }) end
     if o.hasTag("Ruin Set") then o.destroy() end
     if o.hasTag("Shuffleable") then o.shuffle() o.shuffle() end
@@ -3597,14 +3601,15 @@ end
 function rttFindVPMarker(faction)
   local short = RTT_VP_SHORT[faction] or faction
   local want  = short .. " VP"
-  local held  = nil
+  local fresh, free, held = nil, nil, nil
   for _, o in ipairs(getAllObjects()) do
     if o ~= nil and (o.getName() or "") == want then
-      if o.held_by_color == nil then return o end
-      held = held or o
+      if o.held_by_color ~= nil then held = held or o
+      elseif o.hasTag("RTT VP Unplaced") then fresh = fresh or o   -- a spawn's marker not yet placed
+      else free = free or o end
     end
   end
-  return held
+  return fresh or free or held   -- always prefer the freshly-spawned, not-yet-placed marker
 end
 
 function rttPlaceVP(faction, n)
@@ -3626,6 +3631,7 @@ function rttPlaceVP(faction, n)
   if map ~= nil then trackRy = map.getRotation().y end
   m.setRotationSmooth({ 0, trackRy, 0 }, false, true)
   m.setPositionSmooth({ wp.x, wp.y + 0.12, wp.z }, false, true)
+  pcall(function() m.removeTag("RTT VP Unplaced") end)   -- placed now; don't let a later call re-grab it
   return true
 end
 
