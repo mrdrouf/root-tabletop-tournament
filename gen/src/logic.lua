@@ -3798,7 +3798,8 @@ end
 -- player's own colour (the seated player nearest the crow board) so only they can see their plots.
 function rttCrowsHiddenZone(board, cx, cz, isDraft)
   if board == nil or RTT_CROW_HZ_JSON == nil then return end
-  if not isDraft then return end                 -- only the automated draft, not the faction selector
+  -- (spawns on BOTH the ranked draft AND the manual faction-selector path -- the hidden area was
+  --  missing on manual because it used to early-return here when not a draft.)
   -- 5-player game: skip for the 1st/2nd/3rd seats (the maintainer's exception)
   local seat, sbest = nil, nil
   if RTT_SEATS ~= nil then
