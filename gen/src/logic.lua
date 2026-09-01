@@ -3997,12 +3997,16 @@ function rttCrowsHiddenZone(board, cx, cz, isDraft)
       end
     end
   end
-  -- FIXED board-local spot, the SAME for every seat. The Crafted Improvements board sits at board-local
-  -- x ~= -1.79 for EVERY seat (it spawns with the faction, so it rotates with the crow board); the hidden
-  -- box goes just PAST it at x = -3.07, near the board's depth centre. positionToWorld carries the seat's
-  -- rotation, so this one placement is correct for all 4 seats. This is exactly where the maintainer put
-  -- it by hand -- NO per-seat left/right branching, NO magnitude guessing (that threw it ~49u off table).
-  local w = board.positionToWorld({ RTT_CROW_HZ_LX, 0.30, RTT_CROW_HZ_LZ })
+  -- The box goes on the PLAYER'S LEFT for every seat. Board-local +x maps to the player's left on a
+  -- NEAR-row board (rotY~0) and to the right on a FAR-row board (rotY~180) -- so flip the x sign by the
+  -- board's rotation. Anchors from the maintainer: his hand-placed box on a rotY-180 board is correct at
+  -- board-local -3.07; seat 3 (a rotY-0 board) showed -3.07 on the RIGHT, so it needs +3.07. Magnitude is
+  -- fixed (RTT_CROW_HZ_LX) so the box is the same distance out for every seat; positionToWorld + this sign
+  -- carry the rotation. On far-row seats this lands just past the crafted board (crafted between box+board).
+  local ry = board.getRotation().y % 360
+  local farRow = (ry > 90 and ry < 270)
+  local lx = (farRow and -1 or 1) * RTT_CROW_HZ_LX
+  local w = board.positionToWorld({ lx, 0.30, RTT_CROW_HZ_LZ })
   local blob = string.gsub(RTT_CROW_HZ_JSON, '"FogColor":"White"', '"FogColor":"' .. color .. '"')
   spawnObjectJSON({
     json = blob,
@@ -4269,7 +4273,8 @@ RTT_CROW_PLOTS = {
 
 -- Hidden-box placement, read from the maintainer's hand-placed save (the SAME board-local spot + size for
 -- every seat -- straightened and uniform, per his instruction). Past the crafted board, near depth-centre.
-RTT_CROW_HZ_LX = -3.074   -- board-local X: just past the Crafted Improvements board (which sits at ~ -1.79)
+RTT_CROW_HZ_LX = 3.074    -- board-local X MAGNITUDE; the code flips the SIGN so the box is on the player's
+                          -- LEFT for every seat (see rttCrowsHiddenZone). ~1.28 past the crafted (at ~1.79).
 RTT_CROW_HZ_LZ = -0.565   -- board-local Z: near the crow board's depth centre
 RTT_CROW_HZ_SX = 13.29    -- uniform box dimensions for every seat (his hand-placed size)
 RTT_CROW_HZ_SY = 5.10
