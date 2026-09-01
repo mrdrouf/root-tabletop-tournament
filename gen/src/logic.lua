@@ -1732,9 +1732,11 @@ function setupFactionBoards(player, value, id)
   local count = 4
   if id == "fivePlayerSetup" then count = 5 end
 
-  -- clear only PRIOR manual selectors, by tag -- NOT by name "Faction Board" (which also matched the
-  -- solo faction board and any coordinator clone, destroying them as collateral) (audit).
+  -- clear PRIOR manual selectors AND every faction board/piece already spawned (RTT Faction) -- re-clicking
+  -- the player-count button starts over, so tear the old boards down first (maintainer request). Still NOT
+  -- by name "Faction Board" (which also matched the solo faction board and coordinator clones) (audit).
   for _, c in ipairs(getObjectsWithTag("RTT Manual Selector")) do pcall(function() c.destruct() end) end
+  for _, o in ipairs(getObjectsWithTag("RTT Faction"))        do pcall(function() o.destruct() end) end
 
   local xs = {52,-52,52,-52,0,52}
   local ys = {11.56,11.56,11.56,11.56,11.56,11.56}
@@ -3117,8 +3119,11 @@ RTT_KNAVE_CAP = {
 -- scale is BAKED and the board LOCKED (no resize panel). To retune: unlock in-game, resize, save,
 -- tell me the new scale and I rebake RTT_CAPTAIN_BOARD_JSON. Snaps land on the 3 slot centres.
 RTT_KNAVE_BOARD_IMG = "84529E736BDD4EF6B70CA79E3F99E2D07FA75A2C"  -- Knaves rules board face (the maintainer's anchor)
-RTT_CAP_OFF_X    = -15.784  -- captains-board CENTRE vs the Knaves rules board (from the maintainer's save:
-RTT_CAP_OFF_Z    = 4.722    -- captain at world (63.65,-46.25) for the rules board at (47.86,-50.98), rotY 180)
+-- captains board = maintainer's LEFT of the Knaves board, raised HIGHER. His save has it at world
+-- (63.71,-46.18) = worldoff (+15.84,+4.80); spawn formula gives worldoff = (-OFF_X, -OFF_Z), so both signs
+-- are NEGATIVE. (The crafted board now sits on the SAME left, stacked BELOW it -- see its move_to.)
+RTT_CAP_OFF_X    = -15.844
+RTT_CAP_OFF_Z    = -4.801
 RTT_CAP_POOL_GAP = 2.4      -- world gap between the board and the pick-pool
 -- (snaps are BAKED into RTT_CAPTAIN_BOARD_JSON now; the old slot-fraction / self-size constants are gone)
 -- The real Crafted Improvements art, cropped to its TOP 3 overlapping card slots (+ its real title
@@ -3196,6 +3201,7 @@ RTT_CAP_KNAVE_GUID  = nil
 RTT_CAP_SLOT        = {}   -- [slotN] = the captain currently COMMITTED in that board slot
 RTT_CAP_SPAWN_N     = 0
 RTT_CAP_ITEM_N      = 0   -- running count of items dropped into the stash (for a clean grid)
+RTT_CAP_WARRIOR_JSON = nil -- one "Knaves Warrior" blueprint (captain warriors below the meeple row)
 
 function rttBuildCaptainMeeples()
   if RTT_CAP_MEEPLE_JSON ~= nil then return end
@@ -3232,39 +3238,58 @@ function rttSpawnCaptainItems(name)
   if RTT_CAP_ITEM_JSON == nil then rttBuildCaptainItems() end
   local kb = getObjectFromGUID(RTT_CAP_KNAVE_GUID or "")
   if kb == nil or RTT_CAP_ITEMS[name] == nil then return end
-  local fry = kb.getRotation().y
+  local fry = kb.getRotation().y; local by = kb.getPosition().y
   for _, iname in ipairs(RTT_CAP_ITEMS[name]) do
     local blob = RTT_CAP_ITEM_JSON and RTT_CAP_ITEM_JSON[iname]
     if blob ~= nil then
       local col = RTT_CAP_ITEM_N % 3
       local row = math.floor(RTT_CAP_ITEM_N / 3)
-      local lp = { x = -0.16 + col * 0.16, y = 0.4, z = 0.42 + row * 0.14 }   -- stash region, board-local
-      local wp = kb.positionToWorld(lp)
-      spawnObjectJSON({ json = blob, position = { wp.x, wp.y + 0.6, wp.z }, rotation = { 0, fry, 0 },
+      -- stash grid, board-local (his save: 6 items at z 0.619/0.759, x -0.313/-0.153/0.007)
+      local wp = kb.positionToWorld({ -0.313 + col * 0.16, 0, 0.619 + row * 0.14 })
+      spawnObjectJSON({ json = blob, position = { wp.x, by + 1.2, wp.z }, rotation = { 0, fry, 0 },
         callback_function = function(o) pcall(function() o.addTag("RTT Faction") end) end })
       RTT_CAP_ITEM_N = RTT_CAP_ITEM_N + 1
     end
   end
 end
 
--- spawn one captain's meeple above the Knaves faction board, in a left-to-right row (idx 0,1,2,...).
+-- extract one "Knaves Warrior" blueprint from the faction data (for the captain warriors).
+function rttBuildCaptainWarrior()
+  local def = EVERYTHING and EVERYTHING["Standard"] and EVERYTHING["Standard"]["Knaves of the Deepwood"]
+  if def == nil or def.data == nil then return end
+  for _, v in ipairs(def.data) do
+    if string.find(v.json, '"Nickname": "Knaves Warrior"', 1, true) then RTT_CAP_WARRIOR_JSON = v.json; return end
+  end
+end
+
+-- spawn one captain's meeple in the maintainer's hand-placed row on the Knaves board (idx 0,1,2,...).
+-- Reference (board-local, from his save): 3 captains at z=-1.349, x = -0.551, -0.279, -0.007 (step 0.272).
 function rttSpawnCaptainMeeple(name, idx)
   if RTT_CAP_MEEPLE_JSON == nil then rttBuildCaptainMeeples() end
   local blob = RTT_CAP_MEEPLE_JSON and RTT_CAP_MEEPLE_JSON[name]
   local kb = getObjectFromGUID(RTT_CAP_KNAVE_GUID or "")
   if blob == nil or kb == nil then return end
-  local fp = kb.getPosition(); local fry = kb.getRotation().y; local ang = math.rad(fry)
-  local ox = -6.0 + (idx % 6) * 2.4      -- spread the row along the board's local X (above the board)
-  local oz = -14.0                       -- board-local Z: above/behind the faction board
-  local wx = fp.x + ox * math.cos(ang) + oz * math.sin(ang)
-  local wz = fp.z - ox * math.sin(ang) + oz * math.cos(ang)
+  local fry = kb.getRotation().y; local by = kb.getPosition().y
+  local wp = kb.positionToWorld({ -0.551 + idx * 0.272, 0, -1.349 })
   spawnObjectJSON({
     json = blob,
-    position = { wx, fp.y + 2.0, wz },
+    position = { wp.x, by + 1.6, wp.z },
     rotation = { 0, fry, 0 },
     callback_function = function(o) pcall(function() o.addTag("RTT Faction") end) end
   })
-  pcall(function() rttSpawnCaptainItems(name) end)   -- also drop this captain's 2 items into the stash
+  pcall(function() rttSpawnCaptainWarrior(idx) end)  -- one Knaves warrior below the captain (his reference)
+  pcall(function() rttSpawnCaptainItems(name) end)   -- this captain's 2 items into the stash
+end
+
+-- one Knaves warrior below the captain row (board-local from his save: z=-1.137, x = -0.510, -0.260, -0.007).
+function rttSpawnCaptainWarrior(idx)
+  if RTT_CAP_WARRIOR_JSON == nil then rttBuildCaptainWarrior() end
+  local kb = getObjectFromGUID(RTT_CAP_KNAVE_GUID or "")
+  if RTT_CAP_WARRIOR_JSON == nil or kb == nil then return end
+  local fry = kb.getRotation().y; local by = kb.getPosition().y
+  local wp = kb.positionToWorld({ -0.510 + idx * 0.25, 0, -1.137 })
+  spawnObjectJSON({ json = RTT_CAP_WARRIOR_JSON, position = { wp.x, by + 1.4, wp.z }, rotation = { 0, fry, 0 },
+    callback_function = function(o) pcall(function() o.addTag("RTT Faction") end) end })
 end
 
 -- SLOT-based detector. Each of the board's 3 snap slots remembers its COMMITTED captain. When a slot's
