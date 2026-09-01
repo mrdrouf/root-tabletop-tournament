@@ -679,8 +679,6 @@ function onLoad()
     -- the Steam assets finished downloading on a cold cache and blanked the buttons
     -- with no re-render (only a 2nd/warm load recovered).
 
-  elseif self.getName() == "Faction Board" then
-    configureFactionBoard(self)
   end
 
 end
@@ -1768,24 +1766,18 @@ local RTT_FACTION_GRID = {
   {"Lilypad Diaspora", "90 -55 -20"}
 }
 
-local function cleanFactionBoard(board)
-  for _, faction in ipairs(RTT_FACTION_GRID) do
-    pcall(function() board.UI.setAttribute(faction[1], "position", faction[2]) end)
-  end
-end
+MANUAL_FACTION_SELECTOR_JSON = [===[{"Name":"Custom_Tile","Transform":{"posX":0.0,"posY":11.56,"posZ":0.0,"rotX":0.0,"rotY":0.0,"rotZ":0.0,"scaleX":15.5,"scaleY":1.0,"scaleZ":15.5},"Nickname":"Faction Board","Description":"","GMNotes":"","Locked":false,"Grid":false,"Snap":true,"IgnoreFoW":false,"CustomImage":{"ImageURL":"https://cdn.jsdelivr.net/gh/mrdrouf/root-tabletop-tournament@main/assets/board/board_clean_v3.png","ImageSecondaryURL":"https://steamusercontent-a.akamaihd.net/ugc/1725416402718254700/C6F00394AFEE245DFFA53CD358F5F966AA754BC9/","ImageScalar":1.0,"WidthScale":0.0,"CustomTile":{"Type":0,"Thickness":0.1,"Stackable":false,"Stretch":true}},"LuaScript":"MANUAL_FACTION_COORD_GUID = \"bab7e1\"\nfunction manualFactionRelay(player, value, id)\n  local coordinator = getObjectFromGUID(MANUAL_FACTION_COORD_GUID)\n  if coordinator ~= nil then\n    coordinator.call(\"manualFactionPick\", { color = player.color, id = id, board = self.getGUID() })\n  end\nend\nfunction deleteThis()\n  self.destruct()\nend","XmlUI":"<Button id=\"xButton\" onclick=\"deleteThis\" text=\"X\" position=\"117 85 -15\" width=\"15\" height=\"15\" fontSize=\"8\" padding=\"4 4 4\" color=\"#bd2608\"/><Button onclick=\"manualFactionRelay\" category=\"Standard\" id=\"Marquise de Cat\" position=\"-90 45 -20\" width=\"40\" height=\"40\" fontSize=\"8\" icon=\"Marquise de Cat\" color=\"#d77435\"/><Button onclick=\"manualFactionRelay\" category=\"Standard\" id=\"Eyrie Dynasties\" position=\"-30 45 -20\" width=\"40\" height=\"40\" fontSize=\"8\" icon=\"Eyrie Dynasties\" color=\"#4776b6\"/><Button onclick=\"manualFactionRelay\" category=\"Standard\" id=\"Woodland Alliance\" position=\"30 45 -20\" width=\"40\" height=\"40\" fontSize=\"8\" icon=\"Woodland Alliance\" color=\"#6bb659\"/><Button onclick=\"manualFactionRelay\" category=\"Standard\" id=\"Knaves of the Deepwood\" position=\"90 45 -20\" width=\"40\" height=\"40\" fontSize=\"8\" icon=\"Knaves of the Deepwood\" color=\"gray\"/><Button onclick=\"manualFactionRelay\" category=\"Standard\" id=\"The Lizard Cult\" position=\"-90 -5 -20\" width=\"40\" height=\"40\" fontSize=\"8\" icon=\"The Lizard Cult\" color=\"#e8e138\"/><Button onclick=\"manualFactionRelay\" category=\"Standard\" id=\"Riverfolk Company\" position=\"-30 -5 -20\" width=\"40\" height=\"40\" fontSize=\"8\" icon=\"Riverfolk Company\" color=\"#5cbab4\"/><Button onclick=\"manualFactionRelay\" category=\"Standard\" id=\"Underground Duchy\" position=\"30 -5 -20\" width=\"40\" height=\"40\" fontSize=\"8\" icon=\"Underground Duchy\" color=\"#e4c0a2\"/><Button onclick=\"manualFactionRelay\" category=\"Standard\" id=\"Corvid Conspiracy\" position=\"90 -5 -20\" width=\"40\" height=\"40\" fontSize=\"8\" icon=\"Corvid Conspiracy\" color=\"#542c75\"/><Button onclick=\"manualFactionRelay\" category=\"Standard\" id=\"Lord of the Hundreds\" position=\"-90 -55 -20\" width=\"40\" height=\"40\" fontSize=\"8\" icon=\"Lord of the Hundreds\" color=\"#f3461b\"/><Button onclick=\"manualFactionRelay\" category=\"Standard\" id=\"Keepers in Iron\" position=\"-30 -55 -20\" width=\"40\" height=\"40\" fontSize=\"8\" icon=\"Keepers in Iron\" color=\"#acadb1\"/><Button onclick=\"manualFactionRelay\" category=\"Standard\" id=\"Twilight Council\" position=\"30 -55 -20\" width=\"40\" height=\"40\" fontSize=\"8\" icon=\"Twilight Council\" color=\"#964E30\"/><Button onclick=\"manualFactionRelay\" category=\"Standard\" id=\"Lilypad Diaspora\" position=\"90 -55 -20\" width=\"40\" height=\"40\" fontSize=\"8\" icon=\"Lilypad Diaspora\" color=\"#B09804\"/>","CustomUIAssets":[{"Type":0,"Name":"Marquise de Cat","URL":"https://steamusercontent-a.akamaihd.net/ugc/1861696999739429295/F6CF523AAA7DCC91AF3812339EBB3354F6D9891A/"},{"Type":0,"Name":"Eyrie Dynasties","URL":"https://steamusercontent-a.akamaihd.net/ugc/1728793291755958213/960DFA43E52D99A3250863FC63F3BA3AE5104325/"},{"Type":0,"Name":"Woodland Alliance","URL":"https://steamusercontent-a.akamaihd.net/ugc/1728793291755956632/E99D3C9B246A94F6A898EC0D8098A05FA9467473/"},{"Type":0,"Name":"Knaves of the Deepwood","URL":"https://steamusercontent-a.akamaihd.net/ugc/14468202139363768412/1012F7145C45B86F395C099B9AE80EA536529DD3/"},{"Type":0,"Name":"The Lizard Cult","URL":"https://steamusercontent-a.akamaihd.net/ugc/1728793291755960838/D88CBE9192488A678AF3EC6DFC45B4C728C9A169/"},{"Type":0,"Name":"Riverfolk Company","URL":"https://steamusercontent-a.akamaihd.net/ugc/1728793291755963912/C9589D96259534C6FB15DD91F78E7E90A073FDD8/"},{"Type":0,"Name":"Underground Duchy","URL":"https://steamusercontent-a.akamaihd.net/ugc/1728793291755961872/1E2748C8EDD0BDE039B81658AFD0B19C771569BD/"},{"Type":0,"Name":"Corvid Conspiracy","URL":"https://steamusercontent-a.akamaihd.net/ugc/1728793291755959858/69B8EC707AD26EF2F558ACAB65B39163B812D3F6/"},{"Type":0,"Name":"Lord of the Hundreds","URL":"https://steamusercontent-a.akamaihd.net/ugc/1833522185818578726/CE952087E18A1C0B6B94E44EF53EB009A97A7122/"},{"Type":0,"Name":"Keepers in Iron","URL":"https://steamusercontent-a.akamaihd.net/ugc/1833522185818579404/C0D7197A109DBF0C2EFB34DF50AE2CA70A66C25B/"},{"Type":0,"Name":"Twilight Council","URL":"https://steamusercontent-a.akamaihd.net/ugc/2452866064845174396/6228F6A71DDC36CD883777CA958857CB123D7ECB/"},{"Type":0,"Name":"Lilypad Diaspora","URL":"https://steamusercontent-a.akamaihd.net/ugc/2508034524425991747/77C277526C0042FE2754C83836A1E2C3C03FAD38/"}]}]===]
 
-function configureFactionBoard(board)
-  board.UI.setAttribute("Main Nav", "active", "False")
-  board.UI.setAttribute("standardButtons", "active", "True")
-
-  board.UI.setAttribute("setupButtons", "active", "False")
-  board.UI.setAttribute("mapButtonsStandard", "active", "False")
-  board.UI.setAttribute("decksButtonsStandard", "active", "False")
-  board.UI.setAttribute("toolsButtons", "active", "False")
-  board.UI.setAttribute("tools1", "active", "False")
-
-  board.UI.setAttribute("xButton", "active", "True")
-
+local function spawnManualFactionSelector(position, rotation, locked)
+  return spawnObjectJSON({
+    json = MANUAL_FACTION_SELECTOR_JSON,
+    position = position,
+    rotation = rotation,
+    callback_function = function(board)
+      board.setName("Faction Board")
+      board.setLock(locked)
+    end
+  })
 end
 
 function setupFactionBoards(player, value, id)
@@ -1801,27 +1793,10 @@ function setupFactionBoards(player, value, id)
   local zs = {-46,-46,46,46,-46,46}
 
   for i = 1, count do
-    local board1 = self.clone({
-      snap_to_grid = true
-    })
-
-    if zs[i] > 0 then board1.setRotation({0,180,0})
-    else board1.setRotation({0,0,0}) end
-    board1.setPosition({xs[i],ys[i],zs[i]})
-    board1.setName("Faction Board")
-
-    Wait.frames(
-      function()
-        configureFactionBoard(board1)
-
-      end,
-      10
-    )
-    Wait.frames(
-      function()
-        cleanFactionBoard(board1)
-      end,
-      14
+    spawnManualFactionSelector(
+      {xs[i],ys[i],zs[i]},
+      {0, (zs[i] > 0) and 180 or 0, 0},
+      true
     )
   end
 end
@@ -1864,22 +1839,7 @@ end
 
 
 function makeFactionSelector()
-  local board1 = self.clone({
-    snap_to_grid = true
-  })
-
-  board1.setRotation({0,90,0})
-  board1.setPosition({54.81,-60,0})
-  board1.setName("Faction Board")
-  board1.locked = false
-  Wait.frames(function() cleanFactionBoard(board1) board1.setPosition({54.81,11.56,0}) end, 14)
-
-  Wait.frames(
-    function()
-      configureFactionBoard(board1)
-    end,
-    10
-  )
+  spawnManualFactionSelector({54.81,11.56,0}, {0,90,0}, false)
 end
 
 
@@ -2080,20 +2040,26 @@ function rttDealOrder()
   })
 end
 
-function makeFaction(player,value,id)
-  if player.color == "Grey" then return end
-  attrs = self.UI.getAttributes(id)
-  category = attrs.category
+function manualFactionPick(params)
+  if params == nil then return end
+  local board = getObjectFromGUID(params.board or "")
+  if board == nil then return end
+  makeFaction({ color = params.color }, "", params.id, board)
+end
 
-  setupFaction(category,id,player.color,false)
-  do local cp = self.getPosition()
-    Wait.time(function() rttFactionExtras(id, cp.x, cp.z, cp.z > 0, false) end, 0.5) end
+function makeFaction(player,value,id,source)
+  if player.color == "Grey" then return end
+  local board = source or self
+  local attrs = board.UI.getAttributes(id)
+  local category = attrs.category
+  local cp = board.getPosition()
+
+  setupFaction(category,id,player.color,false,board)
+  Wait.time(function() rttFactionExtras(id, cp.x, cp.z, cp.z > 0, false) end, 0.5)
   -- record where this faction physically SITS (the board it was picked on), so the box score can
-  -- order rows by SEAT instead of pick order. Stored as a JSON STRING in a Global (a raw table
-  -- errors across a board-clone's script -- "resources owned by different scripts"), and ACCUMULATED
-  -- across the seats (read-modify-write) because each board clone has its own script instance.
+  -- order rows by SEAT instead of pick order. Stored as a JSON STRING in a Global because raw tables
+  -- cannot cross object-script boundaries, and ACCUMULATED across seats with a read-modify-write.
   do
-    local cp = self.getPosition()
     local raw = Global.getVar("RTT_SEAT_POS")
     local m = (type(raw) == "string" and JSON.decode(raw)) or {}
     m[player.color] = { cp.x, cp.z }
@@ -2106,7 +2072,7 @@ function makeFaction(player,value,id)
   if id == "Woodland Alliance" then
     spawnSupportersHand(player.color)
   elseif id == "Corvid Conspiracy" or id == "BBP Contraption Conspiracy" or id == "Cogwheel Corvids" then
-    shufflePlots(self.getPosition())
+    shufflePlots(cp)
   elseif id == "Warriors Wake" then
     summonSaltyOldStan()
   elseif id == "The Lizard Cult" then
@@ -4722,12 +4688,13 @@ end
 
 
 
-function setupFaction(category,name,color,random)
-  if category == "Standard" and isVagabond(name) then setupFaction("Standard","Vagabond Layout",color,false) setupFaction("Standard","Vagabond Dice and VP",color,false)
-  elseif category == "Fan Factions" and isDoomedVagabond(name) then setupFaction("Fan Factions","Doomed Vagabond Layout",color,false) setupFaction("Fan Factions","Doomed Vagabond Dice",color,false)
-  elseif category == "Fan Factions" and name == "Grouch" then setupFaction("Standard","Vagabond Layout",color,false) end
+function setupFaction(category,name,color,random,source)
+  local board = source or self
+  if category == "Standard" and isVagabond(name) then setupFaction("Standard","Vagabond Layout",color,false,board) setupFaction("Standard","Vagabond Dice and VP",color,false,board)
+  elseif category == "Fan Factions" and isDoomedVagabond(name) then setupFaction("Fan Factions","Doomed Vagabond Layout",color,false,board) setupFaction("Fan Factions","Doomed Vagabond Dice",color,false,board)
+  elseif category == "Fan Factions" and name == "Grouch" then setupFaction("Standard","Vagabond Layout",color,false,board) end
 
-    local my_rot = self.getRotation()
+    local my_rot = board.getRotation()
     local objects = {}
     objects = EVERYTHING[category][name]['data']
     do
@@ -4737,11 +4704,11 @@ function setupFaction(category,name,color,random)
       end
       objects = filtered
     end
-    local scale = self.getScale()
+    local scale = board.getScale()
     scale.x = 1/scale.x
     scale.z = 1/scale.z
 
-    self.destruct()
+    board.destruct()
     function callback(o)
         o.setRotation({o.getRotation().x, o.getRotation().y+my_rot.y, o.getRotation().z})
         if o.hasTag("Shuffleable") then o.shuffle() o.shuffle() end
@@ -4752,7 +4719,7 @@ function setupFaction(category,name,color,random)
         if random then
             vec = vec * Vector({-1, -0.9, 1})
         end
-        local new_pos = self.positionToWorld(vec)
+        local new_pos = board.positionToWorld(vec)
         spawnObjectJSON({
             json              = v.json,
             position          = new_pos,
@@ -4760,7 +4727,7 @@ function setupFaction(category,name,color,random)
         })
     end
         local direction = Vector(0, 4, -18)
-        local pos = self.getPosition()
+        local pos = board.getPosition()
         pos.y = 10.62
     direction:rotateOver("y", my_rot.y)
     Player[color].setHandTransform({
