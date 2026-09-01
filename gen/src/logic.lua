@@ -3140,7 +3140,7 @@ end
 -- the 4 randomised Knave captains, laid FACE UP in a line below the draft cards (the maintainer's placed spots)
 -- draft-time display spots: the draft RANDOMISES 4 captains, the player PICKS 3 among them (Law of
 -- Root Knaves setup Step 2). Tagged "RTT Knave Captain" and relocated into a pick-pool beside the
--- Captains board when the Knaves faction is placed (rttKnaveCaptainBoard).
+-- Captains board when the Knaves faction is placed (rttSpawnCaptainsFor).
 RTT_KNAVE_CAP = {
   { 53.495, 11.7, -7.992 },
   { 53.495, 11.7, -2.870 },
@@ -3149,126 +3149,61 @@ RTT_KNAVE_CAP = {
 }
 
 -- ---- Knaves Captains board (a 2nd "Crafted Improvements"-style board) -----------------------------
--- Portrait parchment board (Mason type, ink border) with 3 card slots labelled Captain 1/2/3. The
--- draft RANDOMISES 4 captains; the player PICKS 3 (Law of Root Step 2) — nothing is auto-filled.
--- When Knaves is placed we spawn the board at the maintainer's chosen spot (LEFT of the faction rules
--- board, faction-local offset RTT_CAP_OFF_*), and lay the 4 captains in a pick-pool beside it.
--- The tile's scaleX:scaleZ is locked to the art's imgW:imgH (else the square tile squishes the portrait
--- slots into landscape). It self-sizes so the drawn slots hit the placed 7.42 card spacing, and its 3
--- snap points land exactly on the maintainer's recorded card positions. If it still needs tuning,
--- unlock it in-game, resize/move it until the slots frame the 3 cards, save, and rebake from the save.
+-- Portrait parchment board (Crafted-Improvements style, ink+gold frame) with 3 card slots. The draft
+-- RANDOMISES 4 captains; the player PICKS 3 (Law of Root Step 2) — nothing is auto-filled.
+-- The board is PART of the Knaves faction: it spawns from the faction blueprint's own rules-board
+-- callback (rttSpawnCaptainsFor), at RTT_CAP_OFF_* in that board's LOCAL frame, so it lands at the
+-- correct seat (never a global search), at the same time as the faction, and is cleared with it.
+-- The tile's scaleX:scaleZ matches the art's imgW:imgH so the portrait slots keep card aspect; the
+-- scale is BAKED and the board LOCKED (no resize panel). To retune: unlock in-game, resize, save,
+-- tell me the new scale and I rebake RTT_CAPTAIN_BOARD_JSON. Snaps land on the 3 slot centres.
 RTT_KNAVE_BOARD_IMG = "84529E736BDD4EF6B70CA79E3F99E2D07FA75A2C"  -- Knaves rules board face (the maintainer's anchor)
 RTT_CAP_OFF_X    = 15.68    -- captains-board CENTRE in the FACTION board's LOCAL frame (= the maintainer's placed spot)
 RTT_CAP_OFF_Z    = -2.11
 RTT_CAP_POOL_GAP = 2.4      -- world gap between the board and the pick-pool
 RTT_CAP_IMG_W    = 557      -- board art WIDTH (px)  -- tile scaleX:scaleZ MUST match imgW:imgH
 RTT_CAP_IMG_H    = 2200     -- board art height (px)  (3 card-shaped slots, touching, + title banner)
-RTT_CAP_SLOT_FRAC = { 0.238, 0.538, 0.838 }   -- slot-centre y-fractions (the 3 touching card slots)
+RTT_CAP_SLOT_FRAC = { 0.2355, 0.5349, 0.8343 }   -- slot-centre y-fractions (EXACT centres drawn in the v3 art)
 RTT_CAP_SLOT_HFRAC = 0.30   -- one slot's height as a fraction of the art height -> used to SELF-SIZE
                             -- the board so a slot == a captain CARD (card getBounds is reliable).
 RTT_CAP_CARDS = { { 15.68, -9.53 }, { 15.68, -2.11 }, { 15.68, 5.32 } }  -- (legacy; board centre = RTT_CAP_OFF)
-RTT_CAPTAIN_BOARD_JSON = [==[{"Name":"Custom_Tile","Transform":{"posX":0.0,"posY":11.5,"posZ":0.0,"rotX":0.0,"rotY":0.0,"rotZ":0.0,"scaleX":12.335,"scaleY":1.0,"scaleZ":12.544},"Nickname":"Knaves Captains","Description":"","ColorDiffuse":{"r":1.0,"g":1.0,"b":1.0},"Locked":true,"Grid":true,"Snap":true,"IgnoreFoW":false,"MeasureMovement":false,"DragSelectable":true,"Autoraise":true,"Sticky":true,"Tooltip":true,"GridProjection":false,"HideWhenFaceDown":false,"Hands":false,"CustomImage":{"ImageURL":"https://cdn.jsdelivr.net/gh/mrdrouf/root-tabletop-tournament@main/assets/labels/knaves_captains_v2.png","ImageSecondaryURL":"","ImageScalar":1.0,"WidthScale":0.0,"CustomTile":{"Type":0,"Thickness":0.1,"Stackable":false,"Stretch":true}}}]==]
+RTT_CAPTAIN_BOARD_JSON = [==[{"Name":"Custom_Tile","Transform":{"posX":0.0,"posY":11.5,"posZ":0.0,"rotX":0.0,"rotY":0.0,"rotZ":0.0,"scaleX":12.335,"scaleY":1.0,"scaleZ":12.544},"Nickname":"Knaves Captains","Description":"","ColorDiffuse":{"r":1.0,"g":1.0,"b":1.0},"Locked":true,"Grid":true,"Snap":true,"IgnoreFoW":false,"MeasureMovement":false,"DragSelectable":true,"Autoraise":true,"Sticky":true,"Tooltip":true,"GridProjection":false,"HideWhenFaceDown":false,"Hands":false,"CustomImage":{"ImageURL":"https://cdn.jsdelivr.net/gh/mrdrouf/root-tabletop-tournament@main/assets/labels/knaves_captains_v3.png","ImageSecondaryURL":"","ImageScalar":1.0,"WidthScale":0.0,"CustomTile":{"Type":0,"Thickness":0.1,"Stackable":false,"Stretch":true}}}]==]
 
--- spawn the Captains board at the maintainer's spot, LEFT of the Knaves rules board (faction-local offset).
--- Tagged "RTT Faction" so it is cleared together with the faction (never left as an orphan).
-function rttKnaveCaptainBoard(cx, cz, flip)
-  if RTT_CAPTAIN_BOARD_JSON == nil then return end
-  local fac = nil
-  for _, o in ipairs(getAllObjects()) do
-    local ok, d = pcall(function() return o.getCustomObject() end)
-    if ok and d ~= nil and type(d.image) == "string" and string.find(d.image, RTT_KNAVE_BOARD_IMG, 1, true) then
-      fac = o break
-    end
-  end
-  if fac == nil then return end                          -- no Knaves rules board found; bail
-  local fp = fac.getPosition()
-  local fry = fac.getRotation().y
-  local ang = math.rad(fry)
-  -- board centre = faction pos + Ry(fry)*(OFF_X,OFF_Z) so it rotates with the seat (flip-safe)
-  local wx = fp.x + RTT_CAP_OFF_X * math.cos(ang) + RTT_CAP_OFF_Z * math.sin(ang)
-  local wz = fp.z - RTT_CAP_OFF_X * math.sin(ang) + RTT_CAP_OFF_Z * math.cos(ang)
-  local pos = { wx, fp.y, wz }
-  spawnObjectJSON({
-    json = RTT_CAPTAIN_BOARD_JSON,                        -- FIXED aspect-correct scale; resize in-game + save
-    position = pos,
-    rotation = { 0, fry, 0 },
-    callback_function = function(board)
-      pcall(function() board.addTag("RTT Faction") end)  -- goes out WITH the faction on re-draft
-      pcall(function() board.addTag("RTT Captains") end) -- so the size-panel buttons can find it
-      pcall(function() board.setLock(false) end)         -- UNLOCKED (fine-tune with the size panel)
-      -- size so one slot == a captain CARD (card getBounds is reliable), snap at the 3 slot centres,
-      -- then pool the 4 captains + spawn the size panel for fine-tuning.
-      Wait.frames(function()
-        -- scale is BAKED (the saved good size); do NOT re-fit. But snap at the CURRENT art's slot
-        -- centres so the snaps line up with the drawn slots.
-        pcall(function() rttCaptainSnaps(board) end)
-        pcall(function() rttPoolCaptains(board, fp) end)
-        pcall(function() rttCaptainControlPanel(board) end)
-      end, 20)
-    end
-  })
-end
-
--- ---- Captain board SIZE control panel (stable buttons on a SEPARATE tile) --------------------------
--- The 4-corner drag was unstable (the squares fought the board). Instead spawn a small control tile
--- BESIDE the board with resize buttons (uniform + per-axis, so you can shape the card slot). Each
--- click just does setScale on the board (instant, stable, no collision). Size it to frame the 3
--- cards, then SAVE and I bake the resulting scale (the panel is tagged "RTT Faction" -> cleared with
--- the faction). The board carries tag "RTT Captains" so the buttons find it.
-RTT_CAPTAINS_TAG = "RTT Captains"
-function rttCapBoard()
-  local ok, hs = pcall(function() return getObjectsWithTag(RTT_CAPTAINS_TAG) end)
-  return (ok and hs and hs[1]) or nil
-end
-function rttCapBigger()   local b = rttCapBoard(); if b then local s = b.getScale(); pcall(function() b.setScale({ s.x * 1.1, 1, s.z * 1.1 }) end) end end
-function rttCapSmaller()  local b = rttCapBoard(); if b then local s = b.getScale(); pcall(function() b.setScale({ math.max(0.4, s.x * 0.9), 1, math.max(1, s.z * 0.9) }) end) end end
-function rttCapWider()    local b = rttCapBoard(); if b then local s = b.getScale(); pcall(function() b.setScale({ s.x * 1.12, 1, s.z }) end) end end
-function rttCapNarrower() local b = rttCapBoard(); if b then local s = b.getScale(); pcall(function() b.setScale({ math.max(0.4, s.x * 0.89), 1, s.z }) end) end end
-function rttCapTaller()   local b = rttCapBoard(); if b then local s = b.getScale(); pcall(function() b.setScale({ s.x, 1, s.z * 1.12 }) end) end end
-function rttCapShorter()  local b = rttCapBoard(); if b then local s = b.getScale(); pcall(function() b.setScale({ s.x, 1, math.max(1, s.z * 0.89) }) end) end end
-function rttCaptainControlPanel(board)
-  if board == nil then return end
-  local owner = getObjectFromGUID("bab7e1") or self   -- the buttons' functions live on the setup board
-  local bp = board.getPosition()
-  local bb = board.getBounds().size
-  spawnObject({
-    type = "BlockSquare",
-    position = { bp.x - (bb.x / 2 + 16), bp.y + 2, bp.z },   -- well clear of the board
-    rotation = { 0, 0, 0 },
-    scale = { 5, 0.3, 5 },
-    callback_function = function(panel)
-      pcall(function() panel.setColorTint({ 0.15, 0.12, 0.09 }) end)
-      pcall(function() panel.setLock(false) end)             -- MOVABLE: drag it wherever you like
-      pcall(function() panel.addTag("RTT Faction") end)
-      pcall(function() panel.setName("Captains board size (movable) -- resize, then Save") end)
-      local function mk(lbl, px, pz, fn)
-        panel.createButton({ click_function = fn, function_owner = owner, label = lbl,
-          position = { px, 0.6, pz }, width = 420, height = 260, font_size = 80,
-          color = { 0.9, 0.85, 0.7 }, font_color = { 0.1, 0.08, 0.05 } })
+-- Spawn the Captains board from the JUST-SPAWNED Knaves rules board (passed in by rttSpawnFaction's
+-- callback), LEFT of it at the maintainer's faction-local offset. Because it is anchored to THIS
+-- faction's own rules board, it always lands at the right seat (never a global search -> seat 1),
+-- spawns in the faction's own flow (not a delayed extras call), and is tagged "RTT Faction" so it is
+-- cleared together with the faction. The board is LOCKED at its baked aspect-correct scale (no resize
+-- panel); snaps land on the 3 card slots. To change the size: unlock in-game, resize, save, tell me
+-- the new scale and I rebake RTT_CAPTAIN_BOARD_JSON.
+function rttSpawnCaptainsFor(rulesBoard)
+  if RTT_CAPTAIN_BOARD_JSON == nil or rulesBoard == nil then return end
+  -- one frame so the rules board's flip rotation (spawnRy) has settled before we read its transform
+  Wait.frames(function()
+    if rulesBoard == nil then return end
+    local fp = rulesBoard.getPosition()
+    local fry = rulesBoard.getRotation().y
+    local ang = math.rad(fry)
+    -- board centre = rules-board pos + Ry(fry)*(OFF_X,OFF_Z) so it rotates WITH the seat (flip-safe)
+    local wx = fp.x + RTT_CAP_OFF_X * math.cos(ang) + RTT_CAP_OFF_Z * math.sin(ang)
+    local wz = fp.z - RTT_CAP_OFF_X * math.sin(ang) + RTT_CAP_OFF_Z * math.cos(ang)
+    spawnObjectJSON({
+      json = RTT_CAPTAIN_BOARD_JSON,                       -- baked aspect-correct scale (locked)
+      position = { wx, fp.y, wz },
+      rotation = { 0, fry, 0 },
+      callback_function = function(board)
+        pcall(function() board.addTag("RTT Faction") end) -- goes out WITH the faction on re-draft
+        pcall(function() board.addTag("RTT Captains") end)
+        pcall(function() board.setLock(true) end)          -- LOCKED at the baked size (no resize panel)
+        -- snap at the 3 slot centres (positionToLocal on the real board -> scale-independent), and
+        -- pool the 4 drafted captains beside it. Both invisible tweaks; the board itself is already home.
+        Wait.frames(function()
+          pcall(function() rttCaptainSnaps(board) end)
+          pcall(function() rttPoolCaptains(board, fp) end)
+        end, 5)
       end
-      mk("Bigger", -0.26, 0.30, "rttCapBigger");  mk("Smaller", 0.26, 0.30, "rttCapSmaller")
-      mk("Wider", -0.26, 0.0, "rttCapWider");      mk("Narrower", 0.26, 0.0, "rttCapNarrower")
-      mk("Taller", -0.26, -0.30, "rttCapTaller");  mk("Shorter", 0.26, -0.30, "rttCapShorter")
-    end
-  })
-end
-
--- put a snap point at each of the maintainer's 3 EXACT card positions (faction-local -> world -> board-local)
--- size the board so ONE drawn slot (RTT_CAP_SLOT_HFRAC of the art height) equals a captain CARD.
--- Card getBounds is reliable; boardLong = cardLong / SLOT_HFRAC. Scale BOTH axes by k (aspect kept).
-function rttCaptainFitToCard(board)
-  if board == nil then return end
-  local caps = getObjectsWithTag("RTT Knave Captain")
-  if #caps == 0 then return end
-  local cs = caps[1].getBounds().size
-  local cardLong = math.max(cs.x, cs.z)
-  local bb = board.getBounds().size
-  local curLong = math.max(bb.x, bb.z)
-  if cardLong > 0.1 and curLong > 0.1 and RTT_CAP_SLOT_HFRAC > 0.01 then
-    local k = (cardLong / RTT_CAP_SLOT_HFRAC) / curLong
-    local sc = board.getScale()
-    pcall(function() board.setScale({ sc.x * k, 1, sc.z * k }) end)
-  end
+    })
+  end, 1)
 end
 
 -- put a snap at each of the 3 slot CENTRES (from the slot y-fractions). Local coords are scale-
@@ -3444,6 +3379,15 @@ function rttSpawnFaction(faction, cx, cz, flip, category, rotationY)
     if spawnRy ~= 0 then o.setRotation({ o.getRotation().x, o.getRotation().y + spawnRy, o.getRotation().z }) end
     if o.hasTag("Ruin Set") then o.destroy() end
     if o.hasTag("Shuffleable") then o.shuffle() o.shuffle() end
+    -- Knaves: the Captains board is PART of the faction. When THIS faction's own rules board spawns,
+    -- place the Captains board from ITS transform -- never a global table search (which always found
+    -- seat 1) and never a delayed rttFactionExtras call (which made it appear AFTER the faction).
+    if faction == "Knaves of the Deepwood" then
+      local ok, d = pcall(function() return o.getCustomObject() end)
+      if ok and d ~= nil and type(d.image) == "string" and string.find(d.image, RTT_KNAVE_BOARD_IMG, 1, true) then
+        rttSpawnCaptainsFor(o)
+      end
+    end
   end
   for _, v in ipairs(objects) do
     local vec = Vector(v.move_to) * scale
@@ -3725,9 +3669,8 @@ function rttFactionExtras(faction, cx, cz, flip, isDraft)
   -- Twilight Council (bats) now spawns from the baked blueprint (m560) — no runtime setup
   elseif faction == "Corvid Conspiracy" then rttCrowsPlots(cx, cz, flip, isDraft)
   -- Underground Duchy (moles) now spawns 7 loose + 13 bagged from the blueprint (m300) — no tuck
-  -- Knaves: 4 captains are randomised under the draft cards (rttDraftKnavesCaptains); here we spawn
-  -- the (self-sizing) Captains board right of the Crafted Improvements board and pool the 4 beside it.
-  elseif faction == "Knaves of the Deepwood" then rttKnaveCaptainBoard(cx, cz, flip)
+  -- Knaves: the Captains board + its pooled captains now spawn FROM the faction blueprint's own
+  -- rules-board callback (see rttSpawnFaction), so they appear WITH the faction at the CORRECT seat.
   elseif faction == "Marquise de Cat" then rttMarquiseCats(cx, cz, flip)
   end
 end
