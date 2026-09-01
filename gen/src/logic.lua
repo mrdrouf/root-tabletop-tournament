@@ -2087,7 +2087,7 @@ function makeFaction(player,value,id)
 
   setupFaction(category,id,player.color,false)
   do local cp = self.getPosition()
-    Wait.time(function() rttFactionExtras(id, cp.x, cp.z, cp.z > 0, false) end, 1.2) end
+    Wait.time(function() rttFactionExtras(id, cp.x, cp.z, cp.z > 0, false) end, 0.5) end
   -- record where this faction physically SITS (the board it was picked on), so the box score can
   -- order rows by SEAT instead of pick order. Stored as a JSON STRING in a Global (a raw table
   -- errors across a board-clone's script -- "resources owned by different scripts"), and ACCUMULATED
@@ -3196,7 +3196,7 @@ RTT_CAP_SLOT_FRAC = { 0.238, 0.538, 0.838 }   -- slot-centre y-fractions (the 3 
 RTT_CAP_SLOT_HFRAC = 0.30   -- one slot's height as a fraction of the art height -> used to SELF-SIZE
                             -- the board so a slot == a captain CARD (card getBounds is reliable).
 RTT_CAP_CARDS = { { 15.68, -9.53 }, { 15.68, -2.11 }, { 15.68, 5.32 } }  -- (legacy; board centre = RTT_CAP_OFF)
-RTT_CAPTAIN_BOARD_JSON = [==[{"Name":"Custom_Tile","Transform":{"posX":0.0,"posY":11.5,"posZ":0.0,"rotX":0.0,"rotY":0.0,"rotZ":0.0,"scaleX":12.335,"scaleY":1.0,"scaleZ":12.544},"Nickname":"Knaves Captains","Description":"","ColorDiffuse":{"r":1.0,"g":1.0,"b":1.0},"Locked":true,"Grid":true,"Snap":true,"IgnoreFoW":false,"MeasureMovement":false,"DragSelectable":true,"Autoraise":true,"Sticky":true,"Tooltip":true,"GridProjection":false,"HideWhenFaceDown":false,"Hands":false,"AttachedSnapPoints":[{"Position":{"x":0.0,"y":0.2,"z":0.6696}},{"Position":{"x":0.0,"y":0.2,"z":0.0}},{"Position":{"x":0.0,"y":0.2,"z":-0.5405}}],"CustomImage":{"ImageURL":"https://cdn.jsdelivr.net/gh/mrdrouf/root-tabletop-tournament@main/assets/labels/knaves_captains_v2.png","ImageSecondaryURL":"","ImageScalar":1.0,"WidthScale":0.0,"CustomTile":{"Type":0,"Thickness":0.1,"Stackable":false,"Stretch":true}}}]==]
+RTT_CAPTAIN_BOARD_JSON = [==[{"Name":"Custom_Tile","Transform":{"posX":0.0,"posY":11.5,"posZ":0.0,"rotX":0.0,"rotY":0.0,"rotZ":0.0,"scaleX":12.335,"scaleY":1.0,"scaleZ":12.544},"Nickname":"Knaves Captains","Description":"","ColorDiffuse":{"r":1.0,"g":1.0,"b":1.0},"Locked":true,"Grid":true,"Snap":true,"IgnoreFoW":false,"MeasureMovement":false,"DragSelectable":true,"Autoraise":true,"Sticky":true,"Tooltip":true,"GridProjection":false,"HideWhenFaceDown":false,"Hands":false,"CustomImage":{"ImageURL":"https://cdn.jsdelivr.net/gh/mrdrouf/root-tabletop-tournament@main/assets/labels/knaves_captains_v2.png","ImageSecondaryURL":"","ImageScalar":1.0,"WidthScale":0.0,"CustomTile":{"Type":0,"Thickness":0.1,"Stackable":false,"Stretch":true}}}]==]
 
 -- spawn the Captains board at the maintainer's spot, LEFT of the Knaves rules board (faction-local offset).
 -- Tagged "RTT Faction" so it is cleared together with the faction (never left as an orphan).
@@ -3228,8 +3228,9 @@ function rttKnaveCaptainBoard(cx, cz, flip)
       -- size so one slot == a captain CARD (card getBounds is reliable), snap at the 3 slot centres,
       -- then pool the 4 captains + spawn the size panel for fine-tuning.
       Wait.frames(function()
-        -- scale + snaps are BAKED into the tile JSON (from the saved good board). Do NOT re-fit or
-        -- re-snap at runtime -- that kept resetting the board to wrong dimensions.
+        -- scale is BAKED (the saved good size); do NOT re-fit. But snap at the CURRENT art's slot
+        -- centres so the snaps line up with the drawn slots.
+        pcall(function() rttCaptainSnaps(board) end)
         pcall(function() rttPoolCaptains(board, fp) end)
         pcall(function() rttCaptainControlPanel(board) end)
       end, 20)
@@ -3453,7 +3454,7 @@ function rttCoordFaction(args)
      local m = (type(raw) == "string" and JSON.decode(raw)) or {}
      m[s.color or args.color] = { bp.x, bp.z }
      Global.setVar("RTT_SEAT_POS", JSON.encode(m)) end
-  Wait.time(function() rttFactionExtras(faction, bp.x, bp.z, bp.z > 0, true) end, 1.2)
+  Wait.time(function() rttFactionExtras(faction, bp.x, bp.z, bp.z > 0, true) end, 0.5)
   RTT_VP_PLACED = (RTT_VP_PLACED or 0) + 1
   local vpN, vpF = RTT_VP_PLACED, faction
   Wait.time(function() rttPlaceVP(vpF, vpN) end, 1.2)
