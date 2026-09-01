@@ -3999,7 +3999,8 @@ function rttCrowsHiddenZone(board, cx, cz, isDraft)
   local ry = board.getRotation().y % 360
   local plusIsRight = not (ry > 90 and ry < 270)    -- near row: board-local +x = player's right
   local wantRight = (seat == 2 or seat == 3)
-  local lx = (wantRight == plusIsRight) and 5.6 or -3.3
+  local lx = (wantRight == plusIsRight) and 5.6 or -2.0   -- +x clears the crafted column; -x side pulled in
+                                                          -- closer (was -3.3 = way off the table for seat 1)
   local w = board.positionToWorld({ lx, 0.30, -0.404 })
   local blob = string.gsub(RTT_CROW_HZ_JSON, '"FogColor":"White"', '"FogColor":"' .. color .. '"')
   spawnObjectJSON({
