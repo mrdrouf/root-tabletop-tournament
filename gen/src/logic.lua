@@ -3185,6 +3185,11 @@ RTT_CAP_ITEMS = { Arbiter={"Sword","Coins"}, Cheat={"Boot","Tea"}, Gladiator={"S
   Adventurer={"Hammer","Coins"}, Harrier={"Boot","Crossbow"}, Jailor={"Crossbow","Bag"},
   Ranger={"Sword","Crossbow"}, Tinker={"Bag","Hammer"}, Ronin={"Boot","Sword"},
   Scoundrel={"Crossbow","Tea"}, Thief={"Boot","Bag"}, Vagrant={"Tea","Coins"} }
+-- each item's unique token image (read off the Knaves item supply): maps item name -> its Custom_Tile
+-- blueprint, so the chosen captains' items can be spawned into the Stash.
+RTT_CAP_ITEM_IMG = { Hammer="659FC4CB06EB0B0D", Tea="EBD306D267C01CDF", Crossbow="F8D6F48DD0ABEEA7",
+  Sword="5C28A04F83536BEE", Coins="C4D891F4DF65BFE6", Bag="1C4D9EF6DB4497F8", Boot="4C9DEE88ED9F3B02" }
+RTT_CAP_ITEM_JSON   = nil
 RTT_CAP_MEEPLE_JSON = nil
 RTT_CAP_BOARD_GUID  = nil
 RTT_CAP_KNAVE_GUID  = nil
@@ -3199,6 +3204,41 @@ function rttBuildCaptainMeeples()
   for _, v in ipairs(def.data) do
     local m = string.match(v.json or "", '"Nickname":%s*"Captain %-%s*(%a+)"')
     if m then RTT_CAP_MEEPLE_JSON[m] = v.json end
+  end
+end
+
+-- read one blueprint of each item token (matched by its unique image) so the chosen captains' items
+-- can be spawned fresh into the Stash (the item supply itself is left untouched -- used as the base).
+function rttBuildCaptainItems()
+  if RTT_CAP_ITEM_JSON ~= nil then return end
+  RTT_CAP_ITEM_JSON = {}
+  local def = EVERYTHING["Standard"] and EVERYTHING["Standard"]["Knaves of the Deepwood"]
+  if def == nil or def.data == nil then return end
+  for iname, hash in pairs(RTT_CAP_ITEM_IMG) do
+    for _, v in ipairs(def.data) do
+      if RTT_CAP_ITEM_JSON[iname] == nil and string.find(v.json or "", hash, 1, true) then
+        RTT_CAP_ITEM_JSON[iname] = v.json
+      end
+    end
+  end
+end
+
+-- spawn this captain's TWO items near its meeple's column (ox = the meeple's local-X offset).
+function rttSpawnCaptainItems(name, ox)
+  if RTT_CAP_ITEM_JSON == nil then rttBuildCaptainItems() end
+  local kb = getObjectFromGUID(RTT_CAP_KNAVE_GUID or "")
+  if kb == nil or RTT_CAP_ITEMS[name] == nil then return end
+  local fp = kb.getPosition(); local fry = kb.getRotation().y; local ang = math.rad(fry)
+  for k, iname in ipairs(RTT_CAP_ITEMS[name]) do
+    local blob = RTT_CAP_ITEM_JSON and RTT_CAP_ITEM_JSON[iname]
+    if blob ~= nil then
+      local lx = ox + (k - 1.5) * 1.0      -- the 2 items side by side, under the meeple
+      local lz = -11.0                     -- just below the meeple row (above the board)
+      local wx = fp.x + lx * math.cos(ang) + lz * math.sin(ang)
+      local wz = fp.z - lx * math.sin(ang) + lz * math.cos(ang)
+      spawnObjectJSON({ json = blob, position = { wx, fp.y + 2.0, wz }, rotation = { 0, fry, 0 },
+        callback_function = function(o) pcall(function() o.addTag("RTT Faction") end) end })
+    end
   end
 end
 
@@ -3219,7 +3259,7 @@ function rttSpawnCaptainMeeple(name, idx)
     rotation = { 0, fry, 0 },
     callback_function = function(o) pcall(function() o.addTag("RTT Faction") end) end
   })
-  -- TODO(items): add RTT_CAP_ITEMS[name] to the Stash once the shared item-supply source is known.
+  pcall(function() rttSpawnCaptainItems(name, ox) end)   -- also drop this captain's 2 items
 end
 
 -- SLOT-based detector. Each of the board's 3 snap slots remembers its COMMITTED captain. When a slot's
