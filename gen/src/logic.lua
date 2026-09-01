@@ -3234,21 +3234,22 @@ end
 -- drop this captain's items into the Knaves STASH (board-local grid, via positionToWorld so it follows
 -- the seat's rotation). RTT_CAP_ITEM_N accumulates so items from different captains tile cleanly.
 -- (Stash board-local spot is an estimate -- tell me the exact one and I bake it.)
-function rttSpawnCaptainItems(name)
+-- Each captain = one COLUMN of the 3x2 stash rectangle (idx 0 = left, 1 = middle, 2 = right); its 2 items
+-- stack TOP then BOTTOM. Board-local grid from the maintainer's last save: x {-0.313,-0.153,0.007} (step
+-- 0.16), z {0.619 top, 0.759 bottom} (step 0.14). positionToWorld carries the seat rotation.
+function rttSpawnCaptainItems(name, idx)
   if RTT_CAP_ITEM_JSON == nil then rttBuildCaptainItems() end
   local kb = getObjectFromGUID(RTT_CAP_KNAVE_GUID or "")
   if kb == nil or RTT_CAP_ITEMS[name] == nil then return end
   local fry = kb.getRotation().y; local by = kb.getPosition().y
-  for _, iname in ipairs(RTT_CAP_ITEMS[name]) do
+  local colx = -0.313 + (idx or 0) * 0.16
+  for k, iname in ipairs(RTT_CAP_ITEMS[name]) do
     local blob = RTT_CAP_ITEM_JSON and RTT_CAP_ITEM_JSON[iname]
     if blob ~= nil then
-      local col = RTT_CAP_ITEM_N % 3
-      local row = math.floor(RTT_CAP_ITEM_N / 3)
-      -- stash grid, board-local (his save: 6 items at z 0.619/0.759, x -0.313/-0.153/0.007)
-      local wp = kb.positionToWorld({ -0.313 + col * 0.16, 0, 0.619 + row * 0.14 })
+      local rowz = 0.619 + (k - 1) * 0.14           -- item 1 = top row, item 2 = bottom row
+      local wp = kb.positionToWorld({ colx, 0, rowz })
       spawnObjectJSON({ json = blob, position = { wp.x, by + 1.2, wp.z }, rotation = { 0, fry, 0 },
         callback_function = function(o) pcall(function() o.addTag("RTT Faction") end) end })
-      RTT_CAP_ITEM_N = RTT_CAP_ITEM_N + 1
     end
   end
 end
@@ -3258,7 +3259,8 @@ function rttBuildCaptainWarrior()
   local def = EVERYTHING and EVERYTHING["Standard"] and EVERYTHING["Standard"]["Knaves of the Deepwood"]
   if def == nil or def.data == nil then return end
   for _, v in ipairs(def.data) do
-    if string.find(v.json, '"Nickname": "Knaves Warrior"', 1, true) then RTT_CAP_WARRIOR_JSON = v.json; return end
+    if string.find(v.json, '"Nickname": "Knaves Warrior"', 1, true)
+       and not string.find(v.json, '"ContainedObjects"', 1, true) then RTT_CAP_WARRIOR_JSON = v.json; return end
   end
 end
 
@@ -3278,7 +3280,7 @@ function rttSpawnCaptainMeeple(name, idx)
     callback_function = function(o) pcall(function() o.addTag("RTT Faction") end) end
   })
   pcall(function() rttSpawnCaptainWarrior(idx) end)  -- one Knaves warrior below the captain (his reference)
-  pcall(function() rttSpawnCaptainItems(name) end)   -- this captain's 2 items into the stash
+  pcall(function() rttSpawnCaptainItems(name, idx) end)  -- this captain's 2 items = its column (top+bottom)
 end
 
 -- one Knaves warrior below the captain row (board-local from his save: z=-1.137, x = -0.510, -0.260, -0.007).
@@ -3488,6 +3490,10 @@ function rttSpawnFaction(faction, cx, cz, flip, category, rotationY)
     if faction == "Knaves of the Deepwood" then
       if string.find(v.json, '"Nickname": "Captain -', 1, true) then isCap = true end
       for _, h in pairs(RTT_CAP_ITEM_IMG or {}) do if string.find(v.json, h, 1, true) then isCap = true break end end
+      -- skip the 3 LONE warrior FIGURES (top-level Knaves Warrior, no ContainedObjects) -- they respawn
+      -- WITH the captains now. The 7-warrior SUPPLY BAG has ContainedObjects, so it is kept.
+      if string.find(v.json, '"Nickname": "Knaves Warrior"', 1, true)
+         and not string.find(v.json, '"ContainedObjects"', 1, true) then isCap = true end
     end
     if not isDice and not isCap then objects[#objects + 1] = v end
   end
