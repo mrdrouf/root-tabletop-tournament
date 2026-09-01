@@ -3125,7 +3125,7 @@ RTT_CAP_POOL_GAP = 2.4      -- world gap between the board and the pick-pool
 -- other (the crafted board's overlap look, just 3 instead of 5). Snaps computed with the verified
 -- local_z = 2*py/H - 1 for the cropped H=1560; scale dropped to 7.59394 = 9.516764*(1560/1955) so a card
 -- stays the same physical size as the full board. See [[rtt-tile-snap-geometry]].
-RTT_CAPTAIN_BOARD_JSON = [==[{"Name":"Custom_Tile","Transform":{"posX":0.0,"posY":11.5,"posZ":0.0,"rotX":0.0,"rotY":0.0,"rotZ":0.0,"scaleX":13.64962,"scaleY":1.0,"scaleZ":13.64962},"Nickname":"Knaves Captains","Description":"","ColorDiffuse":{"r":1.0,"g":1.0,"b":1.0},"Locked":true,"Grid":true,"Snap":true,"IgnoreFoW":false,"MeasureMovement":false,"DragSelectable":true,"Autoraise":true,"Sticky":true,"Tooltip":true,"GridProjection":false,"HideWhenFaceDown":false,"Hands":false,"AttachedSnapPoints":[{"Position":{"x":0.0,"y":0.2,"z":-0.5193}},{"Position":{"x":0.0,"y":0.2,"z":0.067}},{"Position":{"x":0.0,"y":0.2,"z":0.6534}}],"CustomImage":{"ImageURL":"https://cdn.jsdelivr.net/gh/mrdrouf/root-tabletop-tournament@main/assets/labels/knaves_captains_v7.png","ImageSecondaryURL":"","ImageScalar":1.0,"WidthScale":0.0,"CustomTile":{"Type":0,"Thickness":0.1,"Stackable":false,"Stretch":true}}}]==]
+RTT_CAPTAIN_BOARD_JSON = [==[{"Name":"Custom_Tile","Transform":{"posX":0.0,"posY":11.5,"posZ":0.0,"rotX":0.0,"rotY":0.0,"rotZ":0.0,"scaleX":13.24558,"scaleY":1.0,"scaleZ":13.24558},"Nickname":"Knaves Captains","Description":"","ColorDiffuse":{"r":1.0,"g":1.0,"b":1.0},"Locked":true,"Grid":true,"Snap":true,"IgnoreFoW":false,"MeasureMovement":false,"DragSelectable":true,"Autoraise":true,"Sticky":true,"Tooltip":true,"GridProjection":false,"HideWhenFaceDown":false,"Hands":false,"AttachedSnapPoints":[{"Position":{"x":0.0,"y":0.2,"z":-0.52}},{"Position":{"x":0.0,"y":0.2,"z":0.0614}},{"Position":{"x":0.0,"y":0.2,"z":0.6428}}],"CustomImage":{"ImageURL":"https://cdn.jsdelivr.net/gh/mrdrouf/root-tabletop-tournament@main/assets/labels/knaves_captains_v8.png","ImageSecondaryURL":"","ImageScalar":1.0,"WidthScale":0.0,"CustomTile":{"Type":0,"Thickness":0.1,"Stackable":false,"Stretch":true}}}]==]
 
 -- Spawn the Captains board from the JUST-SPAWNED Knaves rules board (passed in by rttSpawnFaction's
 -- callback), LEFT of it at the maintainer's faction-local offset. Because it is anchored to THIS
@@ -3821,18 +3821,15 @@ function rttCrowsHiddenZone(board, cx, cz, isDraft)
       end
     end
   end
-  -- board-LOCAL sideways spot of the maintainer's cover: always OUTSIDE the play area (away from table centre
-  -- x=0). Derive the side from board GEOMETRY, not the seat index. A card ~3.163 board-local to the
-  -- side lands further from centre only if the board faces that way, so the sign is sign(cx) for a
-  -- near-row board (rotY~0) and flips for a far-row board (rotY~180). The old seat==1|3 rule matched
-  -- ONLY the 4p layout and put the 5p seat-4 cover INSIDE the arena (RTT_LAYOUT[5]={1,5,2,4,3} maps
-  -- seat 4 to a far-left board). This form reproduces every 4p seat identically and fixes 5p seat 4.
-  -- Then pull it ~one card width toward the plots (board scale ~8.8, a ~2.5u card ≈ 0.28 board-local).
+  -- Side by SEAT (maintainer's rule): hidden area to the player's LEFT of the faction board for seats
+  -- 1 & 4, to the RIGHT for seats 2 & 3. Map that world side into board-local x via facingFlip (far-row
+  -- boards mirror local x). On the RIGHT, push a bit further out to clear the Crafted Improvements column.
   local bry = board.getRotation().y % 360
   local facingFlip = (bry > 90 and bry < 270) and -1 or 1   -- far-row boards (rotY~180) mirror board-x
-  local lx = 3.163 * ((cx >= 0) and 1 or -1) * facingFlip
-  local closer = 0.28
-  if lx < 0 then lx = lx + closer else lx = lx - closer end
+  local rightSide = (seat == 2 or seat == 3)
+  local worldSide = rightSide and 1 or -1                   -- +1 = player's right, -1 = player's left
+  local lx = 3.163 * worldSide * facingFlip
+  if rightSide then lx = lx + 1.30 * facingFlip end         -- extra clearance past the crafted column
   local w = board.positionToWorld({ lx, 0.30, -0.404 })
   local blob = string.gsub(RTT_CROW_HZ_JSON, '"FogColor":"White"', '"FogColor":"' .. color .. '"')
   spawnObjectJSON({
