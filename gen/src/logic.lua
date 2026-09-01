@@ -2453,7 +2453,7 @@ function makeSpecial(category,name,x,y,z,rotation)
   end
 end
 
-function makeSpecialWithTag(category,name,x,y,z,tag)
+function makeSpecialWithTag(category,name,x,y,z,tag,rotationY)
   local my_rot = self.getRotation()
   local objects = {}
   objects = EVERYTHING[category][name]['data']
@@ -2482,6 +2482,7 @@ function makeSpecialWithTag(category,name,x,y,z,tag)
       spawnObjectJSON({
           json              = v.json,
           position          = new_pos,
+          rotation          = rotationY and {0, rotationY, 0} or nil,   -- spawn FINAL facing (no delayed rotate)
           callback_function = function(spawned_object)
             local _tg=spawned_object.getTags(); table.insert(_tg,tag); spawned_object.setTags(_tg)
           end
@@ -3828,8 +3829,10 @@ function rttCrowsHiddenZone(board, cx, cz, isDraft)
   local facingFlip = (bry > 90 and bry < 270) and -1 or 1   -- far-row boards (rotY~180) mirror board-x
   local rightSide = (seat == 2 or seat == 3)
   local worldSide = rightSide and 1 or -1                   -- +1 = player's right, -1 = player's left
-  local lx = 3.163 * worldSide * facingFlip
-  if rightSide then lx = lx + 1.30 * facingFlip end         -- extra clearance past the crafted column
+  -- LEFT (seats 1&4): keep the cover CLOSE to the board. RIGHT (seats 2&3): further out to clear the
+  -- Crafted Improvements board that sits between the cover and the crow board.
+  local mag = rightSide and 4.0 or 1.8
+  local lx = mag * worldSide * facingFlip
   local w = board.positionToWorld({ lx, 0.30, -0.404 })
   local blob = string.gsub(RTT_CROW_HZ_JSON, '"FogColor":"White"', '"FogColor":"' .. color .. '"')
   spawnObjectJSON({
@@ -3852,23 +3855,20 @@ function rttLizardSetup()
     pcall(function() o.setLock(true) end)
   end
   -- keep the Outcast Marker (it belongs ON the Lizard Wizard) — do NOT destruct it.
+  -- spawn the wizard already FACING RTT_LIZ_WIZ_ROTY (90) -- no delayed rotate (audit: spawn-final).
   makeSpecialWithTag("Tools", "Lizard Wizard",
-    RTT_LIZ_WIZ[1], RTT_LIZ_WIZ[2], RTT_LIZ_WIZ[3], "Faction")
-  -- makeSpecialWithTag can't set the facing, and the Outcast Marker spawns elsewhere, so orient
-  -- the wizard and snap the marker onto it (instant, no slide).
-  Wait.time(function()
+    RTT_LIZ_WIZ[1], RTT_LIZ_WIZ[2], RTT_LIZ_WIZ[3], "Faction", RTT_LIZ_WIZ_ROTY)
+  -- The Outcast Marker spawns from the same "Lizard Wizard" blueprint at its own offset; nudge it onto
+  -- the wizard (position only -- facing is already correct at spawn). TODO: bake this offset in the
+  -- blueprint so no move is needed either.
+  Wait.frames(function()
     for _, o in ipairs(getAllObjects()) do
-      local nm = o.getName() or ""
-      if nm == "Lizard Wizard" then
-        if o.getLock and o.getLock() then o.setLock(false) end
-        o.setRotation({ 0, RTT_LIZ_WIZ_ROTY, 0 })
-      elseif nm == "Outcast Marker" then
+      if (o.getName() or "") == "Outcast Marker" then
         if o.getLock and o.getLock() then o.setLock(false) end
         o.setPosition({ RTT_LIZ_OUTCAST[1], RTT_LIZ_OUTCAST[2], RTT_LIZ_OUTCAST[3] })
-        o.setRotation({ 0, RTT_LIZ_WIZ_ROTY, 0 })
       end
     end
-  end, 0.8)
+  end, 3)
 end
 
 -- ---- Lilypad Diaspora (frogs) --------------------------------------------
