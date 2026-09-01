@@ -3341,8 +3341,12 @@ function rttSpawnFaction(faction, cx, cz, flip, category, rotationY)
     -- Captains board FROM this exact board -> correct seat, same spawn flow, cleared with the faction.
     -- Detected on the blueprint DATA (deterministic), not a runtime getCustomObject (timing-safe).
     local isKnaveBoard = (faction == "Knaves of the Deepwood") and string.find(v.json, RTT_KNAVE_BOARD_IMG, 1, true)
+    -- Corvid: same pattern -- when THIS faction's crow board spawns, place the 12 plots + hidden zone
+    -- FROM it, in the faction's own flow (spawn-together), passing the board so it never picks a wrong one.
+    local isCrowBoard = (faction == "Corvid Conspiracy") and string.find(v.json, RTT_CROW_BOARD_IMG, 1, true)
     local myCb = cb
-    if isKnaveBoard then myCb = function(o) cb(o); rttSpawnCaptainsFor(o) end end
+    if isKnaveBoard then myCb = function(o) cb(o); rttSpawnCaptainsFor(o) end
+    elseif isCrowBoard then myCb = function(o) cb(o); Wait.frames(function() rttCrowsPlots(cx, cz, flip, false, o) end, 1) end end
     spawnObjectJSON({ json = v.json, position = new_pos, callback_function = myCb })
   end
   return true
@@ -3617,7 +3621,8 @@ function rttFactionExtras(faction, cx, cz, flip, isDraft)
   elseif faction == "Lilypad Diaspora" then rttFrogsSetup()
   elseif faction == "Keepers in Iron" then rttBadgerRelics()
   -- Twilight Council (bats) now spawns from the baked blueprint (m560) — no runtime setup
-  elseif faction == "Corvid Conspiracy" then rttCrowsPlots(cx, cz, flip, isDraft)
+  -- Corvid plots + hidden zone now spawn FROM the crow board's own callback (rttSpawnFaction), together
+  -- with the faction -- not here on a delay. (No blueprint plots/bot to replace anymore either.)
   -- Underground Duchy (moles) now spawns 7 loose + 13 bagged from the blueprint (m300) — no tuck
   -- Knaves: the Captains board + its pooled captains now spawn FROM the faction blueprint's own
   -- rules-board callback (see rttSpawnFaction), so they appear WITH the faction at the CORRECT seat.
@@ -3750,23 +3755,18 @@ function rttFindSeatBoard(cx, cz)
 end
 
 -- ---- Corvid Conspiracy (crows): 12 plots, 3 of each type, in a clean 4x3 grid --------
+RTT_CROW_BOARD_IMG = "91D872F5EEF83D8BA244B2EFB04D155D97C88F43"  -- crow rules board face (spawn-trigger anchor)
 RTT_CROW_COLS = { -0.400, -0.577, -0.754, -0.931 }
 RTT_CROW_ROWS = { -1.166, -1.353, -1.540 }
 -- the 4 starting Corvid warriors, board-local (recorded from the maintainer's save): a row by the supply
 RTT_CROW_WAR = { { 0.330, -1.157 }, { 0.499, -1.157 }, { 0.668, -1.157 }, { 0.837, -1.157 } }
 
-function rttCrowsPlots(cx, cz, flip, isDraft)
-  local board = rttFindSeatBoard(cx, cz)
+function rttCrowsPlots(cx, cz, flip, isDraft, board)
+  board = board or rttFindSeatBoard(cx, cz)
   if board == nil then return end
-  for _, o in ipairs(getAllObjects()) do
-    if (o.getName() or "") == "Plot" then pcall(function() o.destruct() end) end
-  end
-  -- the base does NOT spawn loose "Plot" objects, so RTT_CROW_PLOTS is the only source: spawn
-  -- the 12 plots straight into the 4x3 grid, FACE DOWN (rotZ 180 — the recorded blobs are face
-  -- up), in ONE step. Clear any leftover plots from a prior setup first.
-  for _, o in ipairs(getAllObjects()) do
-    if (o.getName() or "") == "Plot" then pcall(function() o.destruct() end) end
-  end
+  -- The Corvid blueprint no longer spawns loose Plot tiles or the bot card (removed from the data), so
+  -- there is nothing to destroy/replace: place the 12 plots straight into the 4x3 grid FACE DOWN in ONE
+  -- step (rttSetup clears any leftovers from a prior game). Spawn-final -- no old-then-new (audit).
   local ry = board.getRotation().y
   for i, blob in ipairs(RTT_CROW_PLOTS or {}) do
     local idx = i - 1
@@ -3777,21 +3777,10 @@ function rttCrowsPlots(cx, cz, flip, isDraft)
       json = blob,
       position = { w.x, w.y + 0.2, w.z },
       rotation = { 0, ry, 180 },            -- face DOWN
-      -- tag "RTT Faction" so a draft RESET (rttSetup) clears the plots with the rest of the faction
-      callback_function = function(o) o.setLock(false) o.addTag("RTT Faction") end
+      callback_function = function(o) o.setLock(false) o.addTag("RTT Faction") end   -- cleared with the faction
     })
   end
-  -- the 4 starting warriors + moved supply are BAKED into the blueprint now (m620) — no reposition.
-  -- spawn the maintainer's hidden-plot cover (a Hidden Zone), coloured to the crow player's seat so only they
-  -- can see their plots (the parked cover was grey = visible to all).
   rttCrowsHiddenZone(board, cx, cz, isDraft)
-  -- drop the Corvid "Bot Interactions" reference card (CardID 29900) — human tournament, no bots
-  for _, o in ipairs(getAllObjects()) do
-    if o.name == "Card" or o.name == "CardCustom" then
-      local ok, dt = pcall(function() return o.getData() end)
-      if ok and dt ~= nil and dt.CardID == 29900 then pcall(function() o.destruct() end) end
-    end
-  end
 end
 
 -- the maintainer's hidden-plot cover: a Hidden Zone (FogOfWarTrigger) parked to the RIGHT of the plot grid.
