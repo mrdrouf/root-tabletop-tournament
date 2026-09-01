@@ -3379,15 +3379,6 @@ function rttSpawnFaction(faction, cx, cz, flip, category, rotationY)
     if spawnRy ~= 0 then o.setRotation({ o.getRotation().x, o.getRotation().y + spawnRy, o.getRotation().z }) end
     if o.hasTag("Ruin Set") then o.destroy() end
     if o.hasTag("Shuffleable") then o.shuffle() o.shuffle() end
-    -- Knaves: the Captains board is PART of the faction. When THIS faction's own rules board spawns,
-    -- place the Captains board from ITS transform -- never a global table search (which always found
-    -- seat 1) and never a delayed rttFactionExtras call (which made it appear AFTER the faction).
-    if faction == "Knaves of the Deepwood" then
-      local ok, d = pcall(function() return o.getCustomObject() end)
-      if ok and d ~= nil and type(d.image) == "string" and string.find(d.image, RTT_KNAVE_BOARD_IMG, 1, true) then
-        rttSpawnCaptainsFor(o)
-      end
-    end
   end
   for _, v in ipairs(objects) do
     local vec = Vector(v.move_to) * scale
@@ -3401,7 +3392,13 @@ function rttSpawnFaction(faction, cx, cz, flip, category, rotationY)
     end
     local new_pos = Vector(cx, 11.56, cz) + vec
     new_pos.y = new_pos.y - 0.1
-    spawnObjectJSON({ json = v.json, position = new_pos, callback_function = cb })
+    -- Knaves: this piece IS the rules board (its blueprint json carries the board image). Spawn the
+    -- Captains board FROM this exact board -> correct seat, same spawn flow, cleared with the faction.
+    -- Detected on the blueprint DATA (deterministic), not a runtime getCustomObject (timing-safe).
+    local isKnaveBoard = (faction == "Knaves of the Deepwood") and string.find(v.json, RTT_KNAVE_BOARD_IMG, 1, true)
+    local myCb = cb
+    if isKnaveBoard then myCb = function(o) cb(o); rttSpawnCaptainsFor(o) end end
+    spawnObjectJSON({ json = v.json, position = new_pos, callback_function = myCb })
   end
   return true
 end
