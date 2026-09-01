@@ -3117,8 +3117,8 @@ RTT_KNAVE_CAP = {
 -- scale is BAKED and the board LOCKED (no resize panel). To retune: unlock in-game, resize, save,
 -- tell me the new scale and I rebake RTT_CAPTAIN_BOARD_JSON. Snaps land on the 3 slot centres.
 RTT_KNAVE_BOARD_IMG = "84529E736BDD4EF6B70CA79E3F99E2D07FA75A2C"  -- Knaves rules board face (the maintainer's anchor)
-RTT_CAP_OFF_X    = 15.68    -- captains-board CENTRE in the FACTION board's LOCAL frame (= the maintainer's placed spot)
-RTT_CAP_OFF_Z    = -2.11
+RTT_CAP_OFF_X    = -15.753  -- captains-board CENTRE vs the Knaves rules board (from the maintainer's save:
+RTT_CAP_OFF_Z    = 4.506    -- captain at world (63.6,-46.5) for the rules board at (47.9,-51.0), rotY 180)
 RTT_CAP_POOL_GAP = 2.4      -- world gap between the board and the pick-pool
 -- (snaps are BAKED into RTT_CAPTAIN_BOARD_JSON now; the old slot-fraction / self-size constants are gone)
 -- The real Crafted Improvements art, cropped to its TOP 3 overlapping card slots (+ its real title
@@ -3163,7 +3163,7 @@ function rttSpawnCaptainsFor(rulesBoard)
         -- captain's meeple above the Knaves board (items TODO once the item-supply source is known).
         RTT_CAP_BOARD_GUID = board.getGUID()
         RTT_CAP_KNAVE_GUID = rulesBoard.getGUID()
-        RTT_CAP_SPAWNED = {}; RTT_CAP_SPAWN_N = 0
+        RTT_CAP_SLOT = {}; RTT_CAP_SPAWN_N = 0
         pcall(function() rttBuildCaptainMeeples() end)
         Wait.time(rttCaptainDetect, 2.0)
       end
@@ -3175,7 +3175,7 @@ end
 -- The Knaves blueprint carries all 12 "Captain - <Name>" meeples (Custom_Model) + their card deck.
 -- rttSpawnFaction SKIPS spawning the 12 meeples; this detector spawns ONLY the chosen captains' meeples
 -- (above the Knaves board) when their card lands in a captain-board slot. A captain is spawned ONCE --
--- a remove-then-replace of the SAME captain does nothing (tracked in RTT_CAP_SPAWNED). Items are TODO:
+-- a leave-then-return of the SAME captain in a slot does nothing (tracked per-slot in RTT_CAP_SLOT). Items are TODO:
 -- they are NOT in the Knaves blueprint (they come from the shared item supply), so rttSpawnCaptainMeeple
 -- has a hook to add RTT_CAP_ITEMS[name] to the Stash once that source is identified.
 RTT_CAP_CARDID = { [73400]="Arbiter",[73401]="Cheat",[73402]="Gladiator",[73403]="Adventurer",
@@ -3188,7 +3188,7 @@ RTT_CAP_ITEMS = { Arbiter={"Sword","Coins"}, Cheat={"Boot","Tea"}, Gladiator={"S
 RTT_CAP_MEEPLE_JSON = nil
 RTT_CAP_BOARD_GUID  = nil
 RTT_CAP_KNAVE_GUID  = nil
-RTT_CAP_SPAWNED     = {}
+RTT_CAP_SLOT        = {}   -- [slotN] = the captain currently COMMITTED in that board slot
 RTT_CAP_SPAWN_N     = 0
 
 function rttBuildCaptainMeeples()
@@ -3222,27 +3222,46 @@ function rttSpawnCaptainMeeple(name, idx)
   -- TODO(items): add RTT_CAP_ITEMS[name] to the Stash once the shared item-supply source is known.
 end
 
+-- SLOT-based detector. Each of the board's 3 snap slots remembers its COMMITTED captain. When a slot's
+-- captain becomes a DIFFERENT one than it committed, that captain is spawned and the slot re-commits.
+-- An empty slot keeps its commit -> a captain that leaves and comes back does nothing; but swapping in a
+-- captain that is not the slot's current commit spawns it (even one spawned earlier in another slot),
+-- exactly matching the maintainer's Gladiator->Arbiter->Gladiator example.
 function rttCaptainDetect()
   local board = getObjectFromGUID(RTT_CAP_BOARD_GUID or "")
   if board == nil then return end        -- board gone (faction cleared) -> stop polling
+  local snaps = board.getSnapPoints() or {}
+  -- gather captain cards resting on the board
   local bb = board.getBounds()
+  local cards = {}
   for _, o in ipairs(getAllObjects()) do
     if o.name == "Card" or o.name == "CardCustom" then
       local p = o.getPosition()
-      if math.abs(p.x - bb.center.x) <= bb.size.x / 2 + 1.0
-         and math.abs(p.z - bb.center.z) <= bb.size.z / 2 + 1.0
+      if math.abs(p.x - bb.center.x) <= bb.size.x / 2 + 1.5
+         and math.abs(p.z - bb.center.z) <= bb.size.z / 2 + 1.5
          and math.abs(p.y - bb.center.y) <= 3.0 then
         local ok, dt = pcall(function() return o.getData() end)
         if ok and dt ~= nil and dt.CardID ~= nil and RTT_CAP_CARDID[dt.CardID] ~= nil then
-          local nm = RTT_CAP_CARDID[dt.CardID]
-          if not RTT_CAP_SPAWNED[nm] then
-            RTT_CAP_SPAWNED[nm] = true
-            rttSpawnCaptainMeeple(nm, RTT_CAP_SPAWN_N)
-            RTT_CAP_SPAWN_N = RTT_CAP_SPAWN_N + 1
-          end
+          cards[#cards + 1] = { p = p, name = RTT_CAP_CARDID[dt.CardID] }
         end
       end
     end
+  end
+  -- match each slot (snap) to the nearest resting captain card
+  for i, sp in ipairs(snaps) do
+    local wp = board.positionToWorld(sp.position)
+    local best, bd = nil, 9.0                          -- within ~3u of the slot centre
+    for _, c in ipairs(cards) do
+      local d = (c.p.x - wp.x) ^ 2 + (c.p.z - wp.z) ^ 2
+      if d < bd then bd = d; best = c end
+    end
+    local key = "slot" .. i
+    if best ~= nil and RTT_CAP_SLOT[key] ~= best.name then
+      RTT_CAP_SLOT[key] = best.name
+      rttSpawnCaptainMeeple(best.name, RTT_CAP_SPAWN_N)   -- (also spawns its items once wired)
+      RTT_CAP_SPAWN_N = RTT_CAP_SPAWN_N + 1
+    end
+    -- empty slot: keep its committed captain (a leave-then-return does nothing)
   end
   Wait.time(rttCaptainDetect, 1.5)
 end
@@ -3898,17 +3917,12 @@ function rttCrowsHiddenZone(board, cx, cz, isDraft)
       end
     end
   end
-  -- Side by SEAT (maintainer's rule): hidden area to the player's LEFT of the faction board for seats
-  -- 1 & 4, to the RIGHT for seats 2 & 3. Map that world side into board-local x via facingFlip (far-row
-  -- boards mirror local x). On the RIGHT, push a bit further out to clear the Crafted Improvements column.
-  local bry = board.getRotation().y % 360
-  local facingFlip = (bry > 90 and bry < 270) and -1 or 1   -- far-row boards (rotY~180) mirror board-x
+  -- Side by SEAT (maintainer's rule): RIGHT of the board for seats 2 & 3, LEFT for seats 1 & 4. "Right"
+  -- is the board-LOCAL +x side (where the Crafted Improvements board sits, confirmed from its move_to),
+  -- so it is the SAME local sign for every seat -- NO facingFlip (that flipped seat 4 to the wrong side).
+  -- Right must clear the crafted column (further out); left goes a bit further out too.
   local rightSide = (seat == 2 or seat == 3)
-  local worldSide = rightSide and 1 or -1                   -- +1 = player's right, -1 = player's left
-  -- LEFT (seats 1&4): keep the cover CLOSE to the board. RIGHT (seats 2&3): further out to clear the
-  -- Crafted Improvements board that sits between the cover and the crow board.
-  local mag = rightSide and 4.0 or 1.8
-  local lx = mag * worldSide * facingFlip
+  local lx = rightSide and 5.6 or -3.3
   local w = board.positionToWorld({ lx, 0.30, -0.404 })
   local blob = string.gsub(RTT_CROW_HZ_JSON, '"FogColor":"White"', '"FogColor":"' .. color .. '"')
   spawnObjectJSON({
