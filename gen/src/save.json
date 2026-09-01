@@ -1,1 +1,2382 @@
-{"SaveName": "Root Tabletop Tournament", "EpochTime": 1764862205, "Date": "12/4/2025 11:30:05 PM", "VersionNumber": "v13.3", "GameMode": "Root Tabletop Tournament", "GameType": "Game", "GameComplexity": "Medium Complexity", "PlayingTime": [60, 120], "PlayerCounts": [1, 6], "Tags": ["Miniature Games", "Strategy Games", "Board Games", "Dice", "Figurines", "Lighting", "Rules", "Tables", "Cards", "Components", "English", "Root", "Leder Games", "Meeples", "Vagabonds", "Factions", "Collection", "Variants", "Fans", "Homebrew", "Noir"], "Gravity": 0.5, "PlayArea": 0.752526, "Table": "Table_None", "Sky": "Sky_Museum", "SkyURL": "https://steamusercontent-a.akamaihd.net/ugc/1725416195557323868/5E3B34B095679659A554989477606C052731BB65/", "Note": "", "TabStates": {"0": {"title": "Rules", "body": "", "color": "Grey", "visibleColor": {"r": 0.5, "g": 0.5, "b": 0.5}, "id": 0}, "1": {"title": "White", "body": "", "color": "White", "visibleColor": {"r": 1.0, "g": 1.0, "b": 1.0}, "id": 1}, "2": {"title": "Brown", "body": "", "color": "Brown", "visibleColor": {"r": 0.443, "g": 0.231, "b": 0.09}, "id": 2}, "3": {"title": "Red", "body": "", "color": "Red", "visibleColor": {"r": 0.856, "g": 0.1, "b": 0.094}, "id": 3}, "4": {"title": "Orange", "body": "", "color": "Orange", "visibleColor": {"r": 0.956, "g": 0.392, "b": 0.113}, "id": 4}, "5": {"title": "Yellow", "body": "", "color": "Yellow", "visibleColor": {"r": 0.905, "g": 0.898, "b": 0.172}, "id": 5}, "6": {"title": "Green", "body": "", "color": "Green", "visibleColor": {"r": 0.192, "g": 0.701, "b": 0.168}, "id": 6}, "7": {"title": "Blue", "body": "", "color": "Blue", "visibleColor": {"r": 0.118, "g": 0.53, "b": 1.0}, "id": 7}, "8": {"title": "Teal", "body": "", "color": "Teal", "visibleColor": {"r": 0.129, "g": 0.694, "b": 0.607}, "id": 8}, "9": {"title": "Purple", "body": "", "color": "Purple", "visibleColor": {"r": 0.627, "g": 0.125, "b": 0.941}, "id": 9}, "10": {"title": "Pink", "body": "", "color": "Pink", "visibleColor": {"r": 0.96, "g": 0.439, "b": 0.807}, "id": 10}, "11": {"title": "Black", "body": "", "color": "Black", "visibleColor": {"r": 0.25, "g": 0.25, "b": 0.25}, "id": 11}}, "MusicPlayer": {"RepeatSong": true, "PlaylistEntry": 1, "CurrentAudioTitle": "Beware the Forest Mushrooms - Yoko Shimomura", "CurrentAudioURL": "https://steamusercontent-a.akamaihd.net/ugc/779618751110679052/8BDB62372022408D9E5B5DD5B69E86BB43D46F49/", "AudioLibrary": [{"Item1": "https://steamusercontent-a.akamaihd.net/ugc/779618751110679052/8BDB62372022408D9E5B5DD5B69E86BB43D46F49/", "Item2": "Beware the Forest Mushrooms - Yoko Shimomura"}]}, "Grid": {"Type": 0, "Lines": false, "Color": {"r": 0.0, "g": 0.0, "b": 0.0}, "Opacity": 0.75, "ThickLines": false, "Snapping": false, "Offset": false, "BothSnapping": false, "xSize": 1.0, "ySize": 1.0, "PosOffset": {"x": 0.0, "y": 1.0, "z": 0.0}}, "Lighting": {"LightIntensity": 0.54, "LightColor": {"r": 1.0, "g": 0.9804, "b": 0.8902}, "AmbientIntensity": 1.3, "AmbientType": 1, "AmbientSkyColor": {"r": 0.5, "g": 0.5, "b": 0.5}, "AmbientEquatorColor": {"r": 0.5, "g": 0.5, "b": 0.5}, "AmbientGroundColor": {"r": 0.5, "g": 0.5, "b": 0.5}, "ReflectionIntensity": 0.612, "LutIndex": 0, "LutContribution": 1.0, "LutURL": ""}, "Hands": {"Enable": true, "DisableUnused": false, "Hiding": 0}, "ComponentTags": {"labels": [{"displayed": "City Marker", "normalized": "city_marker"}, {"displayed": "Tool", "normalized": "tool"}, {"displayed": "Clearing Marker", "normalized": "clearing_marker"}, {"displayed": "Ruin", "normalized": "ruin"}, {"displayed": "Table Piece", "normalized": "table_piece"}, {"displayed": "Hireling Object", "normalized": "hireling_object"}, {"displayed": "Map Object", "normalized": "map_object"}, {"displayed": "Deck Object", "normalized": "deck_object"}, {"displayed": "Setup Card", "normalized": "setup_card"}, {"displayed": "Ruin Set", "normalized": "ruin_set"}, {"displayed": "Shuffleable", "normalized": "shuffleable"}, {"displayed": "Quest", "normalized": "quest"}, {"displayed": "Rat Mood", "normalized": "rat_mood"}, {"displayed": "Landmark Object", "normalized": "landmark_object"}, {"displayed": "Side Table Piece", "normalized": "side_table_piece"}, {"displayed": "Lost City Marker", "normalized": "lost_city_marker"}, {"displayed": "Clearing 1", "normalized": "clearing_1"}, {"displayed": "Clearing 3", "normalized": "clearing_3"}, {"displayed": "Clearing 2", "normalized": "clearing_2"}, {"displayed": "Free City", "normalized": "free_city"}, {"displayed": "Clearing 5", "normalized": "clearing_5"}, {"displayed": "Clearing 4", "normalized": "clearing_4"}, {"displayed": "Plot Token", "normalized": "plot_token"}, {"displayed": "Tower", "normalized": "tower"}, {"displayed": "Treasure", "normalized": "treasure"}, {"displayed": "Dummy", "normalized": "dummy"}, {"displayed": "Growth", "normalized": "growth"}, {"displayed": "DrawDraftX", "normalized": "drawdraftx"}, {"displayed": "FiftyFiftyBoard", "normalized": "fiftyfiftyboard"}, {"displayed": "WWAdsetCards", "normalized": "wwadsetcards"}, {"displayed": "Deck Aides", "normalized": "deck_aides"}, {"displayed": "Landmark Card", "normalized": "landmark_card"}, {"displayed": "RandomBot", "normalized": "randombot"}, {"displayed": "Frog Token", "normalized": "frog_token"}, {"displayed": "Pillar of Faith Cards", "normalized": "pillar_of_faith_cards"}, {"displayed": "Firebrand Mouse", "normalized": "firebrand_mouse"}, {"displayed": "Firebrand Rabbit", "normalized": "firebrand_rabbit"}, {"displayed": "Firebrand Fox", "normalized": "firebrand_fox"}, {"displayed": "BlightedPair1", "normalized": "blightedpair1"}, {"displayed": "Blighted City", "normalized": "blighted_city"}, {"displayed": "BlightedPair2", "normalized": "blightedpair2"}, {"displayed": "Captain Cards", "normalized": "captain_cards"}]}, "Turns": {"Enable": false, "Type": 1, "TurnOrder": ["Red", "Yellow", "Orange", "Teal", "Green", "Brown"], "Reverse": false, "SkipEmpty": false, "DisableInteractions": false, "PassTurns": true, "TurnColor": ""}, "CameraStates": [{"Position": {"x": 1.25461972, "y": -2.5, "z": -11.9066744}, "Rotation": {"x": 49.3727951, "y": 0.250863552, "z": 0.0}, "Distance": 117.827965, "Zoomed": false, "AbsolutePosition": {"x": 0.918702, "y": 86.92697, "z": -88.62782}}, {"Position": {"x": 55.5202751, "y": -2.5, "z": -41.00554}, "Rotation": {"x": 55.8470039, "y": 359.750916, "z": 0.0}, "Distance": 47.48707, "Zoomed": false, "AbsolutePosition": {"x": 55.6361656, "y": 36.79751, "z": -67.66476}}, {"Position": {"x": 3.57440686, "y": -2.5, "z": -40.4402351}, "Rotation": {"x": 55.8470078, "y": 359.750916, "z": 0.0}, "Distance": 47.48707, "Zoomed": false, "AbsolutePosition": {"x": 3.69030428, "y": 36.7975159, "z": -67.09944}}, {"Position": {"x": -46.9809761, "y": -2.5, "z": -41.2533722}, "Rotation": {"x": 55.8470154, "y": 359.750916, "z": 0.0}, "Distance": 47.48707, "Zoomed": false, "AbsolutePosition": {"x": -46.865078, "y": 36.7975159, "z": -67.91258}}, {"Position": {"x": -53.98469, "y": -2.5, "z": 37.8496361}, "Rotation": {"x": 50.4325142, "y": 179.595566, "z": 0.0}, "Distance": 48.89903, "Zoomed": false, "AbsolutePosition": {"x": -54.2045555, "y": 35.195034, "z": 68.99689}}, {"Position": {"x": -1.56337345, "y": -2.5, "z": 37.5832176}, "Rotation": {"x": 50.4325142, "y": 179.595566, "z": 0.0}, "Distance": 48.89903, "Zoomed": false, "AbsolutePosition": {"x": -1.78323841, "y": 35.195034, "z": 68.73047}}, {"Position": {"x": 50.74839, "y": -2.5, "z": 38.4107323}, "Rotation": {"x": 50.4325142, "y": 179.595566, "z": 0.0}, "Distance": 48.89903, "Zoomed": false, "AbsolutePosition": {"x": 50.5285263, "y": 35.195034, "z": 69.55798}}, {"Position": {"x": 1.3411926, "y": 11.5615435, "z": 24.1387157}, "Rotation": {"x": 48.931633, "y": 180.088257, "z": 0.0}, "Distance": 103.272392, "Zoomed": true, "AbsolutePosition": {"x": 1.44569337, "y": 89.4212952, "z": 91.98436}}, {"Position": {"x": -1.99993539, "y": -1.24435425, "z": 0.871152639}, "Rotation": {"x": 51.6820221, "y": 0.08942816, "z": 0.0}, "Distance": 53.85555, "Zoomed": false, "AbsolutePosition": {"x": -2.052054, "y": 41.00973, "z": -32.5206146}}, {"Position": {"x": 105.587311, "y": 11.5615435, "z": -3.39571452}, "Rotation": {"x": 24.4109421, "y": 89.88151, "z": 0.0}, "Distance": 74.01873, "Zoomed": true, "AbsolutePosition": {"x": 38.1856461, "y": 42.15188, "z": -3.535109}}], "DecalPallet": [], "LuaScript": "--[[ Lua code. See documentation: https://api.tabletopsimulator.com/ --]]\n\n--[[ The onLoad event is called after the game save finishes loading. --]]\nfunction onLoad()\n    --[[ print('onLoad!') --]]\nend\n\n--[[ The onUpdate event is called once per frame. --]]\nfunction onUpdate()\n    --[[ print('onUpdate loop!') --]]\nend", "LuaScriptState": "", "XmlUI": "<!-- Xml UI. See documentation: https://api.tabletopsimulator.com/ui/introUI/ -->", "ObjectStates": [{"GUID": "afc863", "Name": "Custom_Assetbundle", "Transform": {"posX": -57.5858078, "posY": 1.15621173, "posZ": -45.00301, "rotX": 6.536436e-07, "rotY": -2.39176334e-05, "rotZ": -3.84849864e-06, "scaleX": 1.0, "scaleY": 1.0, "scaleZ": 1.0}, "Nickname": "", "Description": "", "GMNotes": "", "AltLookAngle": {"x": 0.0, "y": 0.0, "z": 0.0}, "ColorDiffuse": {"r": 1.0, "g": 1.0, "b": 1.0}, "Tags": ["Table Piece"], "LayoutGroupSortIndex": 0, "Value": 0, "Locked": true, "Grid": true, "Snap": true, "IgnoreFoW": false, "MeasureMovement": false, "DragSelectable": true, "Autoraise": true, "Sticky": true, "Tooltip": true, "GridProjection": false, "HideWhenFaceDown": false, "Hands": false, "CustomAssetbundle": {"AssetbundleURL": "https://steamusercontent-a.akamaihd.net/ugc/879750610978795929/723C50F43FAB3DE3DC12CB8460536E8CB34B60A3/", "AssetbundleSecondaryURL": "", "MaterialIndex": 2, "TypeIndex": 4, "LoopingEffectIndex": 0}, "LuaScript": "", "LuaScriptState": "", "XmlUI": ""}, {"GUID": "c8edca", "Name": "Custom_Assetbundle", "Transform": {"posX": -57.5858078, "posY": 1.15621173, "posZ": 44.99699, "rotX": 6.536436e-07, "rotY": 90.0, "rotZ": -3.84849864e-06, "scaleX": 1.0, "scaleY": 1.0, "scaleZ": 1.0}, "Nickname": "", "Description": "", "GMNotes": "", "AltLookAngle": {"x": 0.0, "y": 0.0, "z": 0.0}, "ColorDiffuse": {"r": 1.0, "g": 1.0, "b": 1.0}, "Tags": ["Table Piece"], "LayoutGroupSortIndex": 0, "Value": 0, "Locked": true, "Grid": true, "Snap": true, "IgnoreFoW": false, "MeasureMovement": false, "DragSelectable": true, "Autoraise": true, "Sticky": true, "Tooltip": true, "GridProjection": false, "HideWhenFaceDown": false, "Hands": false, "CustomAssetbundle": {"AssetbundleURL": "https://steamusercontent-a.akamaihd.net/ugc/879750610978795929/723C50F43FAB3DE3DC12CB8460536E8CB34B60A3/", "AssetbundleSecondaryURL": "", "MaterialIndex": 2, "TypeIndex": 4, "LoopingEffectIndex": 0}, "LuaScript": "", "LuaScriptState": "", "XmlUI": ""}, {"GUID": "393bf7", "Name": "Custom_Assetbundle", "Transform": {"posX": 57.61419, "posY": 1.15621173, "posZ": 44.99699, "rotX": 6.536436e-07, "rotY": 180.0, "rotZ": -3.84849864e-06, "scaleX": 1.0, "scaleY": 1.0, "scaleZ": 1.0}, "Nickname": "", "Description": "", "GMNotes": "", "AltLookAngle": {"x": 0.0, "y": 0.0, "z": 0.0}, "ColorDiffuse": {"r": 1.0, "g": 1.0, "b": 1.0}, "Tags": ["Table Piece"], "LayoutGroupSortIndex": 0, "Value": 0, "Locked": true, "Grid": true, "Snap": true, "IgnoreFoW": false, "MeasureMovement": false, "DragSelectable": true, "Autoraise": true, "Sticky": true, "Tooltip": true, "GridProjection": false, "HideWhenFaceDown": false, "Hands": false, "CustomAssetbundle": {"AssetbundleURL": "https://steamusercontent-a.akamaihd.net/ugc/879750610978795929/723C50F43FAB3DE3DC12CB8460536E8CB34B60A3/", "AssetbundleSecondaryURL": "", "MaterialIndex": 2, "TypeIndex": 4, "LoopingEffectIndex": 0}, "LuaScript": "", "LuaScriptState": "", "XmlUI": ""}, {"GUID": "12c65e", "Name": "Custom_Assetbundle", "Transform": {"posX": 57.61419, "posY": 1.15621173, "posZ": -45.00301, "rotX": 6.536436e-07, "rotY": 270.0, "rotZ": -3.84849864e-06, "scaleX": 1.0, "scaleY": 1.0, "scaleZ": 1.0}, "Nickname": "", "Description": "", "GMNotes": "", "AltLookAngle": {"x": 0.0, "y": 0.0, "z": 0.0}, "ColorDiffuse": {"r": 1.0, "g": 1.0, "b": 1.0}, "Tags": ["Table Piece"], "LayoutGroupSortIndex": 0, "Value": 0, "Locked": true, "Grid": true, "Snap": true, "IgnoreFoW": false, "MeasureMovement": false, "DragSelectable": true, "Autoraise": true, "Sticky": true, "Tooltip": true, "GridProjection": false, "HideWhenFaceDown": false, "Hands": false, "CustomAssetbundle": {"AssetbundleURL": "https://steamusercontent-a.akamaihd.net/ugc/879750610978795929/723C50F43FAB3DE3DC12CB8460536E8CB34B60A3/", "AssetbundleSecondaryURL": "", "MaterialIndex": 2, "TypeIndex": 4, "LoopingEffectIndex": 0}, "LuaScript": "", "LuaScriptState": "", "XmlUI": ""}, {"GUID": "bd69bd", "Name": "Chinese_Checkers_Piece", "Transform": {"posX": 76.77401, "posY": 9.8962, "posZ": -67.12305, "rotX": 0.00190076465, "rotY": 180.0, "rotZ": 0.000379891542, "scaleX": 1.6499995, "scaleY": 1.6499995, "scaleZ": 1.6499995}, "Nickname": "Flex Table Control", "Description": "", "GMNotes": "", "AltLookAngle": {"x": 0.0, "y": 0.0, "z": 0.0}, "ColorDiffuse": {"r": 1.0, "g": 1.0, "b": 1.0}, "LayoutGroupSortIndex": 0, "Value": 0, "Locked": true, "Grid": true, "Snap": true, "IgnoreFoW": false, "MeasureMovement": false, "DragSelectable": true, "Autoraise": true, "Sticky": true, "Tooltip": false, "GridProjection": false, "HideWhenFaceDown": false, "Hands": false, "MaterialIndex": 1, "LuaScript": "tableHeightOffset = -9\n\nfunction onSave()\n    saved_data = JSON.encode({tid=tableImageData, cd=checkData})\n    --saved_data = \"\"\n    return saved_data\nend\n\nfunction onload(saved_data)\n    --Loads the tracking for if the game has started yet\n    if saved_data ~= \"\" then\n         local loaded_data = JSON.decode(saved_data)\n         tableImageData = loaded_data.tid\n         checkData = loaded_data.cd\n    else\n        tableImageData = {}\n        checkData = {move=false, scale=false}\n    end\n\n    --Disables interactable status of objects with GUID in list\n    for _, guid in ipairs(ref_noninteractable) do\n        local obj = getObjectFromGUID(guid)\n        if obj then obj.interactable = false end\n    end\n\n    --Establish references to table parts\n    obj_leg1 = getObjectFromGUID(\"afc863\")\n    obj_leg2 = getObjectFromGUID(\"c8edca\")\n    obj_leg3 = getObjectFromGUID(\"393bf7\")\n    obj_leg4 = getObjectFromGUID(\"12c65e\")\n    obj_surface = getObjectFromGUID(\"4ee1f2\")\n    obj_side_top = getObjectFromGUID(\"35b95f\")\n    obj_side_bot = getObjectFromGUID(\"f938a2\")\n    obj_side_lef = getObjectFromGUID(\"9f95fd\")\n    obj_side_rig = getObjectFromGUID(\"5af8f2\")\n\n    controlActive = false\n    createOpenCloseButton()\nend\n\n--Activation/deactivation of control panel\n\n--Activated by clicking on\nfunction click_toggleControl(_, color)\n    if permissionCheck(color) then\n        if not controlActive then\n            --Activate control panel\n            controlActive = true\n            self.clearButtons()\n            createOpenCloseButton()\n            createSurfaceInput()\n            createSurfaceButtons()\n            createScaleInput()\n            createScaleButtons()\n        else\n            --Deactivate control panel\n            controlActive = false\n            self.clearButtons()\n            self.clearInputs()\n            createOpenCloseButton()\n\n        end\n    end\nend\n\n\n\n\n--Table surface control\n\n\n\n--Changes table surface\nfunction click_applySurface(_, color)\n    if permissionCheck(color) then\n        updateSurface()\n        broadcastToAll(\"New Table Image Applied\", {0.2,0.9,0.2})\n    end\nend\n\nfunction click_resetBoard()\n    getObjectFromGUID(\"bab7e1\").call(\"startingReset\")\nend\n\n--Saves table surface\nfunction click_saveSurface(_, color)\n    if permissionCheck(color) then\n        local nickname = self.getInputs()[1].value\n        local url = self.getInputs()[2].value\n        if nickname == \"\" then\n            --No nickname\n            broadcastToAll(\"Please supply a nickname for this save.\", {0.9,0.2,0.2})\n        else\n            --Nickname exists\n\n            if findInImageDataIndex(url, nickname) == nil then\n                --Save doesn't exist already\n                table.insert(tableImageData, {url=url, name=nickname})\n                broadcastToAll(\"Image URL saved to memory.\", {0.2,0.9,0.2})\n                --Refresh buttons\n                self.clearButtons()\n                createOpenCloseButton()\n                createSurfaceButtons()\n                createScaleButtons()\n            else\n                --Save exists already\n                broadcastToAll(\"Memory already contains a save with this Name or URL. Delete it first.\", {0.9,0.2,0.2})\n            end\n        end\n    end\nend\n\n--Loads table surface\nfunction click_loadMemory(_, color, index)\n    if permissionCheck(color) then\n        self.editInput({index=0, value=tableImageData[index].name})\n        self.editInput({index=1, value=tableImageData[index].url})\n        updateSurface()\n        broadcastToAll(\"Table Image Loaded\", {0.2,0.9,0.2})\n    end\nend\n\n--Deletes table surface\nfunction click_deleteMemory(_, color, index)\n    if permissionCheck(color) then\n        table.remove(tableImageData, index)\n        self.clearButtons()\n        createOpenCloseButton()\n        createSurfaceButtons()\n        createScaleButtons()\n        broadcastToAll(\"Element Removed from Memory\", {0.2,0.9,0.2})\n    end\nend\n\n--Updates surface from the values in the input field\nfunction updateSurface()\n    local customInfo = obj_surface.getCustomObject()\n    customInfo.diffuse = self.getInputs()[2].value\n    obj_surface.setCustomObject(customInfo)\n    obj_surface = obj_surface.reload()\n\nend\n\nfunction weirdRootFelt()\n    local customInfo = obj_surface.getCustomObject()\n    customInfo.diffuse = \"https://steamusercontent-a.akamaihd.net/ugc/1862807092234889113/D9DF59F4AA450D4F4A73D93838E1C2D8A2E62757/\"\n    obj_surface.setCustomObject(customInfo)\n    obj_surface = obj_surface.reload()\nend\n\nfunction standardRootFelt()\n    local customInfo = obj_surface.getCustomObject()\n    customInfo.diffuse = \"https://steamusercontent-a.akamaihd.net/ugc/1725416195557291378/4BE9BA8AD2CB62AA0C0CDA202D36F313BDC38978/\"\n    obj_surface.setCustomObject(customInfo)\n    obj_surface = obj_surface.reload()\nend\n\n\n--Table Scale control\n\n\n\n--Applies Scale to table pieces\nfunction click_applyScale(_, color)\n    if permissionCheck(color) then\n        local newWidth = tonumber(self.getInputs()[3].value)\n        local newDepth = tonumber(self.getInputs()[4].value)\n        if type(newWidth) ~= \"number\" then\n            broadcastToAll(\"Invalid Width\", {0.9,0.2,0.2})\n            return\n        elseif type(newDepth) ~= \"number\" then\n            broadcastToAll(\"Invalid Depth\", {0.9,0.2,0.2})\n            return\n        elseif newWidth<0.1 or newDepth<0.1 then\n            broadcastToAll(\"Scale cannot go below 0.1\", {0.9,0.2,0.2})\n            return\n        elseif newWidth>12 or newDepth>12 then\n            broadcastToAll(\"Scale should not go over 12 (world size limitation)\", {0.9,0.2,0.2})\n            return\n        else\n            changeTableScale(math.abs(newWidth), math.abs(newDepth))\n            broadcastToAll(\"Scale applied.\", {0.2,0.9,0.2})\n        end\n    end\nend\n\n--Checks/unchecks move box for hands\nfunction click_checkMove(_, color)\n    if permissionCheck(color) then\n        local find_func = function(o) return o.click_function==\"click_checkMove\" end\n        if checkData.move == true then\n            checkData.move = false\n            local buttonEntry = findButton(self, find_func)\n            self.editButton({index=buttonEntry.index, label=\"\"})\n        else\n            checkData.move = true\n            local buttonEntry = findButton(self, find_func)\n            self.editButton({index=buttonEntry.index, label=string.char(10008)})\n        end\n    end\nend\n\n--Checks/unchecks scale box for hands\n--This button was disabled for technical reasons\n--[[\nfunction click_checkScale(_, color)\n    if permissionCheck(color) then\n        local find_func = function(o) return o.click_function==\"click_checkScale\" end\n        if checkData.scale == true then\n            checkData.scale = false\n            local buttonEntry = findButton(self, find_func)\n            self.editButton({index=buttonEntry.index, label=\"\"})\n        else\n            checkData.scale = true\n            local buttonEntry = findButton(self, find_func)\n            self.editButton({index=buttonEntry.index, label=string.char(10008)})\n        end\n    end\nend\n]]\n\n--Alters scale of elements and moves them\nfunction changeTableScale(width, depth)\n    --Scaling factors used to translate scale to position offset\n    local width2pos = (width-1) * 18\n    local depth2pos = (depth-1) * 18\n\n    --Hand zone movement\n    if checkData.move == true then\n        for _, pc in ipairs(ref_playerColor) do\n            if Player[pc].getHandCount() > 0 then\n                moveHandZone(Player[pc], width2pos, depth2pos)\n            end\n        end\n    end\n    --Hand zone scaling\n    --The button to enable this was disabled for technical reasons\n    if checkData.scale == true then\n        for _, pc in ipairs(ref_playerColor) do\n            if Player[pc].getHandCount() > 0 then\n                scaleHandZone(Player[pc], width, depth)\n            end\n        end\n    end\n\n    --Resizing table elements\n    obj_side_top.setScale({width, 1, 1})\n    obj_side_bot.setScale({width, 1, 1})\n    obj_side_lef.setScale({depth, 1, 1})\n    obj_side_rig.setScale({depth, 1, 1})\n    obj_surface.setScale({width, 1, depth})\n\n    --Moving table elements to accomodate new scale\n    obj_side_lef.setPosition({-width2pos,tableHeightOffset,0})\n    obj_side_rig.setPosition({ width2pos,tableHeightOffset,0})\n    obj_side_top.setPosition({0,tableHeightOffset, depth2pos})\n    obj_side_bot.setPosition({0,tableHeightOffset,-depth2pos})\n    obj_leg1.setPosition({-width2pos,tableHeightOffset,-depth2pos})\n    obj_leg2.setPosition({-width2pos,tableHeightOffset, depth2pos})\n    obj_leg3.setPosition({ width2pos,tableHeightOffset, depth2pos})\n    obj_leg4.setPosition({ width2pos,tableHeightOffset,-depth2pos})\n    self.setPosition(obj_leg4.positionToWorld({-22.12, 8.74,-19.16}))\n    --Only enabled when changing tableHeightOffset\n    --obj_surface.setPosition({0,tableHeightOffset,0})\nend\n\n--Move hand zone, p=player reference, facts are scaling factors\nfunction moveHandZone(p, width2pos, depth2pos)\n    local widthX = obj_side_rig.getPosition().x\n    local depthZ = obj_side_top.getPosition().z\n    for i=1, p.getHandCount() do\n        local handT = p.getHandTransform()\n        local pos = handT.position\n        local y = handT.rotation.y\n\n        if y<45 or y>320 or y>135 and y<225 then\n            if pos.z > 0 then\n                pos.z = pos.z + depth2pos - depthZ\n            else\n                pos.z = pos.z - depth2pos + depthZ\n            end\n        else\n            if pos.x > 0 then\n                pos.x = pos.x + width2pos - widthX\n            else\n                pos.x = pos.x - width2pos + widthX\n            end\n        end\n\n        --Only enabled when changing tableHeightOffset\n        --pos.y = tableHeightOffset + 14\n\n        handT.position = pos\n        p.setHandTransform(handT, i)\n    end\nend\n\n\n---Scales hand zones, p=player reference, facts are scaling factors\nfunction scaleHandZone(p, width, depth)\n    local widthFact = width / obj_side_top.getScale().x\n    local depthFact = depth / obj_side_lef.getScale().x\n    for i=1, p.getHandCount() do\n        local handT = p.getHandTransform()\n        local scale = handT.scale\n        local y = handT.rotation.y\n        if y<45 or y>320 or y>135 and y<225 then\n            scale.x = scale.x * widthFact\n        else\n            scale.x = scale.x * depthFact\n        end\n        handT.scale = scale\n        p.setHandTransform(handT, i)\n    end\nend\n\n\n\n--Information gathering\n\n\n\n--Checks if a color is promoted or host\nfunction permissionCheck(color)\n    if Player[color].host==true or Player[color].promoted==true then\n        return true\n    else\n        return false\n    end\nend\n\n--Locates a string saved within memory file\nfunction findInImageDataIndex(...)\n    for _, str in ipairs({...}) do\n        for i, v in ipairs(tableImageData) do\n            if v.url == str or v.name == str then\n                return i\n            end\n        end\n    end\n    return nil\nend\n\n--Round number (num) to the Nth decimal (dec)\nfunction round(num, dec)\n  local mult = 10^(dec or 0)\n  return math.floor(num * mult + 0.5) / mult\nend\n\n--Locates a button with a helper function\nfunction findButton(obj, func)\n    if func==nil then error(\"No func supplied to findButton\") end\n    for _, v in ipairs(obj.getButtons()) do\n        if func(v) then\n            return v\n        end\n    end\n    return nil\nend\n\n\n\n--Creation of buttons/inputs\n\n\n\nfunction createOpenCloseButton()\n    local tooltip = \"Open Table Control Panel\"\n    if controlActive then\n        tooltip = \"Close Table Control Panel\"\n    end\n    self.createButton({\n        click_function=\"click_toggleControl\", function_owner=self,\n        position={0,0,0}, rotation={-45,0,0}, height=400, width=400,\n        color={1,1,1,0}, tooltip=tooltip\n    })\nend\n\nfunction createSurfaceInput()\n    local currentURL = obj_surface.getCustomObject().diffuse\n    local nickname = \"\"\n    if findInImageDataIndex(currentURL) ~= nil then\n        nickname = tableImageData[findInImageDataIndex(currentURL)].name\n    end\n    self.createInput({\n        label=\"Nickname\", input_function=\"none\", function_owner=self,\n        alignment=3, position={0,0,2}, height=224, width=4000,\n        font_size=200, tooltip=\"Enter nickname for table image (only used for save)\",\n        value=nickname\n    })\n    self.createInput({\n        label=\"URL\", input_function=\"none\", function_owner=self,\n        alignment=3, position={0,0,3}, height=224, width=4000,\n        font_size=200, tooltip=\"Enter URL for tabletop image\",\n        value=currentURL\n    })\nend\n\nfunction createSurfaceButtons()\n    --Label\n    self.createButton({\n        label=\"Tabletop Surface Image\", click_function=\"none\",\n        position={0,0,1}, height=0, width=0, font_size=300, font_color={1,1,1}\n    })\n    --Functional\n    self.createButton({\n        label=\"Apply Image\\nTo Table\", click_function=\"click_applySurface\",\n        function_owner=self, tooltip=\"Apply URL as table image\",\n        position={2,0,4}, height=440, width=1400, font_size=200,\n    })\n    self.createButton({\n        label=\"Save Image\\nTo Memory\", click_function=\"click_saveSurface\",\n        function_owner=self, tooltip=\"Record URL into memory (requires nickname)\",\n        position={-2,0,4}, height=440, width=1400, font_size=200,\n    })\n\n    self.createButton({\n        label=\"Reset\\nBoard\", click_function=\"click_resetBoard\",\n        function_owner=self, tooltip=\"Reset the main board\",\n        position={-8,0,6}, height=440, width=1400, font_size=200, color = color(124/255,95/255,42/255)\n    })\n    --Label\n    self.createButton({\n        label=\"Load From Memory\", click_function=\"none\",\n        position={0,0,5.5}, height=0, width=0, font_size=300, font_color={1,1,1}\n    })\n    --Saves, created dynamically from memory file\n    for i, memoryEntry in ipairs(tableImageData) do\n        --Load\n        local funcName = i..\"loadMemory\"\n        local func = function(x,y) click_loadMemory(x,y,i) end\n        self.setVar(funcName, func)\n        self.createButton({\n            label=memoryEntry.name, click_function=funcName,\n            function_owner=self, tooltip=memoryEntry.url, font_size=200,\n            position={-0.6,0,6.5+0.5*(i-1)}, height=240, width=3300,\n        })\n        --Delete\n        local funcName = i..\"deleteMemory\"\n        local func = function(x,y) click_deleteMemory(x,y,i) end\n        self.setVar(funcName, func)\n        self.createButton({\n            label=\"DELETE\", click_function=funcName,\n            function_owner=self, tooltip=\"\",\n            position={3.6,0,6.5+0.5*(i-1)}, height=240, width=600,\n            font_size=160, font_color={1,0,0}, color={0.8,0.8,0.8}\n        })\n    end\nend\n\nfunction createScaleInput()\n    self.createInput({\n        label=string.char(8644), input_function=\"none\", function_owner=self,\n        alignment=3, position={-8.5,0,2}, height=224, width=400,\n        font_size=200, tooltip=\"Table Width\",\n        value=round(obj_side_top.getScale().x, 1)\n    })\n    self.createInput({\n        label=string.char(8645), input_function=\"none\", function_owner=self,\n        alignment=3, position={-7.5,0,2}, height=224, width=400,\n        font_size=200, tooltip=\"Table Depth\",\n        value=round(obj_side_lef.getScale().x, 1)\n    })\nend\n\nfunction createScaleButtons()\n    --Labels\n    self.createButton({\n        label=\"Table Scale\", click_function=\"none\",\n        position={-8,0,1}, height=0, width=0, font_size=300, font_color={1,1,1}\n    })\n    self.createButton({\n        label=string.char(8644)..\"            \"..string.char(8645),\n        click_function=\"none\",\n        position={-8,0,2}, height=0, width=0, font_size=300, font_color={1,1,1}\n    })\n    self.createButton({\n        label=\"Move Hands:\", click_function=\"none\",\n        position={-8.3,0,3}, height=0, width=0, font_size=200, font_color={1,1,1}\n    })\n    --Disabled due to me removing the feature for technical reasons\n    --[[\n    self.createButton({\n        label=\"Scale Hands:\", click_function=\"none\",\n        position={-8.3,0,4}, height=0, width=0, font_size=200, font_color={1,1,1}\n    })\n    ]]\n    --Checkboxes\n    local label = \"\"\n    if checkData.move == true then label = string.char(10008) end\n    self.createButton({\n        label=label, click_function=\"click_checkMove\",\n        function_owner=self, tooltip=\"Check to move hands when table is rescaled\",\n        position={-6.8,0,3}, height=224, width=224, font_size=200,\n    })\n    --[[\n    local label = \"\"\n    if checkData.scale == true then label = string.char(10008) end\n    self.createButton({\n        label=label, click_function=\"click_checkScale\",\n        function_owner=self, tooltip=\"Check to scale the width of hands when table is rescaled\",\n        position={-6.8,0,4}, height=224, width=224, font_size=200,\n    })\n    ]]\n    --Apply button\n    self.createButton({\n        label=\"Apply Scale\", click_function=\"click_applyScale\",\n        function_owner=self, tooltip=\"Apply width/depth to table\",\n        position={-8,0,4}, height=440, width=1400, font_size=200,\n    })\nend\n\n\n\n\n\n--Data tables\n\n\n\n\nref_noninteractable = {\n    \"afc863\",\"c8edca\",\"393bf7\",\"12c65e\",\"f938a2\",\"9f95fd\",\"35b95f\",\n    \"5af8f2\",\"4ee1f2\",\"bd69bd\"\n}\n\nref_playerColor = {\n    \"White\", \"Brown\", \"Red\", \"Orange\", \"Yellow\",\n    \"Green\", \"Teal\", \"Blue\", \"Purple\", \"Pink\", \"Black\"\n}\n\n--Dummy function, absorbs unwanted triggers\nfunction none() end", "LuaScriptState": "{\"cd\":{\"move\":true,\"scale\":false},\"tid\":[{\"name\":\"Ultimate Felt\",\"url\":\"https://steamusercontent-a.akamaihd.net/ugc/1725416195557291378/4BE9BA8AD2CB62AA0C0CDA202D36F313BDC38978/ \"},{\"name\":\"Fancy Felt\",\"url\":\"https://steamusercontent-a.akamaihd.net/ugc/1759199895458252766/7067096698C0DC334860A9FB8CE080EA8C936809/\"},{\"name\":\"Black\",\"url\":\"https://steamusercontent-a.akamaihd.net/ugc/1759199733285065380/6297A6C9EDDFB647A06AA89EA62D19A3EE8BCE65/\"},{\"name\":\"WeiRd Root Brawlosseum\",\"url\":\"https://steamusercontent-a.akamaihd.net/ugc/1862807092234888454/0EA7989611FD97A88A6E8D585A09998E9E0D5F22/\"},{\"name\":\"WeiRd Root 100% Non-Felt\",\"url\":\"https://steamusercontent-a.akamaihd.net/ugc/1862807092234889113/D9DF59F4AA450D4F4A73D93838E1C2D8A2E62757/\"}]}", "XmlUI": ""}, {"GUID": "f938a2", "Name": "Custom_Assetbundle", "Transform": {"posX": 0.0141820069, "posY": 1.15621173, "posZ": -45.00301, "rotX": -1.01777751e-13, "rotY": 0.0, "rotZ": 0.0, "scaleX": 4.2, "scaleY": 1.0, "scaleZ": 1.0}, "Nickname": "", "Description": "", "GMNotes": "", "AltLookAngle": {"x": 0.0, "y": 0.0, "z": 0.0}, "ColorDiffuse": {"r": 1.0, "g": 1.0, "b": 1.0}, "Tags": ["Table Piece"], "LayoutGroupSortIndex": 0, "Value": 0, "Locked": true, "Grid": true, "Snap": true, "IgnoreFoW": false, "MeasureMovement": false, "DragSelectable": true, "Autoraise": true, "Sticky": true, "Tooltip": true, "GridProjection": false, "HideWhenFaceDown": false, "Hands": false, "CustomAssetbundle": {"AssetbundleURL": "https://steamusercontent-a.akamaihd.net/ugc/879750610978796471/14ED0DBD593370733A0309B0950004F33EB9FACA/", "AssetbundleSecondaryURL": "", "MaterialIndex": 1, "TypeIndex": 4, "LoopingEffectIndex": 0}, "LuaScript": "", "LuaScriptState": "", "XmlUI": ""}, {"GUID": "9f95fd", "Name": "Custom_Assetbundle", "Transform": {"posX": -57.5858078, "posY": 1.15621173, "posZ": -0.00299192988, "rotX": 0.0, "rotY": 90.0, "rotZ": 0.0, "scaleX": 3.5, "scaleY": 1.0, "scaleZ": 1.0}, "Nickname": "", "Description": "", "GMNotes": "", "AltLookAngle": {"x": 0.0, "y": 0.0, "z": 0.0}, "ColorDiffuse": {"r": 1.0, "g": 1.0, "b": 1.0}, "Tags": ["Table Piece"], "LayoutGroupSortIndex": 0, "Value": 0, "Locked": true, "Grid": true, "Snap": true, "IgnoreFoW": false, "MeasureMovement": false, "DragSelectable": true, "Autoraise": true, "Sticky": true, "Tooltip": true, "GridProjection": false, "HideWhenFaceDown": false, "Hands": false, "CustomAssetbundle": {"AssetbundleURL": "https://steamusercontent-a.akamaihd.net/ugc/879750610978796471/14ED0DBD593370733A0309B0950004F33EB9FACA/", "AssetbundleSecondaryURL": "", "MaterialIndex": 1, "TypeIndex": 4, "LoopingEffectIndex": 0}, "LuaScript": "", "LuaScriptState": "", "XmlUI": ""}, {"GUID": "35b95f", "Name": "Custom_Assetbundle", "Transform": {"posX": 0.0141820069, "posY": 1.15621173, "posZ": 44.99699, "rotX": -1.01777751e-13, "rotY": 180.0, "rotZ": 0.0, "scaleX": 4.2, "scaleY": 1.0, "scaleZ": 1.0}, "Nickname": "", "Description": "", "GMNotes": "", "AltLookAngle": {"x": 0.0, "y": 0.0, "z": 0.0}, "ColorDiffuse": {"r": 1.0, "g": 1.0, "b": 1.0}, "Tags": ["Table Piece"], "LayoutGroupSortIndex": 0, "Value": 0, "Locked": true, "Grid": true, "Snap": true, "IgnoreFoW": false, "MeasureMovement": false, "DragSelectable": true, "Autoraise": true, "Sticky": true, "Tooltip": true, "GridProjection": false, "HideWhenFaceDown": false, "Hands": false, "CustomAssetbundle": {"AssetbundleURL": "https://steamusercontent-a.akamaihd.net/ugc/879750610978796471/14ED0DBD593370733A0309B0950004F33EB9FACA/", "AssetbundleSecondaryURL": "", "MaterialIndex": 1, "TypeIndex": 4, "LoopingEffectIndex": 0}, "LuaScript": "", "LuaScriptState": "", "XmlUI": ""}, {"GUID": "5af8f2", "Name": "Custom_Assetbundle", "Transform": {"posX": 57.61419, "posY": 1.15621173, "posZ": -0.00299192988, "rotX": 0.0, "rotY": 270.0, "rotZ": 0.0, "scaleX": 3.5, "scaleY": 1.0, "scaleZ": 1.0}, "Nickname": "", "Description": "", "GMNotes": "", "AltLookAngle": {"x": 0.0, "y": 0.0, "z": 0.0}, "ColorDiffuse": {"r": 1.0, "g": 1.0, "b": 1.0}, "Tags": ["Table Piece"], "LayoutGroupSortIndex": 0, "Value": 0, "Locked": true, "Grid": true, "Snap": true, "IgnoreFoW": false, "MeasureMovement": false, "DragSelectable": true, "Autoraise": true, "Sticky": true, "Tooltip": true, "GridProjection": false, "HideWhenFaceDown": false, "Hands": false, "CustomAssetbundle": {"AssetbundleURL": "https://steamusercontent-a.akamaihd.net/ugc/879750610978796471/14ED0DBD593370733A0309B0950004F33EB9FACA/", "AssetbundleSecondaryURL": "", "MaterialIndex": 1, "TypeIndex": 4, "LoopingEffectIndex": 0}, "LuaScript": "", "LuaScriptState": "", "XmlUI": ""}, {"GUID": "2d0126", "Name": "HandTrigger", "Transform": {"posX": -77.5, "posY": 14.62, "posZ": 36.0, "rotX": 0.0, "rotY": 90.0, "rotZ": 0.0, "scaleX": 10.0, "scaleY": 6.0, "scaleZ": 4.0}, "Nickname": "", "Description": "", "GMNotes": "", "AltLookAngle": {"x": 0.0, "y": 0.0, "z": 0.0}, "ColorDiffuse": {"r": 0.442999959, "g": 0.230999947, "b": 0.0899999961, "a": 0.0}, "LayoutGroupSortIndex": 0, "Value": 0, "Locked": true, "Grid": false, "Snap": true, "IgnoreFoW": false, "MeasureMovement": false, "DragSelectable": true, "Autoraise": true, "Sticky": true, "Tooltip": true, "GridProjection": false, "HideWhenFaceDown": false, "Hands": false, "FogColor": "Brown", "LuaScript": "", "LuaScriptState": "", "XmlUI": ""}, {"GUID": "6ee454", "Name": "HandTrigger", "Transform": {"posX": 77.5, "posY": 14.62, "posZ": 37.0, "rotX": 0.0, "rotY": 270.0, "rotZ": 0.0, "scaleX": 10.0, "scaleY": 6.0, "scaleZ": 4.0}, "Nickname": "", "Description": "", "GMNotes": "", "AltLookAngle": {"x": 0.0, "y": 0.0, "z": 0.0}, "ColorDiffuse": {"r": 0.96, "g": 0.438999981, "b": 0.807, "a": 0.0}, "LayoutGroupSortIndex": 0, "Value": 0, "Locked": true, "Grid": false, "Snap": true, "IgnoreFoW": false, "MeasureMovement": false, "DragSelectable": true, "Autoraise": true, "Sticky": true, "Tooltip": true, "GridProjection": false, "HideWhenFaceDown": false, "Hands": false, "FogColor": "Pink", "LuaScript": "", "LuaScriptState": "", "XmlUI": ""}, {"GUID": "c738d0", "Name": "HandTrigger", "Transform": {"posX": 77.5, "posY": 14.62, "posZ": -26.0, "rotX": 0.0, "rotY": 270.0, "rotZ": 0.0, "scaleX": 10.0, "scaleY": 6.0, "scaleZ": 4.0}, "Nickname": "", "Description": "", "GMNotes": "", "AltLookAngle": {"x": 0.0, "y": 0.0, "z": 0.0}, "ColorDiffuse": {"r": 0.117999978, "g": 0.53, "b": 1.0, "a": 0.0}, "LayoutGroupSortIndex": 0, "Value": 0, "Locked": true, "Grid": false, "Snap": true, "IgnoreFoW": false, "MeasureMovement": false, "DragSelectable": true, "Autoraise": true, "Sticky": true, "Tooltip": true, "GridProjection": false, "HideWhenFaceDown": false, "Hands": false, "FogColor": "Blue", "LuaScript": "", "LuaScriptState": "", "XmlUI": ""}, {"GUID": "7d7ad1", "Name": "HandTrigger", "Transform": {"posX": -77.5, "posY": 14.62, "posZ": 14.0, "rotX": 0.0, "rotY": 90.0, "rotZ": 0.0, "scaleX": 10.0, "scaleY": 6.0, "scaleZ": 4.0}, "Nickname": "", "Description": "", "GMNotes": "", "AltLookAngle": {"x": 0.0, "y": 0.0, "z": 0.0}, "ColorDiffuse": {"r": 0.128999949, "g": 0.694, "b": 0.606999934, "a": 0.0}, "LayoutGroupSortIndex": 0, "Value": 0, "Locked": true, "Grid": false, "Snap": true, "IgnoreFoW": false, "MeasureMovement": false, "DragSelectable": true, "Autoraise": true, "Sticky": true, "Tooltip": true, "GridProjection": false, "HideWhenFaceDown": false, "Hands": false, "FogColor": "Teal", "LuaScript": "", "LuaScriptState": "", "XmlUI": ""}, {"GUID": "e9f2f8", "Name": "HandTrigger", "Transform": {"posX": -77.5, "posY": 14.62, "posZ": 25.0, "rotX": 0.0, "rotY": 90.0, "rotZ": 0.0, "scaleX": 10.0, "scaleY": 6.0, "scaleZ": 4.0}, "Nickname": "", "Description": "", "GMNotes": "", "AltLookAngle": {"x": 0.0, "y": 0.0, "z": 0.0}, "ColorDiffuse": {"r": 0.191999972, "g": 0.701, "b": 0.167999953, "a": 0.0}, "LayoutGroupSortIndex": 0, "Value": 0, "Locked": true, "Grid": false, "Snap": true, "IgnoreFoW": false, "MeasureMovement": false, "DragSelectable": true, "Autoraise": true, "Sticky": true, "Tooltip": true, "GridProjection": false, "HideWhenFaceDown": false, "Hands": false, "FogColor": "Green", "LuaScript": "", "LuaScriptState": "", "XmlUI": ""}, {"GUID": "2bb664", "Name": "HandTrigger", "Transform": {"posX": 77.5, "posY": 14.62, "posZ": -37.0, "rotX": 0.0, "rotY": 270.0, "rotZ": 0.0, "scaleX": 10.0, "scaleY": 6.0, "scaleZ": 4.0}, "Nickname": "", "Description": "", "GMNotes": "", "AltLookAngle": {"x": 0.0, "y": 0.0, "z": 0.0}, "ColorDiffuse": {"r": 1.0, "g": 1.0, "b": 1.0, "a": 0.0}, "LayoutGroupSortIndex": 0, "Value": 0, "Locked": true, "Grid": false, "Snap": true, "IgnoreFoW": false, "MeasureMovement": false, "DragSelectable": true, "Autoraise": true, "Sticky": true, "Tooltip": true, "GridProjection": false, "HideWhenFaceDown": false, "Hands": false, "FogColor": "White", "LuaScript": "", "LuaScriptState": "", "XmlUI": ""}, {"GUID": "b4aae3", "Name": "HandTrigger", "Transform": {"posX": -77.5, "posY": 14.62, "posZ": -14.0, "rotX": 0.0, "rotY": 90.0, "rotZ": 0.0, "scaleX": 10.0, "scaleY": 6.0, "scaleZ": 4.0}, "Nickname": "", "Description": "", "GMNotes": "", "AltLookAngle": {"x": 0.0, "y": 0.0, "z": 0.0}, "ColorDiffuse": {"r": 0.9559999, "g": 0.39199996, "b": 0.112999953, "a": 0.0}, "LayoutGroupSortIndex": 0, "Value": 0, "Locked": true, "Grid": false, "Snap": true, "IgnoreFoW": false, "MeasureMovement": false, "DragSelectable": true, "Autoraise": true, "Sticky": true, "Tooltip": true, "GridProjection": false, "HideWhenFaceDown": false, "Hands": false, "FogColor": "Orange", "LuaScript": "", "LuaScriptState": "", "XmlUI": ""}, {"GUID": "34fd88", "Name": "HandTrigger", "Transform": {"posX": -77.5, "posY": 14.62, "posZ": -36.0, "rotX": 0.0, "rotY": 90.0, "rotZ": 0.0, "scaleX": 10.0, "scaleY": 6.0, "scaleZ": 4.0}, "Nickname": "", "Description": "", "GMNotes": "", "AltLookAngle": {"x": 0.0, "y": 0.0, "z": 0.0}, "ColorDiffuse": {"r": 0.856, "g": 0.09999997, "b": 0.09399996, "a": 0.0}, "LayoutGroupSortIndex": 0, "Value": 0, "Locked": true, "Grid": false, "Snap": true, "IgnoreFoW": false, "MeasureMovement": false, "DragSelectable": true, "Autoraise": true, "Sticky": true, "Tooltip": true, "GridProjection": false, "HideWhenFaceDown": false, "Hands": false, "FogColor": "Red", "LuaScript": "", "LuaScriptState": "", "XmlUI": ""}, {"GUID": "a3c1e2", "Name": "HandTrigger", "Transform": {"posX": 77.5, "posY": 14.62, "posZ": 26.0, "rotX": 0.0, "rotY": 270.0, "rotZ": 0.0, "scaleX": 10.0, "scaleY": 6.0, "scaleZ": 4.0}, "Nickname": "", "Description": "", "GMNotes": "", "AltLookAngle": {"x": 0.0, "y": 0.0, "z": 0.0}, "ColorDiffuse": {"r": 0.627, "g": 0.124999978, "b": 0.941, "a": 0.0}, "LayoutGroupSortIndex": 0, "Value": 0, "Locked": true, "Grid": false, "Snap": true, "IgnoreFoW": false, "MeasureMovement": false, "DragSelectable": true, "Autoraise": true, "Sticky": true, "Tooltip": true, "GridProjection": false, "HideWhenFaceDown": false, "Hands": false, "FogColor": "Purple", "LuaScript": "", "LuaScriptState": "", "XmlUI": ""}, {"GUID": "32d1ca", "Name": "HandTrigger", "Transform": {"posX": -77.5, "posY": 14.62, "posZ": -25.0, "rotX": 0.0, "rotY": 90.0, "rotZ": 0.0, "scaleX": 10.0, "scaleY": 6.0, "scaleZ": 4.0}, "Nickname": "", "Description": "", "GMNotes": "", "AltLookAngle": {"x": 0.0, "y": 0.0, "z": 0.0}, "ColorDiffuse": {"r": 0.905, "g": 0.898, "b": 0.171999961, "a": 0.0}, "LayoutGroupSortIndex": 0, "Value": 0, "Locked": true, "Grid": false, "Snap": true, "IgnoreFoW": false, "MeasureMovement": false, "DragSelectable": true, "Autoraise": true, "Sticky": true, "Tooltip": true, "GridProjection": false, "HideWhenFaceDown": false, "Hands": false, "FogColor": "Yellow", "LuaScript": "", "LuaScriptState": "", "XmlUI": ""}, {"GUID": "8b2dab", "Name": "HandTrigger", "Transform": {"posX": -75.0, "posY": 5.0, "posZ": -1.0, "rotX": 0.0, "rotY": 0.0, "rotZ": 0.0, "scaleX": 1.0, "scaleY": 1.0, "scaleZ": 1.0}, "Nickname": "", "Description": "", "GMNotes": "", "AltLookAngle": {"x": 0.0, "y": 0.0, "z": 0.0}, "ColorDiffuse": {"r": 0.128999949, "g": 0.694, "b": 0.606999934, "a": 0.0}, "LayoutGroupSortIndex": 0, "Value": 0, "Locked": true, "Grid": false, "Snap": true, "IgnoreFoW": false, "MeasureMovement": false, "DragSelectable": true, "Autoraise": true, "Sticky": true, "Tooltip": true, "GridProjection": false, "HideWhenFaceDown": false, "Hands": false, "FogColor": "Teal", "LuaScript": "", "LuaScriptState": "", "XmlUI": ""}, {"GUID": "36d662", "Name": "HandTrigger", "Transform": {"posX": -75.0, "posY": 5.0, "posZ": 1.0, "rotX": 0.0, "rotY": 0.0, "rotZ": 0.0, "scaleX": 1.0, "scaleY": 1.0, "scaleZ": 1.0}, "Nickname": "", "Description": "", "GMNotes": "", "AltLookAngle": {"x": 0.0, "y": 0.0, "z": 0.0}, "ColorDiffuse": {"r": 0.191999972, "g": 0.701, "b": 0.167999953, "a": 0.0}, "LayoutGroupSortIndex": 0, "Value": 0, "Locked": true, "Grid": false, "Snap": true, "IgnoreFoW": false, "MeasureMovement": false, "DragSelectable": true, "Autoraise": true, "Sticky": true, "Tooltip": true, "GridProjection": false, "HideWhenFaceDown": false, "Hands": false, "FogColor": "Green", "LuaScript": "", "LuaScriptState": "", "XmlUI": ""}, {"GUID": "5f38f3", "Name": "HandTrigger", "Transform": {"posX": -75.0, "posY": 5.0, "posZ": 2.0, "rotX": 0.0, "rotY": 0.0, "rotZ": 0.0, "scaleX": 1.0, "scaleY": 1.0, "scaleZ": 1.0}, "Nickname": "", "Description": "", "GMNotes": "", "AltLookAngle": {"x": 0.0, "y": 0.0, "z": 0.0}, "ColorDiffuse": {"r": 0.905, "g": 0.898, "b": 0.171999961, "a": 0.0}, "LayoutGroupSortIndex": 0, "Value": 0, "Locked": true, "Grid": false, "Snap": true, "IgnoreFoW": false, "MeasureMovement": false, "DragSelectable": true, "Autoraise": true, "Sticky": true, "Tooltip": true, "GridProjection": false, "HideWhenFaceDown": false, "Hands": false, "FogColor": "Yellow", "LuaScript": "", "LuaScriptState": "", "XmlUI": ""}, {"GUID": "beec0b", "Name": "HandTrigger", "Transform": {"posX": -75.0, "posY": 5.0, "posZ": 3.0, "rotX": 0.0, "rotY": 0.0, "rotZ": 0.0, "scaleX": 1.0, "scaleY": 1.0, "scaleZ": 1.0}, "Nickname": "", "Description": "", "GMNotes": "", "AltLookAngle": {"x": 0.0, "y": 0.0, "z": 0.0}, "ColorDiffuse": {"r": 0.9559999, "g": 0.39199996, "b": 0.112999953, "a": 0.0}, "LayoutGroupSortIndex": 0, "Value": 0, "Locked": true, "Grid": false, "Snap": true, "IgnoreFoW": false, "MeasureMovement": false, "DragSelectable": true, "Autoraise": true, "Sticky": true, "Tooltip": true, "GridProjection": false, "HideWhenFaceDown": false, "Hands": false, "FogColor": "Orange", "LuaScript": "", "LuaScriptState": "", "XmlUI": ""}, {"GUID": "590f18", "Name": "HandTrigger", "Transform": {"posX": -75.0, "posY": 5.0, "posZ": 4.0, "rotX": 0.0, "rotY": 0.0, "rotZ": 0.0, "scaleX": 1.0, "scaleY": 1.0, "scaleZ": 1.0}, "Nickname": "", "Description": "", "GMNotes": "", "AltLookAngle": {"x": 0.0, "y": 0.0, "z": 0.0}, "ColorDiffuse": {"r": 0.856, "g": 0.09999997, "b": 0.09399996, "a": 0.0}, "LayoutGroupSortIndex": 0, "Value": 0, "Locked": true, "Grid": false, "Snap": true, "IgnoreFoW": false, "MeasureMovement": false, "DragSelectable": true, "Autoraise": true, "Sticky": true, "Tooltip": true, "GridProjection": false, "HideWhenFaceDown": false, "Hands": false, "FogColor": "Red", "LuaScript": "", "LuaScriptState": "", "XmlUI": ""}, {"GUID": "8f5878", "Name": "HandTrigger", "Transform": {"posX": -75.0, "posY": 5.0, "posZ": 0.0, "rotX": 0.0, "rotY": 0.0, "rotZ": 0.0, "scaleX": 1.0, "scaleY": 1.0, "scaleZ": 1.0}, "Nickname": "", "Description": "", "GMNotes": "", "AltLookAngle": {"x": 0.0, "y": 0.0, "z": 0.0}, "ColorDiffuse": {"r": 0.117999978, "g": 0.53, "b": 1.0, "a": 0.0}, "LayoutGroupSortIndex": 0, "Value": 0, "Locked": true, "Grid": false, "Snap": true, "IgnoreFoW": false, "MeasureMovement": false, "DragSelectable": true, "Autoraise": true, "Sticky": true, "Tooltip": true, "GridProjection": false, "HideWhenFaceDown": false, "Hands": false, "FogColor": "Blue", "LuaScript": "", "LuaScriptState": "", "XmlUI": ""}, {"GUID": "8156a3", "Name": "HandTrigger", "Transform": {"posX": -75.0, "posY": 5.0, "posZ": -3.0, "rotX": 0.0, "rotY": 0.0, "rotZ": 0.0, "scaleX": 1.0, "scaleY": 1.0, "scaleZ": 1.0}, "Nickname": "", "Description": "", "GMNotes": "", "AltLookAngle": {"x": 0.0, "y": 0.0, "z": 0.0}, "ColorDiffuse": {"r": 0.627, "g": 0.124999978, "b": 0.941, "a": 0.0}, "LayoutGroupSortIndex": 0, "Value": 0, "Locked": true, "Grid": false, "Snap": true, "IgnoreFoW": false, "MeasureMovement": false, "DragSelectable": true, "Autoraise": true, "Sticky": true, "Tooltip": true, "GridProjection": false, "HideWhenFaceDown": false, "Hands": false, "FogColor": "Purple", "LuaScript": "", "LuaScriptState": "", "XmlUI": ""}, {"GUID": "601947", "Name": "HandTrigger", "Transform": {"posX": -75.0, "posY": 5.0, "posZ": -2.0, "rotX": 0.0, "rotY": 0.0, "rotZ": 0.0, "scaleX": 1.0, "scaleY": 1.0, "scaleZ": 1.0}, "Nickname": "", "Description": "", "GMNotes": "", "AltLookAngle": {"x": 0.0, "y": 0.0, "z": 0.0}, "ColorDiffuse": {"r": 0.96, "g": 0.438999981, "b": 0.807, "a": 0.0}, "LayoutGroupSortIndex": 0, "Value": 0, "Locked": true, "Grid": false, "Snap": true, "IgnoreFoW": false, "MeasureMovement": false, "DragSelectable": true, "Autoraise": true, "Sticky": true, "Tooltip": true, "GridProjection": false, "HideWhenFaceDown": false, "Hands": false, "FogColor": "Pink", "LuaScript": "", "LuaScriptState": "", "XmlUI": ""}, {"GUID": "768015", "Name": "HandTrigger", "Transform": {"posX": -75.0, "posY": 5.0, "posZ": -4.0, "rotX": 0.0, "rotY": 0.0, "rotZ": 0.0, "scaleX": 1.0, "scaleY": 1.0, "scaleZ": 1.0}, "Nickname": "", "Description": "", "GMNotes": "", "AltLookAngle": {"x": 0.0, "y": 0.0, "z": 0.0}, "ColorDiffuse": {"r": 1.0, "g": 1.0, "b": 1.0, "a": 0.0}, "LayoutGroupSortIndex": 0, "Value": 0, "Locked": true, "Grid": false, "Snap": true, "IgnoreFoW": false, "MeasureMovement": false, "DragSelectable": true, "Autoraise": true, "Sticky": true, "Tooltip": true, "GridProjection": false, "HideWhenFaceDown": false, "Hands": false, "FogColor": "White", "LuaScript": "", "LuaScriptState": "", "XmlUI": ""}, {"GUID": "bc872b", "Name": "HandTrigger", "Transform": {"posX": -75.0, "posY": 5.0, "posZ": -5.0, "rotX": 0.0, "rotY": 0.0, "rotZ": 0.0, "scaleX": 1.0, "scaleY": 1.0, "scaleZ": 1.0}, "Nickname": "", "Description": "", "GMNotes": "", "AltLookAngle": {"x": 0.0, "y": 0.0, "z": 0.0}, "ColorDiffuse": {"r": 0.442999959, "g": 0.230999947, "b": 0.0899999961, "a": 0.0}, "LayoutGroupSortIndex": 0, "Value": 0, "Locked": true, "Grid": false, "Snap": true, "IgnoreFoW": false, "MeasureMovement": false, "DragSelectable": true, "Autoraise": true, "Sticky": true, "Tooltip": true, "GridProjection": false, "HideWhenFaceDown": false, "Hands": false, "FogColor": "Brown", "LuaScript": "", "LuaScriptState": "", "XmlUI": ""}, {"GUID": "bab7e1", "Name": "Custom_Tile", "Transform": {"posX": 78.0917358, "posY": 25.9, "posZ": 0.0, "rotX": 293.293823, "rotY": 90.0, "rotZ": 0.0, "scaleX": 15.5, "scaleY": 1.0, "scaleZ": 15.5}, "Nickname": "Faction Selection", "Description": "", "GMNotes": "", "AltLookAngle": {"x": 0.0, "y": 0.0, "z": 0.0}, "ColorDiffuse": {"r": 0.07490303, "g": 0.0437557325, "b": 0.0330191}, "LayoutGroupSortIndex": 0, "Value": 0, "Locked": true, "Grid": true, "Snap": false, "IgnoreFoW": false, "MeasureMovement": false, "DragSelectable": true, "Autoraise": true, "Sticky": false, "Tooltip": false, "GridProjection": false, "HideWhenFaceDown": false, "Hands": false, "CustomImage": {"ImageURL": "https://cdn.jsdelivr.net/gh/mrdrouf/root-tabletop-tournament@main/assets/board/board_clean_v3.png", "ImageSecondaryURL": "https://steamusercontent-a.akamaihd.net/ugc/1725416402718254700/C6F00394AFEE245DFFA53CD358F5F966AA754BC9/", "ImageScalar": 1.0, "WidthScale": 0.0, "CustomTile": {"Type": 0, "Thickness": 0.1, "Stackable": false, "Stretch": true}}, "LuaScript": "@@BOARD_LUA@@", "LuaScriptState": "", "XmlUI": "<Button id=\"xButton\" onclick=\"deleteThis\" position=\"117 85 -15\" width=\"15\" height=\"15\" fontSize=\"8\" padding=\"4 4 4\" icon = \"Xmark\" color=\"#bd2608\" active=\"false\"/>\r\n<Image id=\"info\" image=\"Blank Info\" position=\"35 -85 -20\" width=\"156\" height=\"6\"/>\r\n<Image id=\"rootLogo\" position=\"-87.5 80 -20\" width=\"75\" height=\"25\" image=\"Root Logo\"/>\r\n\r\n\r\n\r\n<!--<Button id=\"Clear All\" onclick=\"clearAll\"  icon = \"Xmark\" position=\"90 -80 -20\" width=\"20\" height=\"20\" color=\"#808080\"/>-->\r\n\r\n\r\n\r\n\r\n<ToggleGroup id=\"Main Nav\" active=\"True\">\n  <Text id=\"rttCredit\" text=\"+ MrDrouf &amp; Claude\" position=\"-72 88 -20\" rotation=\"0 0 -6\" width=\"60\" height=\"11\" fontSize=\"7\" fontStyle=\"Italic\" color=\"#241f18\"/>\r\n  \r\n  \r\n  \r\n\r\n</ToggleGroup>\r\n\r\n\r\n\r\n<ToggleGroup id=\"standardButtons\" active=\"False\">\n  <Button onclick=\"makeFaction\" onMouseEnter=\"infoOfficialContent\" onMouseExit=\"clearInfo\" category=\"Standard\" id=\"Knaves of the Deepwood\" position=\"90 45 -20\" width=\"40\" height=\"40\" fontSize=\"8\" icon=\"Knaves of the Deepwood\" color=\"gray\"/>\r\n\r\n    <Button onclick=\"makeFaction\" onMouseEnter=\"infoOfficialContent\" onMouseExit=\"clearInfo\" category=\"Standard\" id=\"Marquise de Cat\" position=\"-25 45 -20\" width=\"40\" height=\"40\" fontSize=\"8\" icon=\"Marquise de Cat\" color=\"#d77435\"/>\r\n    <Button onclick=\"makeFaction\" onMouseEnter=\"infoOfficialContent\" onMouseExit=\"clearInfo\" category=\"Standard\" id=\"Eyrie Dynasties\" position=\"15 45 -20\" width=\"40\" height=\"40\" fontSize=\"8\" icon=\"Eyrie Dynasties\" color=\"#4776b6\"/>\r\n    <Button onclick=\"makeFaction\" onMouseEnter=\"infoOfficialContent\" onMouseExit=\"clearInfo\" category=\"Standard\" id=\"Woodland Alliance\" position=\"55 45 -20\" width=\"40\" height=\"40\" fontSize=\"8\" icon=\"Woodland Alliance\" color=\"#6bb659\"/>\r\n    \r\n\r\n    <Button onclick=\"makeFaction\" onMouseEnter=\"infoOfficialContent\" onMouseExit=\"clearInfo\" category=\"Standard\" id=\"The Lizard Cult\" position=\"-25 -5 -20\" width=\"40\" height=\"40\" fontSize=\"8\" icon=\"The Lizard Cult\" color=\"#e8e138\"/>\r\n    <Button onclick=\"makeFaction\" onMouseEnter=\"infoOfficialContent\" onMouseExit=\"clearInfo\" category=\"Standard\" id=\"Riverfolk Company\" position=\"15 -5 -20\" width=\"40\" height=\"40\" fontSize=\"8\" icon=\"Riverfolk Company\" color=\"#5cbab4\"/>\r\n    <Button onclick=\"makeFaction\" onMouseEnter=\"infoOfficialContent\" onMouseExit=\"clearInfo\" category=\"Standard\" id=\"Underground Duchy\" position=\"55 -5 -20\" width=\"40\" height=\"40\" fontSize=\"8\" icon=\"Underground Duchy\" color=\"#e4c0a2\"/>\r\n    <Button onclick=\"makeFaction\" onMouseEnter=\"infoOfficialContent\" onMouseExit=\"clearInfo\" category=\"Standard\" id=\"Corvid Conspiracy\" position=\"95 -5 -20\" width=\"40\" height=\"40\" fontSize=\"8\" icon=\"Corvid Conspiracy\" color=\"#542c75\"/>\r\n\r\n    <Button onclick=\"makeFaction\" onMouseEnter=\"infoOfficialContent\" onMouseExit=\"clearInfo\" category=\"Standard\" id=\"Lord of the Hundreds\" position=\"-25 -55 -20\" width=\"40\" height=\"40\" fontSize=\"8\" icon=\"Lord of the Hundreds\" color=\"#f3461b\"/>\r\n    <Button onclick=\"makeFaction\" onMouseEnter=\"infoOfficialContent\" onMouseExit=\"clearInfo\" category=\"Standard\" id=\"Keepers in Iron\" position=\"15 -55 -20\" width=\"40\" height=\"40\" fontSize=\"8\" icon=\"Keepers in Iron\" color=\"#acadb1\"/>\r\n    <Button onclick=\"makeFaction\" onMouseEnter=\"infoOfficialContent\" onMouseExit=\"clearInfo\" category=\"Standard\" id=\"Twilight Council\" position=\"55 -55 -20\" width=\"40\" height=\"40\" fontSize=\"8\" icon=\"Twilight Council\" color=\"#964E30\"/>\r\n    <Button onclick=\"makeFaction\" onMouseEnter=\"infoOfficialContent\" onMouseExit=\"clearInfo\" category=\"Standard\" id=\"Lilypad Diaspora\" position=\"95 -55 -20\" width=\"40\" height=\"40\" fontSize=\"8\" icon=\"Lilypad Diaspora\" color=\"#B09804\"/>\r\n\r\n</ToggleGroup>\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n<ToggleGroup id=\"mapButtonsStandard\" active=\"True\">\r\n    \r\n    <Button id=\"Winter Map\" onMouseEnter=\"infoOfficialContent\" onMouseExit=\"clearInfo\" onclick=\"makeMap\" position=\"19 25 -20\" width=\"34\" height=\"34\" fontSize=\"8\" icon =\"Winter Map\" color=\"#6b8a8f\"/>\r\n    \r\n    <Button id=\"Lake Map\" onMouseEnter=\"infoOfficialContent\" onMouseExit=\"clearInfo\" onclick=\"makeMap\" position=\"-57 25 -20\" width=\"34\" height=\"34\" fontSize=\"8\" icon =\"Lake Map\" color=\"#42a0c2\"/>\r\n    <Button id=\"Mountain Map\" onMouseEnter=\"infoOfficialContent\" onMouseExit=\"clearInfo\" onclick=\"makeMap\" position=\"57 25 -20\" width=\"34\" height=\"34\" fontSize=\"8\" icon =\"Mountain Map\" color=\"#764a52\"/>\r\n    \r\n    <Button id=\"Marsh Map\" onMouseEnter=\"infoOfficialContent\" onMouseExit=\"clearInfo\" onclick=\"makeMap\" position=\"-19 25 -20\" width=\"34\" height=\"34\" fontSize=\"8\" icon =\"Marsh Map\" color=\"#9b8551\"/>\r\n    <Button id=\"Gorge Map\" onMouseEnter=\"infoOfficialContent\" onMouseExit=\"clearInfo\" onclick=\"makeMap\" position=\"95 25 -20\" width=\"34\" height=\"34\" fontSize=\"8\" icon =\"Gorge Map\" color=\"#61746b\"/>\r\n\r\n    <Button id=\"Summer Map\" onClick=\"makeMap\" onMouseEnter = \"infoNevakanezahAndSlug\" onMouseExit=\"clearInfo\" position=\"-95 25 -20\" width=\"34\" height=\"34\" fontSize=\"8\" icon =\"Autumn Map\" color=\"#4b4d35\"/>\r\n    \r\n    \r\n    \r\n\r\n    \r\n\r\n</ToggleGroup>\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n<ToggleGroup id=\"decksButtonsStandard\" active=\"True\">\r\n    <Button id=\"Standard Deck\" onMouseEnter=\"infoOfficialContent\" onMouseExit=\"clearInfo\" onclick=\"makeDeck\" position=\"-38 -15 -20\" width=\"34\" height=\"34\" fontSize=\"8\" icon=\"Standard Deck\" color=\"#8d7f81\"/>\r\n    <Button id=\"Exiles and Partisans Deck\" onMouseEnter=\"infoOfficialContent\" onMouseExit=\"clearInfo\" onclick=\"makeDeck\" position=\"0 -15 -20\" width=\"34\" height=\"34\" fontSize=\"8\" icon =\"Exiles and Partisans Deck\" color=\"#378f90\"/>\r\n    <Button id=\"Squires and Disciples Deck\" onMouseEnter=\"infoOfficialContent\" onMouseExit=\"clearInfo\" onclick=\"makeDeck\" position=\"38 -15 -20\" width=\"34\" height=\"34\" fontSize=\"8\" icon =\"Squires and Disciples Deck\" color=\"#AB6894\"/>\r\n    \r\n\r\n    \r\n</ToggleGroup>\r\n\r\n\r\n\r\n<ToggleGroup id=\"setupButtons\" active=\"True\">\n  <Button id=\"rttThemeBtn\" onclick=\"rttTheme\" icon=\"ThemeArt\" color=\"#49514b\" position=\"38 60 -20\" width=\"34\" height=\"34\"/>\n  <Button id=\"rttRankedBtn\" onclick=\"rttSetup\" icon=\"RankedArt\" color=\"#030411\" position=\"0 60 -20\" width=\"34\" height=\"34\"/><Button id=\"rttFourBoardsBtn\" onclick=\"setupFactionBoards\" icon=\"FourBoardsArt\" color=\"#3a2f22\" position=\"-38 60 -20\" width=\"34\" height=\"34\"/>\n  <Button id=\"Marsh5P\" onclick=\"rttFivePStart\" icon=\"FivePlayerArt\" position=\"57 -69.5 -20\" width=\"34\" height=\"17\" color=\"#463221\"/><Button id=\"Marsh5PMap\" onclick=\"rttPlaceMarsh5P\" icon=\"Marsh5PLabel\" position=\"95 -69.5 -20\" width=\"34\" height=\"17\" color=\"#81745b\"/>\n  \n   <!--######-->\r\n\r\n  \r\n  <Button id=\"Vagabond Cards\" onclick=\"makeTool\" onMouseEnter=\"infoOfficialContent\" onMouseExit=\"clearInfo\" position=\"95 -46.5 -20\" width=\"34\" height=\"17\" fontSize=\"8\" icon =\"Vagabond Cards\" color=\"#777879\"/>\r\n  \r\n  \r\n\r\n\r\n  <Button id=\"rttBoxScoreBtn\" onclick=\"rttSpawnBoxScore\" onMouseEnter=\"infoOfficialContent\" onMouseExit=\"clearInfo\" position=\"19 -46.5 -20\" width=\"34\" height=\"17\" fontSize=\"8\" icon=\"BoxScoreArt\" color=\"#3a2f22\"/>\r\n\r\n  \r\n  <Button id=\"Landmarks\" onclick =\"makeTool\" onMouseEnter=\"infoOfficialContent\" onMouseExit=\"clearInfo\" position=\"19 -69.5 -20\" width=\"34\" height=\"17\" fontSize=\"8\" icon =\"Landmarks\" color=\"#724a42\"/>\r\n  \r\n  \r\n\r\n  \r\n  \r\n\r\n\r\n  \r\n\r\n  \r\n  \r\n  \r\n  \r\n\r\n  \r\n  \r\n  \r\n  \r\n\r\n</ToggleGroup>\r\n\r\n<ToggleGroup id=\"toolsButtons\" active=\"True\">\r\n    \r\n    \r\n    \r\n    \r\n</ToggleGroup>\r\n\r\n<ToggleGroup id = \"tools1\" active=\"True\">\r\n    \r\n\r\n    <Button id=\"Faction Select\" onclick=\"makeFactionSelector\" onMouseEnter=\"infoEhssAndSlug\" onMouseExit=\"clearInfo\" position=\"-95 -46.5 -20\" width=\"34\" height=\"17\" fontSize=\"7\" icon=\"Faction Selector Tool\" color=\"#2c231a\"/>  \r\n    <Button id=\"Battle Mat\" onclick=\"makeBattleMat\" position=\"-57 -46.5 -20\" onMouseEnter = \"infoJustin\" onMouseExit=\"clearInfo\" width=\"34\" height=\"17\" fontSize=\"7\" icon =\"Battle Mat\" color=\"#863c56\"/>\r\n    \r\n    <Button id=\"Lizard Wizard\" onclick=\"makeLizardWizard\" onMouseEnter=\"infoNevakanezah\" onMouseExit=\"clearInfo\" position=\"-95 -69.5 -20\" width=\"34\" height=\"17\" fontSize=\"7\" icon =\"Lizard Wizard\" color=\"#5a6728\"/>\r\n\r\n    \r\n    <Button id=\"Clearing Markers\" onclick=\"makeTool\" onMouseEnter=\"infoOfficialContent\" onMouseExit=\"clearInfo\" position=\"57 -46.5 -20\" width=\"34\" height=\"17\" fontSize=\"7\" icon=\"Clearing Markers\" color=\"#393a33\"/>\r\n    \r\n    \r\n\r\n    \r\n    \r\n    <Button id=\"Mini-Mood Manager\" onclick=\"makeTool\" onMouseEnter = \"infoEhssAndSlug\" onMouseExit=\"clearInfo\" position=\"-57 -69.5 -20\" width=\"34\" height=\"17\" fontSize=\"7\" icon =\"Mini-Mood Manager\" color=\"#eb4c27\"/>\r\n    <Button id=\"Ginso's Gizmo\" onclick=\"toggleTool\" onMouseEnter = \"infoGinso\" onMouseExit=\"clearInfo\" position=\"-19 -46.5 -20\" width=\"34\" height=\"17\" fontSize=\"7\" icon =\"Ginso's Gizmo\" color=\"#453b2b\"/>\r\n\r\n    \r\n    \r\n    <Button id=\"Mob Lobber\" onclick=\"makeTool\" onMouseEnter = \"infoNevakanezah\" onMouseExit=\"clearInfo\" position=\"-19 -69.5 -20\" width=\"34\" height=\"17\" fontSize=\"7\" icon =\"Mob Lobber\" color=\"#eb4c27\"/>\r\n\r\n    \r\n</ToggleGroup>\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n  ", "CustomUIAssets": [{"Type": 0, "Name": "ThemeArt", "URL": "https://steamusercontent-a.akamaihd.net/ugc/16316853328531788856/FE0894D6BBC40E7876FE4A683368A61FC1B35547/"}, {"Type": 0, "Name": "RankedArt", "URL": "https://steamusercontent-a.akamaihd.net/ugc/17736006513028835727/23F7EB2248073953C65D1AAD44636708E9E2DFE1/"}, {"Type": 0, "Name": "FivePlayerArt", "URL": "https://cdn.jsdelivr.net/gh/mrdrouf/root-tabletop-tournament@main/assets/labels/five_player_label.png"}, {"Type": 0, "Name": "Marsh5PLabel", "URL": "https://cdn.jsdelivr.net/gh/mrdrouf/root-tabletop-tournament@main/assets/labels/marsh_5p_label.png"}, {"Type": 0, "Name": "FourBoardsArt", "URL": "https://cdn.jsdelivr.net/gh/mrdrouf/root-tabletop-tournament@main/assets/images/4players.png"}, {"Type": 0, "Name": "BoxScoreArt", "URL": "https://cdn.jsdelivr.net/gh/mrdrouf/root-tabletop-tournament@main/assets/labels/box_score_btn.png"}, {"Type": 0, "Name": "Marquise de Cat", "URL": "https://steamusercontent-a.akamaihd.net/ugc/1861696999739429295/F6CF523AAA7DCC91AF3812339EBB3354F6D9891A/"}, {"Type": 0, "Name": "Eyrie Dynasties", "URL": "https://steamusercontent-a.akamaihd.net/ugc/1728793291755958213/960DFA43E52D99A3250863FC63F3BA3AE5104325/"}, {"Type": 0, "Name": "Woodland Alliance", "URL": "https://steamusercontent-a.akamaihd.net/ugc/1728793291755956632/E99D3C9B246A94F6A898EC0D8098A05FA9467473/"}, {"Type": 0, "Name": "The Lizard Cult", "URL": "https://steamusercontent-a.akamaihd.net/ugc/1728793291755960838/D88CBE9192488A678AF3EC6DFC45B4C728C9A169/"}, {"Type": 0, "Name": "Riverfolk Company", "URL": "https://steamusercontent-a.akamaihd.net/ugc/1728793291755963912/C9589D96259534C6FB15DD91F78E7E90A073FDD8/"}, {"Type": 0, "Name": "Underground Duchy", "URL": "https://steamusercontent-a.akamaihd.net/ugc/1728793291755961872/1E2748C8EDD0BDE039B81658AFD0B19C771569BD/"}, {"Type": 0, "Name": "Corvid Conspiracy", "URL": "https://steamusercontent-a.akamaihd.net/ugc/1728793291755959858/69B8EC707AD26EF2F558ACAB65B39163B812D3F6/"}, {"Type": 0, "Name": "Lord of the Hundreds", "URL": "https://steamusercontent-a.akamaihd.net/ugc/1833522185818578726/CE952087E18A1C0B6B94E44EF53EB009A97A7122/"}, {"Type": 0, "Name": "Keepers in Iron", "URL": "https://steamusercontent-a.akamaihd.net/ugc/1833522185818579404/C0D7197A109DBF0C2EFB34DF50AE2CA70A66C25B/"}, {"Type": 0, "Name": "Twilight Council", "URL": "https://steamusercontent-a.akamaihd.net/ugc/2452866064845174396/6228F6A71DDC36CD883777CA958857CB123D7ECB/"}, {"Type": 0, "Name": "Lilypad Diaspora", "URL": "https://steamusercontent-a.akamaihd.net/ugc/2508034524425991747/77C277526C0042FE2754C83836A1E2C3C03FAD38/"}, {"Type": 0, "Name": "Knaves of the Deepwood", "URL": "https://steamusercontent-a.akamaihd.net/ugc/14468202139363768412/1012F7145C45B86F395C099B9AE80EA536529DD3/"}, {"Type": 0, "Name": "Landmarks", "URL": "https://steamusercontent-a.akamaihd.net/ugc/12936154875885790386/85439BAAE5C809A82FAF83A96E5232DFF4152DD0/"}, {"Type": 0, "Name": "Battle Mat", "URL": "https://steamusercontent-a.akamaihd.net/ugc/1728793367872326632/BBBD16CCB2233145C130F362BD4772B701C7DF2D/"}, {"Type": 0, "Name": "Lizard Wizard", "URL": "https://steamusercontent-a.akamaihd.net/ugc/1728793367872331088/3CE6C8D9633EBD9DF25142BA43A97E9B35F01AE4/"}, {"Type": 0, "Name": "Vagabond Cards", "URL": "https://steamusercontent-a.akamaihd.net/ugc/13747817220151181841/9A47D69E9103B9502DBED36BEA4DA6F9C70C6EB8/"}, {"Type": 0, "Name": "Faction Selector Tool", "URL": "https://steamusercontent-a.akamaihd.net/ugc/16420027251539310/A450741E43546370C6509D413D2CA3F1DABCBFAC/"}, {"Type": 0, "Name": "Mini-Mood Manager", "URL": "https://steamusercontent-a.akamaihd.net/ugc/1782839567653163566/583C3FE604C4B4E943BD914071325274C515E9D8/"}, {"Type": 0, "Name": "Clearing Markers", "URL": "https://steamusercontent-a.akamaihd.net/ugc/18105714333446016542/1C77868231CEA4360B4404A43211931D57921DC0/"}, {"Type": 0, "Name": "Autumn Map", "URL": "https://steamusercontent-a.akamaihd.net/ugc/9338841708247799860/688C6CB9F5A34B2A2B067C6DA493AD653B7D9C6A/"}, {"Type": 0, "Name": "Winter Map", "URL": "https://steamusercontent-a.akamaihd.net/ugc/12863190738702993416/F9C676622A48D6E15BB3AE235E26CE7BC8D11283/"}, {"Type": 0, "Name": "Lake Map", "URL": "https://steamusercontent-a.akamaihd.net/ugc/11224158918879846636/C034E1855CED11FD28D76E3020D629478FABD195/"}, {"Type": 0, "Name": "Mountain Map", "URL": "https://steamusercontent-a.akamaihd.net/ugc/17146621840035729417/55256EFBD832F89B16ADAF98A382D4BF09162487/"}, {"Type": 0, "Name": "Marsh Map", "URL": "https://steamusercontent-a.akamaihd.net/ugc/12189840401890527004/1A5500DF801E01874A28C059E04D049043948426/"}, {"Type": 0, "Name": "Gorge Map", "URL": "https://steamusercontent-a.akamaihd.net/ugc/17163206417596942920/65DEC204EF54C27F6BAFE8202D3AE63F73D28DD3/"}, {"Type": 0, "Name": "Standard Deck", "URL": "https://steamusercontent-a.akamaihd.net/ugc/1791848789393178780/9438FC204F346D081D3E66A95BBEAC918288004A/"}, {"Type": 0, "Name": "Exiles and Partisans Deck", "URL": "https://steamusercontent-a.akamaihd.net/ugc/1791848789393180099/504416827060BE54A0038F2C9BCF5D5A9475367F/"}, {"Type": 0, "Name": "Squires and Disciples Deck", "URL": "https://steamusercontent-a.akamaihd.net/ugc/16423108253239612/4B2CC3EBFD87C25AD92E61110CF80A5C0E461BD6/"}, {"Type": 0, "Name": "Root Logo", "URL": "https://steamusercontent-a.akamaihd.net/ugc/1859433104053130905/247FAE492208FF3BEFACE423A31B8D7644BA7B19/"}, {"Type": 0, "Name": "Blank Info", "URL": "https://steamusercontent-a.akamaihd.net/ugc/1728793635526111266/638962CD65D3760A1FD61D0AA78EE4C496C5487E/"}, {"Type": 0, "Name": "Xmark", "URL": "https://steamusercontent-a.akamaihd.net/ugc/1809859531500279761/E8108BE85DEBE1F569D9FDF951FA0D2DEA769CB8/"}, {"Type": 0, "Name": "Mob Lobber", "URL": "https://steamusercontent-a.akamaihd.net/ugc/1871806044359108580/ED91771BFC667788679555DC9F9E7E175E5A2346/"}, {"Type": 0, "Name": "Ginso's Gizmo", "URL": "https://steamusercontent-a.akamaihd.net/ugc/1871808701913894000/9E9D2A27ADC818413936D98C3194E03E87A8726A/"}]}, {"GUID": "4ee1f2", "Name": "Custom_Model", "Transform": {"posX": 0.01, "posY": 1.08004487, "posZ": -0.00296868361, "rotX": 0.0, "rotY": 0.0, "rotZ": 0.0, "scaleX": 4.2, "scaleY": 1.0, "scaleZ": 3.5}, "Nickname": "", "Description": "", "GMNotes": "", "AltLookAngle": {"x": 0.0, "y": 0.0, "z": 0.0}, "ColorDiffuse": {"r": 1.0, "g": 1.0, "b": 1.0}, "Tags": ["Table Piece"], "LayoutGroupSortIndex": 0, "Value": 0, "Locked": true, "Grid": true, "Snap": true, "IgnoreFoW": false, "MeasureMovement": false, "DragSelectable": true, "Autoraise": true, "Sticky": true, "Tooltip": true, "GridProjection": true, "HideWhenFaceDown": false, "Hands": false, "CustomMesh": {"MeshURL": "https://steamusercontent-a.akamaihd.net/ugc/879750610978796176/4A5A65543B98BCFBF57E910D06EC984208223D38/", "DiffuseURL": "https://steamusercontent-a.akamaihd.net/ugc/1725416195557291378/4BE9BA8AD2CB62AA0C0CDA202D36F313BDC38978/", "NormalURL": "", "ColliderURL": "", "Convex": true, "MaterialIndex": 1, "TypeIndex": 4, "CustomShader": {"SpecularColor": {"r": 1.0, "g": 1.0, "b": 1.0}, "SpecularIntensity": 0.0, "SpecularSharpness": 2.0, "FresnelStrength": 0.0}, "CastShadows": true}, "LuaScript": "", "LuaScriptState": "", "XmlUI": ""}]}
+{
+  "SaveName": "Root Tabletop Tournament",
+  "EpochTime": 1764862205,
+  "Date": "12/4/2025 11:30:05 PM",
+  "VersionNumber": "v13.3",
+  "GameMode": "Root Tabletop Tournament",
+  "GameType": "Game",
+  "GameComplexity": "Medium Complexity",
+  "PlayingTime": [
+    60,
+    120
+  ],
+  "PlayerCounts": [
+    1,
+    6
+  ],
+  "Tags": [
+    "Miniature Games",
+    "Strategy Games",
+    "Board Games",
+    "Dice",
+    "Figurines",
+    "Lighting",
+    "Rules",
+    "Tables",
+    "Cards",
+    "Components",
+    "English",
+    "Root",
+    "Leder Games",
+    "Meeples",
+    "Vagabonds",
+    "Factions",
+    "Collection",
+    "Variants",
+    "Fans",
+    "Homebrew",
+    "Noir"
+  ],
+  "Gravity": 0.5,
+  "PlayArea": 0.752526,
+  "Table": "Table_None",
+  "Sky": "Sky_Museum",
+  "SkyURL": "https://steamusercontent-a.akamaihd.net/ugc/1725416195557323868/5E3B34B095679659A554989477606C052731BB65/",
+  "Note": "",
+  "TabStates": {
+    "0": {
+      "title": "Rules",
+      "body": "",
+      "color": "Grey",
+      "visibleColor": {
+        "r": 0.5,
+        "g": 0.5,
+        "b": 0.5
+      },
+      "id": 0
+    },
+    "1": {
+      "title": "White",
+      "body": "",
+      "color": "White",
+      "visibleColor": {
+        "r": 1.0,
+        "g": 1.0,
+        "b": 1.0
+      },
+      "id": 1
+    },
+    "2": {
+      "title": "Brown",
+      "body": "",
+      "color": "Brown",
+      "visibleColor": {
+        "r": 0.443,
+        "g": 0.231,
+        "b": 0.09
+      },
+      "id": 2
+    },
+    "3": {
+      "title": "Red",
+      "body": "",
+      "color": "Red",
+      "visibleColor": {
+        "r": 0.856,
+        "g": 0.1,
+        "b": 0.094
+      },
+      "id": 3
+    },
+    "4": {
+      "title": "Orange",
+      "body": "",
+      "color": "Orange",
+      "visibleColor": {
+        "r": 0.956,
+        "g": 0.392,
+        "b": 0.113
+      },
+      "id": 4
+    },
+    "5": {
+      "title": "Yellow",
+      "body": "",
+      "color": "Yellow",
+      "visibleColor": {
+        "r": 0.905,
+        "g": 0.898,
+        "b": 0.172
+      },
+      "id": 5
+    },
+    "6": {
+      "title": "Green",
+      "body": "",
+      "color": "Green",
+      "visibleColor": {
+        "r": 0.192,
+        "g": 0.701,
+        "b": 0.168
+      },
+      "id": 6
+    },
+    "7": {
+      "title": "Blue",
+      "body": "",
+      "color": "Blue",
+      "visibleColor": {
+        "r": 0.118,
+        "g": 0.53,
+        "b": 1.0
+      },
+      "id": 7
+    },
+    "8": {
+      "title": "Teal",
+      "body": "",
+      "color": "Teal",
+      "visibleColor": {
+        "r": 0.129,
+        "g": 0.694,
+        "b": 0.607
+      },
+      "id": 8
+    },
+    "9": {
+      "title": "Purple",
+      "body": "",
+      "color": "Purple",
+      "visibleColor": {
+        "r": 0.627,
+        "g": 0.125,
+        "b": 0.941
+      },
+      "id": 9
+    },
+    "10": {
+      "title": "Pink",
+      "body": "",
+      "color": "Pink",
+      "visibleColor": {
+        "r": 0.96,
+        "g": 0.439,
+        "b": 0.807
+      },
+      "id": 10
+    },
+    "11": {
+      "title": "Black",
+      "body": "",
+      "color": "Black",
+      "visibleColor": {
+        "r": 0.25,
+        "g": 0.25,
+        "b": 0.25
+      },
+      "id": 11
+    }
+  },
+  "MusicPlayer": {
+    "RepeatSong": true,
+    "PlaylistEntry": 1,
+    "CurrentAudioTitle": "Beware the Forest Mushrooms - Yoko Shimomura",
+    "CurrentAudioURL": "https://steamusercontent-a.akamaihd.net/ugc/779618751110679052/8BDB62372022408D9E5B5DD5B69E86BB43D46F49/",
+    "AudioLibrary": [
+      {
+        "Item1": "https://steamusercontent-a.akamaihd.net/ugc/779618751110679052/8BDB62372022408D9E5B5DD5B69E86BB43D46F49/",
+        "Item2": "Beware the Forest Mushrooms - Yoko Shimomura"
+      }
+    ]
+  },
+  "Grid": {
+    "Type": 0,
+    "Lines": false,
+    "Color": {
+      "r": 0.0,
+      "g": 0.0,
+      "b": 0.0
+    },
+    "Opacity": 0.75,
+    "ThickLines": false,
+    "Snapping": false,
+    "Offset": false,
+    "BothSnapping": false,
+    "xSize": 1.0,
+    "ySize": 1.0,
+    "PosOffset": {
+      "x": 0.0,
+      "y": 1.0,
+      "z": 0.0
+    }
+  },
+  "Lighting": {
+    "LightIntensity": 0.54,
+    "LightColor": {
+      "r": 1.0,
+      "g": 0.9804,
+      "b": 0.8902
+    },
+    "AmbientIntensity": 1.3,
+    "AmbientType": 1,
+    "AmbientSkyColor": {
+      "r": 0.5,
+      "g": 0.5,
+      "b": 0.5
+    },
+    "AmbientEquatorColor": {
+      "r": 0.5,
+      "g": 0.5,
+      "b": 0.5
+    },
+    "AmbientGroundColor": {
+      "r": 0.5,
+      "g": 0.5,
+      "b": 0.5
+    },
+    "ReflectionIntensity": 0.612,
+    "LutIndex": 0,
+    "LutContribution": 1.0,
+    "LutURL": ""
+  },
+  "Hands": {
+    "Enable": true,
+    "DisableUnused": false,
+    "Hiding": 0
+  },
+  "ComponentTags": {
+    "labels": [
+      {
+        "displayed": "City Marker",
+        "normalized": "city_marker"
+      },
+      {
+        "displayed": "Tool",
+        "normalized": "tool"
+      },
+      {
+        "displayed": "Clearing Marker",
+        "normalized": "clearing_marker"
+      },
+      {
+        "displayed": "Ruin",
+        "normalized": "ruin"
+      },
+      {
+        "displayed": "Table Piece",
+        "normalized": "table_piece"
+      },
+      {
+        "displayed": "Hireling Object",
+        "normalized": "hireling_object"
+      },
+      {
+        "displayed": "Map Object",
+        "normalized": "map_object"
+      },
+      {
+        "displayed": "Deck Object",
+        "normalized": "deck_object"
+      },
+      {
+        "displayed": "Setup Card",
+        "normalized": "setup_card"
+      },
+      {
+        "displayed": "Ruin Set",
+        "normalized": "ruin_set"
+      },
+      {
+        "displayed": "Shuffleable",
+        "normalized": "shuffleable"
+      },
+      {
+        "displayed": "Quest",
+        "normalized": "quest"
+      },
+      {
+        "displayed": "Rat Mood",
+        "normalized": "rat_mood"
+      },
+      {
+        "displayed": "Landmark Object",
+        "normalized": "landmark_object"
+      },
+      {
+        "displayed": "Side Table Piece",
+        "normalized": "side_table_piece"
+      },
+      {
+        "displayed": "Lost City Marker",
+        "normalized": "lost_city_marker"
+      },
+      {
+        "displayed": "Clearing 1",
+        "normalized": "clearing_1"
+      },
+      {
+        "displayed": "Clearing 3",
+        "normalized": "clearing_3"
+      },
+      {
+        "displayed": "Clearing 2",
+        "normalized": "clearing_2"
+      },
+      {
+        "displayed": "Free City",
+        "normalized": "free_city"
+      },
+      {
+        "displayed": "Clearing 5",
+        "normalized": "clearing_5"
+      },
+      {
+        "displayed": "Clearing 4",
+        "normalized": "clearing_4"
+      },
+      {
+        "displayed": "Plot Token",
+        "normalized": "plot_token"
+      },
+      {
+        "displayed": "Tower",
+        "normalized": "tower"
+      },
+      {
+        "displayed": "Treasure",
+        "normalized": "treasure"
+      },
+      {
+        "displayed": "Dummy",
+        "normalized": "dummy"
+      },
+      {
+        "displayed": "Growth",
+        "normalized": "growth"
+      },
+      {
+        "displayed": "DrawDraftX",
+        "normalized": "drawdraftx"
+      },
+      {
+        "displayed": "FiftyFiftyBoard",
+        "normalized": "fiftyfiftyboard"
+      },
+      {
+        "displayed": "WWAdsetCards",
+        "normalized": "wwadsetcards"
+      },
+      {
+        "displayed": "Deck Aides",
+        "normalized": "deck_aides"
+      },
+      {
+        "displayed": "Landmark Card",
+        "normalized": "landmark_card"
+      },
+      {
+        "displayed": "RandomBot",
+        "normalized": "randombot"
+      },
+      {
+        "displayed": "Frog Token",
+        "normalized": "frog_token"
+      },
+      {
+        "displayed": "Pillar of Faith Cards",
+        "normalized": "pillar_of_faith_cards"
+      },
+      {
+        "displayed": "Firebrand Mouse",
+        "normalized": "firebrand_mouse"
+      },
+      {
+        "displayed": "Firebrand Rabbit",
+        "normalized": "firebrand_rabbit"
+      },
+      {
+        "displayed": "Firebrand Fox",
+        "normalized": "firebrand_fox"
+      },
+      {
+        "displayed": "BlightedPair1",
+        "normalized": "blightedpair1"
+      },
+      {
+        "displayed": "Blighted City",
+        "normalized": "blighted_city"
+      },
+      {
+        "displayed": "BlightedPair2",
+        "normalized": "blightedpair2"
+      },
+      {
+        "displayed": "Captain Cards",
+        "normalized": "captain_cards"
+      }
+    ]
+  },
+  "Turns": {
+    "Enable": false,
+    "Type": 1,
+    "TurnOrder": [
+      "Red",
+      "Yellow",
+      "Orange",
+      "Teal",
+      "Green",
+      "Brown"
+    ],
+    "Reverse": false,
+    "SkipEmpty": false,
+    "DisableInteractions": false,
+    "PassTurns": true,
+    "TurnColor": ""
+  },
+  "CameraStates": [
+    {
+      "Position": {
+        "x": 1.25461972,
+        "y": -2.5,
+        "z": -11.9066744
+      },
+      "Rotation": {
+        "x": 49.3727951,
+        "y": 0.250863552,
+        "z": 0.0
+      },
+      "Distance": 117.827965,
+      "Zoomed": false,
+      "AbsolutePosition": {
+        "x": 0.918702,
+        "y": 86.92697,
+        "z": -88.62782
+      }
+    },
+    {
+      "Position": {
+        "x": 55.5202751,
+        "y": -2.5,
+        "z": -41.00554
+      },
+      "Rotation": {
+        "x": 55.8470039,
+        "y": 359.750916,
+        "z": 0.0
+      },
+      "Distance": 47.48707,
+      "Zoomed": false,
+      "AbsolutePosition": {
+        "x": 55.6361656,
+        "y": 36.79751,
+        "z": -67.66476
+      }
+    },
+    {
+      "Position": {
+        "x": 3.57440686,
+        "y": -2.5,
+        "z": -40.4402351
+      },
+      "Rotation": {
+        "x": 55.8470078,
+        "y": 359.750916,
+        "z": 0.0
+      },
+      "Distance": 47.48707,
+      "Zoomed": false,
+      "AbsolutePosition": {
+        "x": 3.69030428,
+        "y": 36.7975159,
+        "z": -67.09944
+      }
+    },
+    {
+      "Position": {
+        "x": -46.9809761,
+        "y": -2.5,
+        "z": -41.2533722
+      },
+      "Rotation": {
+        "x": 55.8470154,
+        "y": 359.750916,
+        "z": 0.0
+      },
+      "Distance": 47.48707,
+      "Zoomed": false,
+      "AbsolutePosition": {
+        "x": -46.865078,
+        "y": 36.7975159,
+        "z": -67.91258
+      }
+    },
+    {
+      "Position": {
+        "x": -53.98469,
+        "y": -2.5,
+        "z": 37.8496361
+      },
+      "Rotation": {
+        "x": 50.4325142,
+        "y": 179.595566,
+        "z": 0.0
+      },
+      "Distance": 48.89903,
+      "Zoomed": false,
+      "AbsolutePosition": {
+        "x": -54.2045555,
+        "y": 35.195034,
+        "z": 68.99689
+      }
+    },
+    {
+      "Position": {
+        "x": -1.56337345,
+        "y": -2.5,
+        "z": 37.5832176
+      },
+      "Rotation": {
+        "x": 50.4325142,
+        "y": 179.595566,
+        "z": 0.0
+      },
+      "Distance": 48.89903,
+      "Zoomed": false,
+      "AbsolutePosition": {
+        "x": -1.78323841,
+        "y": 35.195034,
+        "z": 68.73047
+      }
+    },
+    {
+      "Position": {
+        "x": 50.74839,
+        "y": -2.5,
+        "z": 38.4107323
+      },
+      "Rotation": {
+        "x": 50.4325142,
+        "y": 179.595566,
+        "z": 0.0
+      },
+      "Distance": 48.89903,
+      "Zoomed": false,
+      "AbsolutePosition": {
+        "x": 50.5285263,
+        "y": 35.195034,
+        "z": 69.55798
+      }
+    },
+    {
+      "Position": {
+        "x": 1.3411926,
+        "y": 11.5615435,
+        "z": 24.1387157
+      },
+      "Rotation": {
+        "x": 48.931633,
+        "y": 180.088257,
+        "z": 0.0
+      },
+      "Distance": 103.272392,
+      "Zoomed": true,
+      "AbsolutePosition": {
+        "x": 1.44569337,
+        "y": 89.4212952,
+        "z": 91.98436
+      }
+    },
+    {
+      "Position": {
+        "x": -1.99993539,
+        "y": -1.24435425,
+        "z": 0.871152639
+      },
+      "Rotation": {
+        "x": 51.6820221,
+        "y": 0.08942816,
+        "z": 0.0
+      },
+      "Distance": 53.85555,
+      "Zoomed": false,
+      "AbsolutePosition": {
+        "x": -2.052054,
+        "y": 41.00973,
+        "z": -32.5206146
+      }
+    },
+    {
+      "Position": {
+        "x": 105.587311,
+        "y": 11.5615435,
+        "z": -3.39571452
+      },
+      "Rotation": {
+        "x": 24.4109421,
+        "y": 89.88151,
+        "z": 0.0
+      },
+      "Distance": 74.01873,
+      "Zoomed": true,
+      "AbsolutePosition": {
+        "x": 38.1856461,
+        "y": 42.15188,
+        "z": -3.535109
+      }
+    }
+  ],
+  "DecalPallet": [],
+  "LuaScript": "--[[ Lua code. See documentation: https://api.tabletopsimulator.com/ --]]\n\n--[[ The onLoad event is called after the game save finishes loading. --]]\nfunction onLoad()\n    --[[ print('onLoad!') --]]\nend\n\n--[[ The onUpdate event is called once per frame. --]]\nfunction onUpdate()\n    --[[ print('onUpdate loop!') --]]\nend",
+  "LuaScriptState": "",
+  "XmlUI": "<!-- Xml UI. See documentation: https://api.tabletopsimulator.com/ui/introUI/ -->",
+  "ObjectStates": [
+    {
+      "GUID": "afc863",
+      "Name": "Custom_Assetbundle",
+      "Transform": {
+        "posX": -57.5858078,
+        "posY": 1.15621173,
+        "posZ": -45.00301,
+        "rotX": 6.536436e-07,
+        "rotY": -2.39176334e-05,
+        "rotZ": -3.84849864e-06,
+        "scaleX": 1.0,
+        "scaleY": 1.0,
+        "scaleZ": 1.0
+      },
+      "Nickname": "",
+      "Description": "",
+      "GMNotes": "",
+      "AltLookAngle": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "ColorDiffuse": {
+        "r": 1.0,
+        "g": 1.0,
+        "b": 1.0
+      },
+      "Tags": [
+        "Table Piece"
+      ],
+      "LayoutGroupSortIndex": 0,
+      "Value": 0,
+      "Locked": true,
+      "Grid": true,
+      "Snap": true,
+      "IgnoreFoW": false,
+      "MeasureMovement": false,
+      "DragSelectable": true,
+      "Autoraise": true,
+      "Sticky": true,
+      "Tooltip": true,
+      "GridProjection": false,
+      "HideWhenFaceDown": false,
+      "Hands": false,
+      "CustomAssetbundle": {
+        "AssetbundleURL": "https://steamusercontent-a.akamaihd.net/ugc/879750610978795929/723C50F43FAB3DE3DC12CB8460536E8CB34B60A3/",
+        "AssetbundleSecondaryURL": "",
+        "MaterialIndex": 2,
+        "TypeIndex": 4,
+        "LoopingEffectIndex": 0
+      },
+      "LuaScript": "",
+      "LuaScriptState": "",
+      "XmlUI": ""
+    },
+    {
+      "GUID": "c8edca",
+      "Name": "Custom_Assetbundle",
+      "Transform": {
+        "posX": -57.5858078,
+        "posY": 1.15621173,
+        "posZ": 44.99699,
+        "rotX": 6.536436e-07,
+        "rotY": 90.0,
+        "rotZ": -3.84849864e-06,
+        "scaleX": 1.0,
+        "scaleY": 1.0,
+        "scaleZ": 1.0
+      },
+      "Nickname": "",
+      "Description": "",
+      "GMNotes": "",
+      "AltLookAngle": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "ColorDiffuse": {
+        "r": 1.0,
+        "g": 1.0,
+        "b": 1.0
+      },
+      "Tags": [
+        "Table Piece"
+      ],
+      "LayoutGroupSortIndex": 0,
+      "Value": 0,
+      "Locked": true,
+      "Grid": true,
+      "Snap": true,
+      "IgnoreFoW": false,
+      "MeasureMovement": false,
+      "DragSelectable": true,
+      "Autoraise": true,
+      "Sticky": true,
+      "Tooltip": true,
+      "GridProjection": false,
+      "HideWhenFaceDown": false,
+      "Hands": false,
+      "CustomAssetbundle": {
+        "AssetbundleURL": "https://steamusercontent-a.akamaihd.net/ugc/879750610978795929/723C50F43FAB3DE3DC12CB8460536E8CB34B60A3/",
+        "AssetbundleSecondaryURL": "",
+        "MaterialIndex": 2,
+        "TypeIndex": 4,
+        "LoopingEffectIndex": 0
+      },
+      "LuaScript": "",
+      "LuaScriptState": "",
+      "XmlUI": ""
+    },
+    {
+      "GUID": "393bf7",
+      "Name": "Custom_Assetbundle",
+      "Transform": {
+        "posX": 57.61419,
+        "posY": 1.15621173,
+        "posZ": 44.99699,
+        "rotX": 6.536436e-07,
+        "rotY": 180.0,
+        "rotZ": -3.84849864e-06,
+        "scaleX": 1.0,
+        "scaleY": 1.0,
+        "scaleZ": 1.0
+      },
+      "Nickname": "",
+      "Description": "",
+      "GMNotes": "",
+      "AltLookAngle": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "ColorDiffuse": {
+        "r": 1.0,
+        "g": 1.0,
+        "b": 1.0
+      },
+      "Tags": [
+        "Table Piece"
+      ],
+      "LayoutGroupSortIndex": 0,
+      "Value": 0,
+      "Locked": true,
+      "Grid": true,
+      "Snap": true,
+      "IgnoreFoW": false,
+      "MeasureMovement": false,
+      "DragSelectable": true,
+      "Autoraise": true,
+      "Sticky": true,
+      "Tooltip": true,
+      "GridProjection": false,
+      "HideWhenFaceDown": false,
+      "Hands": false,
+      "CustomAssetbundle": {
+        "AssetbundleURL": "https://steamusercontent-a.akamaihd.net/ugc/879750610978795929/723C50F43FAB3DE3DC12CB8460536E8CB34B60A3/",
+        "AssetbundleSecondaryURL": "",
+        "MaterialIndex": 2,
+        "TypeIndex": 4,
+        "LoopingEffectIndex": 0
+      },
+      "LuaScript": "",
+      "LuaScriptState": "",
+      "XmlUI": ""
+    },
+    {
+      "GUID": "12c65e",
+      "Name": "Custom_Assetbundle",
+      "Transform": {
+        "posX": 57.61419,
+        "posY": 1.15621173,
+        "posZ": -45.00301,
+        "rotX": 6.536436e-07,
+        "rotY": 270.0,
+        "rotZ": -3.84849864e-06,
+        "scaleX": 1.0,
+        "scaleY": 1.0,
+        "scaleZ": 1.0
+      },
+      "Nickname": "",
+      "Description": "",
+      "GMNotes": "",
+      "AltLookAngle": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "ColorDiffuse": {
+        "r": 1.0,
+        "g": 1.0,
+        "b": 1.0
+      },
+      "Tags": [
+        "Table Piece"
+      ],
+      "LayoutGroupSortIndex": 0,
+      "Value": 0,
+      "Locked": true,
+      "Grid": true,
+      "Snap": true,
+      "IgnoreFoW": false,
+      "MeasureMovement": false,
+      "DragSelectable": true,
+      "Autoraise": true,
+      "Sticky": true,
+      "Tooltip": true,
+      "GridProjection": false,
+      "HideWhenFaceDown": false,
+      "Hands": false,
+      "CustomAssetbundle": {
+        "AssetbundleURL": "https://steamusercontent-a.akamaihd.net/ugc/879750610978795929/723C50F43FAB3DE3DC12CB8460536E8CB34B60A3/",
+        "AssetbundleSecondaryURL": "",
+        "MaterialIndex": 2,
+        "TypeIndex": 4,
+        "LoopingEffectIndex": 0
+      },
+      "LuaScript": "",
+      "LuaScriptState": "",
+      "XmlUI": ""
+    },
+    {
+      "GUID": "bd69bd",
+      "Name": "Chinese_Checkers_Piece",
+      "Transform": {
+        "posX": 76.77401,
+        "posY": 9.8962,
+        "posZ": -67.12305,
+        "rotX": 0.00190076465,
+        "rotY": 180.0,
+        "rotZ": 0.000379891542,
+        "scaleX": 1.6499995,
+        "scaleY": 1.6499995,
+        "scaleZ": 1.6499995
+      },
+      "Nickname": "Flex Table Control",
+      "Description": "",
+      "GMNotes": "",
+      "AltLookAngle": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "ColorDiffuse": {
+        "r": 1.0,
+        "g": 1.0,
+        "b": 1.0
+      },
+      "LayoutGroupSortIndex": 0,
+      "Value": 0,
+      "Locked": true,
+      "Grid": true,
+      "Snap": true,
+      "IgnoreFoW": false,
+      "MeasureMovement": false,
+      "DragSelectable": true,
+      "Autoraise": true,
+      "Sticky": true,
+      "Tooltip": false,
+      "GridProjection": false,
+      "HideWhenFaceDown": false,
+      "Hands": false,
+      "MaterialIndex": 1,
+      "LuaScript": "tableHeightOffset = -9\n\nfunction onSave()\n    saved_data = JSON.encode({tid=tableImageData, cd=checkData})\n    --saved_data = \"\"\n    return saved_data\nend\n\nfunction onload(saved_data)\n    --Loads the tracking for if the game has started yet\n    if saved_data ~= \"\" then\n         local loaded_data = JSON.decode(saved_data)\n         tableImageData = loaded_data.tid\n         checkData = loaded_data.cd\n    else\n        tableImageData = {}\n        checkData = {move=false, scale=false}\n    end\n\n    --Disables interactable status of objects with GUID in list\n    for _, guid in ipairs(ref_noninteractable) do\n        local obj = getObjectFromGUID(guid)\n        if obj then obj.interactable = false end\n    end\n\n    --Establish references to table parts\n    obj_leg1 = getObjectFromGUID(\"afc863\")\n    obj_leg2 = getObjectFromGUID(\"c8edca\")\n    obj_leg3 = getObjectFromGUID(\"393bf7\")\n    obj_leg4 = getObjectFromGUID(\"12c65e\")\n    obj_surface = getObjectFromGUID(\"4ee1f2\")\n    obj_side_top = getObjectFromGUID(\"35b95f\")\n    obj_side_bot = getObjectFromGUID(\"f938a2\")\n    obj_side_lef = getObjectFromGUID(\"9f95fd\")\n    obj_side_rig = getObjectFromGUID(\"5af8f2\")\n\n    controlActive = false\n    createOpenCloseButton()\nend\n\n--Activation/deactivation of control panel\n\n--Activated by clicking on\nfunction click_toggleControl(_, color)\n    if permissionCheck(color) then\n        if not controlActive then\n            --Activate control panel\n            controlActive = true\n            self.clearButtons()\n            createOpenCloseButton()\n            createSurfaceInput()\n            createSurfaceButtons()\n            createScaleInput()\n            createScaleButtons()\n        else\n            --Deactivate control panel\n            controlActive = false\n            self.clearButtons()\n            self.clearInputs()\n            createOpenCloseButton()\n\n        end\n    end\nend\n\n\n\n\n--Table surface control\n\n\n\n--Changes table surface\nfunction click_applySurface(_, color)\n    if permissionCheck(color) then\n        updateSurface()\n        broadcastToAll(\"New Table Image Applied\", {0.2,0.9,0.2})\n    end\nend\n\nfunction click_resetBoard()\n    getObjectFromGUID(\"bab7e1\").call(\"startingReset\")\nend\n\n--Saves table surface\nfunction click_saveSurface(_, color)\n    if permissionCheck(color) then\n        local nickname = self.getInputs()[1].value\n        local url = self.getInputs()[2].value\n        if nickname == \"\" then\n            --No nickname\n            broadcastToAll(\"Please supply a nickname for this save.\", {0.9,0.2,0.2})\n        else\n            --Nickname exists\n\n            if findInImageDataIndex(url, nickname) == nil then\n                --Save doesn't exist already\n                table.insert(tableImageData, {url=url, name=nickname})\n                broadcastToAll(\"Image URL saved to memory.\", {0.2,0.9,0.2})\n                --Refresh buttons\n                self.clearButtons()\n                createOpenCloseButton()\n                createSurfaceButtons()\n                createScaleButtons()\n            else\n                --Save exists already\n                broadcastToAll(\"Memory already contains a save with this Name or URL. Delete it first.\", {0.9,0.2,0.2})\n            end\n        end\n    end\nend\n\n--Loads table surface\nfunction click_loadMemory(_, color, index)\n    if permissionCheck(color) then\n        self.editInput({index=0, value=tableImageData[index].name})\n        self.editInput({index=1, value=tableImageData[index].url})\n        updateSurface()\n        broadcastToAll(\"Table Image Loaded\", {0.2,0.9,0.2})\n    end\nend\n\n--Deletes table surface\nfunction click_deleteMemory(_, color, index)\n    if permissionCheck(color) then\n        table.remove(tableImageData, index)\n        self.clearButtons()\n        createOpenCloseButton()\n        createSurfaceButtons()\n        createScaleButtons()\n        broadcastToAll(\"Element Removed from Memory\", {0.2,0.9,0.2})\n    end\nend\n\n--Updates surface from the values in the input field\nfunction updateSurface()\n    local customInfo = obj_surface.getCustomObject()\n    customInfo.diffuse = self.getInputs()[2].value\n    obj_surface.setCustomObject(customInfo)\n    obj_surface = obj_surface.reload()\n\nend\n\nfunction weirdRootFelt()\n    local customInfo = obj_surface.getCustomObject()\n    customInfo.diffuse = \"https://steamusercontent-a.akamaihd.net/ugc/1862807092234889113/D9DF59F4AA450D4F4A73D93838E1C2D8A2E62757/\"\n    obj_surface.setCustomObject(customInfo)\n    obj_surface = obj_surface.reload()\nend\n\nfunction standardRootFelt()\n    local customInfo = obj_surface.getCustomObject()\n    customInfo.diffuse = \"https://steamusercontent-a.akamaihd.net/ugc/1725416195557291378/4BE9BA8AD2CB62AA0C0CDA202D36F313BDC38978/\"\n    obj_surface.setCustomObject(customInfo)\n    obj_surface = obj_surface.reload()\nend\n\n\n--Table Scale control\n\n\n\n--Applies Scale to table pieces\nfunction click_applyScale(_, color)\n    if permissionCheck(color) then\n        local newWidth = tonumber(self.getInputs()[3].value)\n        local newDepth = tonumber(self.getInputs()[4].value)\n        if type(newWidth) ~= \"number\" then\n            broadcastToAll(\"Invalid Width\", {0.9,0.2,0.2})\n            return\n        elseif type(newDepth) ~= \"number\" then\n            broadcastToAll(\"Invalid Depth\", {0.9,0.2,0.2})\n            return\n        elseif newWidth<0.1 or newDepth<0.1 then\n            broadcastToAll(\"Scale cannot go below 0.1\", {0.9,0.2,0.2})\n            return\n        elseif newWidth>12 or newDepth>12 then\n            broadcastToAll(\"Scale should not go over 12 (world size limitation)\", {0.9,0.2,0.2})\n            return\n        else\n            changeTableScale(math.abs(newWidth), math.abs(newDepth))\n            broadcastToAll(\"Scale applied.\", {0.2,0.9,0.2})\n        end\n    end\nend\n\n--Checks/unchecks move box for hands\nfunction click_checkMove(_, color)\n    if permissionCheck(color) then\n        local find_func = function(o) return o.click_function==\"click_checkMove\" end\n        if checkData.move == true then\n            checkData.move = false\n            local buttonEntry = findButton(self, find_func)\n            self.editButton({index=buttonEntry.index, label=\"\"})\n        else\n            checkData.move = true\n            local buttonEntry = findButton(self, find_func)\n            self.editButton({index=buttonEntry.index, label=string.char(10008)})\n        end\n    end\nend\n\n--Checks/unchecks scale box for hands\n--This button was disabled for technical reasons\n--[[\nfunction click_checkScale(_, color)\n    if permissionCheck(color) then\n        local find_func = function(o) return o.click_function==\"click_checkScale\" end\n        if checkData.scale == true then\n            checkData.scale = false\n            local buttonEntry = findButton(self, find_func)\n            self.editButton({index=buttonEntry.index, label=\"\"})\n        else\n            checkData.scale = true\n            local buttonEntry = findButton(self, find_func)\n            self.editButton({index=buttonEntry.index, label=string.char(10008)})\n        end\n    end\nend\n]]\n\n--Alters scale of elements and moves them\nfunction changeTableScale(width, depth)\n    --Scaling factors used to translate scale to position offset\n    local width2pos = (width-1) * 18\n    local depth2pos = (depth-1) * 18\n\n    --Hand zone movement\n    if checkData.move == true then\n        for _, pc in ipairs(ref_playerColor) do\n            if Player[pc].getHandCount() > 0 then\n                moveHandZone(Player[pc], width2pos, depth2pos)\n            end\n        end\n    end\n    --Hand zone scaling\n    --The button to enable this was disabled for technical reasons\n    if checkData.scale == true then\n        for _, pc in ipairs(ref_playerColor) do\n            if Player[pc].getHandCount() > 0 then\n                scaleHandZone(Player[pc], width, depth)\n            end\n        end\n    end\n\n    --Resizing table elements\n    obj_side_top.setScale({width, 1, 1})\n    obj_side_bot.setScale({width, 1, 1})\n    obj_side_lef.setScale({depth, 1, 1})\n    obj_side_rig.setScale({depth, 1, 1})\n    obj_surface.setScale({width, 1, depth})\n\n    --Moving table elements to accomodate new scale\n    obj_side_lef.setPosition({-width2pos,tableHeightOffset,0})\n    obj_side_rig.setPosition({ width2pos,tableHeightOffset,0})\n    obj_side_top.setPosition({0,tableHeightOffset, depth2pos})\n    obj_side_bot.setPosition({0,tableHeightOffset,-depth2pos})\n    obj_leg1.setPosition({-width2pos,tableHeightOffset,-depth2pos})\n    obj_leg2.setPosition({-width2pos,tableHeightOffset, depth2pos})\n    obj_leg3.setPosition({ width2pos,tableHeightOffset, depth2pos})\n    obj_leg4.setPosition({ width2pos,tableHeightOffset,-depth2pos})\n    self.setPosition(obj_leg4.positionToWorld({-22.12, 8.74,-19.16}))\n    --Only enabled when changing tableHeightOffset\n    --obj_surface.setPosition({0,tableHeightOffset,0})\nend\n\n--Move hand zone, p=player reference, facts are scaling factors\nfunction moveHandZone(p, width2pos, depth2pos)\n    local widthX = obj_side_rig.getPosition().x\n    local depthZ = obj_side_top.getPosition().z\n    for i=1, p.getHandCount() do\n        local handT = p.getHandTransform()\n        local pos = handT.position\n        local y = handT.rotation.y\n\n        if y<45 or y>320 or y>135 and y<225 then\n            if pos.z > 0 then\n                pos.z = pos.z + depth2pos - depthZ\n            else\n                pos.z = pos.z - depth2pos + depthZ\n            end\n        else\n            if pos.x > 0 then\n                pos.x = pos.x + width2pos - widthX\n            else\n                pos.x = pos.x - width2pos + widthX\n            end\n        end\n\n        --Only enabled when changing tableHeightOffset\n        --pos.y = tableHeightOffset + 14\n\n        handT.position = pos\n        p.setHandTransform(handT, i)\n    end\nend\n\n\n---Scales hand zones, p=player reference, facts are scaling factors\nfunction scaleHandZone(p, width, depth)\n    local widthFact = width / obj_side_top.getScale().x\n    local depthFact = depth / obj_side_lef.getScale().x\n    for i=1, p.getHandCount() do\n        local handT = p.getHandTransform()\n        local scale = handT.scale\n        local y = handT.rotation.y\n        if y<45 or y>320 or y>135 and y<225 then\n            scale.x = scale.x * widthFact\n        else\n            scale.x = scale.x * depthFact\n        end\n        handT.scale = scale\n        p.setHandTransform(handT, i)\n    end\nend\n\n\n\n--Information gathering\n\n\n\n--Checks if a color is promoted or host\nfunction permissionCheck(color)\n    if Player[color].host==true or Player[color].promoted==true then\n        return true\n    else\n        return false\n    end\nend\n\n--Locates a string saved within memory file\nfunction findInImageDataIndex(...)\n    for _, str in ipairs({...}) do\n        for i, v in ipairs(tableImageData) do\n            if v.url == str or v.name == str then\n                return i\n            end\n        end\n    end\n    return nil\nend\n\n--Round number (num) to the Nth decimal (dec)\nfunction round(num, dec)\n  local mult = 10^(dec or 0)\n  return math.floor(num * mult + 0.5) / mult\nend\n\n--Locates a button with a helper function\nfunction findButton(obj, func)\n    if func==nil then error(\"No func supplied to findButton\") end\n    for _, v in ipairs(obj.getButtons()) do\n        if func(v) then\n            return v\n        end\n    end\n    return nil\nend\n\n\n\n--Creation of buttons/inputs\n\n\n\nfunction createOpenCloseButton()\n    local tooltip = \"Open Table Control Panel\"\n    if controlActive then\n        tooltip = \"Close Table Control Panel\"\n    end\n    self.createButton({\n        click_function=\"click_toggleControl\", function_owner=self,\n        position={0,0,0}, rotation={-45,0,0}, height=400, width=400,\n        color={1,1,1,0}, tooltip=tooltip\n    })\nend\n\nfunction createSurfaceInput()\n    local currentURL = obj_surface.getCustomObject().diffuse\n    local nickname = \"\"\n    if findInImageDataIndex(currentURL) ~= nil then\n        nickname = tableImageData[findInImageDataIndex(currentURL)].name\n    end\n    self.createInput({\n        label=\"Nickname\", input_function=\"none\", function_owner=self,\n        alignment=3, position={0,0,2}, height=224, width=4000,\n        font_size=200, tooltip=\"Enter nickname for table image (only used for save)\",\n        value=nickname\n    })\n    self.createInput({\n        label=\"URL\", input_function=\"none\", function_owner=self,\n        alignment=3, position={0,0,3}, height=224, width=4000,\n        font_size=200, tooltip=\"Enter URL for tabletop image\",\n        value=currentURL\n    })\nend\n\nfunction createSurfaceButtons()\n    --Label\n    self.createButton({\n        label=\"Tabletop Surface Image\", click_function=\"none\",\n        position={0,0,1}, height=0, width=0, font_size=300, font_color={1,1,1}\n    })\n    --Functional\n    self.createButton({\n        label=\"Apply Image\\nTo Table\", click_function=\"click_applySurface\",\n        function_owner=self, tooltip=\"Apply URL as table image\",\n        position={2,0,4}, height=440, width=1400, font_size=200,\n    })\n    self.createButton({\n        label=\"Save Image\\nTo Memory\", click_function=\"click_saveSurface\",\n        function_owner=self, tooltip=\"Record URL into memory (requires nickname)\",\n        position={-2,0,4}, height=440, width=1400, font_size=200,\n    })\n\n    self.createButton({\n        label=\"Reset\\nBoard\", click_function=\"click_resetBoard\",\n        function_owner=self, tooltip=\"Reset the main board\",\n        position={-8,0,6}, height=440, width=1400, font_size=200, color = color(124/255,95/255,42/255)\n    })\n    --Label\n    self.createButton({\n        label=\"Load From Memory\", click_function=\"none\",\n        position={0,0,5.5}, height=0, width=0, font_size=300, font_color={1,1,1}\n    })\n    --Saves, created dynamically from memory file\n    for i, memoryEntry in ipairs(tableImageData) do\n        --Load\n        local funcName = i..\"loadMemory\"\n        local func = function(x,y) click_loadMemory(x,y,i) end\n        self.setVar(funcName, func)\n        self.createButton({\n            label=memoryEntry.name, click_function=funcName,\n            function_owner=self, tooltip=memoryEntry.url, font_size=200,\n            position={-0.6,0,6.5+0.5*(i-1)}, height=240, width=3300,\n        })\n        --Delete\n        local funcName = i..\"deleteMemory\"\n        local func = function(x,y) click_deleteMemory(x,y,i) end\n        self.setVar(funcName, func)\n        self.createButton({\n            label=\"DELETE\", click_function=funcName,\n            function_owner=self, tooltip=\"\",\n            position={3.6,0,6.5+0.5*(i-1)}, height=240, width=600,\n            font_size=160, font_color={1,0,0}, color={0.8,0.8,0.8}\n        })\n    end\nend\n\nfunction createScaleInput()\n    self.createInput({\n        label=string.char(8644), input_function=\"none\", function_owner=self,\n        alignment=3, position={-8.5,0,2}, height=224, width=400,\n        font_size=200, tooltip=\"Table Width\",\n        value=round(obj_side_top.getScale().x, 1)\n    })\n    self.createInput({\n        label=string.char(8645), input_function=\"none\", function_owner=self,\n        alignment=3, position={-7.5,0,2}, height=224, width=400,\n        font_size=200, tooltip=\"Table Depth\",\n        value=round(obj_side_lef.getScale().x, 1)\n    })\nend\n\nfunction createScaleButtons()\n    --Labels\n    self.createButton({\n        label=\"Table Scale\", click_function=\"none\",\n        position={-8,0,1}, height=0, width=0, font_size=300, font_color={1,1,1}\n    })\n    self.createButton({\n        label=string.char(8644)..\"            \"..string.char(8645),\n        click_function=\"none\",\n        position={-8,0,2}, height=0, width=0, font_size=300, font_color={1,1,1}\n    })\n    self.createButton({\n        label=\"Move Hands:\", click_function=\"none\",\n        position={-8.3,0,3}, height=0, width=0, font_size=200, font_color={1,1,1}\n    })\n    --Disabled due to me removing the feature for technical reasons\n    --[[\n    self.createButton({\n        label=\"Scale Hands:\", click_function=\"none\",\n        position={-8.3,0,4}, height=0, width=0, font_size=200, font_color={1,1,1}\n    })\n    ]]\n    --Checkboxes\n    local label = \"\"\n    if checkData.move == true then label = string.char(10008) end\n    self.createButton({\n        label=label, click_function=\"click_checkMove\",\n        function_owner=self, tooltip=\"Check to move hands when table is rescaled\",\n        position={-6.8,0,3}, height=224, width=224, font_size=200,\n    })\n    --[[\n    local label = \"\"\n    if checkData.scale == true then label = string.char(10008) end\n    self.createButton({\n        label=label, click_function=\"click_checkScale\",\n        function_owner=self, tooltip=\"Check to scale the width of hands when table is rescaled\",\n        position={-6.8,0,4}, height=224, width=224, font_size=200,\n    })\n    ]]\n    --Apply button\n    self.createButton({\n        label=\"Apply Scale\", click_function=\"click_applyScale\",\n        function_owner=self, tooltip=\"Apply width/depth to table\",\n        position={-8,0,4}, height=440, width=1400, font_size=200,\n    })\nend\n\n\n\n\n\n--Data tables\n\n\n\n\nref_noninteractable = {\n    \"afc863\",\"c8edca\",\"393bf7\",\"12c65e\",\"f938a2\",\"9f95fd\",\"35b95f\",\n    \"5af8f2\",\"4ee1f2\",\"bd69bd\"\n}\n\nref_playerColor = {\n    \"White\", \"Brown\", \"Red\", \"Orange\", \"Yellow\",\n    \"Green\", \"Teal\", \"Blue\", \"Purple\", \"Pink\", \"Black\"\n}\n\n--Dummy function, absorbs unwanted triggers\nfunction none() end",
+      "LuaScriptState": "{\"cd\":{\"move\":true,\"scale\":false},\"tid\":[{\"name\":\"Ultimate Felt\",\"url\":\"https://steamusercontent-a.akamaihd.net/ugc/1725416195557291378/4BE9BA8AD2CB62AA0C0CDA202D36F313BDC38978/ \"},{\"name\":\"Fancy Felt\",\"url\":\"https://steamusercontent-a.akamaihd.net/ugc/1759199895458252766/7067096698C0DC334860A9FB8CE080EA8C936809/\"},{\"name\":\"Black\",\"url\":\"https://steamusercontent-a.akamaihd.net/ugc/1759199733285065380/6297A6C9EDDFB647A06AA89EA62D19A3EE8BCE65/\"},{\"name\":\"WeiRd Root Brawlosseum\",\"url\":\"https://steamusercontent-a.akamaihd.net/ugc/1862807092234888454/0EA7989611FD97A88A6E8D585A09998E9E0D5F22/\"},{\"name\":\"WeiRd Root 100% Non-Felt\",\"url\":\"https://steamusercontent-a.akamaihd.net/ugc/1862807092234889113/D9DF59F4AA450D4F4A73D93838E1C2D8A2E62757/\"}]}",
+      "XmlUI": ""
+    },
+    {
+      "GUID": "f938a2",
+      "Name": "Custom_Assetbundle",
+      "Transform": {
+        "posX": 0.0141820069,
+        "posY": 1.15621173,
+        "posZ": -45.00301,
+        "rotX": -1.01777751e-13,
+        "rotY": 0.0,
+        "rotZ": 0.0,
+        "scaleX": 4.2,
+        "scaleY": 1.0,
+        "scaleZ": 1.0
+      },
+      "Nickname": "",
+      "Description": "",
+      "GMNotes": "",
+      "AltLookAngle": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "ColorDiffuse": {
+        "r": 1.0,
+        "g": 1.0,
+        "b": 1.0
+      },
+      "Tags": [
+        "Table Piece"
+      ],
+      "LayoutGroupSortIndex": 0,
+      "Value": 0,
+      "Locked": true,
+      "Grid": true,
+      "Snap": true,
+      "IgnoreFoW": false,
+      "MeasureMovement": false,
+      "DragSelectable": true,
+      "Autoraise": true,
+      "Sticky": true,
+      "Tooltip": true,
+      "GridProjection": false,
+      "HideWhenFaceDown": false,
+      "Hands": false,
+      "CustomAssetbundle": {
+        "AssetbundleURL": "https://steamusercontent-a.akamaihd.net/ugc/879750610978796471/14ED0DBD593370733A0309B0950004F33EB9FACA/",
+        "AssetbundleSecondaryURL": "",
+        "MaterialIndex": 1,
+        "TypeIndex": 4,
+        "LoopingEffectIndex": 0
+      },
+      "LuaScript": "",
+      "LuaScriptState": "",
+      "XmlUI": ""
+    },
+    {
+      "GUID": "9f95fd",
+      "Name": "Custom_Assetbundle",
+      "Transform": {
+        "posX": -57.5858078,
+        "posY": 1.15621173,
+        "posZ": -0.00299192988,
+        "rotX": 0.0,
+        "rotY": 90.0,
+        "rotZ": 0.0,
+        "scaleX": 3.5,
+        "scaleY": 1.0,
+        "scaleZ": 1.0
+      },
+      "Nickname": "",
+      "Description": "",
+      "GMNotes": "",
+      "AltLookAngle": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "ColorDiffuse": {
+        "r": 1.0,
+        "g": 1.0,
+        "b": 1.0
+      },
+      "Tags": [
+        "Table Piece"
+      ],
+      "LayoutGroupSortIndex": 0,
+      "Value": 0,
+      "Locked": true,
+      "Grid": true,
+      "Snap": true,
+      "IgnoreFoW": false,
+      "MeasureMovement": false,
+      "DragSelectable": true,
+      "Autoraise": true,
+      "Sticky": true,
+      "Tooltip": true,
+      "GridProjection": false,
+      "HideWhenFaceDown": false,
+      "Hands": false,
+      "CustomAssetbundle": {
+        "AssetbundleURL": "https://steamusercontent-a.akamaihd.net/ugc/879750610978796471/14ED0DBD593370733A0309B0950004F33EB9FACA/",
+        "AssetbundleSecondaryURL": "",
+        "MaterialIndex": 1,
+        "TypeIndex": 4,
+        "LoopingEffectIndex": 0
+      },
+      "LuaScript": "",
+      "LuaScriptState": "",
+      "XmlUI": ""
+    },
+    {
+      "GUID": "35b95f",
+      "Name": "Custom_Assetbundle",
+      "Transform": {
+        "posX": 0.0141820069,
+        "posY": 1.15621173,
+        "posZ": 44.99699,
+        "rotX": -1.01777751e-13,
+        "rotY": 180.0,
+        "rotZ": 0.0,
+        "scaleX": 4.2,
+        "scaleY": 1.0,
+        "scaleZ": 1.0
+      },
+      "Nickname": "",
+      "Description": "",
+      "GMNotes": "",
+      "AltLookAngle": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "ColorDiffuse": {
+        "r": 1.0,
+        "g": 1.0,
+        "b": 1.0
+      },
+      "Tags": [
+        "Table Piece"
+      ],
+      "LayoutGroupSortIndex": 0,
+      "Value": 0,
+      "Locked": true,
+      "Grid": true,
+      "Snap": true,
+      "IgnoreFoW": false,
+      "MeasureMovement": false,
+      "DragSelectable": true,
+      "Autoraise": true,
+      "Sticky": true,
+      "Tooltip": true,
+      "GridProjection": false,
+      "HideWhenFaceDown": false,
+      "Hands": false,
+      "CustomAssetbundle": {
+        "AssetbundleURL": "https://steamusercontent-a.akamaihd.net/ugc/879750610978796471/14ED0DBD593370733A0309B0950004F33EB9FACA/",
+        "AssetbundleSecondaryURL": "",
+        "MaterialIndex": 1,
+        "TypeIndex": 4,
+        "LoopingEffectIndex": 0
+      },
+      "LuaScript": "",
+      "LuaScriptState": "",
+      "XmlUI": ""
+    },
+    {
+      "GUID": "5af8f2",
+      "Name": "Custom_Assetbundle",
+      "Transform": {
+        "posX": 57.61419,
+        "posY": 1.15621173,
+        "posZ": -0.00299192988,
+        "rotX": 0.0,
+        "rotY": 270.0,
+        "rotZ": 0.0,
+        "scaleX": 3.5,
+        "scaleY": 1.0,
+        "scaleZ": 1.0
+      },
+      "Nickname": "",
+      "Description": "",
+      "GMNotes": "",
+      "AltLookAngle": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "ColorDiffuse": {
+        "r": 1.0,
+        "g": 1.0,
+        "b": 1.0
+      },
+      "Tags": [
+        "Table Piece"
+      ],
+      "LayoutGroupSortIndex": 0,
+      "Value": 0,
+      "Locked": true,
+      "Grid": true,
+      "Snap": true,
+      "IgnoreFoW": false,
+      "MeasureMovement": false,
+      "DragSelectable": true,
+      "Autoraise": true,
+      "Sticky": true,
+      "Tooltip": true,
+      "GridProjection": false,
+      "HideWhenFaceDown": false,
+      "Hands": false,
+      "CustomAssetbundle": {
+        "AssetbundleURL": "https://steamusercontent-a.akamaihd.net/ugc/879750610978796471/14ED0DBD593370733A0309B0950004F33EB9FACA/",
+        "AssetbundleSecondaryURL": "",
+        "MaterialIndex": 1,
+        "TypeIndex": 4,
+        "LoopingEffectIndex": 0
+      },
+      "LuaScript": "",
+      "LuaScriptState": "",
+      "XmlUI": ""
+    },
+    {
+      "GUID": "2d0126",
+      "Name": "HandTrigger",
+      "Transform": {
+        "posX": -77.5,
+        "posY": 14.62,
+        "posZ": 36.0,
+        "rotX": 0.0,
+        "rotY": 90.0,
+        "rotZ": 0.0,
+        "scaleX": 10.0,
+        "scaleY": 6.0,
+        "scaleZ": 4.0
+      },
+      "Nickname": "",
+      "Description": "",
+      "GMNotes": "",
+      "AltLookAngle": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "ColorDiffuse": {
+        "r": 0.442999959,
+        "g": 0.230999947,
+        "b": 0.0899999961,
+        "a": 0.0
+      },
+      "LayoutGroupSortIndex": 0,
+      "Value": 0,
+      "Locked": true,
+      "Grid": false,
+      "Snap": true,
+      "IgnoreFoW": false,
+      "MeasureMovement": false,
+      "DragSelectable": true,
+      "Autoraise": true,
+      "Sticky": true,
+      "Tooltip": true,
+      "GridProjection": false,
+      "HideWhenFaceDown": false,
+      "Hands": false,
+      "FogColor": "Brown",
+      "LuaScript": "",
+      "LuaScriptState": "",
+      "XmlUI": ""
+    },
+    {
+      "GUID": "6ee454",
+      "Name": "HandTrigger",
+      "Transform": {
+        "posX": 77.5,
+        "posY": 14.62,
+        "posZ": 37.0,
+        "rotX": 0.0,
+        "rotY": 270.0,
+        "rotZ": 0.0,
+        "scaleX": 10.0,
+        "scaleY": 6.0,
+        "scaleZ": 4.0
+      },
+      "Nickname": "",
+      "Description": "",
+      "GMNotes": "",
+      "AltLookAngle": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "ColorDiffuse": {
+        "r": 0.96,
+        "g": 0.438999981,
+        "b": 0.807,
+        "a": 0.0
+      },
+      "LayoutGroupSortIndex": 0,
+      "Value": 0,
+      "Locked": true,
+      "Grid": false,
+      "Snap": true,
+      "IgnoreFoW": false,
+      "MeasureMovement": false,
+      "DragSelectable": true,
+      "Autoraise": true,
+      "Sticky": true,
+      "Tooltip": true,
+      "GridProjection": false,
+      "HideWhenFaceDown": false,
+      "Hands": false,
+      "FogColor": "Pink",
+      "LuaScript": "",
+      "LuaScriptState": "",
+      "XmlUI": ""
+    },
+    {
+      "GUID": "c738d0",
+      "Name": "HandTrigger",
+      "Transform": {
+        "posX": 77.5,
+        "posY": 14.62,
+        "posZ": -26.0,
+        "rotX": 0.0,
+        "rotY": 270.0,
+        "rotZ": 0.0,
+        "scaleX": 10.0,
+        "scaleY": 6.0,
+        "scaleZ": 4.0
+      },
+      "Nickname": "",
+      "Description": "",
+      "GMNotes": "",
+      "AltLookAngle": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "ColorDiffuse": {
+        "r": 0.117999978,
+        "g": 0.53,
+        "b": 1.0,
+        "a": 0.0
+      },
+      "LayoutGroupSortIndex": 0,
+      "Value": 0,
+      "Locked": true,
+      "Grid": false,
+      "Snap": true,
+      "IgnoreFoW": false,
+      "MeasureMovement": false,
+      "DragSelectable": true,
+      "Autoraise": true,
+      "Sticky": true,
+      "Tooltip": true,
+      "GridProjection": false,
+      "HideWhenFaceDown": false,
+      "Hands": false,
+      "FogColor": "Blue",
+      "LuaScript": "",
+      "LuaScriptState": "",
+      "XmlUI": ""
+    },
+    {
+      "GUID": "7d7ad1",
+      "Name": "HandTrigger",
+      "Transform": {
+        "posX": -77.5,
+        "posY": 14.62,
+        "posZ": 14.0,
+        "rotX": 0.0,
+        "rotY": 90.0,
+        "rotZ": 0.0,
+        "scaleX": 10.0,
+        "scaleY": 6.0,
+        "scaleZ": 4.0
+      },
+      "Nickname": "",
+      "Description": "",
+      "GMNotes": "",
+      "AltLookAngle": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "ColorDiffuse": {
+        "r": 0.128999949,
+        "g": 0.694,
+        "b": 0.606999934,
+        "a": 0.0
+      },
+      "LayoutGroupSortIndex": 0,
+      "Value": 0,
+      "Locked": true,
+      "Grid": false,
+      "Snap": true,
+      "IgnoreFoW": false,
+      "MeasureMovement": false,
+      "DragSelectable": true,
+      "Autoraise": true,
+      "Sticky": true,
+      "Tooltip": true,
+      "GridProjection": false,
+      "HideWhenFaceDown": false,
+      "Hands": false,
+      "FogColor": "Teal",
+      "LuaScript": "",
+      "LuaScriptState": "",
+      "XmlUI": ""
+    },
+    {
+      "GUID": "e9f2f8",
+      "Name": "HandTrigger",
+      "Transform": {
+        "posX": -77.5,
+        "posY": 14.62,
+        "posZ": 25.0,
+        "rotX": 0.0,
+        "rotY": 90.0,
+        "rotZ": 0.0,
+        "scaleX": 10.0,
+        "scaleY": 6.0,
+        "scaleZ": 4.0
+      },
+      "Nickname": "",
+      "Description": "",
+      "GMNotes": "",
+      "AltLookAngle": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "ColorDiffuse": {
+        "r": 0.191999972,
+        "g": 0.701,
+        "b": 0.167999953,
+        "a": 0.0
+      },
+      "LayoutGroupSortIndex": 0,
+      "Value": 0,
+      "Locked": true,
+      "Grid": false,
+      "Snap": true,
+      "IgnoreFoW": false,
+      "MeasureMovement": false,
+      "DragSelectable": true,
+      "Autoraise": true,
+      "Sticky": true,
+      "Tooltip": true,
+      "GridProjection": false,
+      "HideWhenFaceDown": false,
+      "Hands": false,
+      "FogColor": "Green",
+      "LuaScript": "",
+      "LuaScriptState": "",
+      "XmlUI": ""
+    },
+    {
+      "GUID": "2bb664",
+      "Name": "HandTrigger",
+      "Transform": {
+        "posX": 77.5,
+        "posY": 14.62,
+        "posZ": -37.0,
+        "rotX": 0.0,
+        "rotY": 270.0,
+        "rotZ": 0.0,
+        "scaleX": 10.0,
+        "scaleY": 6.0,
+        "scaleZ": 4.0
+      },
+      "Nickname": "",
+      "Description": "",
+      "GMNotes": "",
+      "AltLookAngle": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "ColorDiffuse": {
+        "r": 1.0,
+        "g": 1.0,
+        "b": 1.0,
+        "a": 0.0
+      },
+      "LayoutGroupSortIndex": 0,
+      "Value": 0,
+      "Locked": true,
+      "Grid": false,
+      "Snap": true,
+      "IgnoreFoW": false,
+      "MeasureMovement": false,
+      "DragSelectable": true,
+      "Autoraise": true,
+      "Sticky": true,
+      "Tooltip": true,
+      "GridProjection": false,
+      "HideWhenFaceDown": false,
+      "Hands": false,
+      "FogColor": "White",
+      "LuaScript": "",
+      "LuaScriptState": "",
+      "XmlUI": ""
+    },
+    {
+      "GUID": "b4aae3",
+      "Name": "HandTrigger",
+      "Transform": {
+        "posX": -77.5,
+        "posY": 14.62,
+        "posZ": -14.0,
+        "rotX": 0.0,
+        "rotY": 90.0,
+        "rotZ": 0.0,
+        "scaleX": 10.0,
+        "scaleY": 6.0,
+        "scaleZ": 4.0
+      },
+      "Nickname": "",
+      "Description": "",
+      "GMNotes": "",
+      "AltLookAngle": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "ColorDiffuse": {
+        "r": 0.9559999,
+        "g": 0.39199996,
+        "b": 0.112999953,
+        "a": 0.0
+      },
+      "LayoutGroupSortIndex": 0,
+      "Value": 0,
+      "Locked": true,
+      "Grid": false,
+      "Snap": true,
+      "IgnoreFoW": false,
+      "MeasureMovement": false,
+      "DragSelectable": true,
+      "Autoraise": true,
+      "Sticky": true,
+      "Tooltip": true,
+      "GridProjection": false,
+      "HideWhenFaceDown": false,
+      "Hands": false,
+      "FogColor": "Orange",
+      "LuaScript": "",
+      "LuaScriptState": "",
+      "XmlUI": ""
+    },
+    {
+      "GUID": "34fd88",
+      "Name": "HandTrigger",
+      "Transform": {
+        "posX": -77.5,
+        "posY": 14.62,
+        "posZ": -36.0,
+        "rotX": 0.0,
+        "rotY": 90.0,
+        "rotZ": 0.0,
+        "scaleX": 10.0,
+        "scaleY": 6.0,
+        "scaleZ": 4.0
+      },
+      "Nickname": "",
+      "Description": "",
+      "GMNotes": "",
+      "AltLookAngle": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "ColorDiffuse": {
+        "r": 0.856,
+        "g": 0.09999997,
+        "b": 0.09399996,
+        "a": 0.0
+      },
+      "LayoutGroupSortIndex": 0,
+      "Value": 0,
+      "Locked": true,
+      "Grid": false,
+      "Snap": true,
+      "IgnoreFoW": false,
+      "MeasureMovement": false,
+      "DragSelectable": true,
+      "Autoraise": true,
+      "Sticky": true,
+      "Tooltip": true,
+      "GridProjection": false,
+      "HideWhenFaceDown": false,
+      "Hands": false,
+      "FogColor": "Red",
+      "LuaScript": "",
+      "LuaScriptState": "",
+      "XmlUI": ""
+    },
+    {
+      "GUID": "a3c1e2",
+      "Name": "HandTrigger",
+      "Transform": {
+        "posX": 77.5,
+        "posY": 14.62,
+        "posZ": 26.0,
+        "rotX": 0.0,
+        "rotY": 270.0,
+        "rotZ": 0.0,
+        "scaleX": 10.0,
+        "scaleY": 6.0,
+        "scaleZ": 4.0
+      },
+      "Nickname": "",
+      "Description": "",
+      "GMNotes": "",
+      "AltLookAngle": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "ColorDiffuse": {
+        "r": 0.627,
+        "g": 0.124999978,
+        "b": 0.941,
+        "a": 0.0
+      },
+      "LayoutGroupSortIndex": 0,
+      "Value": 0,
+      "Locked": true,
+      "Grid": false,
+      "Snap": true,
+      "IgnoreFoW": false,
+      "MeasureMovement": false,
+      "DragSelectable": true,
+      "Autoraise": true,
+      "Sticky": true,
+      "Tooltip": true,
+      "GridProjection": false,
+      "HideWhenFaceDown": false,
+      "Hands": false,
+      "FogColor": "Purple",
+      "LuaScript": "",
+      "LuaScriptState": "",
+      "XmlUI": ""
+    },
+    {
+      "GUID": "32d1ca",
+      "Name": "HandTrigger",
+      "Transform": {
+        "posX": -77.5,
+        "posY": 14.62,
+        "posZ": -25.0,
+        "rotX": 0.0,
+        "rotY": 90.0,
+        "rotZ": 0.0,
+        "scaleX": 10.0,
+        "scaleY": 6.0,
+        "scaleZ": 4.0
+      },
+      "Nickname": "",
+      "Description": "",
+      "GMNotes": "",
+      "AltLookAngle": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "ColorDiffuse": {
+        "r": 0.905,
+        "g": 0.898,
+        "b": 0.171999961,
+        "a": 0.0
+      },
+      "LayoutGroupSortIndex": 0,
+      "Value": 0,
+      "Locked": true,
+      "Grid": false,
+      "Snap": true,
+      "IgnoreFoW": false,
+      "MeasureMovement": false,
+      "DragSelectable": true,
+      "Autoraise": true,
+      "Sticky": true,
+      "Tooltip": true,
+      "GridProjection": false,
+      "HideWhenFaceDown": false,
+      "Hands": false,
+      "FogColor": "Yellow",
+      "LuaScript": "",
+      "LuaScriptState": "",
+      "XmlUI": ""
+    },
+    {
+      "GUID": "8b2dab",
+      "Name": "HandTrigger",
+      "Transform": {
+        "posX": -75.0,
+        "posY": 5.0,
+        "posZ": -1.0,
+        "rotX": 0.0,
+        "rotY": 0.0,
+        "rotZ": 0.0,
+        "scaleX": 1.0,
+        "scaleY": 1.0,
+        "scaleZ": 1.0
+      },
+      "Nickname": "",
+      "Description": "",
+      "GMNotes": "",
+      "AltLookAngle": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "ColorDiffuse": {
+        "r": 0.128999949,
+        "g": 0.694,
+        "b": 0.606999934,
+        "a": 0.0
+      },
+      "LayoutGroupSortIndex": 0,
+      "Value": 0,
+      "Locked": true,
+      "Grid": false,
+      "Snap": true,
+      "IgnoreFoW": false,
+      "MeasureMovement": false,
+      "DragSelectable": true,
+      "Autoraise": true,
+      "Sticky": true,
+      "Tooltip": true,
+      "GridProjection": false,
+      "HideWhenFaceDown": false,
+      "Hands": false,
+      "FogColor": "Teal",
+      "LuaScript": "",
+      "LuaScriptState": "",
+      "XmlUI": ""
+    },
+    {
+      "GUID": "36d662",
+      "Name": "HandTrigger",
+      "Transform": {
+        "posX": -75.0,
+        "posY": 5.0,
+        "posZ": 1.0,
+        "rotX": 0.0,
+        "rotY": 0.0,
+        "rotZ": 0.0,
+        "scaleX": 1.0,
+        "scaleY": 1.0,
+        "scaleZ": 1.0
+      },
+      "Nickname": "",
+      "Description": "",
+      "GMNotes": "",
+      "AltLookAngle": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "ColorDiffuse": {
+        "r": 0.191999972,
+        "g": 0.701,
+        "b": 0.167999953,
+        "a": 0.0
+      },
+      "LayoutGroupSortIndex": 0,
+      "Value": 0,
+      "Locked": true,
+      "Grid": false,
+      "Snap": true,
+      "IgnoreFoW": false,
+      "MeasureMovement": false,
+      "DragSelectable": true,
+      "Autoraise": true,
+      "Sticky": true,
+      "Tooltip": true,
+      "GridProjection": false,
+      "HideWhenFaceDown": false,
+      "Hands": false,
+      "FogColor": "Green",
+      "LuaScript": "",
+      "LuaScriptState": "",
+      "XmlUI": ""
+    },
+    {
+      "GUID": "5f38f3",
+      "Name": "HandTrigger",
+      "Transform": {
+        "posX": -75.0,
+        "posY": 5.0,
+        "posZ": 2.0,
+        "rotX": 0.0,
+        "rotY": 0.0,
+        "rotZ": 0.0,
+        "scaleX": 1.0,
+        "scaleY": 1.0,
+        "scaleZ": 1.0
+      },
+      "Nickname": "",
+      "Description": "",
+      "GMNotes": "",
+      "AltLookAngle": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "ColorDiffuse": {
+        "r": 0.905,
+        "g": 0.898,
+        "b": 0.171999961,
+        "a": 0.0
+      },
+      "LayoutGroupSortIndex": 0,
+      "Value": 0,
+      "Locked": true,
+      "Grid": false,
+      "Snap": true,
+      "IgnoreFoW": false,
+      "MeasureMovement": false,
+      "DragSelectable": true,
+      "Autoraise": true,
+      "Sticky": true,
+      "Tooltip": true,
+      "GridProjection": false,
+      "HideWhenFaceDown": false,
+      "Hands": false,
+      "FogColor": "Yellow",
+      "LuaScript": "",
+      "LuaScriptState": "",
+      "XmlUI": ""
+    },
+    {
+      "GUID": "beec0b",
+      "Name": "HandTrigger",
+      "Transform": {
+        "posX": -75.0,
+        "posY": 5.0,
+        "posZ": 3.0,
+        "rotX": 0.0,
+        "rotY": 0.0,
+        "rotZ": 0.0,
+        "scaleX": 1.0,
+        "scaleY": 1.0,
+        "scaleZ": 1.0
+      },
+      "Nickname": "",
+      "Description": "",
+      "GMNotes": "",
+      "AltLookAngle": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "ColorDiffuse": {
+        "r": 0.9559999,
+        "g": 0.39199996,
+        "b": 0.112999953,
+        "a": 0.0
+      },
+      "LayoutGroupSortIndex": 0,
+      "Value": 0,
+      "Locked": true,
+      "Grid": false,
+      "Snap": true,
+      "IgnoreFoW": false,
+      "MeasureMovement": false,
+      "DragSelectable": true,
+      "Autoraise": true,
+      "Sticky": true,
+      "Tooltip": true,
+      "GridProjection": false,
+      "HideWhenFaceDown": false,
+      "Hands": false,
+      "FogColor": "Orange",
+      "LuaScript": "",
+      "LuaScriptState": "",
+      "XmlUI": ""
+    },
+    {
+      "GUID": "590f18",
+      "Name": "HandTrigger",
+      "Transform": {
+        "posX": -75.0,
+        "posY": 5.0,
+        "posZ": 4.0,
+        "rotX": 0.0,
+        "rotY": 0.0,
+        "rotZ": 0.0,
+        "scaleX": 1.0,
+        "scaleY": 1.0,
+        "scaleZ": 1.0
+      },
+      "Nickname": "",
+      "Description": "",
+      "GMNotes": "",
+      "AltLookAngle": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "ColorDiffuse": {
+        "r": 0.856,
+        "g": 0.09999997,
+        "b": 0.09399996,
+        "a": 0.0
+      },
+      "LayoutGroupSortIndex": 0,
+      "Value": 0,
+      "Locked": true,
+      "Grid": false,
+      "Snap": true,
+      "IgnoreFoW": false,
+      "MeasureMovement": false,
+      "DragSelectable": true,
+      "Autoraise": true,
+      "Sticky": true,
+      "Tooltip": true,
+      "GridProjection": false,
+      "HideWhenFaceDown": false,
+      "Hands": false,
+      "FogColor": "Red",
+      "LuaScript": "",
+      "LuaScriptState": "",
+      "XmlUI": ""
+    },
+    {
+      "GUID": "8f5878",
+      "Name": "HandTrigger",
+      "Transform": {
+        "posX": -75.0,
+        "posY": 5.0,
+        "posZ": 0.0,
+        "rotX": 0.0,
+        "rotY": 0.0,
+        "rotZ": 0.0,
+        "scaleX": 1.0,
+        "scaleY": 1.0,
+        "scaleZ": 1.0
+      },
+      "Nickname": "",
+      "Description": "",
+      "GMNotes": "",
+      "AltLookAngle": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "ColorDiffuse": {
+        "r": 0.117999978,
+        "g": 0.53,
+        "b": 1.0,
+        "a": 0.0
+      },
+      "LayoutGroupSortIndex": 0,
+      "Value": 0,
+      "Locked": true,
+      "Grid": false,
+      "Snap": true,
+      "IgnoreFoW": false,
+      "MeasureMovement": false,
+      "DragSelectable": true,
+      "Autoraise": true,
+      "Sticky": true,
+      "Tooltip": true,
+      "GridProjection": false,
+      "HideWhenFaceDown": false,
+      "Hands": false,
+      "FogColor": "Blue",
+      "LuaScript": "",
+      "LuaScriptState": "",
+      "XmlUI": ""
+    },
+    {
+      "GUID": "8156a3",
+      "Name": "HandTrigger",
+      "Transform": {
+        "posX": -75.0,
+        "posY": 5.0,
+        "posZ": -3.0,
+        "rotX": 0.0,
+        "rotY": 0.0,
+        "rotZ": 0.0,
+        "scaleX": 1.0,
+        "scaleY": 1.0,
+        "scaleZ": 1.0
+      },
+      "Nickname": "",
+      "Description": "",
+      "GMNotes": "",
+      "AltLookAngle": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "ColorDiffuse": {
+        "r": 0.627,
+        "g": 0.124999978,
+        "b": 0.941,
+        "a": 0.0
+      },
+      "LayoutGroupSortIndex": 0,
+      "Value": 0,
+      "Locked": true,
+      "Grid": false,
+      "Snap": true,
+      "IgnoreFoW": false,
+      "MeasureMovement": false,
+      "DragSelectable": true,
+      "Autoraise": true,
+      "Sticky": true,
+      "Tooltip": true,
+      "GridProjection": false,
+      "HideWhenFaceDown": false,
+      "Hands": false,
+      "FogColor": "Purple",
+      "LuaScript": "",
+      "LuaScriptState": "",
+      "XmlUI": ""
+    },
+    {
+      "GUID": "601947",
+      "Name": "HandTrigger",
+      "Transform": {
+        "posX": -75.0,
+        "posY": 5.0,
+        "posZ": -2.0,
+        "rotX": 0.0,
+        "rotY": 0.0,
+        "rotZ": 0.0,
+        "scaleX": 1.0,
+        "scaleY": 1.0,
+        "scaleZ": 1.0
+      },
+      "Nickname": "",
+      "Description": "",
+      "GMNotes": "",
+      "AltLookAngle": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "ColorDiffuse": {
+        "r": 0.96,
+        "g": 0.438999981,
+        "b": 0.807,
+        "a": 0.0
+      },
+      "LayoutGroupSortIndex": 0,
+      "Value": 0,
+      "Locked": true,
+      "Grid": false,
+      "Snap": true,
+      "IgnoreFoW": false,
+      "MeasureMovement": false,
+      "DragSelectable": true,
+      "Autoraise": true,
+      "Sticky": true,
+      "Tooltip": true,
+      "GridProjection": false,
+      "HideWhenFaceDown": false,
+      "Hands": false,
+      "FogColor": "Pink",
+      "LuaScript": "",
+      "LuaScriptState": "",
+      "XmlUI": ""
+    },
+    {
+      "GUID": "768015",
+      "Name": "HandTrigger",
+      "Transform": {
+        "posX": -75.0,
+        "posY": 5.0,
+        "posZ": -4.0,
+        "rotX": 0.0,
+        "rotY": 0.0,
+        "rotZ": 0.0,
+        "scaleX": 1.0,
+        "scaleY": 1.0,
+        "scaleZ": 1.0
+      },
+      "Nickname": "",
+      "Description": "",
+      "GMNotes": "",
+      "AltLookAngle": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "ColorDiffuse": {
+        "r": 1.0,
+        "g": 1.0,
+        "b": 1.0,
+        "a": 0.0
+      },
+      "LayoutGroupSortIndex": 0,
+      "Value": 0,
+      "Locked": true,
+      "Grid": false,
+      "Snap": true,
+      "IgnoreFoW": false,
+      "MeasureMovement": false,
+      "DragSelectable": true,
+      "Autoraise": true,
+      "Sticky": true,
+      "Tooltip": true,
+      "GridProjection": false,
+      "HideWhenFaceDown": false,
+      "Hands": false,
+      "FogColor": "White",
+      "LuaScript": "",
+      "LuaScriptState": "",
+      "XmlUI": ""
+    },
+    {
+      "GUID": "bc872b",
+      "Name": "HandTrigger",
+      "Transform": {
+        "posX": -75.0,
+        "posY": 5.0,
+        "posZ": -5.0,
+        "rotX": 0.0,
+        "rotY": 0.0,
+        "rotZ": 0.0,
+        "scaleX": 1.0,
+        "scaleY": 1.0,
+        "scaleZ": 1.0
+      },
+      "Nickname": "",
+      "Description": "",
+      "GMNotes": "",
+      "AltLookAngle": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "ColorDiffuse": {
+        "r": 0.442999959,
+        "g": 0.230999947,
+        "b": 0.0899999961,
+        "a": 0.0
+      },
+      "LayoutGroupSortIndex": 0,
+      "Value": 0,
+      "Locked": true,
+      "Grid": false,
+      "Snap": true,
+      "IgnoreFoW": false,
+      "MeasureMovement": false,
+      "DragSelectable": true,
+      "Autoraise": true,
+      "Sticky": true,
+      "Tooltip": true,
+      "GridProjection": false,
+      "HideWhenFaceDown": false,
+      "Hands": false,
+      "FogColor": "Brown",
+      "LuaScript": "",
+      "LuaScriptState": "",
+      "XmlUI": ""
+    },
+    {
+      "GUID": "bab7e1",
+      "Name": "Custom_Tile",
+      "Transform": {
+        "posX": 78.0917358,
+        "posY": 25.9,
+        "posZ": 0.0,
+        "rotX": 293.293823,
+        "rotY": 90.0,
+        "rotZ": 0.0,
+        "scaleX": 15.5,
+        "scaleY": 1.0,
+        "scaleZ": 15.5
+      },
+      "Nickname": "Faction Selection",
+      "Description": "",
+      "GMNotes": "",
+      "AltLookAngle": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "ColorDiffuse": {
+        "r": 0.07490303,
+        "g": 0.0437557325,
+        "b": 0.0330191
+      },
+      "LayoutGroupSortIndex": 0,
+      "Value": 0,
+      "Locked": true,
+      "Grid": true,
+      "Snap": false,
+      "IgnoreFoW": false,
+      "MeasureMovement": false,
+      "DragSelectable": true,
+      "Autoraise": true,
+      "Sticky": false,
+      "Tooltip": false,
+      "GridProjection": false,
+      "HideWhenFaceDown": false,
+      "Hands": false,
+      "CustomImage": {
+        "ImageURL": "https://cdn.jsdelivr.net/gh/mrdrouf/root-tabletop-tournament@main/assets/board/board_clean_v3.png",
+        "ImageSecondaryURL": "https://steamusercontent-a.akamaihd.net/ugc/1725416402718254700/C6F00394AFEE245DFFA53CD358F5F966AA754BC9/",
+        "ImageScalar": 1.0,
+        "WidthScale": 0.0,
+        "CustomTile": {
+          "Type": 0,
+          "Thickness": 0.1,
+          "Stackable": false,
+          "Stretch": true
+        }
+      },
+      "LuaScript": "@@BOARD_LUA@@",
+      "LuaScriptState": "",
+      "XmlUI": "<Button id=\"xButton\" onclick=\"deleteThis\" position=\"117 85 -15\" width=\"15\" height=\"15\" fontSize=\"8\" padding=\"4 4 4\" icon = \"Xmark\" color=\"#bd2608\" active=\"false\"/>\r\n<Image id=\"info\" image=\"Blank Info\" position=\"35 -85 -20\" width=\"156\" height=\"6\"/>\r\n<Image id=\"rootLogo\" position=\"-87.5 80 -20\" width=\"75\" height=\"25\" image=\"Root Logo\"/>\r\n\r\n\r\n\r\n<!--<Button id=\"Clear All\" onclick=\"clearAll\"  icon = \"Xmark\" position=\"90 -80 -20\" width=\"20\" height=\"20\" color=\"#808080\"/>-->\r\n\r\n\r\n\r\n\r\n<ToggleGroup id=\"Main Nav\" active=\"True\">\n  <Text id=\"rttCredit\" text=\"+ MrDrouf &amp; Claude\" position=\"-72 88 -20\" rotation=\"0 0 -6\" width=\"60\" height=\"11\" fontSize=\"7\" fontStyle=\"Italic\" color=\"#241f18\"/>\r\n  \r\n  \r\n  \r\n\r\n</ToggleGroup>\r\n\r\n\r\n\r\n<ToggleGroup id=\"standardButtons\" active=\"False\">\n  <Button onclick=\"makeFaction\" onMouseEnter=\"infoOfficialContent\" onMouseExit=\"clearInfo\" category=\"Standard\" id=\"Knaves of the Deepwood\" position=\"90 45 -20\" width=\"40\" height=\"40\" fontSize=\"8\" icon=\"Knaves of the Deepwood\" color=\"gray\"/>\r\n\r\n    <Button onclick=\"makeFaction\" onMouseEnter=\"infoOfficialContent\" onMouseExit=\"clearInfo\" category=\"Standard\" id=\"Marquise de Cat\" position=\"-25 45 -20\" width=\"40\" height=\"40\" fontSize=\"8\" icon=\"Marquise de Cat\" color=\"#d77435\"/>\r\n    <Button onclick=\"makeFaction\" onMouseEnter=\"infoOfficialContent\" onMouseExit=\"clearInfo\" category=\"Standard\" id=\"Eyrie Dynasties\" position=\"15 45 -20\" width=\"40\" height=\"40\" fontSize=\"8\" icon=\"Eyrie Dynasties\" color=\"#4776b6\"/>\r\n    <Button onclick=\"makeFaction\" onMouseEnter=\"infoOfficialContent\" onMouseExit=\"clearInfo\" category=\"Standard\" id=\"Woodland Alliance\" position=\"55 45 -20\" width=\"40\" height=\"40\" fontSize=\"8\" icon=\"Woodland Alliance\" color=\"#6bb659\"/>\r\n    \r\n\r\n    <Button onclick=\"makeFaction\" onMouseEnter=\"infoOfficialContent\" onMouseExit=\"clearInfo\" category=\"Standard\" id=\"The Lizard Cult\" position=\"-25 -5 -20\" width=\"40\" height=\"40\" fontSize=\"8\" icon=\"The Lizard Cult\" color=\"#e8e138\"/>\r\n    <Button onclick=\"makeFaction\" onMouseEnter=\"infoOfficialContent\" onMouseExit=\"clearInfo\" category=\"Standard\" id=\"Riverfolk Company\" position=\"15 -5 -20\" width=\"40\" height=\"40\" fontSize=\"8\" icon=\"Riverfolk Company\" color=\"#5cbab4\"/>\r\n    <Button onclick=\"makeFaction\" onMouseEnter=\"infoOfficialContent\" onMouseExit=\"clearInfo\" category=\"Standard\" id=\"Underground Duchy\" position=\"55 -5 -20\" width=\"40\" height=\"40\" fontSize=\"8\" icon=\"Underground Duchy\" color=\"#e4c0a2\"/>\r\n    <Button onclick=\"makeFaction\" onMouseEnter=\"infoOfficialContent\" onMouseExit=\"clearInfo\" category=\"Standard\" id=\"Corvid Conspiracy\" position=\"95 -5 -20\" width=\"40\" height=\"40\" fontSize=\"8\" icon=\"Corvid Conspiracy\" color=\"#542c75\"/>\r\n\r\n    <Button onclick=\"makeFaction\" onMouseEnter=\"infoOfficialContent\" onMouseExit=\"clearInfo\" category=\"Standard\" id=\"Lord of the Hundreds\" position=\"-25 -55 -20\" width=\"40\" height=\"40\" fontSize=\"8\" icon=\"Lord of the Hundreds\" color=\"#f3461b\"/>\r\n    <Button onclick=\"makeFaction\" onMouseEnter=\"infoOfficialContent\" onMouseExit=\"clearInfo\" category=\"Standard\" id=\"Keepers in Iron\" position=\"15 -55 -20\" width=\"40\" height=\"40\" fontSize=\"8\" icon=\"Keepers in Iron\" color=\"#acadb1\"/>\r\n    <Button onclick=\"makeFaction\" onMouseEnter=\"infoOfficialContent\" onMouseExit=\"clearInfo\" category=\"Standard\" id=\"Twilight Council\" position=\"55 -55 -20\" width=\"40\" height=\"40\" fontSize=\"8\" icon=\"Twilight Council\" color=\"#964E30\"/>\r\n    <Button onclick=\"makeFaction\" onMouseEnter=\"infoOfficialContent\" onMouseExit=\"clearInfo\" category=\"Standard\" id=\"Lilypad Diaspora\" position=\"95 -55 -20\" width=\"40\" height=\"40\" fontSize=\"8\" icon=\"Lilypad Diaspora\" color=\"#B09804\"/>\r\n\r\n</ToggleGroup>\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n<ToggleGroup id=\"mapButtonsStandard\" active=\"True\">\r\n    \r\n    <Button id=\"Winter Map\" onMouseEnter=\"infoOfficialContent\" onMouseExit=\"clearInfo\" onclick=\"makeMap\" position=\"19 25 -20\" width=\"34\" height=\"34\" fontSize=\"8\" icon =\"Winter Map\" color=\"#6b8a8f\"/>\r\n    \r\n    <Button id=\"Lake Map\" onMouseEnter=\"infoOfficialContent\" onMouseExit=\"clearInfo\" onclick=\"makeMap\" position=\"-57 25 -20\" width=\"34\" height=\"34\" fontSize=\"8\" icon =\"Lake Map\" color=\"#42a0c2\"/>\r\n    <Button id=\"Mountain Map\" onMouseEnter=\"infoOfficialContent\" onMouseExit=\"clearInfo\" onclick=\"makeMap\" position=\"57 25 -20\" width=\"34\" height=\"34\" fontSize=\"8\" icon =\"Mountain Map\" color=\"#764a52\"/>\r\n    \r\n    <Button id=\"Marsh Map\" onMouseEnter=\"infoOfficialContent\" onMouseExit=\"clearInfo\" onclick=\"makeMap\" position=\"-19 25 -20\" width=\"34\" height=\"34\" fontSize=\"8\" icon =\"Marsh Map\" color=\"#9b8551\"/>\r\n    <Button id=\"Gorge Map\" onMouseEnter=\"infoOfficialContent\" onMouseExit=\"clearInfo\" onclick=\"makeMap\" position=\"95 25 -20\" width=\"34\" height=\"34\" fontSize=\"8\" icon =\"Gorge Map\" color=\"#61746b\"/>\r\n\r\n    <Button id=\"Summer Map\" onClick=\"makeMap\" onMouseEnter = \"infoNevakanezahAndSlug\" onMouseExit=\"clearInfo\" position=\"-95 25 -20\" width=\"34\" height=\"34\" fontSize=\"8\" icon =\"Autumn Map\" color=\"#4b4d35\"/>\r\n    \r\n    \r\n    \r\n\r\n    \r\n\r\n</ToggleGroup>\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n<ToggleGroup id=\"decksButtonsStandard\" active=\"True\">\r\n    <Button id=\"Standard Deck\" onMouseEnter=\"infoOfficialContent\" onMouseExit=\"clearInfo\" onclick=\"makeDeck\" position=\"-38 -15 -20\" width=\"34\" height=\"34\" fontSize=\"8\" icon=\"Standard Deck\" color=\"#8d7f81\"/>\r\n    <Button id=\"Exiles and Partisans Deck\" onMouseEnter=\"infoOfficialContent\" onMouseExit=\"clearInfo\" onclick=\"makeDeck\" position=\"0 -15 -20\" width=\"34\" height=\"34\" fontSize=\"8\" icon =\"Exiles and Partisans Deck\" color=\"#378f90\"/>\r\n    <Button id=\"Squires and Disciples Deck\" onMouseEnter=\"infoOfficialContent\" onMouseExit=\"clearInfo\" onclick=\"makeDeck\" position=\"38 -15 -20\" width=\"34\" height=\"34\" fontSize=\"8\" icon =\"Squires and Disciples Deck\" color=\"#AB6894\"/>\r\n    \r\n\r\n    \r\n</ToggleGroup>\r\n\r\n\r\n\r\n<ToggleGroup id=\"setupButtons\" active=\"True\">\n  <Button id=\"rttThemeBtn\" onclick=\"rttTheme\" icon=\"ThemeArt\" color=\"#49514b\" position=\"38 60 -20\" width=\"34\" height=\"34\"/>\n  <Button id=\"rttRankedBtn\" onclick=\"rttSetup\" icon=\"RankedArt\" color=\"#030411\" position=\"0 60 -20\" width=\"34\" height=\"34\"/><Button id=\"rttFourBoardsBtn\" onclick=\"setupFactionBoards\" icon=\"FourBoardsArt\" color=\"#3a2f22\" position=\"-38 60 -20\" width=\"34\" height=\"34\"/>\n  <Button id=\"Marsh5P\" onclick=\"rttFivePStart\" icon=\"FivePlayerArt\" position=\"57 -69.5 -20\" width=\"34\" height=\"17\" color=\"#463221\"/><Button id=\"Marsh5PMap\" onclick=\"rttPlaceMarsh5P\" icon=\"Marsh5PLabel\" position=\"95 -69.5 -20\" width=\"34\" height=\"17\" color=\"#81745b\"/>\n  \n   <!--######-->\r\n\r\n  \r\n  <Button id=\"Vagabond Cards\" onclick=\"makeTool\" onMouseEnter=\"infoOfficialContent\" onMouseExit=\"clearInfo\" position=\"95 -46.5 -20\" width=\"34\" height=\"17\" fontSize=\"8\" icon =\"Vagabond Cards\" color=\"#777879\"/>\r\n  \r\n  \r\n\r\n\r\n  <Button id=\"rttBoxScoreBtn\" onclick=\"rttSpawnBoxScore\" onMouseEnter=\"infoOfficialContent\" onMouseExit=\"clearInfo\" position=\"19 -46.5 -20\" width=\"34\" height=\"17\" fontSize=\"8\" icon=\"BoxScoreArt\" color=\"#3a2f22\"/>\r\n\r\n  \r\n  <Button id=\"Landmarks\" onclick =\"makeTool\" onMouseEnter=\"infoOfficialContent\" onMouseExit=\"clearInfo\" position=\"19 -69.5 -20\" width=\"34\" height=\"17\" fontSize=\"8\" icon =\"Landmarks\" color=\"#724a42\"/>\r\n  \r\n  \r\n\r\n  \r\n  \r\n\r\n\r\n  \r\n\r\n  \r\n  \r\n  \r\n  \r\n\r\n  \r\n  \r\n  \r\n  \r\n\r\n</ToggleGroup>\r\n\r\n<ToggleGroup id=\"toolsButtons\" active=\"True\">\r\n    \r\n    \r\n    \r\n    \r\n</ToggleGroup>\r\n\r\n<ToggleGroup id = \"tools1\" active=\"True\">\r\n    \r\n\r\n    <Button id=\"Faction Select\" onclick=\"makeFactionSelector\" onMouseEnter=\"infoEhssAndSlug\" onMouseExit=\"clearInfo\" position=\"-95 -46.5 -20\" width=\"34\" height=\"17\" fontSize=\"7\" icon=\"Faction Selector Tool\" color=\"#2c231a\"/>  \r\n    <Button id=\"Battle Mat\" onclick=\"makeBattleMat\" position=\"-57 -46.5 -20\" onMouseEnter = \"infoJustin\" onMouseExit=\"clearInfo\" width=\"34\" height=\"17\" fontSize=\"7\" icon =\"Battle Mat\" color=\"#863c56\"/>\r\n    \r\n    <Button id=\"Lizard Wizard\" onclick=\"makeLizardWizard\" onMouseEnter=\"infoNevakanezah\" onMouseExit=\"clearInfo\" position=\"-95 -69.5 -20\" width=\"34\" height=\"17\" fontSize=\"7\" icon =\"Lizard Wizard\" color=\"#5a6728\"/>\r\n\r\n    \r\n    <Button id=\"Clearing Markers\" onclick=\"makeTool\" onMouseEnter=\"infoOfficialContent\" onMouseExit=\"clearInfo\" position=\"57 -46.5 -20\" width=\"34\" height=\"17\" fontSize=\"7\" icon=\"Clearing Markers\" color=\"#393a33\"/>\r\n    \r\n    \r\n\r\n    \r\n    \r\n    <Button id=\"Mini-Mood Manager\" onclick=\"makeTool\" onMouseEnter = \"infoEhssAndSlug\" onMouseExit=\"clearInfo\" position=\"-57 -69.5 -20\" width=\"34\" height=\"17\" fontSize=\"7\" icon =\"Mini-Mood Manager\" color=\"#eb4c27\"/>\r\n    <Button id=\"Ginso's Gizmo\" onclick=\"toggleTool\" onMouseEnter = \"infoGinso\" onMouseExit=\"clearInfo\" position=\"-19 -46.5 -20\" width=\"34\" height=\"17\" fontSize=\"7\" icon =\"Ginso's Gizmo\" color=\"#453b2b\"/>\r\n\r\n    \r\n    \r\n    <Button id=\"Mob Lobber\" onclick=\"makeTool\" onMouseEnter = \"infoNevakanezah\" onMouseExit=\"clearInfo\" position=\"-19 -69.5 -20\" width=\"34\" height=\"17\" fontSize=\"7\" icon =\"Mob Lobber\" color=\"#eb4c27\"/>\r\n\r\n    \r\n</ToggleGroup>\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n  ",
+      "CustomUIAssets": [
+        {
+          "Type": 0,
+          "Name": "ThemeArt",
+          "URL": "https://steamusercontent-a.akamaihd.net/ugc/16316853328531788856/FE0894D6BBC40E7876FE4A683368A61FC1B35547/"
+        },
+        {
+          "Type": 0,
+          "Name": "RankedArt",
+          "URL": "https://steamusercontent-a.akamaihd.net/ugc/17736006513028835727/23F7EB2248073953C65D1AAD44636708E9E2DFE1/"
+        },
+        {
+          "Type": 0,
+          "Name": "FivePlayerArt",
+          "URL": "https://cdn.jsdelivr.net/gh/mrdrouf/root-tabletop-tournament@main/assets/labels/five_player_label.png"
+        },
+        {
+          "Type": 0,
+          "Name": "Marsh5PLabel",
+          "URL": "https://cdn.jsdelivr.net/gh/mrdrouf/root-tabletop-tournament@main/assets/labels/marsh_5p_label.png"
+        },
+        {
+          "Type": 0,
+          "Name": "FourBoardsArt",
+          "URL": "https://cdn.jsdelivr.net/gh/mrdrouf/root-tabletop-tournament@main/assets/images/4players.png"
+        },
+        {
+          "Type": 0,
+          "Name": "BoxScoreArt",
+          "URL": "https://cdn.jsdelivr.net/gh/mrdrouf/root-tabletop-tournament@main/assets/labels/box_score_btn_v2.png"
+        },
+        {
+          "Type": 0,
+          "Name": "Marquise de Cat",
+          "URL": "https://steamusercontent-a.akamaihd.net/ugc/1861696999739429295/F6CF523AAA7DCC91AF3812339EBB3354F6D9891A/"
+        },
+        {
+          "Type": 0,
+          "Name": "Eyrie Dynasties",
+          "URL": "https://steamusercontent-a.akamaihd.net/ugc/1728793291755958213/960DFA43E52D99A3250863FC63F3BA3AE5104325/"
+        },
+        {
+          "Type": 0,
+          "Name": "Woodland Alliance",
+          "URL": "https://steamusercontent-a.akamaihd.net/ugc/1728793291755956632/E99D3C9B246A94F6A898EC0D8098A05FA9467473/"
+        },
+        {
+          "Type": 0,
+          "Name": "The Lizard Cult",
+          "URL": "https://steamusercontent-a.akamaihd.net/ugc/1728793291755960838/D88CBE9192488A678AF3EC6DFC45B4C728C9A169/"
+        },
+        {
+          "Type": 0,
+          "Name": "Riverfolk Company",
+          "URL": "https://steamusercontent-a.akamaihd.net/ugc/1728793291755963912/C9589D96259534C6FB15DD91F78E7E90A073FDD8/"
+        },
+        {
+          "Type": 0,
+          "Name": "Underground Duchy",
+          "URL": "https://steamusercontent-a.akamaihd.net/ugc/1728793291755961872/1E2748C8EDD0BDE039B81658AFD0B19C771569BD/"
+        },
+        {
+          "Type": 0,
+          "Name": "Corvid Conspiracy",
+          "URL": "https://steamusercontent-a.akamaihd.net/ugc/1728793291755959858/69B8EC707AD26EF2F558ACAB65B39163B812D3F6/"
+        },
+        {
+          "Type": 0,
+          "Name": "Lord of the Hundreds",
+          "URL": "https://steamusercontent-a.akamaihd.net/ugc/1833522185818578726/CE952087E18A1C0B6B94E44EF53EB009A97A7122/"
+        },
+        {
+          "Type": 0,
+          "Name": "Keepers in Iron",
+          "URL": "https://steamusercontent-a.akamaihd.net/ugc/1833522185818579404/C0D7197A109DBF0C2EFB34DF50AE2CA70A66C25B/"
+        },
+        {
+          "Type": 0,
+          "Name": "Twilight Council",
+          "URL": "https://steamusercontent-a.akamaihd.net/ugc/2452866064845174396/6228F6A71DDC36CD883777CA958857CB123D7ECB/"
+        },
+        {
+          "Type": 0,
+          "Name": "Lilypad Diaspora",
+          "URL": "https://steamusercontent-a.akamaihd.net/ugc/2508034524425991747/77C277526C0042FE2754C83836A1E2C3C03FAD38/"
+        },
+        {
+          "Type": 0,
+          "Name": "Knaves of the Deepwood",
+          "URL": "https://steamusercontent-a.akamaihd.net/ugc/14468202139363768412/1012F7145C45B86F395C099B9AE80EA536529DD3/"
+        },
+        {
+          "Type": 0,
+          "Name": "Landmarks",
+          "URL": "https://steamusercontent-a.akamaihd.net/ugc/12936154875885790386/85439BAAE5C809A82FAF83A96E5232DFF4152DD0/"
+        },
+        {
+          "Type": 0,
+          "Name": "Battle Mat",
+          "URL": "https://steamusercontent-a.akamaihd.net/ugc/1728793367872326632/BBBD16CCB2233145C130F362BD4772B701C7DF2D/"
+        },
+        {
+          "Type": 0,
+          "Name": "Lizard Wizard",
+          "URL": "https://steamusercontent-a.akamaihd.net/ugc/1728793367872331088/3CE6C8D9633EBD9DF25142BA43A97E9B35F01AE4/"
+        },
+        {
+          "Type": 0,
+          "Name": "Vagabond Cards",
+          "URL": "https://steamusercontent-a.akamaihd.net/ugc/13747817220151181841/9A47D69E9103B9502DBED36BEA4DA6F9C70C6EB8/"
+        },
+        {
+          "Type": 0,
+          "Name": "Faction Selector Tool",
+          "URL": "https://steamusercontent-a.akamaihd.net/ugc/16420027251539310/A450741E43546370C6509D413D2CA3F1DABCBFAC/"
+        },
+        {
+          "Type": 0,
+          "Name": "Mini-Mood Manager",
+          "URL": "https://steamusercontent-a.akamaihd.net/ugc/1782839567653163566/583C3FE604C4B4E943BD914071325274C515E9D8/"
+        },
+        {
+          "Type": 0,
+          "Name": "Clearing Markers",
+          "URL": "https://steamusercontent-a.akamaihd.net/ugc/18105714333446016542/1C77868231CEA4360B4404A43211931D57921DC0/"
+        },
+        {
+          "Type": 0,
+          "Name": "Autumn Map",
+          "URL": "https://steamusercontent-a.akamaihd.net/ugc/9338841708247799860/688C6CB9F5A34B2A2B067C6DA493AD653B7D9C6A/"
+        },
+        {
+          "Type": 0,
+          "Name": "Winter Map",
+          "URL": "https://steamusercontent-a.akamaihd.net/ugc/12863190738702993416/F9C676622A48D6E15BB3AE235E26CE7BC8D11283/"
+        },
+        {
+          "Type": 0,
+          "Name": "Lake Map",
+          "URL": "https://steamusercontent-a.akamaihd.net/ugc/11224158918879846636/C034E1855CED11FD28D76E3020D629478FABD195/"
+        },
+        {
+          "Type": 0,
+          "Name": "Mountain Map",
+          "URL": "https://steamusercontent-a.akamaihd.net/ugc/17146621840035729417/55256EFBD832F89B16ADAF98A382D4BF09162487/"
+        },
+        {
+          "Type": 0,
+          "Name": "Marsh Map",
+          "URL": "https://steamusercontent-a.akamaihd.net/ugc/12189840401890527004/1A5500DF801E01874A28C059E04D049043948426/"
+        },
+        {
+          "Type": 0,
+          "Name": "Gorge Map",
+          "URL": "https://steamusercontent-a.akamaihd.net/ugc/17163206417596942920/65DEC204EF54C27F6BAFE8202D3AE63F73D28DD3/"
+        },
+        {
+          "Type": 0,
+          "Name": "Standard Deck",
+          "URL": "https://steamusercontent-a.akamaihd.net/ugc/1791848789393178780/9438FC204F346D081D3E66A95BBEAC918288004A/"
+        },
+        {
+          "Type": 0,
+          "Name": "Exiles and Partisans Deck",
+          "URL": "https://steamusercontent-a.akamaihd.net/ugc/1791848789393180099/504416827060BE54A0038F2C9BCF5D5A9475367F/"
+        },
+        {
+          "Type": 0,
+          "Name": "Squires and Disciples Deck",
+          "URL": "https://steamusercontent-a.akamaihd.net/ugc/16423108253239612/4B2CC3EBFD87C25AD92E61110CF80A5C0E461BD6/"
+        },
+        {
+          "Type": 0,
+          "Name": "Root Logo",
+          "URL": "https://steamusercontent-a.akamaihd.net/ugc/1859433104053130905/247FAE492208FF3BEFACE423A31B8D7644BA7B19/"
+        },
+        {
+          "Type": 0,
+          "Name": "Blank Info",
+          "URL": "https://steamusercontent-a.akamaihd.net/ugc/1728793635526111266/638962CD65D3760A1FD61D0AA78EE4C496C5487E/"
+        },
+        {
+          "Type": 0,
+          "Name": "Xmark",
+          "URL": "https://steamusercontent-a.akamaihd.net/ugc/1809859531500279761/E8108BE85DEBE1F569D9FDF951FA0D2DEA769CB8/"
+        },
+        {
+          "Type": 0,
+          "Name": "Mob Lobber",
+          "URL": "https://steamusercontent-a.akamaihd.net/ugc/1871806044359108580/ED91771BFC667788679555DC9F9E7E175E5A2346/"
+        },
+        {
+          "Type": 0,
+          "Name": "Ginso's Gizmo",
+          "URL": "https://steamusercontent-a.akamaihd.net/ugc/1871808701913894000/9E9D2A27ADC818413936D98C3194E03E87A8726A/"
+        }
+      ]
+    },
+    {
+      "GUID": "4ee1f2",
+      "Name": "Custom_Model",
+      "Transform": {
+        "posX": 0.01,
+        "posY": 1.08004487,
+        "posZ": -0.00296868361,
+        "rotX": 0.0,
+        "rotY": 0.0,
+        "rotZ": 0.0,
+        "scaleX": 4.2,
+        "scaleY": 1.0,
+        "scaleZ": 3.5
+      },
+      "Nickname": "",
+      "Description": "",
+      "GMNotes": "",
+      "AltLookAngle": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "ColorDiffuse": {
+        "r": 1.0,
+        "g": 1.0,
+        "b": 1.0
+      },
+      "Tags": [
+        "Table Piece"
+      ],
+      "LayoutGroupSortIndex": 0,
+      "Value": 0,
+      "Locked": true,
+      "Grid": true,
+      "Snap": true,
+      "IgnoreFoW": false,
+      "MeasureMovement": false,
+      "DragSelectable": true,
+      "Autoraise": true,
+      "Sticky": true,
+      "Tooltip": true,
+      "GridProjection": true,
+      "HideWhenFaceDown": false,
+      "Hands": false,
+      "CustomMesh": {
+        "MeshURL": "https://steamusercontent-a.akamaihd.net/ugc/879750610978796176/4A5A65543B98BCFBF57E910D06EC984208223D38/",
+        "DiffuseURL": "https://steamusercontent-a.akamaihd.net/ugc/1725416195557291378/4BE9BA8AD2CB62AA0C0CDA202D36F313BDC38978/",
+        "NormalURL": "",
+        "ColliderURL": "",
+        "Convex": true,
+        "MaterialIndex": 1,
+        "TypeIndex": 4,
+        "CustomShader": {
+          "SpecularColor": {
+            "r": 1.0,
+            "g": 1.0,
+            "b": 1.0
+          },
+          "SpecularIntensity": 0.0,
+          "SpecularSharpness": 2.0,
+          "FresnelStrength": 0.0
+        },
+        "CastShadows": true
+      },
+      "LuaScript": "",
+      "LuaScriptState": "",
+      "XmlUI": ""
+    }
+  ]
+}
