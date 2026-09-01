@@ -3161,13 +3161,11 @@ RTT_KNAVE_BOARD_IMG = "84529E736BDD4EF6B70CA79E3F99E2D07FA75A2C"  -- Knaves rule
 RTT_CAP_OFF_X    = 15.68    -- captains-board CENTRE in the FACTION board's LOCAL frame (= the maintainer's placed spot)
 RTT_CAP_OFF_Z    = -2.11
 RTT_CAP_POOL_GAP = 2.4      -- world gap between the board and the pick-pool
-RTT_CAP_IMG_W    = 557      -- board art WIDTH (px)  -- tile scaleX:scaleZ MUST match imgW:imgH
-RTT_CAP_IMG_H    = 2200     -- board art height (px)  (3 card-shaped slots, touching, + title banner)
-RTT_CAP_SLOT_FRAC = { 0.2355, 0.5349, 0.8343 }   -- slot-centre y-fractions (EXACT centres drawn in the v3 art)
-RTT_CAP_SLOT_HFRAC = 0.30   -- one slot's height as a fraction of the art height -> used to SELF-SIZE
-                            -- the board so a slot == a captain CARD (card getBounds is reliable).
-RTT_CAP_CARDS = { { 15.68, -9.53 }, { 15.68, -2.11 }, { 15.68, 5.32 } }  -- (legacy; board centre = RTT_CAP_OFF)
-RTT_CAPTAIN_BOARD_JSON = [==[{"Name":"Custom_Tile","Transform":{"posX":0.0,"posY":11.5,"posZ":0.0,"rotX":0.0,"rotY":0.0,"rotZ":0.0,"scaleX":12.335,"scaleY":1.0,"scaleZ":12.544},"Nickname":"Knaves Captains","Description":"","ColorDiffuse":{"r":1.0,"g":1.0,"b":1.0},"Locked":true,"Grid":true,"Snap":true,"IgnoreFoW":false,"MeasureMovement":false,"DragSelectable":true,"Autoraise":true,"Sticky":true,"Tooltip":true,"GridProjection":false,"HideWhenFaceDown":false,"Hands":false,"CustomImage":{"ImageURL":"https://cdn.jsdelivr.net/gh/mrdrouf/root-tabletop-tournament@main/assets/labels/knaves_captains_v3.png","ImageSecondaryURL":"","ImageScalar":1.0,"WidthScale":0.0,"CustomTile":{"Type":0,"Thickness":0.1,"Stackable":false,"Stretch":true}}}]==]
+-- (snaps are BAKED into RTT_CAPTAIN_BOARD_JSON now; the old slot-fraction / self-size constants are gone)
+-- Built from the real Crafted Improvements board: same scale (9.516764) and its snap COORDINATE SYSTEM
+-- (verified local_z = 2*py/H - 1), so the 3 baked snaps land dead-on the 3 card slots drawn in the art.
+-- Taller than the crafted board (2750 vs 1955 px) so 3 captain cards fit NON-overlapping ("make it higher").
+RTT_CAPTAIN_BOARD_JSON = [==[{"Name":"Custom_Tile","Transform":{"posX":0.0,"posY":11.5,"posZ":0.0,"rotX":0.0,"rotY":0.0,"rotZ":0.0,"scaleX":9.516764,"scaleY":1.0,"scaleZ":9.516764},"Nickname":"Knaves Captains","Description":"","ColorDiffuse":{"r":1.0,"g":1.0,"b":1.0},"Locked":true,"Grid":true,"Snap":true,"IgnoreFoW":false,"MeasureMovement":false,"DragSelectable":true,"Autoraise":true,"Sticky":true,"Tooltip":true,"GridProjection":false,"HideWhenFaceDown":false,"Hands":false,"AttachedSnapPoints":[{"Position":{"x":0.0,"y":0.2,"z":-0.464}},{"Position":{"x":0.0,"y":0.2,"z":0.1178}},{"Position":{"x":0.0,"y":0.2,"z":0.6996}}],"CustomImage":{"ImageURL":"https://cdn.jsdelivr.net/gh/mrdrouf/root-tabletop-tournament@main/assets/labels/knaves_captains_v4.png","ImageSecondaryURL":"","ImageScalar":1.0,"WidthScale":0.0,"CustomTile":{"Type":0,"Thickness":0.1,"Stackable":false,"Stretch":true}}}]==]
 
 -- Spawn the Captains board from the JUST-SPAWNED Knaves rules board (passed in by rttSpawnFaction's
 -- callback), LEFT of it at the maintainer's faction-local offset. Because it is anchored to THIS
@@ -3195,33 +3193,14 @@ function rttSpawnCaptainsFor(rulesBoard)
         pcall(function() board.addTag("RTT Faction") end) -- goes out WITH the faction on re-draft
         pcall(function() board.addTag("RTT Captains") end)
         pcall(function() board.setLock(true) end)          -- LOCKED at the baked size (no resize panel)
-        -- snap at the 3 slot centres (positionToLocal on the real board -> scale-independent), and
-        -- pool the 4 drafted captains beside it. Both invisible tweaks; the board itself is already home.
+        -- Snaps are BAKED into the board JSON (AttachedSnapPoints, from the crafted board's own
+        -- coordinate system) -- no runtime snap maths. Just pool the 4 drafted captains beside it.
         Wait.frames(function()
-          pcall(function() rttCaptainSnaps(board) end)
           pcall(function() rttPoolCaptains(board, fp) end)
         end, 5)
       end
     })
   end, 1)
-end
-
--- put a snap at each of the 3 slot CENTRES (from the slot y-fractions). Local coords are scale-
--- independent, so the snaps keep tracking the slots even if the board is later resized.
-function rttCaptainSnaps(board)
-  if board == nil then return end
-  local bb = board.getBounds().size
-  local long = math.max(bb.x, bb.z)
-  local up = (bb.z >= bb.x) and board.getTransformForward() or board.getTransformRight()
-  local bp = board.getPosition()
-  local snaps = {}
-  for i = 1, 3 do
-    local off = (0.5 - RTT_CAP_SLOT_FRAC[i]) * long
-    local wp = { bp.x + up.x * off, bp.y + 0.2, bp.z + up.z * off }
-    local lp = board.positionToLocal(wp)
-    snaps[i] = { position = { lp.x, lp.y, lp.z } }   -- position-only; the player sets the card angle
-  end
-  pcall(function() board.setSnapPoints(snaps) end)
 end
 
 -- lay the 4 drafted captains in a 2x2 grid beside the board (side away from the faction board),
