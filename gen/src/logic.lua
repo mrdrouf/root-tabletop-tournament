@@ -1722,6 +1722,7 @@ local function spawnManualFactionSelector(position, rotation, locked)
     rotation = rotation,
     callback_function = function(board)
       board.setName("Faction Board")
+      board.addTag("RTT Manual Selector")   -- tear these down by TAG, never by the shared name (audit)
       board.setLock(locked)
     end
   })
@@ -1731,9 +1732,9 @@ function setupFactionBoards(player, value, id)
   local count = 4
   if id == "fivePlayerSetup" then count = 5 end
 
-  for _, c in ipairs(getObjects()) do
-      if c.getName() == "Faction Board" then c.destruct() end
-  end
+  -- clear only PRIOR manual selectors, by tag -- NOT by name "Faction Board" (which also matched the
+  -- solo faction board and any coordinator clone, destroying them as collateral) (audit).
+  for _, c in ipairs(getObjectsWithTag("RTT Manual Selector")) do pcall(function() c.destruct() end) end
 
   local xs = {52,-52,52,-52,0,52}
   local ys = {11.56,11.56,11.56,11.56,11.56,11.56}
@@ -2038,12 +2039,10 @@ function makeFaction(player,value,id,source)
   if id == "The Winged Menace" then
     spawnWingedMenaceExtraHand(player.color)
   end
-  if id == "Corvid Conspiracy" or id == "BBP Contraption Conspiracy" or id == "Cogwheel Corvids" then
-    shufflePlots(cp)
-  elseif id == "Warriors Wake" then
+  -- Corvid plots + Lizard are owned by the shared rttFactionExtras (rttCrowsPlots / rttLizardSetup) for
+  -- BOTH manual and ranked -- do NOT also run shufflePlots here (it double-ran plot setup on manual).
+  if id == "Warriors Wake" then
     summonSaltyOldStan()
-  elseif id == "The Lizard Cult" then
-    --makeLizardWizard()
   end
 
   if (id == "Host of Light") then
@@ -2108,20 +2107,6 @@ function distance(p1,p2)
 
   return math.sqrt(distanceSum)
 
-end
-
-function shufflePlots(pos)
-  local plots = getObjectsWithTag("Plot Token")
-
-  local positions = {}
-  for x, plot in ipairs(plots) do
-    positions[x] = plot.getPosition()
-  end
-  i=1,10 do plots = shuffle(plots) end
-  for x=1, #plots do
-    plots[x].setPosition(positions[x])
-    plots[x].removeTag("Plot Token")
-  end
 end
 
 function summonSaltyOldStan()
@@ -2920,12 +2905,23 @@ function rttSeatPlayers()
   end
   -- Assign each human a RANDOM seat NUMBER out of ALL N seats, so the turn-order card is random for
   -- everyone -- including a lone tester, who previously always landed in seat 1 / "First Player".
-  local N = #RTT_SEATS
-  local seatNums = {}
-  for i = 1, N do seatNums[i] = i end
-  for i = N, 2, -1 do local j = math.random(i) seatNums[i], seatNums[j] = seatNums[j], seatNums[i] end
+  -- Seat NUMBER = each human's position in RTT_ORDER (the SINGLE shuffle done once in rttDealOrder,
+  -- which also drives the Roster and box-score order). So the "Player N" turn-order card a person is
+  -- dealt now MATCHES the order they are shown in. Previously a SECOND independent shuffle handed out
+  -- the cards, so 'First Player' and box-score seat 1 were usually different people (audit HIGH).
   local seatOf = {}                                      -- steam_name -> seat number
-  for i, name in ipairs(humans) do seatOf[name] = seatNums[i] end
+  for k, e in ipairs(RTT_ORDER or {}) do
+    if e.name ~= nil and e.name ~= "" then seatOf[e.name] = k end
+  end
+  local usedSeat = {}
+  for _, k in pairs(seatOf) do usedSeat[k] = true end
+  local freeN = 1
+  for _, name in ipairs(humans) do                       -- safety net: a human not found in RTT_ORDER
+    if seatOf[name] == nil then
+      while usedSeat[freeN] do freeN = freeN + 1 end
+      seatOf[name] = freeN; usedSeat[freeN] = true
+    end
+  end
   pcall(function() kickPlayersFromSeats() end)           -- base: everyone -> Grey (frees the colours; no hand reset)
   local seated = {}                                      -- [seat N] = seat colour, for the deferred card
   for _, p in ipairs(Player.getPlayers()) do             -- FRESH, post-kick (base pattern): refs are valid
@@ -3282,6 +3278,7 @@ end
 -- it is — all boards are live at once). First click on a faction takes it; the board is removed and
 -- the faction spawns at that seat; the other boards refresh so the taken faction disappears.
 function rttCoordFaction(args)
+  if args.color == "Grey" or args.color == "Black" then return end   -- spectators can't pick (match makeFaction)
   local seat = RTT_BOARD_SEAT[args.board or ""]
   if seat == nil then return end
   local s = RTT_SEATS[seat]
@@ -3322,7 +3319,7 @@ function rttSpawnFaction(faction, cx, cz, flip, category, rotationY)
     -- Tag THIS spawn's own fresh VP marker. Two of the same faction on the table (solo testing) share
     -- the marker name "<short> VP", so a name-only search grabbed the FIRST (already-placed) marker and
     -- moved it again. The tag lets rttPlaceVP move the marker THIS spawn just created, then clears it.
-    if (o.getName() or "") == ((RTT_VP_SHORT[faction] or faction) .. " VP") then o.addTag("RTT VP Unplaced") end
+    if (o.getName() or "") == rttVPName(faction) then o.addTag("RTT VP Unplaced") end
     if spawnRy ~= 0 then o.setRotation({ o.getRotation().x, o.getRotation().y + spawnRy, o.getRotation().z }) end
     if o.hasTag("Ruin Set") then o.destroy() end
     if o.hasTag("Shuffleable") then o.shuffle() o.shuffle() end
@@ -3401,6 +3398,10 @@ RTT_VP_SHORT = {
   ["Lilypad Diaspora"]       = "Diaspora",
   ["Knaves of the Deepwood"] = "Knaves",
 }
+
+-- ONE source for the VP marker's object name, used by BOTH the fresh-marker tagger (rttSpawnFaction)
+-- and rttFindVPMarker, so the two can never drift and silently re-grab the wrong marker (audit).
+function rttVPName(faction) return (RTT_VP_SHORT[faction] or faction) .. " VP" end
 
 function rttDetectTrackOn(obj)
   local ok, sp = pcall(function() return obj.getSnapPoints() end)
@@ -3532,8 +3533,7 @@ function rttSlotWorld(slot)
 end
 
 function rttFindVPMarker(faction)
-  local short = RTT_VP_SHORT[faction] or faction
-  local want  = short .. " VP"
+  local want  = rttVPName(faction)
   local fresh, free, held = nil, nil, nil
   for _, o in ipairs(getAllObjects()) do
     if o ~= nil and (o.getName() or "") == want then
@@ -3916,11 +3916,21 @@ function rttShuffleFrogsIntoDeck()
 end
 
 -- ---- Keepers in Iron (badgers): relics onto the maintainer's recorded per-map spots -----------
+-- Find the game MAP board. Every spawned map piece carries tag "Map Object" (makeMap), and among them
+-- the board has the most snap points. Scanning ALL objects by snap-count returned bab7e1 (the score
+-- grid) or a faction board instead, so badger relics / forest centres landed on the wrong board (audit).
 function rttFindMapObject()
   local best, bestN = nil, 0
-  for _, o in ipairs(getAllObjects()) do
+  for _, o in ipairs(getObjectsWithTag("Map Object")) do
     local ok, sp = pcall(function() return o.getSnapPoints() end)
     if ok and sp and #sp > bestN then best, bestN = o, #sp end
+  end
+  if best ~= nil then return best end
+  for _, o in ipairs(getAllObjects()) do       -- fallback: exclude the coordinator/score board
+    if o.getGUID() ~= "bab7e1" then
+      local ok, sp = pcall(function() return o.getSnapPoints() end)
+      if ok and sp and #sp > bestN then best, bestN = o, #sp end
+    end
   end
   return best
 end
