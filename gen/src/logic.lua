@@ -4011,13 +4011,17 @@ function rttCrowsHiddenZone(board, cx, cz, isDraft)
       end
     end
   end
-  -- Maintainer's rule: hidden box on the player's LEFT for his seats 1 & 3 (world +x side), RIGHT for
-  -- seats 2 & 4 (world -x side). Decide by the crow board's OWN world x (cx), NOT by RTT_SEATS -- the
-  -- manual 4-player selector never populates RTT_SEATS, so the old `seat` was nil and defaulted EVERY
-  -- board to the left. board-local +x is ALWAYS the player's LEFT (the board faces the player; confirmed
-  -- empirically -- +x read as LEFT on all four boards), so use +x on the +x-side seats and -x on the
-  -- -x-side seats. Magnitude fixed = same distance out for every seat. Works for ranked AND manual.
-  local lx = (cx > 0 and 1 or -1) * RTT_CROW_HZ_LX
+  -- Maintainer's rule: hidden box on the player's LEFT for seats 1 & 3 (table +x side), RIGHT for seats
+  -- 2 & 4 (table -x side). TWO things decide the board-local x, and BOTH matter:
+  --   (1) WHICH visual side the player wants -- read from the board's own world x (cx): cx>0 -> left.
+  --   (2) how board-local +x MAPS to a visual side -- this FLIPS with the board's row rotation: on a
+  --       near-row board (rotY~0) +x is the player's LEFT, on a far-row board (rotY~180) +x is their
+  --       RIGHT. (This is what inverted the far-row seats 3 & 4 when I used cx alone.)
+  -- Using cx (not RTT_SEATS) keeps it working for the manual 4-player selector, which never sets seats.
+  local ry = board.getRotation().y % 360
+  local leftSign = (ry > 90 and ry < 270) and -1 or 1   -- board-local x that reads as the player's LEFT
+  local wantLeft = (cx > 0)                              -- table +x side (seats 1 & 3) -> box on the LEFT
+  local lx = (wantLeft and leftSign or -leftSign) * RTT_CROW_HZ_LX
   local w = board.positionToWorld({ lx, 0.30, RTT_CROW_HZ_LZ })
   local blob = string.gsub(RTT_CROW_HZ_JSON, '"FogColor":"White"', '"FogColor":"' .. color .. '"')
   spawnObjectJSON({
