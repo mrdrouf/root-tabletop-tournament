@@ -1982,15 +1982,19 @@ function rttDealOrder()
           for _,p in ipairs(Player.getPlayers()) do
             if p.seated and p.color ~= "Grey" and p.color ~= "Black" then seated[#seated+1]=p end
           end
-          -- joined players keep THEIR chosen colours; assign a RANDOM turn order.
+          -- joined players keep THEIR chosen colours; give each a RANDOM SEAT among the N fixed seats
+          -- (draft size = RTT_DN-1, independent of how many humans joined). This must randomise the SEAT
+          -- itself, not just the order among the joined players -- otherwise a SOLO player (only 1 seated,
+          -- nothing to permute) always lands in seat 1. So shuffle the seat SLOTS and drop players in.
           local plist = {}
           for _,p in ipairs(seated) do plist[#plist+1] = {color=p.color, name=p.steam_name} end
-          for i=#plist,2,-1 do local j=math.random(i) plist[i],plist[j]=plist[j],plist[i] end
-          -- N FIXED seats = draft size (RTT_DN-1), independent of how many humans joined
-          -- (this is what fixes 'only 2 boards with 2 players').
           local _N = (RTT_DN or 5) - 1
           RTT_ORDER = {}
-          for i=1,_N do RTT_ORDER[i] = plist[i] or {color=nil, name=''} end
+          for i=1,_N do RTT_ORDER[i] = {color=nil, name=''} end
+          local slots = {}
+          for i=1,_N do slots[i] = i end
+          for i=#slots,2,-1 do local j=math.random(i) slots[i],slots[j]=slots[j],slots[i] end
+          for k=1,#plist do if slots[k] ~= nil then RTT_ORDER[slots[k]] = plist[k] end end
           RTT_ORDER_DECK = (ord ~= nil) and ord.getGUID() or nil   -- rttSeatAndDeal deals from it
           Wait.time(function() rttBeginPick() end, 1.0)
         end, 0.6)
@@ -3084,6 +3088,11 @@ function rttSpawnBoxScore()
 end
 
 function rttStartFactionDraft()
+  -- clear any faction boards left from a PREVIOUS draft/game before this ranked draft spawns new ones --
+  -- runs ONCE at draft start (before anyone picks), so it only ever removes stale boards, never this
+  -- game's. The selector boards (RTT Selector) are already up and are NOT touched. (Maintainer: otherwise
+  -- re-drafting piles the old faction boards on top of the new ones = massive clutter.)
+  for _, o in ipairs(getObjectsWithTag("RTT Faction")) do pcall(function() o.destruct() end) end
   RTT_FAC_TAKEN = {}
   RTT_VP_PLACED = 0
   rttSpawnBoxScore()
