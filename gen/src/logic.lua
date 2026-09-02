@@ -1736,6 +1736,7 @@ function setupFactionBoards(player, value, id)
   -- the player-count button starts over, so tear the old boards down first (maintainer request). Still NOT
   -- by name "Faction Board" (which also matched the solo faction board and coordinator clones) (audit).
   for _, c in ipairs(getObjectsWithTag("RTT Manual Selector")) do pcall(function() c.destruct() end) end
+  for _, o in ipairs(getObjectsWithTag("RTT Selector"))        do pcall(function() o.destruct() end) end
   for _, o in ipairs(getObjectsWithTag("RTT Faction"))        do pcall(function() o.destruct() end) end
 
   local xs = {52,-52,52,-52,0,52}
@@ -1874,7 +1875,11 @@ end
 
 function rttSetup(player, value, id)
   RTT_5P_MARSH = false
-  for _, o in ipairs(getObjectsWithTag("RTT Selector")) do pcall(function() o.destruct() end) end
+  -- clear BOTH selector kinds (ranked AND manual) plus any faction boards, so starting a ranked draft on
+  -- top of a manual-4-player setup (or vice versa) never stacks the two -- the manual selectors are tagged
+  -- "RTT Manual Selector", NOT "RTT Selector", so they were surviving the ranked reset (maintainer clutter).
+  for _, o in ipairs(getObjectsWithTag("RTT Selector"))        do pcall(function() o.destruct() end) end
+  for _, o in ipairs(getObjectsWithTag("RTT Manual Selector")) do pcall(function() o.destruct() end) end
   for _, o in ipairs(getObjectsWithTag("RTT Faction")) do pcall(function() o.destruct() end) end
   for _,g in ipairs(RTT_SPAWNED) do local o=getObjectFromGUID(g) if o then o.destruct() end end
   RTT_SPAWNED = {}
