@@ -4018,8 +4018,10 @@ function rttCrowsHiddenZone(board, cx, cz, isDraft)
   --       near-row board (rotY~0) +x is the player's LEFT, on a far-row board (rotY~180) +x is their
   --       RIGHT. (This is what inverted the far-row seats 3 & 4 when I used cx alone.)
   -- Using cx (not RTT_SEATS) keeps it working for the manual 4-player selector, which never sets seats.
+  -- NB the crow FACTION board's rotY is 0 on the far row (cz>0) and 180 on the near row (cz<0) -- opposite
+  -- of the selector boards -- so board-local +x reads as the player's LEFT when rotY~180, RIGHT when rotY~0.
   local ry = board.getRotation().y % 360
-  local leftSign = (ry > 90 and ry < 270) and -1 or 1   -- board-local x that reads as the player's LEFT
+  local leftSign = (ry > 90 and ry < 270) and 1 or -1   -- board-local x that reads as the player's LEFT
   local wantLeft = (cx > 0)                              -- table +x side (seats 1 & 3) -> box on the LEFT
   local lx = (wantLeft and leftSign or -leftSign) * RTT_CROW_HZ_LX
   local w = board.positionToWorld({ lx, 0.30, RTT_CROW_HZ_LZ })
