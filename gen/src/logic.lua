@@ -3997,15 +3997,16 @@ function rttCrowsHiddenZone(board, cx, cz, isDraft)
       end
     end
   end
-  -- The box goes on the PLAYER'S LEFT for every seat. Board-local +x maps to the player's left on a
-  -- NEAR-row board (rotY~0) and to the right on a FAR-row board (rotY~180) -- so flip the x sign by the
-  -- board's rotation. Anchors from the maintainer: his hand-placed box on a rotY-180 board is correct at
-  -- board-local -3.07; seat 3 (a rotY-0 board) showed -3.07 on the RIGHT, so it needs +3.07. Magnitude is
-  -- fixed (RTT_CROW_HZ_LX) so the box is the same distance out for every seat; positionToWorld + this sign
-  -- carry the rotation. On far-row seats this lands just past the crafted board (crafted between box+board).
+  -- Maintainer's rule: hidden box on the player's LEFT for seats 1 & 3, player's RIGHT for seats 2 & 4
+  -- (odd = left, even = right). Then map the wanted player-side to board-local x through the board's
+  -- rotation: board-local -x is the player's LEFT on a FAR-row board (rotY~180) and their RIGHT on a
+  -- NEAR-row board (rotY~0). Fixed magnitude (RTT_CROW_HZ_LX) = same distance out every seat; on whichever
+  -- seats land on the crafted side this clears it (crafted between box and board). Anchors: his hand-placed
+  -- box (far-row, a LEFT seat) sits at board-local -3.07; seat 3 (near-row, LEFT) needs +3.07.
   local ry = board.getRotation().y % 360
-  local farRow = (ry > 90 and ry < 270)
-  local lx = (farRow and -1 or 1) * RTT_CROW_HZ_LX
+  local leftSign = (ry > 90 and ry < 270) and -1 or 1   -- board-local x sign for the player's LEFT
+  local wantLeft = ((seat or 1) % 2 == 1)               -- seats 1 & 3 LEFT, seats 2 & 4 RIGHT
+  local lx = (wantLeft and leftSign or -leftSign) * RTT_CROW_HZ_LX
   local w = board.positionToWorld({ lx, 0.30, RTT_CROW_HZ_LZ })
   local blob = string.gsub(RTT_CROW_HZ_JSON, '"FogColor":"White"', '"FogColor":"' .. color .. '"')
   spawnObjectJSON({
