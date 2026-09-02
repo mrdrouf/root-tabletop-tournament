@@ -4006,14 +4006,13 @@ function rttCrowsHiddenZone(board, cx, cz, isDraft)
       end
     end
   end
-  -- Maintainer's rule: hidden box on the player's LEFT for seats 1 & 3, player's RIGHT for seats 2 & 4
-  -- (odd = left, even = right). The crow board FACES the player, so its LOCAL frame is consistent relative
-  -- to the seat: board-local +x is ALWAYS the player's LEFT, -x ALWAYS their RIGHT -- there is NO rotation
-  -- flip (adding one inverted seats 1 & 4). The Crafted Improvements board sits at board-local ~ -1.79 (the
-  -- player's RIGHT), so the RIGHT-side box (even seats) lands just past it (crafted between box and board);
-  -- the LEFT-side box (odd seats) is on the clear side. Magnitude fixed = same distance out every seat.
-  local wantLeft = ((seat or 1) % 2 == 1)               -- seats 1 & 3 LEFT (+x), seats 2 & 4 RIGHT (-x)
-  local lx = (wantLeft and 1 or -1) * RTT_CROW_HZ_LX
+  -- Maintainer's rule: hidden box on the player's LEFT for his seats 1 & 3 (world +x side), RIGHT for
+  -- seats 2 & 4 (world -x side). Decide by the crow board's OWN world x (cx), NOT by RTT_SEATS -- the
+  -- manual 4-player selector never populates RTT_SEATS, so the old `seat` was nil and defaulted EVERY
+  -- board to the left. board-local +x is ALWAYS the player's LEFT (the board faces the player; confirmed
+  -- empirically -- +x read as LEFT on all four boards), so use +x on the +x-side seats and -x on the
+  -- -x-side seats. Magnitude fixed = same distance out for every seat. Works for ranked AND manual.
+  local lx = (cx > 0 and 1 or -1) * RTT_CROW_HZ_LX
   local w = board.positionToWorld({ lx, 0.30, RTT_CROW_HZ_LZ })
   local blob = string.gsub(RTT_CROW_HZ_JSON, '"FogColor":"White"', '"FogColor":"' .. color .. '"')
   spawnObjectJSON({
