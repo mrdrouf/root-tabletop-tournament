@@ -4022,9 +4022,12 @@ function rttCrowsHiddenZone(board, cx, cz, isDraft)
   -- of the selector boards -- so board-local +x reads as the player's LEFT when rotY~180, RIGHT when rotY~0.
   local ry = board.getRotation().y % 360
   local leftSign = (ry > 90 and ry < 270) and 1 or -1   -- board-local x that reads as the player's LEFT
-  local wantLeft = (cx > 0)                              -- table +x side (seats 1 & 3) -> box on the LEFT
-  local mag = wantLeft and RTT_CROW_HZ_LX_LEFT or RTT_CROW_HZ_LX   -- LEFT sits closer (no crafted that side)
-  local lx = (wantLeft and leftSign or -leftSign) * mag
+  local sideSign = (cx > 0) and leftSign or -leftSign    -- the box's board-local side (the correct L/R side)
+  -- Closeness follows the box's SIDE, not cx: the +x side is the player's LEFT AND is opposite the crafted
+  -- board (at ~ -1.79), so it comes in CLOSER; the -x side is the crafted side, so it stays FARTHER to
+  -- clear the crafted. (Keying this on cx put the closer box on the wrong far-row seat -- 4 instead of 3.)
+  local mag = (sideSign > 0) and RTT_CROW_HZ_LX_LEFT or RTT_CROW_HZ_LX
+  local lx = sideSign * mag
   local w = board.positionToWorld({ lx, 0.30, RTT_CROW_HZ_LZ })
   local blob = string.gsub(RTT_CROW_HZ_JSON, '"FogColor":"White"', '"FogColor":"' .. color .. '"')
   spawnObjectJSON({
