@@ -3093,11 +3093,9 @@ function rttSpawnBoxScore()
 end
 
 function rttStartFactionDraft()
-  -- clear any faction boards left from a PREVIOUS draft/game before this ranked draft spawns new ones --
-  -- runs ONCE at draft start (before anyone picks), so it only ever removes stale boards, never this
-  -- game's. The selector boards (RTT Selector) are already up and are NOT touched. (Maintainer: otherwise
-  -- re-drafting piles the old faction boards on top of the new ones = massive clutter.)
-  for _, o in ipairs(getObjectsWithTag("RTT Faction")) do pcall(function() o.destruct() end) end
+  -- NB: do NOT clear "RTT Faction" here -- the 4 draft-time Knave captains are tagged "RTT Faction" and
+  -- spawn DURING this flow, so clearing here wiped them ("captains appear then vanish"). Prior-game faction
+  -- boards are already cleared at game start by rttSetup (which also clears RTT Manual Selector).
   RTT_FAC_TAKEN = {}
   RTT_VP_PLACED = 0
   rttSpawnBoxScore()
