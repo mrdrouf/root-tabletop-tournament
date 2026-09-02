@@ -4023,7 +4023,8 @@ function rttCrowsHiddenZone(board, cx, cz, isDraft)
   local ry = board.getRotation().y % 360
   local leftSign = (ry > 90 and ry < 270) and 1 or -1   -- board-local x that reads as the player's LEFT
   local wantLeft = (cx > 0)                              -- table +x side (seats 1 & 3) -> box on the LEFT
-  local lx = (wantLeft and leftSign or -leftSign) * RTT_CROW_HZ_LX
+  local mag = wantLeft and RTT_CROW_HZ_LX_LEFT or RTT_CROW_HZ_LX   -- LEFT sits closer (no crafted that side)
+  local lx = (wantLeft and leftSign or -leftSign) * mag
   local w = board.positionToWorld({ lx, 0.30, RTT_CROW_HZ_LZ })
   local blob = string.gsub(RTT_CROW_HZ_JSON, '"FogColor":"White"', '"FogColor":"' .. color .. '"')
   spawnObjectJSON({
@@ -4291,8 +4292,9 @@ RTT_CROW_PLOTS = {
 
 -- Hidden-box placement, read from the maintainer's hand-placed save (the SAME board-local spot + size for
 -- every seat -- straightened and uniform, per his instruction). Past the crafted board, near depth-centre.
-RTT_CROW_HZ_LX = 3.074    -- board-local X MAGNITUDE; the code flips the SIGN so the box is on the player's
-                          -- LEFT for every seat (see rttCrowsHiddenZone). ~1.28 past the crafted (at ~1.79).
+RTT_CROW_HZ_LX = 3.074    -- board-local X magnitude on the RIGHT side (seats 2 & 4) -- clears the crafted.
+RTT_CROW_HZ_LX_LEFT = 2.26 -- LEFT side (seats 1 & 3): closer to the faction board by the crafted board's
+                          -- width (7.2 world / 8.82 = 0.82 board-local) since no crafted sits on that side.
 RTT_CROW_HZ_LZ = -0.565   -- board-local Z: near the crow board's depth centre
 RTT_CROW_HZ_SX = 13.29    -- uniform box dimensions for every seat (his hand-placed size)
 RTT_CROW_HZ_SY = 5.10
