@@ -2823,10 +2823,10 @@ RTT_MARSH_NUMJSON = {
 }
 
 function rttTheme(player, value, id)
-  -- Theme = ranked draft, but the pool is 1 mandatory Militant + ALL Insurgents (no extra
-  -- Militants). Everything else (deal, pick, faction phase) is identical to ranked.
-  RTT_THEME = true
-  rttSetup(player, value, id)
+  -- RTM THEME (this month) = the ranked-draft 5-player MARSH setup -- a normal ranked draft (NOT the old
+  -- Militant+Insurgents pool), 5 players (draft 6), on the Marsh map. Same path as the 5-player button.
+  RTT_THEME = false
+  rttFivePStart(player, value, id)
 end
 
 -- ===== RTT lightweight per-player selectors + P1/P2 map/deck pick =====
