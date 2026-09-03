@@ -56,6 +56,12 @@ starts in its final container/position:
       `standardButtons` group in the setup board XmlUI (gen/src/save.json), NOT the draft selectors'
       rttFac grid. Columns are x = -25 / 15 / 55 / 95 (40 apart); every other column-4 button sits at
       95 -- **Knaves alone sat at 90**. Fixed to 95, so the group is an exact 3x4 grid.
+      ROOT CAUSE (recovered from the orphaned history): Knaves was deliberately set to 90 on 2026-08-29
+      (orphan 65f2859) to match `_SPREAD`, the runtime -90/-30/30/90 layout that the old
+      `m520_solo_faction_board` applied to a cloned board. That module did NOT survive the re-root onto
+      the generator -- its grid lingers only as `RTT_FACTION_GRID` (gen/src/logic.lua:1701), DEFINED ONCE
+      AND NEVER REFERENCED. So Knaves sat on a column that no longer exists while every other tile used
+      the static -25/15/55/95 grid. `RTT_FACTION_GRID` is a confirmed dead-code target for the cleanup.
       STILL OPEN (design call, needs the maintainer): the grid as a whole is centred on x=35, not 0,
       and row 1 is Marquise/Eyrie/Woodland + Knaves alone in column 4 -- so Knaves still reads as
       tacked onto the end of a short row even when perfectly on-grid. Say if you want the grid
