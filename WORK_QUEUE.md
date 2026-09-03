@@ -27,6 +27,29 @@ starts in its final container/position:
   - map-relative pieces (cats on clearings, The Pond): take from the supply bag / spawn the object
     JSON directly AT the final world spot — never a seat-local default first.
 
+## Box score COPY — status recovered from the 2026-09-02 session log (added 2026-09-03)
+NOT previously in this queue (it should have been). Owned by the OTHER (Fable) session by the
+maintainer's own decision -- "I will ask the other session to do it" -- so RTT sessions stay OFF the
+box-score source. Recorded here for status only.
+- [x] **Baked-in box score (the one RTT auto-spawns)** -- FIXED AND SHIPPING, UNTESTED. RTT_BOXSCORE_JSON
+      in gen/src/logic.lua is standalone **b02.1318** (COPY numeric-entity fix), synced by d0438d9. It
+      carries all 48 numeric entities and 3 RTT-only overrides, all intentional: BASE_SCALE 3.85->5.4,
+      showR pinned (no maxLocks growth), ww/wh fixed to the maintainer's 4-card rectangle.
+      WHY IT LOOKED BROKEN: the maintainer's TTS Saves copy was from 08:06 on 2026-09-02, PREDATING
+      d0438d9 (08:19). He had never loaded the fix. Deployed 2026-09-03; VERIFY the COPY button now.
+- [ ] **Standalone box score Saved Object -- STALE IN-GAME, still broken for the maintainer.**
+      ~/Library/Tabletop Simulator/Saves/Saved Objects/Root Box Score.json is **b02.1204** (45 numeric
+      entities, dated Sep 2 07:04). The repo's out/ build is **b02.1318** (48). The fix was built but
+      never installed, so its COPY overlay still comes up empty exactly as reported.
+      ROOT CAUSE: root_boxscore/build.py installs to the WINDOWS path
+      `~/Documents/My Games/Tabletop Simulator/Saves/Saved Objects`, which does not exist on this Mac.
+      The real macOS location is `~/Library/Tabletop Simulator/Saves/Saved Objects`. So `--install`
+      cannot have been reaching the game. FIX BELONGS TO THE FABLE SESSION (platform-aware path in
+      build.py + reinstall). Interim: copy out/Root Box Score.json + .png into the Library path by hand.
+      NOTE: root_boxscore has an uncommitted diff to build.py + out/Root Box Score.json that is PURE
+      CRLF churn (`git diff --ignore-cr-at-eol` is empty) -- no lost work, but it should be reverted or
+      committed so it stops masking real changes.
+
 ## OPEN — new batch (2026-08-29)
 - [x] **Battle mat** (DONE, VERIFY): the live flow was already single-spawn -- rttPlaceMap spawns the
       mat tagged "Map Object" and makeMap's removeMapItems() destroys that tag before each placement.
