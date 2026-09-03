@@ -4,6 +4,16 @@ Single source of truth for outstanding tasks. Nothing is "done" until it's built
 the maintainer has confirmed it in TTS. Keep this file live: add every new request here the moment it lands,
 tick items only when committed, and re-open anything the maintainer reports still broken.
 
+## Note for future sessions: the `m###` labels are HISTORY, not files
+There is no `gen/mods/` directory and there never has been one in git history. The build is three
+files -- `gen/src/save.json` (scene/blueprint, with an `@@BOARD_LUA@@` placeholder), `gen/src/content.lua`
+(Root's object DATA) and `gen/src/logic.lua` (OUR code, the file you edit); `gen/assemble.py` injects
+content+logic into the placeholder. Every `m###` reference in this file, CHANGELOG.md, TODO.md and
+README.md names a change that is already BAKED INTO those three files -- do not go looking for a module.
+
+Editing `gen/src/save.json`: it is CRLF. Read/write it in BINARY mode -- a text-mode round-trip in
+Python rewrites all 2381 line endings and turns a one-character fix into a 4700-line diff.
+
 ## Golden rule (the maintainer, repeated + hardened)
 **Fix the BLUEPRINT, never patch at runtime.** No dirty tricks — no spawn-then-move, no
 spawn-below-the-table-then-reveal, no runtime tuck. Modify the faction's data so every piece
@@ -15,21 +25,34 @@ starts in its final container/position:
     JSON directly AT the final world spot — never a seat-local default first.
 
 ## OPEN — new batch (2026-08-29)
-- [ ] **Battle mat**: spawn ONE battle mat with EVERY map placement; never duplicated / bundled with
-      another item. Live flow = rttPlaceMap spawns it once (OK); dead paths (rttCoordPick, rttMarsh5P)
-      to be removed in the cleanup. Make the single-spawn bulletproof (fold into cleanup).
+- [x] **Battle mat** (DONE, VERIFY): the live flow was already single-spawn -- rttPlaceMap spawns the
+      mat tagged "Map Object" and makeMap's removeMapItems() destroys that tag before each placement.
+      The real duplication vector was the **Battle Mat TOOL button**: makeBattleMat -> makeSpecial
+      spawned it UNTAGGED, so it survived removeMapItems and the next map placement stacked a second
+      mat on it. FIX: makeSpecial takes an optional trailing `tag` argument (nil for every other
+      caller, so Lizard Wizard etc. are unchanged) and makeBattleMat passes "Map Object".
+      toggleSpecial still gives the tool button its click-to-remove. One mat from any path now.
+      Dead paths rttCoordPick / rttShowPick still to be REMOVED in the cleanup (see below).
 - [ ] **Duchy (moles) tunnel position**: the maintainer moved the TUNNEL when the Duchy spawns and saved it.
       Recover the new tunnel move_to from his recent save (board-frame reproject) + bake into the Duchy
-      blueprint (m300) so it spawns there every time, from any faction board / setup. NEED: which save.
+      blueprint so it spawns there every time, from any faction board / setup.
+      UNBLOCKED 2026-09-03: the session now runs on the maintainer's Mac, so his TTS Saves folder is
+      readable directly (~/Library/Tabletop Simulator/Saves/). Candidate sources: TS_AutoSave*.json.
+      NEED: the maintainer to confirm WHICH save has the moved tunnel before anything is reprojected.
 - [ ] **Thorough code cleanup** (workflow wbindjqke running): drop obsolete/dead code + bloat, no
       duplication (shared helpers), fix bugs/typos/robustness, well-written. Implement from the plan,
       verify build each step, conservative (proven-dead only).
 - [ ] **Easy-install folder** in the GitHub repo: a clear folder with exactly what a new user drops
       into their TTS Saves folder to use the mod. (Deliverable after cleanup.)
 - [ ] **Thorough README**: explains the exact function of EVERY button + install + what it changes vs base.
-- [ ] **Faction buttons alignment**: faction buttons not perfectly aligned to the grid; **Knaves is
-      completely offset**. Investigate the faction button layout (rttFac grid on selectors? faction
-      card row? faction selector tool?) and fix the Knaves offset.
+- [x] **Faction buttons alignment -- Knaves offset** (DONE, VERIFY): it is the Faction Select tool's
+      `standardButtons` group in the setup board XmlUI (gen/src/save.json), NOT the draft selectors'
+      rttFac grid. Columns are x = -25 / 15 / 55 / 95 (40 apart); every other column-4 button sits at
+      95 -- **Knaves alone sat at 90**. Fixed to 95, so the group is an exact 3x4 grid.
+      STILL OPEN (design call, needs the maintainer): the grid as a whole is centred on x=35, not 0,
+      and row 1 is Marquise/Eyrie/Woodland + Knaves alone in column 4 -- so Knaves still reads as
+      tacked onto the end of a short row even when perfectly on-grid. Say if you want the grid
+      recentred and/or Knaves moved down beside the other base factions.
 - [ ] **NEW OBJECT — Knaves captain board** (AFTER the list + cleanup; design carefully, pre-plan so we
       don't iterate): a new object styled EXACTLY like the crafted-improvement board next to each faction
       board, placed to the RIGHT of the current crafted-improvement board, ONLY for Knaves. Holds the 3

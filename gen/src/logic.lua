@@ -2369,8 +2369,10 @@ end
 
 
 function makeBattleMat(player,value,id)
-
-  makeSpecial("Tools","Battle Mat",33.17,1.55,9.21)
+  -- tagged "Map Object" so it is cleared by removeMapItems on the next map placement, exactly
+  -- like the mat rttPlaceMap spawns. Without the tag the tool-spawned mat survived the clear and
+  -- a second mat spawned on top of it. toggleSpecial (inside makeSpecial) keeps the click-to-remove.
+  makeSpecial("Tools","Battle Mat",33.17,1.55,9.21,nil,"Map Object")
 end
 
 
@@ -2415,7 +2417,7 @@ function toggleSpecial(id)
   return found
 end
 
-function makeSpecial(category,name,x,y,z,rotation)
+function makeSpecial(category,name,x,y,z,rotation,tag)
 
   if toggleSpecial(name) == true then return end
 
@@ -2433,6 +2435,8 @@ function makeSpecial(category,name,x,y,z,rotation)
 
   function callback(o)
       o.setRotation({o.getRotation().x, o.getRotation().y + alterRotation, o.getRotation().z})
+      -- optional tag so map-scoped spawns are cleared by removeMapItems (single-spawn guarantee)
+      if tag ~= nil then local _tg = o.getTags(); table.insert(_tg, tag); o.setTags(_tg) end
   end
   for _,v in ipairs(objects) do
       local vec = Vector(v.move_to) * scale
