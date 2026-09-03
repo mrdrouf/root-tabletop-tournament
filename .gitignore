@@ -10,3 +10,6 @@ gen/build/
 
 # NOTE: dist/ (the compiled self-contained save) is committed on purpose -- the repo is
 # self-contained, so GitHub holds the final one-file product AND can rebuild it from gen/src.
+
+# macOS
+.DS_Store
