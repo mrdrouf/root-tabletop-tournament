@@ -5,7 +5,10 @@ the maintainer has confirmed it in TTS. Keep this file live: add every new reque
 tick items only when committed, and re-open anything the maintainer reports still broken.
 
 ## Note for future sessions: the `m###` labels are HISTORY, not files
-There is no `gen/mods/` directory and there never has been one in git history. The build is three
+The `mods/` pipeline was REAL -- `mods/m###_*.py` + `build.py` over a `base/` mod. It is not in the
+current history because the repo was RE-ROOTED onto the generator; the old chain survives only as
+orphaned objects, now preserved as the tag **`legacy/mods-history`** (177 commits, tip 2026-08-30).
+Read an old module with `git show legacy/mods-history:mods/m300_duchy_warriors.py`. The build is three
 files -- `gen/src/save.json` (scene/blueprint, with an `@@BOARD_LUA@@` placeholder), `gen/src/content.lua`
 (Root's object DATA) and `gen/src/logic.lua` (OUR code, the file you edit); `gen/assemble.py` injects
 content+logic into the placeholder. Every `m###` reference in this file, CHANGELOG.md, TODO.md and
@@ -33,18 +36,22 @@ starts in its final container/position:
       caller, so Lizard Wizard etc. are unchanged) and makeBattleMat passes "Map Object".
       toggleSpecial still gives the tool button its click-to-remove. One mat from any path now.
       Dead paths rttCoordPick / rttShowPick still to be REMOVED in the cleanup (see below).
-- [ ] **Duchy (moles) tunnel position**: the maintainer moved the TUNNEL when the Duchy spawns and saved it.
-      Recover the new tunnel move_to from his recent save (board-frame reproject) + bake into the Duchy
-      blueprint so it spawns there every time, from any faction board / setup.
-      UNBLOCKED 2026-09-03: the session now runs on the maintainer's Mac, so his TTS Saves folder is
-      readable directly (~/Library/Tabletop Simulator/Saves/). Candidate sources: TS_AutoSave*.json.
-      NEED: the maintainer to confirm WHICH save has the moved tunnel before anything is reprojected.
+- [x] **Duchy (moles) tunnel position** (ALREADY DONE -- item was stale): recovered back on 2026-08-29
+      (orphaned commit f1f69e8, now under `legacy/mods-history`) from **TS_AutoSave_4**, identity frame,
+      warriors validating at 0.0007: the maintainer had moved tunnel `c8c8a2` to **(-8.499, 0.100, 7.538)**.
+      It IS baked into the current blueprint -- `c8c8a2` appears twice in gen/src/content.lua and the
+      -8.4990 coordinate is present. Nothing to do; VERIFY in TTS that the tunnel spawns there.
 - [ ] **Thorough code cleanup** (workflow wbindjqke running): drop obsolete/dead code + bloat, no
       duplication (shared helpers), fix bugs/typos/robustness, well-written. Implement from the plan,
       verify build each step, conservative (proven-dead only).
-- [ ] **Easy-install folder** in the GitHub repo: a clear folder with exactly what a new user drops
-      into their TTS Saves folder to use the mod. (Deliverable after cleanup.)
-- [ ] **Thorough README**: explains the exact function of EVERY button + install + what it changes vs base.
+- [x] **Easy-install folder** (ALREADY DONE -- item was stale): settled on 2026-08-29 (orphan a56d9cb) as
+      **`dist/` itself** -- it holds the one self-contained .json, the .png thumbnail and HOW_TO_INSTALL.md.
+      Re-open only if the maintainer wants a separately-named top-level folder instead.
+- [~] **Thorough README**: a full every-button README WAS written (orphan a56d9cb), then deliberately
+      REPLACED by the current brief one (0d93c1e, 2026-09-02). So this is a standing decision, not an
+      omission. Current gaps if the thorough version is wanted back: Ginso's Gizmo and the Box Score
+      button are documented nowhere. Recover the old text with
+      `git show legacy/mods-history:README.md`. NEED: the maintainer to say brief or thorough.
 - [x] **Faction buttons alignment -- Knaves offset** (DONE, VERIFY): it is the Faction Select tool's
       `standardButtons` group in the setup board XmlUI (gen/src/save.json), NOT the draft selectors'
       rttFac grid. Columns are x = -25 / 15 / 55 / 95 (40 apart); every other column-4 button sits at
@@ -53,11 +60,13 @@ starts in its final container/position:
       and row 1 is Marquise/Eyrie/Woodland + Knaves alone in column 4 -- so Knaves still reads as
       tacked onto the end of a short row even when perfectly on-grid. Say if you want the grid
       recentred and/or Knaves moved down beside the other base factions.
-- [ ] **NEW OBJECT — Knaves captain board** (AFTER the list + cleanup; design carefully, pre-plan so we
-      don't iterate): a new object styled EXACTLY like the crafted-improvement board next to each faction
-      board, placed to the RIGHT of the current crafted-improvement board, ONLY for Knaves. Holds the 3
-      captain cards VERTICALLY with snap areas + elegant labelled areas for Captain 1/2/3, NO overlap,
-      enough space. Root design style + the usual font. Base it on the crafted-improvement design, larger.
+- [x] **NEW OBJECT — Knaves captain board** (ALREADY DONE -- item was stale): built over 13 iterations
+      2026-08-29/30 (orphaned chain, tip 21c4812 "Captain board v13: portrait slots at the placed spots,
+      anchored to the faction", now under `legacy/mods-history`) and carried forward into the generator.
+      Present in the current build as `RTT_CAPTAIN_BOARD_JSON` (gen/src/logic.lua ~3150) -- a Custom_Tile
+      with the 3 slot snaps BAKED IN and a locked aspect-correct scale -- spawned by `rttSpawnCaptainsFor`
+      anchored to the faction's rules board. Art: assets/labels/knaves_captains_board.png (+ v2/v3).
+      Nothing to build; VERIFY in TTS: 3 slots, no overlap, correct side of the crafted board.
 
 ## OPEN — active batch (2026-08-28)
 - [x] Uploaded assets wired: Marsh 5p label -> FivePlayerArt (button neutral #ffffff); Lost City rules
