@@ -53,6 +53,24 @@ assets = {a["Name"]: a["URL"] for a in fs.get("CustomUIAssets", [])}
 xml = fs["XmlUI"]                            # decoded: real quotes
 
 def group_block(gid):
+    # "TOP" = everything outside every ToggleGroup (rootLogo, info, xButton live there)
+    if gid == "TOP":
+        out, j = [], 0
+        while True:
+            o = xml.find('<ToggleGroup', j)
+            if o == -1:
+                out.append(xml[j:]); break
+            out.append(xml[j:o])
+            depth, k = 0, o
+            while k < len(xml):
+                oo = xml.find('<ToggleGroup', k); cc = xml.find('</ToggleGroup>', k)
+                if cc == -1: break
+                if oo != -1 and oo < cc: depth += 1; k = oo + 12
+                else:
+                    depth -= 1; k = cc + 14
+                    if depth == 0: break
+            j = k
+        return "".join(out)
     m = re.search(r'<ToggleGroup id ?= ?"%s"' % re.escape(gid), xml)
     if not m:
         return ""
@@ -85,7 +103,8 @@ def parse(block, tag):
         x, y, *_ = [float(v) for v in pos.split()]
         out.append(dict(id=g("id"), icon=g("icon"), image=g("image"), text=g("text"),
                         x=x, y=y, w=float(g("width") or 20), h=float(g("height") or 20),
-                        color=g("color")))
+                        color=g("color"), tag=tag,
+                        fontSize=float(g("fontSize") or 0) or None))
     return out
 
 REPO_RAW = "raw.githubusercontent.com/mrdrouf/root-tabletop-tournament/main/"
@@ -118,13 +137,22 @@ if os.path.exists(_board_local):
 else:
     img = Image.new("RGBA", (W, H), (95, 66, 41, 255))
 dr = ImageDraw.Draw(img)
+_FONT_CANDIDATES = [
+    r"C:\Windows\Fonts\arialbd.ttf",
+    "/System/Library/Fonts/Supplemental/Arial Bold.ttf",
+    "/System/Library/Fonts/Supplemental/Arial.ttf",
+    "/System/Library/Fonts/Helvetica.ttc",
+    "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
+]
 def font(sz):
-    try: return ImageFont.truetype(r"C:\Windows\Fonts\arialbd.ttf", sz)
-    except: return ImageFont.load_default()
+    for _p in _FONT_CANDIDATES:
+        try: return ImageFont.truetype(_p, max(1, int(sz)))
+        except Exception: pass
+    return ImageFont.load_default()
 
 def draw_btn(b):
     l, t, r, bot = box(b)
-    if b.get("color"):
+    if b.get("color") and b.get("tag") != "Text":
         dr.rounded_rectangle([l, t, r, bot], radius=6, fill=hexc(b["color"]) + (255,))
     name = b.get("icon") or b.get("image")
     src = None
@@ -137,15 +165,20 @@ def draw_btn(b):
         iw, ih = max(1, int(r - l)), max(1, int(bot - t))
         img.alpha_composite(src.resize((iw, ih)), (int(l), int(t)))
     elif b.get("text"):
-        dr.text(((l + r) / 2, (t + bot) / 2), b["text"], anchor="mm",
-                fill=(235, 225, 195), font=font(11))
+        # XmlUI fontSize is in board units -> px via the SY scale. <Text> uses its own colour.
+        import html as _html
+        txt = _html.unescape(b["text"])          # TTS renders &amp;/&#183; -- show the real glyphs
+        fs = b.get("fontSize") or 11
+        col = hexc(b["color"]) + (255,) if b.get("color") else (235, 225, 195, 255)
+        dr.text(((l + r) / 2, (t + bot) / 2), txt, anchor="mm",
+                fill=col, font=font(fs * SY))
     if DEBUG:
         dr.rectangle([l, t, r, bot], outline=(255, 255, 255, 40))   # slot outline
 
 total = 0
 for gid in GROUPS:
     blk = group_block(gid)
-    btns = parse(blk, "Button") + parse(blk, "Image")
+    btns = parse(blk, "Button") + parse(blk, "Image") + parse(blk, "Text")
     for b in btns:
         draw_btn(b); total += 1
 
