@@ -27,6 +27,44 @@ starts in its final container/position:
   - map-relative pieces (cats on clearings, The Pond): take from the supply bag / spawn the object
     JSON directly AT the final world spot — never a seat-local default first.
 
+## DONE 2026-09-03 (built, committed, pushed, deployed -- VERIFY IN TTS)
+- [x] **Box score: the first turn always belongs to the FIRST SEAT** (the maintainer's request).
+      The sheet already had a "first turn is always the first player" rule, but it lives inside
+      followTurns(), behind fullTurnCoverage() -> turnsRunning() -> `Turns.enable`. RTT ships the TTS
+      turn system OFF and never enables it (`Turns` appears ONCE in the whole board script: a hardcoded
+      Turns.order in onLoad), so the sheet is permanently in MANUAL mode and that rule could never run.
+      In manual mode S.active starts at 1, but resort() re-pins it to the row OBJECT it was on, and rows
+      are appended in the order VP markers become READABLE -- and RTT defers marker placement 1.2s with
+      a retry chain, so which faction lands first is a race. The pointer settled on the first faction
+      DISCOVERED, differently each game.
+      FIX (root_boxscore/boxscore.lua): persisted one-shot latch `S.pinFirst`. While set, every poll
+      pins the pointer at the first seat -- rowByColor(Turns.order[1]) when the colour is bound, else
+      row 1 (the same row in RTT: seat 1 sits at the minimum clockwise-from-+X angle so it always sorts
+      to row 1). A LATCH, not an `S.turns == 0` test, because undo of the first lock and clicking round
+      column 1 both return S.turns to 0 mid-game and would re-arm it, and it would fight the EDIT-mode
+      row selector. Cleared by the first lockRow / an explicit row pick / undo; re-armed only by uiReset.
+- [x] **rebake_into_rtt.py was BROKEN and silently blocking every box-score fix from reaching the mod.**
+      It aborted with "minimum RTT row height: expected one source match, found 0" -- the placeholder-row
+      fork was merged UPSTREAM into boxscore.lua on 2026-09-02, so 9 of its 13 transforms stopped
+      matching. The RTT delta is now exactly FOUR lines (BUILD, BASE_SCALE, showR, ww/wh); the script is
+      reduced to those and PROVEN faithful (applying them to the pristine source reproduces the shipped
+      bake byte-for-byte). Also fixed its write step -- `Path.write_text(newline=...)` is py3.10+ and
+      this Mac builds on system python 3.9, so it would have failed at the write even after repair.
+      Added `--check`. RTT bake advanced b02.1318 -> b03.2026.
+- [x] **Credit: was OVERLAPPING the ROOT logo.** Box was position x=25 width=170 -> spans -60..110 while
+      rootLogo spans -125..-50: a 10-unit overlap. The string measures ~140 units at fontSize 4, not 170.
+      Free span right of the logo is -50..112, centre x=31 -> now position x=31, width=150.
+      tools/preview_menu.py extended so this is never judged blind again: renders <Text>, renders
+      top-level elements (rootLogo/info/xButton live outside every ToggleGroup), uses a real font on
+      macOS/Linux (it only ever tried a Windows path), and unescapes XML entities.
+
+## INCIDENT 2026-09-03: a `git reset` dropped 5 commits from rtt-live
+The reflog shows `reset: moving to d0438d9` at 19:34:36, discarding the Knaves button fix, the battle-mat
+fix, the .gitignore and all the WORK_QUEUE corrections; the remote had been reset to match. All five were
+recovered and cherry-picked back (save.json conflicted because the credit and the Knaves button sit on the
+same single-line XmlUI string -- resolved by keeping the credit and re-applying Knaves 90->95 on top).
+If that reset was deliberate, say so -- it has now been undone.
+
 ## Box score COPY — status recovered from the 2026-09-02 session log (added 2026-09-03)
 NOT previously in this queue (it should have been). Owned by the OTHER (Fable) session by the
 maintainer's own decision -- "I will ask the other session to do it" -- so RTT sessions stay OFF the
@@ -37,7 +75,13 @@ box-score source. Recorded here for status only.
       showR pinned (no maxLocks growth), ww/wh fixed to the maintainer's 4-card rectangle.
       WHY IT LOOKED BROKEN: the maintainer's TTS Saves copy was from 08:06 on 2026-09-02, PREDATING
       d0438d9 (08:19). He had never loaded the fix. Deployed 2026-09-03; VERIFY the COPY button now.
-- [ ] **Standalone box score Saved Object -- STALE IN-GAME, still broken for the maintainer.**
+- [x] **Standalone box score Saved Object** (FIXED 2026-09-03, VERIFY): was b02.1204 in-game vs b02.1318
+      in the repo. ROOT CAUSE confirmed: root_boxscore/build.py's SAVED_OBJECTS was the WINDOWS path only,
+      so on macOS `--install` found nothing and said so quietly -- the built fix never reached the game.
+      build.py is now platform-aware (Windows path still first) and the sheet is installed and current
+      at b03.2026. Its COPY panel should now work.
+- [x] ~~Standalone box score Saved Object -- STALE IN-GAME~~ (superseded by the line above)
+      Original note kept for context:
       ~/Library/Tabletop Simulator/Saves/Saved Objects/Root Box Score.json is **b02.1204** (45 numeric
       entities, dated Sep 2 07:04). The repo's out/ build is **b02.1318** (48). The fix was built but
       never installed, so its COPY overlay still comes up empty exactly as reported.
