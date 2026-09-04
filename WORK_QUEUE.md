@@ -55,8 +55,22 @@ starts in its final container/position:
       Layout work: squeeze all the buttons slightly to make room and move the whole block up a bit.
       Must respect the existing option-button design (the wooden-plaque style, same sizing/idiom).
 
-- [ ] **Clicking Ranked / Theme repeatedly causes various issues.** It should wipe prior state, but a
-      destructive wipe needs a CONFIRMATION first. Also consider disabling some buttons mid-game.
+- [ ] **Clicking Ranked / Theme repeatedly causes various issues** + **wiping needs a confirmation**.
+      ROOT CAUSE FOUND (2026-09-03): the setup chain is ~6-10 SECONDS of unguarded async with no
+      re-entrancy guard anywhere. rttSetup -> rttSpawnDeck (Wait 0.1s per card) -> rttSlideOut
+      (0.9s then 0.6s per card) -> rttFlipAll -> rttDealOrder (1.0s) -> its own 0.5s + 0.6s ->
+      rttBeginPick (1.0s) -> Wait.frames 10 -> rttSeatPlayers + rttStartFactionDraft -> rttShowFactions
+      (Wait.frames 40). A second click starts a SECOND chain: the new rttSetup destroys the first
+      chain's objects, but the first chain's already-scheduled Wait callbacks keep firing against those
+      destroyed objects and against the new run's state -- dealing from a dead deck, seating twice,
+      stacking selectors.
+      FIX SHAPE: (a) a generation token -- rttSetup increments RTT_RUN_ID and every deferred callback
+      returns early unless its captured id still matches (TTS Wait handles are not retained anywhere
+      today, so cancellation by id is not available without threading them through); plus (b) a busy
+      guard so clicks during a run are ignored rather than queued.
+      CONFIRMATION (the maintainer: "think of a good elegant way to ask for confirmation of wiping
+      current factions"): must NOT nag when there is nothing to wipe, must say WHAT is being destroyed,
+      must survive double-clicks and never stick. Design being chosen by a judged multi-agent pass.
       NEED: which buttons the maintainer wants locked once a game is running.
 
 - [ ] **Starting a new game must clear EVERY previously spawned extra** (broadened 2026-09-03 on the
