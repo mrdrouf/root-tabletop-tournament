@@ -1742,26 +1742,14 @@ function setupFactionBoards(player, value, id)
   -- clear PRIOR manual selectors AND every faction board/piece already spawned (RTT Faction) -- re-clicking
   -- the player-count button starts over, so tear the old boards down first (maintainer request). Still NOT
   -- by name "Faction Board" (which also matched the solo faction board and coordinator clones) (audit).
-  rttClearGameObjects()
-
-  -- NEW GAME: reset the same run-state rttSetup resets. This path never did, so a manual game inherited
-  -- the previous game's VP index, taken-factions set, cached score track and seat map -- and the
-  -- per-faction guard added below would have gone stale across games without it.
-  RTT_VP_PLACED = 0
-  RTT_FAC_TAKEN = {}
-  RTT_TRACK = nil
-  RTT_MANUAL_PICKING = {}
-  RTT_VP_PENDING = {}
-  RTT_ALLY_SUP_DONE = {}
-  pcall(function() Global.setVar("RTT_SEAT_POS", JSON.encode({})) end)
-  pcall(function() Global.setVar("RTT_SEAT_COLOR", JSON.encode({})) end)
-  pcall(function() Global.setVar("RTT_SEAT_PLAYER", JSON.encode({})) end)
+  -- ONE new-game path, shared with rttSetup: teardown, run-state reset, and the turn system for
+  -- `count` seats. This path used to do all three itself, and drifted from the ranked path four
+  -- separate times (teardown tags, run-state reset, busy release, turn order).
+  rttNewGame(count)
 
   local xs = {52,-52,52,-52,0,52}
   local ys = {11.56,11.56,11.56,11.56,11.56,11.56}
   local zs = {-46,-46,46,46,-46,46}
-
-  rttEnableTurns(count)
 
   for i = 1, count do
     spawnManualFactionSelector(
@@ -2003,7 +1991,47 @@ function rttClearGameObjects()
   for _, t in ipairs(RTT_TEARDOWN_TAGS) do
     for _, o in ipairs(getObjectsWithTag(t)) do pcall(function() o.destruct() end) end
   end
+  -- The draft deck and the turn-order cards are tracked by GUID rather than by tag, so the tag sweep
+  -- above cannot see them. Only the ranked path used to clear them, which meant starting a manual game
+  -- on top of a ranked draft left the faction cards and order cards lying on the table.
+  for _, g in ipairs(RTT_SPAWNED) do
+    local o = getObjectFromGUID(g)
+    if o then pcall(function() o.destruct() end) end
+  end
+  RTT_SPAWNED = {}
   rttResetHands2()                                 -- hand zones are state too, not objects
+end
+
+-- ONE list of everything a new game resets that is NOT an object. Objects are torn down by tag (above);
+-- this is the counterpart for state, which teardown cannot see. Both setup paths used to carry their
+-- own copy of this block, and every value added to one and forgotten in the other became a bug: the VP
+-- index, the taken-factions set, the cached score track, the seat map. RTT_CAP_SPAWNED was in NEITHER
+-- copy -- it was cleared only when a Knaves board spawned -- so a captain seen in one game still counted
+-- as "already spawned" in the next.
+function rttResetRunState()
+  RTT_VP_PLACED      = 0
+  RTT_FAC_TAKEN      = {}
+  RTT_TRACK          = nil
+  RTT_MANUAL_PICKING = {}
+  RTT_VP_PENDING     = {}
+  RTT_ALLY_SUP_DONE  = {}
+  RTT_CAP_SPAWNED    = {}
+  RTT_CAP_SLOT       = {}
+  RTT_CAP_SPAWN_N    = 0
+  RTT_CAP_ITEM_N     = 0
+  RTT_CAP_WARRIOR_N  = 0
+  for _, k in ipairs({ "RTT_SEAT_POS", "RTT_SEAT_COLOR", "RTT_SEAT_PLAYER" }) do
+    pcall(function() Global.setVar(k, JSON.encode({})) end)
+  end
+end
+
+-- ONE new-game entry point, called by BOTH setup paths instead of each keeping its own copy of the
+-- teardown + reset sequence. `seats` is how many seats to configure the turn system for, or nil to
+-- leave the turn system alone -- the ranked draft sets it later, from the real seating.
+function rttNewGame(seats)
+  rttClearGameObjects()                            -- objects, hand zones, run-id bump
+  rttResetRunState()                               -- everything teardown cannot see
+  if seats ~= nil then rttEnableTurns(seats) end
 end
 function rttBusyBegin(sec)
   RTT_BUSY = true
@@ -2081,22 +2109,9 @@ function rttSetup(player, value, id)
   -- clear BOTH selector kinds (ranked AND manual) plus any faction boards, so starting a ranked draft on
   -- top of a manual-4-player setup (or vice versa) never stacks the two -- the manual selectors are tagged
   -- "RTT Manual Selector", NOT "RTT Selector", so they were surviving the ranked reset (maintainer clutter).
-  rttClearGameObjects()
-  for _,g in ipairs(RTT_SPAWNED) do local o=getObjectFromGUID(g) if o then o.destruct() end end
-  RTT_SPAWNED = {}
-  -- NEW GAME: reset the runtime accumulators. Previously only rttStartFactionDraft (the ranked path)
-  -- zeroed these, so a manual-selector game -- or any second game in a session -- inherited the last
-  -- game's VP placement index, seat map, cached score-track, and taken-factions set. That made VP
-  -- markers land on wrong/extension rows and the box score keep stale seats (audit: vp-track/globals).
-  RTT_VP_PLACED = 0
-  RTT_FAC_TAKEN = {}
-  RTT_TRACK = nil
-  RTT_MANUAL_PICKING = {}
-  RTT_VP_PENDING = {}
-  RTT_ALLY_SUP_DONE = {}
-  pcall(function() Global.setVar("RTT_SEAT_POS", JSON.encode({})) end)
-  pcall(function() Global.setVar("RTT_SEAT_COLOR", JSON.encode({})) end)
-  pcall(function() Global.setVar("RTT_SEAT_PLAYER", JSON.encode({})) end)
+  -- ONE new-game path, shared with setupFactionBoards. No seat count here: the ranked draft configures
+  -- the turn system later, in rttSeatPlayers, once it knows who actually sat down.
+  rttNewGame(nil)
   -- NO os.time re-seed: the RNG is seeded once at load and advances per call, so each draft is
   -- independent (see rtt-rng-bug). Re-seeding to os.time() made same-second launches identical.
   local mil = {}
@@ -2263,13 +2278,16 @@ function makeFaction(player,value,id,source)
   -- Keep that manual-only behavior without giving the ranked path a new visual change.
   local direction = Vector(0, 4, -18)
   direction:rotateOver("y", br.y)
-  Player[player.color].setHandTransform({
+  local seatHand = {
     position = Vector(cp.x, 10.62, cp.z) + direction,
     rotation = { 0, br.y, 0 },
     scale = { 16, 6, 4 }
-  }, 1)
+  }
+  Player[player.color].setHandTransform(seatHand, 1)
 
-  rttPlaceFaction(id, cp.x, cp.z, flip, player.color, false, category, spawnRy, player.color)
+  -- Hand the seat DOWN rather than letting rttPlaceFaction read it back: same values, but now the
+  -- result no longer depends on whether hand 1 has finished moving.
+  rttPlaceFaction(id, cp.x, cp.z, flip, player.color, false, category, spawnRy, player.color, seatHand)
   Global.call("spawned", { character })
 
   if id == "The Winged Menace" then
@@ -2388,24 +2406,40 @@ function spawnWingedMenaceExtraHand(color)
   }, 2)
 end
 
-function spawnSupportersHand(color)
-  local angleY = Player[color].getHandTransform(1).rotation.y
-  local posX = Player[color].getHandTransform(1).position.x
-  local posZ = Player[color].getHandTransform(1).position.z
+-- Where the supporters zone (hand 2) sits for a seat whose MAIN hand is `hand1`. A PURE function of
+-- its argument: the same seat in gives the same answer out, whatever the table happens to look like at
+-- the moment it runs. Accepts both transform shapes the mod uses -- named (position.x, rotation.y, as
+-- getHandTransform returns) and plain arrays ({0,180,0}, as RTT_SEAT_HAND stores).
+function rttSupportersTransform(hand1)
+  local pos = (hand1 or {}).position or {}
+  local rot = (hand1 or {}).rotation or {}
+  local posX   = pos.x or pos[1] or 0
+  local posZ   = pos.z or pos[3] or 0
+  local angleY = rot.y or rot[2] or 0
 
   local angle = 2.517 - (math.pi/180 * angleY)
 
   local offsetX = math.cos(angle) * 14.73
   local offsetZ = math.sin(angle) * 14.73
 
-  local posy = Vector({posX + offsetX,12.56,posZ + offsetZ})
-  local roty = Player[color].getHandTransform(1).rotation
-
-  Player[color].setHandTransform({
-      position = posy,
-      rotation = roty,
+  return {
+      position = Vector({posX + offsetX, 12.56, posZ + offsetZ}),
+      rotation = rot,
       scale    = {12, 5.4, 5.50},
-  }, 2)
+  }
+end
+
+-- Marker for the test harness: this build takes the seat explicitly.
+RTT_SUPPORTERS_EXPLICIT = true
+
+-- `hand1` is the seat's MAIN hand transform. Pass it whenever the caller knows where the seat is --
+-- a function that is GIVEN the seat cannot be called too early. Reading hand 1 instead is what made
+-- this depend on call order: makeFaction ran it before moving hand 1, so the supporters hand was built
+-- from the player's PREVIOUS seat and the Alliance drew its three cards into the old supporter area.
+-- The fallback read stays for callers that genuinely have no seat to hand over.
+function spawnSupportersHand(color, hand1)
+  hand1 = hand1 or Player[color].getHandTransform(1)
+  Player[color].setHandTransform(rttSupportersTransform(hand1), 2)
 end
 
 
@@ -3769,7 +3803,9 @@ function rttCoordFaction(args)
   RTT_BOARD_SEAT[clone.getGUID()] = nil
   if s.color ~= nil then RTT_CLONES[s.color] = nil end
   clone.destruct()                                     -- board gone first, then the faction spawns there
-  rttPlaceFaction(faction, bp.x, bp.z, bp.z > 0, s.color or args.color, true, nil, nil, args.color)
+  -- s.hand is this seat's RTT_SEAT_HAND entry -- exactly what rttSeatPlayers put on hand 1.
+  local seatHand = s.hand and { position = s.hand.pos, rotation = s.hand.rot } or nil
+  rttPlaceFaction(faction, bp.x, bp.z, bp.z > 0, s.color or args.color, true, nil, nil, args.color, seatHand)
   Wait.frames(function() rttShowFactions() end, 10)    -- refresh remaining boards
 end
 
@@ -3856,7 +3892,7 @@ end
 -- Both ranked and manual faction selectors come through this one automation path:
 -- spawn the blueprint (including its single base VP marker), publish the faction's
 -- physical seat, run the faction extras, then MOVE that marker onto score zero.
-function rttPlaceFaction(faction, cx, cz, flip, color, isDraft, category, rotationY, pickerColor)
+function rttPlaceFaction(faction, cx, cz, flip, color, isDraft, category, rotationY, pickerColor, seatHand)
   if not rttSpawnFaction(faction, cx, cz, flip, category, rotationY) then return false end
 
   -- Raw Lua tables do not cross object-script boundaries, so the accumulated map
@@ -3947,7 +3983,8 @@ function rttPlaceFaction(faction, cx, cz, flip, color, isDraft, category, rotati
     -- where the supporters were landing on the runs the maintainer saw fail.
     local before = nil
     pcall(function() local h = Player[supColor].getHandTransform(2) if h then before = h.position end end)
-    spawnSupportersHand(supColor)
+    -- seatHand is this seat's main-hand transform, handed down by the caller that placed the seat.
+    spawnSupportersHand(supColor, seatHand)
     rttDealAllianceSupporters(supColor, before, 12)
   end
   return true

@@ -270,3 +270,29 @@ artists stay credited here in the repo). Also removed the "message roof" — the
 Added `framework.set_xml_attr` (generic attr setter for `<Image>`/`<Text>`).
 
 Each later step appends one or more modifications under `mods/` and an entry here.
+
+## One setup path — 2026-09-04
+The mod had two ways to start a game (the ranked draft `rttSetup` and the manual
+picker `setupFactionBoards`) which had to agree and repeatedly did not: the teardown
+tag list, the run-state reset, the busy release, the hand-1 ordering and the turn
+system were each fixed in one and forgotten in the other. Collapsed to one path:
+
+- `rttNewGame(seats)` is the single new-game entry point; both paths call it. `seats`
+  is nil for the ranked draft, which configures the turn system later from the real
+  seating.
+- `rttResetRunState()` is the one list of state a new game clears. It is the
+  counterpart to the tag sweep, which can only see objects. This caught
+  `RTT_CAP_SPAWNED`, which was in neither path's copy — it was cleared only when a
+  Knaves board spawned, so a captain seen in one game still counted as spawned in the
+  next.
+- Teardown absorbed the GUID-tracked draft objects. Only the ranked path cleared them,
+  so starting a manual game after a draft left all five faction cards on the table.
+- `spawnSupportersHand(color, hand1)` now takes the seat explicitly, and
+  `rttSupportersTransform(hand1)` is a pure function of it — same seat in, same answer
+  out, whatever the table looks like when it runs. Reading hand 1 back was what made
+  the Alliance deal its supporters into the previous seat's area. Both callers hand
+  down the seat they already know; the values are unchanged (verified identical across
+  all ten seat positions and both transform shapes).
+
+`tests/test_setup_paths.py` drives both paths against a stubbed TTS: 6 cases, 3 of
+which fail against pre-refactor main.

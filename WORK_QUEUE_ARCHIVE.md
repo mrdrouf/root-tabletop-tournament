@@ -534,3 +534,20 @@ bugs that took several attempts — that context is easy to lose and expensive t
       LuaScript, so regenerating the box score from root_boxscore will not drop it.
       IF IT LANDS SIDEWAYS the axis is right and the value is not -- try y = 90 or y = 270. If it is
       completely unchanged, TTS ignores the field for this object type and this should be re-opened.
+
+# RTT Work Queue
+## Standing rule: work on MAIN
+## Standing rule: this file only shows OPEN work
+## Note for future sessions: the `m###` labels are HISTORY, not files
+## Golden rule (the maintainer, repeated + hardened)
+## STRUCTURAL — the pattern behind most of today's bugs (2026-09-04)
+- [x] Refactor to (1)+(2)+(3): explicit-argument placement, one shared new-game/spawn path, one reset
+      registry. Done 2026-09-04 on branch `refactor/placement`: `rttNewGame(seats)` is the single
+      new-game entry point for both paths, `rttResetRunState()` is the one list of non-object state,
+      teardown absorbed the GUID-tracked draft objects, and `spawnSupportersHand(color, hand1)` takes
+      the seat explicitly (`rttSupportersTransform` is a pure function of it). Guarded by
+      `tests/test_setup_paths.py` -- 6 cases, 3 of which fail against pre-refactor main.
+      Found and fixed three live bugs on the way: RTT_CAP_SPAWNED survived a new game, a manual setup
+      after a ranked draft left all 5 faction cards on the table, and the supporters zone could still
+      be built from a stale hand 1. NOT YET CONFIRMED IN TTS by the maintainer.
+## BLOCKED — need more info from the maintainer

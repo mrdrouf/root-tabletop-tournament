@@ -81,9 +81,6 @@ of four structural faults, not an isolated mistake. Fixing these is worth more t
    chain already in flight is still unguarded.
    FIX SHAPE: rttSetup bumps RTT_RUN_ID; every deferred callback returns early if its captured id is stale.
 
-- [ ] Refactor to (1)+(2)+(3): explicit-argument placement, one shared new-game/spawn path, one reset
-      registry. This is the "thorough code cleanup" item made concrete -- do it as the cleanup, not
-      separately.
 ## BLOCKED — need more info from the maintainer
 
 - [ ] **Moles / rats: tools on the side of their board.** The Underground Duchy and the Lord of the
