@@ -150,3 +150,22 @@ def square_label(out, art, text, art_frac=0.76, pt=SQUARE_PT):
     _outlined(d, ((W - tw) / 2, band_top + ((H - band_top) - (bb[3] - bb[1])) / 2 - bb[1]), text, f)
     im.save(out)
     return f.size
+
+
+def publish(local_path):
+    """Copy a rendered label to a content-hashed filename and return the jsDelivr URL.
+
+    jsDelivr caches by URL, so re-rendering to the SAME filename leaves the old image being served --
+    which is exactly what happened: several rounds of label changes never reached the game because the
+    CDN kept handing out the first version. A hash in the name means any change is a new URL.
+    """
+    import hashlib, os, re, shutil
+    h = hashlib.md5(open(local_path, "rb").read()).hexdigest()[:8]
+    d, fn = os.path.split(local_path)
+    stem, ext = os.path.splitext(fn)
+    stem = re.sub(r"_[0-9a-f]{8}$", "", stem)
+    out = os.path.join(d, "%s_%s%s" % (stem, h, ext))
+    if out != local_path and not os.path.exists(out):
+        shutil.copy2(local_path, out)
+    rel = out.split("assets/", 1)[1]
+    return out, "https://cdn.jsdelivr.net/gh/mrdrouf/root-tabletop-tournament@main/assets/" + rel

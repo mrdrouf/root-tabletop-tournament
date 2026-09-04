@@ -2112,121 +2112,121 @@
       "LuaScript": "@@BOARD_LUA@@",
       "LuaScriptState": "",
       "XmlUI": "<Button id=\"xButton\" onclick=\"deleteThis\" position=\"117 76.5 -15\" width=\"15\" height=\"15\" fontSize=\"8\" padding=\"4 4 4\" icon = \"Xmark\" color=\"#bd2608\" active=\"false\"/>\r\n<Image id=\"info\" image=\"Blank Info\" position=\"35 -85 -20\" width=\"156\" height=\"6\"/>\r\n<Image id=\"rootLogo\" position=\"-87.5 80 -20\" width=\"75\" height=\"25\" image=\"Root Logo\"/>\r\n\r\n\r\n\r\n<!--<Button id=\"Clear All\" onclick=\"clearAll\"  icon = \"Xmark\" position=\"90 -88.5 -20\" width=\"20\" height=\"20\" color=\"#808080\"/>-->\r\n\r\n\r\n\r\n\r\n<ToggleGroup id=\"Main Nav\" active=\"True\">\n  \r\n  \r\n  \r\n  \r\n\r\n</ToggleGroup>\r\n\r\n\r\n\r\n<ToggleGroup id=\"standardButtons\" active=\"False\">\n  <Button onclick=\"makeFaction\" onMouseEnter=\"infoOfficialContent\" onMouseExit=\"clearInfo\" category=\"Standard\" id=\"Knaves of the Deepwood\" position=\"95 45 -20\" width=\"40\" height=\"40\" fontSize=\"8\" icon=\"Knaves of the Deepwood\" color=\"gray\"/>\r\n\r\n    <Button onclick=\"makeFaction\" onMouseEnter=\"infoOfficialContent\" onMouseExit=\"clearInfo\" category=\"Standard\" id=\"Marquise de Cat\" position=\"-25 45 -20\" width=\"40\" height=\"40\" fontSize=\"8\" icon=\"Marquise de Cat\" color=\"#d77435\"/>\r\n    <Button onclick=\"makeFaction\" onMouseEnter=\"infoOfficialContent\" onMouseExit=\"clearInfo\" category=\"Standard\" id=\"Eyrie Dynasties\" position=\"15 45 -20\" width=\"40\" height=\"40\" fontSize=\"8\" icon=\"Eyrie Dynasties\" color=\"#4776b6\"/>\r\n    <Button onclick=\"makeFaction\" onMouseEnter=\"infoOfficialContent\" onMouseExit=\"clearInfo\" category=\"Standard\" id=\"Woodland Alliance\" position=\"55 45 -20\" width=\"40\" height=\"40\" fontSize=\"8\" icon=\"Woodland Alliance\" color=\"#6bb659\"/>\r\n    \r\n\r\n    <Button onclick=\"makeFaction\" onMouseEnter=\"infoOfficialContent\" onMouseExit=\"clearInfo\" category=\"Standard\" id=\"The Lizard Cult\" position=\"-25 -5 -20\" width=\"40\" height=\"40\" fontSize=\"8\" icon=\"The Lizard Cult\" color=\"#e8e138\"/>\r\n    <Button onclick=\"makeFaction\" onMouseEnter=\"infoOfficialContent\" onMouseExit=\"clearInfo\" category=\"Standard\" id=\"Riverfolk Company\" position=\"15 -5 -20\" width=\"40\" height=\"40\" fontSize=\"8\" icon=\"Riverfolk Company\" color=\"#5cbab4\"/>\r\n    <Button onclick=\"makeFaction\" onMouseEnter=\"infoOfficialContent\" onMouseExit=\"clearInfo\" category=\"Standard\" id=\"Underground Duchy\" position=\"55 -5 -20\" width=\"40\" height=\"40\" fontSize=\"8\" icon=\"Underground Duchy\" color=\"#e4c0a2\"/>\r\n    <Button onclick=\"makeFaction\" onMouseEnter=\"infoOfficialContent\" onMouseExit=\"clearInfo\" category=\"Standard\" id=\"Corvid Conspiracy\" position=\"95 -5 -20\" width=\"40\" height=\"40\" fontSize=\"8\" icon=\"Corvid Conspiracy\" color=\"#542c75\"/>\r\n\r\n    <Button onclick=\"makeFaction\" onMouseEnter=\"infoOfficialContent\" onMouseExit=\"clearInfo\" category=\"Standard\" id=\"Lord of the Hundreds\" position=\"-25 -55 -20\" width=\"40\" height=\"40\" fontSize=\"8\" icon=\"Lord of the Hundreds\" color=\"#f3461b\"/>\r\n    <Button onclick=\"makeFaction\" onMouseEnter=\"infoOfficialContent\" onMouseExit=\"clearInfo\" category=\"Standard\" id=\"Keepers in Iron\" position=\"15 -55 -20\" width=\"40\" height=\"40\" fontSize=\"8\" icon=\"Keepers in Iron\" color=\"#acadb1\"/>\r\n    <Button onclick=\"makeFaction\" onMouseEnter=\"infoOfficialContent\" onMouseExit=\"clearInfo\" category=\"Standard\" id=\"Twilight Council\" position=\"55 -55 -20\" width=\"40\" height=\"40\" fontSize=\"8\" icon=\"Twilight Council\" color=\"#964E30\"/>\r\n    <Button onclick=\"makeFaction\" onMouseEnter=\"infoOfficialContent\" onMouseExit=\"clearInfo\" category=\"Standard\" id=\"Lilypad Diaspora\" position=\"95 -55 -20\" width=\"40\" height=\"40\" fontSize=\"8\" icon=\"Lilypad Diaspora\" color=\"#B09804\"/>\r\n\r\n</ToggleGroup>\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n<ToggleGroup id=\"mapButtonsStandard\" active=\"True\">\r\n    \r\n    <Button id=\"Winter Map\" onMouseEnter=\"infoOfficialContent\" onMouseExit=\"clearInfo\" onclick=\"makeMap\" position=\"19 16.5 -20\" width=\"34\" height=\"34\" fontSize=\"8\" icon =\"Winter Map\" color=\"#6b8a8f\"/>\r\n    \r\n    <Button id=\"Lake Map\" onMouseEnter=\"infoOfficialContent\" onMouseExit=\"clearInfo\" onclick=\"makeMap\" position=\"-57 16.5 -20\" width=\"34\" height=\"34\" fontSize=\"8\" icon =\"Lake Map\" color=\"#42a0c2\"/>\r\n    <Button id=\"Mountain Map\" onMouseEnter=\"infoOfficialContent\" onMouseExit=\"clearInfo\" onclick=\"makeMap\" position=\"57 16.5 -20\" width=\"34\" height=\"34\" fontSize=\"8\" icon =\"Mountain Map\" color=\"#764a52\"/>\r\n    \r\n    <Button id=\"Marsh Map\" onMouseEnter=\"infoOfficialContent\" onMouseExit=\"clearInfo\" onclick=\"makeMap\" position=\"-19 16.5 -20\" width=\"34\" height=\"34\" fontSize=\"8\" icon =\"Marsh Map\" color=\"#9b8551\"/>\r\n    <Button id=\"Gorge Map\" onMouseEnter=\"infoOfficialContent\" onMouseExit=\"clearInfo\" onclick=\"makeMap\" position=\"95 16.5 -20\" width=\"34\" height=\"34\" fontSize=\"8\" icon =\"Gorge Map\" color=\"#61746b\"/>\r\n\r\n    <Button id=\"Summer Map\" onClick=\"makeMap\" onMouseEnter = \"infoNevakanezahAndSlug\" onMouseExit=\"clearInfo\" position=\"-95 16.5 -20\" width=\"34\" height=\"34\" fontSize=\"8\" icon =\"Autumn Map\" color=\"#4b4d35\"/>\r\n    \r\n    \r\n    \r\n\r\n    \r\n\r\n</ToggleGroup>\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n<ToggleGroup id=\"decksButtonsStandard\" active=\"True\">\r\n    <Button id=\"Standard Deck\" onMouseEnter=\"infoOfficialContent\" onMouseExit=\"clearInfo\" onclick=\"makeDeck\" position=\"-38 -23.5 -20\" width=\"34\" height=\"34\" fontSize=\"8\" icon=\"Standard Deck\" color=\"#8d7f81\"/>\r\n    <Button id=\"Exiles and Partisans Deck\" onMouseEnter=\"infoOfficialContent\" onMouseExit=\"clearInfo\" onclick=\"makeDeck\" position=\"0 -23.5 -20\" width=\"34\" height=\"34\" fontSize=\"8\" icon =\"Exiles and Partisans Deck\" color=\"#378f90\"/>\r\n    <Button id=\"Squires and Disciples Deck\" onMouseEnter=\"infoOfficialContent\" onMouseExit=\"clearInfo\" onclick=\"makeDeck\" position=\"38 -23.5 -20\" width=\"34\" height=\"34\" fontSize=\"8\" icon =\"Squires and Disciples Deck\" color=\"#AB6894\"/>\r\n    \r\n\r\n    \r\n</ToggleGroup>\r\n\r\n\r\n\r\n<ToggleGroup id=\"setupButtons\" active=\"True\">\n  <Button id=\"rttThemeBtn\" onclick=\"rttArmTheme\" icon=\"ThemeArt\" color=\"#49514b\" position=\"38 51.5 -20\" width=\"34\" height=\"34\"/>\n  <Button id=\"rttRankedBtn\" onclick=\"rttArmRanked\" icon=\"RankedArt\" color=\"#030411\" position=\"0 51.5 -20\" width=\"34\" height=\"34\"/><Button id=\"rttFourBoardsBtn\" onclick=\"rttArmFour\" icon=\"FourBoardsArt\" color=\"#3a2f22\" position=\"-38 51.5 -20\" width=\"34\" height=\"34\"/>\n  <Button id=\"rttCreditsBtn\" onclick=\"rttShowCredits\" icon=\"CreditsBtnArt\" position=\"57 -78 -20\" width=\"36\" height=\"20\" color=\"#f6e4bd\"/><Button id=\"Faction Cards\" onclick=\"rttSpawnHootDraft\" onMouseEnter=\"infoOfficialContent\" onMouseExit=\"clearInfo\" icon=\"FactionCardsArt\" position=\"19 -78 -20\" width=\"36\" height=\"20\" color=\"#2c231a\"/><Button id=\"Marsh5PSetup\" onclick=\"rttArmFiveSetup\" icon=\"FivePlayerSetupArt\" position=\"-95 -78 -20\" width=\"36\" height=\"20\" color=\"#463221\"/><Button id=\"Marsh5P\" onclick=\"rttArmMarsh5P\" icon=\"FivePlayerArt\" position=\"-57 -78 -20\" width=\"36\" height=\"20\" color=\"#463221\"/><Button id=\"Marsh5PMap\" onclick=\"rttPlaceMarsh5P\" icon=\"Marsh5PLabel\" position=\"-19 -78 -20\" width=\"36\" height=\"20\" color=\"#81745b\"/>\n  \n   <!--######-->\r\n\r\n  \r\n  <Button id=\"Vagabond Cards\" onclick=\"makeTool\" onMouseEnter=\"infoOfficialContent\" onMouseExit=\"clearInfo\" position=\"57 -55 -20\" width=\"36\" height=\"20\" fontSize=\"8\" icon =\"Vagabond Cards\" color=\"#777879\"/>\r\n  \r\n  \r\n\r\n\r\n  \r\n\r\n  \r\n  <Button id=\"Landmarks\" onclick =\"makeTool\" onMouseEnter=\"infoOfficialContent\" onMouseExit=\"clearInfo\" position=\"95 -55 -20\" width=\"36\" height=\"20\" fontSize=\"8\" icon =\"Landmarks\" color=\"#724a42\"/>\r\n  \r\n  \r\n\r\n  \r\n  \r\n\r\n\r\n  \r\n\r\n  \r\n  \r\n  \r\n  \r\n\r\n  \r\n  \r\n  \r\n  \r\n\r\n</ToggleGroup>\r\n\r\n<ToggleGroup id=\"toolsButtons\" active=\"True\">\r\n    \r\n    \r\n    \r\n    \r\n</ToggleGroup>\r\n\r\n<ToggleGroup id = \"tools1\" active=\"True\"><Button id=\"Bat Bungler\" onclick=\"makeTool\" onMouseEnter=\"infoNevakanezah\" onMouseExit=\"clearInfo\" position=\"-57 -55 -20\" width=\"36\" height=\"20\" fontSize=\"7\" icon=\"Bat Bungler\" color=\"#57331fff\"/><Button id=\"Koffin Keeper\" onclick=\"makeTool\" onMouseEnter=\"infoOfficialContent\" onMouseExit=\"clearInfo\" position=\"19 -55 -20\" width=\"36\" height=\"20\" fontSize=\"7\" icon=\"Koffin Keeper\" color=\"#4a3b2a\"/>\r\n    \r\n\r\n    <Button id=\"Faction Select\" onclick=\"makeFactionSelector\" onMouseEnter=\"infoEhssAndSlug\" onMouseExit=\"clearInfo\" position=\"-95 -55 -20\" width=\"36\" height=\"20\" fontSize=\"7\" icon=\"Faction Selector Tool\" color=\"#2c231a\"/>  \r\n\r\n    \r\n    \r\n\r\n    \r\n    \r\n    \r\n    \r\n\r\n    \r\n    \r\n\r\n\r\n\r\n    \r\n    \r\n    <Button id=\"Mob Lobber\" onclick=\"makeTool\" onMouseEnter = \"infoNevakanezah\" onMouseExit=\"clearInfo\" position=\"-19 -55 -20\" width=\"36\" height=\"20\" fontSize=\"7\" icon =\"Mob Lobber\" color=\"#eb4c27\"/>\r\n\r\n    \r\n</ToggleGroup><ToggleGroup id=\"creditsPanel\" active=\"False\"><Image id=\"creditsPage\" image=\"CreditsPanelArt\" position=\"0 -8 -22\" width=\"236\" height=\"152\"/><Button id=\"rttCreditsBack\" onclick=\"rttHideCredits\" icon=\"BackBtnArt\" position=\"0 -78 -24\" width=\"46\" height=\"18\" color=\"#f8e5ba\"/></ToggleGroup>\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n  ",
-      "CustomUIAssets": [{"Type":0,"Name":"Bat Bungler","URL":"https://cdn.jsdelivr.net/gh/mrdrouf/root-tabletop-tournament@main/assets/labels/bat_bungler_lum.png"},{"Name":"Koffin Keeper","URL":"https://cdn.jsdelivr.net/gh/mrdrouf/root-tabletop-tournament@main/assets/labels/koffin_keeper_lum.png"},{"Name":"Mole Monger","URL":"https://steamusercontent-a.akamaihd.net/ugc/1728793367872336052/05940C3730A58F0B71A020D512486BB890F45550/"},{"Name":"WipeConfirmArt","URL":"https://cdn.jsdelivr.net/gh/mrdrouf/root-tabletop-tournament@main/assets/buttons/wipe_confirm_sq_v3.png"},{"Name":"WipeConfirmArtWide","URL":"https://cdn.jsdelivr.net/gh/mrdrouf/root-tabletop-tournament@main/assets/buttons/wipe_confirm_wide_v3.png"},{"Name":"CreditArt","URL":"https://cdn.jsdelivr.net/gh/mrdrouf/root-tabletop-tournament@main/assets/credit/credit_ink_v2.png"},
+      "CustomUIAssets": [{"Type":0,"Name":"Bat Bungler","URL":"https://cdn.jsdelivr.net/gh/mrdrouf/root-tabletop-tournament@main/assets/labels/bat_bungler_lum_1d5ac5fe.png"},{"Name":"Koffin Keeper","URL":"https://cdn.jsdelivr.net/gh/mrdrouf/root-tabletop-tournament@main/assets/labels/koffin_keeper_lum_f197eb56.png"},{"Name":"Mole Monger","URL":"https://steamusercontent-a.akamaihd.net/ugc/1728793367872336052/05940C3730A58F0B71A020D512486BB890F45550/"},{"Name":"WipeConfirmArt","URL":"https://cdn.jsdelivr.net/gh/mrdrouf/root-tabletop-tournament@main/assets/buttons/wipe_confirm_sq_v3_1688f70a.png"},{"Name":"WipeConfirmArtWide","URL":"https://cdn.jsdelivr.net/gh/mrdrouf/root-tabletop-tournament@main/assets/buttons/wipe_confirm_wide_v3_b41de210.png"},{"Name":"CreditArt","URL":"https://cdn.jsdelivr.net/gh/mrdrouf/root-tabletop-tournament@main/assets/credit/credit_ink_v2_e40f828c.png"},
         {
           "Type": 0,
           "Name": "ThemeArt",
-          "URL": "https://cdn.jsdelivr.net/gh/mrdrouf/root-tabletop-tournament@main/assets/labels/theme_art_lum.png"
+          "URL": "https://cdn.jsdelivr.net/gh/mrdrouf/root-tabletop-tournament@main/assets/labels/theme_art_lum_1a9323e6.png"
         },
         {
           "Type": 0,
           "Name": "RankedArt",
-          "URL": "https://cdn.jsdelivr.net/gh/mrdrouf/root-tabletop-tournament@main/assets/labels/four_player_draft_art_v4.png"
+          "URL": "https://cdn.jsdelivr.net/gh/mrdrouf/root-tabletop-tournament@main/assets/labels/four_player_draft_art_v4_3373fe8c.png"
         },
         {
           "Type": 0,
           "Name": "FivePlayerArt",
-          "URL": "https://cdn.jsdelivr.net/gh/mrdrouf/root-tabletop-tournament@main/assets/labels/five_player_draft_label_v6.png"
+          "URL": "https://cdn.jsdelivr.net/gh/mrdrouf/root-tabletop-tournament@main/assets/labels/five_player_draft_label_v6_2ef45170.png"
         },{
           "Type": 0,
           "Name": "FivePlayerSetupArt",
-          "URL": "https://cdn.jsdelivr.net/gh/mrdrouf/root-tabletop-tournament@main/assets/labels/five_player_setup_label_v6.png"
+          "URL": "https://cdn.jsdelivr.net/gh/mrdrouf/root-tabletop-tournament@main/assets/labels/five_player_setup_label_v6_02553330.png"
         },{
           "Type": 0,
           "Name": "FactionCardsArt",
-          "URL": "https://cdn.jsdelivr.net/gh/mrdrouf/root-tabletop-tournament@main/assets/labels/faction_cards_label_v4.png"
+          "URL": "https://cdn.jsdelivr.net/gh/mrdrouf/root-tabletop-tournament@main/assets/labels/faction_cards_label_v4_b05be2af.png"
         },{
           "Type": 0,
           "Name": "CreditsBtnArt",
-          "URL": "https://cdn.jsdelivr.net/gh/mrdrouf/root-tabletop-tournament@main/assets/labels/credits_button_v5.png"
+          "URL": "https://cdn.jsdelivr.net/gh/mrdrouf/root-tabletop-tournament@main/assets/labels/credits_button_v5_6811a65d.png"
         },{
           "Type": 0,
           "Name": "BackBtnArt",
-          "URL": "https://cdn.jsdelivr.net/gh/mrdrouf/root-tabletop-tournament@main/assets/labels/back_button_v3.png"
+          "URL": "https://cdn.jsdelivr.net/gh/mrdrouf/root-tabletop-tournament@main/assets/labels/back_button_v3_9b3e53d0.png"
         },{
           "Type": 0,
           "Name": "CreditsPanelArt",
-          "URL": "https://cdn.jsdelivr.net/gh/mrdrouf/root-tabletop-tournament@main/assets/labels/credits_panel_v5.png"
+          "URL": "https://cdn.jsdelivr.net/gh/mrdrouf/root-tabletop-tournament@main/assets/labels/credits_panel_v5_9db5a39f.png"
         },
         {
           "Type": 0,
           "Name": "Marsh5PLabel",
-          "URL": "https://cdn.jsdelivr.net/gh/mrdrouf/root-tabletop-tournament@main/assets/labels/five_players_marsh_label_v4.png"
+          "URL": "https://cdn.jsdelivr.net/gh/mrdrouf/root-tabletop-tournament@main/assets/labels/five_players_marsh_label_v4_8e00d14d.png"
         },
         {
           "Type": 0,
           "Name": "FourBoardsArt",
-          "URL": "https://cdn.jsdelivr.net/gh/mrdrouf/root-tabletop-tournament@main/assets/labels/four_player_setup_art_v5.png"
+          "URL": "https://cdn.jsdelivr.net/gh/mrdrouf/root-tabletop-tournament@main/assets/labels/four_player_setup_art_v5_9de6c4ed.png"
         },
         {
           "Type": 0,
           "Name": "BoxScoreArt",
-          "URL": "https://cdn.jsdelivr.net/gh/mrdrouf/root-tabletop-tournament@main/assets/labels/box_score_btn_v2.png"
+          "URL": "https://cdn.jsdelivr.net/gh/mrdrouf/root-tabletop-tournament@main/assets/labels/box_score_btn_v2_46b7cdb4.png"
         },
         {
           "Type": 0,
           "Name": "Marquise de Cat",
-          "URL": "https://cdn.jsdelivr.net/gh/mrdrouf/root-tabletop-tournament@main/assets/labels/fac_marquise_lum.png"
+          "URL": "https://cdn.jsdelivr.net/gh/mrdrouf/root-tabletop-tournament@main/assets/labels/fac_marquise_lum_4dae85f2.png"
         },
         {
           "Type": 0,
           "Name": "Eyrie Dynasties",
-          "URL": "https://cdn.jsdelivr.net/gh/mrdrouf/root-tabletop-tournament@main/assets/labels/fac_eyrie_lum.png"
+          "URL": "https://cdn.jsdelivr.net/gh/mrdrouf/root-tabletop-tournament@main/assets/labels/fac_eyrie_lum_b8a6e8c7.png"
         },
         {
           "Type": 0,
           "Name": "Woodland Alliance",
-          "URL": "https://cdn.jsdelivr.net/gh/mrdrouf/root-tabletop-tournament@main/assets/labels/fac_alliance_lum.png"
+          "URL": "https://cdn.jsdelivr.net/gh/mrdrouf/root-tabletop-tournament@main/assets/labels/fac_alliance_lum_91f8641c.png"
         },
         {
           "Type": 0,
           "Name": "The Lizard Cult",
-          "URL": "https://cdn.jsdelivr.net/gh/mrdrouf/root-tabletop-tournament@main/assets/labels/fac_lizard_lum.png"
+          "URL": "https://cdn.jsdelivr.net/gh/mrdrouf/root-tabletop-tournament@main/assets/labels/fac_lizard_lum_7bdf6eae.png"
         },
         {
           "Type": 0,
           "Name": "Riverfolk Company",
-          "URL": "https://cdn.jsdelivr.net/gh/mrdrouf/root-tabletop-tournament@main/assets/labels/fac_riverfolk_lum.png"
+          "URL": "https://cdn.jsdelivr.net/gh/mrdrouf/root-tabletop-tournament@main/assets/labels/fac_riverfolk_lum_47ea329b.png"
         },
         {
           "Type": 0,
           "Name": "Underground Duchy",
-          "URL": "https://cdn.jsdelivr.net/gh/mrdrouf/root-tabletop-tournament@main/assets/labels/fac_duchy_lum.png"
+          "URL": "https://cdn.jsdelivr.net/gh/mrdrouf/root-tabletop-tournament@main/assets/labels/fac_duchy_lum_4d969c3b.png"
         },
         {
           "Type": 0,
           "Name": "Corvid Conspiracy",
-          "URL": "https://cdn.jsdelivr.net/gh/mrdrouf/root-tabletop-tournament@main/assets/labels/fac_corvid_lum.png"
+          "URL": "https://cdn.jsdelivr.net/gh/mrdrouf/root-tabletop-tournament@main/assets/labels/fac_corvid_lum_3d2beae0.png"
         },
         {
           "Type": 0,
           "Name": "Lord of the Hundreds",
-          "URL": "https://cdn.jsdelivr.net/gh/mrdrouf/root-tabletop-tournament@main/assets/labels/fac_hundreds_lum.png"
+          "URL": "https://cdn.jsdelivr.net/gh/mrdrouf/root-tabletop-tournament@main/assets/labels/fac_hundreds_lum_b4350df9.png"
         },
         {
           "Type": 0,
           "Name": "Keepers in Iron",
-          "URL": "https://cdn.jsdelivr.net/gh/mrdrouf/root-tabletop-tournament@main/assets/labels/fac_keepers_lum.png"
+          "URL": "https://cdn.jsdelivr.net/gh/mrdrouf/root-tabletop-tournament@main/assets/labels/fac_keepers_lum_0ae8d030.png"
         },
         {
           "Type": 0,
           "Name": "Twilight Council",
-          "URL": "https://cdn.jsdelivr.net/gh/mrdrouf/root-tabletop-tournament@main/assets/labels/fac_twilight_lum.png"
+          "URL": "https://cdn.jsdelivr.net/gh/mrdrouf/root-tabletop-tournament@main/assets/labels/fac_twilight_lum_88d69e71.png"
         },
         {
           "Type": 0,
           "Name": "Lilypad Diaspora",
-          "URL": "https://cdn.jsdelivr.net/gh/mrdrouf/root-tabletop-tournament@main/assets/labels/fac_lilypad_lum.png"
+          "URL": "https://cdn.jsdelivr.net/gh/mrdrouf/root-tabletop-tournament@main/assets/labels/fac_lilypad_lum_d4954f68.png"
         },
         {
           "Type": 0,
           "Name": "Knaves of the Deepwood",
-          "URL": "https://cdn.jsdelivr.net/gh/mrdrouf/root-tabletop-tournament@main/assets/labels/fac_knaves_lum.png"
+          "URL": "https://cdn.jsdelivr.net/gh/mrdrouf/root-tabletop-tournament@main/assets/labels/fac_knaves_lum_d30181c2.png"
         },
         {
           "Type": 0,
           "Name": "Landmarks",
-          "URL": "https://cdn.jsdelivr.net/gh/mrdrouf/root-tabletop-tournament@main/assets/labels/landmarks_label_v6.png"
+          "URL": "https://cdn.jsdelivr.net/gh/mrdrouf/root-tabletop-tournament@main/assets/labels/landmarks_label_v6_759ae4b2.png"
         },
         {
           "Type": 0,
@@ -2241,12 +2241,12 @@
         {
           "Type": 0,
           "Name": "Vagabond Cards",
-          "URL": "https://cdn.jsdelivr.net/gh/mrdrouf/root-tabletop-tournament@main/assets/labels/vagabond_cards_lum.png"
+          "URL": "https://cdn.jsdelivr.net/gh/mrdrouf/root-tabletop-tournament@main/assets/labels/vagabond_cards_lum_aa198324.png"
         },
         {
           "Type": 0,
           "Name": "Faction Selector Tool",
-          "URL": "https://cdn.jsdelivr.net/gh/mrdrouf/root-tabletop-tournament@main/assets/labels/faction_selector_lum.png"
+          "URL": "https://cdn.jsdelivr.net/gh/mrdrouf/root-tabletop-tournament@main/assets/labels/faction_selector_lum_9eb9e28d.png"
         },
         {
           "Type": 0,
@@ -2261,47 +2261,47 @@
         {
           "Type": 0,
           "Name": "Autumn Map",
-          "URL": "https://cdn.jsdelivr.net/gh/mrdrouf/root-tabletop-tournament@main/assets/labels/map_autumn_lum.png"
+          "URL": "https://cdn.jsdelivr.net/gh/mrdrouf/root-tabletop-tournament@main/assets/labels/map_autumn_lum_107c139c.png"
         },
         {
           "Type": 0,
           "Name": "Winter Map",
-          "URL": "https://cdn.jsdelivr.net/gh/mrdrouf/root-tabletop-tournament@main/assets/labels/map_winter_lum.png"
+          "URL": "https://cdn.jsdelivr.net/gh/mrdrouf/root-tabletop-tournament@main/assets/labels/map_winter_lum_95d7796f.png"
         },
         {
           "Type": 0,
           "Name": "Lake Map",
-          "URL": "https://cdn.jsdelivr.net/gh/mrdrouf/root-tabletop-tournament@main/assets/labels/map_lake_lum.png"
+          "URL": "https://cdn.jsdelivr.net/gh/mrdrouf/root-tabletop-tournament@main/assets/labels/map_lake_lum_74786a83.png"
         },
         {
           "Type": 0,
           "Name": "Mountain Map",
-          "URL": "https://cdn.jsdelivr.net/gh/mrdrouf/root-tabletop-tournament@main/assets/labels/map_mountain_lum.png"
+          "URL": "https://cdn.jsdelivr.net/gh/mrdrouf/root-tabletop-tournament@main/assets/labels/map_mountain_lum_09a27bdd.png"
         },
         {
           "Type": 0,
           "Name": "Marsh Map",
-          "URL": "https://cdn.jsdelivr.net/gh/mrdrouf/root-tabletop-tournament@main/assets/labels/map_marsh_lum.png"
+          "URL": "https://cdn.jsdelivr.net/gh/mrdrouf/root-tabletop-tournament@main/assets/labels/map_marsh_lum_11f2f1df.png"
         },
         {
           "Type": 0,
           "Name": "Gorge Map",
-          "URL": "https://cdn.jsdelivr.net/gh/mrdrouf/root-tabletop-tournament@main/assets/labels/map_gorge_lum.png"
+          "URL": "https://cdn.jsdelivr.net/gh/mrdrouf/root-tabletop-tournament@main/assets/labels/map_gorge_lum_be82b0ab.png"
         },
         {
           "Type": 0,
           "Name": "Standard Deck",
-          "URL": "https://cdn.jsdelivr.net/gh/mrdrouf/root-tabletop-tournament@main/assets/labels/deck_base_lum.png"
+          "URL": "https://cdn.jsdelivr.net/gh/mrdrouf/root-tabletop-tournament@main/assets/labels/deck_base_lum_63570085.png"
         },
         {
           "Type": 0,
           "Name": "Exiles and Partisans Deck",
-          "URL": "https://cdn.jsdelivr.net/gh/mrdrouf/root-tabletop-tournament@main/assets/labels/deck_exiles_lum.png"
+          "URL": "https://cdn.jsdelivr.net/gh/mrdrouf/root-tabletop-tournament@main/assets/labels/deck_exiles_lum_580f1cfc.png"
         },
         {
           "Type": 0,
           "Name": "Squires and Disciples Deck",
-          "URL": "https://cdn.jsdelivr.net/gh/mrdrouf/root-tabletop-tournament@main/assets/labels/deck_squires_lum.png"
+          "URL": "https://cdn.jsdelivr.net/gh/mrdrouf/root-tabletop-tournament@main/assets/labels/deck_squires_lum_ad79822c.png"
         },
         {
           "Type": 0,
@@ -2321,7 +2321,7 @@
         {
           "Type": 0,
           "Name": "Mob Lobber",
-          "URL": "https://cdn.jsdelivr.net/gh/mrdrouf/root-tabletop-tournament@main/assets/labels/mob_lobber_lum.png"
+          "URL": "https://cdn.jsdelivr.net/gh/mrdrouf/root-tabletop-tournament@main/assets/labels/mob_lobber_lum_8ac88b58.png"
         },
         {
           "Type": 0,
