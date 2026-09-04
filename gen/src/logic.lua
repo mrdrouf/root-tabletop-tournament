@@ -4022,25 +4022,25 @@ function rttFactionExtras(faction, cx, cz, flip, isDraft)
   -- Knaves: the Captains board + its pooled captains now spawn FROM the faction blueprint's own
   -- rules-board callback (see rttSpawnFaction), so they appear WITH the faction at the CORRECT seat.
   elseif faction == "Marquise de Cat" then rttMarquiseCats(cx, cz, flip)
-  elseif faction == "Woodland Alliance" then rttAllianceSupportersZone(cx, cz, flip)
+  elseif faction == "Woodland Alliance" then rttAllianceSupportersHand(cx, cz)
   end
 end
 
--- ---- Woodland Alliance: the SUPPORTERS hand zone -------------------------------------------
--- Maintainer: "the supporter area of the Woodland Alliance is another hand area that is only visible to
--- the player, where a card can snap and fall into place, but no, there is nothing there."
--- He is right that it is missing, and it was never ours to lose: there is NOT ONE HandTrigger or
--- FogOfWarTrigger anywhere in content.lua, for any faction. The printed supporters TILE spawns (guid
--- 78a15f, board-local (-12.13,-9.40), 7.80 x 4.27) but nothing makes it a hand.
--- So spawn a HandTrigger over that tile, owned by the Alliance player's colour, exactly the way
--- rttCrowsHiddenZone spawns the Corvid fog box. Sized to the tile, y from the crow zone's own height.
-RTT_ALLY_SUP_LOCAL = { -12.131444, -9.399722 }     -- the supporters tile, board-local
-RTT_ALLY_SUP_SCALE = { 7.80, 6.00, 4.27 }          -- x/z match the tile; y is the zone's height
-RTT_ALLY_SUP_JSON  = [==[{"Name":"HandTrigger","Transform":{"posX":0.0,"posY":0.0,"posZ":0.0,"rotX":0.0,"rotY":0.0,"rotZ":0.0,"scaleX":1.0,"scaleY":1.0,"scaleZ":1.0},"Nickname":"Alliance Supporters","Description":"","GMNotes":"","ColorDiffuse":{"r":0.443,"g":0.231,"b":0.09,"a":0.0},"Locked":true,"Grid":false,"Snap":true,"IgnoreFoW":false,"MeasureMovement":false,"DragSelectable":true,"Autoraise":true,"Sticky":true,"Tooltip":true,"GridProjection":false,"HideWhenFaceDown":false,"Hands":false,"FogColor":"White","LuaScript":"","LuaScriptState":"","XmlUI":""}]==]
-
-function rttAllianceSupportersZone(cx, cz, flip)
-  -- the Alliance player's colour: prefer what RTT actually seated (authoritative), else the seated
-  -- player whose hand zone is nearest this board, as the crow zone does.
+-- ---- Woodland Alliance: the SUPPORTERS hand -----------------------------------------------
+-- Maintainer: "the supporter area is another hand area that is only visible to the player, where a card
+-- can snap and fall into place, but no, there is nothing there... It was working there in the previous
+-- version. It certainly was in the base one." Both true, and I was wrong to start building a new one.
+--
+-- It is not an object at all: the base mod configures the player's SECOND HAND (setHandTransform index
+-- 2), which is what the ten parked 1x1x1 HandTriggers at x=-75 -- one per colour -- exist for. RTT
+-- carries those zones in save.json but lost the code that positions them, so the hand stayed parked off
+-- to the side and cards had nothing to snap into.
+--
+-- Restored VERBATIM from the base board's own spawnSupportersHand (legacy/mods-history:
+-- base/2516434159.json, object bab7e1) -- same 2.517 rad constant, same 14.73 offset, same scale --
+-- with only the colour resolution changed: RTT seats players itself, so it prefers RTT_SEAT_COLOR and
+-- falls back to the seated player nearest the board, as rttCrowsHiddenZone does.
+function rttAllianceSupportersHand(cx, cz)
   local color = nil
   local okC, rawC = pcall(function() return Global.getVar("RTT_SEAT_COLOR") end)
   if okC and type(rawC) == "string" and rawC ~= "" then
@@ -4060,18 +4060,21 @@ function rttAllianceSupportersZone(cx, cz, flip)
       end
     end
   end
-  if color == nil or color == "" then return end          -- nobody to own it: do not spawn a stray zone
-  local lx, lz = RTT_ALLY_SUP_LOCAL[1], RTT_ALLY_SUP_LOCAL[2]
-  if flip then lx, lz = -lx, -lz end                       -- far-side seat mirrors, like every other placement
-  local blob = string.gsub(RTT_ALLY_SUP_JSON, '"FogColor":"White"', '"FogColor":"' .. color .. '"')
-  spawnObjectJSON({
-    json = blob,
-    position = { cx + lx, 14.11, cz + lz },
-    rotation = { 0, flip and 180 or 0, 0 },
-    scale = RTT_ALLY_SUP_SCALE,
-    callback_function = function(o) o.setLock(true) o.addTag("RTT Faction") end
-  })
+  if color == nil or color == "" then return end
+  pcall(function()
+    local h1 = Player[color].getHandTransform(1)
+    if h1 == nil then return end
+    local angle = 2.517 - (math.pi / 180 * h1.rotation.y)
+    Player[color].setHandTransform({
+      position = Vector({ h1.position.x + math.cos(angle) * 14.73, 12.56,
+                          h1.position.z + math.sin(angle) * 14.73 }),
+      rotation = h1.rotation,
+      scale    = { 12, 5.4, 5.50 },
+    }, 2)
+  end)
 end
+
+
 
 
 
