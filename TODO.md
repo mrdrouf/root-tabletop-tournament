@@ -1,45 +1,59 @@
 # Root Tabletop Tournament — to-do
 
-Ordered backlog. Newest big items at the bottom.
+**`WORK_QUEUE.md` is the live queue.** Every open task, every new request and every
+"still broken" report lives there. This file holds only the longer-lived design
+questions that need a decision or an in-TTS eyeball from the maintainer, plus a
+short orientation for whoever picks the project up next.
 
-## Done & building green
-- **Full RTT draft flow** (`m470`): lightweight selectors, map/deck pick, 5-card deal,
-  reverse faction draft, board-removed-then-faction spawn, Knaves captains, box score.
-- **RGBA Ranked/Theme buttons** (`m480`) — wired to the 150×150 RGBA uploads.
-- **5-player setup button art** (`m240`) — top-down `5players.png` (Steam-hosted RGBA).
-- **Box score** (`m470`/`_boxscore.json`) — spawns at the maintainer's placed spot
-  (-59.09,11.65,-3.15) rotY270, scaled to fill the board rectangle (~1.3× wide, 1.1× tall).
-- **Priority markers** all fixed-clearing maps (`m460`) + **Marsh flood-aware** (drop the
-  token on each flooded clearing; `m440` exports `RTT_MARSH_FLOODED`).
-- **VP markers** (`m470`) — placed on the score-0 column's real snap rows, rotation
-  normalised to the track (fixes far-side upside-down).
-- **Per-faction setup extras** (`m490`, dispatched after each faction spawns):
-  - *Lizard Cult*: spawn the Lizard Wizard tool, remove the Outcast Marker, shift the
-    frogs' Pond aside if it's out.
-  - *Lilypad Diaspora (frogs)*: shuffle the 14 frog cards into the shared deck; place The
-    Pond by the discard (default spot, or shifted when the Lizard's Lost Souls is in play).
-  - *Keepers in Iron (badgers)*: draw one relic per forest from the Relics bag onto the
-    forest centroid (extras stay in the bag for manual placement).
-  - *Twilight Council (bats)*: place one Assembly on the board's first assembly snap and
-    arrange 6 warriors as a pack-of-4 + pack-of-2.
-  - *Corvid Conspiracy (crows)*: 12 plots (3 of each type) in a clean 4×3 grid on the board.
-  - *Mountain map*: never the Tower — roll a d4; 0 → Lost City, else the middle-clearing
-    suit's landmark; place the landmark's rules card at the map's lower-left.
+---
 
-## Needs an in-TTS visual pass / a decision from the maintainer
-1. **Mountain middle-clearing suit** — I can't find a suit token in the save to read
-   (suits look printed), so `rttMiddleSuit()` returns nil and the roll currently always
-   yields **Lost City**. Tell me how the middle clearing's suit is encoded (a token image?
-   a nickname?) and I'll wire rabbit→Rabbit-Town / fox→Foxburrow / mouse→Mousehold.
-2. **Mountain landmark + card positions** — landmark spawns at your Mousehold spot
-   (2.46,11.66,6.03); the rules card goes to a best-guess lower-left (-22,-22). Confirm
-   or nudge. (Only the Lost City *rules card* exists in the mod — the other three landmark
-   cards aren't present; the landmark model still spawns.)
-3. **Bats / Crows placement** is relative to the faction board found at the seat — verify
-   the assembly/warrior and the 12-plot grid land cleanly at every seat.
-4. **VP stacking / orientation, Lizard/frog shuffle, Badger relic spots** — eyeball once.
+## Orientation (read this before touching anything)
+
+- The build is **three files**: `gen/src/save.json` (scene/blueprint, **CRLF** — always
+  read/write it in binary, a text-mode round-trip rewrites all 2381 line endings),
+  `gen/src/content.lua` (Root's object DATA) and `gen/src/logic.lua` (**our code — the
+  file you edit**). `gen/assemble.py` splices content+logic into the `@@BOARD_LUA@@`
+  placeholder. `python3 gen/assemble.py --verify` must stay clean.
+- `logic.lua` is **not** the Global script. It is the LuaScript of the **setup board
+  object** (`bab7e1`, "Faction Selection"). The mod's Global script is an empty stub.
+- Every `m###` in the docs is a **historical label, not a file**. The old `mods/` +
+  `build.py` pipeline is real but unreachable; it is preserved as the tag
+  `legacy/mods-history` (177 commits). Read an old module with
+  `git show legacy/mods-history:mods/m300_duchy_warriors.py`.
+- The **box score** lives in the sibling repo `root_boxscore` and is baked into
+  `logic.lua` by `root_boxscore/rebake_into_rtt.py`. **Never hand-edit
+  `RTT_BOXSCORE_JSON`** — edit `boxscore.lua` and rebake.
+- **TTS XmlUI traps, both learned the hard way:** an unsupported attribute makes TTS
+  drop the whole element silently (`outline` did this to the credit), and **named XML
+  entities can blank a panel — use numeric ones** (`&#38;` `&#183;` `&#8211;`), which
+  is why the credit was invisible for weeks.
+- Validate before shipping: `tools/lua_chunker.py` (delimiter balance),
+  `pip3 install luaparser` then parse the assembled script (normalise TTS's `!=` to
+  `~=` first), and `tools/preview_menu.py` to *see* the board without loading TTS.
+
+---
+
+## Needs a decision or an in-TTS eyeball
+
+1. **Mountain middle-clearing suit** — `rttMiddleSuit()` returns nil because no suit
+   token could be found in the save (suits look printed), so the Mountain landmark roll
+   always yields **Lost City**. Tell me how the middle clearing's suit is encoded (token
+   image? nickname?) and rabbit→Rabbit-Town / fox→Foxburrow / mouse→Mousehold gets wired.
+2. **Mountain landmark + rules-card positions** — the landmark spawns at the Mousehold
+   spot (2.46, 11.66, 6.03); the rules card goes to a best-guess lower-left (−22, −22).
+   Confirm or nudge. Only the Lost City *rules card* exists in the mod; the other three
+   landmark cards do not, though the landmark models spawn.
+3. **Faction-select grid centring** — the 3×4 grid is centred on x=35, not 0, and row 1
+   is Marquise/Eyrie/Woodland with Knaves alone in column 4. Knaves is now on-grid at
+   x=95, but it still reads as tacked onto the end of a short row. Recentre the grid, or
+   move Knaves down beside the other base factions?
+4. **README: brief or thorough?** A full every-button README existed and was deliberately
+   replaced by the current brief one. Recover the old text with
+   `git show legacy/mods-history:README.md` if the thorough version is wanted back.
+5. **VP stacking / orientation, Lizard-frog shuffle, Badger relic spots** — eyeball once.
 
 ## Investigating
+
 - **Spawn "zoom flash"** — big items (map/deck/board) flash a zoomed-in wrong-scale
-  version for a split second before settling. Re-investigate whether it's the spawn code
-  rescaling after spawn (fixable) rather than pure TTS texture streaming.
+  version for a split second before settling. Re-check whether the spawn code rescales
+  after spawn (fixable) rather than it being pure TTS texture streaming.

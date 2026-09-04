@@ -27,6 +27,58 @@ starts in its final container/position:
   - map-relative pieces (cats on clearings, The Pond): take from the supply bag / spawn the object
     JSON directly AT the final world spot — never a seat-local default first.
 
+## OPEN — new batch (2026-09-03, from in-TTS testing)
+
+- [ ] **Marsh landmarks must never be ADJACENT** (the maintainer: "important fix", "big update; hard
+      to make it work"). `rttMarshPlan5P` shuffles the 15 clearing positions and takes the FIRST 3 as
+      town landmarks (gen/src/logic.lua, `rttShuffleList(clearings)` then `for i = 1, 3`), with NO
+      adjacency constraint -- so two towns can land next to each other, which the rules forbid.
+      THE DATA EXISTS: `root_engine/maps_data/marsh.json` has a clean `adjacency` dict for all 15
+      clearings, e.g. "1": [5,10,11] ... "14": [9,10,11,13]. Also `marsh_geometry.json` has
+      `clearings_uv`.
+      THE HARD PART (why this is a big update): RTT identifies clearings by WORLD COORDINATES
+      (RTT_MARSH_SUIT9 + RTT_MARSH up/down pairs), not by clearing NUMBER, so there is no way today to
+      ask "is 7 adjacent to 3". Needs a coordinate -> clearing-number mapping, probably by fitting
+      RTT's positions against marsh_geometry.json's clearings_uv, then a rejection/backtracking pick
+      that draws 3 pairwise non-adjacent clearings. Bake the mapping as a constant; do not compute it
+      at runtime. CHECK the 4-player Marsh flood pairs too, and whether other maps place landmarks.
+
+- [ ] **Ginso's Gizmo always active** + preferably a NEW alternative that ALSO places warriors.
+      Today it is `toggleTool` on guid 7d5fb5 (logic.lua:2304) -- a toggle, so it can be off.
+      NEED from the maintainer: should the existing button become non-toggling, or is the new
+      warrior-placing variant the only thing wanted (and what exactly should it place)?
+
+- [ ] **Re-add two removed option objects: Koffin Keeper and Mole Monger.** Both still exist in the
+      DATA (content.lua has the Koffin Keeper art URL and a `toggleSpecial` branch at logic.lua:2396;
+      Mole Monger appears once in each) but neither has a BUTTON in save.json any more -- the buttons
+      were dropped, not the objects. Add them on a NEW THIRD LINE below the existing two option rows.
+      Layout work: squeeze all the buttons slightly to make room and move the whole block up a bit.
+      Must respect the existing option-button design (the wooden-plaque style, same sizing/idiom).
+
+- [ ] **Clicking Ranked / Theme repeatedly causes various issues.** It should wipe prior state, but a
+      destructive wipe needs a CONFIRMATION first. Also consider disabling some buttons mid-game.
+      NEED: which buttons the maintainer wants locked once a game is running.
+
+- [ ] **Starting a new game must clear EVERY previously spawned extra** (broadened 2026-09-03 on the
+      maintainer's follow-up). Confirmed leftovers: the **Pond** survives into the next game, the
+      **Badger (Keepers in Iron) relics stay on the map**, and the **frog cards** and **Lizard Wizard**
+      stay out after switching games via the faction-board setup buttons. Treat this as a GENERAL rule,
+      not a list of special cases: everything a faction setup spawns must be torn down when a new game
+      starts or when that faction is re-set-up.
+      Implementation note: the tear-down should be tag-driven rather than per-object -- most extras are
+      spawned by rttFactionExtras and friends (rttSpawnPond / rttFrogsSetup / rttLizardSetup /
+      rttBadgerRelics / rttCrowsPlots / rttSpawnCaptainsFor). Give every spawned extra a common tag at
+      spawn time and have rttSetup + the faction-board buttons destroy that tag, the way removeMapItems
+      already does for "Map Object". Audit rttFactionExtras for anything else that escapes.
+      (Related: the RTT_FAC_TAKEN checks at logic.lua:4048/4084.)
+
+- [ ] **Two of the same faction in one setup throws a Lua error** (screenshot):
+      `[Faction Selection - bab7e1] Lua Error: Value cannot be null. Parameter name: key`
+      The DRAFT path guards this (`RTT_FAC_TAKEN` locks a faction at logic.lua:3481-3482), but the
+      MANUAL faction-selector path (`makeFaction` on the bab7e1 board) appears to have no such guard,
+      so a second copy of the same faction goes through and something keyed by faction name comes back
+      nil. Reproduce, find the nil key, and guard it.
+
 ## DONE 2026-09-03 (built, committed, pushed, deployed -- VERIFY IN TTS)
 - [x] **Box score: the first turn always belongs to the FIRST SEAT** (the maintainer's request).
       The sheet already had a "first turn is always the first player" rule, but it lives inside
