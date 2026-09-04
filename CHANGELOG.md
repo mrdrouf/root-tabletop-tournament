@@ -351,3 +351,15 @@ along the near edge of the table at one of two ABSOLUTE spots, chosen by where t
 mole player sits — the spot on their own side, which flips for the far row since
 those seats are rotated 180. It spawns in the same pass as the faction, tagged
 `RTT Faction` so a reset takes it away, and locked.
+
+## The Mini-Mood Manager is printed on the rats board - 2026-09-04
+It used to be a separate tile stacked on the faction board. It is now composited
+into the board art itself (assets/board/rats_board_mood.png, jsDelivr from main),
+so the rats have ONE board. Only the eight mood cards still spawn, onto the printed
+slots.
+
+The placement came out of the art: the manager's slot columns sit at +-234 px
+for the +-3.425 world units of the saved card positions, giving 68.0 px per world
+unit (confirmed by the row spacing, 125 px / 1.845). The manager image is 673x542
+and needed 672x541, so it is a 1:1 paste. Its own background did not match the
+board underneath, so it is masked out by hue and only the parchment is pasted.

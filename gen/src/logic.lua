@@ -4432,19 +4432,17 @@ function rttRatsMoodManager(cx, cz, flip)
     if l ~= nil then
       local lx, lz = l[1], l[3]
       if flip then lx, lz = -lx, -lz end
-      -- i == 1 is the manager BOARD itself: locked so it stays put on the rats board and cannot be
-      -- nudged while the mood cards sitting on it are moved (maintainer request). The eight mood cards
-      -- stay unlocked -- they have to be movable to be played.
-      local lockIt = (i == 1)
-      spawnObjectJSON({
-        json = v.json,
-        position = { cx + lx, l[2], cz + lz },
-        rotation = { 0, ry, 0 },
-        callback_function = function(o)
-          pcall(function() o.addTag("RTT Faction") end)
-          if lockIt then pcall(function() o.setLock(true) end) end
-        end
-      })
+      -- i == 1 was the manager BOARD tile. It is now PRINTED INTO the rats board art itself
+      -- (assets/board/rats_board_mood.png), so there is no second object to stack, lock or wipe --
+      -- only the eight mood cards still spawn, and they land on the printed slots.
+      if i > 1 then
+        spawnObjectJSON({
+          json = v.json,
+          position = { cx + lx, l[2], cz + lz },
+          rotation = { 0, ry, 0 },
+          callback_function = function(o) pcall(function() o.addTag("RTT Faction") end) end
+        })
+      end
     end
   end
 end

@@ -686,3 +686,26 @@ bugs that took several attempts — that context is easy to lose and expensive t
       the old default corner spot, so clicking it after picking the moles gives you a second copy.
 
 ## BLOCKED — need more info from the maintainer
+
+# RTT Work Queue
+## Standing rule: work on MAIN
+## Standing rule: this file only shows OPEN work
+## Note for future sessions: the `m###` labels are HISTORY, not files
+## Golden rule (the maintainer, repeated + hardened)
+## STRUCTURAL — the pattern behind most of today's bugs (2026-09-04)
+## OPEN — 2026-09-04
+- [x] **Fuse the Mini-Mood Manager into the rats board.** Done 2026-09-04. The manager is now PRINTED
+      INTO the rats board art (`assets/board/rats_board_mood.png`, served by jsDelivr from main, same
+      as `board_clean_v3.png`), so it is one board, not a tile stacked on one. Only the eight mood
+      cards still spawn, and they land on the printed slots.
+      How the placement was derived: the manager's own art shows its slot columns at +-234 px for the
+      +-3.425 world units of the saved card positions -> 68.0 px per world unit, which also matches the
+      row spacing (125 px / 1.845). That pins the TTS tile constant at ~2.006 and puts the panel at
+      board-local (-5.993, +4.829) -> paste top-left (870, 677) in the 1598x1240 board image. The
+      manager image is 673x542 and needed to be 672x541, so it is a 1:1 paste with no resampling.
+      Round-trip back to seat-local reproduces his saved manager position to 0.004 world units.
+      A plain rectangular paste showed a seam (its background differs from the board's by 32-49/255),
+      so the pink mountain background is masked out by hue and only the parchment panel is composited.
+      NOT YET CONFIRMED IN TTS -- iterate on the placement if it reads wrong in game.
+
+## BLOCKED — need more info from the maintainer
