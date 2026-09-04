@@ -7,13 +7,13 @@ Layout, top to bottom:
 
 ```
 [ROOT logo]                                by MrDrouf, Ehss & slugfacekillah
+                                                                    [x]        y =  85
               [4 Players] [Ranked] [Theme]                                     y =  60
 [Summer] [Lake] [Marsh] [Winter] [Mountain] [Gorge]                            y =  25
-                 [Standard] [Exiles] [Squires]                                 y = -12
-[Faction Select][Battle Mat][Koffin Keeper][Box Score][Clearing Mk][Vagabond]  y = -38
-[Lizard Wizard][Mini-Mood][Mob Lobber][Landmarks][5-Player Ranked][Marsh 5P]   y = -56
-[Mole Monger]                                                                  y = -74
-                                                            [info bar]         y = -85
+                 [Standard] [Exiles] [Squires]                                 y = -15
+[Faction Select][Mole Monger][Koffin Keeper][Box Score][Clearing Mk][Vagabond]  y = -46.5
+[Lizard Wizard][Mob Lobber][Landmarks][5P Ranked][Marsh 5P][Bat Bungler]       y = -69.5
+                                                         [Clear All]           y = -80
 ```
 
 ---
@@ -32,7 +32,7 @@ just runs. Clicks are ignored while a setup is still loading (they are dropped, 
 | **Theme** | `rttArmTheme` → `rttTheme` | This month's RTM theme, currently the 5-player Marsh ranked draft (delegates to `rttFivePStart`). |
 | **5-Player Ranked** | `rttArmMarsh5P` → `rttFivePStart` | 5-player Marsh ranked draft: Marsh map, 6-card draft. |
 
-**Marsh 5 Players** (`rttPlaceMarsh5P`) places *only* the 5-player Marsh board — no draft, no seating.
+**Marsh 5P** (`rttPlaceMarsh5P`) places *only* the 5-player Marsh board — no draft, no seating.
 It is not destructive, so it does not prompt.
 
 ## Maps
@@ -52,16 +52,15 @@ automatically in a 1–2 player game.
 | Button | Handler | What it does |
 |--------|---------|--------------|
 | **Faction Select** | `makeFactionSelector` | Spawns one manual selector board (the 12-faction + Knaves picker). |
-| **Battle Mat** | `makeBattleMat` | Toggles the battle mat. Tagged `Map Object`, so placing a map replaces it rather than stacking a second one. |
 | **Koffin Keeper** | `makeTool` | Spawns the Koffin Keeper. |
 | **Box Score** | `rttSpawnBoxScore` | Spawns the live box score sheet (destroys any previous one first). |
 | **Clearing Markers** | `makeTool` | The clearing-marker set. |
 | **Vagabond Cards** | `makeTool` | The Vagabond character cards. |
 | **Lizard Wizard** | `makeLizardWizard` | The Lizard Wizard plus its blocker. |
-| **Mini-Mood Manager** | `makeTool` | Rats / Lord of the Hundreds mood tracker. |
 | **Mob Lobber** | `makeTool` | The Mob Lobber. |
 | **Landmarks** | `makeTool` | The landmark pieces. |
 | **Mole Monger** | `makeTool` | Spawns the Mole Monger. |
+| **Bat Bungler** | `makeTool` | Spawns the Bat Bungler (Nevakanezah content, like the Mob Lobber). |
 
 **Ginso's Gizmo has no button.** It is always active with no object on the table — its script is part of
 the board, so **NUMPAD 0** returns a hovered component to its supply and **NUMPAD 1** reassigns that
@@ -79,3 +78,7 @@ component's destination, in every game, with nothing to spawn or toggle.
 - **The markup is inconsistent** and it matters when grepping: most buttons use `onclick`, but
   *Summer Map* uses `onClick`, and *Landmarks* has a space (`onclick ="makeTool"`). Any tooling that
   scans the XmlUI must allow for all three forms.
+- **The Battle Mat and the Mini-Mood Manager no longer have buttons.** Both are spawned automatically:
+  the battle mat with the map, and the box score alongside it. The Mini-Mood Manager spawns with the rats.
+- **Two buttons are not tools**: `x` (`deleteThis`, top right) removes the setup board itself, and
+  **Clear All** (`clearAll`) wipes the table.
