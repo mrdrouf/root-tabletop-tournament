@@ -29,6 +29,22 @@ starts in its final container/position:
 
 ## OPEN — new batch (2026-09-03, from in-TTS testing)
 
+- [ ] **Box-score row COLOUR/PLAYER binding is geometric, and it is the root of several bugs.**
+      refreshSeats() assigns each row's colour by matching the faction's supply anchor to the NEAREST
+      HAND ZONE, then attaches the seated player's name to whichever row got their colour. RTT knows the
+      truth -- rttSeatPlayers forces seat N into RTT_SETUP_COLORS[N] -- but never publishes it: the
+      bridge carries only RTT_SEAT_POS (faction -> {x,z}), with no seat number and no colour.
+      CONSEQUENCES SEEN: (1) solo, exactly ONE row can carry the player's name -- the maintainer's save
+      has `Marquise color=White player='KRT...'` while he was playing another faction; (2) rows come out
+      coloured White/Pink, which are not RTT seat colours at all; (3) my first-seat pin originally
+      targeted rowByColor(Turns.order[1]) == "Red" and landed on seat 2, because Red was bound to
+      Riverfolk by geometry; (4) NOW THAT THE TURN GATE IS UNIFORM, followTurns()'s own
+      `S.turns == 0 -> Turns.order[1]` pin has the SAME exposure whenever TTS turns are enabled.
+      FIX SHAPE: RTT publishes seat -> colour (and seat -> faction) as a Global alongside RTT_SEAT_POS;
+      the box score prefers that over hand-zone geometry and falls back to geometry only outside RTT.
+
+
+
 - [x] **Knaves captains duplicated when swapping between slots** (FIXED 2026-09-03, VERIFY). The
       maintainer: swapping cards between captain-board slots spawned the same captain several times;
       returning one to the SAME slot did not.
