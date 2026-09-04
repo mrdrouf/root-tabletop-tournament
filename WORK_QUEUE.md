@@ -93,11 +93,3 @@ of four structural faults, not an isolated mistake. Fixing these is worth more t
       scriptable, so changing the table rotation to please the zoom would break the table reading.
       Investigate whether a different rot combination satisfies both, or whether the sheet's UI can be
       authored 180 off with a compensating transform.
-
-## OPEN — new batch (2026-09-03, from in-TTS testing)
-
-- [ ] **Knaves: do NOT spawn the captain cards that appear on the board** -- they are drafted, so the
-      board-spawned copies are duplicates. (Maintainer, 2026-09-04.) rttSpawnFaction already skips the
-      12 "Captain - <name>" meeples and the item supply for this faction; the CARDS need the same
-      treatment. Check what rttSpawnCaptainsFor / rttPoolCaptains put out versus what the blueprint
-      spawns, so the draft keeps working.

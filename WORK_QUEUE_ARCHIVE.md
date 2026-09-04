@@ -494,3 +494,22 @@ bugs that took several attempts — that context is easy to lose and expensive t
       from the draft's rttPlaceMap, so the map BUTTONS (which call makeMap directly) never got one.
       Moved into makeMap; still tagged "Map Object" so removeMapItems clears the previous one and there
       is never a second. Button deleted.
+
+# RTT Work Queue
+## Standing rule: this file only shows OPEN work
+## Note for future sessions: the `m###` labels are HISTORY, not files
+## Golden rule (the maintainer, repeated + hardened)
+## STRUCTURAL — the pattern behind most of today's bugs (2026-09-04)
+## BLOCKED — need more info from the maintainer
+## OPEN — new batch (2026-09-04)
+## OPEN — new batch (2026-09-03, from in-TTS testing)
+- [x] **Knaves: the captain deck no longer spawns on the board** (DONE 2026-09-04, VERIFY). The
+      blueprint's 12-card deck (guid 59530d, CardIDs 73400-73411) is skipped by rttSpawnFaction's Knaves
+      filter, matched on the deck's face texture -- the same identifier rttDraftKnavesCaptains uses.
+      Safe because the draft spawns its OWN copy of that deck below the table, deals 4 and destroys it,
+      reading the blueprint data directly, so skipping the on-board spawn cannot affect it. The board
+      copy was a pure duplicate. Original note: -- they are drafted, so the
+      board-spawned copies are duplicates. (Maintainer, 2026-09-04.) rttSpawnFaction already skips the
+      12 "Captain - <name>" meeples and the item supply for this faction; the CARDS need the same
+      treatment. Check what rttSpawnCaptainsFor / rttPoolCaptains put out versus what the blueprint
+      spawns, so the draft keeps working.
