@@ -89,7 +89,10 @@ def banner(out, src, text, band_col, frac=0.773, pad=0.88):
 # on-screen cap height matches across a shape class; only an over-long name is allowed to shrink.
 WIDE = (400, 200)      # the 34x17 option buttons
 SQUARE = (300, 300)    # the 34x34 map / deck buttons
-WIDE_PT, SQUARE_PT = 54, 52
+# sizes are the largest that fit EVERY name in the class, so the row reads as a set
+WIDE_PT, SQUARE_PT = 46, 59
+WIDE_ART_W = 150      # narrower box, but the art fills the full height so it ends up BIGGER
+ART_MARGIN = 6
 OUTLINE = (18, 12, 7)
 
 
@@ -102,17 +105,18 @@ def _outlined(d, xy, text, f, fill=CREAM, ring=3):
     d.text((x, y), text, font=f, fill=fill)
 
 
-def wide_label(out, art, lines, art_w=190, pt=WIDE_PT):
+def wide_label(out, art, lines, art_w=None, pt=WIDE_PT):
     """artwork left, name right, transparent ground so the button's own colour shows."""
+    art_w = WIDE_ART_W if art_w is None else art_w
     W, H = WIDE
     im = Image.new("RGBA", WIDE, (0, 0, 0, 0))
     d = ImageDraw.Draw(im)
     if art is not None:
         a = art.convert("RGBA")
-        sc = min((art_w - 26) / a.width, (H - 26) / a.height)
+        sc = min((art_w - ART_MARGIN) / a.width, (H - ART_MARGIN) / a.height)
         a = a.resize((int(a.width * sc), int(a.height * sc)), Image.LANCZOS)
         im.alpha_composite(a, ((art_w - a.width) // 2, (H - a.height) // 2))
-    box = W - art_w - 20
+    box = W - art_w - 14
     f = font(pt)
     while f.size > 12 and max(d.textlength(t, font=f) for t in lines) > box:
         f = font(f.size - 1)
