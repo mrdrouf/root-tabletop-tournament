@@ -1,4 +1,5 @@
 function onLoad(state)
+  pcall(function() rttSnapshotHand2() end)  -- parked hand-2 transforms, restored on every new game
   pcall(function() rttGizmoLoad(state or "") end)   -- gizmo config; needs no object
   assets = {}
   if self.getName() != "Faction Board" then
@@ -1926,10 +1927,40 @@ RTT_BUSY_TOKEN = 0
 -- word off "RTT Faction" -- so the sweep walked straight past it. Deliberately NOT cleared here:
 -- "Map Object" and "RTT Priority" belong to the MAP (makeMap owns those), and "Deck Object" to the deck.
 RTT_TEARDOWN_TAGS = { "RTT Selector", "RTT Manual Selector", "RTT Faction", "RTT Pond" }
+
+-- Hand 2 (the Alliance supporters hand) is a PERSISTENT per-colour zone, not an object, so tearing down
+-- objects never reset it. Across several games in one session it stayed wherever the last Alliance put
+-- it, and after re-seating into a different colour the maintainer ended up with supporters hands
+-- scattered over old seats -- his report: "the bug happens when I reset several games in the same
+-- session and I was seated in another seat". Snapshot the parked transforms once at load and put them
+-- back on every new game.
+RTT_ALL_COLORS = { "Red","Yellow","Orange","Teal","Green","Brown","Blue","Purple","Pink","White" }
+RTT_HAND2_PARKED = nil
+
+function rttSnapshotHand2()
+  if RTT_HAND2_PARKED ~= nil then return end
+  RTT_HAND2_PARKED = {}
+  for _, c in ipairs(RTT_ALL_COLORS) do
+    pcall(function()
+      local h = Player[c].getHandTransform(2)
+      if h ~= nil and h.position ~= nil then
+        RTT_HAND2_PARKED[c] = { position = h.position, rotation = h.rotation, scale = h.scale }
+      end
+    end)
+  end
+end
+
+function rttResetHands2()
+  if RTT_HAND2_PARKED == nil then return end
+  for c, t in pairs(RTT_HAND2_PARKED) do
+    pcall(function() Player[c].setHandTransform(t, 2) end)
+  end
+end
 function rttClearGameObjects()
   for _, t in ipairs(RTT_TEARDOWN_TAGS) do
     for _, o in ipairs(getObjectsWithTag(t)) do pcall(function() o.destruct() end) end
   end
+  rttResetHands2()                                 -- hand zones are state too, not objects
 end
 function rttBusyBegin(sec)
   RTT_BUSY = true
@@ -4139,6 +4170,11 @@ function rttDealAllianceSupporters(color, before, tries)
         position = { h2.position.x + rx * off, h2.position.y + 0.6, h2.position.z + rz * off },
         rotation = { 0, ry, 0 },
         smooth   = false,
+        -- "sometimes he throws the three cards upside down": rotation alone is not enough, because a
+        -- card's own face-up sense depends on how it sat in the deck. Check and flip.
+        callback_function = function(c)
+          pcall(function() if c.is_face_down then c.flip() end end)
+        end,
       })
     end)
     Wait.time(function() place(i + 1) end, 0.25)       -- one at a time: no deck-busy / collapse race
