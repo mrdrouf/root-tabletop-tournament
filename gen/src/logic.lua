@@ -1876,69 +1876,80 @@ end
 
 
 --------------------------------------------------------------- wipe confirm --
--- The setup buttons are destructive: they clear the faction boards. The maintainer wants the BUTTON
--- ITSELF to ask -- click once, it turns red and reads "Wipe all factions boards?"; click again to go
--- ahead; after 3 seconds with no second click it reverts on its own.
---
--- Implementation note: a 34x34 icon tile cannot show that sentence, so arming swaps the row for one
--- wide red plaque (rttWipeConfirm) sitting exactly where the buttons were, and hides them underneath.
--- Only attributes with existing precedent on this board are used (active/color/text/fontSize/position/
--- width/height) -- textColor has NO precedent here and an unsupported attribute makes TTS silently drop
--- the whole element, which is how the board credit stayed invisible for weeks.
-RTT_WIPE_ROW  = { "rttFourBoardsBtn", "rttRankedBtn", "rttThemeBtn" }
-RTT_ARM       = { fn = nil, token = 0 }
+-- The setup buttons are destructive. Maintainer's spec: the BUTTON ITSELF turns red and asks; a second
+-- click goes ahead; 3 seconds of silence reverts it. Two refinements he added after seeing it:
+--   * only ask when something would ACTUALLY be wiped -- on a clean table the button just works;
+--   * the red state must be the SAME button, same size, same position -- so it is mutated in place
+--     (colour/text/icon swapped via setAttribute) rather than swapped for a separate wide plaque.
+-- Only attributes with precedent on this board are touched (color/text/icon/fontSize); textColor has
+-- none, and an unsupported attribute makes TTS silently drop the element.
+RTT_WIPE_BTN = {
+  rttRankedBtn     = { fn = "rttSetup",           color = "#030411", icon = "RankedArt",     fs = "5" },
+  rttThemeBtn      = { fn = "rttTheme",           color = "#49514b", icon = "ThemeArt",      fs = "5" },
+  rttFourBoardsBtn = { fn = "setupFactionBoards", color = "#3a2f22", icon = "FourBoardsArt", fs = "5" },
+  Marsh5P          = { fn = "rttFivePStart",      color = "#463221", icon = "FivePlayerArt", fs = "3" },
+}
+RTT_ARM = { id = nil, token = 0 }
+
+-- would a setup click actually destroy anything? These are exactly the tags rttSetup tears down.
+function rttWouldWipe()
+  for _, t in ipairs({ "RTT Faction", "RTT Selector", "RTT Manual Selector" }) do
+    if #getObjectsWithTag(t) > 0 then return true end
+  end
+  return false
+end
 
 function rttDisarm()
-  RTT_ARM.fn = nil
-  RTT_ARM.token = RTT_ARM.token + 1            -- invalidates any pending revert timer
+  local id = RTT_ARM.id
+  RTT_ARM.id = nil
+  RTT_ARM.token = RTT_ARM.token + 1              -- invalidates any pending revert timer
+  local d = id and RTT_WIPE_BTN[id]
+  if d == nil then return end
   pcall(function()
-    self.UI.setAttribute("rttWipeConfirm", "active", "false")
-    for _, b in ipairs(RTT_WIPE_ROW) do self.UI.setAttribute(b, "active", "true") end
-    self.UI.setAttribute("Marsh5P", "active", "true")
-    self.UI.setAttribute("Marsh5PMap", "active", "true")
+    self.UI.setAttribute(id, "text", "")
+    self.UI.setAttribute(id, "icon", d.icon)
+    self.UI.setAttribute(id, "color", d.color)
   end)
 end
 
-function rttArm(fnName, row)
-  if RTT_ARM.fn == fnName then return end      -- already armed for this action: let the plaque take it
-  RTT_ARM.fn = fnName
+-- one handler for every destructive button: go / arm / commit.
+function rttArmOrGo(id)
+  local d = RTT_WIPE_BTN[id]
+  if d == nil then return end
+  if RTT_ARM.id == id then                       -- SECOND click on the armed button: commit
+    rttDisarm()
+    if     d.fn == "rttSetup"           then rttSetup()
+    elseif d.fn == "rttTheme"           then rttTheme()
+    elseif d.fn == "rttFivePStart"      then rttFivePStart()
+    elseif d.fn == "setupFactionBoards" then setupFactionBoards()
+    end
+    return
+  end
+  if not rttWouldWipe() then                     -- clean table: nothing to lose, just run
+    if     d.fn == "rttSetup"           then rttSetup()
+    elseif d.fn == "rttTheme"           then rttTheme()
+    elseif d.fn == "rttFivePStart"      then rttFivePStart()
+    elseif d.fn == "setupFactionBoards" then setupFactionBoards()
+    end
+    return
+  end
+  rttDisarm()                                    -- a different button was armed: revert it first
+  RTT_ARM.id = id
   RTT_ARM.token = RTT_ARM.token + 1
   local tok = RTT_ARM.token
   pcall(function()
-    if row == "marsh" then
-      self.UI.setAttribute("Marsh5P", "active", "false")
-      self.UI.setAttribute("Marsh5PMap", "active", "false")
-      self.UI.setAttribute("rttWipeConfirm", "position", "76 -69.5 -20")
-      self.UI.setAttribute("rttWipeConfirm", "width", "110")
-      self.UI.setAttribute("rttWipeConfirm", "height", "17")
-      self.UI.setAttribute("rttWipeConfirm", "fontSize", "7")
-    else
-      for _, b in ipairs(RTT_WIPE_ROW) do self.UI.setAttribute(b, "active", "false") end
-      self.UI.setAttribute("rttWipeConfirm", "position", "0 60 -20")
-      self.UI.setAttribute("rttWipeConfirm", "width", "150")
-      self.UI.setAttribute("rttWipeConfirm", "height", "34")
-      self.UI.setAttribute("rttWipeConfirm", "fontSize", "11")
-    end
-    self.UI.setAttribute("rttWipeConfirm", "active", "true")
+    self.UI.setAttribute(id, "icon", "")         -- drop the art so the words are legible
+    self.UI.setAttribute(id, "color", "#cf4a3c")
+    self.UI.setAttribute(id, "fontSize", d.fs)
+    self.UI.setAttribute(id, "text", "Wipe all factions boards?")
   end)
   Wait.time(function() if RTT_ARM.token == tok then rttDisarm() end end, 3.0)
 end
 
--- the red plaque was clicked: disarm FIRST (so a double-click cannot start two runs), then go.
-function rttWipeConfirm(player, value, id)
-  local fn = RTT_ARM.fn
-  rttDisarm()
-  if     fn == "rttSetup"           then rttSetup(player, value, id)
-  elseif fn == "rttTheme"           then rttTheme(player, value, id)
-  elseif fn == "rttFivePStart"      then rttFivePStart(player, value, id)
-  elseif fn == "setupFactionBoards" then setupFactionBoards(player, value, id)
-  end
-end
-
-function rttArmRanked(player, value, id)  rttArm("rttSetup", "setup") end
-function rttArmTheme(player, value, id)   rttArm("rttTheme", "setup") end
-function rttArmFour(player, value, id)    rttArm("setupFactionBoards", "setup") end
-function rttArmMarsh5P(player, value, id) rttArm("rttFivePStart", "marsh") end
+function rttArmRanked(player, value, id)  rttArmOrGo("rttRankedBtn") end
+function rttArmTheme(player, value, id)   rttArmOrGo("rttThemeBtn") end
+function rttArmFour(player, value, id)    rttArmOrGo("rttFourBoardsBtn") end
+function rttArmMarsh5P(player, value, id) rttArmOrGo("Marsh5P") end
 
 -- Ginso's Gizmo is part of every game now (maintainer: "spawn the gizmo at beginning of game always"),
 -- so setup spawns it instead of relying on someone clicking its toggle. Guarded on the tool's own GUID
