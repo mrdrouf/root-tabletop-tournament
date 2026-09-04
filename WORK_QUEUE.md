@@ -88,6 +88,41 @@ of four structural faults, not an isolated mistake. Fixing these is worth more t
       zone is placed by `rttCrowsPlots`; it needs to exist for every seat at 5 players, and the 5p seat 2
       (the centre near seat, (0,-46)) should reuse seat 1's placement.
 
+## OPEN — everything the maintainer has asked for and I have NOT finished (2026-09-04)
+
+Written out in full after he pointed out I was dropping requests as new ones arrived. Anything
+already shipped is in the archive; this is the live list, in the order he asked for it.
+
+- [ ] **Corvid hidden box in 5-player setup.** "keep the hidden box for the crow in all seats in 5
+      player setup as well. seat 2 should be same position as in seat 1". The Corvid's hidden zone is
+      placed by `rttCrowsPlots`; it must exist for every seat at 5 players, and 5p seat 2 (the centre
+      near seat, (0,-46)) should reuse seat 1's placement. NOT STARTED.
+
+- [ ] **Credits page: deploy the real-art rebuild.** The first version was text I typed in Georgia --
+      he was right that it was invented. Rebuilt from actual art: the real ROOT logo, the real credit
+      strips (keyed from white-on-black to ink so the real lettering and discord handles survive), and
+      the real item button labels. Only two lines are rendered (our own base-mod / revamp credit, which
+      has no art). BUILT but NOT deployed or wired yet.
+
+- [ ] **Back button: drop the parchment style.** "the button BACK does not need the parchment style
+      thing just the credit boqrd" -- the parchment treatment belongs to the credits board only. It is
+      currently a parchment plaque; make it plain like the other option buttons, still rendered as an
+      image so it stays legible.
+
+- [ ] **Box score: removing a faction's VP marker should drop its row.** Reported "at least with the
+      ultimate mod and the standalone". There IS pruning in the poll (boxscore.lua:1401) that removes a
+      row whose `guid` no longer resolves, and rows carry a guid, so either the marker still resolves
+      after removal (dropped into a bag rather than destroyed?) or the prune is gated. REPRODUCE FIRST.
+
+- [ ] **Knaves board selection should offer the base mod's choices** (Vagabond etc.) on the setup and
+      solo board selectors.
+
+- [ ] **The Root display font.** Windlass is not installed here, so I cannot render or verify it; I have
+      been substituting Georgia Bold, which is why my captions differ from the map buttons and the
+      "Captains" title. If he identifies it and drops the .ttf in the repo, re-render every label I have
+      made: Back, Credits, the four 5-player/faction labels, both 4-Player buttons and the wipe warning.
+      BLOCKED on the font file.
+
 ## BLOCKED — need more info from the maintainer
 
 - [ ] **Moles / rats: tools on the side of their board.** The Underground Duchy and the Lord of the
