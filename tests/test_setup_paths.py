@@ -176,24 +176,6 @@ def t_new_game_removes_frog_cards(src):
     assert rt.eval("#SHARED.__cards") == 40, "removal took non-frog cards too (deck is %d)" % rt.eval("#SHARED.__cards")
 
 
-CAP_SETUP = """BOARD = MKOBJ("Captains Board", {52, 11.6, -40}, {"RTT Captains"})
-               BOARD.__bounds = {size = Vector{9, 0.3, 14}}
-               CRAFT = {x = 52, z = -46}"""
-
-
-def t_captains_pool_beside_board(src):
-    """Drafted captains must actually be moved beside the captains board."""
-    rt = fresh(src)
-    rt.execute(CAP_SETUP)
-    rt.execute("CAPS={} for i=1,4 do CAPS[i]=MKOBJ('Captain '..i, {0,1,0}, {'RTT Knave Captain'}) end")
-    rt.execute("OK, ERR = pcall(function() rttPoolCaptains(BOARD, CRAFT) end) FLUSH(10)")
-    assert rt.eval("OK"), "rttPoolCaptains threw: %s" % rt.eval("ERR")
-    spots = {(round(rt.eval("CAPS[%d].__pos.x" % i), 2), round(rt.eval("CAPS[%d].__pos.z" % i), 2))
-             for i in range(1, 5)}
-    assert (0.0, 0.0) not in spots, "captains were never moved (the pcall used to swallow a nil-field error)"
-    assert len(spots) == 4, "captains landed on top of each other: %s" % spots
-
-
 CAP_DECK_HASH = "FA78C0F952724D77A33BECEC0651802808037E95"
 
 
@@ -230,7 +212,6 @@ CASES = [
     ("shared deck found with frogs in it",   t_main_deck_survives_frogs),
     ("supporters draw with frogs in play",   t_supporters_draw_with_frogs_in_deck),
     ("a new game removes frog cards",        t_new_game_removes_frog_cards),
-    ("captains pool beside their board",     t_captains_pool_beside_board),
     ("captain deck when nothing drafts it",  t_captain_deck_without_a_draft),
 ]
 

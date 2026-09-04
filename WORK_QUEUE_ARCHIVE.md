@@ -612,11 +612,14 @@ bugs that took several attempts — that context is easy to lose and expensive t
       The skip is now gated on rttCaptainsAreDrafted(), so ranked is untouched and a manual pick keeps
       the faction's own deck on the board. (An earlier attempt dealt four random captains instead --
       wrong, reverted.)
-- [x] **`rttPoolCaptains` threw on EVERY call (pre-existing).** Found while testing the above: `base`
-      is built as a positional `{x,y,z}` array and then read as `base.x` / `base.z`, which are nil, so
-      the first arithmetic threw. The single call site wraps it in `pcall`, so it failed SILENTLY --
-      captains were never pooled beside the board in any game, ranked included. Named locals now.
-
+- [x] **`rttPoolCaptains` threw on EVERY call, and has been REMOVED.** Found 2026-09-04 while testing
+      the captains: `base` was built as a positional `{x,y,z}` array and read back as `base.x`/`base.z`,
+      which are nil, so the first arithmetic threw -- and the single call site wraps it in `pcall`, so
+      it failed silently. It had therefore never run once in any game, ranked included: the drafted
+      captains always stayed at `RTT_KNAVE_CAP` and were never pooled beside the captains board.
+      DECISION (maintainer, asked directly): leave ranked exactly as it is. The captains stay at the
+      draft spots, and the dead function, its geometry helper and `RTT_CAP_POOL_GAP` were deleted
+      rather than repaired. Do not "fix" this back without asking -- the current layout is intended.
 - [x] **Keeper relics on Winter.** Fixed 2026-09-04 from the maintainer's "winter" save (TS_Save_23).
       Winter was the ONLY map with no entry in `RTT_RELIC_POS`, so it alone fell through to
       `rttForestWorldCenters` -- forest CENTROIDS, not relic spots (and that fallback rotates with the

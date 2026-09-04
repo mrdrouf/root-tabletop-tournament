@@ -3444,7 +3444,6 @@ RTT_KNAVE_BOARD_IMG = "84529E736BDD4EF6B70CA79E3F99E2D07FA75A2C"  -- Knaves rule
 -- so these are solved from where he left it relative to the Knaves rules board.
 RTT_CAP_OFF_X    = -15.6676
 RTT_CAP_OFF_Z    = -4.5206
-RTT_CAP_POOL_GAP = 2.4      -- world gap between the board and the pick-pool
 -- (snaps are BAKED into RTT_CAPTAIN_BOARD_JSON now; the old slot-fraction / self-size constants are gone)
 -- The real Crafted Improvements art, cropped to its TOP 3 overlapping card slots (+ its real title
 -- repainted to "Captains" and its real bottom border). 3 snaps for 3 captains stacked ON TOP of each
@@ -3480,10 +3479,12 @@ function rttSpawnCaptainsFor(rulesBoard)
         pcall(function() board.addTag("RTT Captains") end)
         pcall(function() board.setLock(true) end)          -- LOCKED at the baked size (no resize panel)
         -- Snaps are BAKED into the board JSON (AttachedSnapPoints, from the crafted board's own
-        -- coordinate system) -- no runtime snap maths. Just pool the 4 drafted captains beside it.
-        Wait.frames(function()
-          pcall(function() rttPoolCaptains(board, fp) end)
-        end, 5)
+        -- coordinate system) -- no runtime snap maths. The drafted captains are deliberately NOT moved
+        -- here: they stay at RTT_KNAVE_CAP, where rttDraftKnavesCaptains deals them. There used to be a
+        -- rttPoolCaptains that slid them into a grid beside this board, but it read a positional
+        -- {x,y,z} array as base.x/base.z -- nil -- so it threw on every call and the pcall swallowed it.
+        -- It had therefore never run once, and the maintainer confirmed the ranked layout is what he
+        -- wants, so it was removed rather than repaired.
         -- start the captain DETECTOR for this board: when a captain card lands in a slot, spawn that
         -- captain's meeple above the Knaves board (items TODO once the item-supply source is known).
         RTT_CAP_BOARD_GUID = board.getGUID()
@@ -3673,61 +3674,6 @@ end
 
 -- lay the 4 drafted captains in a 2x2 grid beside the board (side away from the faction board),
 -- face up and PORTRAIT, so the player sees all 4 and drags 3 onto the (snap-pointed) slots
--- The four pool spots beside the captains board, as world positions, plus the angle to lay cards at.
--- Pure geometry: the card size comes in as an argument because the two callers know it from different
--- places -- an already-drafted captain's bounds, or the captain deck's own bounds when nothing has been
--- drafted yet and there is no card to measure.
-function rttCaptainPoolSpots(board, craftPos, cardShort, cardLong)
-  if board == nil or craftPos == nil then return nil, 0 end
-  local bp = board.getPosition()
-  local bb = board.getBounds().size
-  local short = math.min(bb.x, bb.z)
-  local lenAxis = (bb.z >= bb.x) and { 0, 0, 1 } or { 1, 0, 0 }   -- board long axis (world)
-  local widAxis = (bb.z >= bb.x) and { 1, 0, 0 } or { 0, 0, 1 }   -- board short axis (world)
-  local toCraft = (craftPos.x - bp.x) * widAxis[1] + (craftPos.z - bp.z) * widAxis[3]
-  local side = (toCraft > 0) and -1 or 1                          -- side AWAY from the crafted board
-  local colGap = cardShort + 0.7                                  -- 2 columns across the width axis
-  local rowGap = cardLong + 0.7                                   -- 2 rows down the length axis
-  local d = short * 0.5 + colGap + RTT_CAP_POOL_GAP               -- clear the board + a grid half-width
-  -- `base` is a positional {x,y,z}; it used to be read back as base.x / base.z, which are nil on an
-  -- array literal. Every call therefore threw on the first arithmetic -- and the one call site wraps
-  -- this in pcall, so it failed SILENTLY in every game and the captains were never pooled beside the
-  -- board at all. Named locals so the same typo cannot come back.
-  local baseX = bp.x + side * widAxis[1] * d
-  local baseZ = bp.z + side * widAxis[3] * d
-  local spots = {}
-  for i = 1, 4 do
-    local col = ((i - 1) % 2 == 0) and -0.5 or 0.5
-    local row = (i <= 2) and 0.5 or -0.5
-    spots[i] = { baseX + widAxis[1] * col * colGap + lenAxis[1] * row * rowGap,
-                 bp.y + 0.6,
-                 baseZ + widAxis[3] * col * colGap + lenAxis[3] * row * rowGap }
-  end
-  return spots, board.getRotation().y
-end
-
--- Put the captains beside the board. The pool only ever existed if the RANKED draft built it --
--- rttDraftKnavesCaptains runs from the draft chain and gates on RTT_DRAFT_FACTIONS -- so picking the
--- Knaves from a manual selector left the board with no captains at all. The maintainer: "the captains
--- should spawn there if they have not been drafted first". Same rule at both paths now: four random
--- captains to choose three from, either moved into place (already drafted) or dealt there (not).
-function rttPoolCaptains(board, craftPos)
-  if board == nil then return end
-  local caps = {}
-  for _, o in ipairs(getObjectsWithTag("RTT Knave Captain")) do caps[#caps + 1] = o end
-  -- Nothing to pool. Without a draft the faction spawns its OWN captain deck on the board (see the
-  -- rttCaptainsAreDrafted gate in rttSpawnFaction), and the maintainer draws from that himself.
-  if #caps == 0 then return end
-  local cs = caps[1].getBounds().size
-  local spots, ry = rttCaptainPoolSpots(board, craftPos, math.min(cs.x, cs.z), math.max(cs.x, cs.z))
-  if spots == nil then return end
-  for i = 1, math.min(4, #caps) do
-    local c = caps[i]
-    pcall(function() c.setLock(false) end)
-    pcall(function() c.setPositionSmooth(spots[i], false, true) end)  -- move only; the maintainer sets the card angle
-  end
-end
-
 -- Is a draft going to hand out the captains? True only during a ranked/theme draft that dealt the
 -- Knaves; on a manual selector pick nothing drafts them, so the faction keeps its own captain deck.
 function rttCaptainsAreDrafted()
