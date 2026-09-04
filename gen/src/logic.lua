@@ -1730,7 +1730,11 @@ local function spawnManualFactionSelector(position, rotation, locked)
 end
 
 function setupFactionBoards(player, value, id)
-  rttBusyBegin(10)
+  -- This path is SYNCHRONOUS -- it destructs and spawns in one pass, with no animation and no Wait
+  -- chain -- so the busy flag only has to cover the few frames the spawns take. It is cleared at the
+  -- bottom of this function; the 3s here is just a safety net if a spawn throws. (It used to sit on the
+  -- 10s fallback alone, which held the buttons dead for ten seconds after an instant action.)
+  rttBusyBegin(3)
   local count = 4
   if id == "fivePlayerSetup" then count = 5 end
 
@@ -1752,6 +1756,7 @@ function setupFactionBoards(player, value, id)
       true
     )
   end
+  Wait.frames(function() RTT_BUSY = false end, 5)   -- boards are up: buttons live again immediately
 end
 
 
