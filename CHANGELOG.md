@@ -388,3 +388,13 @@ at ~0.285 - so the mask is now s>0.42 and v>0.60, flood-filled from the border. 
 dark torn outline is not bright, so it survives and also blocks the fill. No colour
 gain: the outer sheet already matched the board. The bands beside the panel now
 read G112/B95 against the board's own mountains at G115/B100.
+
+## Mole Monger is seat-local, not absolute - 2026-09-04
+Corrected after the maintainer picked the moles in seat 4 and the Monger appeared
+at seat 2. He said the saved position covers "seat 2 and 4", which I read as one
+absolute spot serving both -- but those seats are diagonal opposites, so it can
+only mean a seat-local offset that mirrors for the far row.
+
+Two offsets, chosen by which side of the table the seat is on: a left-hand seat
+puts the Monger to its right, a right-hand seat to its left, both between the board
+and the table centre. Every seat now spawns it on the player's own half.

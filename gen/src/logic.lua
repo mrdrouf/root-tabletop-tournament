@@ -3885,7 +3885,7 @@ function rttSpawnFaction(faction, cx, cz, flip, category, rotationY)
   -- Same rule for the moles: the Mole Monger belongs to the Duchy's own setup, so it goes down with
   -- the faction rather than being a button the maintainer has to remember.
   if faction == "Underground Duchy" then
-    pcall(function() rttMoleMonger(cx, cz) end)
+    pcall(function() rttMoleMonger(cx, cz, flip) end)
   end
   return true
 end
@@ -4372,33 +4372,36 @@ function rttDealAllianceSupporters(color, before, tries)
   place(1)
 end
 
--- ---- Underground Duchy: the Mole Monger, parked at the maintainer's spots --------------------
--- ABSOLUTE table positions, not seat-local. The Monger is a big reference tile that parks along the
--- near edge of the table, and which of the two spots is right depends on where the mole player sits.
--- Recovered from the saves "moles" (Duchy in seat 2 of 4) and "moles b" (seat 1 of 4, and seat 2 of 5).
--- The five seats he specified all follow one rule: the spot on the player's OWN side of the table,
--- which flips for the far row because those seats are rotated 180.
---   LEFT  spot: (-52,-46) and (52,46)          [4p seats 2 and 4]
---   RIGHT spot: (52,-46), (-52,46), (0,-46)    [4p seats 1 and 3, 5p seat 2]
-RTT_MONGER_LEFT  = { -26.275, 11.562, -54.530 }
-RTT_MONGER_RIGHT = {  32.852, 11.562, -54.521 }
+-- ---- Underground Duchy: the Mole Monger, beside the mole player's own seat --------------------
+-- SEAT-LOCAL offsets, mirrored for the far row like every other seat-relative placement. Recovered
+-- from the saves "moles" (Duchy in 4p seat 2) and "moles b" (4p seat 1, and 5p seat 2).
+-- The maintainer said the "moles" position covers seats 2 AND 4. Those two seats are diagonal
+-- opposites, so that can only mean a seat-LOCAL offset that mirrors -- read as one absolute spot it
+-- put the Monger at seat 2's side of the table while he was playing seat 4, which is exactly what he
+-- reported. Same for "moles b" covering seats 1 and 3.
+-- Two offsets because the two columns need opposite inward directions: a left-hand seat puts the
+-- Monger to its right, a right-hand seat to its left. Both land it between the board and the table
+-- centre, on the player's own side.
+RTT_MONGER_LEFT  = {  25.7250, 11.562, -8.5300 }   -- seats on the LEFT  of the table: (-52,-46), (52,46)
+RTT_MONGER_RIGHT = { -19.1480, 11.562, -8.5210 }   -- seats on the RIGHT, and the centre seats
 
--- Seats whose x and z share a sign take the LEFT spot; the opposite diagonal, and the centre seats
--- (x = 0, which have no side), take the RIGHT one. The centre FAR seat (0,46) is the one case the
--- maintainer did not specify -- it follows (0,-46) here.
-function rttMongerSpot(cx, cz)
-  if (cx < 0 and cz < 0) or (cx > 0 and cz > 0) then return RTT_MONGER_LEFT end
-  return RTT_MONGER_RIGHT
+-- A seat is "left" when its x and z share a sign -- that is the far row's mirror of the near row's
+-- left-hand seat. The centre seats (x = 0) have no side and take the RIGHT offset, which is the case
+-- the maintainer pinned with 5p seat 2.
+function rttMongerSpot(cx, cz, flip)
+  local o = ((cx < 0 and cz < 0) or (cx > 0 and cz > 0)) and RTT_MONGER_LEFT or RTT_MONGER_RIGHT
+  local s = flip and -1 or 1
+  return { cx + o[1] * s, o[2], cz + o[3] * s }
 end
 
-function rttMoleMonger(cx, cz)
+function rttMoleMonger(cx, cz, flip)
   local def = EVERYTHING["Tools"] and EVERYTHING["Tools"]["Mole Monger"]
   if def == nil or def['data'] == nil or def['data'][1] == nil then return end
-  local p = rttMongerSpot(cx, cz)
+  local p = rttMongerSpot(cx, cz, flip)
   spawnObjectJSON({
     json = def['data'][1].json,
     position = { p[1], p[2], p[3] },
-    rotation = { 0, 180, 0 },                    -- both saved copies sit at rotY 180
+    rotation = { 0, flip and 0 or 180, 0 },        -- both saved copies face the near row at rotY 180
     callback_function = function(o)
       pcall(function() o.addTag("RTT Faction") end)   -- goes out WITH the faction on a reset
       pcall(function() o.setLock(true) end)           -- parked reference tile; he locked his own copy

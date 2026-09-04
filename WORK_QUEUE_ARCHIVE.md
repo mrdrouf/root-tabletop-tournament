@@ -671,20 +671,24 @@ bugs that took several attempts — that context is easy to lose and expensive t
 ## Golden rule (the maintainer, repeated + hardened)
 ## STRUCTURAL — the pattern behind most of today's bugs (2026-09-04)
 ## OPEN — reported 2026-09-04 (fourth batch)
-- [x] **Mole Monger spawns with the Duchy board.** Done 2026-09-04 from the saves "moles" (TS_Save_25,
-      Duchy in 4p seat 2) and "moles b" (TS_Save_26, 4p seat 1, plus 5p seat 2). The positions are
-      ABSOLUTE table coordinates, not seat-local: the Monger parks along the near edge at either
-      `(-26.275, 11.562, -54.530)` [LEFT] or `(32.852, 11.562, -54.521)` [RIGHT], and which one depends
-      on where the mole player sits. All five seats he specified fit one rule -- the spot on the
-      player's OWN side, which flips for the far row because those seats are rotated 180:
-        LEFT  <- (-52,-46) and (52,46)          [4p seats 2 and 4]
-        RIGHT <- (52,-46), (-52,46), (0,-46)    [4p seats 1 and 3, 5p seat 2]
-      Spawned in the same pass as the faction (like the rats' mood manager), tagged "RTT Faction" so it
-      goes out with the faction, and locked -- his own copy in the "moles" save is locked.
-      NOTE the centre FAR seat (0,46), reachable only at 6 players, is the one case he did not specify;
-      it follows (0,-46) to the RIGHT spot. The Mole Monger BUTTON still exists and still spawns one at
-      the old default corner spot, so clicking it after picking the moles gives you a second copy.
-
+- [x] **Mole Monger spawns with the Duchy board.** Done 2026-09-04, CORRECTED the same day after the
+      maintainer reported "mole mongler appear in seat 2 while I selected moles in seat 4".
+      MY MISREADING: he said the "moles" save position covers "seat 2 and 4". I took that as one
+      ABSOLUTE table spot serving both seats. But 4p seat 2 (-52,-46) and seat 4 (52,46) are diagonal
+      opposites, so a single absolute spot cannot serve both -- it can only mean a SEAT-LOCAL offset
+      that mirrors for the far row, exactly like every other seat-relative placement in this mod.
+      Read as absolute, a seat-4 game parked the Monger over at seat 2's side, which is what he saw.
+      CORRECT: two seat-local offsets, mirrored by the usual flip convention.
+        LEFT-hand seats  (-52,-46) and (52,46):  offset (+25.7250, -8.5300)   [from the "moles" save]
+        RIGHT-hand seats (52,-46), (-52,46), and the centre seats: (-19.1480, -8.5210)  ["moles b"]
+      Two offsets because the columns need opposite inward directions -- a left-hand seat puts the
+      Monger to its right, a right-hand seat to its left; both land it between the board and the table
+      centre on the player's OWN side. A seat is "left" when its x and z share a sign, which is the far
+      row's mirror of the near row's left seat. Centre seats (x = 0) take the RIGHT offset, the case he
+      pinned with 5p seat 2.
+      Verified at every seat: both captured seats reproduce his saves exactly, and every seat now spawns
+      the Monger on the same half of the table as the player, rotY 180 near row / 0 far row.
+      Spawned in the same pass as the faction, tagged "RTT Faction", and locked.
 ## BLOCKED — need more info from the maintainer
 
 # RTT Work Queue
