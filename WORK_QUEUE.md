@@ -86,16 +86,27 @@ of four structural faults, not an isolated mistake. Fixing these is worth more t
 
 ## OPEN — new batch (2026-09-03, from in-TTS testing)
 
-- [ ] **Marsh landmarks must never be ADJACENT** (the maintainer: "important fix", "big update; hard
-      to make it work"). `rttMarshPlan5P` shuffles the 15 clearing positions and takes the FIRST 3 as
-      town landmarks (gen/src/logic.lua, `rttShuffleList(clearings)` then `for i = 1, 3`), with NO
-      adjacency constraint -- so two towns can land next to each other, which the rules forbid.
-      THE DATA EXISTS: `root_engine/maps_data/marsh.json` has a clean `adjacency` dict for all 15
-      clearings, e.g. "1": [5,10,11] ... "14": [9,10,11,13]. Also `marsh_geometry.json` has
-      `clearings_uv`.
-      THE HARD PART (why this is a big update): RTT identifies clearings by WORLD COORDINATES
-      (RTT_MARSH_SUIT9 + RTT_MARSH up/down pairs), not by clearing NUMBER, so there is no way today to
-      ask "is 7 adjacent to 3". Needs a coordinate -> clearing-number mapping, probably by fitting
-      RTT's positions against marsh_geometry.json's clearings_uv, then a rejection/backtracking pick
-      that draws 3 pairwise non-adjacent clearings. Bake the mapping as a constant; do not compute it
-      at runtime. CHECK the 4-player Marsh flood pairs too, and whether other maps place landmarks.
+- [x] **Marsh landmarks are never ADJACENT** (DONE 2026-09-04, VERIFY). rttMarshPlan5P shuffled the 15
+      clearing positions and took the first three, with no constraint at all.
+      THE MAPPING WAS ALREADY IN THE FILE. RTT identifies clearings by world position, not number, so the
+      adjacency table could not be applied -- but RTT_CLEARING_CENTRES["Marsh Map"] holds all 15 TRUE
+      centres in world coords (what rttMarquiseCats drops a cat into, as the maintainer pointed out), and
+      ITS ORDER IS THE PRINTED CLEARING NUMBER: dividing each centre by root_engine's uv gives scale
+      x 50.65 +/- 0.15 and z 46.37 +/- 0.52, ratio 1.0922 vs the board art's aspect 1.0910. Identity, no fit.
+      I had wasted three fitting attempts on the SUIT-MARKER positions, which cannot work: they sit
+      offset inside their clearing, closest pair 5.26 where the closest real centres are 10.48.
+      RTT_MARSH_CLEARING maps each planner position to its clearing by nearest centre (bijective, no
+      collisions); RTT_MARSH_ADJ is root_engine's adjacency; the planner pulls three pairwise
+      non-adjacent clearings to the front, re-shuffling if a pass fails.
+      PROVEN: 200,000 simulated draws -> 0 adjacent pairs, 0 failures, all 15 clearings reachable.
+
+- [x] **Battle mat on every map; its button removed** (DONE 2026-09-04, VERIFY). It only ever spawned
+      from the draft's rttPlaceMap, so the map BUTTONS (which call makeMap directly) never got one.
+      Moved into makeMap; still tagged "Map Object" so removeMapItems clears the previous one and there
+      is never a second. Button deleted.
+
+- [ ] **Knaves: do NOT spawn the captain cards that appear on the board** -- they are drafted, so the
+      board-spawned copies are duplicates. (Maintainer, 2026-09-04.) rttSpawnFaction already skips the
+      12 "Captain - <name>" meeples and the item supply for this faction; the CARDS need the same
+      treatment. Check what rttSpawnCaptainsFor / rttPoolCaptains put out versus what the blueprint
+      spawns, so the draft keeps working.
