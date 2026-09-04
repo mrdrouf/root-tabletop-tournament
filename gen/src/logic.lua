@@ -3160,6 +3160,30 @@ function rttSeatPlayers()
       end
     end
   end
+  -- SWITCH THE TTS TURN SYSTEM ON, with the real seat order.
+  -- Nothing in this mod ever did. The scene ships Turns.Enable = false and onLoad only assigns a
+  -- hardcoded Turns.order; Turns.enable was never set anywhere in 4,800 lines. So the turn system was
+  -- off in every game, which is why the box score sat permanently in manual mode showing END TURN --
+  -- it was reporting the truth, there was nothing to follow.
+  -- Order is the SEATED colours in seat order, so seat 1 starts; skip_empty_hands stops TTS pausing on
+  -- colours nobody occupies, which matters because RTT always builds 4-6 seats regardless of how many
+  -- humans joined. enable is set LAST, once the order and starting colour are in place.
+  local torder = {}
+  for i = 1, 6 do
+    if seated[i] ~= nil then torder[#torder + 1] = seated[i] end
+  end
+  if #torder > 0 then
+    pcall(function()
+      Turns.type = 2                       -- custom order (the one we just built)
+      Turns.order = torder
+      Turns.reverse_order = false
+      Turns.skip_empty_hands = true
+      Turns.pass_turns = true
+      Turns.turn_color = torder[1]
+      Turns.enable = true
+    end)
+  end
+
   -- base pattern: seat, ~20-frame settle, THEN deliver the matching order card.
   rttAfterFrames(function() rttDealOrderCards(seated) end, 20)
 end
