@@ -408,3 +408,16 @@ and the table centre. Every seat now spawns it on the player's own half.
 - Renames, which meant new art since each button's caption is baked into its image:
   Ranked -> 4-Player Draft, 5-Player Ranked -> 5-Player Draft, and the 4-Player
   button gained a '4-Player Setup' caption band it never had.
+
+## Credits screen, menu shift, and the turn-order deck - 2026-09-04
+- The Hoot Draft object's turn-order deck held four cards (First, Second, Third,
+  Fourth). Fifth Player (CardID 806) is added, so the 5-player draft has all five.
+- Every menu row moved down 8.5 -- half an option button -- so the top row clears
+  the ROOT logo.
+- The baked credit is gone from the board's top-right corner. A Credits button now
+  replaces the menu with a rendered parchment page crediting Leder Games,
+  Nevakanezah, Ehss & slugfacekillah, JustinInExile and Ginso for the components,
+  the Ultimate Collection as the base mod, and MrDrouf & Claude for the revamp.
+  The attributions were read out of the base mod's own hover-credit mapping rather
+  than guessed.
+- The wipe warning is much bigger: font 54 (was ~39) square, 33 (was ~24) wide.

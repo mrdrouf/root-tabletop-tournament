@@ -6,15 +6,16 @@ in its `XmlUI` (`gen/src/save.json`) and every `onclick` resolves to a function 
 Layout, top to bottom:
 
 ```
-[ROOT logo]                                by MrDrouf, Ehss & slugfacekillah
-                                                                    [x]        y =  85
-        [4-Player Setup] [4-Player Draft] [Theme]                              y =  60
-[Summer] [Lake] [Marsh] [Winter] [Mountain] [Gorge]                            y =  25
-                 [Standard] [Exiles] [Squires]                                 y = -15
-[Faction Select][Bat Bungler][Koffin Keeper][Box Score][Clearing Mk][Vagabond]  y = -46.5
-[Lizard Wizard][Mob Lobber][Landmarks][5P Draft][Marsh 5P][5P Setup]           y = -69.5
-                                                         [Clear All]           y = -80
+[ROOT logo]                                                                    y =  76.5 [x]
+        [4-Player Setup] [4-Player Draft] [Theme]                              y =  51.5
+[Summer] [Lake] [Marsh] [Winter] [Mountain] [Gorge]                            y =  16.5
+                 [Standard] [Exiles] [Squires]                                 y = -23.5
+[Faction Sel][Bat Bungler][Mob Lobber][Koffin Keeper][Vagabond][Landmarks]     y = -55
+[5P Setup][5P Draft][5-Players Marsh][Faction Cards][Credits]                  y = -78
+                                                         [Clear All]           y = -88.5
 ```
+
+Every row sits half an option button (8.5) lower than it used to, so the top row clears the ROOT logo.
 
 ---
 
@@ -86,3 +87,7 @@ component's destination, in every game, with nothing to spawn or toggle.
 - **Button art carries its own caption**, so renaming a button means new art. The asset NAMES are
   historical: `RankedArt` now reads "4-Player Draft", `FourBoardsArt` reads "4-Player Setup", and
   `FivePlayerArt` reads "5-Player Draft".
+- **Credits** (`rttShowCredits`) replaces the menu with a rendered parchment page listing every
+  contributor, and **Back** (`rttHideCredits`) returns. The page is an IMAGE, not UI text: TTS renders
+  UI text into a fixed-resolution texture, so small type is blurry -- the same reason the old corner
+  credit was an image. The board itself no longer carries a baked credit.
