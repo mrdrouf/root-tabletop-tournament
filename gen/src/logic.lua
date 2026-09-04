@@ -1921,6 +1921,22 @@ RTT_ARM = { id = nil, token = 0 }
 RTT_BUSY = false
 RTT_BUSY_TOKEN = 0
 
+-- GENERATION TOKEN. A setup is ~6-10s of chained Wait.time/Wait.frames. The busy guard stops a SECOND
+-- run from STARTING, but a chain already in flight keeps firing -- against objects the new run has since
+-- destroyed, and against the new run's state. Every new game bumps RTT_RUN_ID (in rttClearGameObjects,
+-- which both setup paths call); each chain step is scheduled through these, which capture the id at
+-- schedule time and simply do not run if the game has moved on. Same argument order as Wait.time /
+-- Wait.frames deliberately, so a call site converts by swapping the name and nothing else.
+RTT_RUN_ID = 0
+function rttAfter(fn, sec)
+  local id = RTT_RUN_ID
+  Wait.time(function() if RTT_RUN_ID == id then fn() end end, sec)
+end
+function rttAfterFrames(fn, n)
+  local id = RTT_RUN_ID
+  Wait.frames(function() if RTT_RUN_ID == id then fn() end end, n)
+end
+
 -- Everything a game puts on the table, in one place. Both setup paths call this, so a new tag can
 -- never again be swept by one path and leaked by the other. Two leaks this fixes: the Pond tagged
 -- itself "RTT Pond" and nothing cleared it, and the Lizard Wizard was tagged plain "Faction" -- one
@@ -1957,6 +1973,7 @@ function rttResetHands2()
   end
 end
 function rttClearGameObjects()
+  RTT_RUN_ID = RTT_RUN_ID + 1                      -- invalidates every in-flight setup callback
   for _, t in ipairs(RTT_TEARDOWN_TAGS) do
     for _, o in ipairs(getObjectsWithTag(t)) do pcall(function() o.destruct() end) end
   end
@@ -2081,7 +2098,7 @@ end
 --    stack at table height (y offsets are tiny) and are locked so it sits like a deck.
 function rttSpawnDeck(jsons, i, cards)
   if i > #jsons then
-    Wait.time(function() rttSlideOut(cards, 1) end, 0.9)   -- let the deck sit, then deal
+    rttAfter(function() rttSlideOut(cards, 1) end, 0.9)   -- let the deck sit, then deal
     return
   end
   spawnObjectJSON({
@@ -2092,7 +2109,7 @@ function rttSpawnDeck(jsons, i, cards)
       o.setLock(true)
       RTT_SPAWNED[#RTT_SPAWNED+1] = o.getGUID()
       cards[i] = o
-      Wait.time(function() rttSpawnDeck(jsons, i+1, cards) end, 0.1)
+      rttAfter(function() rttSpawnDeck(jsons, i+1, cards) end, 0.1)
     end
   })
 end
@@ -2101,7 +2118,7 @@ end
 --    slot. Card 1 (always the Militant) lands LEFT-most, each later card one right.
 function rttSlideOut(cards, k)
   if k > (#cards - RTT_NLEFT) then                     -- deal ALL the drafted cards
-    Wait.time(function() rttFlipAll(cards, 1) end, 0.6)
+    rttAfter(function() rttFlipAll(cards, 1) end, 0.6)
     return
   end
   local c = cards[RTT_NLEFT + k]                        -- the k-th draft card (top of the deck)
@@ -2110,11 +2127,11 @@ function rttSlideOut(cards, k)
     local _nd = #cards - RTT_NLEFT local _sp = (_nd > 1) and (28.0 / (_nd - 1)) or 0 local s = {63.9, 11.6, -14 + (_nd - k) * _sp}
     local mid = {s[1], s[2] + 4, (RTT_DECK[3] + s[3]) / 2}   -- lift over -> arc
     c.setPositionSmooth(mid, false, false)
-    Wait.time(function()
+    rttAfter(function()
       if c ~= nil then c.setPositionSmooth({s[1], s[2], s[3]}, false, true) end
     end, 0.35)
   end
-  Wait.time(function() rttSlideOut(cards, k+1) end, 0.6)
+  rttAfter(function() rttSlideOut(cards, k+1) end, 0.6)
 end
 
 -- 3) flip face-up with the REAL flip mechanism (a natural flip, not a rotate that
@@ -2124,13 +2141,13 @@ function rttFlipAll(cards, k)
     for i = 1, RTT_NLEFT do                            -- unlock the leftover deck so it's movable
       if cards[i] ~= nil then cards[i].setLock(false) end
     end
-    Wait.time(rttDealOrder, 1.0)
-    Wait.time(rttDraftKnavesCaptains, 1.6)             -- captains spawn AFTER every draft card has flipped
+    rttAfter(rttDealOrder, 1.0)
+    rttAfter(rttDraftKnavesCaptains, 1.6)             -- captains spawn AFTER every draft card has flipped
     return
   end
   local c = cards[RTT_NLEFT + k]
   if c ~= nil then c.flip() end
-  Wait.time(function() rttFlipAll(cards, k+1) end, 0.12)
+  rttAfter(function() rttFlipAll(cards, k+1) end, 0.12)
 end
 
 function rttDealOrder()
@@ -2141,9 +2158,9 @@ function rttDealOrder()
     callback_function = function(ord)
       ord.setLock(false)                 -- unlock so it isn't left floating
       RTT_SPAWNED[#RTT_SPAWNED+1] = ord.getGUID()
-      Wait.time(function()
+      rttAfter(function()
         if ord ~= nil and ord.shuffle then ord.shuffle() end
-        Wait.time(function()
+        rttAfter(function()
           local seated = {}
           for _,p in ipairs(Player.getPlayers()) do
             if p.seated and p.color ~= "Grey" and p.color ~= "Black" then seated[#seated+1]=p end
@@ -2162,7 +2179,7 @@ function rttDealOrder()
           for i=#slots,2,-1 do local j=math.random(i) slots[i],slots[j]=slots[j],slots[i] end
           for k=1,#plist do if slots[k] ~= nil then RTT_ORDER[slots[k]] = plist[k] end end
           RTT_ORDER_DECK = (ord ~= nil) and ord.getGUID() or nil   -- rttSeatAndDeal deals from it
-          Wait.time(function() rttBeginPick() end, 1.0)
+          rttAfter(function() rttBeginPick() end, 1.0)
         end, 0.6)
       end, 0.5)
     end
@@ -3141,7 +3158,7 @@ function rttSeatPlayers()
     end
   end
   -- base pattern: seat, ~20-frame settle, THEN deliver the matching order card.
-  Wait.frames(function() rttDealOrderCards(seated) end, 20)
+  rttAfterFrames(function() rttDealOrderCards(seated) end, 20)
 end
 
 -- world point just above seat N's hand zone: a card dropped here falls into the owned hand.
@@ -3193,7 +3210,7 @@ function rttDealOrderCards(seated)
         if c ~= nil then pcall(function() c.setPositionSmooth(hp, false, false) end) end
       end
     end
-    Wait.time(function() deliver(i + 1) end, 0.25)       -- one at a time = no deck-busy / collapse race
+    rttAfter(function() deliver(i + 1) end, 0.25)       -- one at a time = no deck-busy / collapse race
   end
   deliver(1)
 end
@@ -3204,7 +3221,7 @@ function rttBeginPick()
   RTT_PICK_STAGE = 0                             -- map/deck pick REMOVED (the maintainer places them manually)
   if RTT_5P_MARSH then rttPlaceMap("Marsh Map") end   -- the 5-player button still auto-places its Marsh map
   rttSpawnSelectors()
-  Wait.frames(function() rttSeatPlayers() rttStartFactionDraft() end, 10)
+  rttAfterFrames(function() rttSeatPlayers() rttStartFactionDraft() end, 10)
 end
 
 function rttShowPick(stage)
@@ -3291,7 +3308,7 @@ function rttStartFactionDraft()
   if _G['vagabondAlreadySpawned'] == nil then _G['vagabondAlreadySpawned'] = false end
   -- (the maintainer: never auto-deal starting hands. rttDealHands removed.)
   -- (Knaves captains now spawn from rttFlipAll, AFTER every draft card has flipped -- not here.)
-  Wait.frames(function() rttShowFactions() end, 40) -- light EVERY board at once (simultaneous pick)
+  rttAfterFrames(function() rttShowFactions() end, 40) -- light EVERY board at once (simultaneous pick)
 end
 
 -- Knaves: if Knaves is one of the drafted factions, spawn its 12-card Captain deck directly under

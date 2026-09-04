@@ -12,6 +12,7 @@ There is no external base and no patch pipeline; the finished save is assembled 
 """
 import json
 import os
+import re
 import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -35,8 +36,47 @@ def _board_lua():
     return open(content, encoding="utf-8").read() + open(logic, encoding="utf-8").read()
 
 
+# Functions that spawn objects but legitimately do not tag them for faction teardown.
+# Everything else that calls takeObject/spawnObjectJSON MUST tag (addTag/setTags) or track
+# (RTT_SPAWNED), or a new game cannot clear what it left behind. This check exists because that class
+# of bug is invisible by construction -- the teardown code looks correct while an untagged spawn simply
+# never appears to it -- and it shipped four separate times (pond, Lizard Wizard, Marquise cats,
+# Alliance supporters), each found only when the maintainer reported it in TTS.
+UNTAGGED_SPAWN_OK = {
+    "makeFaction",                  # delegates to rttPlaceFaction, which tags in rttSpawnFaction's callback
+    "makeTool",                     # tools are meant to persist across games, not be torn down
+    "rttDealOrderCards",            # deals from the order deck, whose GUID rttDealOrder puts in RTT_SPAWNED
+    "spawnDraftFaction",            # base-mod leftovers; candidates for removal in the cleanup
+    "spawnTournamentDraftFaction",
+}
+
+
+def check_spawn_tagging(logic):
+    """Fail the build if a function spawns objects without tagging or tracking them."""
+    fns = [(m.group(1), m.start()) for m in re.finditer(r"^function\s+([A-Za-z_][\w]*)\s*\(", logic, re.M)]
+    fns.append(("<eof>", len(logic)))
+    bad = []
+    for i in range(len(fns) - 1):
+        name, a = fns[i]
+        body = logic[a:fns[i + 1][1]]
+        if not re.search(r"\b(takeObject|spawnObjectJSON)\s*\(", body):
+            continue
+        if re.search(r"addTag\s*\(|setTags\s*\(|RTT_SPAWNED\[", body):
+            continue
+        if name in UNTAGGED_SPAWN_OK:
+            continue
+        bad.append(name)
+    if bad:
+        raise SystemExit(
+            "[gen] UNTAGGED SPAWN: %s spawn object(s) without addTag/setTags/RTT_SPAWNED.\n"
+            "      A new game clears by tag, so anything untagged survives into the next game.\n"
+            "      Tag it (usually addTag(\"RTT Faction\")), or add it to UNTAGGED_SPAWN_OK in\n"
+            "      gen/assemble.py with a reason." % ", ".join(sorted(bad)))
+
+
 def build():
     save = json.load(open(os.path.join(SRC, "save.json"), encoding="utf-8"))
+    check_spawn_tagging(open(os.path.join(SRC, "logic.lua"), encoding="utf-8").read())
     board_lua = _board_lua()
     _set_board_lua(save["ObjectStates"], board_lua)
     os.makedirs(OUT_DIR, exist_ok=True)

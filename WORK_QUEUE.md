@@ -60,7 +60,21 @@ of four structural faults, not an isolated mistake. Fixing these is worth more t
 - [ ] Refactor to (1)+(2)+(3): explicit-argument placement, one shared new-game/spawn path, one reset
       registry. This is the "thorough code cleanup" item made concrete -- do it as the cleanup, not
       separately.
-- [ ] Add the generation token (4).
+- [x] **Generation token (structural fault 4)** (DONE 2026-09-04, VERIFY). RTT_RUN_ID is bumped by
+      rttClearGameObjects, which both setup paths call. The 15 scheduling calls in the setup chain
+      (rttSpawnDeck / rttSlideOut / rttFlipAll / rttDealOrder / rttBeginPick / rttSeatPlayers /
+      rttDealOrderCards / rttStartFactionDraft) now go through rttAfter / rttAfterFrames, which capture
+      the id at schedule time and do nothing if the game has moved on. Same argument order as
+      Wait.time / Wait.frames on purpose, so converting a call site is a rename and nothing else.
+      The busy guard stops a second run STARTING; this stops an in-flight chain from acting on a run
+      that no longer exists.
+- [x] **Build-time untagged-spawn check (structural fault 3)** (DONE 2026-09-04). gen/assemble.py now
+      fails the build if any function calls takeObject/spawnObjectJSON without addTag/setTags/
+      RTT_SPAWNED, with an explicit UNTAGGED_SPAWN_OK allowlist (makeFaction, makeTool,
+      rttDealOrderCards and two base-mod leftovers, each with a reason). Proven by stripping the
+      Marquise cats' tag: the build stops. This class shipped FOUR times (pond, Lizard Wizard, cats,
+      supporters) and was invisible by construction -- the teardown reads correctly while an untagged
+      spawn simply never appears to it.
 
 ## OPEN — new batch (2026-09-04)
 
@@ -223,7 +237,8 @@ of four structural faults, not an isolated mistake. Fixing these is worth more t
       already does for "Map Object". Audit rttFactionExtras for anything else that escapes.
       (Related: the RTT_FAC_TAKEN checks at logic.lua:4048/4084.)
 
-- [ ] **Woodland Alliance: deal 3 SUPPORTERS face-up on spawn.** When the Alliance spawns, draw three
+- [x] **Woodland Alliance: deal 3 SUPPORTERS face-up on spawn** (SHIPPED 2026-09-04 -- see the
+      2026-09-04 batch entry above for the four faults found along the way). Original note: When the Alliance spawns, draw three
       cards from the shared deck and lay them FACE UP in the supporters area.
       POSITIONS RECOVERED from TS_AutoSave (seat 2, board rotY 180) -- capture them before autosaves
       rotate: the supporters area is a Custom_Tile tagged "RTT Faction" at (-64.13, 11.56, -55.40),
@@ -245,7 +260,8 @@ of four structural faults, not an isolated mistake. Fixing these is worth more t
       the save exactly. Result: **22305 had NOT moved** (delta 0.000) and 22304 moved -5.804 in x.
       Baked 22304 move_to (-0.924112, 0.214964, 11.616381) -> (-6.728250, 0.214964, 11.632310).
 
-- [ ] **Box score keeps STALE faction memory** (2026-09-03). The maintainer: the ONLY source of truth for
+- [x] **Box score STALE faction memory** (SHIPPED 2026-09-04): the poll now prunes any row whose VP
+      marker guid no longer resolves, so the markers on the board are the only memory. Original: The maintainer: the ONLY source of truth for
       which factions are present should be the **VP score markers on the board**. Observed: loading a
       previous save added a pile of factions to the sheet; and after resetting and spawning new factions
       the sheet positions VP markers in odd spots as if the previous markers still existed.
@@ -253,7 +269,9 @@ of four structural faults, not an isolated mistake. Fixing these is worth more t
       load and is never reconciled against what is actually on the table. Rows are only ever ADDED
       (addRow when a VP marker becomes readable); nothing prunes a row whose marker is gone.
 
-- [ ] **VP markers not consistently placed when the MAP is spawned AFTER the factions** (2026-09-03):
+- [x] **VP markers when the MAP comes AFTER the factions** (SHIPPED 2026-09-04): placement is no longer
+      time-boxed -- unplaced markers stay in RTT_VP_PENDING and makeMap finishes them when a track
+      appears. Original:
       some factions' markers never land on the track. **CONFIRMED by the maintainer: it is always the
       EARLIEST-placed factions that go missing**, which is exactly the time-box signature. CAUSE: placement is time-boxed,
       not event-driven -- rttPlaceFaction defers with Wait.time(rttPlaceVPRetry(vpF, vpN, 6), 1.2) and
@@ -357,7 +375,9 @@ box-score source. Recorded here for status only.
       warriors validating at 0.0007: the maintainer had moved tunnel `c8c8a2` to **(-8.499, 0.100, 7.538)**.
       It IS baked into the current blueprint -- `c8c8a2` appears twice in gen/src/content.lua and the
       -8.4990 coordinate is present. Nothing to do; VERIFY in TTS that the tunnel spawns there.
-- [ ] **Thorough code cleanup** (workflow wbindjqke running): drop obsolete/dead code + bloat, no
+- [x] **Thorough code cleanup** -- SUPERSEDED. Redefined concretely as the STRUCTURAL item at the top
+      of this file (explicit-argument placement, one shared new-game/spawn path, one reset registry,
+      the run-id token, and a build-time untagged-spawn check). Original wording: drop obsolete/dead code + bloat, no
       duplication (shared helpers), fix bugs/typos/robustness, well-written. Implement from the plan,
       verify build each step, conservative (proven-dead only).
 - [x] **Easy-install folder** (ALREADY DONE -- item was stale): settled on 2026-08-29 (orphan a56d9cb) as
