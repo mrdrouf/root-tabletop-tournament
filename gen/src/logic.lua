@@ -4080,21 +4080,39 @@ RTT_CLEARING_CENTRES = {
   },
 }
 
--- Three supporters into the Alliance's supporters hand (hand index 2). The shared draw deck is the one
--- big Deck that is not the frog deck -- the same test rttShuffleFrogsIntoDeck uses. If there is no such
--- deck (map/deck not placed yet), nothing is drawn.
+-- Three supporters into the Alliance's supporters hand. deck.deal(3, color, 2) does NOT honour the hand
+-- index here -- the cards landed in a random spot -- so place them ON the hand-2 zone instead: dropping a
+-- card inside a hand volume is what puts it in that hand, and it is deterministic. Spread along the
+-- zone's own right vector (right = (cos ry, 0, -sin ry)) so the three do not stack, face up (rotZ 0) and
+-- aligned to the zone. If there is no shared deck on the table, nothing is drawn.
+RTT_ALLY_SUP_SPREAD = { -3.5, 0.0, 3.5 }
+
 function rttDealAllianceSupporters(color)
   if color == nil or color == "" then return end
+  local h2 = nil
+  pcall(function() h2 = Player[color].getHandTransform(2) end)
+  if h2 == nil or h2.position == nil then return end          -- no supporters hand: place nothing
+  local deck = nil
   for _, o in ipairs(getAllObjects()) do
     if o.name == "Deck" then
       local cards = o.getObjects() or {}
       local frog = 0
       for _, c in ipairs(cards) do if (c.description or "") == "Frog" then frog = frog + 1 end end
-      if #cards >= 20 and frog == 0 then
-        pcall(function() o.deal(3, color, 2) end)
-        return
-      end
+      if #cards >= 20 and frog == 0 then deck = o break end
     end
+  end
+  if deck == nil then return end                              -- no deck: draw nothing
+  local ry = h2.rotation.y
+  local rx, rz = math.cos(math.rad(ry)), -math.sin(math.rad(ry))
+  for i = 1, 3 do
+    local off = RTT_ALLY_SUP_SPREAD[i]
+    pcall(function()
+      deck.takeObject({
+        position = { h2.position.x + rx * off, h2.position.y + 0.6, h2.position.z + rz * off },
+        rotation = { 0, ry, 0 },
+        smooth   = false,
+      })
+    end)
   end
 end
 
