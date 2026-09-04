@@ -2031,6 +2031,7 @@ end
 function rttNewGame(seats)
   rttClearGameObjects()                            -- objects, hand zones, run-id bump
   rttResetRunState()                               -- everything teardown cannot see
+  rttRemoveFrogsFromDeck()                         -- the deck survives teardown; its frog cards must not
   if seats ~= nil then rttEnableTurns(seats) end
 end
 function rttBusyBegin(sec)
@@ -4333,15 +4334,7 @@ function rttDealAllianceSupporters(color, before, tries)
     end
     return
   end
-  local deck = nil
-  for _, o in ipairs(getAllObjects()) do
-    if o.name == "Deck" then
-      local cards = o.getObjects() or {}
-      local frog = 0
-      for _, c in ipairs(cards) do if (c.description or "") == "Frog" then frog = frog + 1 end end
-      if #cards >= 20 and frog == 0 then deck = o break end
-    end
-  end
+  local deck = rttFindMainDeck()
   if deck == nil then return end                       -- no deck: draw nothing
   RTT_ALLY_SUP_DONE[color] = true
   -- A hand zone's rotation.y points the way the OWNER faces; a card laid at that same y reads upside
@@ -4357,7 +4350,10 @@ function rttDealAllianceSupporters(color, before, tries)
       deck.takeObject({
         position = { h2.position.x + rx * off, h2.position.y + 0.6, h2.position.z + rz * off },
         rotation = { 0, ry, 0 },
-        smooth   = false,
+        -- Animate it. takeObject with no index takes the TOP card, and smooth makes it visibly travel
+        -- from the deck to the supporters stack, so it reads as coming off the top rather than simply
+        -- appearing there (maintainer request).
+        smooth   = true,
         -- "sometimes he throws the three cards upside down": rotation alone is not enough, because a
         -- card's own face-up sense depends on how it sat in the deck. Check and flip.
         callback_function = function(c)
@@ -4366,7 +4362,8 @@ function rttDealAllianceSupporters(color, before, tries)
         end,
       })
     end)
-    Wait.time(function() place(i + 1) end, 0.25)       -- one at a time: no deck-busy / collapse race
+    Wait.time(function() place(i + 1) end, 0.6)        -- one at a time: no deck-busy / collapse race,
+                                                       -- and long enough that each card's flight is seen
   end
   place(1)
 end
@@ -4626,16 +4623,64 @@ function rttSpawnPond()
   })
 end
 
+-- How many of a deck's cards are the Lilypad Diaspora's, and how many cards it holds.
+function rttFrogCount(deck)
+  local cards = deck.getObjects() or {}
+  local frog = 0
+  for _, c in ipairs(cards) do if (c.description or "") == "Frog" then frog = frog + 1 end end
+  return frog, #cards
+end
+
+-- THE shared clearing-card deck. A deck that is ENTIRELY frog cards is the frogs' own and must not be
+-- mistaken for it -- but a deck that merely CONTAINS frog cards is the shared deck after
+-- rttShuffleFrogsIntoDeck has merged them in. The old test demanded zero frog cards, so once the frogs
+-- were in play NOTHING matched: the Alliance supporters draw found no deck and silently dealt nothing
+-- (maintainer: "supporters fail to draft when there are the frogs card on top").
+function rttFindMainDeck()
+  for _, o in ipairs(getAllObjects()) do
+    if o.name == "Deck" then
+      local frog, total = rttFrogCount(o)
+      if total >= 20 and frog < total then return o end
+    end
+  end
+  return nil
+end
+
+-- The frog cards live in the SHARED deck once the Lilypad Diaspora has been picked, and the deck is
+-- tagged "Deck Object", which teardown deliberately never sweeps. So they outlived the game that added
+-- them and a later game without the frogs still drew them. Pull them back out on every new game; if the
+-- frogs are picked again, rttShuffleFrogsIntoDeck re-adds them from that faction's own blueprint.
+function rttRemoveFrogsFromDeck()
+  local deck = rttFindMainDeck()
+  if deck == nil then return end
+  local guids = {}
+  for _, c in ipairs(deck.getObjects() or {}) do
+    if (c.description or "") == "Frog" and c.guid ~= nil then guids[#guids + 1] = c.guid end
+  end
+  if #guids == 0 then return end
+  local dp = deck.getPosition()
+  local function pull(i)
+    if i > #guids then return end
+    pcall(function()
+      deck.takeObject({
+        guid              = guids[i],
+        position          = { dp.x, dp.y + 3, dp.z },
+        smooth            = false,
+        callback_function = function(o) pcall(function() o.destruct() end) end,
+      })
+    end)
+    Wait.time(function() pull(i + 1) end, 0.1)   -- one at a time: no deck-busy / collapse race
+  end
+  pull(1)
+end
+
 function rttShuffleFrogsIntoDeck()
-  local mainDeck, frogObjs = nil, {}
+  local mainDeck, frogObjs = rttFindMainDeck(), {}
   for _, o in ipairs(getAllObjects()) do
     local nm = o.name
-    if nm == "Deck" then
-      local cards = o.getObjects() or {}
-      local frog, total = 0, #cards
-      for _, c in ipairs(cards) do if (c.description or "") == "Frog" then frog = frog + 1 end end
-      if total > 0 and frog == total then frogObjs[#frogObjs + 1] = o
-      elseif total >= 20 and frog == 0 and mainDeck == nil then mainDeck = o end
+    if nm == "Deck" and o ~= mainDeck then
+      local frog, total = rttFrogCount(o)
+      if total > 0 and frog == total then frogObjs[#frogObjs + 1] = o end
     elseif (nm == "Card" or nm == "CardCustom") and (o.getDescription() or "") == "Frog" then
       frogObjs[#frogObjs + 1] = o
     end

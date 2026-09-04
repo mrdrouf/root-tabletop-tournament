@@ -551,3 +551,47 @@ bugs that took several attempts — that context is easy to lose and expensive t
       after a ranked draft left all 5 faction cards on the table, and the supporters zone could still
       be built from a stale hand 1. NOT YET CONFIRMED IN TTS by the maintainer.
 ## BLOCKED — need more info from the maintainer
+
+# RTT Work Queue
+## Standing rule: work on MAIN
+## Standing rule: this file only shows OPEN work
+## Note for future sessions: the `m###` labels are HISTORY, not files
+## Golden rule (the maintainer, repeated + hardened)
+## STRUCTURAL — the pattern behind most of today's bugs (2026-09-04)
+## OPEN — reported 2026-09-04
+- [x] **Allow more than one copy of a faction.** DECIDED 2026-09-04: keep the gate. The maintainer
+      asked to remove it, then on seeing the evidence: "ok then you can keep the gate that prevents
+      twice the same faction". Measured with a duplicate spawn: the second copy silently overwrote the
+      first's entries -- `RTT_SEAT_COLOR` Red->Teal and `RTT_SEAT_PLAYER` MrDrouf->Ehs -- and left two
+      objects both named "Marquise VP". State is keyed by faction NAME on both sides of the box-score
+      protocol, so duplicates would need a per-copy identity through the mod AND root_boxscore.
+
+## BLOCKED — need more info from the maintainer
+
+# RTT Work Queue
+## Standing rule: work on MAIN
+## Standing rule: this file only shows OPEN work
+## Note for future sessions: the `m###` labels are HISTORY, not files
+## Golden rule (the maintainer, repeated + hardened)
+## STRUCTURAL — the pattern behind most of today's bugs (2026-09-04)
+## OPEN — reported 2026-09-04
+- [x] **Supporters fail to draft when frog cards are on top of the deck.** Fixed 2026-09-04. Root
+      cause: `rttDealAllianceSupporters` looked for a deck with `#cards >= 20 and frog == 0`, but
+      `rttShuffleFrogsIntoDeck` merges the 14 frog cards INTO that very deck when the Lilypad Diaspora
+      is picked -- so from then on no deck matched, `deck == nil`, and the draw returned silently.
+      The right test is "not ENTIRELY frog cards" (an all-frog deck is the frogs' own). Extracted
+      `rttFindMainDeck()` / `rttFrogCount()` so the two call sites cannot drift apart again.
+      Measured: old build draws 0 supporters with frogs in the deck, 3 after the fix.
+
+- [x] **Removing the frog faction must also remove the frog cards from the deck.** Fixed 2026-09-04.
+      The deck is tagged `Deck Object`, which teardown deliberately never sweeps, so frog cards merged
+      in by one game were still there in the next. `rttRemoveFrogsFromDeck()` now runs from
+      `rttNewGame`, pulling them out one at a time and destroying them; the frogs re-add their own from
+      the faction blueprint if picked again. Measured: 14 frog cards survived a new game before, 0 now,
+      and the 40 non-frog cards are untouched.
+
+- [x] **Show the supporters card travelling from the top of the deck.** Done 2026-09-04: the draw uses
+      `smooth = true` (and `takeObject` with no index already takes the TOP card), with 0.6s between
+      cards so each flight is visible instead of the card simply appearing on the stack.
+
+## BLOCKED — need more info from the maintainer

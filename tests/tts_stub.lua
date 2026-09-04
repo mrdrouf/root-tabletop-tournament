@@ -17,7 +17,8 @@ function FLUSH(rounds)
   end
 end
 
-local function vec(t)
+local function vec(t, y2, z2)
+  if type(t) == 'number' then t = {t, y2 or 0, z2 or 0} end
   t = t or {}
   local v = {x = t.x or t[1] or 0, y = t.y or t[2] or 0, z = t.z or t[3] or 0}
   v[1],v[2],v[3] = v.x,v.y,v.z
@@ -103,6 +104,47 @@ end
 function spawnObject(p)
   local o = MKOBJ((p or {}).type or "obj", (p or {}).position, {})
   if p and p.callback_function then p.callback_function(o) end
+  return o
+end
+
+-- A deck whose contents the mod can inspect and draw from. `specs` is a list of {desc}, top first.
+function MKDECK(specs)
+  local o = MKOBJ("Deck", {0, 2, 0}, {"Deck Object"})
+  o.name = "Deck"
+  o.__cards = {}
+  for i, sp in ipairs(specs) do
+    o.__cards[i] = { guid = string.format("c%03d", i), description = sp.desc or "", nickname = sp.nick or "card" }
+  end
+  function o.getObjects() return o.__cards end
+  function o.getQuantity() return #o.__cards end
+  function o.putObject(other)
+    local n = #o.__cards
+    if other.__cards then
+      for _, c in ipairs(other.__cards) do n = n + 1; o.__cards[n] = c end
+      other.__cards = {}
+    else
+      o.__cards[n + 1] = { guid = other.getGUID(), description = "Frog", nickname = other.getName() }
+    end
+    other.destruct()
+    return o
+  end
+  function o.takeObject(p)
+    p = p or {}
+    local idx = 1                                    -- no guid given: the TOP card
+    if p.guid then
+      for i, c in ipairs(o.__cards) do if c.guid == p.guid then idx = i break end end
+    end
+    local c = table.remove(o.__cards, idx)
+    if c == nil then return nil end
+    local t = MKOBJ(c.nickname, p.position, {})
+    t.name = "Card"
+    t.__desc = c.description
+    t.getDescription = function() return c.description end
+    t.is_face_down = false
+    note(REC.spawned, "take:" .. (c.description ~= "" and c.description or c.nickname))
+    if p.callback_function then p.callback_function(t) end
+    return t
+  end
   return o
 end
 

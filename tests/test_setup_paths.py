@@ -122,6 +122,60 @@ def t_seat_hand_array_shape(src):
         "array rot %.3f,%.3f != named rot %.3f,%.3f" % (arr["x"], arr["z"], named["x"], named["z"])
 
 
+DECK_LUA = """SHARED = MKDECK((function() local t={}
+    for i=1,40 do t[#t+1]={desc='fox',nick='Ambush'} end
+    for i=1,%d do t[#t+1]={desc='Frog',nick='Militias'} end
+    return t end)())"""
+
+def _frogs(rt):
+    return rt.eval("(function() local n=0 for _,c in ipairs(SHARED.__cards) do "
+                   "if c.description=='Frog' then n=n+1 end end return n end)()")
+
+
+def t_main_deck_survives_frogs(src):
+    """The shared deck must still be found after the frogs have been merged into it."""
+    # one fresh table per case: decks are found by scanning everything on it, so leaving an
+    # earlier fixture lying around would just return that one
+    rt = fresh(src)
+    rt.execute(DECK_LUA % 0)
+    assert rt.eval("rttFindMainDeck() == SHARED"), "shared deck not found even with no frog cards"
+
+    rt = fresh(src)
+    rt.execute(DECK_LUA % 14)
+    assert rt.eval("rttFindMainDeck() == SHARED"), \
+        "a deck CONTAINING frog cards is the shared deck after the merge, but was rejected"
+
+    # a deck that is ENTIRELY frog cards is the frogs' own and must never be mistaken for the shared one
+    rt = fresh(src)
+    rt.execute("ONLYFROG = MKDECK((function() local t={} for i=1,30 do t[i]={desc='Frog'} end return t end)())")
+    assert rt.eval("rttFindMainDeck()") is None, "an all-frog deck was taken for the shared deck"
+
+
+def t_supporters_draw_with_frogs_in_deck(src):
+    """The Alliance must still draw its three supporters when the frogs are in play."""
+    for n_frog in (0, 14):
+        rt = fresh(src)
+        rt.execute("SEAT('Red','MrDrouf')")
+        rt.execute(DECK_LUA % n_frog)
+        rt.execute("""RTT_ALLY_SUP_DONE = {}
+                      BEFORE = {x=-75, z=-75}
+                      Player['Red'].setHandTransform({position={40,12.56,-37},rotation={0,0,0},scale={12,5.4,5.5}},2)
+                      REC.spawned = {}""")
+        rt.execute("pcall(function() rttDealAllianceSupporters('Red', BEFORE, 12) end) FLUSH(30)")
+        took = [v for v in rt.eval("REC.spawned").values() if str(v).startswith("take:")]
+        assert len(took) == 3, "%d frog cards in the deck: drew %d supporters, wanted 3" % (n_frog, len(took))
+
+
+def t_new_game_removes_frog_cards(src):
+    """The deck outlives teardown, so last game's frog cards must be pulled back out."""
+    rt = fresh(src)
+    rt.execute(DECK_LUA % 14)
+    assert _frogs(rt) == 14, "fixture is wrong"
+    rt.execute("pcall(function() setupFactionBoards(nil,nil,nil) end) FLUSH(30)")
+    assert _frogs(rt) == 0, "%d frog cards survived into the next game" % _frogs(rt)
+    assert rt.eval("#SHARED.__cards") == 40, "removal took non-frog cards too (deck is %d)" % rt.eval("#SHARED.__cards")
+
+
 CASES = [
     ("manual path drives the turn system",   t_manual_turn_order),
     ("manual path spawns 4 / 5 boards",      t_boards_spawn),
@@ -129,6 +183,9 @@ CASES = [
     ("manual setup clears ranked objects",   t_ranked_objects_cleared_by_manual),
     ("supporters take the seat explicitly",  t_supporters_take_the_seat_explicitly),
     ("both transform shapes agree",          t_seat_hand_array_shape),
+    ("shared deck found with frogs in it",   t_main_deck_survives_frogs),
+    ("supporters draw with frogs in play",   t_supporters_draw_with_frogs_in_deck),
+    ("a new game removes frog cards",        t_new_game_removes_frog_cards),
 ]
 
 

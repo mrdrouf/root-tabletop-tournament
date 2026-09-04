@@ -296,3 +296,21 @@ system were each fixed in one and forgotten in the other. Collapsed to one path:
 
 `tests/test_setup_paths.py` drives both paths against a stubbed TTS: 6 cases, 3 of
 which fail against pre-refactor main.
+
+## Frogs and the shared deck — 2026-09-04
+Two reports with one root cause. `rttShuffleFrogsIntoDeck` merges the Lilypad
+Diaspora's 14 cards into the shared deck when that faction is picked, but both the
+places that look for the shared deck identified it as "a deck of 20+ cards containing
+NO frog cards" — a test the deck stops passing the moment the frogs are in play.
+
+- The Alliance supporters draw found no deck at all and returned silently, so no
+  supporters were dealt in any game with the frogs in it. The correct test is "not
+  ENTIRELY frog cards"; a deck that is all frog cards is the frogs' own.
+  `rttFindMainDeck()` / `rttFrogCount()` are now shared by both call sites.
+- The deck is tagged `Deck Object`, which teardown deliberately never sweeps, so frog
+  cards merged in by one game were still in the deck for the next.
+  `rttRemoveFrogsFromDeck()` runs from `rttNewGame` and pulls them back out; the frogs
+  re-add their own from the faction blueprint if picked again.
+
+The supporters draw is also animated now (`smooth = true`, 0.6s apart) so each card is
+seen coming off the top of the deck rather than appearing on the stack.
