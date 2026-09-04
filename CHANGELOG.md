@@ -333,3 +333,14 @@ seen coming off the top of the deck rather than appearing on the stack.
 - **The rats' Mini-Mood Manager** spawns in the same pass as the faction instead of
   half a second later, and the 8-card mood deck baked into the rats blueprint — which
   sat on top of the manager's own board — is removed from the data.
+
+## Captain wipe, mood lock, draft order, corvid warriors — 2026-09-04
+- **Drawn captain cards now go out with the faction.** The captain deck was tagged
+  at spawn, but a card drawn out of a deck carries its own tags and the blueprint's
+  12 cards had none, so any captain taken out survived the wipe. `RTT Faction` is
+  baked onto the deck and all 12 cards in the data.
+- **The Mini-Mood Manager board spawns locked** on the rats board. The eight mood
+  cards stay unlocked — they have to be movable to be played.
+- **Captains are drafted before the turn-order deck** rather than after it.
+- **Corvid warriors** moved to the maintainer's positions from his "corvid" save,
+  reproduced exactly.

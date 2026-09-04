@@ -636,3 +636,30 @@ bugs that took several attempts — that context is easy to lose and expensive t
       ships its own 11300-11307).
 
 ## BLOCKED — need more info from the maintainer
+
+# RTT Work Queue
+## Standing rule: work on MAIN
+## Standing rule: this file only shows OPEN work
+## Note for future sessions: the `m###` labels are HISTORY, not files
+## Golden rule (the maintainer, repeated + hardened)
+## STRUCTURAL — the pattern behind most of today's bugs (2026-09-04)
+## OPEN — reported 2026-09-04 (third batch)
+- [x] **Captain cards were not wiped on reset.** Fixed 2026-09-04. The captain deck object was tagged
+      "RTT Faction" at spawn, but a card DRAWN out of a deck carries its OWN tags, and the 12 cards in
+      the blueprint had none -- so any captain taken out survived teardown. "RTT Faction" is now baked
+      onto the deck and all 12 cards in `content.lua` (all three identical copies of that deck).
+
+- [x] **Mini-Mood Manager locked on the rats board.** Done 2026-09-04: entry 1 of the tool (the manager
+      BOARD) spawns locked. The eight mood cards stay unlocked -- they have to be movable to be played.
+
+- [x] **Captains drafted before the turn-order cards.** Done 2026-09-04. In `rttFlipAll` the order deck
+      was at +1.0s and the captains at +1.6s; now captains at +1.0s and the order deck at +2.2s, which
+      clears the ~0.5s the captain deal needs.
+
+- [x] **Corvid warriors repositioned.** Done 2026-09-04 from the maintainer's "corvid" save
+      (TS_Save_24). Seat solved from the Corvid Supply offset -- seat (-52,-46), unflipped, error 0.0000
+      -- and the four warriors' world positions converted back to seat-local `move_to`. Rebuild
+      reproduces his saved positions exactly (0.00e+00). NOTE the blueprint has 4 top-level warriors;
+      the other 11 live inside the Corvid Supply bag and were not touched.
+
+## BLOCKED — need more info from the maintainer

@@ -2184,8 +2184,11 @@ function rttFlipAll(cards, k)
     for i = 1, RTT_NLEFT do                            -- unlock the leftover deck so it's movable
       if cards[i] ~= nil then cards[i].setLock(false) end
     end
-    rttAfter(rttDealOrder, 1.0)
-    rttAfter(rttDraftKnavesCaptains, 1.6)             -- captains spawn AFTER every draft card has flipped
+    -- Captains FIRST, then the turn order (maintainer: "draft the captains before the turn order
+    -- cards not after"). rttDraftKnavesCaptains needs ~0.5s to deal its four once it starts, so the
+    -- order deck is held back far enough that the captains are down before it appears.
+    rttAfter(rttDraftKnavesCaptains, 1.0)             -- captains spawn AFTER every draft card has flipped
+    rttAfter(rttDealOrder, 2.2)
     return
   end
   local c = cards[RTT_NLEFT + k]
@@ -4390,11 +4393,18 @@ function rttRatsMoodManager(cx, cz, flip)
     if l ~= nil then
       local lx, lz = l[1], l[3]
       if flip then lx, lz = -lx, -lz end
+      -- i == 1 is the manager BOARD itself: locked so it stays put on the rats board and cannot be
+      -- nudged while the mood cards sitting on it are moved (maintainer request). The eight mood cards
+      -- stay unlocked -- they have to be movable to be played.
+      local lockIt = (i == 1)
       spawnObjectJSON({
         json = v.json,
         position = { cx + lx, l[2], cz + lz },
         rotation = { 0, ry, 0 },
-        callback_function = function(o) pcall(function() o.addTag("RTT Faction") end) end
+        callback_function = function(o)
+          pcall(function() o.addTag("RTT Faction") end)
+          if lockIt then pcall(function() o.setLock(true) end) end
+        end
       })
     end
   end
