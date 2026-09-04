@@ -97,14 +97,31 @@ starts in its final container/position:
       seat. Cards drawn in that save were False Orders / Travel Gear / Rabbit Laborers, i.e. the top of
       the shared deck. Golden rule: draw and place at the final spot, no spawn-then-move.
 
-- [ ] **Eyrie: update the default vizier-card position** -- BLOCKED, need input. The maintainer moved
-      them and saved. But: `vizier` and `decree` appear **ZERO times** in gen/src/content.lua,
-      gen/src/logic.lua and gen/src/save.json, and the Eyrie blueprint spawns only Eyrie Warriors (20),
-      Roosts (7), Eyrie Supply and Eyrie VP -- no cards. No save on this machine contains an object
-      whose nickname matches vizier/visier (checked TS_AutoSave, _2, _3, _5..._8 and the shipped save;
-      the last game was Marquise / Riverfolk / Alliance / Duchy, no Eyrie).
-      NEED: which save has the Eyrie spawned with the cards where he wants them, and what those cards
-      are actually called in the mod (they may come from a deck rather than the faction blueprint).
+- [x] **Eyrie: default vizier-card position updated** (DONE 2026-09-03, VERIFY). My earlier "they do not
+      exist" was WRONG and the maintainer was right to push back: the cards have EMPTY nicknames, so a
+      nickname search missed them, and the Eyrie only appeared in the autosaves from 23:10 onward.
+      Found them by geometry instead: 6 cards tagged "RTT Faction" in the Eyrie quadrant of
+      TS_AutoSave_3 -- CardID **22304/22305 are the two Loyal Viziers**; 14003/14102/14201/14300 are the
+      four leaders in a 2x2.
+      Reprojected with the real spawn transform (flipped seat, z>0: world = -move_to + seat, seat 3 =
+      (52,46)); validated against leader 14003, move_to (-12.71,-2.07) -> world (64.71,48.07), matching
+      the save exactly. Result: **22305 had NOT moved** (delta 0.000) and 22304 moved -5.804 in x.
+      Baked 22304 move_to (-0.924112, 0.214964, 11.616381) -> (-6.728250, 0.214964, 11.632310).
+
+- [ ] **Box score keeps STALE faction memory** (2026-09-03). The maintainer: the ONLY source of truth for
+      which factions are present should be the **VP score markers on the board**. Observed: loading a
+      previous save added a pile of factions to the sheet; and after resetting and spawning new factions
+      the sheet positions VP markers in odd spots as if the previous markers still existed.
+      Note S is persisted whole (onSave returns JSON.encode(S), onLoad replaces S), so S.rows survives a
+      load and is never reconciled against what is actually on the table. Rows are only ever ADDED
+      (addRow when a VP marker becomes readable); nothing prunes a row whose marker is gone.
+
+- [ ] **VP markers not consistently placed when the MAP is spawned AFTER the factions** (2026-09-03):
+      some factions' markers never land on the track. LIKELY CAUSE (to verify): placement is time-boxed,
+      not event-driven -- rttPlaceFaction defers with Wait.time(rttPlaceVPRetry(vpF, vpN, 6), 1.2) and
+      the retry chain is 6 tries at 0.6s, so it gives up ~4.8s after the faction spawns. If the map (and
+      therefore the score track) arrives after that window, the marker is never placed. Fix shape: retry
+      until the track EXISTS rather than a fixed count, or re-run placement when a map is spawned.
 
 - [ ] **Two of the same faction in one setup throws a Lua error** (screenshot):
       `[Faction Selection - bab7e1] Lua Error: Value cannot be null. Parameter name: key`
