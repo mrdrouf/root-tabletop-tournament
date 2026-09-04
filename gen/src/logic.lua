@@ -3247,18 +3247,21 @@ end
 -- no GUID -- position comes from the spawn call and TTS assigns a fresh guid -- and both are tagged
 -- "Map Object", exactly like the battle mat, so removeMapItems() replaces them with each new map
 -- instead of stacking copies.
-RTT_TIMER_JSON = [==[{"Name":"Digital_Clock","Transform":{"posX":0.0,"posY":0.0,"posZ":0.0,"rotX":90.0,"rotY":359.983582,"rotZ":0.0,"scaleX":1.10714281,"scaleY":1.10714281,"scaleZ":0.110714279},"Nickname":"","Description":"","GMNotes":"","AltLookAngle":{"x":0.0,"y":0.0,"z":0.0},"ColorDiffuse":{"r":0.0,"g":0.0,"b":0.0},"LayoutGroupSortIndex":0,"Value":0,"Locked":true,"Grid":true,"Snap":true,"IgnoreFoW":false,"MeasureMovement":false,"DragSelectable":true,"Autoraise":true,"Sticky":true,"Tooltip":true,"GridProjection":false,"HideWhenFaceDown":false,"Hands":false,"Clock":{"Mode":3,"SecondsPassed":0,"Paused":false},"LuaScript":"\r\nself.Clock.setValue(0)\r\nself.Clock.pauseStart()\r\n\r\nfunction onPlayerTurnStart(pl, prevpl)\r\n  self.Clock.startStopwatch()\r\nend\r\n","LuaScriptState":"","XmlUI":""}]==]
+RTT_TIMER_JSON = [==[{"Name":"Digital_Clock","Transform":{"posX":0.0,"posY":0.0,"posZ":0.0,"rotX":90.0,"rotY":359.983582,"rotZ":0.0,"scaleX":1.10714281,"scaleY":1.10714281,"scaleZ":0.110714279},"Nickname":"","Description":"","GMNotes":"","AltLookAngle":{"x":0.0,"y":0.0,"z":0.0},"ColorDiffuse":{"r":0.0,"g":0.0,"b":0.0},"LayoutGroupSortIndex":0,"Value":0,"Locked":true,"Grid":true,"Snap":true,"IgnoreFoW":false,"MeasureMovement":false,"DragSelectable":true,"Autoraise":true,"Sticky":true,"Tooltip":true,"GridProjection":false,"HideWhenFaceDown":false,"Hands":false,"Clock":{"Mode":3,"SecondsPassed":0,"Paused":true},"LuaScript":"function onPlayerTurnStart(pl, prevpl)\n  self.Clock.startStopwatch()\nend\n","LuaScriptState":"","XmlUI":""}]==]
 RTT_COUNTER_JSON = [==[{"Name":"Counter","Transform":{"posX":0.0,"posY":0.0,"posZ":0.0,"rotX":-4.53648958e-08,"rotY":-5.28580422e-05,"rotZ":-2.90506961e-07,"scaleX":1.24999976,"scaleY":1.24999976,"scaleZ":1.24999976},"Nickname":"","Description":"","GMNotes":"","AltLookAngle":{"x":0.0,"y":0.0,"z":0.0},"ColorDiffuse":{"r":0.0823529139,"g":0.0823529139,"b":0.0823529139},"LayoutGroupSortIndex":0,"Value":0,"Locked":true,"Grid":true,"Snap":true,"IgnoreFoW":false,"MeasureMovement":false,"DragSelectable":true,"Autoraise":true,"Sticky":true,"Tooltip":true,"GridProjection":false,"HideWhenFaceDown":false,"Hands":false,"Counter":{"value":0},"LuaScript":"","LuaScriptState":"","XmlUI":""}]==]
 RTT_TIMER_POS   = { 17.3624, 11.6669, -26.3142 }
 RTT_COUNTER_POS = { 22.9297, 11.5240, -25.1741 }
+RTT_TIMER_ROT   = { 90.0000, 359.9836, 0.0000 }
+RTT_COUNTER_ROT = { -0.0000, -0.0001, -0.0000 }
 
 function rttSpawnMapExtras()
   pcall(function() rttSpawnBoxScore() end)         -- it destructs any previous sheet, so this replaces
-  for _, e in ipairs({ { RTT_TIMER_JSON, RTT_TIMER_POS }, { RTT_COUNTER_JSON, RTT_COUNTER_POS } }) do
+  for _, e in ipairs({ { RTT_TIMER_JSON, RTT_TIMER_POS, RTT_TIMER_ROT },
+                       { RTT_COUNTER_JSON, RTT_COUNTER_POS, RTT_COUNTER_ROT } }) do
     spawnObjectJSON({
       json = e[1],
       position = e[2],
-      rotation = { 0, 0, 0 },
+      rotation = e[3],                             -- the clock stands upright (rotX 90); {0,0,0} laid it flat
       callback_function = function(o)
         pcall(function() local t = o.getTags(); table.insert(t, "Map Object"); o.setTags(t) end)
       end
