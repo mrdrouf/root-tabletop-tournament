@@ -81,6 +81,13 @@ of four structural faults, not an isolated mistake. Fixing these is worth more t
    chain already in flight is still unguarded.
    FIX SHAPE: rttSetup bumps RTT_RUN_ID; every deferred callback returns early if its captured id is stale.
 
+## OPEN — 2026-09-04
+
+- [ ] **Corvid hidden box in 5-player setup.** The maintainer: "keep the hidden box for the crow in all
+      seats in 5 player setup as well. seat 2 should be same position as in seat 1". The Corvid's hidden
+      zone is placed by `rttCrowsPlots`; it needs to exist for every seat at 5 players, and the 5p seat 2
+      (the centre near seat, (0,-46)) should reuse seat 1's placement.
+
 ## BLOCKED — need more info from the maintainer
 
 - [ ] **Moles / rats: tools on the side of their board.** The Underground Duchy and the Lord of the

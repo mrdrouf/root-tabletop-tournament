@@ -2121,16 +2121,16 @@
         {
           "Type": 0,
           "Name": "RankedArt",
-          "URL": "https://cdn.jsdelivr.net/gh/mrdrouf/root-tabletop-tournament@main/assets/labels/four_player_draft_art.png"
+          "URL": "https://cdn.jsdelivr.net/gh/mrdrouf/root-tabletop-tournament@main/assets/labels/four_player_draft_art_v2.png"
         },
         {
           "Type": 0,
           "Name": "FivePlayerArt",
-          "URL": "https://cdn.jsdelivr.net/gh/mrdrouf/root-tabletop-tournament@main/assets/labels/five_player_draft_label.png"
+          "URL": "https://cdn.jsdelivr.net/gh/mrdrouf/root-tabletop-tournament@main/assets/labels/five_player_draft_label_v2.png"
         },{
           "Type": 0,
           "Name": "FivePlayerSetupArt",
-          "URL": "https://cdn.jsdelivr.net/gh/mrdrouf/root-tabletop-tournament@main/assets/labels/five_player_setup_label.png"
+          "URL": "https://cdn.jsdelivr.net/gh/mrdrouf/root-tabletop-tournament@main/assets/labels/five_player_setup_label_v2.png"
         },
         {
           "Type": 0,
@@ -2140,7 +2140,7 @@
         {
           "Type": 0,
           "Name": "FourBoardsArt",
-          "URL": "https://cdn.jsdelivr.net/gh/mrdrouf/root-tabletop-tournament@main/assets/labels/four_player_setup_art.png"
+          "URL": "https://cdn.jsdelivr.net/gh/mrdrouf/root-tabletop-tournament@main/assets/labels/four_player_setup_art_v2.png"
         },
         {
           "Type": 0,
