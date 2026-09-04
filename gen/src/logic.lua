@@ -1942,6 +1942,9 @@ end
 -- itself "RTT Pond" and nothing cleared it, and the Lizard Wizard was tagged plain "Faction" -- one
 -- word off "RTT Faction" -- so the sweep walked straight past it. Deliberately NOT cleared here:
 -- "Map Object" and "RTT Priority" belong to the MAP (makeMap owns those), and "Deck Object" to the deck.
+-- Dice that ARE faction components and must survive the faction spawn's dice filter.
+RTT_KEEP_DICE = { ["dc8eb3"] = true, ["81f2b2"] = true }   -- bats: one of two; rats: the Mob Die
+
 RTT_TEARDOWN_TAGS = { "RTT Selector", "RTT Manual Selector", "RTT Faction", "RTT Pond" }
 
 -- Hand 2 (the Alliance supporters hand) is a PERSISTENT per-colour zone, not an object, so tearing down
@@ -3713,7 +3716,17 @@ function rttSpawnFaction(faction, cx, cz, flip, category, rotationY)
   if def == nil then return false end
   local objects = {}
   for _, v in ipairs(def['data']) do
+    -- Faction spawns drop dice (the battle dice are shared, not per-faction), but two are part of the
+    -- faction and must survive that filter -- maintainer 2026-09-04: "when spawning the bats, still
+    -- spawn one of the two dice"; "when spawning the rats, still spawn the mob dice that you removed".
+    -- Keyed by GUID so it cannot catch the wrong die: dc8eb3 is one of the Twilight Council's pair
+    -- (89f44e, its twin, stays dropped), 81f2b2 is the Lord of the Hundreds' "Mob Die".
     local isDice = string.find(v.json, '"Name": "Custom_Dice"', 1, true)
+    if isDice then
+      for g in pairs(RTT_KEEP_DICE) do
+        if string.find(v.json, '"GUID": "' .. g .. '"', 1, true) then isDice = false break end
+      end
+    end
     -- Knaves: do NOT spawn the 12 "Captain - <Name>" meeples NOR the item supply with the faction; the
     -- captain DETECTOR spawns only the CHOSEN captains' meeples + items. Blueprints are read from def.data.
     local isCap = false
