@@ -784,3 +784,26 @@ bugs that took several attempts — that context is easy to lose and expensive t
       and tool labels inherited from the base mod still carry it, so the button row is not yet uniform.
 
 ## BLOCKED — need more info from the maintainer
+
+# RTT Work Queue
+## Standing rule: work on MAIN
+## Standing rule: this file only shows OPEN work
+## Note for future sessions: the `m###` labels are HISTORY, not files
+## Golden rule (the maintainer, repeated + hardened)
+## STRUCTURAL — the pattern behind most of today's bugs (2026-09-04)
+## OPEN — everything the maintainer has asked for and I have NOT finished (2026-09-04)
+- [x] **Selector now offers the Vagabond, like the base mod.** Done 2026-09-04. The base mod's Standard
+      row has a 13th entry, "Vabond Choices" (icon VagabondAndKnaves), which opens a page of the 12
+      characters; RTT's selector had dropped it when Knaves took that slot. RTT had also stripped the
+      handlers (`vagabondChoices`, `getVagabond`, `spawnVagabondCard`, `nextVagabondColor`,
+      `doomedVagabondSelect` are all gone) -- but the DATA survived: all 12 characters, plus
+      "Vagabond Layout" and "Vagabond Dice and VP", are still in EVERYTHING['Standard'], and
+      `isVagabond` / `makeVagabondLayout` still exist.
+      So rather than restore the base mod's machinery, the manual selector board now carries a second
+      PAGE of its own: a Vagabond button on page 1 flips to 12 character buttons that relay through the
+      existing `manualFactionPick` path. `makeFaction` spawns the character's layout, dice and VP
+      alongside it, placed with RTT's own seat geometry instead of the base mod's roster positions.
+      Verified: the selector's own script compiles, every icon resolves, and Thief + Vagabond Layout
+      both spawn (24 pieces).
+
+## BLOCKED — need more info from the maintainer

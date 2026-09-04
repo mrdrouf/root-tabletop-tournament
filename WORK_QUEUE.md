@@ -107,9 +107,6 @@ already shipped is in the archive; this is the live list, in the order he asked 
       row whose `guid` no longer resolves, and rows carry a guid, so either the marker still resolves
       after removal (dropped into a bag rather than destroyed?) or the prune is gated. REPRODUCE FIRST.
 
-- [ ] **Knaves board selection should offer the base mod's choices** (Vagabond etc.) on the setup and
-      solo board selectors.
-
 - [ ] **Box score text in Luminari.** Its 49 `<Text>` elements use TTS's default UI font. TTS can use a
       custom font, but only by loading a .ttf from a public URL -- and Luminari is (c) Canada Type, "all
       rights reserved". Rendering PNGs with it is ordinary font use; publishing the .ttf to our GitHub
