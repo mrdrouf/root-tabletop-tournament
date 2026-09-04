@@ -753,3 +753,34 @@ bugs that took several attempts — that context is easy to lose and expensive t
       an overwrite kept serving the stale image even after the push, which is why board_clean has
       v2/v3 as well.
 ## BLOCKED — need more info from the maintainer
+
+# RTT Work Queue
+## Standing rule: work on MAIN
+## Standing rule: this file only shows OPEN work
+## Note for future sessions: the `m###` labels are HISTORY, not files
+## Golden rule (the maintainer, repeated + hardened)
+## STRUCTURAL — the pattern behind most of today's bugs (2026-09-04)
+## OPEN — 2026-09-04
+- [x] **Corvid hidden box in 5-player setup.** Fixed 2026-09-04. Two faults:
+      (1) `rttCrowsHiddenZone` carried an explicit exception -- `if RTT_5P_MARSH and seat <= 3 then
+      return end` -- so at 5 players the first three seats got no hidden box at all. Removed; every seat
+      gets one now.
+      (2) the side was chosen with `cx > 0`, and the CENTRE seats sit at cx == 0, so they fell through to
+      the -x branch and the box landed on the wrong side of the board. Now `cx >= 0`, which puts the
+      centre seats on the player's LEFT at the same board offset as seat 1 -- what he asked for.
+      Verified at every seat: seat 1 puts the box at cx+2.26 and 5p seat 2 at cx+2.26 as well, identical
+      offsets; no seat errors.
+
+## OPEN — everything the maintainer has asked for and I have NOT finished (2026-09-04)
+- [x] **The Root display font: it is LUMINARI.** Identified 2026-09-04 by searching the web rather
+      than eyeballing font catalogues -- a BGG thread on Root's player boards names it, and it matches
+      the rats board title letter for letter ("Lord of the Hundreds"). It SHIPS WITH macOS at
+      /System/Library/Fonts/Supplemental/Luminari.ttf, so no purchase was needed; 29 faces were tried
+      and rejected first because I was searching medieval/uncial families by eye.
+      Every label the mod renders is now set in it, via the new one-stop generator `tools/make_labels.py`,
+      and `tools/render_assets.py` uses it too.
+      NOTE there is a SECOND face on the mod-made labels ("Captains", "Landmarks", the map buttons):
+      angular small caps with a squared Pi-shaped N and a lozenge-dotted I. Still unidentified. The map
+      and tool labels inherited from the base mod still carry it, so the button row is not yet uniform.
+
+## BLOCKED — need more info from the maintainer

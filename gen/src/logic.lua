@@ -4623,15 +4623,8 @@ function rttCrowsHiddenZone(board, cx, cz, isDraft)
   if board == nil or RTT_CROW_HZ_JSON == nil then return end
   -- (spawns on BOTH the ranked draft AND the manual faction-selector path -- the hidden area was
   --  missing on manual because it used to early-return here when not a draft.)
-  -- 5-player game: skip for the 1st/2nd/3rd seats (the maintainer's exception)
-  local seat, sbest = nil, nil
-  if RTT_SEATS ~= nil then
-    for i, s in ipairs(RTT_SEATS) do
-      local d = (s.pos[1] - cx) ^ 2 + (s.pos[2] - cz) ^ 2
-      if sbest == nil or d < sbest then sbest = d; seat = i end
-    end
-  end
-  if RTT_5P_MARSH and seat ~= nil and seat <= 3 then return end
+  -- Every seat gets one, at 5 players too. There used to be an exception that skipped seats 1-3 in a
+  -- 5-player game; the maintainer asked for the hidden box in ALL seats.
   -- crow player's colour = the seated player nearest the crow board
   local color, best = "White", nil
   for _, p in ipairs(Player.getPlayers()) do
@@ -4655,7 +4648,10 @@ function rttCrowsHiddenZone(board, cx, cz, isDraft)
   -- of the selector boards -- so board-local +x reads as the player's LEFT when rotY~180, RIGHT when rotY~0.
   local ry = board.getRotation().y % 360
   local leftSign = (ry > 90 and ry < 270) and 1 or -1   -- board-local x that reads as the player's LEFT
-  local sideSign = (cx > 0) and leftSign or -leftSign    -- the box's board-local side (the correct L/R side)
+  -- cx >= 0, not cx > 0: the CENTRE seats sit at cx == 0 and fell through to the -x side, putting the
+  -- box on the wrong side of the board. They now match seat 1 -- the box to the player's LEFT, at the
+  -- same offset from the board -- which is what the maintainer asked for for 5-player seat 2.
+  local sideSign = (cx >= 0) and leftSign or -leftSign   -- the box's board-local side (the correct L/R side)
   -- Closeness follows the box's SIDE, not cx: the +x side is the player's LEFT AND is opposite the crafted
   -- board (at ~ -1.79), so it comes in CLOSER; the -x side is the crafted side, so it stays FARTHER to
   -- clear the crafted. (Keying this on cx put the closer box on the wrong far-row seat -- 4 instead of 3.)
