@@ -27,6 +27,23 @@ starts in its final container/position:
   - map-relative pieces (cats on clearings, The Pond): take from the supply bag / spawn the object
     JSON directly AT the final world spot — never a seat-local default first.
 
+## OPEN — new batch (2026-09-04)
+
+- [ ] **Riverfolk: remove the two cards that spawn on both sides of the market.** Maintainer's request,
+      2026-09-04. Not yet located in the blueprint -- the Riverfolk entry is at content.lua ~182532 and
+      the market cards are not distinguishable by Nickname (the surrounding entries are generic faction
+      names), so they will need identifying by CardID / position relative to the market board, the same
+      way the Eyrie viziers were found. Then remove them from the faction data (a blueprint fix, not a
+      runtime destruct).
+
+- [ ] **Box score reads UPSIDE DOWN under TTS's Alt zoom.** It spawns at rotation {0, 270, 0}
+      (rttSpawnBoxScore), which is correct for reading it flat on the table from the maintainer's seat;
+      Alt zoom presents it rotated 180 from that. NOT YET DIAGNOSED and I do not have a confident fix:
+      TTS's zoom orientation is derived from the object's own transform and is not obviously
+      scriptable, so changing the table rotation to please the zoom would break the table reading.
+      Investigate whether a different rot combination satisfies both, or whether the sheet's UI can be
+      authored 180 off with a compensating transform.
+
 ## OPEN — new batch (2026-09-03, from in-TTS testing)
 
 - [x] **Box-score row COLOUR/PLAYER binding** (FIXED 2026-09-04, VERIFY). RTT now publishes Global
