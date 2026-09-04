@@ -1955,10 +1955,18 @@ function rttArmMarsh5P(player, value, id) rttArmOrGo("Marsh5P") end
 -- Ginso's Gizmo is part of every game now (maintainer: "spawn the gizmo at beginning of game always"),
 -- so setup spawns it instead of relying on someone clicking its toggle. Guarded on the tool's own GUID
 -- so a second game does not stack a second copy.
+-- Guard by NAME, not GUID. The first version checked for GUID "7d5fb5" -- the guid the tool has in the
+-- base mod -- but spawnObjectJSON assigns a FRESH guid, so the guard never matched and every setup
+-- stacked another copy (the maintainer found two "Knighted Ginso's Gizmo" models at the same spot).
+-- This also sweeps up duplicates already on the table from that bug.
 function rttEnsureGizmo()
+  local keep = nil
   for _, o in ipairs(getObjects()) do
-    if o.getGUID() == "7d5fb5" then return end
+    if (o.getName() or "") == "Knighted Ginso's Gizmo" then
+      if keep == nil then keep = o else pcall(function() o.destruct() end) end
+    end
   end
+  if keep ~= nil then return end
   pcall(function() makeTool(nil, nil, "Ginso's Gizmo") end)
 end
 
