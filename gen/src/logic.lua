@@ -4022,50 +4022,10 @@ function rttFactionExtras(faction, cx, cz, flip, isDraft)
   -- Knaves: the Captains board + its pooled captains now spawn FROM the faction blueprint's own
   -- rules-board callback (see rttSpawnFaction), so they appear WITH the faction at the CORRECT seat.
   elseif faction == "Marquise de Cat" then rttMarquiseCats(cx, cz, flip)
-  elseif faction == "Woodland Alliance" then rttAllianceSupporters(cx, cz, flip)
   end
 end
 
--- ---- Woodland Alliance: three starting SUPPORTERS, face up ---------------------------------
--- Maintainer: "when spawning the Woodland Alliance, draw three cards from the deck and position them in
--- the supporter area face up, as they are currently if you check the last save."
---
--- Positions recovered from that save (seat 2, board rotY 180): the supporters tile sat at world
--- (-64.13, -55.40) and the three cards at z = -55.39, x = -67.39 / -63.91 / -60.46. Their midpoint is
--- the tile's own x, so the row is CENTRED ON THE TILE. Converted to seat-local by subtracting seat 2
--- (-52, -46) -- the near row is unflipped, so world = local + seat -- giving the constants below; a
--- far-side seat mirrors them, exactly like every other seat-relative placement here.
-RTT_ALLY_SUP_Z  = -9.39                       -- seat-local z of the supporter row
-RTT_ALLY_SUP_X  = { -15.39, -11.91, -8.46 }   -- seat-local x of the three cards (3.47 apart)
-RTT_ALLY_SUP_Y  = 11.70
 
-function rttAllianceSupporters(cx, cz, flip)
-  -- the shared deck: the one big non-Frog Deck on the table (same test rttShuffleFrogsIntoDeck uses).
-  local deck = nil
-  for _, o in ipairs(getAllObjects()) do
-    if o.name == "Deck" then
-      local cards = o.getObjects() or {}
-      local frog = 0
-      for _, c in ipairs(cards) do if (c.description or "") == "Frog" then frog = frog + 1 end end
-      if #cards >= 20 and frog == 0 then deck = o break end
-    end
-  end
-  if deck == nil then return end
-  local ry = flip and 180 or 0
-  for i = 1, 3 do
-    local lx, lz = RTT_ALLY_SUP_X[i], RTT_ALLY_SUP_Z
-    if flip then lx, lz = -lx, -lz end
-    -- deal straight to the final spot, face up (rotZ 0). No spawn-then-move.
-    pcall(function()
-      deck.takeObject({
-        position = { cx + lx, RTT_ALLY_SUP_Y, cz + lz },
-        rotation = { 0, ry, 0 },
-        smooth   = false,
-        callback_function = function(o) pcall(function() o.addTag("RTT Faction") end) end,
-      })
-    end)
-  end
-end
 
 -- ---- Marquise de Cat: one warrior in the CENTRE of every clearing -------------------------
 -- The 3 staging warriors + buildings + Keep are baked (m570/m550) so they spawn in place. Here
