@@ -139,7 +139,16 @@ starts in its final container/position:
       STILL OPEN: the underlying re-entrancy (generation token) is NOT done yet -- the confirmation makes
       a double-click harder but the async chain is still unguarded.
 
-- [ ] **Starting a new game must clear EVERY previously spawned extra** (broadened 2026-09-03 on the
+- [x] **Starting a new game clears every spawned extra** (FIXED 2026-09-04, VERIFY). Root cause was
+      not a broken sweep but two objects the sweep could not see: the **Pond** tagged itself "RTT Pond",
+      which nothing cleared, and the **Lizard Wizard** was tagged plain **"Faction"** -- one word off
+      "RTT Faction" -- so the sweep walked straight past it. Badger relics and crow plots were already
+      tagged "RTT Faction" correctly.
+      FIX: one shared `rttClearGameObjects()` over RTT_TEARDOWN_TAGS = {RTT Selector, RTT Manual
+      Selector, RTT Faction, RTT Pond}, called by BOTH setup paths, which had been maintaining separate
+      copies of the same list. Wizard retagged "RTT Faction". Deliberately NOT swept: "Map Object" and
+      "RTT Priority" belong to the map, "Deck Object" to the deck.
+      VERIFY: pond, wizard, frog cards and badger relics should all be gone on a new game. Original: (broadened 2026-09-03 on the
       maintainer's follow-up). Confirmed leftovers: the **Pond** survives into the next game, the
       **Badger (Keepers in Iron) relics stay on the map**, and the **frog cards** and **Lizard Wizard**
       stay out after switching games via the faction-board setup buttons. Treat this as a GENERAL rule,
@@ -190,7 +199,15 @@ starts in its final container/position:
       therefore the score track) arrives after that window, the marker is never placed. Fix shape: retry
       until the track EXISTS rather than a fixed count, or re-run placement when a map is spawned.
 
-- [ ] **Two of the same faction in one setup throws a Lua error** (screenshot):
+- [x] **Two of the same faction in one setup** (FIXED 2026-09-04, VERIFY). makeFaction's existing guard
+      was per-BOARD (RTT_MANUAL_PICKING[boardGUID]) -- it stopped one board double-firing but not the
+      SAME faction being picked from two different boards, which spawned it twice and threw the nil-key
+      error, since VP marker / seat map / extras are all keyed by faction name. Added the per-faction
+      RTT_FAC_TAKEN guard the draft path has always had, with a broadcast so the click is not silently
+      swallowed, and it releases the board so it can still be used for a different faction.
+      REQUIRED COMPANION FIX: setupFactionBoards reset none of the run state, so that guard would have
+      gone stale across games -- it now resets RTT_VP_PLACED / RTT_FAC_TAKEN / RTT_TRACK /
+      RTT_MANUAL_PICKING / RTT_SEAT_POS / RTT_SEAT_COLOR exactly as rttSetup does. Original report:
       `[Faction Selection - bab7e1] Lua Error: Value cannot be null. Parameter name: key`
       The DRAFT path guards this (`RTT_FAC_TAKEN` locks a faction at logic.lua:3481-3482), but the
       MANUAL faction-selector path (`makeFaction` on the bab7e1 board) appears to have no such guard,

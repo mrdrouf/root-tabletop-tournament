@@ -1741,9 +1741,17 @@ function setupFactionBoards(player, value, id)
   -- clear PRIOR manual selectors AND every faction board/piece already spawned (RTT Faction) -- re-clicking
   -- the player-count button starts over, so tear the old boards down first (maintainer request). Still NOT
   -- by name "Faction Board" (which also matched the solo faction board and coordinator clones) (audit).
-  for _, c in ipairs(getObjectsWithTag("RTT Manual Selector")) do pcall(function() c.destruct() end) end
-  for _, o in ipairs(getObjectsWithTag("RTT Selector"))        do pcall(function() o.destruct() end) end
-  for _, o in ipairs(getObjectsWithTag("RTT Faction"))        do pcall(function() o.destruct() end) end
+  rttClearGameObjects()
+
+  -- NEW GAME: reset the same run-state rttSetup resets. This path never did, so a manual game inherited
+  -- the previous game's VP index, taken-factions set, cached score track and seat map -- and the
+  -- per-faction guard added below would have gone stale across games without it.
+  RTT_VP_PLACED = 0
+  RTT_FAC_TAKEN = {}
+  RTT_TRACK = nil
+  RTT_MANUAL_PICKING = {}
+  pcall(function() Global.setVar("RTT_SEAT_POS", JSON.encode({})) end)
+  pcall(function() Global.setVar("RTT_SEAT_COLOR", JSON.encode({})) end)
 
   local xs = {52,-52,52,-52,0,52}
   local ys = {11.56,11.56,11.56,11.56,11.56,11.56}
@@ -1909,6 +1917,18 @@ RTT_ARM = { id = nil, token = 0 }
 -- light up (rttShowFactions), with a timed fallback so a chain that dies cannot lock the buttons forever.
 RTT_BUSY = false
 RTT_BUSY_TOKEN = 0
+
+-- Everything a game puts on the table, in one place. Both setup paths call this, so a new tag can
+-- never again be swept by one path and leaked by the other. Two leaks this fixes: the Pond tagged
+-- itself "RTT Pond" and nothing cleared it, and the Lizard Wizard was tagged plain "Faction" -- one
+-- word off "RTT Faction" -- so the sweep walked straight past it. Deliberately NOT cleared here:
+-- "Map Object" and "RTT Priority" belong to the MAP (makeMap owns those), and "Deck Object" to the deck.
+RTT_TEARDOWN_TAGS = { "RTT Selector", "RTT Manual Selector", "RTT Faction", "RTT Pond" }
+function rttClearGameObjects()
+  for _, t in ipairs(RTT_TEARDOWN_TAGS) do
+    for _, o in ipairs(getObjectsWithTag(t)) do pcall(function() o.destruct() end) end
+  end
+end
 function rttBusyBegin(sec)
   RTT_BUSY = true
   RTT_BUSY_TOKEN = RTT_BUSY_TOKEN + 1
@@ -1985,9 +2005,7 @@ function rttSetup(player, value, id)
   -- clear BOTH selector kinds (ranked AND manual) plus any faction boards, so starting a ranked draft on
   -- top of a manual-4-player setup (or vice versa) never stacks the two -- the manual selectors are tagged
   -- "RTT Manual Selector", NOT "RTT Selector", so they were surviving the ranked reset (maintainer clutter).
-  for _, o in ipairs(getObjectsWithTag("RTT Selector"))        do pcall(function() o.destruct() end) end
-  for _, o in ipairs(getObjectsWithTag("RTT Manual Selector")) do pcall(function() o.destruct() end) end
-  for _, o in ipairs(getObjectsWithTag("RTT Faction")) do pcall(function() o.destruct() end) end
+  rttClearGameObjects()
   for _,g in ipairs(RTT_SPAWNED) do local o=getObjectFromGUID(g) if o then o.destruct() end end
   RTT_SPAWNED = {}
   -- NEW GAME: reset the runtime accumulators. Previously only rttStartFactionDraft (the ranked path)
@@ -2132,6 +2150,20 @@ function makeFaction(player,value,id,source)
   local _bg = board.getGUID()
   if RTT_MANUAL_PICKING[_bg] then return end
   RTT_MANUAL_PICKING[_bg] = true
+  -- ...and block a SECOND COPY OF THE SAME FACTION. The guard above is per-BOARD, so it stops one board
+  -- double-firing but not the same faction being picked from two different boards. That spawned the
+  -- faction twice and threw "Value cannot be null. Parameter name: key" (maintainer's screenshot), since
+  -- everything keyed by faction name -- VP marker, seat map, extras -- assumes one copy. The draft path
+  -- has always had this guard (rttCoordFaction); the manual path did not.
+  RTT_FAC_TAKEN = RTT_FAC_TAKEN or {}
+  if RTT_FAC_TAKEN[id] then
+    RTT_MANUAL_PICKING[_bg] = nil                  -- let this board be used for a different faction
+    pcall(function()
+      broadcastToColor(id .. " is already in play.", player.color, { r = 1, g = 0.75, b = 0.3 })
+    end)
+    return
+  end
+  RTT_FAC_TAKEN[id] = true
   local attrs = board.UI.getAttributes(id)
   local category = attrs.category
   local cp = board.getPosition()
@@ -4197,7 +4229,7 @@ function rttLizardSetup()
   -- keep the Outcast Marker (it belongs ON the Lizard Wizard) — do NOT destruct it.
   -- spawn the wizard already FACING RTT_LIZ_WIZ_ROTY (90) -- no delayed rotate (audit: spawn-final).
   makeSpecialWithTag("Tools", "Lizard Wizard",
-    RTT_LIZ_WIZ[1], RTT_LIZ_WIZ[2], RTT_LIZ_WIZ[3], "Faction", RTT_LIZ_WIZ_ROTY)
+    RTT_LIZ_WIZ[1], RTT_LIZ_WIZ[2], RTT_LIZ_WIZ[3], "RTT Faction", RTT_LIZ_WIZ_ROTY)
   -- The Outcast Marker spawns from the same "Lizard Wizard" blueprint at its own offset; nudge it onto
   -- the wizard (position only -- facing is already correct at spawn). TODO: bake this offset in the
   -- blueprint so no move is needed either.
