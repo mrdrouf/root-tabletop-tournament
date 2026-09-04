@@ -56,10 +56,12 @@ starts in its final container/position:
       that draws 3 pairwise non-adjacent clearings. Bake the mapping as a constant; do not compute it
       at runtime. CHECK the 4-player Marsh flood pairs too, and whether other maps place landmarks.
 
-- [ ] **Ginso's Gizmo always active** + preferably a NEW alternative that ALSO places warriors.
-      Today it is `toggleTool` on guid 7d5fb5 (logic.lua:2304) -- a toggle, so it can be off.
-      NEED from the maintainer: should the existing button become non-toggling, or is the new
-      warrior-placing variant the only thing wanted (and what exactly should it place)?
+- [x] **Ginso's Gizmo: always on, button removed** (DONE 2026-09-03, VERIFY). Maintainer: "spawn the
+      gizmo at beginning of game always ... remove that button option. it's always on and can never be
+      removed and always works and so we have 1 less option button to deal with."
+      rttEnsureGizmo() spawns it (guarded on GUID 7d5fb5 so a second game cannot stack a copy) from BOTH
+      rttSetup and setupFactionBoards. Its button and its infoGinso hover are deleted from the tools row,
+      and its `toggleTool` branch is deleted too so nothing can ever destruct it.
 
 - [ ] **Re-add two removed option objects: Koffin Keeper and Mole Monger.** Both still exist in the
       DATA (content.lua has the Koffin Keeper art URL and a `toggleSpecial` branch at logic.lua:2396;
@@ -81,10 +83,20 @@ starts in its final container/position:
       returns early unless its captured id still matches (TTS Wait handles are not retained anywhere
       today, so cancellation by id is not available without threading them through); plus (b) a busy
       guard so clicks during a run are ignored rather than queued.
-      CONFIRMATION (the maintainer: "think of a good elegant way to ask for confirmation of wiping
-      current factions"): must NOT nag when there is nothing to wipe, must say WHAT is being destroyed,
-      must survive double-clicks and never stick. Design being chosen by a judged multi-agent pass.
-      NEED: which buttons the maintainer wants locked once a game is running.
+      CONFIRMATION (DONE 2026-09-03, VERIFY): maintainer chose "the button asks itself" and specified
+      "change the art of the button itself to red with 'Wipe all factions boards?' then after 3 seconds
+      if not clicked it turns back to normal". Ranked / Theme / 4-Players / Marsh5P now call rttArm*
+      wrappers instead of firing directly. Arming hides that row and reveals `rttWipeConfirm`, one wide
+      red plaque (#cf4a3c) reading "Wipe all factions boards?" exactly where the buttons were -- a 34x34
+      icon tile cannot show that sentence. A second click commits (rttWipeConfirm disarms FIRST, so a
+      double-click cannot start two runs); 3 seconds of silence reverts it via a token-guarded timer.
+      Only attributes with existing precedent on this board are used (active/color/text/fontSize/
+      position/width/height); textColor has NO precedent and would risk TTS dropping the element.
+      Maintainer chose NOT to lock any buttons mid-game -- the confirmation alone is the protection.
+      NOTE: it arms on EVERY click, including on an empty table. Say the word if it should skip the
+      prompt when there are no faction boards to wipe.
+      STILL OPEN: the underlying re-entrancy (generation token) is NOT done yet -- the confirmation makes
+      a double-click harder but the async chain is still unguarded.
 
 - [ ] **Starting a new game must clear EVERY previously spawned extra** (broadened 2026-09-03 on the
       maintainer's follow-up). Confirmed leftovers: the **Pond** survives into the next game, the
@@ -130,7 +142,8 @@ starts in its final container/position:
       (addRow when a VP marker becomes readable); nothing prunes a row whose marker is gone.
 
 - [ ] **VP markers not consistently placed when the MAP is spawned AFTER the factions** (2026-09-03):
-      some factions' markers never land on the track. LIKELY CAUSE (to verify): placement is time-boxed,
+      some factions' markers never land on the track. **CONFIRMED by the maintainer: it is always the
+      EARLIEST-placed factions that go missing**, which is exactly the time-box signature. CAUSE: placement is time-boxed,
       not event-driven -- rttPlaceFaction defers with Wait.time(rttPlaceVPRetry(vpF, vpN, 6), 1.2) and
       the retry chain is 6 tries at 0.6s, so it gives up ~4.8s after the faction spawns. If the map (and
       therefore the score track) arrives after that window, the marker is never placed. Fix shape: retry

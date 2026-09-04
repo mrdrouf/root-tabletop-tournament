@@ -948,7 +948,7 @@ function infoOfficialContent() setInfo("Official Content Info") end
 
 
 
-function infoGinso() setInfo("Ginso Info") end
+-- infoGinso removed with the Gizmo button (no hover, no button -- it is always on).
 
 
 
@@ -1729,6 +1729,7 @@ local function spawnManualFactionSelector(position, rotation, locked)
 end
 
 function setupFactionBoards(player, value, id)
+  pcall(function() rttEnsureGizmo() end)   -- gizmo is part of every game
   local count = 4
   if id == "fivePlayerSetup" then count = 5 end
 
@@ -1873,6 +1874,82 @@ function rttShuffle(t)
   return t
 end
 
+
+--------------------------------------------------------------- wipe confirm --
+-- The setup buttons are destructive: they clear the faction boards. The maintainer wants the BUTTON
+-- ITSELF to ask -- click once, it turns red and reads "Wipe all factions boards?"; click again to go
+-- ahead; after 3 seconds with no second click it reverts on its own.
+--
+-- Implementation note: a 34x34 icon tile cannot show that sentence, so arming swaps the row for one
+-- wide red plaque (rttWipeConfirm) sitting exactly where the buttons were, and hides them underneath.
+-- Only attributes with existing precedent on this board are used (active/color/text/fontSize/position/
+-- width/height) -- textColor has NO precedent here and an unsupported attribute makes TTS silently drop
+-- the whole element, which is how the board credit stayed invisible for weeks.
+RTT_WIPE_ROW  = { "rttFourBoardsBtn", "rttRankedBtn", "rttThemeBtn" }
+RTT_ARM       = { fn = nil, token = 0 }
+
+function rttDisarm()
+  RTT_ARM.fn = nil
+  RTT_ARM.token = RTT_ARM.token + 1            -- invalidates any pending revert timer
+  pcall(function()
+    self.UI.setAttribute("rttWipeConfirm", "active", "false")
+    for _, b in ipairs(RTT_WIPE_ROW) do self.UI.setAttribute(b, "active", "true") end
+    self.UI.setAttribute("Marsh5P", "active", "true")
+    self.UI.setAttribute("Marsh5PMap", "active", "true")
+  end)
+end
+
+function rttArm(fnName, row)
+  if RTT_ARM.fn == fnName then return end      -- already armed for this action: let the plaque take it
+  RTT_ARM.fn = fnName
+  RTT_ARM.token = RTT_ARM.token + 1
+  local tok = RTT_ARM.token
+  pcall(function()
+    if row == "marsh" then
+      self.UI.setAttribute("Marsh5P", "active", "false")
+      self.UI.setAttribute("Marsh5PMap", "active", "false")
+      self.UI.setAttribute("rttWipeConfirm", "position", "76 -69.5 -20")
+      self.UI.setAttribute("rttWipeConfirm", "width", "110")
+      self.UI.setAttribute("rttWipeConfirm", "height", "17")
+      self.UI.setAttribute("rttWipeConfirm", "fontSize", "7")
+    else
+      for _, b in ipairs(RTT_WIPE_ROW) do self.UI.setAttribute(b, "active", "false") end
+      self.UI.setAttribute("rttWipeConfirm", "position", "0 60 -20")
+      self.UI.setAttribute("rttWipeConfirm", "width", "150")
+      self.UI.setAttribute("rttWipeConfirm", "height", "34")
+      self.UI.setAttribute("rttWipeConfirm", "fontSize", "11")
+    end
+    self.UI.setAttribute("rttWipeConfirm", "active", "true")
+  end)
+  Wait.time(function() if RTT_ARM.token == tok then rttDisarm() end end, 3.0)
+end
+
+-- the red plaque was clicked: disarm FIRST (so a double-click cannot start two runs), then go.
+function rttWipeConfirm(player, value, id)
+  local fn = RTT_ARM.fn
+  rttDisarm()
+  if     fn == "rttSetup"           then rttSetup(player, value, id)
+  elseif fn == "rttTheme"           then rttTheme(player, value, id)
+  elseif fn == "rttFivePStart"      then rttFivePStart(player, value, id)
+  elseif fn == "setupFactionBoards" then setupFactionBoards(player, value, id)
+  end
+end
+
+function rttArmRanked(player, value, id)  rttArm("rttSetup", "setup") end
+function rttArmTheme(player, value, id)   rttArm("rttTheme", "setup") end
+function rttArmFour(player, value, id)    rttArm("setupFactionBoards", "setup") end
+function rttArmMarsh5P(player, value, id) rttArm("rttFivePStart", "marsh") end
+
+-- Ginso's Gizmo is part of every game now (maintainer: "spawn the gizmo at beginning of game always"),
+-- so setup spawns it instead of relying on someone clicking its toggle. Guarded on the tool's own GUID
+-- so a second game does not stack a second copy.
+function rttEnsureGizmo()
+  for _, o in ipairs(getObjects()) do
+    if o.getGUID() == "7d5fb5" then return end
+  end
+  pcall(function() makeTool(nil, nil, "Ginso's Gizmo") end)
+end
+
 function rttSetup(player, value, id)
   RTT_5P_MARSH = false
   -- clear BOTH selector kinds (ranked AND manual) plus any faction boards, so starting a ranked draft on
@@ -1914,6 +1991,7 @@ function rttSetup(player, value, id)
   local jsons = {}
   for _,cid in ipairs(draft) do jsons[#jsons+1] = RTT_MIL_CARDS[cid] or RTT_INS_CARDS[cid] end
   rttSpawnDeck(jsons, 1, {})
+  pcall(function() rttEnsureGizmo() end)          -- gizmo is part of every game
 end
 
 -- 1) a real face-down DECK resting ON the table at RTT_DECK: cards spawn in a tight
@@ -2306,7 +2384,9 @@ function toggleTool(player,value,id)
   local guid = ""
 
   if id == "Supply Knight" then guid = "740edf" end
-  if id == "Ginso's Gizmo" then guid = "7d5fb5" end
+  -- Ginso's Gizmo deliberately has NO branch here any more: it is spawned by rttEnsureGizmo as part
+  -- of every setup, is always on and must never be removable, and its button has been dropped from the
+  -- tools row. Leaving a branch would let a stray toggleTool call destruct it.
 
   for i, object in pairs(getObjects()) do
     if (object.getGUID() == guid) then
