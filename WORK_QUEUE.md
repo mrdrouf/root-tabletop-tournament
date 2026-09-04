@@ -67,6 +67,23 @@ of four structural faults, not an isolated mistake. Fixing these is worth more t
 - [ ] Refactor to (1)+(2)+(3): explicit-argument placement, one shared new-game/spawn path, one reset
       registry. This is the "thorough code cleanup" item made concrete -- do it as the cleanup, not
       separately.
+## BLOCKED — need more info from the maintainer
+
+- [ ] **Moles / rats: tools on the side of their board.** The Underground Duchy and the Lord of the
+      Hundreds should get their tools placed beside their faction board. BLOCKED: need to know WHICH
+      tools (the Duchy has crowns/tunnels, the rats have the Mob Die and the Mini-Mood Manager -- the
+      latter already spawns at his saved spot), and WHERE "the side" is. Fastest unblock, the same way
+      the Knaves and rats positions were recovered: place them where you want them, save under a real
+      name, and say the name -- the positions get read out of the save and baked seat-local.
+
+- [ ] **Gizmo: a variant that also places warriors.** NOTE the first half is already done -- since
+      2026-09-04 the Gizmo has no button and no object at all: its script is part of the setup board, so
+      NUMPAD 0 (return a hovered component to its supply) and NUMPAD 1 (reassign a destination) work in
+      every game with nothing to spawn or toggle. It cannot be turned off.
+      BLOCKED on the remaining half: what should the warrior-placing variant DO? Which key, how many
+      warriors, taken from where, placed where -- and is it a second behaviour alongside NUMPAD 0 or a
+      replacement for it?
+
 ## OPEN — new batch (2026-09-04)
 
 - [ ] **Box score reads UPSIDE DOWN under TTS's Alt zoom.** It spawns at rotation {0, 270, 0}
