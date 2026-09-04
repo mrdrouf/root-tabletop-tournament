@@ -62,6 +62,16 @@ of four structural faults, not an isolated mistake. Fixing these is worth more t
       separately.
 ## OPEN — new batch (2026-09-04)
 
+- [x] **Timer + counter spawn with every map** (DONE 2026-09-04, VERIFY). Maintainer: "every time we
+      spawn a map, same as the battle mat, these two objects are spawned at the same time, always with
+      the map". Recovered from his save TS_Save_22: a Digital_Clock at (17.362, 11.667, -26.314) and a
+      Counter at (22.930, 11.524, -25.174), bottom right of the map. Both baked as RTT_TIMER_JSON /
+      RTT_COUNTER_JSON with the Transform zeroed and the GUID stripped -- position comes from the spawn
+      call and TTS assigns a fresh guid -- and both tagged "Map Object" like the battle mat, so
+      removeMapItems() replaces them with each new map instead of stacking copies. Spawned from makeMap,
+      so every map button and every draft path gets them.
+
+
 - [x] **Bats keep one die; Rats keep the Mob Die** (DONE 2026-09-04, VERIFY). rttSpawnFaction strips
       every Custom_Dice from a faction spawn, which also removed two dice that ARE faction components.
       Now allowlisted by GUID so the filter cannot catch the wrong one: `dc8eb3` (one of the Twilight
