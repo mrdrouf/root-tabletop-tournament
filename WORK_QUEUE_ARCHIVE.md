@@ -425,3 +425,72 @@ bugs that took several attempts — that context is easy to lose and expensive t
 - [x] Marsh number tokens: deliberate token positions + skip-and-renumber (m460).
 - [x] Marquise Keep enlarged (m550); Lizard wizard direction + Outcast marker (m490).
 - [x] framework.stow_loose_in_bag: new primitive to move a loose blueprint piece into a bag.
+
+# RTT Work Queue
+## Note for future sessions: the `m###` labels are HISTORY, not files
+## Golden rule (the maintainer, repeated + hardened)
+## STRUCTURAL — the pattern behind most of today's bugs (2026-09-04)
+## OPEN — new batch (2026-09-04)
+- [x] **Timer + counter spawn with every map** (DONE 2026-09-04, VERIFY). Maintainer: "every time we
+      spawn a map, same as the battle mat, these two objects are spawned at the same time, always with
+      the map". Recovered from his save TS_Save_22: a Digital_Clock at (17.362, 11.667, -26.314) and a
+      Counter at (22.930, 11.524, -25.174), bottom right of the map. Both baked as RTT_TIMER_JSON /
+      RTT_COUNTER_JSON with the Transform zeroed and the GUID stripped -- position comes from the spawn
+      call and TTS assigns a fresh guid -- and both tagged "Map Object" like the battle mat, so
+      removeMapItems() replaces them with each new map instead of stacking copies. Spawned from makeMap,
+      so every map button and every draft path gets them.
+
+- [x] **Bats keep one die; Rats keep the Mob Die** (DONE 2026-09-04, VERIFY). rttSpawnFaction strips
+      every Custom_Dice from a faction spawn, which also removed two dice that ARE faction components.
+      Now allowlisted by GUID so the filter cannot catch the wrong one: `dc8eb3` (one of the Twilight
+      Council's pair -- its twin 89f44e stays dropped, as asked) and `81f2b2` (the Lord of the Hundreds'
+      "Mob Die"). Verified both GUIDs are Custom_Dice inside their own faction blueprints.
+
+- [x] **Riverfolk: the two decks flanking the market removed** (DONE 2026-09-04, VERIFY). Maintainer
+      confirmed these were the ones: the 3-card deck on the left (aafc2c, board-local x -19.46) and the
+      8-card deck on the right (2a85cc, x +16.85), either side of the market tile at x -1.34. Both
+      entries deleted from EVERYTHING['Standard']['Riverfolk Company'] -- 27 entries left, 0 decks.
+      The same GUIDs survive in EVERYTHING['Official Bots']['Riverfolk Robots'], which is a different
+      faction and deliberately untouched.
+
+- [x] **Knaves: crafted board, Advanced Setup card and captains board repositioned** (DONE 2026-09-04,
+      VERIFY). Recovered from his save "knaves" (TS_Save_21), seat 2, near row.
+      Crafted improvement board eb37e6: move_to z -4.6847 -> -4.2552 (x -19.800 -> -19.7606).
+      Advanced Setup card e88b64: move_to z -4.6847 -> **-1.3593** -- it had moved 3.3 units up the
+      board, the only large change of the three. Both live in the Knaves blueprint only, so no other
+      faction's crafted board is affected.
+      Captains board: solved from where he left it relative to the Knaves RULES board (the anchor
+      rttSpawnCaptainsFor actually uses), giving RTT_CAP_OFF_X -15.844 -> -15.6676 and
+      RTT_CAP_OFF_Z -4.801 -> -4.5206.
+
+- [x] **Mini-Mood Manager spawns with the rats; its button removed** (DONE 2026-09-04, VERIFY).
+      Layout recovered from his save "rats" (TS_Save_19): the tool is 9 objects (board tile + 8 mood
+      cards), stored as seat-local offsets in the tool's own blueprint order so it mirrors for a
+      far-side seat. Dispatched from rttFactionExtras for Lord of the Hundreds, tagged RTT Faction so
+      teardown clears it. Button deleted from the setup board.
+
+## OPEN — new batch (2026-09-03, from in-TTS testing)
+- [x] **Marsh: suit-driven towns, never adjacent, uniform** (DONE 2026-09-04, VERIFY). The maintainer's
+      rule: the Marsh has 15 clearings, FIVE of each suit, and the box has 12 markers, FOUR of each,
+      because exactly one clearing per suit becomes that suit's TOWN. So: shuffle the 15 clearings and
+      deal 5 fox / 5 rabbit / 5 mouse; take one clearing of each suit as its town (Foxburrow on a fox
+      clearing, Rabbit-Town on a rabbit one, Mousehold on a mouse one); the only constraint is that no
+      two towns are adjacent; the other 12 keep their drafted suit and take a marker OF THAT SUIT --
+      which lands exactly on the 4/4/4 the map has.
+      My first version was WRONG in a way the maintainer spotted: it chose three arbitrary clearings as
+      towns and dropped the 12 markers on whatever was left, so a town could sit on a clearing of the
+      wrong suit and the suits were not 5/5/5.
+      Marker suits are read from their mesh textures (RTT_SUIT_TEX) -- identified by downloading the
+      three textures and looking at them: fox face on red, rabbit ears on yellow, mouse on orange.
+      The town draw is EXACTLY UNIFORM: only 5x5x5 = 125 candidate triples, so the legal ones are
+      enumerated and one is drawn at random, rather than picking suit-by-suit (which biases, since an
+      early pick changes what is legal later).
+      PROVEN over 200,000 simulated setups: 0 adjacent towns, 0 towns on a wrong-suit clearing,
+      leftovers always 4/4/4, zero reshuffles needed. (Per-clearing town frequency spreads 32k-46k
+      around 40k -- that is inherent to uniformity over valid CONFIGURATIONS: a clearing with fewer
+      neighbours belongs to more legal triples. Rejection sampling gives the identical distribution.)
+
+- [x] **Battle mat on every map; its button removed** (DONE 2026-09-04, VERIFY). It only ever spawned
+      from the draft's rttPlaceMap, so the map BUTTONS (which call makeMap directly) never got one.
+      Moved into makeMap; still tagged "Map Object" so removeMapItems clears the previous one and there
+      is never a second. Button deleted.

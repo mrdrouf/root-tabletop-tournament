@@ -3253,6 +3253,7 @@ RTT_TIMER_POS   = { 17.3624, 11.6669, -26.3142 }
 RTT_COUNTER_POS = { 22.9297, 11.5240, -25.1741 }
 
 function rttSpawnMapExtras()
+  pcall(function() rttSpawnBoxScore() end)         -- it destructs any previous sheet, so this replaces
   for _, e in ipairs({ { RTT_TIMER_JSON, RTT_TIMER_POS }, { RTT_COUNTER_JSON, RTT_COUNTER_POS } }) do
     spawnObjectJSON({
       json = e[1],
@@ -3329,7 +3330,9 @@ function rttStartFactionDraft()
   -- boards are already cleared at game start by rttSetup (which also clears RTT Manual Selector).
   RTT_FAC_TAKEN = {}
   RTT_VP_PLACED = 0
-  rttSpawnBoxScore()
+  -- Box score is NOT spawned here any more. It comes with the map, alongside the battle mat, timer and
+  -- counter (rttSpawnMapExtras) -- one place, one time, no redundancy. The maintainer: "that's the only
+  -- time... you need to kind of clean up the code so that there is no redundancy."
   _G['Roster'] = {}
   for i = 1, #RTT_ORDER do _G['Roster'][i] = RTT_ORDER[i].name or "" end
   if _G['vagabondAlreadySpawned'] == nil then _G['vagabondAlreadySpawned'] = false end
@@ -3763,6 +3766,12 @@ function rttSpawnFaction(faction, cx, cz, flip, category, rotationY)
       -- WITH the captains now. The 7-warrior SUPPLY BAG has ContainedObjects, so it is kept.
       if string.find(v.json, '"Nickname": "Knaves Warrior"', 1, true)
          and not string.find(v.json, '"ContainedObjects"', 1, true) then isCap = true end
+      -- ...and the CAPTAIN DECK itself (guid 59530d in the blueprint, 12 cards, CardIDs 73400-73411).
+      -- The captains are DRAFTED: rttDraftKnavesCaptains spawns its OWN copy of this same deck below
+      -- the table, deals 4 and destroys it, so the board copy was a pure duplicate. Matched on the
+      -- deck's face texture -- the identifier the draft already uses -- not on a GUID, since the draft
+      -- reads the blueprint data and is unaffected by skipping the spawn.
+      if string.find(v.json, "FA78C0F952724D77A33BECEC0651802808037E95", 1, true) then isCap = true end
     end
     if not isDice and not isCap then objects[#objects + 1] = v end
   end
