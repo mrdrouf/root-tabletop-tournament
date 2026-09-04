@@ -1751,6 +1751,7 @@ function setupFactionBoards(player, value, id)
   RTT_TRACK = nil
   RTT_MANUAL_PICKING = {}
   RTT_VP_PENDING = {}
+  RTT_ALLY_SUP_DONE = {}
   pcall(function() Global.setVar("RTT_SEAT_POS", JSON.encode({})) end)
   pcall(function() Global.setVar("RTT_SEAT_COLOR", JSON.encode({})) end)
 
@@ -2018,6 +2019,7 @@ function rttSetup(player, value, id)
   RTT_TRACK = nil
   RTT_MANUAL_PICKING = {}
   RTT_VP_PENDING = {}
+  RTT_ALLY_SUP_DONE = {}
   pcall(function() Global.setVar("RTT_SEAT_POS", JSON.encode({})) end)
   pcall(function() Global.setVar("RTT_SEAT_COLOR", JSON.encode({})) end)
   -- NO os.time re-seed: the RNG is seeded once at load and advances per call, so each draft is
@@ -3756,12 +3758,13 @@ function rttPlaceFaction(faction, cx, cz, flip, color, isDraft, category, rotati
   Wait.time(function() rttPlaceVPRetry(vpF, vpN, 6) end, 1.2)
 
   if faction == "Woodland Alliance" and color ~= nil then
+    -- Capture where hand 2 is BEFORE moving it. setHandTransform is not instant, so "has it moved yet?"
+    -- is the only exact readiness test -- and until it has, the zone is still parked at x=-75, which is
+    -- where the supporters were landing on the runs the maintainer saw fail.
+    local before = nil
+    pcall(function() local h = Player[color].getHandTransform(2) if h then before = h.position end end)
     spawnSupportersHand(color)
-    -- three starting supporters, dealt from the top of the shared deck into that same second hand
-    -- (dealing to a hand puts them face up to its owner and lets them snap, which is the whole point of
-    -- the area). Delayed so the hand transform above has settled first. No deck on the table -> draw
-    -- nothing, per the maintainer.
-    Wait.time(function() pcall(function() rttDealAllianceSupporters(color) end) end, 0.8)
+    rttDealAllianceSupporters(color, before, 12)
   end
   return true
 end
@@ -4080,18 +4083,34 @@ RTT_CLEARING_CENTRES = {
   },
 }
 
--- Three supporters into the Alliance's supporters hand. deck.deal(3, color, 2) does NOT honour the hand
--- index here -- the cards landed in a random spot -- so place them ON the hand-2 zone instead: dropping a
--- card inside a hand volume is what puts it in that hand, and it is deterministic. Spread along the
--- zone's own right vector (right = (cos ry, 0, -sin ry)) so the three do not stack, face up (rotZ 0) and
--- aligned to the zone. If there is no shared deck on the table, nothing is drawn.
+-- Three supporters into the Alliance's supporters hand. Two races made this intermittent -- the
+-- maintainer: "sometimes it works, but sometimes it bugs a bit":
+--   1. setHandTransform is not instant. Reading getHandTransform(2) too early returns the PARKED zone
+--      (all ten sit at x=-75), so the cards were placed way off to the side. Fixed by waiting until the
+--      position actually CHANGES from what it was before spawnSupportersHand ran.
+--   2. Three takeObject calls in one frame hit the deck-busy / collapse race this file already documents
+--      elsewhere ("one at a time = no deck-busy / collapse race"). Fixed by taking one per 0.25s.
+-- deck.deal(3, color, 2) is not used: it does not honour the hand index. Dropping a card inside a hand
+-- volume is what puts it in that hand.
 RTT_ALLY_SUP_SPREAD = { -3.5, 0.0, 3.5 }
+RTT_ALLY_SUP_DONE   = {}         -- [colour] = true once dealt this game; cleared with the run state
 
-function rttDealAllianceSupporters(color)
+function rttDealAllianceSupporters(color, before, tries)
   if color == nil or color == "" then return end
+  if RTT_ALLY_SUP_DONE[color] then return end
   local h2 = nil
   pcall(function() h2 = Player[color].getHandTransform(2) end)
-  if h2 == nil or h2.position == nil then return end          -- no supporters hand: place nothing
+  local ready = h2 ~= nil and h2.position ~= nil
+  if ready and before ~= nil then
+    local d = (h2.position.x - before.x) ^ 2 + (h2.position.z - before.z) ^ 2
+    ready = d > 0.25                                   -- it has actually moved off the parked spot
+  end
+  if not ready then
+    if (tries or 0) > 0 then
+      Wait.time(function() rttDealAllianceSupporters(color, before, tries - 1) end, 0.25)
+    end
+    return
+  end
   local deck = nil
   for _, o in ipairs(getAllObjects()) do
     if o.name == "Deck" then
@@ -4101,10 +4120,12 @@ function rttDealAllianceSupporters(color)
       if #cards >= 20 and frog == 0 then deck = o break end
     end
   end
-  if deck == nil then return end                              -- no deck: draw nothing
+  if deck == nil then return end                       -- no deck: draw nothing
+  RTT_ALLY_SUP_DONE[color] = true
   local ry = h2.rotation.y
   local rx, rz = math.cos(math.rad(ry)), -math.sin(math.rad(ry))
-  for i = 1, 3 do
+  local function place(i)
+    if i > 3 then return end
     local off = RTT_ALLY_SUP_SPREAD[i]
     pcall(function()
       deck.takeObject({
@@ -4113,7 +4134,9 @@ function rttDealAllianceSupporters(color)
         smooth   = false,
       })
     end)
+    Wait.time(function() place(i + 1) end, 0.25)       -- one at a time: no deck-busy / collapse race
   end
+  place(1)
 end
 
 function rttMarquiseCats(cx, cz, flip)
