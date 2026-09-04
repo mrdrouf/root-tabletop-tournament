@@ -67,6 +67,13 @@ automatically in a 1–2 player game.
 the board, so **NUMPAD 0** returns a hovered component to its supply and **NUMPAD 1** reassigns that
 component's destination, in every game, with nothing to spawn or toggle.
 
+Those are TTS *scripting buttons*, bound to the numpad by default, so **a laptop without a numpad cannot
+reach them** — the top-row 0 is a different key, and on a French Mac layout it needs Shift as well. The
+board therefore also registers two named hotkeys in `onLoad`, **"Gizmo: return hovered piece to supply"**
+and **"Gizmo: set supply / destination"**. They appear in *Options → Game Keys* with no key assigned;
+bind them to whatever you like and they call exactly the same code. (Rebinding *Scripting Button 10* and
+*1* in the same menu works too.)
+
 ---
 
 ## Things worth knowing
