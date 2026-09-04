@@ -72,6 +72,26 @@ starts in its final container/position:
       already does for "Map Object". Audit rttFactionExtras for anything else that escapes.
       (Related: the RTT_FAC_TAKEN checks at logic.lua:4048/4084.)
 
+- [ ] **Woodland Alliance: deal 3 SUPPORTERS face-up on spawn.** When the Alliance spawns, draw three
+      cards from the shared deck and lay them FACE UP in the supporters area.
+      POSITIONS RECOVERED from TS_AutoSave (seat 2, board rotY 180) -- capture them before autosaves
+      rotate: the supporters area is a Custom_Tile tagged "RTT Faction" at (-64.13, 11.56, -55.40),
+      rotY 180, scaleX 7.80. The three cards sat at z = -55.39, x = **-67.39 / -63.91 / -60.46**
+      (spacing ~3.47), y = 13.77 / 13.87 / 13.97, rotY 180, **rotZ 0 = face up**. Their midpoint
+      (-63.93) is the tile's own x (-64.13), i.e. the row is CENTRED ON THE SUPPORTERS TILE -- so bake
+      it as tile-local (-3.47, 0, +3.47) rather than as seat-2 world coordinates, and it works at any
+      seat. Cards drawn in that save were False Orders / Travel Gear / Rabbit Laborers, i.e. the top of
+      the shared deck. Golden rule: draw and place at the final spot, no spawn-then-move.
+
+- [ ] **Eyrie: update the default vizier-card position** -- BLOCKED, need input. The maintainer moved
+      them and saved. But: `vizier` and `decree` appear **ZERO times** in gen/src/content.lua,
+      gen/src/logic.lua and gen/src/save.json, and the Eyrie blueprint spawns only Eyrie Warriors (20),
+      Roosts (7), Eyrie Supply and Eyrie VP -- no cards. No save on this machine contains an object
+      whose nickname matches vizier/visier (checked TS_AutoSave, _2, _3, _5..._8 and the shipped save;
+      the last game was Marquise / Riverfolk / Alliance / Duchy, no Eyrie).
+      NEED: which save has the Eyrie spawned with the cards where he wants them, and what those cards
+      are actually called in the mod (they may come from a deck rather than the faction blueprint).
+
 - [ ] **Two of the same faction in one setup throws a Lua error** (screenshot):
       `[Faction Selection - bab7e1] Lua Error: Value cannot be null. Parameter name: key`
       The DRAFT path guards this (`RTT_FAC_TAKEN` locks a faction at logic.lua:3481-3482), but the
