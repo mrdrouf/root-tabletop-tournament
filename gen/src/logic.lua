@@ -3185,6 +3185,7 @@ function rttSpawnCaptainsFor(rulesBoard)
         RTT_CAP_BOARD_GUID = board.getGUID()
         RTT_CAP_KNAVE_GUID = rulesBoard.getGUID()
         RTT_CAP_SLOT = {}; RTT_CAP_SPAWN_N = 0; RTT_CAP_ITEM_N = 0
+        RTT_CAP_SPAWNED = {}; RTT_CAP_WARRIOR_N = 0
         pcall(function() rttBuildCaptainMeeples() end)
         Wait.time(rttCaptainDetect, 2.0)
       end
@@ -3214,7 +3215,10 @@ RTT_CAP_ITEM_JSON   = nil
 RTT_CAP_MEEPLE_JSON = nil
 RTT_CAP_BOARD_GUID  = nil
 RTT_CAP_KNAVE_GUID  = nil
-RTT_CAP_SLOT        = {}   -- [slotN] = the captain currently COMMITTED in that board slot
+RTT_CAP_SLOT        = {}   -- [slotN] = the captain currently sitting in that board slot
+RTT_CAP_SPAWNED     = {}   -- [captain name] = true once spawned. Keyed by CAPTAIN, not by slot: a
+                           -- captain is spawned AT MOST ONCE per game, wherever it is dragged.
+RTT_CAP_WARRIOR_N   = 0    -- Knaves warriors spawned by the captain flow. HARD CAP of 3.
 RTT_CAP_SPAWN_N     = 0
 RTT_CAP_ITEM_N      = 0   -- running count of items dropped into the stash (for a clean grid)
 RTT_CAP_WARRIOR_JSON = nil -- one "Knaves Warrior" blueprint (captain warriors below the meeple row)
@@ -3295,7 +3299,12 @@ function rttSpawnCaptainMeeple(name, idx)
     rotation = { 0, fry, 0 },
     callback_function = function(o) pcall(function() o.addTag("RTT Faction") end) end
   })
-  pcall(function() rttSpawnCaptainWarrior(idx) end)  -- one Knaves warrior below the captain (his reference)
+  -- one Knaves warrior below the captain, HARD-CAPPED at 3 for the whole game: a switcheroo that brings
+  -- in the 4th drafted captain must not add a 4th warrior (only 3 captains are ever in play).
+  if (RTT_CAP_WARRIOR_N or 0) < 3 then
+    RTT_CAP_WARRIOR_N = (RTT_CAP_WARRIOR_N or 0) + 1
+    pcall(function() rttSpawnCaptainWarrior(idx) end)
+  end
   pcall(function() rttSpawnCaptainItems(name, idx) end)  -- this captain's 2 items = its column (top+bottom)
 end
 
@@ -3310,11 +3319,13 @@ function rttSpawnCaptainWarrior(idx)
     callback_function = function(o) pcall(function() o.addTag("RTT Faction") end) end })
 end
 
--- SLOT-based detector. Each of the board's 3 snap slots remembers its COMMITTED captain. When a slot's
--- captain becomes a DIFFERENT one than it committed, that captain is spawned and the slot re-commits.
--- An empty slot keeps its commit -> a captain that leaves and comes back does nothing; but swapping in a
--- captain that is not the slot's current commit spawns it (even one spawned earlier in another slot),
--- exactly matching the maintainer's Gladiator->Arbiter->Gladiator example.
+-- CAPTAIN-based detector. The committed set is keyed by the CAPTAIN'S NAME (RTT_CAP_SPAWNED), not by
+-- the slot it happens to be sitting in, so a captain is spawned AT MOST ONCE per game no matter how it
+-- is dragged around. The previous version committed per SLOT, so moving a captain from slot 1 to slot 2
+-- made slot 2 see a "different" captain than it had committed and spawn it a SECOND time -- the
+-- maintainer's report: swapping cards between slots duplicated captains, while returning one to the
+-- SAME slot did not. Warriors are additionally hard-capped at 3 (RTT_CAP_WARRIOR_N), so even a
+-- switcheroo that brings in the 4th drafted captain cannot add a 4th warrior.
 function rttCaptainDetect()
   local board = getObjectFromGUID(RTT_CAP_BOARD_GUID or "")
   if board == nil then return end        -- board gone (faction cleared) -> stop polling
@@ -3344,12 +3355,14 @@ function rttCaptainDetect()
       if d < bd then bd = d; best = c end
     end
     local key = "slot" .. i
-    if best ~= nil and RTT_CAP_SLOT[key] ~= best.name then
-      RTT_CAP_SLOT[key] = best.name
-      rttSpawnCaptainMeeple(best.name, RTT_CAP_SPAWN_N)   -- (also spawns its items once wired)
-      RTT_CAP_SPAWN_N = RTT_CAP_SPAWN_N + 1
+    if best ~= nil then
+      RTT_CAP_SLOT[key] = best.name                       -- record where it is (display/debug only)
+      if not RTT_CAP_SPAWNED[best.name] then              -- FIRST time this captain is seen anywhere
+        RTT_CAP_SPAWNED[best.name] = true
+        rttSpawnCaptainMeeple(best.name, i - 1)           -- column follows the SLOT (0..2), not a counter
+      end
     end
-    -- empty slot: keep its committed captain (a leave-then-return does nothing)
+    -- empty slot: nothing to do. A captain that leaves and returns is already in RTT_CAP_SPAWNED.
   end
   Wait.time(rttCaptainDetect, 1.5)
 end

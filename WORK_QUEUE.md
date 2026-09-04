@@ -29,6 +29,19 @@ starts in its final container/position:
 
 ## OPEN — new batch (2026-09-03, from in-TTS testing)
 
+- [x] **Knaves captains duplicated when swapping between slots** (FIXED 2026-09-03, VERIFY). The
+      maintainer: swapping cards between captain-board slots spawned the same captain several times;
+      returning one to the SAME slot did not.
+      ROOT CAUSE: rttCaptainDetect committed per SLOT -- `RTT_CAP_SLOT["slot"..i] ~= best.name` -- so
+      dragging a captain from slot 1 to slot 2 made slot 2 see a "different" captain than it had
+      committed and spawn it a SECOND time. The old comment documented this as intended behaviour
+      ("even one spawned earlier in another slot"); the maintainer's report overrides it.
+      FIX: commit by CAPTAIN NAME in a new `RTT_CAP_SPAWNED` set, so a captain spawns AT MOST ONCE per
+      game wherever it is dragged; the meeple/item column now follows the slot index (0..2) instead of a
+      monotonic counter that drifted on every swap. Plus a HARD CAP of 3 on captain warriors
+      (`RTT_CAP_WARRIOR_N`), so a switcheroo bringing in the 4th drafted captain cannot add a 4th
+      warrior. Both reset with the rest of the captain state when a board is created.
+
 - [ ] **Marsh landmarks must never be ADJACENT** (the maintainer: "important fix", "big update; hard
       to make it work"). `rttMarshPlan5P` shuffles the 15 clearing positions and takes the FIRST 3 as
       town landmarks (gen/src/logic.lua, `rttShuffleList(clearings)` then `for i = 1, 3`), with NO
