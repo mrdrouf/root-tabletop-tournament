@@ -595,3 +595,39 @@ bugs that took several attempts — that context is easy to lose and expensive t
       cards so each flight is visible instead of the card simply appearing on the stack.
 
 ## BLOCKED — need more info from the maintainer
+
+# RTT Work Queue
+## Standing rule: work on MAIN
+## Standing rule: this file only shows OPEN work
+## Note for future sessions: the `m###` labels are HISTORY, not files
+## Golden rule (the maintainer, repeated + hardened)
+## STRUCTURAL — the pattern behind most of today's bugs (2026-09-04)
+## OPEN — reported 2026-09-04 (second batch)
+- [x] **Knaves captains must spawn even without a draft.** Fixed 2026-09-04. The maintainer: "the
+      captains should spawn there if they have not been drafted first". `rttDraftKnavesCaptains` runs
+      only from the RANKED chain and gates on `RTT_DRAFT_FACTIONS`, so picking the Knaves from a manual
+      selector created no captains at all and `rttPoolCaptains` had nothing to place. It now deals four
+      directly onto the pool spots when none were drafted -- same rule at both paths, four to choose
+      three from.
+
+- [x] **`rttPoolCaptains` threw on EVERY call (pre-existing).** Found while testing the above: `base`
+      is built as a positional `{x,y,z}` array and then read as `base.x` / `base.z`, which are nil, so
+      the first arithmetic threw. The single call site wraps it in `pcall`, so it failed SILENTLY --
+      captains were never pooled beside the board in any game, ranked included. Named locals now.
+
+- [x] **Keeper relics on Winter.** Fixed 2026-09-04 from the maintainer's "winter" save (TS_Save_23).
+      Winter was the ONLY map with no entry in `RTT_RELIC_POS`, so it alone fell through to
+      `rttForestWorldCenters` -- forest CENTROIDS, not relic spots (and that fallback rotates with the
+      opposite sign to `positionToWorld`, which is the 180 flip he saw). His eight positions are read
+      back in the map's local frame (map ec2372, rotY 180, scale 12.979) and baked; round-trip against
+      the save is exact to 8e-04 world units. NOTE the fallback's sign bug is still there for any
+      future map added without recorded spots.
+
+- [x] **Rats: Mini-Mood Manager spawns with the board, and the duplicate deck is gone.** Fixed
+      2026-09-04. It ran from `rttFactionExtras`, which is deferred 0.5s, so it landed visibly after
+      the board; it now spawns in the same pass as the faction's own pieces. The duplicate was the
+      8-card mood deck baked into the rats blueprint at (2.99,-9.10) -- essentially on top of
+      `RTT_MOOD_LOCAL[1]` at (3.02,-9.16) -- removed from `content.lua` (CardIDs 10900-10907; the tool
+      ships its own 11300-11307).
+
+## BLOCKED — need more info from the maintainer

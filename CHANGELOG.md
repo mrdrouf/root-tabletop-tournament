@@ -314,3 +314,21 @@ NO frog cards" — a test the deck stops passing the moment the frogs are in pla
 
 The supporters draw is also animated now (`smooth = true`, 0.6s apart) so each card is
 seen coming off the top of the deck rather than appearing on the stack.
+
+## Captains, Winter relics, the rats' mood deck — 2026-09-04
+- **Knaves captains now spawn without a draft.** `rttDraftKnavesCaptains` only ever
+  ran from the ranked chain and gated on `RTT_DRAFT_FACTIONS`, so picking the Knaves
+  from a manual selector left the captains board empty. Four captains are now dealt
+  straight onto the pool spots when none were drafted — the same four-choose-three at
+  both paths.
+- **`rttPoolCaptains` had never worked.** `base` is a positional `{x,y,z}` array that
+  was read back as `base.x` / `base.z` — nil — so every call threw on the first
+  arithmetic, and the one call site wraps it in `pcall`. It failed silently in every
+  game, ranked included, and the captains were never pooled beside the board.
+- **Winter relics.** Winter was the only map missing from `RTT_RELIC_POS`, so it alone
+  used the `rttForestWorldCenters` fallback — forest centroids rather than relic spots,
+  with a rotation applied in the opposite sense to `positionToWorld`. The maintainer's
+  eight hand-placed positions are baked from his "winter" save, exact to 8e-04.
+- **The rats' Mini-Mood Manager** spawns in the same pass as the faction instead of
+  half a second later, and the 8-card mood deck baked into the rats blueprint — which
+  sat on top of the manager's own board — is removed from the data.

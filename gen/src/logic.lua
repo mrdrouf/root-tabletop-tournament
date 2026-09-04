@@ -3673,14 +3673,12 @@ end
 
 -- lay the 4 drafted captains in a 2x2 grid beside the board (side away from the faction board),
 -- face up and PORTRAIT, so the player sees all 4 and drags 3 onto the (snap-pointed) slots
-function rttPoolCaptains(board, craftPos)
-  if board == nil then return end
-  local caps = {}
-  for _, o in ipairs(getObjectsWithTag("RTT Knave Captain")) do caps[#caps + 1] = o end
-  if #caps == 0 then return end
-  local cs = caps[1].getBounds().size
-  local cardShort = math.min(cs.x, cs.z)
-  local cardLong  = math.max(cs.x, cs.z)
+-- The four pool spots beside the captains board, as world positions, plus the angle to lay cards at.
+-- Pure geometry: the card size comes in as an argument because the two callers know it from different
+-- places -- an already-drafted captain's bounds, or the captain deck's own bounds when nothing has been
+-- drafted yet and there is no card to measure.
+function rttCaptainPoolSpots(board, craftPos, cardShort, cardLong)
+  if board == nil or craftPos == nil then return nil, 0 end
   local bp = board.getPosition()
   local bb = board.getBounds().size
   local short = math.min(bb.x, bb.z)
@@ -3691,18 +3689,87 @@ function rttPoolCaptains(board, craftPos)
   local colGap = cardShort + 0.7                                  -- 2 columns across the width axis
   local rowGap = cardLong + 0.7                                   -- 2 rows down the length axis
   local d = short * 0.5 + colGap + RTT_CAP_POOL_GAP               -- clear the board + a grid half-width
-  local base = { bp.x + side * widAxis[1] * d, bp.y, bp.z + side * widAxis[3] * d }
-  local ry = board.getRotation().y
-  for i = 1, math.min(4, #caps) do
+  -- `base` is a positional {x,y,z}; it used to be read back as base.x / base.z, which are nil on an
+  -- array literal. Every call therefore threw on the first arithmetic -- and the one call site wraps
+  -- this in pcall, so it failed SILENTLY in every game and the captains were never pooled beside the
+  -- board at all. Named locals so the same typo cannot come back.
+  local baseX = bp.x + side * widAxis[1] * d
+  local baseZ = bp.z + side * widAxis[3] * d
+  local spots = {}
+  for i = 1, 4 do
     local col = ((i - 1) % 2 == 0) and -0.5 or 0.5
     local row = (i <= 2) and 0.5 or -0.5
-    local wp = { base.x + widAxis[1] * col * colGap + lenAxis[1] * row * rowGap,
+    spots[i] = { baseX + widAxis[1] * col * colGap + lenAxis[1] * row * rowGap,
                  bp.y + 0.6,
-                 base.z + widAxis[3] * col * colGap + lenAxis[3] * row * rowGap }
+                 baseZ + widAxis[3] * col * colGap + lenAxis[3] * row * rowGap }
+  end
+  return spots, board.getRotation().y
+end
+
+-- Deal four random captains STRAIGHT to their pool spots beside `board`, for the case where none were
+-- drafted. The deck we deal from is also the only thing that knows how big a captain card is before
+-- one exists, so it is measured here rather than spawning a second deck to ask.
+function rttDealCaptainsTo(board, craftPos)
+  local blob = rttKnaveCaptainDeckJSON()
+  if blob == nil or board == nil then return end
+  spawnObjectJSON({
+    json = blob,
+    position = { 53.495, -50, 0 },                  -- the deck itself never shows; only what it deals
+    rotation = { 0, 270, 0 },
+    callback_function = function(deck)
+      -- tagged even though it is destroyed below: if anything here throws, teardown still sweeps it
+      pcall(function() deck.addTag("RTT Faction") end)
+      deck.setLock(true)
+      pcall(function() deck.shuffle() end)
+      local ds = deck.getBounds().size
+      local spots, ry = rttCaptainPoolSpots(board, craftPos, math.min(ds.x, ds.z), math.max(ds.x, ds.z))
+      if spots == nil then pcall(function() deck.destruct() end) return end
+      Wait.time(function()
+        if deck == nil then return end
+        for i = 1, 4 do                                    -- randomise 4; the player picks 3 (Law of Root)
+          pcall(function() deck.takeObject({
+            position = spots[i], rotation = { 0, ry, 0 }, smooth = false,
+            callback_function = function(o)
+              o.setLock(false) o.addTag("RTT Faction") o.addTag("RTT Knave Captain")
+            end }) end)
+        end
+        Wait.time(function() if deck ~= nil then pcall(function() deck.destruct() end) end end, 0.8)
+      end, 0.5)
+    end
+  })
+end
+
+-- Put the captains beside the board. The pool only ever existed if the RANKED draft built it --
+-- rttDraftKnavesCaptains runs from the draft chain and gates on RTT_DRAFT_FACTIONS -- so picking the
+-- Knaves from a manual selector left the board with no captains at all. The maintainer: "the captains
+-- should spawn there if they have not been drafted first". Same rule at both paths now: four random
+-- captains to choose three from, either moved into place (already drafted) or dealt there (not).
+function rttPoolCaptains(board, craftPos)
+  if board == nil then return end
+  local caps = {}
+  for _, o in ipairs(getObjectsWithTag("RTT Knave Captain")) do caps[#caps + 1] = o end
+  if #caps == 0 then
+    rttDealCaptainsTo(board, craftPos)   -- nothing drafted (manual path): deal them here
+    return
+  end
+  local cs = caps[1].getBounds().size
+  local spots, ry = rttCaptainPoolSpots(board, craftPos, math.min(cs.x, cs.z), math.max(cs.x, cs.z))
+  if spots == nil then return end
+  for i = 1, math.min(4, #caps) do
     local c = caps[i]
     pcall(function() c.setLock(false) end)
-    pcall(function() c.setPositionSmooth(wp, false, true) end)   -- move only; the maintainer sets the card angle
+    pcall(function() c.setPositionSmooth(spots[i], false, true) end)  -- move only; the maintainer sets the card angle
   end
+end
+
+-- The Knaves' captain deck, out of the faction blueprint (found by its art hash).
+function rttKnaveCaptainDeckJSON()
+  local kd = EVERYTHING['Standard']['Knaves of the Deepwood']
+  if kd == nil or kd['data'] == nil then return nil end
+  for _, v in ipairs(kd['data']) do
+    if string.find(v.json, "FA78C0F952724D77A33BECEC0651802808037E95", 1, true) then return v.json end
+  end
+  return nil
 end
 
 function rttDraftKnavesCaptains()
@@ -3711,12 +3778,7 @@ function rttDraftKnavesCaptains()
     if f == "Knaves of the Deepwood" then has = true break end
   end
   if not has then return end
-  local kd = EVERYTHING['Standard']['Knaves of the Deepwood']
-  if kd == nil or kd['data'] == nil then return end
-  local blob = nil
-  for _, v in ipairs(kd['data']) do
-    if string.find(v.json, "FA78C0F952724D77A33BECEC0651802808037E95", 1, true) then blob = v.json break end
-  end
+  local blob = rttKnaveCaptainDeckJSON()
   if blob == nil then return end
   spawnObjectJSON({
     json = blob,
@@ -3886,6 +3948,14 @@ function rttSpawnFaction(faction, cx, cz, flip, category, rotationY)
     if isKnaveBoard then myCb = function(o) cb(o); rttSpawnCaptainsFor(o) end
     elseif isCrowBoard then myCb = function(o) cb(o); Wait.frames(function() rttCrowsPlots(cx, cz, flip, false, o) end, 1) end end
     spawnObjectJSON({ json = v.json, position = new_pos, callback_function = myCb })
+  end
+  -- The rats' Mini-Mood Manager is part of the rats' OWN setup, not an "extra". It used to run from
+  -- rttFactionExtras, which is deferred half a second, so it visibly landed after the board
+  -- (maintainer: "they all need to spawn at the same time"). Spawned here it goes down in the same
+  -- pass as the faction's own pieces. The duplicate it used to sit on top of -- the 8-card mood deck
+  -- baked into the rats blueprint at almost exactly this spot -- is removed from the blueprint.
+  if faction == "Lord of the Hundreds" then
+    pcall(function() rttRatsMoodManager(cx, cz, flip) end)
   end
   return true
 end
@@ -4229,6 +4299,11 @@ RTT_FOREST_UV = {
   ["Gorge Map"] = { {-0.0901,0.3034}, {0.2470,0.2817}, {0.0620,-0.2785}, {-0.2465,-0.2728}, {-0.2369,0.2194}, {-0.1792,-0.1109}, {0.2202,-0.1168}, {0.1241,0.2268} }
 }
 RTT_RELIC_POS = {
+  -- Winter was the ONLY map with no recorded spots, so it alone fell through to rttForestWorldCenters
+  -- -- forest CENTROIDS, not relic spots, and that fallback also rotates with the opposite sign to
+  -- positionToWorld. The maintainer placed these by hand on the "winter" save and they are read back
+  -- out of it in the map's LOCAL frame (map ec2372, rotY 180, scale 12.979; round-trip exact to 1e-15).
+  ["Winter Map"] = { {0.0666,-0.6063}, {1.1375,-0.5004}, {-1.1128,-0.2377}, {1.1820,0.2656}, {0.0398,0.3889}, {-1.1061,0.5499}, {-0.5825,0.6303}, {0.7314,0.6679} },
   ["Mountain Map"] = { {-1.2752,0.4425}, {1.0450,0.1418}, {0.5335,-0.2283}, {1.3380,-0.4530}, {0.2831,-0.6898}, {-1.1410,-0.2198}, {0.0122,0.2455}, {-0.0305,0.7701}, {-0.6567,-0.7852}, {-0.2753,-0.4889} },
   ["Marsh Map"] = { {-0.0678,0.8178}, {-1.1516,0.3882}, {1.2343,-0.2220}, {1.0673,0.5145}, {0.5968,-0.9808}, {-0.6581,-0.8845}, {-0.2989,0.0212} },
   ["Summer Map"] = { {0.7320,0.8958}, {-0.0560,0.4389}, {1.2627,0.3846}, {-1.1418,0.4037}, {0.9997,-0.5831}, {-0.3121,-0.3603}, {0.2862,-1.1748} },
@@ -4254,7 +4329,6 @@ function rttFactionExtras(faction, cx, cz, flip, isDraft)
   -- Knaves: the Captains board + its pooled captains now spawn FROM the faction blueprint's own
   -- rules-board callback (see rttSpawnFaction), so they appear WITH the faction at the CORRECT seat.
   elseif faction == "Marquise de Cat" then rttMarquiseCats(cx, cz, flip)
-  elseif faction == "Lord of the Hundreds" then rttRatsMoodManager(cx, cz, flip)
   end
 end
 
