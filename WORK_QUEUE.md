@@ -69,12 +69,29 @@ of four structural faults, not an isolated mistake. Fixing these is worth more t
       "Mob Die"). Verified both GUIDs are Custom_Dice inside their own faction blueprints.
 
 
-- [ ] **Riverfolk: remove the two cards that spawn on both sides of the market.** Maintainer's request,
-      2026-09-04. Not yet located in the blueprint -- the Riverfolk entry is at content.lua ~182532 and
-      the market cards are not distinguishable by Nickname (the surrounding entries are generic faction
-      names), so they will need identifying by CardID / position relative to the market board, the same
-      way the Eyrie viziers were found. Then remove them from the faction data (a blueprint fix, not a
-      runtime destruct).
+- [x] **Riverfolk: the two decks flanking the market removed** (DONE 2026-09-04, VERIFY). Maintainer
+      confirmed these were the ones: the 3-card deck on the left (aafc2c, board-local x -19.46) and the
+      8-card deck on the right (2a85cc, x +16.85), either side of the market tile at x -1.34. Both
+      entries deleted from EVERYTHING['Standard']['Riverfolk Company'] -- 27 entries left, 0 decks.
+      The same GUIDs survive in EVERYTHING['Official Bots']['Riverfolk Robots'], which is a different
+      faction and deliberately untouched.
+
+- [x] **Knaves: crafted board, Advanced Setup card and captains board repositioned** (DONE 2026-09-04,
+      VERIFY). Recovered from his save "knaves" (TS_Save_21), seat 2, near row.
+      Crafted improvement board eb37e6: move_to z -4.6847 -> -4.2552 (x -19.800 -> -19.7606).
+      Advanced Setup card e88b64: move_to z -4.6847 -> **-1.3593** -- it had moved 3.3 units up the
+      board, the only large change of the three. Both live in the Knaves blueprint only, so no other
+      faction's crafted board is affected.
+      Captains board: solved from where he left it relative to the Knaves RULES board (the anchor
+      rttSpawnCaptainsFor actually uses), giving RTT_CAP_OFF_X -15.844 -> -15.6676 and
+      RTT_CAP_OFF_Z -4.801 -> -4.5206.
+
+- [x] **Mini-Mood Manager spawns with the rats; its button removed** (DONE 2026-09-04, VERIFY).
+      Layout recovered from his save "rats" (TS_Save_19): the tool is 9 objects (board tile + 8 mood
+      cards), stored as seat-local offsets in the tool's own blueprint order so it mirrors for a
+      far-side seat. Dispatched from rttFactionExtras for Lord of the Hundreds, tagged RTT Faction so
+      teardown clears it. Button deleted from the setup board.
+
 
 - [ ] **Box score reads UPSIDE DOWN under TTS's Alt zoom.** It spawns at rotation {0, 270, 0}
       (rttSpawnBoxScore), which is correct for reading it flat on the table from the maintainer's seat;

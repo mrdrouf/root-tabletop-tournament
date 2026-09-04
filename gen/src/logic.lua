@@ -3340,8 +3340,10 @@ RTT_KNAVE_BOARD_IMG = "84529E736BDD4EF6B70CA79E3F99E2D07FA75A2C"  -- Knaves rule
 -- captains board = maintainer's LEFT of the Knaves board, raised HIGHER. His save has it at world
 -- (63.71,-46.18) = worldoff (+15.84,+4.80); spawn formula gives worldoff = (-OFF_X, -OFF_Z), so both signs
 -- are NEGATIVE. (The crafted board now sits on the SAME left, stacked BELOW it -- see its move_to.)
-RTT_CAP_OFF_X    = -15.844
-RTT_CAP_OFF_Z    = -4.801
+-- Recovered from the maintainer's save 'knaves' (TS_Save_21), seat 2: he nudged the captains board,
+-- so these are solved from where he left it relative to the Knaves rules board.
+RTT_CAP_OFF_X    = -15.6676
+RTT_CAP_OFF_Z    = -4.5206
 RTT_CAP_POOL_GAP = 2.4      -- world gap between the board and the pick-pool
 -- (snaps are BAKED into RTT_CAPTAIN_BOARD_JSON now; the old slot-fraction / self-size constants are gone)
 -- The real Crafted Improvements art, cropped to its TOP 3 overlapping card slots (+ its real title
@@ -4105,6 +4107,7 @@ function rttFactionExtras(faction, cx, cz, flip, isDraft)
   -- Knaves: the Captains board + its pooled captains now spawn FROM the faction blueprint's own
   -- rules-board callback (see rttSpawnFaction), so they appear WITH the faction at the CORRECT seat.
   elseif faction == "Marquise de Cat" then rttMarquiseCats(cx, cz, flip)
+  elseif faction == "Lord of the Hundreds" then rttRatsMoodManager(cx, cz, flip)
   end
 end
 
@@ -4220,6 +4223,42 @@ function rttDealAllianceSupporters(color, before, tries)
     Wait.time(function() place(i + 1) end, 0.25)       -- one at a time: no deck-busy / collapse race
   end
   place(1)
+end
+
+-- ---- Lord of the Hundreds: the Mini-Mood Manager, on the rats board --------------------------
+-- Maintainer 2026-09-04: it is no longer an option button; it spawns with the rats, at the spot he
+-- placed it in the save named "rats" (TS_Save_19). Layout recovered from that save, seat 2 (near row),
+-- as seat-local offsets in the tool's own blueprint order -- the board tile first, then the eight mood
+-- cards -- so it mirrors correctly for a far-side seat like every other seat-relative placement.
+RTT_MOOD_LOCAL = {
+  {   3.0223, 11.7502,  -9.1637 },
+  {   6.4260, 11.9038, -10.0789 },
+  {   6.4257, 11.9044,  -8.2196 },
+  {   6.4340, 11.9049,  -6.4019 },
+  {   3.0233, 11.9088,  -9.1709 },
+  {  -0.4239, 11.9127, -11.9238 },
+  {  -0.4199, 11.9133, -10.0783 },
+  {  -0.4162, 11.9138,  -8.2331 },
+  {  -0.4258, 11.9144,  -6.3879 },
+}
+
+function rttRatsMoodManager(cx, cz, flip)
+  local def = EVERYTHING["Tools"] and EVERYTHING["Tools"]["Mini-Mood Manager"]
+  if def == nil or def['data'] == nil then return end
+  local ry = flip and 0 or 180                      -- his save is rotY 180 at a near-row seat
+  for i, v in ipairs(def['data']) do
+    local l = RTT_MOOD_LOCAL[i]
+    if l ~= nil then
+      local lx, lz = l[1], l[3]
+      if flip then lx, lz = -lx, -lz end
+      spawnObjectJSON({
+        json = v.json,
+        position = { cx + lx, l[2], cz + lz },
+        rotation = { 0, ry, 0 },
+        callback_function = function(o) pcall(function() o.addTag("RTT Faction") end) end
+      })
+    end
+  end
 end
 
 function rttMarquiseCats(cx, cz, flip)
