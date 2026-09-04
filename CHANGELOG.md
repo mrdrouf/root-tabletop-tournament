@@ -363,3 +363,15 @@ for the +-3.425 world units of the saved card positions, giving 68.0 px per worl
 unit (confirmed by the row spacing, 125 px / 1.845). The manager image is 673x542
 and needed 672x541, so it is a 1:1 paste. Its own background did not match the
 board underneath, so it is masked out by hue and only the parchment is pasted.
+
+## Mood manager: snaps, resize and the seam - 2026-09-04
+Printing the manager into the board art dropped the tile, and both of its
+behaviours went with it. The 9 snap points are now baked into the rats board's own
+AttachedSnapPoints (converted into its local frame, 18 total), and the card-resize
+script is ported onto the board, placing its scripting zone from the printed
+panel's position so it follows the board to any seat and rotation. The zone is
+tagged RTT Faction, which the old tile never did -- it leaked one per game.
+
+The seam was a tone difference: the manager's parchment is warmer than the
+board's (G 199 vs 224, B 149 vs 185). A per-channel gain plus a 2px mask erosion
+brings it to within 3 per channel.

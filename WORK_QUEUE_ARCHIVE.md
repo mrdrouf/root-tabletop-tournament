@@ -709,3 +709,30 @@ bugs that took several attempts — that context is easy to lose and expensive t
       NOT YET CONFIRMED IN TTS -- iterate on the placement if it reads wrong in game.
 
 ## BLOCKED — need more info from the maintainer
+
+# RTT Work Queue
+## Standing rule: work on MAIN
+## Standing rule: this file only shows OPEN work
+## Note for future sessions: the `m###` labels are HISTORY, not files
+## Golden rule (the maintainer, repeated + hardened)
+## STRUCTURAL — the pattern behind most of today's bugs (2026-09-04)
+## OPEN — 2026-09-04
+- [x] **Restore the mood manager's snaps and card-resize after fusing it into the board.** Fixed
+      2026-09-04. Printing the manager into the board art dropped the tile, and BOTH behaviours lived
+      on that tile: its 9 AttachedSnapPoints and a LuaScript that scales a card tagged "Rat Mood" to
+      2.36 on entering a scripting zone and back to 0.57 on leaving. (My earlier "no script" reading
+      was a bad regex -- it could not match a script longer than 40 chars.)
+      Both now live on the RATS BOARD itself: the 9 snaps converted into the board's local frame
+      (manager scale 3.9734 / board 9.1066 = ratio 0.43632, panel centre board-local (-0.6581,0.5303)),
+      giving 18 snaps total, and the script ported with the zone placed via
+      `self.positionToWorld(PANEL_LOCAL)` so it follows the board to any seat and rotation instead of
+      reading a separate object's transform. Verified: 8 of the 9 snaps land within 0.009 world units
+      of their mood slot; the 9th is the right column's 4th slot, empty at setup because Stubborn
+      starts in the centre. The zone is also tagged "RTT Faction" now -- the tile used to leak it.
+
+- [x] **Seam on the fused rats board.** Fixed 2026-09-04. The manager's parchment is warmer than the
+      board's: R matched (238.5 vs 238.9) but G was 199 vs 224 and B 149 vs 185. Corrected with a
+      per-channel gain (1.0016, 1.1272, 1.2404) and the mask eroded ~2px so no pink fringe survives.
+      Pasted parchment now reads R238.5 G223.0 B183.3 against the board's R240.1 G226.0 B186.2.
+
+## BLOCKED — need more info from the maintainer
