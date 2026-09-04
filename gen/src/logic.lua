@@ -1760,6 +1760,8 @@ function setupFactionBoards(player, value, id)
   local ys = {11.56,11.56,11.56,11.56,11.56,11.56}
   local zs = {-46,-46,46,46,-46,46}
 
+  rttEnableTurns(count)
+
   for i = 1, count do
     spawnManualFactionSelector(
       {xs[i],ys[i],zs[i]},
@@ -1975,6 +1977,26 @@ function rttResetHands2()
     pcall(function() Player[c].setHandTransform(t, 2) end)
   end
 end
+-- ONE turn-system setup, used by BOTH setup paths. It lived inside rttSeatPlayers, which only the
+-- RANKED draft calls -- so on the manual 4-board path the turn system was never configured at all and
+-- the maintainer saw TTS's own ten-colour default order. Same class of bug as the teardown list and the
+-- run-state reset: two setup paths that must agree and did not share code.
+function rttEnableTurns(nseats)
+  nseats = math.max(1, nseats or 4)
+  local torder = {}
+  for i = 1, nseats do torder[#torder + 1] = RTT_SETUP_COLORS[i] end
+  if #torder == 0 then return end
+  pcall(function()
+    Turns.type = 2                       -- the custom order below
+    Turns.order = torder
+    Turns.reverse_order = false
+    Turns.skip_empty_hands = false       -- step through every seat, occupied or not
+    Turns.pass_turns = true
+    Turns.turn_color = torder[1]         -- seat 1 starts
+    Turns.enable = true
+  end)
+end
+
 function rttClearGameObjects()
   RTT_RUN_ID = RTT_RUN_ID + 1                      -- invalidates every in-flight setup callback
   for _, t in ipairs(RTT_TEARDOWN_TAGS) do
@@ -3168,24 +3190,7 @@ function rttSeatPlayers()
   -- Order is the SEATED colours in seat order, so seat 1 starts; skip_empty_hands stops TTS pausing on
   -- colours nobody occupies, which matters because RTT always builds 4-6 seats regardless of how many
   -- humans joined. enable is set LAST, once the order and starting colour are in place.
-  -- Every SEAT in the game, not only the occupied ones. With only the occupied colours the order can be
-  -- a single entry (solo), and ending a turn then has nowhere to advance to -- the maintainer:
-  -- "finishing my turn does not do anything". Seats exist whether or not a human sits in them, and each
-  -- holds a faction, so the turn walks the table properly at any player count.
-  local nseats = math.max(1, (RTT_DN or 5) - 1)
-  local torder = {}
-  for i = 1, nseats do torder[#torder + 1] = RTT_SETUP_COLORS[i] end
-  if #torder > 0 then
-    pcall(function()
-      Turns.type = 2                       -- custom order (the one we just built)
-      Turns.order = torder
-      Turns.reverse_order = false
-      Turns.skip_empty_hands = false   -- step through every seat, occupied or not
-      Turns.pass_turns = true
-      Turns.turn_color = torder[1]
-      Turns.enable = true
-    end)
-  end
+  rttEnableTurns((RTT_DN or 5) - 1)
 
   -- base pattern: seat, ~20-frame settle, THEN deliver the matching order card.
   rttAfterFrames(function() rttDealOrderCards(seated) end, 20)
@@ -3885,7 +3890,7 @@ function rttPlaceFaction(faction, cx, cz, flip, color, isDraft, category, rotati
     end
     if bi ~= nil then seatColor = RTT_SETUP_COLORS[bi] end
   end
-  if isDraft == true and seatColor ~= nil and seatColor ~= "" then
+  if seatColor ~= nil and seatColor ~= "" then
     local cols = {}
     local okC, rawC = pcall(function() return Global.getVar("RTT_SEAT_COLOR") end)
     if okC and type(rawC) == "string" and rawC ~= "" then

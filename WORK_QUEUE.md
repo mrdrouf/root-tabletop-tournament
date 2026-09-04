@@ -42,6 +42,16 @@ starts in its final container/position:
     JSON directly AT the final world spot — never a seat-local default first.
 
 ## STRUCTURAL — the pattern behind most of today's bugs (2026-09-04)
+
+**Fault 2 struck again on 2026-09-04, twice in one evening.** Everything built for the box score's
+seat colours and the TTS turn order lived in `rttSeatPlayers`, which ONLY the ranked draft calls -- so
+on the manual 4-board path (`RTT Manual Selector`) there were no seat colours and no turn order at all,
+and the maintainer, who tests on that path, saw uncoloured rows and TTS's own ten-colour default order.
+Fixed by extracting `rttEnableTurns()` and calling it from both paths, and by dropping the `isDraft`
+gate on the seat-colour publish. That is now the FOURTH thing these two paths have disagreed about
+(teardown tags, run-state reset, busy release, hand-1 ordering) plus this one. Until they share a single
+setup function, assume any new setup behaviour is missing from one of them.
+
 The maintainer, after the supporters-hand saga: "this type of bug should give you some insight about
 phenomena and problems in the structure of the code." He is right. Nearly every bug fixed today is one
 of four structural faults, not an isolated mistake. Fixing these is worth more than fixing instances.
