@@ -93,12 +93,15 @@ starts in its final container/position:
       that draws 3 pairwise non-adjacent clearings. Bake the mapping as a constant; do not compute it
       at runtime. CHECK the 4-player Marsh flood pairs too, and whether other maps place landmarks.
 
-- [x] **Ginso's Gizmo: always on, button removed** (DONE 2026-09-03, VERIFY). Maintainer: "spawn the
-      gizmo at beginning of game always ... remove that button option. it's always on and can never be
-      removed and always works and so we have 1 less option button to deal with."
-      rttEnsureGizmo() spawns it (guarded on GUID 7d5fb5 so a second game cannot stack a copy) from BOTH
-      rttSetup and setupFactionBoards. Its button and its infoGinso hover are deleted from the tools row,
-      and its `toggleTool` branch is deleted too so nothing can ever destruct it.
+- [x] **Ginso's Gizmo: PORTED, not spawned** (DONE 2026-09-04, VERIFY). Maintainer, after seeing it
+      spawn an object: "it should always be there available when spawning the mod, functional but
+      without spawning the item". So the object is gone entirely -- no button, no spawn, no
+      rttEnsureGizmo -- and its 386-line script is ported into the setup board instead.
+      Why that works: onScriptingButtonDown is a TTS event that fires in OBJECT scripts too, and the
+      gizmo script has ZERO runtime dependency on its own object (the single `self` in it is inside a
+      comment). Its onLoad/onSave became rttGizmoLoad/rttGizmoSave, driven from the board's onLoad and a
+      new board onSave so the custom supply/track config still persists. NUMPAD 0/1 now work with
+      nothing on the table.
 
 - [ ] **Re-add two removed option objects: Koffin Keeper and Mole Monger.** Both still exist in the
       DATA (content.lua has the Koffin Keeper art URL and a `toggleSpecial` branch at logic.lua:2396;
