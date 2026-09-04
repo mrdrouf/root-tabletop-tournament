@@ -1895,11 +1895,15 @@ end
 -- drawn OVER the button, which hid the red state entirely (maintainer: "the red button appears below a
 -- white version of the button art so not visible"). Swapping to real art keeps it one button, same
 -- size, same position -- the art itself turns red and asks.
+-- The asset NAMES are historical; the art they point at now carries the maintainer's captions:
+--   RankedArt     -> "4-Player Draft"     FourBoardsArt -> "4-Player Setup"
+--   FivePlayerArt -> "5-Player Draft"     FivePlayerSetupArt -> "5-Player Setup"
 RTT_WIPE_BTN = {
-  rttRankedBtn     = { fn = "rttSetup",           color = "#030411", icon = "RankedArt",     warn = "WipeConfirmArt" },
-  rttThemeBtn      = { fn = "rttTheme",           color = "#49514b", icon = "ThemeArt",      warn = "WipeConfirmArt" },
-  rttFourBoardsBtn = { fn = "setupFactionBoards", color = "#3a2f22", icon = "FourBoardsArt", warn = "WipeConfirmArt" },
-  Marsh5P          = { fn = "rttFivePStart",      color = "#463221", icon = "FivePlayerArt", warn = "WipeConfirmArtWide" },
+  rttRankedBtn     = { fn = "rttSetup",              color = "#030411", icon = "RankedArt",          warn = "WipeConfirmArt" },
+  rttThemeBtn      = { fn = "rttTheme",              color = "#49514b", icon = "ThemeArt",           warn = "WipeConfirmArt" },
+  rttFourBoardsBtn = { fn = "setupFactionBoards",    color = "#3a2f22", icon = "FourBoardsArt",      warn = "WipeConfirmArt" },
+  Marsh5P          = { fn = "rttFivePStart",         color = "#463221", icon = "FivePlayerArt",      warn = "WipeConfirmArtWide" },
+  Marsh5PSetup     = { fn = "setupFivePlayerBoards", color = "#463221", icon = "FivePlayerSetupArt", warn = "WipeConfirmArtWide" },
 }
 RTT_ARM = { id = nil, token = 0 }
 
@@ -2072,6 +2076,7 @@ function rttArmOrGo(id)
     elseif d.fn == "rttTheme"           then rttTheme()
     elseif d.fn == "rttFivePStart"      then rttFivePStart()
     elseif d.fn == "setupFactionBoards" then setupFactionBoards()
+    elseif d.fn == "setupFivePlayerBoards" then setupFivePlayerBoards()
     end
     return
   end
@@ -2080,6 +2085,7 @@ function rttArmOrGo(id)
     elseif d.fn == "rttTheme"           then rttTheme()
     elseif d.fn == "rttFivePStart"      then rttFivePStart()
     elseif d.fn == "setupFactionBoards" then setupFactionBoards()
+    elseif d.fn == "setupFivePlayerBoards" then setupFivePlayerBoards()
     end
     return
   end
@@ -2098,6 +2104,14 @@ function rttArmRanked(player, value, id)  rttArmOrGo("rttRankedBtn") end
 function rttArmTheme(player, value, id)   rttArmOrGo("rttThemeBtn") end
 function rttArmFour(player, value, id)    rttArmOrGo("rttFourBoardsBtn") end
 function rttArmMarsh5P(player, value, id) rttArmOrGo("Marsh5P") end
+function rttArmFiveSetup(player, value, id) rttArmOrGo("Marsh5PSetup") end
+
+-- Five manual selector boards and nothing else -- the 5-player counterpart of the 4-Player Setup
+-- button. setupFactionBoards keys the seat count off the BUTTON id, so it is passed explicitly here
+-- rather than relying on which button was clicked.
+function setupFivePlayerBoards()
+  setupFactionBoards(nil, nil, "fivePlayerSetup")
+end
 
 -- Ginso's Gizmo is part of every game now (maintainer: "spawn the gizmo at beginning of game always"),
 -- so setup spawns it instead of relying on someone clicking its toggle. Guarded on the tool's own GUID

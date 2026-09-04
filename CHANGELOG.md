@@ -398,3 +398,13 @@ only mean a seat-local offset that mirrors for the far row.
 Two offsets, chosen by which side of the table the seat is on: a left-hand seat
 puts the Monger to its right, a right-hand seat to its left, both between the board
 and the table centre. Every seat now spawns it on the player's own half.
+
+## Button renames and the 5-Player Setup button - 2026-09-04
+- The Mole Monger option button is gone; it spawns with the Duchy now. The Bat
+  Bungler takes its slot.
+- New 5-Player Setup button in the freed slot: five manual selector boards and
+  nothing else, the 5-player counterpart of 4-Player Setup. It goes through the same
+  wipe-confirm arming as the other destructive setup buttons.
+- Renames, which meant new art since each button's caption is baked into its image:
+  Ranked -> 4-Player Draft, 5-Player Ranked -> 5-Player Draft, and the 4-Player
+  button gained a '4-Player Setup' caption band it never had.

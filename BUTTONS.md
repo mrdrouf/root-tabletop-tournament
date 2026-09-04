@@ -8,11 +8,11 @@ Layout, top to bottom:
 ```
 [ROOT logo]                                by MrDrouf, Ehss & slugfacekillah
                                                                     [x]        y =  85
-              [4 Players] [Ranked] [Theme]                                     y =  60
+        [4-Player Setup] [4-Player Draft] [Theme]                              y =  60
 [Summer] [Lake] [Marsh] [Winter] [Mountain] [Gorge]                            y =  25
                  [Standard] [Exiles] [Squires]                                 y = -15
-[Faction Select][Mole Monger][Koffin Keeper][Box Score][Clearing Mk][Vagabond]  y = -46.5
-[Lizard Wizard][Mob Lobber][Landmarks][5P Ranked][Marsh 5P][Bat Bungler]       y = -69.5
+[Faction Select][Bat Bungler][Koffin Keeper][Box Score][Clearing Mk][Vagabond]  y = -46.5
+[Lizard Wizard][Mob Lobber][Landmarks][5P Draft][Marsh 5P][5P Setup]           y = -69.5
                                                          [Clear All]           y = -80
 ```
 
@@ -27,10 +27,11 @@ just runs. Clicks are ignored while a setup is still loading (they are dropped, 
 
 | Button | Handler | What it does |
 |--------|---------|--------------|
-| **4 Players** | `rttArmFour` → `setupFactionBoards` | Spawns four manual faction-selector boards, one per seat. No draft, no seating, no turn order — you pick each faction yourself. Also spawns five boards when invoked with `fivePlayerSetup`. |
-| **Ranked** | `rttArmRanked` → `rttSetup` | The full ranked draft: random seat + turn order per player, a light selector board per seat, colour/hand/turn-order card dealt, then the faction draft. Pool is 1 Militant + others. |
+| **4-Player Setup** | `rttArmFour` → `setupFactionBoards` | Spawns four manual faction-selector boards, one per seat. No draft, no seating, no turn order — you pick each faction yourself. Also spawns five boards when invoked with `fivePlayerSetup`. |
+| **4-Player Draft** | `rttArmRanked` → `rttSetup` | The full ranked draft: random seat + turn order per player, a light selector board per seat, colour/hand/turn-order card dealt, then the faction draft. Pool is 1 Militant + others. |
 | **Theme** | `rttArmTheme` → `rttTheme` | This month's RTM theme, currently the 5-player Marsh ranked draft (delegates to `rttFivePStart`). |
-| **5-Player Ranked** | `rttArmMarsh5P` → `rttFivePStart` | 5-player Marsh ranked draft: Marsh map, 6-card draft. |
+| **5-Player Draft** | `rttArmMarsh5P` → `rttFivePStart` | 5-player Marsh ranked draft: Marsh map, 6-card draft. |
+| **5-Player Setup** | `rttArmFiveSetup` → `setupFivePlayerBoards` | Five manual selector boards and nothing else -- the 5-player counterpart of 4-Player Setup. |
 
 **Marsh 5P** (`rttPlaceMarsh5P`) places *only* the 5-player Marsh board — no draft, no seating.
 It is not destructive, so it does not prompt.
@@ -59,8 +60,7 @@ automatically in a 1–2 player game.
 | **Lizard Wizard** | `makeLizardWizard` | The Lizard Wizard plus its blocker. |
 | **Mob Lobber** | `makeTool` | The Mob Lobber. |
 | **Landmarks** | `makeTool` | The landmark pieces. |
-| **Mole Monger** | `makeTool` | Spawns the Mole Monger. |
-| **Bat Bungler** | `makeTool` | Spawns the Bat Bungler (Nevakanezah content, like the Mob Lobber). |
+| **Bat Bungler** | `makeTool` | Spawns the Bat Bungler (Nevakanezah content, like the Mob Lobber). Sits in the slot the Mole Monger used to hold. |
 
 **Ginso's Gizmo has no button.** It is always active with no object on the table — its script is part of
 the board, so **NUMPAD 0** returns a hovered component to its supply and **NUMPAD 1** reassigns that
@@ -82,3 +82,7 @@ component's destination, in every game, with nothing to spawn or toggle.
   the battle mat with the map, and the box score alongside it. The Mini-Mood Manager spawns with the rats.
 - **Two buttons are not tools**: `x` (`deleteThis`, top right) removes the setup board itself, and
   **Clear All** (`clearAll`) wipes the table.
+- **The Mole Monger has no button.** It spawns with the Underground Duchy, beside that seat.
+- **Button art carries its own caption**, so renaming a button means new art. The asset NAMES are
+  historical: `RankedArt` now reads "4-Player Draft", `FourBoardsArt` reads "4-Player Setup", and
+  `FivePlayerArt` reads "5-Player Draft".
