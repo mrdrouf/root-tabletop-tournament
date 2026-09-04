@@ -807,3 +807,33 @@ bugs that took several attempts — that context is easy to lose and expensive t
       both spawn (24 pieces).
 
 ## BLOCKED — need more info from the maintainer
+
+# RTT Work Queue
+## Standing rule: work on MAIN
+## Standing rule: this file only shows OPEN work
+## Note for future sessions: the `m###` labels are HISTORY, not files
+## Golden rule (the maintainer, repeated + hardened)
+## STRUCTURAL — the pattern behind most of today's bugs (2026-09-04)
+## OPEN — everything the maintainer has asked for and I have NOT finished (2026-09-04)
+- [x] **Corvid hidden box in 5-player setup.** Fixed 2026-09-04. Two faults: an explicit exception
+      (`if RTT_5P_MARSH and seat <= 3 then return end`) gave the first three seats of a 5-player game no
+      hidden box at all, and the side was chosen with `cx > 0`, so the CENTRE seats (cx == 0) fell to the
+      wrong branch. Now `cx >= 0`, which puts a centre seat on the player's LEFT at seat 1's offset.
+      Verified at every seat: seat 1 and 5p seat 2 both place the box at cx+2.26.
+- [x] **Credits page.** Done 2026-09-04 and reworked repeatedly to his notes: built on the Captains
+      board's own 9-sliced frame with its own parchment as the single ground; each credit sits BESIDE the
+      items it credits; masthead leads with the revamp then "based on Root - Ultimate Collection"; ROOT
+      logo and the Leder Games row removed at his request; credit lines scaled by HEIGHT so they read.
+- [x] **Back button.** Done 2026-09-04: just the word on a cream button -- no frame, no rectangle
+      inside a rectangle. Same treatment as the Credits button.
+- [x] **Box score: removing a faction drops its row.** Fixed 2026-09-04. The prune keyed only on the
+      cached marker guid, so it caught a destroyed marker and nothing else -- a faction bagged, or removed
+      while a spare same-named marker survived (which findMarker re-points row.guid at), kept its row.
+      The prune now asks whether the FACTION is present at all (no "<fac> VP" object and no anchor), over
+      two consecutive polls so a held marker never drops a row. Guarded by a test that fails pre-fix.
+- [x] **Box score text in Luminari -- NOT POSSIBLE, do not retry.** Attempted 2026-09-04 and reverted.
+      TTS's `setCustomAssets` treats every entry as an IMAGE, so a .ttf is rejected with "Load image
+      failed unsupported format: UNKNOWN" and the error repeats on every UI rebuild. A custom UI font can
+      only be added through the Custom UI Assets PANEL, which no scripting API reaches. The sheet stays on
+      TTS's default face; the reason is commented in boxscore.lua so nobody tries again.
+## BLOCKED — need more info from the maintainer

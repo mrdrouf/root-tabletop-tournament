@@ -81,39 +81,6 @@ of four structural faults, not an isolated mistake. Fixing these is worth more t
    chain already in flight is still unguarded.
    FIX SHAPE: rttSetup bumps RTT_RUN_ID; every deferred callback returns early if its captured id is stale.
 
-## OPEN — everything the maintainer has asked for and I have NOT finished (2026-09-04)
-
-Written out in full after he pointed out I was dropping requests as new ones arrived. Anything
-already shipped is in the archive; this is the live list, in the order he asked for it.
-
-- [ ] **Corvid hidden box in 5-player setup.** "keep the hidden box for the crow in all seats in 5
-      player setup as well. seat 2 should be same position as in seat 1". The Corvid's hidden zone is
-      placed by `rttCrowsPlots`; it must exist for every seat at 5 players, and 5p seat 2 (the centre
-      near seat, (0,-46)) should reuse seat 1's placement. NOT STARTED.
-
-- [ ] **Credits page: deploy the real-art rebuild.** The first version was text I typed in Georgia --
-      he was right that it was invented. Rebuilt from actual art: the real ROOT logo, the real credit
-      strips (keyed from white-on-black to ink so the real lettering and discord handles survive), and
-      the real item button labels. Only two lines are rendered (our own base-mod / revamp credit, which
-      has no art). BUILT but NOT deployed or wired yet.
-
-- [ ] **Back button: drop the parchment style.** "the button BACK does not need the parchment style
-      thing just the credit boqrd" -- the parchment treatment belongs to the credits board only. It is
-      currently a parchment plaque; make it plain like the other option buttons, still rendered as an
-      image so it stays legible.
-
-- [ ] **Box score: removing a faction's VP marker should drop its row.** Reported "at least with the
-      ultimate mod and the standalone". There IS pruning in the poll (boxscore.lua:1401) that removes a
-      row whose `guid` no longer resolves, and rows carry a guid, so either the marker still resolves
-      after removal (dropped into a bag rather than destroyed?) or the prune is gated. REPRODUCE FIRST.
-
-- [ ] **Box score text in Luminari.** Its 49 `<Text>` elements use TTS's default UI font. TTS can use a
-      custom font, but only by loading a .ttf from a public URL -- and Luminari is (c) Canada Type, "all
-      rights reserved". Rendering PNGs with it is ordinary font use; publishing the .ttf to our GitHub
-      would be redistributing a commercial font, so I have NOT done that. Options for the maintainer:
-      host the font somewhere he controls and accept the licence question himself, or leave the sheet
-      in the default face. BLOCKED on his decision.
-
 ## BLOCKED — need more info from the maintainer
 
 - [ ] **Moles / rats: tools on the side of their board.** The Underground Duchy and the Lord of the
