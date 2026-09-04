@@ -83,13 +83,3 @@ of four structural faults, not an isolated mistake. Fixing these is worth more t
       BLOCKED on the remaining half: what should the warrior-placing variant DO? Which key, how many
       warriors, taken from where, placed where -- and is it a second behaviour alongside NUMPAD 0 or a
       replacement for it?
-
-## OPEN — new batch (2026-09-04)
-
-- [ ] **Box score reads UPSIDE DOWN under TTS's Alt zoom.** It spawns at rotation {0, 270, 0}
-      (rttSpawnBoxScore), which is correct for reading it flat on the table from the maintainer's seat;
-      Alt zoom presents it rotated 180 from that. NOT YET DIAGNOSED and I do not have a confident fix:
-      TTS's zoom orientation is derived from the object's own transform and is not obviously
-      scriptable, so changing the table rotation to please the zoom would break the table reading.
-      Investigate whether a different rot combination satisfies both, or whether the sheet's UI can be
-      authored 180 off with a compensating transform.

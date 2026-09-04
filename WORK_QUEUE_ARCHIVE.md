@@ -513,3 +513,24 @@ bugs that took several attempts — that context is easy to lose and expensive t
       12 "Captain - <name>" meeples and the item supply for this faction; the CARDS need the same
       treatment. Check what rttSpawnCaptainsFor / rttPoolCaptains put out versus what the blueprint
       spawns, so the draft keeps working.
+
+# RTT Work Queue
+## Standing rule: this file only shows OPEN work
+## Note for future sessions: the `m###` labels are HISTORY, not files
+## Golden rule (the maintainer, repeated + hardened)
+## STRUCTURAL — the pattern behind most of today's bugs (2026-09-04)
+## BLOCKED — need more info from the maintainer
+## OPEN — new batch (2026-09-04)
+- [x] **Box score under TTS's Alt zoom** (FIXED 2026-09-04, VERIFY). I had recorded this as undiagnosed
+      twice. The answer is a TTS field I had not looked for: `AltLookAngle` is the orientation an object
+      is presented at when Alt-zoomed, and it is INDEPENDENT of the object's rotation on the table. That
+      is the bit I had wrong -- I thought it was unfixable because the sheet must stay at rotY 270 to
+      read correctly lying flat from the maintainer's seat, but the zoom view is a separate setting, so
+      both can be right at once.
+      The box-score blob did not carry the field at all (null), and no object in the mod sets it
+      non-zero, so there was no precedent to copy. Set to { x = 0, y = 180, z = 0 } -- a 180 turn in the
+      plane of the sheet, exactly the "upside down" reported.
+      VERIFIED it survives a rebake: rebake_into_rtt.py preserves the object envelope and replaces only
+      LuaScript, so regenerating the box score from root_boxscore will not drop it.
+      IF IT LANDS SIDEWAYS the axis is right and the value is not -- try y = 90 or y = 270. If it is
+      completely unchanged, TTS ignores the field for this object type and this should be re-opened.
