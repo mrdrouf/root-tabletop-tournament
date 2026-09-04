@@ -29,7 +29,11 @@ starts in its final container/position:
 
 ## OPEN — new batch (2026-09-03, from in-TTS testing)
 
-- [ ] **Box-score row COLOUR/PLAYER binding is geometric, and it is the root of several bugs.**
+- [x] **Box-score row COLOUR/PLAYER binding** (FIXED 2026-09-04, VERIFY). RTT now publishes Global
+      `RTT_SEAT_COLOR` (faction -> seat colour) from the DRAFT path only, where the colour is the seat's
+      own; the manual path is deliberately excluded because there the colour is just whoever clicked.
+      refreshSeats() binds those rows FIRST and marks colour+faction used, so the greedy hand-zone pass
+      can only fill in rows RTT knows nothing about. Original diagnosis:
       refreshSeats() assigns each row's colour by matching the faction's supply anchor to the NEAREST
       HAND ZONE, then attaches the seated player's name to whichever row got their colour. RTT knows the
       truth -- rttSeatPlayers forces seat N into RTT_SETUP_COLORS[N] -- but never publishes it: the
@@ -86,7 +90,8 @@ starts in its final container/position:
       Layout work: squeeze all the buttons slightly to make room and move the whole block up a bit.
       Must respect the existing option-button design (the wooden-plaque style, same sizing/idiom).
 
-- [ ] **Clicking Ranked / Theme repeatedly causes various issues** + **wiping needs a confirmation**.
+- [x] **Clicking Ranked / Theme repeatedly + wipe confirmation** (CONFIRMED WORKING by the maintainer
+      2026-09-04).
       ROOT CAUSE FOUND (2026-09-03): the setup chain is ~6-10 SECONDS of unguarded async with no
       re-entrancy guard anywhere. rttSetup -> rttSpawnDeck (Wait 0.1s per card) -> rttSlideOut
       (0.9s then 0.6s per card) -> rttFlipAll -> rttDealOrder (1.0s) -> its own 0.5s + 0.6s ->
@@ -259,7 +264,8 @@ box-score source. Recorded here for status only.
 - [x] **Easy-install folder** (ALREADY DONE -- item was stale): settled on 2026-08-29 (orphan a56d9cb) as
       **`dist/` itself** -- it holds the one self-contained .json, the .png thumbnail and HOW_TO_INSTALL.md.
       Re-open only if the maintainer wants a separately-named top-level folder instead.
-- [~] **Thorough README**: a full every-button README WAS written (orphan a56d9cb), then deliberately
+- [ ] **README: keep it brief + add a separate BUTTONS.md** (maintainer's choice 2026-09-04) --
+      short README stays, every control documented in its own reference file. Original notes: a full every-button README WAS written (orphan a56d9cb), then deliberately
       REPLACED by the current brief one (0d93c1e, 2026-09-02). So this is a standing decision, not an
       omission. Current gaps if the thorough version is wanted back: Ginso's Gizmo and the Box Score
       button are documented nowhere. Recover the old text with
@@ -333,7 +339,8 @@ box-score source. Recorded here for status only.
 - [x] Marsh number tokens rest on the board (11.635).
 
 ### Seating / hand placement — REWORKED to restore the base (2026-08-28, multi-agent workflow)
-- [~] **Seat on turn-order-card by CARD NUMBER** (per the maintainer: "same code, different trigger"): the base
+- [x] **Seat on turn-order-card by CARD NUMBER** (CONFIRMED WORKING by the maintainer 2026-09-04).
+      Original notes: (per the maintainer: "same code, different trigger"): the base
       seated correctly on faction-pick via `placePlayer` (changeColor + setHandTransform into base
       handPositions + handScale). RTT's `rttSeatPlayers` had dropped that: a 2nd shuffle (seat != card),
       a bare setHandTransform (no changeColor/scale, never seated the player), and same-frame `ord.deal`
