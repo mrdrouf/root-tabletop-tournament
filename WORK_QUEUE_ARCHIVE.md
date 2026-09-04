@@ -730,9 +730,22 @@ bugs that took several attempts — that context is easy to lose and expensive t
       of their mood slot; the 9th is the right column's 4th slot, empty at setup because Stubborn
       starts in the centre. The zone is also tagged "RTT Faction" now -- the tile used to leak it.
 
-- [x] **Seam on the fused rats board.** Fixed 2026-09-04. The manager's parchment is warmer than the
-      board's: R matched (238.5 vs 238.9) but G was 199 vs 224 and B 149 vs 185. Corrected with a
-      per-channel gain (1.0016, 1.1272, 1.2404) and the mask eroded ~2px so no pink fringe survives.
-      Pasted parchment now reads R238.5 G223.0 B183.3 against the board's R240.1 G226.0 B186.2.
-
+- [x] **Seam on the fused rats board.** Fixed 2026-09-04; the FIRST attempt was a misdiagnosis and
+      made it worse, so the reasoning is recorded here.
+      WRONG: I read the seam as a parchment TONE difference (manager R238.5 G197.9 B147.7 vs board
+      R240.1 G226.0 B186.2) and applied a per-channel gain. That measurement came from the darker
+      INNER panel; the manager's OUTER sheet was already right at (250,229,179), so the gain
+      over-brightened it to G232/B198 and the maintainer still saw a seam in game.
+      RIGHT: the mask was missing background. The manager art has TWO background tones -- deep pink
+      (hue ~352) in the corners and salmon (hue ~17) along the panel edges -- and the hue test only
+      caught hue >330 or <12, so a salmon band survived the cut and was then brightened by the gain.
+      SATURATION separates them where hue cannot: background sat ~0.55 at val ~0.91, parchment sat
+      ~0.285 at val ~0.98. The mask is now `s > 0.42 and v > 0.60`, flood-filled from the border --
+      the dark torn outline is not bright, so it is kept AND blocks the fill, and the rat art is
+      saturated but not connected to the border. Panel kept 95.4% -> 87.8%. No colour gain at all.
+      Measured: the bands beside the panel read G112/B95 against the board's own mountains at
+      G115/B100, where the gain version had G132/B116 of leftover salmon.
+      LESSON: jsDelivr caches by URL, so every art revision needs a NEW filename (hence _v2, _v3) --
+      an overwrite kept serving the stale image even after the push, which is why board_clean has
+      v2/v3 as well.
 ## BLOCKED — need more info from the maintainer
