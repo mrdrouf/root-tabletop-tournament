@@ -1883,11 +1883,15 @@ end
 --     (colour/text/icon swapped via setAttribute) rather than swapped for a separate wide plaque.
 -- Only attributes with precedent on this board are touched (color/text/icon/fontSize); textColor has
 -- none, and an unsupported attribute makes TTS silently drop the element.
+-- `warn` is the ARMED art. Do NOT blank the icon instead: TTS renders icon="" as a WHITE placeholder
+-- drawn OVER the button, which hid the red state entirely (maintainer: "the red button appears below a
+-- white version of the button art so not visible"). Swapping to real art keeps it one button, same
+-- size, same position -- the art itself turns red and asks.
 RTT_WIPE_BTN = {
-  rttRankedBtn     = { fn = "rttSetup",           color = "#030411", icon = "RankedArt",     fs = "5" },
-  rttThemeBtn      = { fn = "rttTheme",           color = "#49514b", icon = "ThemeArt",      fs = "5" },
-  rttFourBoardsBtn = { fn = "setupFactionBoards", color = "#3a2f22", icon = "FourBoardsArt", fs = "5" },
-  Marsh5P          = { fn = "rttFivePStart",      color = "#463221", icon = "FivePlayerArt", fs = "3" },
+  rttRankedBtn     = { fn = "rttSetup",           color = "#030411", icon = "RankedArt",     warn = "WipeConfirmArt" },
+  rttThemeBtn      = { fn = "rttTheme",           color = "#49514b", icon = "ThemeArt",      warn = "WipeConfirmArt" },
+  rttFourBoardsBtn = { fn = "setupFactionBoards", color = "#3a2f22", icon = "FourBoardsArt", warn = "WipeConfirmArt" },
+  Marsh5P          = { fn = "rttFivePStart",      color = "#463221", icon = "FivePlayerArt", warn = "WipeConfirmArtWide" },
 }
 RTT_ARM = { id = nil, token = 0 }
 
@@ -1906,7 +1910,6 @@ function rttDisarm()
   local d = id and RTT_WIPE_BTN[id]
   if d == nil then return end
   pcall(function()
-    self.UI.setAttribute(id, "text", "")
     self.UI.setAttribute(id, "icon", d.icon)
     self.UI.setAttribute(id, "color", d.color)
   end)
@@ -1938,10 +1941,8 @@ function rttArmOrGo(id)
   RTT_ARM.token = RTT_ARM.token + 1
   local tok = RTT_ARM.token
   pcall(function()
-    self.UI.setAttribute(id, "icon", "")         -- drop the art so the words are legible
-    self.UI.setAttribute(id, "color", "#cf4a3c")
-    self.UI.setAttribute(id, "fontSize", d.fs)
-    self.UI.setAttribute(id, "text", "Wipe all factions boards?")
+    self.UI.setAttribute(id, "icon", d.warn)     -- the art itself becomes the red question
+    self.UI.setAttribute(id, "color", "#a83226") -- matches the plaque so the rounded corners blend
   end)
   Wait.time(function() if RTT_ARM.token == tok then rttDisarm() end end, 3.0)
 end
