@@ -316,11 +316,12 @@ The supporters draw is also animated now (`smooth = true`, 0.6s apart) so each c
 seen coming off the top of the deck rather than appearing on the stack.
 
 ## Captains, Winter relics, the rats' mood deck — 2026-09-04
-- **Knaves captains now spawn without a draft.** `rttDraftKnavesCaptains` only ever
-  ran from the ranked chain and gated on `RTT_DRAFT_FACTIONS`, so picking the Knaves
-  from a manual selector left the captains board empty. Four captains are now dealt
-  straight onto the pool spots when none were drafted — the same four-choose-three at
-  both paths.
+- **The Knaves keep their captain deck when nothing drafts it.** `rttSpawnFaction`
+  skipped the blueprint's 12-card captain deck unconditionally, because
+  `rttDraftKnavesCaptains` supplies the captains — which is only true during a
+  ranked or theme draft. Picking the Knaves from a manual selector therefore left no
+  captain deck anywhere. The skip is now gated on `rttCaptainsAreDrafted()`: ranked is
+  unchanged, and a manual pick spawns the deck on the board to draw from.
 - **`rttPoolCaptains` had never worked.** `base` is a positional `{x,y,z}` array that
   was read back as `base.x` / `base.z` — nil — so every call threw on the first
   arithmetic, and the one call site wraps it in `pcall`. It failed silently in every

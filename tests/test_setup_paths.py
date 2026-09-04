@@ -194,13 +194,30 @@ def t_captains_pool_beside_board(src):
     assert len(spots) == 4, "captains landed on top of each other: %s" % spots
 
 
-def t_captains_spawn_without_a_draft(src):
-    """Picking the Knaves from a manual selector must still put captains beside the board."""
-    rt = fresh(src)
-    rt.execute(CAP_SETUP)
-    rt.execute("pcall(function() rttPoolCaptains(BOARD, CRAFT) end) FLUSH(24)")
-    n = rt.eval("#getObjectsWithTag('RTT Knave Captain')")
-    assert n == 4, "no draft happened, so 4 captains should have been dealt; got %d" % n
+CAP_DECK_HASH = "FA78C0F952724D77A33BECEC0651802808037E95"
+
+
+def _knaves_deck_spawns(rt, drafted):
+    rt.execute("SEAT('Red','MrDrouf')")
+    rt.execute("RTT_DRAFT_FACTIONS = %s" % ("{'Knaves of the Deepwood'}" if drafted else "{}"))
+    rt.execute("""
+      DECKS = 0
+      local orig = spawnObjectJSON
+      spawnObjectJSON = function(p)
+        if p and p.json and string.find(p.json, "%s", 1, true) then DECKS = DECKS + 1 end
+        return orig(p)
+      end
+      pcall(function() rttSpawnFaction('Knaves of the Deepwood', 52, -46, false, 'Standard', nil) end)
+    """ % CAP_DECK_HASH)
+    return rt.eval("DECKS")
+
+
+def t_captain_deck_without_a_draft(src):
+    """No draft: the Knaves keep their own captain deck. Ranked: the draft supplies it instead."""
+    assert _knaves_deck_spawns(fresh(src), drafted=False) == 1, \
+        "picking the Knaves manually left no captain deck on the board"
+    assert _knaves_deck_spawns(fresh(src), drafted=True) == 0, \
+        "a ranked draft deals the captains, so the board copy would be a duplicate"
 
 
 CASES = [
@@ -214,7 +231,7 @@ CASES = [
     ("supporters draw with frogs in play",   t_supporters_draw_with_frogs_in_deck),
     ("a new game removes frog cards",        t_new_game_removes_frog_cards),
     ("captains pool beside their board",     t_captains_pool_beside_board),
-    ("captains spawn without a draft",       t_captains_spawn_without_a_draft),
+    ("captain deck when nothing drafts it",  t_captain_deck_without_a_draft),
 ]
 
 

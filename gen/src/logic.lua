@@ -3706,39 +3706,6 @@ function rttCaptainPoolSpots(board, craftPos, cardShort, cardLong)
   return spots, board.getRotation().y
 end
 
--- Deal four random captains STRAIGHT to their pool spots beside `board`, for the case where none were
--- drafted. The deck we deal from is also the only thing that knows how big a captain card is before
--- one exists, so it is measured here rather than spawning a second deck to ask.
-function rttDealCaptainsTo(board, craftPos)
-  local blob = rttKnaveCaptainDeckJSON()
-  if blob == nil or board == nil then return end
-  spawnObjectJSON({
-    json = blob,
-    position = { 53.495, -50, 0 },                  -- the deck itself never shows; only what it deals
-    rotation = { 0, 270, 0 },
-    callback_function = function(deck)
-      -- tagged even though it is destroyed below: if anything here throws, teardown still sweeps it
-      pcall(function() deck.addTag("RTT Faction") end)
-      deck.setLock(true)
-      pcall(function() deck.shuffle() end)
-      local ds = deck.getBounds().size
-      local spots, ry = rttCaptainPoolSpots(board, craftPos, math.min(ds.x, ds.z), math.max(ds.x, ds.z))
-      if spots == nil then pcall(function() deck.destruct() end) return end
-      Wait.time(function()
-        if deck == nil then return end
-        for i = 1, 4 do                                    -- randomise 4; the player picks 3 (Law of Root)
-          pcall(function() deck.takeObject({
-            position = spots[i], rotation = { 0, ry, 0 }, smooth = false,
-            callback_function = function(o)
-              o.setLock(false) o.addTag("RTT Faction") o.addTag("RTT Knave Captain")
-            end }) end)
-        end
-        Wait.time(function() if deck ~= nil then pcall(function() deck.destruct() end) end end, 0.8)
-      end, 0.5)
-    end
-  })
-end
-
 -- Put the captains beside the board. The pool only ever existed if the RANKED draft built it --
 -- rttDraftKnavesCaptains runs from the draft chain and gates on RTT_DRAFT_FACTIONS -- so picking the
 -- Knaves from a manual selector left the board with no captains at all. The maintainer: "the captains
@@ -3748,10 +3715,9 @@ function rttPoolCaptains(board, craftPos)
   if board == nil then return end
   local caps = {}
   for _, o in ipairs(getObjectsWithTag("RTT Knave Captain")) do caps[#caps + 1] = o end
-  if #caps == 0 then
-    rttDealCaptainsTo(board, craftPos)   -- nothing drafted (manual path): deal them here
-    return
-  end
+  -- Nothing to pool. Without a draft the faction spawns its OWN captain deck on the board (see the
+  -- rttCaptainsAreDrafted gate in rttSpawnFaction), and the maintainer draws from that himself.
+  if #caps == 0 then return end
   local cs = caps[1].getBounds().size
   local spots, ry = rttCaptainPoolSpots(board, craftPos, math.min(cs.x, cs.z), math.max(cs.x, cs.z))
   if spots == nil then return end
@@ -3760,6 +3726,15 @@ function rttPoolCaptains(board, craftPos)
     pcall(function() c.setLock(false) end)
     pcall(function() c.setPositionSmooth(spots[i], false, true) end)  -- move only; the maintainer sets the card angle
   end
+end
+
+-- Is a draft going to hand out the captains? True only during a ranked/theme draft that dealt the
+-- Knaves; on a manual selector pick nothing drafts them, so the faction keeps its own captain deck.
+function rttCaptainsAreDrafted()
+  for _, f in ipairs(RTT_DRAFT_FACTIONS or {}) do
+    if f == "Knaves of the Deepwood" then return true end
+  end
+  return false
 end
 
 -- The Knaves' captain deck, out of the faction blueprint (found by its art hash).
@@ -3773,11 +3748,7 @@ function rttKnaveCaptainDeckJSON()
 end
 
 function rttDraftKnavesCaptains()
-  local has = false
-  for _, f in ipairs(RTT_DRAFT_FACTIONS or {}) do
-    if f == "Knaves of the Deepwood" then has = true break end
-  end
-  if not has then return end
+  if not rttCaptainsAreDrafted() then return end
   local blob = rttKnaveCaptainDeckJSON()
   if blob == nil then return end
   spawnObjectJSON({
@@ -3902,12 +3873,17 @@ function rttSpawnFaction(faction, cx, cz, flip, category, rotationY)
       -- WITH the captains now. The 7-warrior SUPPLY BAG has ContainedObjects, so it is kept.
       if string.find(v.json, '"Nickname": "Knaves Warrior"', 1, true)
          and not string.find(v.json, '"ContainedObjects"', 1, true) then isCap = true end
-      -- ...and the CAPTAIN DECK itself (guid 59530d in the blueprint, 12 cards, CardIDs 73400-73411).
-      -- The captains are DRAFTED: rttDraftKnavesCaptains spawns its OWN copy of this same deck below
-      -- the table, deals 4 and destroys it, so the board copy was a pure duplicate. Matched on the
-      -- deck's face texture -- the identifier the draft already uses -- not on a GUID, since the draft
-      -- reads the blueprint data and is unaffected by skipping the spawn.
-      if string.find(v.json, "FA78C0F952724D77A33BECEC0651802808037E95", 1, true) then isCap = true end
+      -- ...and the CAPTAIN DECK itself (guid 59530d in the blueprint, 12 cards, CardIDs 73400-73411),
+      -- but ONLY when the captains are actually being drafted. rttDraftKnavesCaptains spawns its own
+      -- copy of this deck, deals 4 and destroys it, so during a ranked/theme draft the board copy is a
+      -- pure duplicate. Skipping it unconditionally meant that picking the Knaves from a manual
+      -- selector -- where nothing drafts the captains -- left NO captain deck anywhere. The maintainer:
+      -- "when I don't do the ranked or theme button that drafts the captain cards, the deck of all
+      -- captains still spawns on the faction board". Matched on the deck's face texture, the same
+      -- identifier the draft uses.
+      if rttCaptainsAreDrafted() and string.find(v.json, "FA78C0F952724D77A33BECEC0651802808037E95", 1, true) then
+        isCap = true
+      end
     end
     if not isDice and not isCap then objects[#objects + 1] = v end
   end

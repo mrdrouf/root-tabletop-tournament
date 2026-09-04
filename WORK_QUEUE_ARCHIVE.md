@@ -603,13 +603,15 @@ bugs that took several attempts — that context is easy to lose and expensive t
 ## Golden rule (the maintainer, repeated + hardened)
 ## STRUCTURAL — the pattern behind most of today's bugs (2026-09-04)
 ## OPEN — reported 2026-09-04 (second batch)
-- [x] **Knaves captains must spawn even without a draft.** Fixed 2026-09-04. The maintainer: "the
-      captains should spawn there if they have not been drafted first". `rttDraftKnavesCaptains` runs
-      only from the RANKED chain and gates on `RTT_DRAFT_FACTIONS`, so picking the Knaves from a manual
-      selector created no captains at all and `rttPoolCaptains` had nothing to place. It now deals four
-      directly onto the pool spots when none were drafted -- same rule at both paths, four to choose
-      three from.
-
+- [x] **Knaves captains must spawn even without a draft.** Fixed 2026-09-04, CORRECTED after the
+      maintainer clarified: "the ranked function worked fine. What I want is that when I don't do the
+      ranked or theme button that drafts the captain cards, the deck of all captains still spawns on
+      the faction board." rttSpawnFaction skipped the blueprint's 12-card captain deck UNCONDITIONALLY,
+      on the reasoning that rttDraftKnavesCaptains supplies the captains -- true only during a
+      ranked/theme draft. On a manual pick nothing drafted them, so there was no captain deck anywhere.
+      The skip is now gated on rttCaptainsAreDrafted(), so ranked is untouched and a manual pick keeps
+      the faction's own deck on the board. (An earlier attempt dealt four random captains instead --
+      wrong, reverted.)
 - [x] **`rttPoolCaptains` threw on EVERY call (pre-existing).** Found while testing the above: `base`
       is built as a positional `{x,y,z}` array and then read as `base.x` / `base.z`, which are nil, so
       the first arithmetic threw. The single call site wraps it in `pcall`, so it failed SILENTLY --
