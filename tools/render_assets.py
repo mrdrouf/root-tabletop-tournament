@@ -8,6 +8,9 @@ from PIL import Image, ImageDraw, ImageFont
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 FONTS = r"C:\Windows\Fonts"
+# Root's own title face, confirmed against the rats board ("Lord of the Hundreds" matches letter
+# for letter). Ships with macOS. We RENDER with it; the .ttf is never redistributed.
+LUMINARI = "/System/Library/Fonts/Supplemental/Luminari.ttf"
 
 CREDIT_FONTS = {  # name -> (file, size)
     "mistral": ("MISTRAL.TTF", 170), "inkfree": ("Inkfree.ttf", 150),
@@ -36,10 +39,10 @@ def render_plaque(big, small, out_path):
     d.rounded_rectangle([6, 6, W - 6, H - 6], radius=36, outline=(184, 154, 94, 255), width=8)
     d.rounded_rectangle([20, 20, W - 20, H - 20], radius=27, outline=(120, 96, 58, 255), width=3)
     cream = (237, 224, 192, 255)
-    fb = _font("georgiab.ttf", 168 if len(big) <= 2 else 104)
+    fb = ImageFont.truetype(LUMINARI, 168 if len(big) <= 2 else 104)
     bb = d.textbbox((0, 0), big, font=fb)
     d.text(((W - (bb[2] - bb[0])) / 2 - bb[0], 96 if len(big) <= 2 else 120), big, font=fb, fill=cream)
-    fs = _font("georgiab.ttf", 62)
+    fs = ImageFont.truetype(LUMINARI, 62)
     sb = d.textbbox((0, 0), small, font=fs)
     d.text(((W - (sb[2] - sb[0])) / 2 - sb[0], 268), small, font=fs, fill=(206, 186, 140, 255))
     img.save(out_path)

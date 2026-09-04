@@ -117,11 +117,23 @@ already shipped is in the archive; this is the live list, in the order he asked 
 - [ ] **Knaves board selection should offer the base mod's choices** (Vagabond etc.) on the setup and
       solo board selectors.
 
-- [ ] **The Root display font.** Windlass is not installed here, so I cannot render or verify it; I have
-      been substituting Georgia Bold, which is why my captions differ from the map buttons and the
-      "Captains" title. If he identifies it and drops the .ttf in the repo, re-render every label I have
-      made: Back, Credits, the four 5-player/faction labels, both 4-Player buttons and the wipe warning.
-      BLOCKED on the font file.
+- [x] **The Root display font: it is LUMINARI.** Identified 2026-09-04 by searching the web rather
+      than eyeballing font catalogues -- a BGG thread on Root's player boards names it, and it matches
+      the rats board title letter for letter ("Lord of the Hundreds"). It SHIPS WITH macOS at
+      /System/Library/Fonts/Supplemental/Luminari.ttf, so no purchase was needed; 29 faces were tried
+      and rejected first because I was searching medieval/uncial families by eye.
+      Every label the mod renders is now set in it, via the new one-stop generator `tools/make_labels.py`,
+      and `tools/render_assets.py` uses it too.
+      NOTE there is a SECOND face on the mod-made labels ("Captains", "Landmarks", the map buttons):
+      angular small caps with a squared Pi-shaped N and a lozenge-dotted I. Still unidentified. The map
+      and tool labels inherited from the base mod still carry it, so the button row is not yet uniform.
+
+- [ ] **Box score text in Luminari.** Its 49 `<Text>` elements use TTS's default UI font. TTS can use a
+      custom font, but only by loading a .ttf from a public URL -- and Luminari is (c) Canada Type, "all
+      rights reserved". Rendering PNGs with it is ordinary font use; publishing the .ttf to our GitHub
+      would be redistributing a commercial font, so I have NOT done that. Options for the maintainer:
+      host the font somewhere he controls and accept the licence question himself, or leave the sheet
+      in the default face. BLOCKED on his decision.
 
 ## BLOCKED — need more info from the maintainer
 
