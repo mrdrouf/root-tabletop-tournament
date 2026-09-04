@@ -29,6 +29,28 @@ starts in its final container/position:
 
 ## OPEN — new batch (2026-09-04)
 
+- [x] **Woodland Alliance supporters** (DONE 2026-09-04, VERIFY). Three cards from the top of the shared
+      deck into the supporters area on spawn; nothing drawn if there is no deck.
+      Three separate faults, all mine, found in sequence:
+      (1) I started BUILDING a HandTrigger before checking -- RTT already had `spawnSupportersHand`
+          (logic.lua:2308, identical to the base mod's) and already called it. The maintainer was right
+          that nothing had been changed on the Alliance board. Reverted.
+      (2) `deck.deal(3, color, 2)` does NOT honour the hand index; cards went to an arbitrary spot.
+          Replaced with explicit placement onto the hand-2 transform -- dropping a card inside a hand
+          volume is what puts it in that hand.
+      (3) Intermittent ("sometimes it works, sometimes it bugs"): TWO races. setHandTransform is not
+          instant, so reading getHandTransform(2) too early returned the PARKED zone (all ten sit at
+          x=-75) and the cards landed there; and three takeObject calls in one frame hit the deck-busy
+          race this file already documents at the turn-order deal. Now: capture hand 2's position before
+          the move and wait until it actually changes (12 tries at 0.25s), then take one card per 0.25s,
+          with RTT_ALLY_SUP_DONE preventing a double deal.
+      OWNERSHIP: the hand follows THE PLAYER WHO PICKED, not the seat's colour. One rule at every player
+      count -- in a real game the picker IS the seat's player, since rttCoordFaction only lets you pick
+      on your own seat; solo that restriction is bypassed, which is why the maintainer could not see
+      cards in an area owned by a colour he was not sitting in.
+
+
+
 - [ ] **Riverfolk: remove the two cards that spawn on both sides of the market.** Maintainer's request,
       2026-09-04. Not yet located in the blueprint -- the Riverfolk entry is at content.lua ~182532 and
       the market cards are not distinguishable by Nickname (the surrounding entries are generic faction

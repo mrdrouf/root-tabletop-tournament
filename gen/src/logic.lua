@@ -2178,7 +2178,7 @@ function makeFaction(player,value,id,source)
   local spawnRy = (math.abs(deltaRy) > 0.01) and br.y or nil
 
   board.destruct()
-  rttPlaceFaction(id, cp.x, cp.z, flip, player.color, false, category, spawnRy)
+  rttPlaceFaction(id, cp.x, cp.z, flip, player.color, false, category, spawnRy, player.color)
 
   -- setupFaction used to configure the manual player's main hand as a side effect.
   -- Keep that manual-only behavior without giving the ranked path a new visual change.
@@ -3646,7 +3646,7 @@ function rttCoordFaction(args)
   RTT_BOARD_SEAT[clone.getGUID()] = nil
   if s.color ~= nil then RTT_CLONES[s.color] = nil end
   clone.destruct()                                     -- board gone first, then the faction spawns there
-  rttPlaceFaction(faction, bp.x, bp.z, bp.z > 0, s.color or args.color, true)
+  rttPlaceFaction(faction, bp.x, bp.z, bp.z > 0, s.color or args.color, true, nil, nil, args.color)
   Wait.frames(function() rttShowFactions() end, 10)    -- refresh remaining boards
 end
 
@@ -3717,7 +3717,7 @@ end
 -- Both ranked and manual faction selectors come through this one automation path:
 -- spawn the blueprint (including its single base VP marker), publish the faction's
 -- physical seat, run the faction extras, then MOVE that marker onto score zero.
-function rttPlaceFaction(faction, cx, cz, flip, color, isDraft, category, rotationY)
+function rttPlaceFaction(faction, cx, cz, flip, color, isDraft, category, rotationY, pickerColor)
   if not rttSpawnFaction(faction, cx, cz, flip, category, rotationY) then return false end
 
   -- Raw Lua tables do not cross object-script boundaries, so the accumulated map
@@ -3757,14 +3757,21 @@ function rttPlaceFaction(faction, cx, cz, flip, color, isDraft, category, rotati
   local vpN, vpF = RTT_VP_PLACED, faction
   Wait.time(function() rttPlaceVPRetry(vpF, vpN, 6) end, 1.2)
 
-  if faction == "Woodland Alliance" and color ~= nil then
+  -- The supporters hand belongs to THE PLAYER WHO PICKED the Alliance, not to the seat's colour.
+  -- One rule at every player count, not a solo exception: in a real game the picker IS the seat's
+  -- player (rttCoordFaction only lets you pick on your own seat), so nothing changes there. Solo that
+  -- restriction is bypassed, so the maintainer could place the Alliance on a seat whose colour is not
+  -- his -- and the hand, being owned by that colour, was invisible to him. His report: "sometimes it
+  -- looks like I cannot see the card in the supporter area, even though I'm seated there".
+  local supColor = pickerColor or color
+  if faction == "Woodland Alliance" and supColor ~= nil then
     -- Capture where hand 2 is BEFORE moving it. setHandTransform is not instant, so "has it moved yet?"
     -- is the only exact readiness test -- and until it has, the zone is still parked at x=-75, which is
     -- where the supporters were landing on the runs the maintainer saw fail.
     local before = nil
-    pcall(function() local h = Player[color].getHandTransform(2) if h then before = h.position end end)
-    spawnSupportersHand(color)
-    rttDealAllianceSupporters(color, before, 12)
+    pcall(function() local h = Player[supColor].getHandTransform(2) if h then before = h.position end end)
+    spawnSupportersHand(supColor)
+    rttDealAllianceSupporters(supColor, before, 12)
   end
   return true
 end
