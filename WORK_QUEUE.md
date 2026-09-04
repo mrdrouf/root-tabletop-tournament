@@ -27,6 +27,41 @@ starts in its final container/position:
   - map-relative pieces (cats on clearings, The Pond): take from the supply bag / spawn the object
     JSON directly AT the final world spot — never a seat-local default first.
 
+## STRUCTURAL — the pattern behind most of today's bugs (2026-09-04)
+The maintainer, after the supporters-hand saga: "this type of bug should give you some insight about
+phenomena and problems in the structure of the code." He is right. Nearly every bug fixed today is one
+of four structural faults, not an isolated mistake. Fixing these is worth more than fixing instances.
+
+1. **Placement derived from MUTABLE GLOBAL STATE instead of from arguments.**
+   `spawnSupportersHand(color)` takes only a colour and reads `Player[color].getHandTransform(1)`. So
+   its result depends on WHEN it is called. makeFaction called it before moving hand 1, so the
+   supporters hand was built from the player's PREVIOUS seat; the draft path happened to move hand 1
+   much earlier, so it worked there. The same shape caused the box score binding rows by hand-zone
+   geometry, and my own pin resolving Turns.order[1] through that geometry.
+   FIX SHAPE: pass the seat position/rotation in explicitly. A function that is given where the seat is
+   cannot be called "too early".
+
+2. **TWO parallel setup paths that must stay in sync and don't share code** (rttSetup vs
+   setupFactionBoards). Today alone they diverged on: the teardown tag list, the run-state reset
+   (RTT_FAC_TAKEN etc.), the busy-flag release, and the hand-1 ordering above. Each was found separately.
+   FIX SHAPE: one `rttNewGame()` and one `rttSpawnFactionAt()` that both paths call.
+
+3. **Non-object state is invisible to teardown.** Teardown destroys objects by tag, but a game also
+   leaves: hand-zone transforms (hand 2 stayed wherever the last Alliance put it), Globals
+   (RTT_SEAT_POS / RTT_SEAT_COLOR), and module tables (RTT_FAC_TAKEN, RTT_VP_PENDING, RTT_ALLY_SUP_DONE,
+   RTT_CAP_SPAWNED). Every one of these had to be remembered by hand, and each forgotten one was a bug.
+   FIX SHAPE: a single registry of "things a new game resets", objects and state alike.
+
+4. **Long async chains with no generation token.** ~6-10s of Wait.time/Wait.frames per setup, whose
+   callbacks can fire against a later run's state. The busy guard stops a second run STARTING, but a
+   chain already in flight is still unguarded.
+   FIX SHAPE: rttSetup bumps RTT_RUN_ID; every deferred callback returns early if its captured id is stale.
+
+- [ ] Refactor to (1)+(2)+(3): explicit-argument placement, one shared new-game/spawn path, one reset
+      registry. This is the "thorough code cleanup" item made concrete -- do it as the cleanup, not
+      separately.
+- [ ] Add the generation token (4).
+
 ## OPEN — new batch (2026-09-04)
 
 - [x] **Woodland Alliance supporters** (DONE 2026-09-04, VERIFY). Three cards from the top of the shared

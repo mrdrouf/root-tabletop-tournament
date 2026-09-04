@@ -2209,8 +2209,12 @@ function makeFaction(player,value,id,source)
   local spawnRy = (math.abs(deltaRy) > 0.01) and br.y or nil
 
   board.destruct()
-  rttPlaceFaction(id, cp.x, cp.z, flip, player.color, false, category, spawnRy, player.color)
 
+  -- Seat the player's MAIN HAND FIRST. spawnSupportersHand (inside rttPlaceFaction) derives the
+  -- supporters hand from hand 1's CURRENT position, so with the old order it was computed from the
+  -- player's PREVIOUS seat -- the maintainer: "picking the Woodland Alliance in another seat draws
+  -- three cards... to the old previous supporter area". The ranked path was never affected because
+  -- rttSeatPlayers moves hand 1 at draft start, long before any faction is picked.
   -- setupFaction used to configure the manual player's main hand as a side effect.
   -- Keep that manual-only behavior without giving the ranked path a new visual change.
   local direction = Vector(0, 4, -18)
@@ -2220,6 +2224,8 @@ function makeFaction(player,value,id,source)
     rotation = { 0, br.y, 0 },
     scale = { 16, 6, 4 }
   }, 1)
+
+  rttPlaceFaction(id, cp.x, cp.z, flip, player.color, false, category, spawnRy, player.color)
   Global.call("spawned", { character })
 
   if id == "The Winged Menace" then
@@ -4160,8 +4166,12 @@ function rttDealAllianceSupporters(color, before, tries)
   end
   if deck == nil then return end                       -- no deck: draw nothing
   RTT_ALLY_SUP_DONE[color] = true
-  local ry = h2.rotation.y
-  local rx, rz = math.cos(math.rad(ry)), -math.sin(math.rad(ry))
+  -- A hand zone's rotation.y points the way the OWNER faces; a card laid at that same y reads upside
+  -- down to them, so the card facing is the zone's y turned 180. (The spread still runs along the
+  -- zone's own right vector, which is computed from the zone's y, not the card's.)
+  local zy = h2.rotation.y
+  local ry = (zy + 180) % 360
+  local rx, rz = math.cos(math.rad(zy)), -math.sin(math.rad(zy))
   local function place(i)
     if i > 3 then return end
     local off = RTT_ALLY_SUP_SPREAD[i]
