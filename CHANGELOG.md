@@ -344,3 +344,10 @@ seen coming off the top of the deck rather than appearing on the stack.
 - **Captains are drafted before the turn-order deck** rather than after it.
 - **Corvid warriors** moved to the maintainer's positions from his "corvid" save,
   reproduced exactly.
+
+## Mole Monger spawns with the Duchy — 2026-09-04
+Recovered from the maintainer's "moles" and "moles b" saves. The Monger parks
+along the near edge of the table at one of two ABSOLUTE spots, chosen by where the
+mole player sits — the spot on their own side, which flips for the far row since
+those seats are rotated 180. It spawns in the same pass as the faction, tagged
+`RTT Faction` so a reset takes it away, and locked.

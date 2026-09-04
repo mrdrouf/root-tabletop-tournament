@@ -663,3 +663,26 @@ bugs that took several attempts — that context is easy to lose and expensive t
       the other 11 live inside the Corvid Supply bag and were not touched.
 
 ## BLOCKED — need more info from the maintainer
+
+# RTT Work Queue
+## Standing rule: work on MAIN
+## Standing rule: this file only shows OPEN work
+## Note for future sessions: the `m###` labels are HISTORY, not files
+## Golden rule (the maintainer, repeated + hardened)
+## STRUCTURAL — the pattern behind most of today's bugs (2026-09-04)
+## OPEN — reported 2026-09-04 (fourth batch)
+- [x] **Mole Monger spawns with the Duchy board.** Done 2026-09-04 from the saves "moles" (TS_Save_25,
+      Duchy in 4p seat 2) and "moles b" (TS_Save_26, 4p seat 1, plus 5p seat 2). The positions are
+      ABSOLUTE table coordinates, not seat-local: the Monger parks along the near edge at either
+      `(-26.275, 11.562, -54.530)` [LEFT] or `(32.852, 11.562, -54.521)` [RIGHT], and which one depends
+      on where the mole player sits. All five seats he specified fit one rule -- the spot on the
+      player's OWN side, which flips for the far row because those seats are rotated 180:
+        LEFT  <- (-52,-46) and (52,46)          [4p seats 2 and 4]
+        RIGHT <- (52,-46), (-52,46), (0,-46)    [4p seats 1 and 3, 5p seat 2]
+      Spawned in the same pass as the faction (like the rats' mood manager), tagged "RTT Faction" so it
+      goes out with the faction, and locked -- his own copy in the "moles" save is locked.
+      NOTE the centre FAR seat (0,46), reachable only at 6 players, is the one case he did not specify;
+      it follows (0,-46) to the RIGHT spot. The Mole Monger BUTTON still exists and still spawns one at
+      the old default corner spot, so clicking it after picking the moles gives you a second copy.
+
+## BLOCKED — need more info from the maintainer
