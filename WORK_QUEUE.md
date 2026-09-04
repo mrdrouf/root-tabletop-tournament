@@ -4,6 +4,13 @@ Single source of truth for outstanding tasks. Nothing is "done" until it's built
 the maintainer has confirmed it in TTS. Keep this file live: add every new request here the moment it lands,
 tick items only when committed, and re-open anything the maintainer reports still broken.
 
+## Standing rule: work on MAIN
+From 2026-09-04 the working branch is **main**, not rtt-live ("we should be working in the main
+branch"). main and rtt-live were fast-forwarded to the same commit; rtt-live is left pointing there so
+any sync script still aimed at it keeps working, but it is no longer where work lands. Build, commit and
+push on main; the public README download link points at main, so a build is only really shipped once
+main has it.
+
 ## Standing rule: this file only shows OPEN work
 The maintainer, 2026-09-04: "the work should always be cleaned up, and anything that is done needs to go
 in the archive so the work is always clean". Tick an item, then run `python3 tools/queue_archive.py`
