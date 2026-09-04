@@ -4184,6 +4184,7 @@ function rttDealAllianceSupporters(color, before, tries)
         -- card's own face-up sense depends on how it sat in the deck. Check and flip.
         callback_function = function(c)
           pcall(function() if c.is_face_down then c.flip() end end)
+          pcall(function() c.addTag("RTT Faction") end)
         end,
       })
     end)
@@ -4240,7 +4241,8 @@ function rttMarquiseCats(cx, cz, flip)
       if dx * dx + dz * dz < 20.0 then skip = true break end   -- ~4.5u = same clearing
     end
     if not skip then
-      pcall(function() bag.takeObject({ position = { c[1], 12.6, c[2] }, rotation = { 0, 180, 0 }, smooth = false }) end)  -- upright (standing)
+      pcall(function() bag.takeObject({ position = { c[1], 12.6, c[2] }, rotation = { 0, 180, 0 }, smooth = false,
+        callback_function = function(o) pcall(function() o.addTag("RTT Faction") end) end }) end)  -- upright (standing)
     end
   end
 end
