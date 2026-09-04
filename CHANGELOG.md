@@ -375,3 +375,16 @@ tagged RTT Faction, which the old tile never did -- it leaked one per game.
 The seam was a tone difference: the manager's parchment is warmer than the
 board's (G 199 vs 224, B 149 vs 185). A per-channel gain plus a 2px mask erosion
 brings it to within 3 per channel.
+
+## The rats board seam, properly this time - 2026-09-04
+The first fix misdiagnosed it as a parchment tone difference and applied a
+per-channel gain, which over-brightened the panel's outer sheet and made it worse.
+The real cause was a mask that missed part of the background: the manager art has
+TWO background tones, deep pink (hue ~352) at the corners and salmon (hue ~17)
+along the panel edges, and the hue test only caught the pink.
+
+Saturation separates them where hue does not - background sits at ~0.55, parchment
+at ~0.285 - so the mask is now s>0.42 and v>0.60, flood-filled from the border. The
+dark torn outline is not bright, so it survives and also blocks the fill. No colour
+gain: the outer sheet already matched the board. The bands beside the panel now
+read G112/B95 against the board's own mountains at G115/B100.
