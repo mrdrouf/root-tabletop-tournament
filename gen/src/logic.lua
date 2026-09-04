@@ -4022,7 +4022,55 @@ function rttFactionExtras(faction, cx, cz, flip, isDraft)
   -- Knaves: the Captains board + its pooled captains now spawn FROM the faction blueprint's own
   -- rules-board callback (see rttSpawnFaction), so they appear WITH the faction at the CORRECT seat.
   elseif faction == "Marquise de Cat" then rttMarquiseCats(cx, cz, flip)
+  elseif faction == "Woodland Alliance" then rttAllianceSupportersZone(cx, cz, flip)
   end
+end
+
+-- ---- Woodland Alliance: the SUPPORTERS hand zone -------------------------------------------
+-- Maintainer: "the supporter area of the Woodland Alliance is another hand area that is only visible to
+-- the player, where a card can snap and fall into place, but no, there is nothing there."
+-- He is right that it is missing, and it was never ours to lose: there is NOT ONE HandTrigger or
+-- FogOfWarTrigger anywhere in content.lua, for any faction. The printed supporters TILE spawns (guid
+-- 78a15f, board-local (-12.13,-9.40), 7.80 x 4.27) but nothing makes it a hand.
+-- So spawn a HandTrigger over that tile, owned by the Alliance player's colour, exactly the way
+-- rttCrowsHiddenZone spawns the Corvid fog box. Sized to the tile, y from the crow zone's own height.
+RTT_ALLY_SUP_LOCAL = { -12.131444, -9.399722 }     -- the supporters tile, board-local
+RTT_ALLY_SUP_SCALE = { 7.80, 6.00, 4.27 }          -- x/z match the tile; y is the zone's height
+RTT_ALLY_SUP_JSON  = [==[{"Name":"HandTrigger","Transform":{"posX":0.0,"posY":0.0,"posZ":0.0,"rotX":0.0,"rotY":0.0,"rotZ":0.0,"scaleX":1.0,"scaleY":1.0,"scaleZ":1.0},"Nickname":"Alliance Supporters","Description":"","GMNotes":"","ColorDiffuse":{"r":0.443,"g":0.231,"b":0.09,"a":0.0},"Locked":true,"Grid":false,"Snap":true,"IgnoreFoW":false,"MeasureMovement":false,"DragSelectable":true,"Autoraise":true,"Sticky":true,"Tooltip":true,"GridProjection":false,"HideWhenFaceDown":false,"Hands":false,"FogColor":"White","LuaScript":"","LuaScriptState":"","XmlUI":""}]==]
+
+function rttAllianceSupportersZone(cx, cz, flip)
+  -- the Alliance player's colour: prefer what RTT actually seated (authoritative), else the seated
+  -- player whose hand zone is nearest this board, as the crow zone does.
+  local color = nil
+  local okC, rawC = pcall(function() return Global.getVar("RTT_SEAT_COLOR") end)
+  if okC and type(rawC) == "string" and rawC ~= "" then
+    local okD, dec = pcall(function() return JSON.decode(rawC) end)
+    if okD and type(dec) == "table" then color = dec["Woodland Alliance"] end
+  end
+  if color == nil or color == "" then
+    local best = nil
+    for _, p in ipairs(Player.getPlayers()) do
+      if p.seated and p.color ~= "Grey" and p.color ~= "Black" then
+        local ht = nil
+        pcall(function() ht = p.getHandTransform().position end)
+        if ht ~= nil then
+          local d = (ht.x - cx) ^ 2 + (ht.z - cz) ^ 2
+          if best == nil or d < best then best = d; color = p.color end
+        end
+      end
+    end
+  end
+  if color == nil or color == "" then return end          -- nobody to own it: do not spawn a stray zone
+  local lx, lz = RTT_ALLY_SUP_LOCAL[1], RTT_ALLY_SUP_LOCAL[2]
+  if flip then lx, lz = -lx, -lz end                       -- far-side seat mirrors, like every other placement
+  local blob = string.gsub(RTT_ALLY_SUP_JSON, '"FogColor":"White"', '"FogColor":"' .. color .. '"')
+  spawnObjectJSON({
+    json = blob,
+    position = { cx + lx, 14.11, cz + lz },
+    rotation = { 0, flip and 180 or 0, 0 },
+    scale = RTT_ALLY_SUP_SCALE,
+    callback_function = function(o) o.setLock(true) o.addTag("RTT Faction") end
+  })
 end
 
 
