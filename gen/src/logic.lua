@@ -1729,6 +1729,7 @@ local function spawnManualFactionSelector(position, rotation, locked)
 end
 
 function setupFactionBoards(player, value, id)
+  rttBusyBegin(10)
   pcall(function() rttEnsureGizmo() end)   -- gizmo is part of every game
   local count = 4
   if id == "fivePlayerSetup" then count = 5 end
@@ -1895,6 +1896,21 @@ RTT_WIPE_BTN = {
 }
 RTT_ARM = { id = nil, token = 0 }
 
+-- BUSY GUARD. The setup chain is ~6-10 seconds of Wait.time/Wait.frames (rttSpawnDeck -> rttSlideOut ->
+-- rttFlipAll -> rttDealOrder -> rttBeginPick -> rttSeatPlayers/rttStartFactionDraft -> rttShowFactions).
+-- Clicking again during it used to start a SECOND chain whose predecessor's callbacks then fired against
+-- objects the new run had destroyed. Maintainer: "while there is the animation or it's loading clicking
+-- again should not do anything" -- so clicks are DROPPED, never queued. Cleared when the selector boards
+-- light up (rttShowFactions), with a timed fallback so a chain that dies cannot lock the buttons forever.
+RTT_BUSY = false
+RTT_BUSY_TOKEN = 0
+function rttBusyBegin(sec)
+  RTT_BUSY = true
+  RTT_BUSY_TOKEN = RTT_BUSY_TOKEN + 1
+  local t = RTT_BUSY_TOKEN
+  Wait.time(function() if RTT_BUSY_TOKEN == t then RTT_BUSY = false end end, sec or 15)
+end
+
 -- would a setup click actually destroy anything? These are exactly the tags rttSetup tears down.
 function rttWouldWipe()
   for _, t in ipairs({ "RTT Faction", "RTT Selector", "RTT Manual Selector" }) do
@@ -1919,6 +1935,7 @@ end
 function rttArmOrGo(id)
   local d = RTT_WIPE_BTN[id]
   if d == nil then return end
+  if RTT_BUSY then return end                    -- a setup is still running: swallow the click
   if RTT_ARM.id == id then                       -- SECOND click on the armed button: commit
     rttDisarm()
     if     d.fn == "rttSetup"           then rttSetup()
@@ -1971,6 +1988,7 @@ function rttEnsureGizmo()
 end
 
 function rttSetup(player, value, id)
+  rttBusyBegin(15)
   RTT_5P_MARSH = false
   -- clear BOTH selector kinds (ranked AND manual) plus any faction boards, so starting a ranked draft on
   -- top of a manual-4-player setup (or vice versa) never stacks the two -- the manual selectors are tagged
@@ -3560,6 +3578,7 @@ end
 -- button positions (slot i = RTT_DRAFT_FACTIONS[i]); a taken faction's slot just goes inactive, so
 -- a click's button index always resolves to the same faction even as others are taken (no race).
 function rttShowFactions()
+  RTT_BUSY = false                                -- setup finished: buttons live again
   for _, seat in ipairs(RTT_SEATS or {}) do
     local clone = seat.board
     if clone ~= nil then
