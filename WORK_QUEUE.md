@@ -383,7 +383,8 @@ box-score source. Recorded here for status only.
 - [x] **Easy-install folder** (ALREADY DONE -- item was stale): settled on 2026-08-29 (orphan a56d9cb) as
       **`dist/` itself** -- it holds the one self-contained .json, the .png thumbnail and HOW_TO_INSTALL.md.
       Re-open only if the maintainer wants a separately-named top-level folder instead.
-- [ ] **README: keep it brief + add a separate BUTTONS.md** (maintainer's choice 2026-09-04) --
+- [x] **README brief + separate BUTTONS.md** (DONE 2026-09-04): BUTTONS.md written from the live
+      XmlUI and verified against the built dist -- every button on the board is documented. Original: (maintainer's choice 2026-09-04) --
       short README stays, every control documented in its own reference file. Original notes: a full every-button README WAS written (orphan a56d9cb), then deliberately
       REPLACED by the current brief one (0d93c1e, 2026-09-02). So this is a standing decision, not an
       omission. Current gaps if the thorough version is wanted back: Ginso's Gizmo and the Box Score
