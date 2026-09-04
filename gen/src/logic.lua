@@ -3241,8 +3241,7 @@ function rttShowPick(stage)
 end
 
 function rttPlaceMap(mapId)
-  makeMap("", "", mapId)
-  Wait.frames(function() makeSpecialWithTag("Tools", "Battle Mat", 33.17, 1.55, 9.21, "Map Object") end, 2)
+  makeMap("", "", mapId)      -- makeMap spawns the battle mat itself now
 end
 
 function rttPlaceDeck(deckId)
@@ -4677,6 +4676,49 @@ end
 
 -- 5-player Marsh plan: no flooding; all 15 clearings active; 3 random -> town landmarks,
 -- the other 12 -> the 12 suit markers. Reuses m440's RTT_MARSH_SUIT9 / RTT_MARSH data.
+-- ---- Marsh: town landmarks must never be ADJACENT ------------------------------------------
+-- The rules forbid two town landmarks in adjacent clearings; rttMarshPlan5P used to shuffle the 15
+-- clearing positions and take the first three, with no constraint at all.
+--
+-- The mapping was the hard part and it turned out to already be in the file. RTT identifies clearings
+-- by world position, not number, so the adjacency table could not be applied -- but
+-- RTT_CLEARING_CENTRES["Marsh Map"] holds all 15 TRUE clearing centres in world coordinates (it is what
+-- rttMarquiseCats drops a cat into), and its order IS the printed clearing number: dividing each centre
+-- by root_engine's tile-local uv gives scale x 50.65 +/- 0.15 and z 46.37 +/- 0.52, whose ratio 1.0922
+-- matches the board art's aspect 1.0910. So the mapping is the identity, no fitting required.
+-- (Fitting the SUIT-MARKER positions instead never worked, and could not: those sit offset inside their
+-- clearing, and the closest two are 5.26 apart where the closest two real centres are 10.48.)
+--
+-- RTT_MARSH_CLEARING is then just each planner position matched to its nearest true centre, in the
+-- exact order rttMarshPlan5P builds them: the 9 fixed suits, then A.up, A.down, B.up, B.down, C.up,
+-- C.down. Bijective, no collisions, every match a clear winner over the runner-up.
+RTT_MARSH_CLEARING = { 3, 9, 4, 7, 14, 15, 2, 1, 5, 11, 10, 12, 13, 6, 8 }
+
+-- clearing adjacency, from root_engine/maps_data/marsh.json
+RTT_MARSH_ADJ = {
+  [1] = { 5, 10, 11 },
+  [2] = { 6, 7, 12 },
+  [3] = { 7, 8, 13 },
+  [4] = { 9, 10 },
+  [5] = { 1, 6, 15 },
+  [6] = { 2, 5 },
+  [7] = { 2, 3 },
+  [8] = { 3, 9 },
+  [9] = { 4, 8, 14 },
+  [10] = { 1, 4, 14 },
+  [11] = { 1, 14, 15 },
+  [12] = { 2, 13, 15 },
+  [13] = { 3, 12, 14 },
+  [14] = { 9, 10, 11, 13 },
+  [15] = { 5, 11, 12 },
+}
+
+function rttMarshAdjacent(a, b)
+  if a == nil or b == nil then return false end
+  for _, n in ipairs(RTT_MARSH_ADJ[a] or {}) do if n == b then return true end end
+  return false
+end
+
 function rttMarshPlan5P(objects)
   -- NO os.time re-seed (see rtt-rng-bug): seeded once at load, advance per call so fast re-clicks
   -- re-randomise instantly.
@@ -4693,13 +4735,39 @@ function rttMarshPlan5P(objects)
 
   -- 15 clearing suit positions = 9 fixed + both sides of the 3 pairs
   local clearings = {}
-  for _, p in ipairs(RTT_MARSH_SUIT9) do clearings[#clearings + 1] = { p[1], p[2], p[3], p[4] } end
-  for _, m in ipairs(RTT_MARSH) do
-    local u, d = m.up.suit, m.down.suit
-    clearings[#clearings + 1] = { u[1], u[2], u[3], u[4] }
-    clearings[#clearings + 1] = { d[1], d[2], d[3], d[4] }
+  local function add(q)
+    local n = #clearings + 1
+    clearings[n] = { q[1], q[2], q[3], q[4], cl = RTT_MARSH_CLEARING[n] }
   end
+  for _, p in ipairs(RTT_MARSH_SUIT9) do add(p) end
+  for _, m in ipairs(RTT_MARSH) do add(m.up.suit) add(m.down.suit) end
   rttShuffleList(clearings)
+
+  -- Pull three PAIRWISE NON-ADJACENT clearings to the front; the towns take positions 1-3 below and
+  -- the remaining 12 take the suit markers, so reordering here is all that is needed. Greedy over the
+  -- shuffled order, which is why the choice stays random; re-shuffles if a pass somehow cannot find
+  -- three (it never should -- max degree is 4 of 15 -- but the fallback keeps the map placeable).
+  local picked = nil
+  for _ = 1, 20 do
+    local sel = {}
+    for i = 1, #clearings do
+      local ok = true
+      for _, j in ipairs(sel) do
+        if rttMarshAdjacent(clearings[i].cl, clearings[j].cl) then ok = false break end
+      end
+      if ok then sel[#sel + 1] = i end
+      if #sel == 3 then break end
+    end
+    if #sel == 3 then picked = sel break end
+    rttShuffleList(clearings)
+  end
+  if picked ~= nil then
+    for k = 1, 3 do
+      local i = picked[k]
+      clearings[k], clearings[i] = clearings[i], clearings[k]
+      for kk = k + 1, 3 do if picked[kk] == k then picked[kk] = i end end
+    end
+  end
 
   -- first 3 -> town landmarks; the rest -> suits
   local towns = { "Rabbit-Town", "Foxburrow", "Mousehold" }
@@ -4787,6 +4855,11 @@ function makeMap(player,value,id)
   if id == "Marsh Map" then Wait.frames(function() rttSpawnMarshNumbers() end, 3) end
   removeMapItems()
   Wait.time(function() pcall(function() rttPlaceUnplacedVPs() end) end, 2.0)  -- markers that had no track yet
+  -- The battle mat belongs to the map, so it spawns HERE, with every map placement -- the map BUTTONS
+  -- call makeMap directly and so never got one; only the draft's rttPlaceMap did. Tagged "Map Object",
+  -- so removeMapItems above clears the previous one and there is never a second. Maintainer 2026-09-04:
+  -- "spawn automatically when any map is selected... remove the battle map option button".
+  Wait.frames(function() makeSpecialWithTag("Tools", "Battle Mat", 33.17, 1.55, 9.21, "Map Object") end, 2)
   if id == "The Wastelands Map" or id == "The Deep Woods Map" then
     makeMapTool("The Law of Slug")
   end
