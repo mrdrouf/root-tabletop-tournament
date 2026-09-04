@@ -103,7 +103,12 @@ starts in its final container/position:
       new board onSave so the custom supply/track config still persists. NUMPAD 0/1 now work with
       nothing on the table.
 
-- [ ] **Re-add two removed option objects: Koffin Keeper and Mole Monger.** Both still exist in the
+- [x] **Koffin Keeper and Mole Monger re-added** (DONE 2026-09-04, VERIFY). Both objects were still in
+      EVERYTHING['Tools']; only their buttons had been dropped. Their art URLs were already in the
+      board's own asset table, so they just needed registering as CustomUIAssets. Added on a THIRD tools
+      row at y=-74 (x=-95, -57), with the squeeze the maintainer originally asked for: tool buttons
+      17 -> 14 tall, rows lifted -46.5/-69.5 -> -38/-56 and the decks row -15 -> -12, which clears the
+      info bar at y=-85. Both use makeTool like the other tool buttons. Original note: Both still exist in the
       DATA (content.lua has the Koffin Keeper art URL and a `toggleSpecial` branch at logic.lua:2396;
       Mole Monger appears once in each) but neither has a BUTTON in save.json any more -- the buttons
       were dropped, not the objects. Add them on a NEW THIRD LINE below the existing two option rows.
