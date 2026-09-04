@@ -48,6 +48,7 @@ UNTAGGED_SPAWN_OK = {
     "rttDealOrderCards",            # deals from the order deck, whose GUID rttDealOrder puts in RTT_SPAWNED
     "spawnDraftFaction",            # base-mod leftovers; candidates for removal in the cleanup
     "spawnTournamentDraftFaction",
+    "rttSpawnHootDraft",           # a reference aid like the other tools: survives a new game
     "rttRemoveFrogsFromDeck",       # takes frog cards OUT of the deck and destructs them on arrival
 }
 
