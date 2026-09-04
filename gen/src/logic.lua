@@ -4731,6 +4731,15 @@ end
 -- RTT_MARSH_CLEARING is then just each planner position matched to its nearest true centre, in the
 -- exact order rttMarshPlan5P builds them: the 9 fixed suits, then A.up, A.down, B.up, B.down, C.up,
 -- C.down. Bijective, no collisions, every match a clear winner over the runner-up.
+-- Which clearing-marker mesh is which suit, read off the marker textures themselves (fox face on red,
+-- rabbit ears on yellow, mouse on orange). Used to place a marker on a clearing of its own suit.
+RTT_SUIT_TEX = {
+  fox    = "BF0F13D634B3B535D470396151B8A2F456507526",
+  rabbit = "195F0F3DFD439596DE7A5D941E93DE07BF820D11",
+  mouse  = "AF3D10F25ABE87305AF3F9A77B4C04B7761FBDDA",
+}
+RTT_SUIT_TOWN = { fox = "Foxburrow", rabbit = "Rabbit-Town", mouse = "Mousehold" }
+
 RTT_MARSH_CLEARING = { 3, 9, 4, 7, 14, 15, 2, 1, 5, 11, 10, 12, 13, 6, 8 }
 
 -- clearing adjacency, from root_engine/maps_data/marsh.json
@@ -4772,7 +4781,17 @@ function rttMarshPlan5P(objects)
     end
   end
 
-  -- 15 clearing suit positions = 9 fixed + both sides of the 3 pairs
+  -- SUIT-DRIVEN LAYOUT (the maintainer's rule, 2026-09-04). The Marsh has 15 clearings, FIVE of each
+  -- suit, and the box has 12 clearing markers, FOUR of each -- because exactly one clearing per suit
+  -- becomes that suit's TOWN. So the suits are drafted first and the towns are drawn from them:
+  --   1. shuffle the 15 clearings and deal them 5 fox / 5 rabbit / 5 mouse;
+  --   2. for each suit in a random order, take one of ITS five as that suit's town
+  --      (Foxburrow on a fox clearing, Rabbit-Town on a rabbit one, Mousehold on a mouse one);
+  --   3. the only constraint: a town may not be adjacent to a town already chosen;
+  --   4. the remaining 12 clearings keep their drafted suit and take a marker OF THAT SUIT -- which
+  --      comes out to exactly the 4 fox / 4 rabbit / 4 mouse markers the map actually has.
+  -- The previous version picked three arbitrary clearings as towns and then dropped the 12 markers on
+  -- whatever was left, so a town could sit on a clearing of the wrong suit.
   local clearings = {}
   local function add(q)
     local n = #clearings + 1
@@ -4780,52 +4799,84 @@ function rttMarshPlan5P(objects)
   end
   for _, p in ipairs(RTT_MARSH_SUIT9) do add(p) end
   for _, m in ipairs(RTT_MARSH) do add(m.up.suit) add(m.down.suit) end
-  rttShuffleList(clearings)
 
-  -- Pull three PAIRWISE NON-ADJACENT clearings to the front; the towns take positions 1-3 below and
-  -- the remaining 12 take the suit markers, so reordering here is all that is needed. Greedy over the
-  -- shuffled order, which is why the choice stays random; re-shuffles if a pass somehow cannot find
-  -- three (it never should -- max degree is 4 of 15 -- but the fallback keeps the map placeable).
-  local picked = nil
-  for _ = 1, 20 do
-    local sel = {}
-    for i = 1, #clearings do
-      local ok = true
-      for _, j in ipairs(sel) do
-        if rttMarshAdjacent(clearings[i].cl, clearings[j].cl) then ok = false break end
-      end
-      if ok then sel[#sel + 1] = i end
-      if #sel == 3 then break end
-    end
-    if #sel == 3 then picked = sel break end
+  -- group the 12 markers by suit, read from their mesh texture
+  local bySuit = { fox = {}, rabbit = {}, mouse = {} }
+  for _, idx in ipairs(suitIx) do
+    local j = objects[idx].json
+    if     string.find(j, RTT_SUIT_TEX.fox,    1, true) then table.insert(bySuit.fox, idx)
+    elseif string.find(j, RTT_SUIT_TEX.rabbit, 1, true) then table.insert(bySuit.rabbit, idx)
+    elseif string.find(j, RTT_SUIT_TEX.mouse,  1, true) then table.insert(bySuit.mouse, idx) end
+  end
+
+  local suitOf, towns, ok = {}, {}, false
+  for _ = 1, 60 do
     rttShuffleList(clearings)
-  end
-  if picked ~= nil then
-    for k = 1, 3 do
-      local i = picked[k]
-      clearings[k], clearings[i] = clearings[i], clearings[k]
-      for kk = k + 1, 3 do if picked[kk] == k then picked[kk] = i end end
+    suitOf = {}
+    for i = 1, 15 do                                  -- 1..5 fox, 6..10 rabbit, 11..15 mouse
+      suitOf[i] = (i <= 5) and "fox" or ((i <= 10) and "rabbit" or "mouse")
+    end
+    -- EXACTLY UNIFORM over the valid town triples. Picking one suit at a time and filtering as you go
+    -- is biased -- an early pick changes what is still legal for the later suits. There are only
+    -- 5 x 5 x 5 = 125 candidate triples, so enumerate the legal ones and draw one at random; that is
+    -- uniform by construction, and the suit draft above is already a fair shuffle.
+    local fox, rab, mou = {}, {}, {}
+    for i = 1, 15 do
+      if     suitOf[i] == "fox"    then fox[#fox + 1] = i
+      elseif suitOf[i] == "rabbit" then rab[#rab + 1] = i
+      else                              mou[#mou + 1] = i end
+    end
+    local legal = {}
+    for _, f in ipairs(fox) do
+      for _, r in ipairs(rab) do
+        if not rttMarshAdjacent(clearings[f].cl, clearings[r].cl) then
+          for _, m in ipairs(mou) do
+            if not rttMarshAdjacent(clearings[f].cl, clearings[m].cl)
+               and not rttMarshAdjacent(clearings[r].cl, clearings[m].cl) then
+              legal[#legal + 1] = { fox = f, rabbit = r, mouse = m }
+            end
+          end
+        end
+      end
+    end
+    if #legal > 0 then
+      towns = legal[math.random(#legal)]
+      ok = true
+      break
     end
   end
 
-  -- first 3 -> town landmarks; the rest -> suits
-  local towns = { "Rabbit-Town", "Foxburrow", "Mousehold" }
-  rttShuffleList(towns)
   RTT_MARSH_LANDMARKS = {}
   RTT_MARSH_FLOODED = {}    -- the 3 "no-number" clearings (m460 drops their number tokens)
   RTT_MARSH_EXCLUDED = {}   -- same 3 clearing centres, for m460's rank-walk skip logic
-  for i = 1, 3 do
-    local c = clearings[i]
-    RTT_MARSH_LANDMARKS[i] = { x = c[1], z = c[3], name = towns[i], rotY = c[4] }
-    RTT_MARSH_FLOODED[i] = { c[1], c[3] }
-    RTT_MARSH_EXCLUDED[i] = { c[1], c[3] }
+  local isTown = {}
+  if ok then
+    local n = 0
+    for suit, i in pairs(towns) do
+      n = n + 1
+      isTown[i] = true
+      local c = clearings[i]
+      RTT_MARSH_LANDMARKS[n] = { x = c[1], z = c[3], name = RTT_SUIT_TOWN[suit], rotY = c[4] }
+      RTT_MARSH_FLOODED[n]  = { c[1], c[3] }
+      RTT_MARSH_EXCLUDED[n] = { c[1], c[3] }
+    end
   end
 
   local ov = {}
-  -- 12 suit markers onto clearings 4..15
-  for i, idx in ipairs(suitIx) do
-    local c = clearings[3 + i]
-    if c ~= nil then ov[idx] = { world = { c[1], c[2], c[3] }, rot = { 0, c[4], 0 } } end
+  -- each of the 12 markers onto a clearing OF ITS OWN SUIT (the town clearing of that suit is skipped,
+  -- which is exactly why 5 clearings per suit need only 4 markers)
+  local nextOf = { fox = 1, rabbit = 1, mouse = 1 }
+  for i = 1, 15 do
+    if not isTown[i] then
+      local suit = suitOf[i]
+      local list = bySuit[suit]
+      local idx = list and list[nextOf[suit]]
+      if idx ~= nil then
+        nextOf[suit] = nextOf[suit] + 1
+        local c = clearings[i]
+        ov[idx] = { world = { c[1], c[2], c[3] }, rot = { 0, c[4], 0 } }
+      end
+    end
   end
   -- no flooding: send the 3 flood tiles below the table
   for _, idx in ipairs(floodIx) do

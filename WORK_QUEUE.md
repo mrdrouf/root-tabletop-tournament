@@ -103,19 +103,25 @@ of four structural faults, not an isolated mistake. Fixing these is worth more t
 
 ## OPEN — new batch (2026-09-03, from in-TTS testing)
 
-- [x] **Marsh landmarks are never ADJACENT** (DONE 2026-09-04, VERIFY). rttMarshPlan5P shuffled the 15
-      clearing positions and took the first three, with no constraint at all.
-      THE MAPPING WAS ALREADY IN THE FILE. RTT identifies clearings by world position, not number, so the
-      adjacency table could not be applied -- but RTT_CLEARING_CENTRES["Marsh Map"] holds all 15 TRUE
-      centres in world coords (what rttMarquiseCats drops a cat into, as the maintainer pointed out), and
-      ITS ORDER IS THE PRINTED CLEARING NUMBER: dividing each centre by root_engine's uv gives scale
-      x 50.65 +/- 0.15 and z 46.37 +/- 0.52, ratio 1.0922 vs the board art's aspect 1.0910. Identity, no fit.
-      I had wasted three fitting attempts on the SUIT-MARKER positions, which cannot work: they sit
-      offset inside their clearing, closest pair 5.26 where the closest real centres are 10.48.
-      RTT_MARSH_CLEARING maps each planner position to its clearing by nearest centre (bijective, no
-      collisions); RTT_MARSH_ADJ is root_engine's adjacency; the planner pulls three pairwise
-      non-adjacent clearings to the front, re-shuffling if a pass fails.
-      PROVEN: 200,000 simulated draws -> 0 adjacent pairs, 0 failures, all 15 clearings reachable.
+- [x] **Marsh: suit-driven towns, never adjacent, uniform** (DONE 2026-09-04, VERIFY). The maintainer's
+      rule: the Marsh has 15 clearings, FIVE of each suit, and the box has 12 markers, FOUR of each,
+      because exactly one clearing per suit becomes that suit's TOWN. So: shuffle the 15 clearings and
+      deal 5 fox / 5 rabbit / 5 mouse; take one clearing of each suit as its town (Foxburrow on a fox
+      clearing, Rabbit-Town on a rabbit one, Mousehold on a mouse one); the only constraint is that no
+      two towns are adjacent; the other 12 keep their drafted suit and take a marker OF THAT SUIT --
+      which lands exactly on the 4/4/4 the map has.
+      My first version was WRONG in a way the maintainer spotted: it chose three arbitrary clearings as
+      towns and dropped the 12 markers on whatever was left, so a town could sit on a clearing of the
+      wrong suit and the suits were not 5/5/5.
+      Marker suits are read from their mesh textures (RTT_SUIT_TEX) -- identified by downloading the
+      three textures and looking at them: fox face on red, rabbit ears on yellow, mouse on orange.
+      The town draw is EXACTLY UNIFORM: only 5x5x5 = 125 candidate triples, so the legal ones are
+      enumerated and one is drawn at random, rather than picking suit-by-suit (which biases, since an
+      early pick changes what is legal later).
+      PROVEN over 200,000 simulated setups: 0 adjacent towns, 0 towns on a wrong-suit clearing,
+      leftovers always 4/4/4, zero reshuffles needed. (Per-clearing town frequency spreads 32k-46k
+      around 40k -- that is inherent to uniformity over valid CONFIGURATIONS: a clearing with fewer
+      neighbours belongs to more legal triples. Rejection sampling gives the identical distribution.)
 
 - [x] **Battle mat on every map; its button removed** (DONE 2026-09-04, VERIFY). It only ever spawned
       from the draft's rttPlaceMap, so the map BUTTONS (which call makeMap directly) never got one.
