@@ -28,10 +28,10 @@ CustomUIAssets, and any "Root Box Score" LuaScript), so table state and every Lu
 gizmo config, the box score's recorded game -- survive untouched. Originals are backed up outside the
 Saves folder, last two sets kept.
 
-SCOPE: the mod file, the autosaves, and anything touched in the last 7 days. It does NOT rewrite old
-named saves -- several of those are the position references the mod's baked coordinates were read out
-of, and there is no reason to touch them. `--all` covers everything if it is ever wanted. The first
-version updated all 27 and the maintainer rightly asked why.
+SCOPE: `Root_Tabletop_Tournament.json` ONLY. The maintainer said so plainly after a first pass
+rewrote 26 files and a second still swept the autosaves. His saves are his. `--all` exists for a
+sweep he explicitly asks for; it is never the default. NOTE the consequence, which is his to manage,
+not something to route around: resuming from an autosave still restores the script stored in it.
 
 ## Standing rule: this file only shows OPEN work
 The maintainer, 2026-09-04: "the work should always be cleaned up, and anything that is done needs to go

@@ -14,11 +14,10 @@ is left exactly as it was:
     board bab7e1        LuaScript, XmlUI, CustomUIAssets
     "Root Box Score"    LuaScript
 
-By DEFAULT it only touches saves you might actually open: the mod file itself, the autosaves, and
-anything modified in the last RECENT_DAYS days. The maintainer asked why 26 saves were being
-rewritten -- the honest answer was that "your saves" had been read as the whole folder. Old named
-saves are records (several are the position references the mod's baked coordinates came from) and
-there is no reason to rewrite them; --all is there if you ever want to.
+SCOPE: the base RTT save ONLY -- Root_Tabletop_Tournament.json. Nothing else, by instruction
+(2026-09-05, after a first pass rewrote 26 files and a second still covered the autosaves). Autosaves
+and named saves are the maintainer's, not this script's. --all is kept for the rare case where he
+asks for a sweep, and it is never the default.
 
 Run from the repo root, after a build:  python3 tools/update_saves.py [--dry-run] [--all]
 """
@@ -30,7 +29,7 @@ SAVES = os.path.expanduser("~/Library/Tabletop Simulator/Saves")
 # NOT inside Saves/: TTS scans that folder, and it must not find our copies
 BACKUPS = os.path.expanduser("~/Library/Tabletop Simulator/RTT_save_backups")
 KEEP_SETS = 2
-RECENT_DAYS = 7          # a save older than this is an archive, not something you are about to open
+BASE_SAVE = "Root_Tabletop_Tournament.json"   # the only save this touches by default
 BOARD = "bab7e1"
 BOXSCORE = "Root Box Score"
 
@@ -90,11 +89,8 @@ def prune_backups():
 
 
 def in_scope(path, every):
-    """The mod file and the autosaves always; anything else only if it is recent, or --all."""
-    name = os.path.basename(path)
-    if every or name == "Root_Tabletop_Tournament.json" or name.startswith("TS_AutoSave"):
-        return True
-    return (time.time() - os.path.getmtime(path)) < RECENT_DAYS * 86400
+    """The base RTT save only, unless --all is passed."""
+    return every or os.path.basename(path) == BASE_SAVE
 
 
 def main():
@@ -140,7 +136,7 @@ def main():
 
     print("\n%s %d save(s); %d already current%s"
           % ("would update" if dry else "updated", touched, skipped,
-             "" if every else "  (mod file + autosaves + last %d days; --all for the rest)" % RECENT_DAYS))
+             "" if every else "  (%s only; --all for the rest)" % BASE_SAVE))
     if touched and not dry:
         print("backup of the originals: %s" % bdir)
         prune_backups()
