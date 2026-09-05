@@ -594,9 +594,10 @@ def t_mountain_deals_a_legal_board(src):
     One board in four takes the Lost City instead (maintainer, 2026-09-05). That does NOT leave the
     centre unsuited: the Lost City counts as all three suits.
 
-    What this replaced drew one of four landmarks at random and stood it on eleven FIXED markers that
-    are 4 fox / 4 rabbit / 3 mouse, so the board was legal only when Mousehold came up. Nothing was
-    dealt at all.
+    What this replaced drew one of four landmarks at random. The eleven markers were already being
+    shuffled by shuffleMaps, but shuffling only permutes positions -- the eleven are a fixed multiset
+    of 4 fox / 4 rabbit / 3 mouse, so the missing suit was ALWAYS mouse and only Mousehold was legal.
+    Dealing swaps which suit stands in each slot, so the centre's suit can vary at all.
     """
     rt = fresh(src)
     towns, lost, n = set(), 0, 400

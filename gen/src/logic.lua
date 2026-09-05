@@ -5357,9 +5357,14 @@ end
 -- suit ... fox -> Foxburrow, rabbit -> Rabbittown, mouse -> Mousehold").
 --
 -- What this used to do was pick one of four landmarks uniformly at random and stand it in the
--- centre, on top of eleven FIXED markers that are 4 fox / 4 rabbit / 3 mouse. So the board came out
--- 4/4/4 only when Mousehold happened to be drawn -- one game in four -- and Lost City, which is not
--- a town and sets no suit, left the centre unsuited. Nothing was dealt at all.
+-- centre. The eleven markers WERE already being shuffled -- shuffleMaps runs for every map but Marsh
+-- -- but shuffling only permutes their positions, and the eleven are a fixed multiset of
+-- 4 fox / 4 rabbit / 3 mouse. So the suit missing from the board was ALWAYS mouse, the centre could
+-- only ever legally be Mousehold, and the other three draws gave 5/4/3, 4/5/3, or 4/4/3 with an
+-- unsuited centre. Legal one game in four.
+--
+-- Dealing here does something shuffling cannot: it swaps WHICH suit's marker stands in each slot, so
+-- the eleven are no longer locked to 4/4/3 and the centre's suit genuinely varies.
 --
 -- Now: twelve suits (4/4/4) are shuffled across the eleven marker slots and the centre. Each slot
 -- spawns the marker of ITS dealt suit at its own position and facing, and the centre's dealt suit
