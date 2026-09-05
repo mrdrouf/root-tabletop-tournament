@@ -4894,25 +4894,6 @@ end
 -- any clone read the main board's current map by GUID.
 function rttGetCurrentMap() return RTT_CURRENT_MAP end
 
--- The frog enclave calls this when it lands on a suit marker, so it can turn to face the middle of
--- the clearing it is in. Strings both ways: this codebase has already been bitten by raw Lua tables
--- not crossing object-script boundaries. "x,z" in, "x,z" out, "" when no map is up.
-function rttNearestClearingCentre(arg)
-  if type(arg) ~= "string" then return "" end
-  local sx, sz = arg:match("^(-?[%d%.]+),(-?[%d%.]+)$")
-  local x, z = tonumber(sx), tonumber(sz)
-  if x == nil or z == nil then return "" end
-  local centres = RTT_CURRENT_MAP and RTT_CLEARING_CENTRES[RTT_CURRENT_MAP]
-  if centres == nil then return "" end
-  local best, bestd = nil, nil
-  for _, c in ipairs(centres) do
-    local dx, dz = c[1] - x, c[2] - z
-    local d = dx * dx + dz * dz
-    if bestd == nil or d < bestd then best, bestd = c, d end
-  end
-  if best == nil then return "" end
-  return tostring(best[1]) .. "," .. tostring(best[2])
-end
 function rttGetMarshExcluded() return RTT_MARSH_EXCLUDED end
 function rttGet5pMarsh() return RTT_5P_MARSH end
 

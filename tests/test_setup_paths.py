@@ -277,8 +277,9 @@ def t_enclave_targets_the_suit_marker(src):
     """A dropped enclave must aim at the suit marker's symbol circle, not the marker's origin.
 
     The target is the LOBE centre, model-local z 0.3599 -- not the suit glyph at 0.4447, which sits
-    off-centre in the lobe and would miss by 0.11 world units. The token is also turned to face the
-    clearing's middle, which it gets from the board's rttNearestClearingCentre.
+    off-centre in the lobe and would miss by 0.11 world units. It also lands STRAIGHT: rotY 180, which
+    is how all twelve spawn with the faction (179.942..179.966 in the blueprint). An earlier version
+    computed a facing toward the clearing centre and that is what read as tilted.
     """
     rt = fresh(src)
     d = rt.eval('EVERYTHING["Standard"]["Lilypad Diaspora"]["data"]')
@@ -291,8 +292,8 @@ def t_enclave_targets_the_suit_marker(src):
         assert "function onDrop" in ls, "an enclave has no onDrop handler"
         assert 'getObjectsWithTag("Clearing Marker")' in ls, "an enclave does not look for suit markers"
         assert "z = 0.3599" in ls, "an enclave is not aimed at the lobe centre"
-        assert "FROG_FACING" in ls, "an enclave lost its facing"
-        assert "rttNearestClearingCentre" in ls, "an enclave cannot find the clearing centre"
+        assert "STRAIGHT_ROTY = 180" in ls, "an enclave does not land straight"
+        assert "atan" not in ls, "an enclave is still computing a facing angle"
         got += 1
     assert got == 12, "expected 12 scripted enclaves, found %d" % got
 
@@ -317,22 +318,6 @@ def t_enclaves_do_not_snap(src):
     assert set(flags) == {(False, False)}, "some enclaves still snap: %s" % sorted(set(flags))
 
 
-def t_nearest_clearing_centre_helper(src):
-    """The board answers the enclave's "which clearing am I in?" with strings, both ways.
-
-    Raw Lua tables do not reliably cross object-script boundaries in this mod -- there is a comment
-    about exactly that on RTT_SEAT_POS -- so this is "x,z" in and "x,z" out, and "" for every
-    unanswerable case rather than a nil that would blow up at the call site.
-    """
-    rt = fresh(src)
-    rt.execute('RTT_CURRENT_MAP = "Summer Map"')
-    assert rt.eval('rttNearestClearingCentre("18.0,12.0")') == "18.64,12.35"
-    assert rt.eval('rttNearestClearingCentre("-7.0,-18.0")') == "-7.15,-17.75"
-    assert rt.eval('rttNearestClearingCentre("nonsense")') == "", "junk input must not throw"
-    rt.execute("RTT_CURRENT_MAP = nil")
-    assert rt.eval('rttNearestClearingCentre("0,0")') == "", "no map up must answer empty"
-
-
 CASES = [
     ("manual path drives the turn system",   t_manual_turn_order),
     ("manual path spawns 4 / 5 boards",      t_boards_spawn),
@@ -350,7 +335,6 @@ CASES = [
     ("enclaves match the suit circle",        t_frog_enclaves_match_the_suit_circle),
     ("enclaves sit where they are dropped",   t_enclaves_do_not_snap),
     ("enclave aims at the suit circle",       t_enclave_targets_the_suit_marker),
-    ("board answers nearest clearing",        t_nearest_clearing_centre_helper),
 ]
 
 
