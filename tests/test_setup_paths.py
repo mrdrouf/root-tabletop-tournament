@@ -277,9 +277,11 @@ def t_enclave_targets_the_suit_marker(src):
     """A dropped enclave must aim at the suit marker's symbol circle, not the marker's origin.
 
     The target is the LOBE centre, model-local z 0.3599 -- not the suit glyph at 0.4447, which sits
-    off-centre in the lobe and would miss by 0.11 world units. It also lands STRAIGHT: rotY 180, which
-    is how all twelve spawn with the faction (179.942..179.966 in the blueprint). An earlier version
-    computed a facing toward the clearing centre and that is what read as tilted.
+    off-centre in the lobe and would miss by 0.11 world units. Facing comes from the marker's OWN
+    rotation, which already points at its clearing centre: fitted over all 68 well-matched markers on
+    the six maps the offset is +0.03 deg, concentration 0.9944. Copying it is exact per clearing;
+    deriving the bearing from RTT_CLEARING_CENTRES instead carried that table's ~1u error, which is
+    what read as tilted.
     """
     rt = fresh(src)
     d = rt.eval('EVERYTHING["Standard"]["Lilypad Diaspora"]["data"]')
@@ -292,8 +294,9 @@ def t_enclave_targets_the_suit_marker(src):
         assert "function onDrop" in ls, "an enclave has no onDrop handler"
         assert 'getObjectsWithTag("Clearing Marker")' in ls, "an enclave does not look for suit markers"
         assert "z = 0.3599" in ls, "an enclave is not aimed at the lobe centre"
-        assert "STRAIGHT_ROTY = 180" in ls, "an enclave does not land straight"
-        assert "atan" not in ls, "an enclave is still computing a facing angle"
+        assert "FROG_FACING" in ls, "an enclave has no facing"
+        assert "bestMarker.getRotation()" in ls, "an enclave is not taking the marker's rotation"
+        assert "atan" not in ls, "an enclave computes a bearing again instead of copying"
         got += 1
     assert got == 12, "expected 12 scripted enclaves, found %d" % got
 
