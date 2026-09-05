@@ -5834,12 +5834,11 @@ end
 -- called "<something> Supply", and the piece whose name ends in "Warrior". Reading them beats a
 -- hand-kept table, which would have to list every faction's naming quirk ("Hundreds Supply" for the
 -- rats, "Lizard Cult Warrior" for the lizards) and would rot the moment a faction was added.
-function rttFactionPieceNames(faction)
+-- supply + warrior for one blueprint entry
+local function rttPieceNamesFromDef(def)
   local supply, warrior, firstSupply = nil, nil, nil
-  if faction == nil then return nil, nil end
   pcall(function()
-    for _, cat in pairs(EVERYTHING) do
-      local def = cat[faction]
+    do
       if def ~= nil and def['data'] ~= nil then
         -- The warrior first, so the right bag can be recognised by what is inside it. Look at every
         -- Nickname in the blueprint, not just the top-level pieces: the Alliance keeps ALL of its
@@ -5870,6 +5869,36 @@ function rttFactionPieceNames(faction)
   return supply or firstSupply, warrior
 end
 
+function rttFactionPieceNames(faction)
+  if faction == nil then return nil, nil end
+  for _, cat in pairs(EVERYTHING) do
+    if cat[faction] ~= nil then return rttPieceNamesFromDef(cat[faction]) end
+  end
+  return nil, nil
+end
+
+-- warrior name -> its own supply bag, for EVERY faction in the mod. Hovering an enemy warrior sends
+-- it home to ITS supply, which is the original gizmo's behaviour and the maintainer wants it kept --
+-- so the piece decides the destination, not whoever pressed the key. Built once and cached: the
+-- scan reads every blueprint's JSON.
+RTT_WARRIOR_SUPPLY = nil
+function rttWarriorSupplyMap()
+  if RTT_WARRIOR_SUPPLY ~= nil then return RTT_WARRIOR_SUPPLY end
+  local m = {}
+  pcall(function()
+    for _, cat in pairs(EVERYTHING) do
+      for _, def in pairs(cat) do
+        if type(def) == "table" and def['data'] ~= nil then
+          local sup, war = rttPieceNamesFromDef(def)
+          if sup ~= nil and war ~= nil and m[war] == nil then m[war] = sup end
+        end
+      end
+    end
+  end)
+  RTT_WARRIOR_SUPPLY = m
+  return m
+end
+
 local function rttFindByName(name)
   if name == nil or name == "" then return nil end
   for _, o in ipairs(getAllObjects()) do
@@ -5880,34 +5909,33 @@ end
 
 -- The whole gizmo.
 function rttGizmoWarrior(color)
+  local hovered = nil
+  pcall(function() hovered = Player[color].getHoverObject() end)
+
+  -- ANY warrior goes home to ITS OWN supply -- yours or an opponent's. That is the original gizmo's
+  -- behaviour and the maintainer kept it: the piece decides where it belongs, not whoever pressed
+  -- the key. Only the other half, pulling one out, depends on who you are.
+  local hoveredName = hovered ~= nil and (hovered.getName() or "") or ""
+  if hoveredName:match("Warrior$") then
+    local bag = rttFindByName(rttWarriorSupplyMap()[hoveredName])
+    if bag ~= nil then pcall(function() bag.putObject(hovered) end) end
+    return
+  end
+
+  -- Hovering nothing (or something that is not a warrior): one comes out of YOUR supply. Which is
+  -- yours is resolved from where you are seated.
   local faction = rttSeatFaction(color)
   if faction == nil then
     broadcastToColor("Gizmo: no faction is seated in your colour yet.", color, { r = 1, g = 0.6, b = 0.2 })
     return
   end
-  local supplyName, warriorName = rttFactionPieceNames(faction)
+  local supplyName = rttFactionPieceNames(faction)
   local bag = rttFindByName(supplyName)
   if bag == nil then
     broadcastToColor("Gizmo: no " .. tostring(supplyName) .. " on the table.", color, { r = 1, g = 0.6, b = 0.2 })
     return
   end
 
-  local hovered = nil
-  pcall(function() hovered = Player[color].getHoverObject() end)
-
-  -- hovering one of YOUR warriors: put it back
-  if hovered ~= nil and warriorName ~= nil and (hovered.getName() or "") == warriorName then
-    pcall(function() bag.putObject(hovered) end)
-    return
-  end
-
-  -- Hovering SOMEBODY ELSE'S warrior does nothing at all. The instruction is "when the mouse is on
-  -- one of the warriors of your faction it goes back", and "if the mouse is not hovering over any
-  -- warrior it pulls one out" -- an enemy warrior is neither, and quietly spawning one of yours
-  -- while you point at an opponent's piece would be a surprise.
-  if hovered ~= nil and (hovered.getName() or ""):match("Warrior$") then return end
-
-  -- hovering nothing, or something that is not a warrior: take one out, at your pointer
   local n = 0
   pcall(function() n = bag.getQuantity() end)
   if n <= 0 then return end                       -- empty supply: nothing happens, by instruction
