@@ -82,19 +82,19 @@ def put_line(im, text, f, cx, top, squeeze):
     im.alpha_composite(tmp, (int(round(cx - tmp.width / 2)), int(round(top - RING - 2))))
 
 
-def text_block(im, lines, box_w, cx, band_top, band_bot, start_pt, drop=0, bottom=None):
+def text_block(im, lines, box_w, cx, band_top, band_bot, start_pt, drop=0, bottom=None, floor=SQUEEZE_FLOOR):
     """Draw the caption. `bottom` bottom-aligns the block's real ink to that margin above the canvas
     foot instead of centring it in [band_top, band_bot] -- measured off the rendered pixels, because
     the nominal line box carries slack that varies with the glyphs in the name."""
     if bottom is not None:
         layer = Image.new("RGBA", im.size, (0, 0, 0, 0))
-        sz = text_block(layer, lines, box_w, cx, band_top, band_bot, start_pt, drop)
+        sz = text_block(layer, lines, box_w, cx, band_top, band_bot, start_pt, drop, floor=floor)
         bb = layer.getchannel("A").getbbox()
         if bb:
             ink = layer.crop(bb)
             im.alpha_composite(ink, (bb[0], im.size[1] - bottom - ink.height))
         return sz
-    f, sq = fit(lines, box_w, start_pt)
+    f, sq = fit(lines, box_w, start_pt, floor)
     lh = f.getbbox("Ag")[3] - f.getbbox("Ag")[1]
     gap = int(f.size * 0.24)
     total = lh * len(lines) + gap * (len(lines) - 1)
@@ -165,7 +165,7 @@ def art_from_label(fname):
 
 
 # ------------------------------------------------------------------------- shapes --
-def square_label(out, art, lines, art_bot_frac, drop=0, pt=SQUARE_PT):
+def square_label(out, art, lines, art_bot_frac, drop=0, pt=SQUARE_PT, floor=SQUEEZE_FLOOR):
     W, H = SQUARE
     im = Image.new("RGBA", SQUARE, (0, 0, 0, 0))
     bot = int(H * art_bot_frac)
@@ -177,7 +177,7 @@ def square_label(out, art, lines, art_bot_frac, drop=0, pt=SQUARE_PT):
         art_px = a.size
     else:
         art_px = (0, 0)
-    sz = text_block(im, lines, W - 2 * SIDE, W / 2, bot, H, pt, drop, bottom=SQ_BOTTOM)
+    sz = text_block(im, lines, W - 2 * SIDE, W / 2, bot, H, pt, drop, bottom=SQ_BOTTOM, floor=floor)
     im.save(out)
     return art_px, sz
 
@@ -216,37 +216,37 @@ def publish(local):
 # art_bot_frac is where the artwork stops and the caption band starts; `drop` pushes the caption
 # further down inside that band, which is what "write the name a little lower" means.
 SQUARES = [
-    ("Autumn Map",   "map_autumn_v10",   ["Autumn"],   lambda: art_topband("assets/src_art/map_autumn.png"),   0.755, 0),
-    ("Winter Map",   "map_winter_v10",   ["Winter"],   lambda: art_topband("assets/src_art/map_winter.png"),   0.755, 0),
-    ("Lake Map",     "map_lake_v10",     ["Lake"],     lambda: art_topband("assets/src_art/map_lake.png"),     0.755, 0),
-    ("Mountain Map", "map_mountain_v10", ["Mountain"], lambda: art_topband("assets/src_art/map_mountain.png"), 0.755, 0),
-    ("Marsh Map",    "map_marsh_v10",    ["Marsh"],    lambda: art_topband("assets/src_art/map_marsh.png"),    0.755, 0),
-    ("Gorge Map",    "map_gorge_v10",    ["Gorge"],    lambda: art_topband("assets/src_art/map_gorge.png"),    0.755, 0),
+    ("Autumn Map",   "map_autumn_v11",   ["Autumn"],   lambda: art_topband("assets/src_art/map_autumn.png"),   0.755, 0),
+    ("Winter Map",   "map_winter_v11",   ["Winter"],   lambda: art_topband("assets/src_art/map_winter.png"),   0.755, 0),
+    ("Lake Map",     "map_lake_v11",     ["Lake"],     lambda: art_topband("assets/src_art/map_lake.png"),     0.755, 0),
+    ("Mountain Map", "map_mountain_v11", ["Mountain"], lambda: art_topband("assets/src_art/map_mountain.png"), 0.755, 0),
+    ("Marsh Map",    "map_marsh_v11",    ["Marsh"],    lambda: art_topband("assets/src_art/map_marsh.png"),    0.755, 0),
+    ("Gorge Map",    "map_gorge_v11",    ["Gorge"],    lambda: art_topband("assets/src_art/map_gorge.png"),    0.755, 0),
 
-    ("Standard Deck",              "deck_base_v10",    ["Base Deck"],           lambda: art_topband("assets/src_art/deck_base.png"),    0.72, 0),
-    ("Exiles and Partisans Deck",  "deck_exiles_v10",  ["Exiles & Partisans"],  lambda: art_topband("assets/src_art/deck_exiles.png"),  0.72, 0),
-    ("Squires and Disciples Deck", "deck_squires_v10", ["Squires & Disciples"], lambda: art_topband("assets/src_art/deck_squires.png"), 0.72, 0),
+    ("Standard Deck",              "deck_base_v11",    ["Base Deck"],           lambda: art_topband("assets/src_art/deck_base.png"),    0.72, 0),
+    ("Exiles and Partisans Deck",  "deck_exiles_v11",  ["Exiles & Partisans"],  lambda: art_topband("assets/src_art/deck_exiles.png"),  0.72, 0, 0.76),
+    ("Squires and Disciples Deck", "deck_squires_v11", ["Squires & Disciples"], lambda: art_topband("assets/src_art/deck_squires.png"), 0.72, 0, 0.76),
 
-    ("ThemeArt",      "theme_art_v10",          ["Theme"],          lambda: art_topband("assets/src_art/theme.png"),                 0.70, 0),
-    ("RankedArt",     "four_player_draft_v10",  ["4-Player Draft"], lambda: art_crop_aspect("assets/images/ranked.png", 1.33, 210),       0.70, 0),
-    ("FourBoardsArt", "four_player_setup_v10",  ["4-Player Setup"], lambda: art_crop_aspect("assets/images/4players.png", 1.33),     0.70, 0),
+    ("ThemeArt",      "theme_art_v11",          ["Theme"],          lambda: art_topband("assets/src_art/theme.png"),                 0.70, 0),
+    ("RankedArt",     "four_player_draft_v11",  ["4-Player Draft"], lambda: art_crop_aspect("assets/images/ranked.png", 1.33, 210),       0.70, 0),
+    ("FourBoardsArt", "four_player_setup_v11",  ["4-Player Setup"], lambda: art_crop_aspect("assets/images/4players.png", 1.33),     0.70, 0),
 ]
 
 WIDES = [
     # The Faction Selector art is a picture of the selector board AS IT IS NOW -- twelve tiles with
     # Vagabond & Knaves in the top-right slot. The old label showed the superseded layout.
-    ("Faction Selector Tool", "faction_selector_v10", ["Faction", "Selector"],
+    ("Faction Selector Tool", "faction_selector_v11", ["Faction", "Selector"],
      lambda: Image.open(os.path.join(ROOT, "assets/src_art/faction_selector_new.png")).convert("RGBA")),
-    ("Bat Bungler",        "bat_bungler_v10",         ["The Bat", "Bungler"],  lambda: art_from_label("bat_bungler_lum_9d1318f6.png")),
-    ("Mob Lobber",         "mob_lobber_v10",          ["Mob", "Lobber"],       lambda: art_from_label("mob_lobber_lum_8c60b59e.png")),
-    ("Koffin Keeper",      "koffin_keeper_v10",       ["Koffin", "Keeper"],    lambda: art_from_label("koffin_keeper_lum_e1358cfd.png")),
-    ("Vagabond Cards",     "vagabond_cards_v10",      ["Vagabond", "Cards"],   lambda: trim(Image.open(os.path.join(ROOT, "assets/icons_fit/vbcards.png")).convert("RGBA"))),
-    ("Landmarks",          "landmarks_v10",           ["Landmarks"],           lambda: art_alpha_topband("assets/icons_fit/landmarks.png", 0.70)),
-    ("FivePlayerSetupArt", "five_player_setup_v10",   ["5-Player", "Setup"],   lambda: art_crop_aspect("assets/images/5players.png", 0.853)),
-    ("FivePlayerArt",      "five_player_draft_v10",   ["5-Player", "Draft"],   lambda: art_crop_aspect("assets/images/5players.png", 0.853)),
-    ("Marsh5PLabel",       "five_players_marsh_v10",  ["5-Players", "Marsh"],  lambda: art_topband("assets/upload/map_marsh.png")),
-    ("FactionCardsArt",    "faction_cards_v10",       ["Faction", "Cards"],    lambda: art_from_label("faction_cards_label_v4_34723094.png")),
-    ("CreditsBtnArt",      "credits_button_v10",      ["Credits"],             lambda: None),
+    ("Bat Bungler",        "bat_bungler_v11",         ["The Bat", "Bungler"],  lambda: art_from_label("bat_bungler_lum_9d1318f6.png")),
+    ("Mob Lobber",         "mob_lobber_v11",          ["Mob", "Lobber"],       lambda: art_from_label("mob_lobber_lum_8c60b59e.png")),
+    ("Koffin Keeper",      "koffin_keeper_v11",       ["Koffin", "Keeper"],    lambda: art_from_label("koffin_keeper_lum_e1358cfd.png")),
+    ("Vagabond Cards",     "vagabond_cards_v11",      ["Vagabond", "Cards"],   lambda: trim(Image.open(os.path.join(ROOT, "assets/icons_fit/vbcards.png")).convert("RGBA"))),
+    ("Landmarks",          "landmarks_v11",           ["Landmarks"],           lambda: art_alpha_topband("assets/icons_fit/landmarks.png", 0.70)),
+    ("FivePlayerSetupArt", "five_player_setup_v11",   ["5-Player", "Setup"],   lambda: art_crop_aspect("assets/images/5players.png", 0.853)),
+    ("FivePlayerArt",      "five_player_draft_v11",   ["5-Player", "Draft"],   lambda: art_crop_aspect("assets/images/5players.png", 0.853)),
+    ("Marsh5PLabel",       "five_players_marsh_v11",  ["5-Players", "Marsh"],  lambda: art_topband("assets/upload/map_marsh.png")),
+    ("FactionCardsArt",    "faction_cards_v11",       ["Faction", "Cards"],    lambda: art_from_label("faction_cards_label_v4_34723094.png")),
+    ("CreditsBtnArt",      "credits_button_v11",      ["Credits"],             lambda: None),
 ]
 
 SAVE = os.path.join(ROOT, "gen/src/save.json")
@@ -270,9 +270,9 @@ CURRENT = {a["Name"]: a["URL"] for a in board_of(json.loads(raw))["CustomUIAsset
 def main(write):
     outdir = os.path.join(ROOT, "assets/labels")
     urls, report = {}, []
-    for name, stem, lines, mkart, frac, drop in SQUARES:
+    for name, stem, lines, mkart, frac, drop, *rest in SQUARES:
         p = os.path.join(outdir, stem + ".png")
-        art, sz = square_label(p, mkart(), lines, frac, drop)
+        art, sz = square_label(p, mkart(), lines, frac, drop, floor=(rest[0] if rest else SQUEEZE_FLOOR))
         f, u = publish(p); urls[name] = u
         report.append(("SQ", name, art, sz, os.path.basename(f)))
     for name, stem, lines, mkart in WIDES:
