@@ -106,6 +106,96 @@ of four structural faults, not an isolated mistake. Fixing these is worth more t
    chain already in flight is still unguarded.
    FIX SHAPE: rttSetup bumps RTT_RUN_ID; every deferred callback returns early if its captured id is stale.
 
+## OPEN — from the Zaandaa play-test discussion (2026-09-05)
+
+Nothing below is implemented. The maintainer asked to be consulted before each change.
+
+### Bugs
+
+- [ ] **Old seat-number cards survive into a new draft.** Zaandaa: "old seat number cards remain if
+      you start a new draft". The teardown clears by tag (RTT_TEARDOWN_TAGS); these are evidently
+      untagged or spawned outside it. Same class as every other teardown miss this repo has had.
+- [ ] **The burrow is not locked when it spawns.** Zaandaa locks it by hand for other players every
+      game. Lock it at spawn, like the landmarks and the mood manager already are.
+
+### Setup and placement
+
+- [ ] **Camera states: use Zaandaa's.** He plays host and streams, so his are the useful defaults.
+      The file is `~/Downloads/cs` (3882 bytes, 10 states). Checked against the build: 9 of the 10
+      differ, so this is a real change, not a no-op. Applying means replacing the top-level
+      `CameraStates` array in the save.
+- [ ] **Turn counter and timer: bottom-right, slightly bigger.** Zaandaa: put them to the right of
+      the board's bottom-right corner -- the space under the battle mat is otherwise unused and is
+      the easiest place to reach on screen. NOT the box score, which he says is too much there.
+      POSITIONS RECOVERED, ready to bake -- the maintainer placed them and saved as TS_Save_27
+      (2026-09-05 15:24); read out of that save and compared against what the mod ships:
+
+          RTT_TIMER_POS    { 17.3624, 11.6669, -26.3142 }  ->  { 29.480, 11.667, -17.145 }
+          RTT_COUNTER_POS  { 22.9297, 11.5240, -25.1741 }  ->  { 29.633, 11.515, -20.856 }
+
+      Rotations are unchanged: the clock stays upright at { 90, 359.98, 0 } and the counter flat at
+      { 0, 0, 0 }. Both objects have a BLANK Nickname, so find them by Name -- "Digital_Clock" and
+      "Counter" -- not by nickname. Still to decide: Zaandaa also asked for them slightly BIGGER,
+      and no scale was changed in that save, so the size is a separate call.
+- [ ] **Crow plots should spawn in the hidden zone.** They do not today because the zone's position
+      was unsettled. The maintainer has since placed the hidden zone (rttCrowsHiddenZone) and asked
+      Zaandaa whether that spot is good -- if yes, spawn the plots directly into it.
+- [ ] **Swap the Knaves captains object with the crafted improvements object.** Zaandaa: crafts sit
+      immediately right of every other faction board, so the captains break the pattern. The
+      maintainer's counter: you move the captain card to the active captain slot, so left felt
+      natural. UNRESOLVED between them -- ask before moving.
+- [ ] **Remove the Advanced Setup card** that spawns with the crafted improvements. The maintainer
+      asked, Zaandaa said remove.
+
+### Buttons and real estate
+
+- [ ] **Spawn the Vagabond cards with Faction Cards, and drop the Vagabond Cards button.** Zaandaa:
+      selecting a Vagabond manually already gives you the meeples, so the separate button is
+      redundant, and Faction Cards then serves general manual drafting. Frees a slot on the board.
+- [ ] **Per-faction DRAW ONE buttons, and DRAW POND when the frogs are in.** Zaandaa: old Woodland
+      Tournament mods had a draw button beside each faction board. It avoids high-ping draws from
+      hands and stops accidental overdraws (pressing 11). The maintainer has this on his own list.
+- [ ] **Per-faction VP +1 / -1 buttons, echoing to the chat console.** Same source: the old mods
+      printed each score change to the console, which doubles as a game log.
+- [ ] **A one-shot DEAL FIVE button beside the deck when it spawns.** Temporary, removes itself.
+
+### Gizmo (the maintainer will iterate; ask before changing behaviour)
+
+- [ ] **Make the warrior pull snappier.** Zaandaa: the current smooth take is slow. Options he
+      raised: place instantly; a second press removes the one just placed; or place on top of
+      whatever it collides with. The maintainer deliberately wanted the visible travel from the
+      supply so players see where it came from -- so this is a taste call, not a bug.
+- [ ] **Extend the gizmo to mobs, strongholds and the rest of the tokens/buildings.** Zaandaa asked
+      for it; both agreed the mechanism is an assigned return location per object, and the
+      maintainer's proposal is to use each piece's own spawn position from the faction setup. That
+      is already known per faction, so it is a table of piece-name -> seat-local spawn offset.
+- [ ] **Separate buttons for the gizmo's actions.** Zaandaa thinks distinct buttons beat one key;
+      the maintainer said it is early. Open.
+
+### Housekeeping the maintainer flagged
+
+- [ ] **Fan-made content still referenced in the built save.** 22 distinct fan names survive,
+      including live asset links: Infected (42 references), Roamer (10), Advocate (9), Farmer
+      Warrior (9), Arachnid Association (6), Necropossums, Croakers Coven, Spinners of Mercy,
+      Woodland Revolution, Old Man Tinker, Order of the Forest, Snow Kingdom, Marquistador, Dove
+      Corps, BCPii, Noxious Battery, Klacar's Volcano Island. Mostly remnants of roster lists.
+      CAREFUL: Bat Bungler, Mob Lobber, Koffin Keeper and Salty Old Stan are IN USE -- the
+      maintainer said so explicitly -- so this is a per-name audit, not a sweep.
+- [ ] **Conversational prompts left in code comments.** 16 comments quote the maintainer directly
+      ("maintainer: ...", "he asked for ..."). They carry real rationale and should not just be
+      deleted, but they should read as technical notes rather than as a transcript.
+
+### From this session, still unverified
+
+- [ ] **Rules audit against root_engine.** The Mountain bug was game-breaking and was found only
+      because the maintainer asked. root_engine/rules + maps_data is an authoritative corpus
+      (maps_appendix.md, HOUSE_RULES.md with the group's own variants, maps_data/*.json with per-map
+      clearing data). Everything this mod places automatically should be checked against it: faction
+      piece counts and starting positions, the Marsh flood and its number tokens, clearing priority
+      markers per map, the Marquise's 12-vs-15 cats, Winter relics, Corvid plots, Eyrie viziers,
+      Knaves captains, deck composition. Note HOUSE_RULES holds the group's OWN variants -- the
+      Mountain centre is one -- so the engine's defaults are not automatically what this group plays.
+
 ## BLOCKED — need more info from the maintainer
 
 (nothing blocked)

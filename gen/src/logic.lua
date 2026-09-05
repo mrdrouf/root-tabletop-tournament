@@ -5051,23 +5051,7 @@ RTT_MTN_LM = { -0.116, 11.660, 0.187 }
 RTT_MTN_CARD = { -29.303, 11.575, -19.899 }
 RTT_MTN_CARD_SCALE = 2.299
 
-RTT_MTN_LANDMARKS = { "Lost City", "Rabbit-Town", "Foxburrow", "Mousehold" }
 RTT_MTN_LM_PIECES = RTT_MTN_LM_PIECES or {}
-
-function rttMountainLandmark()
-  -- clear the PREVIOUS landmark first, so a fast re-click replaces it (no stacking, no stale piece)
-  for _, o in ipairs(RTT_MTN_LM_PIECES or {}) do
-    if o ~= nil then pcall(function() o.destruct() end) end
-  end
-  RTT_MTN_LM_PIECES = {}
-  -- The central clearing has NO suit marker (m590) and the Tower is hidden, so the landmark spawns
-  -- DIRECTLY at RTT_MTN_LM — no marker flash. Advancing RNG (seeded once at load) => a fresh random
-  -- landmark on every click, instantly. The landmark card itself defines the clearing's suit.
-  local name = RTT_MTN_LANDMARKS[math.random(1, #RTT_MTN_LANDMARKS)]
-  RTT_MTN_LM_PIECES = rttSpawnLandmarkAt(name, RTT_MTN_LM[1], RTT_MTN_LM[2], RTT_MTN_LM[3],
-                     RTT_MTN_CARD[1], RTT_MTN_CARD[2], RTT_MTN_CARD[3],
-                     165, 180, RTT_MTN_CARD_SCALE)  -- crotZ 180 = RULES face up (BackURL)
-end
 
 -- spawn a landmark's model (standing) + its rules card (rules side up) DIRECTLY at their
 -- final transforms, so they appear in place and just settle onto the board like the other
@@ -5365,14 +5349,89 @@ end
 -- Mountain: the Tower is never used (a landmark replaces it), so spawn it BELOW the table
 -- from frame one instead of spawning it on the board and destroying it (no visible flash).
 -- rttMountainLandmark still destroys the (hidden) tower via its "Tower" tag afterwards.
-function rttMountainHideTower(objects)
-  local ov = {}
+-- ---- Mountain: deal the suits, then the centre's suit picks the town ----------------------
+-- The Mountain PRINTS NO SUITS. Its clearings are suited by dealing the 12 suit markers at setup
+-- (root_engine maps_data/mountain.json: "the Mountain deals its 12 suit markers at setup"), and the
+-- maintainer's group plays the centre as a suited TOWN landmark rather than the Pass/tower
+-- (root_engine HOUSE_RULES M1_mountain_centre: "Which town is set at setup by clearing 10's DEALT
+-- suit ... fox -> Foxburrow, rabbit -> Rabbittown, mouse -> Mousehold").
+--
+-- What this used to do was pick one of four landmarks uniformly at random and stand it in the
+-- centre, on top of eleven FIXED markers that are 4 fox / 4 rabbit / 3 mouse. So the board came out
+-- 4/4/4 only when Mousehold happened to be drawn -- one game in four -- and Lost City, which is not
+-- a town and sets no suit, left the centre unsuited. Nothing was dealt at all.
+--
+-- Now: twelve suits (4/4/4) are shuffled across the eleven marker slots and the centre. Each slot
+-- spawns the marker of ITS dealt suit at its own position and facing, and the centre's dealt suit
+-- chooses the town. The board is 4/4/4 every time, and every clearing's suit is random.
+RTT_MTN_MARKER_MESH = "5D8406B85EC590BEAB7FC5AF9DA99F32175FDFF4"
+RTT_MTN_SUIT_DIFFUSE = {
+  fox    = "BF0F13D634B3B535D470396151B8A2F456507526",
+  rabbit = "195F0F3DFD439596DE7A5D941E93DE07BF820D11",
+  mouse  = "AF3D10F25ABE87305AF3F9A77B4C04B7761FBDDA",
+}
+RTT_MTN_TOWN = { fox = "Foxburrow", rabbit = "Rabbit-Town", mouse = "Mousehold" }
+RTT_MTN_CENTRE_SUIT = nil
+
+function rttMountainPlan(objects)
+  local ov, slots, jsonForSuit = {}, {}, {}
   for idx, v in ipairs(objects) do
+    -- the Tower is not part of this group's setup at all, so it is never spawned. It used to be
+    -- parked 60 units under the table, which left a real object on the table for anything that
+    -- scans by name or tag to trip over.
     if string.find(v.json, "\"Tower\"", 1, true) ~= nil then
-      ov[idx] = { world = { 0, -60, 0 }, rot = nil }
+      ov[idx] = { skip = true }
+    elseif string.find(v.json, RTT_MTN_MARKER_MESH, 1, true) ~= nil then
+      local rotY = tonumber(v.json:match('"rotY":%s*(-?[%d.]+)')) or 180
+      slots[#slots + 1] = { idx = idx, mt = v.move_to, rotY = rotY }
+      for suit, dif in pairs(RTT_MTN_SUIT_DIFFUSE) do
+        if jsonForSuit[suit] == nil and string.find(v.json, dif, 1, true) ~= nil then
+          jsonForSuit[suit] = v.json
+        end
+      end
     end
   end
+  if #slots == 0 then return ov end
+
+  -- one marker per clearing: the slots plus the centre, which takes a town instead of a marker
+  local bag = {}
+  for _, suit in ipairs({ "fox", "rabbit", "mouse" }) do
+    for _ = 1, (#slots + 1) / 3 do bag[#bag + 1] = suit end
+  end
+  for i = #bag, 2, -1 do                                  -- Fisher-Yates
+    local j = math.random(1, i)
+    bag[i], bag[j] = bag[j], bag[i]
+  end
+
+  for i, sl in ipairs(slots) do
+    local suit = bag[i]
+    local j = jsonForSuit[suit]
+    if j ~= nil then
+      -- position and facing stay the SLOT's own; only which suit stands there changes. makeMap's
+      -- own move_to arithmetic, inlined, because the override path skips it.
+      ov[sl.idx] = {
+        json  = j,
+        world = { sl.mt[1], sl.mt[2] + 11.46, sl.mt[3] },
+        rot   = { 0, sl.rotY, 0 },
+      }
+    end
+  end
+  RTT_MTN_CENTRE_SUIT = bag[#slots + 1]
   return ov
+end
+
+function rttMountainLandmark()
+  -- clear the PREVIOUS landmark first, so a fast re-click replaces it (no stacking, no stale piece)
+  for _, o in ipairs(RTT_MTN_LM_PIECES or {}) do
+    if o ~= nil then pcall(function() o.destruct() end) end
+  end
+  RTT_MTN_LM_PIECES = {}
+  -- the town is decided by the centre clearing's DEALT suit, not drawn separately
+  local name = RTT_MTN_TOWN[RTT_MTN_CENTRE_SUIT or ""] 
+  if name == nil then return end
+  RTT_MTN_LM_PIECES = rttSpawnLandmarkAt(name, RTT_MTN_LM[1], RTT_MTN_LM[2], RTT_MTN_LM[3],
+                     RTT_MTN_CARD[1], RTT_MTN_CARD[2], RTT_MTN_CARD[3],
+                     165, 180, RTT_MTN_CARD_SCALE)  -- crotZ 180 = RULES face up (BackURL)
 end
 
 RTT_POND_JSON = [==[{"GUID": "347917","Name": "Custom_Tile","Transform": {"posX": -20.61854,"posY": 35.8698158,"posZ": -58.718235,"rotX": 0.016451491,"rotY": 179.94725,"rotZ": 0.08010805,"scaleX": 4.238119,"scaleY": 1.0,"scaleZ": 4.238119},"Nickname": "The Pond","Description": "","GMNotes": "","AltLookAngle": {"x": 0.0,"y": 0.0,"z": 0.0},"ColorDiffuse": {"r": 0.6901961,"g": 0.5960784,"b": 0.0156862754},"LayoutGroupSortIndex": 0,"Value": 0,"Locked": false,"Grid": true,"Snap": true,"IgnoreFoW": false,"MeasureMovement": false,"DragSelectable": true,"Autoraise": true,"Sticky": true,"Tooltip": true,"GridProjection": false,"HideWhenFaceDown": false,"Hands": false,"CustomImage": {"ImageURL": "https://steamusercontent-a.akamaihd.net/ugc/12393369561771611633/E59B2DE66EC1B0F68F19F6E7C071F8B8D38718B8/","ImageSecondaryURL": "https://steamusercontent-a.akamaihd.net/ugc/12393369561771611633/E59B2DE66EC1B0F68F19F6E7C071F8B8D38718B8/","ImageScalar": 1.0,"WidthScale": 0.0,"CustomTile": {"Type": 0,"Thickness": 0.2,"Stackable": false,"Stretch": true}},"LuaScript": "","LuaScriptState": "","XmlUI": "","AttachedSnapPoints": [{"Position": {"x": -0.000120528261,"y": 0.200000748,"z": -0.08064375},"Rotation": {"x": 3.824257E-06,"y": 0.00134896243,"z": 180.0}}]
@@ -5417,7 +5476,7 @@ function makeMap(player,value,id)
     RTT_MARSH_PIECES = {}
     if RTT_5P_MARSH then RTT_OV = rttMarshPlan5P(objects) else RTT_OV = rttMarshPlan(objects) end
   end
-  if id == "Mountain Map" then RTT_OV = rttMountainHideTower(objects) end
+  if id == "Mountain Map" then RTT_OV = rttMountainPlan(objects) end
   local scale = self.getScale()
   scale.x = 1/scale.x
   scale.z = 1/scale.z
@@ -5426,7 +5485,13 @@ function makeMap(player,value,id)
     local rtt_rot = nil
     local rtt_ov = false
     local new_pos
+    local ovJson = nil
+    local skip = false
     if RTT_OV ~= nil and RTT_OV[idx] ~= nil then
+      skip = (RTT_OV[idx].skip == true)
+      ovJson = RTT_OV[idx].json
+    end
+    if RTT_OV ~= nil and RTT_OV[idx] ~= nil and RTT_OV[idx].world ~= nil then
       rtt_rot = RTT_OV[idx].rot
       rtt_ov = true
       new_pos = RTT_OV[idx].world
@@ -5437,8 +5502,10 @@ function makeMap(player,value,id)
       new_pos = vec
       new_pos.y = new_pos.y+10-8.5+0.05-0.07+10.08
     end
-    local ob = spawnObjectJSON({
-        json              = v.json,
+    local ob = nil
+    if not skip then
+    ob = spawnObjectJSON({
+        json              = ovJson or v.json,
         position          = new_pos,
         rotation          = rtt_rot,
         callback_function = function(spawned_object)
@@ -5453,7 +5520,8 @@ function makeMap(player,value,id)
         spawned_object.addTag("Map Object")
         end
     })
-    if rtt_ov and RTT_MARSH_PIECES ~= nil then RTT_MARSH_PIECES[#RTT_MARSH_PIECES + 1] = ob end
+    end
+    if rtt_ov and ob ~= nil and RTT_MARSH_PIECES ~= nil then RTT_MARSH_PIECES[#RTT_MARSH_PIECES + 1] = ob end
   end
   if id ~= "Marsh Map" then shuffleMaps(id) end
 end

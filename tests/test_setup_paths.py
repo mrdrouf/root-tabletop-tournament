@@ -584,6 +584,39 @@ def t_gizmo_default_key_is_numpad_zero(src):
     assert 'addHotkey("Gizmo: warrior to / from your supply"' in src, "the named hotkey is gone"
 
 
+def t_mountain_deals_a_legal_board(src):
+    """The Mountain prints no suits: it DEALS twelve, and the centre's suit picks the town.
+
+    root_engine maps_data/mountain.json -- "the Mountain deals its 12 suit markers at setup" -- and
+    HOUSE_RULES M1_mountain_centre -- "which town is set at setup by clearing 10's DEALT suit ...
+    fox -> Foxburrow, rabbit -> Rabbittown, mouse -> Mousehold".
+
+    What this replaced drew one of four landmarks at random and stood it on eleven FIXED markers that
+    are 4 fox / 4 rabbit / 3 mouse, so the board was a legal 4/4/4 only when Mousehold came up, and
+    Lost City left the centre with no suit at all. Nothing was dealt.
+    """
+    rt = fresh(src)
+    seen = set()
+    for _ in range(120):
+        ov = rt.eval("rttMountainPlan(EVERYTHING['Maps']['Mountain Map']['data'])")
+        suits, skipped = {}, 0
+        for k in ov.keys():
+            e = ov[k]
+            if e.skip:
+                skipped += 1
+                continue
+            for name, dif in (("fox", "BF0F13D6"), ("rabbit", "195F0F3D"), ("mouse", "AF3D10F2")):
+                if dif in e.json:
+                    suits[name] = suits.get(name, 0) + 1
+        centre = rt.eval("RTT_MTN_CENTRE_SUIT")
+        assert centre in ("fox", "rabbit", "mouse"), centre
+        suits[centre] = suits.get(centre, 0) + 1          # the town completes the twelfth clearing
+        assert sorted(suits.values()) == [4, 4, 4], "not a legal board: %s" % suits
+        assert skipped == 1, "the Tower must be skipped exactly once, got %d" % skipped
+        seen.add(centre)
+    assert seen == {"fox", "rabbit", "mouse"}, "the centre never varied: %s" % seen
+
+
 CASES = [
     ("manual path drives the turn system",   t_manual_turn_order),
     ("manual path spawns 4 / 5 boards",      t_boards_spawn),
@@ -603,6 +636,7 @@ CASES = [
     ("enclave aims at the suit circle",       t_enclave_targets_the_suit_marker),
     ("turn order re-applies on seating",      t_turn_order_reapplies_on_seating),
     ("vagabond published as a faction",       t_vagabond_is_published_as_a_faction),
+    ("mountain deals a legal board",          t_mountain_deals_a_legal_board),
     ("gizmo default key is numpad 0",         t_gizmo_default_key_is_numpad_zero),
     ("gizmo: warrior to/from supply",         t_gizmo_warrior_to_and_from_supply),
     ("gizmo reads every blueprint",           t_gizmo_reads_every_faction_from_its_blueprint),
