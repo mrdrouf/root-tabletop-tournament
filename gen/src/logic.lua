@@ -5961,10 +5961,16 @@ function rttGizmoWarrior(color)
   else
     pos = { x = pos.x, y = pos.y + 1.5, z = pos.z }
   end
+  -- Stand it up. takeObject otherwise keeps whatever pose the piece had inside the bag, and the
+  -- blueprints show plenty lying over -- a few Hundreds and Riverfolk warriors are stored at 30-70
+  -- degrees. Every warrior's upright pose is rotX 0, rotZ 0; the Y is taken from the supply bag so
+  -- the piece faces the same way as the rest of that seat's pieces.
+  local ry = 0
+  pcall(function() ry = bag.getRotation().y or 0 end)
   -- tagged like every other faction piece, so the next new game clears it with the rest
   pcall(function()
     bag.takeObject({
-      position = pos, smooth = true,
+      position = pos, rotation = { 0, ry, 0 }, smooth = true,
       callback_function = function(o) pcall(function() o.addTag("RTT Faction") end) end
     })
   end)

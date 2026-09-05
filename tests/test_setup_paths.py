@@ -426,6 +426,7 @@ def t_gizmo_warrior_to_and_from_supply(src):
         b.putObject = function(o) PUT[name] = (PUT[name] or 0) + 1 end
         b.takeObject = function(p)
           TOOK = TOOK + 1
+          ROT = p.rotation
           local o = MKOBJ("Hundreds Warrior", p.position, {})
           if p.callback_function then p.callback_function(o) end
           if o.hasTag("RTT Faction") then TAGGED = TAGGED + 1 end
@@ -450,6 +451,10 @@ def t_gizmo_warrior_to_and_from_supply(src):
     rt.execute('HOVER["Red"] = nil  rttGizmoWarrior("Red")')
     assert rt.eval("TOOK") == 1, "hovering nothing did not take one from your supply"
     assert rt.eval("TAGGED") == 1, "the warrior taken out was not tagged, so a new game keeps it"
+    rot = rt.eval("ROT")
+    assert rot is not None, "no rotation was given, so it keeps whatever pose it had in the bag"
+    assert rot[1] == 0 and rot[3] == 0, "the warrior must come out standing up, got %s" % (
+        [rot[i] for i in (1, 2, 3)],)
 
     rt.execute('MINEBAG.__n = 0  rttGizmoWarrior("Red")')
     assert rt.eval("TOOK") == 1, "an empty supply must do nothing"
