@@ -362,14 +362,23 @@ def t_turn_order_reapplies_on_seating(src):
     rt.execute("FLUSH(8)")
     assert list(rt.eval("Turns.order").values()) == ["Teal", "Red"], "a manual reorder was overwritten"
 
-    # re-asserting an identical state must be a no-op: TTS chimes every time turns are switched on
+    # a seat change that changes nothing is a no-op: TTS chimes every time turns are switched on
     rt = fresh(src)
     rt.execute("SEAT('Red') rttEnableTurns(4)")
-    rt.execute("__writes = 0")
-    rt.execute("local mt = {__newindex=function(t,k,v) __writes = __writes + 1 rawset(t,k,v) end}")
-    rt.execute("rttEnableTurns(4)")   # same seat count, same seating: nothing should be written
-    assert rt.eval("Turns.enable") is True and list(rt.eval("Turns.order").values()) \
-        == ["Red", "Yellow", "Orange", "Teal"], "the idempotent path corrupted the order"
+    rt.execute("Turns.turn_color = 'Orange'")
+    rt.execute("onPlayerChangeColor('Red')")
+    assert rt.eval("Turns.turn_color") == "Orange", "a no-op seat change disturbed the turn"
+
+    # ...but a NEW GAME must always restart at seat 1, even mid-game with turns already running
+    rt.execute("Turns.turn_color = 'Teal'")
+    rt.execute("rttEnableTurns(4)")
+    assert rt.eval("Turns.turn_color") == "Red", "a new game did not restart at seat 1"
+
+    # turns LATCH: somebody standing up must not switch the system off or reset the turn
+    rt.execute("Turns.turn_color = 'Yellow'")
+    rt.execute("Player['Red'].seated = false onPlayerChangeColor('Red')")
+    assert rt.eval("Turns.enable") is True, "standing up switched the turn system off"
+    assert rt.eval("Turns.turn_color") == "Yellow", "standing up reset the turn"
 
 
 def t_vagabond_is_published_as_a_faction(src):
