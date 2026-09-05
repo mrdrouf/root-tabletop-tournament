@@ -98,6 +98,18 @@ of four structural faults, not an isolated mistake. Fixing these is worth more t
       before that seat change. Also decide whether `Turns.skip_empty_hands` should stay false (today
       the order steps through empty seats too).
 
+- [ ] **Box score COPY shows an empty box; make it emit the tournament-site JSON.** ASKED 2026-09-05.
+      Two separate problems. (1) The field comes up blank: `uiCopy` (boxscore.lua ~1855) bakes
+      `JSON.encode(exportPayload("copy"))` straight into a single-quoted `text='...'` on an
+      InputField, escaping only `&`, `<` and `'`. A stale comment right above it still claims the text
+      is injected by `setAttribute` after the rebuild -- the code does the opposite, so the comment is
+      not evidence of anything; the blank box needs reproducing in TTS before guessing (length limits
+      and TTS's strict XmlUI parser are both candidates). (2) The payload is the mod's OWN internal
+      record, not what the site wants. The target format, the developer's own example, and a
+      field-by-field mapping of what the box score can already fill versus what it cannot, are in
+      `root_boxscore/EXPORT_SCHEMA.md`. Every gap is an optional field, so a first version can emit
+      the core (`board_map`, `deck`, per-participant `turns`) and omit the rest.
+
 ## BLOCKED — need more info from the maintainer
 
 - [ ] **Gizmo: a variant that also places warriors.** NOTE the first half is already done -- since
