@@ -108,13 +108,21 @@ of four structural faults, not an isolated mistake. Fixing these is worth more t
 
 ## BLOCKED — need more info from the maintainer
 
-- [ ] **Gizmo: a variant that also places warriors.** NOTE the first half is already done -- since
-      2026-09-04 the Gizmo has no button and no object at all: its script is part of the setup board, so
-      NUMPAD 0 (return a hovered component to its supply) and NUMPAD 1 (reassign a destination) work in
-      every game with nothing to spawn or toggle. It cannot be turned off.
-      The numpad problem is SOLVED: onLoad now also registers two named hotkeys ("Gizmo: return
-      hovered piece to supply" / "Gizmo: set supply / destination") that can be bound to any key in
-      Options - Game Keys, because a MacBook has no numpad.
-      BLOCKED on the remaining half: what should the warrior-placing variant DO? How many
-      warriors, taken from where, placed where -- and is it a second behaviour alongside NUMPAD 0 or a
-      replacement for it?
+(nothing blocked)
+
+## AWAITING A TEST AT THE TABLE
+
+- [ ] **Seat colour cannot be re-taken after leaving it.** Reported 2026-09-05: "I was in that
+      color, then I changed color to another seat, and then I'm not able to go back". Nothing in
+      this mod destroys or reassigns a hand zone -- it only ever MOVES them -- so the cause is not
+      ours. It matches a community-reported TTS bug: deleting an object that still has XML UI
+      attached leaves the server unable to hand out colours, arrivals get only Grey, and a colour
+      that has been left cannot be retaken, while the hand zones still look fine. This mod deletes
+      XmlUI objects constantly (every manual selector board on a pick, every ranked selector, the box
+      score on each respawn, everything cleared by tag at a new game), so it would trigger it far
+      more than most.
+      MITIGATION SHIPPED, NOT VERIFIED: rttDestroyUI clears an object's XML and destroys it a frame
+      later, applied at every such site including the selector's own X button. Nothing available here
+      can inspect TTS's colour state, so this needs the maintainer: pick factions, change seats a few
+      times, and see whether the colour he left becomes available again. If it still happens, the
+      next suspect is the box score, which rebuilds its XML every 1.2s.
