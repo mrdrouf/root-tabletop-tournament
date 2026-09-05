@@ -798,6 +798,49 @@ def t_manual_pick_binds_the_pickers_own_colour(src):
     assert pub["Marquise de Cat"] == "Purple", "the first picker lost their own colour"
 
 
+def t_the_seat_record_is_pushed_to_the_sheet(src):
+    """The record does not just get published, it is PUSHED at the box score.
+
+    The sheet used to re-read three TTS Globals every six seconds and treat the colour one as
+    authoritative -- and Globals are wiped on load, so a resumed game silently fell back to guessing
+    rows from hand-zone geometry. RTT knows the exact moment seating and faction placement happen, so
+    it hands the record over instead. It must go as a JSON STRING: raw Lua tables do not cross
+    object-script boundaries in TTS.
+    """
+    rt = fresh(src)
+    rt.execute("""
+      PUSHED = {}
+      local fake = { call = function(fn, arg) PUSHED[#PUSHED+1] = { fn = fn, arg = arg } end,
+                     getGUID = function() return "sheet1" end }
+      local _gowt = getObjectsWithTag
+      getObjectsWithTag = function(t)
+        if t == RTT_BOXSCORE_TAG then return { fake } end
+        return _gowt(t)
+      end
+    """)
+    _seat_ranked(rt, ["Purple", "Blue", "White", "Pink"], ["H1", "H2", "H3", "H4"])
+    facs = ["Marquise de Cat", "Eyrie Dynasties", "Woodland Alliance", "Riverfolk Company"]
+    for i, f in enumerate(facs):
+        rt.execute("""local s = RTT_SEATS[%d]
+                      pcall(function() rttPlaceFaction('%s', s.pos[1], s.pos[2], s.pos[2] > 0,
+                            s.color, true, nil, nil, s.color, nil) end) FLUSH(4)""" % (i + 1, f))
+    n = rt.eval("#PUSHED")
+    assert n and n > 0, "the sheet was never pushed to"
+    last = rt.eval("PUSHED[#PUSHED]")
+    assert last["fn"] == "rttSeatPush", "pushed to %r" % last["fn"]
+    arg = last["arg"]
+    assert isinstance(arg, str), "pushed a %s -- raw Lua tables do not cross object boundaries" % type(arg).__name__
+    rec = json.loads(arg)
+    seats = {e["faction"]: e for e in rec["seats"] if e.get("faction")}
+    for f, c in zip(facs, ["Purple", "Blue", "White", "Pink"]):
+        assert seats[f]["color"] == c, "%s pushed as %s, its player is %s" % (f, seats[f]["color"], c)
+        assert seats[f]["owner"] != "", "%s pushed with no owner" % f
+    # and the pushed order IS the turn order, clockwise from the bottom-right
+    pushed_order = [e["color"] for e in rec["seats"]]
+    assert pushed_order == list((rt.eval("Turns.order") or {}).values()), \
+        "the pushed order %s is not the turn order %s" % (pushed_order, list((rt.eval("Turns.order") or {}).values()))
+
+
 CASES = [
     ("manual path drives the turn system",   t_manual_turn_order),
     ("manual path spawns 4 / 5 boards",      t_boards_spawn),
@@ -828,6 +871,7 @@ CASES = [
     ("turn order clockwise from BR",         t_turn_order_is_clockwise_from_bottom_right),
     ("seat record survives a reload",        t_seat_record_survives_a_reload),
     ("manual pick binds picker colour",      t_manual_pick_binds_the_pickers_own_colour),
+    ("seat record is pushed to sheet",       t_the_seat_record_is_pushed_to_the_sheet),
 ]
 
 
