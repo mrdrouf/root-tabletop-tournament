@@ -14,7 +14,13 @@ is left exactly as it was:
     board bab7e1        LuaScript, XmlUI, CustomUIAssets
     "Root Box Score"    LuaScript
 
-Run from the repo root, after a build:  python3 tools/update_saves.py [--dry-run]
+By DEFAULT it only touches saves you might actually open: the mod file itself, the autosaves, and
+anything modified in the last RECENT_DAYS days. The maintainer asked why 26 saves were being
+rewritten -- the honest answer was that "your saves" had been read as the whole folder. Old named
+saves are records (several are the position references the mod's baked coordinates came from) and
+there is no reason to rewrite them; --all is there if you ever want to.
+
+Run from the repo root, after a build:  python3 tools/update_saves.py [--dry-run] [--all]
 """
 import glob, json, os, re, shutil, sys, time
 
@@ -24,6 +30,7 @@ SAVES = os.path.expanduser("~/Library/Tabletop Simulator/Saves")
 # NOT inside Saves/: TTS scans that folder, and it must not find our copies
 BACKUPS = os.path.expanduser("~/Library/Tabletop Simulator/RTT_save_backups")
 KEEP_SETS = 2
+RECENT_DAYS = 7          # a save older than this is an archive, not something you are about to open
 BOARD = "bab7e1"
 BOXSCORE = "Root Box Score"
 
@@ -82,8 +89,17 @@ def prune_backups():
         shutil.rmtree(old, ignore_errors=True)
 
 
+def in_scope(path, every):
+    """The mod file and the autosaves always; anything else only if it is recent, or --all."""
+    name = os.path.basename(path)
+    if every or name == "Root_Tabletop_Tournament.json" or name.startswith("TS_AutoSave"):
+        return True
+    return (time.time() - os.path.getmtime(path)) < RECENT_DAYS * 86400
+
+
 def main():
     dry = "--dry-run" in sys.argv
+    every = "--all" in sys.argv
     board, box = current_sources()
     print("built board script: %d chars; box score: %s"
           % (len(board["LuaScript"]), "%d chars" % len(box["LuaScript"]) if box else "not in build"))
@@ -95,6 +111,8 @@ def main():
     for path in sorted(glob.glob(os.path.join(SAVES, "*.json")), key=os.path.getmtime, reverse=True):
         name = os.path.basename(path)
         if name == "SaveFileInfos.json":
+            continue
+        if not in_scope(path, every):
             continue
         try:
             doc = read(path)
@@ -120,7 +138,9 @@ def main():
         print("  %-30s updated: %s" % (name, ", ".join(changed)))
         touched += 1
 
-    print("\n%s %d save(s); %d already current" % ("would update" if dry else "updated", touched, skipped))
+    print("\n%s %d save(s); %d already current%s"
+          % ("would update" if dry else "updated", touched, skipped,
+             "" if every else "  (mod file + autosaves + last %d days; --all for the rest)" % RECENT_DAYS))
     if touched and not dry:
         print("backup of the originals: %s" % bdir)
         prune_backups()

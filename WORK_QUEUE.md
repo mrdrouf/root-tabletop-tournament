@@ -28,6 +28,11 @@ CustomUIAssets, and any "Root Box Score" LuaScript), so table state and every Lu
 gizmo config, the box score's recorded game -- survive untouched. Originals are backed up outside the
 Saves folder, last two sets kept.
 
+SCOPE: the mod file, the autosaves, and anything touched in the last 7 days. It does NOT rewrite old
+named saves -- several of those are the position references the mod's baked coordinates were read out
+of, and there is no reason to touch them. `--all` covers everything if it is ever wanted. The first
+version updated all 27 and the maintainer rightly asked why.
+
 ## Standing rule: this file only shows OPEN work
 The maintainer, 2026-09-04: "the work should always be cleaned up, and anything that is done needs to go
 in the archive so the work is always clean". Tick an item, then run `python3 tools/queue_archive.py`
