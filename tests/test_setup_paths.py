@@ -266,6 +266,28 @@ def t_frog_enclaves_are_bigger(src):
         "enclave scale %s is not 20%% over the original 0.703911364" % scales[0]
 
 
+def t_enclave_targets_the_suit_marker(src):
+    """A dropped enclave must aim at the suit marker's symbol circle, not the marker's origin.
+
+    The circle is 0.4452 forward in the marker mesh's local z (read off the mesh UVs against its
+    texture), which is 0.58 world units at the markers' 1.30 scale. Every map's markers already carry
+    the tag "Clearing Marker", so one offset covers all of them.
+    """
+    rt = fresh(src)
+    d = rt.eval('EVERYTHING["Standard"]["Lilypad Diaspora"]["data"]')
+    got = 0
+    for i in range(1, len(d) + 1):
+        j = json.loads(d[i].json)
+        if j.get("Nickname") != "Enclave":
+            continue
+        ls = j["LuaScript"]
+        assert "function onDrop" in ls, "an enclave has no onDrop handler"
+        assert 'getObjectsWithTag("Clearing Marker")' in ls, "an enclave does not look for suit markers"
+        assert "z = 0.4452" in ls, "an enclave lost the measured symbol-circle offset"
+        got += 1
+    assert got == 12, "expected 12 scripted enclaves, found %d" % got
+
+
 def t_enclaves_do_not_snap(src):
     """An enclave must sit where it is dropped.
 
@@ -302,6 +324,7 @@ CASES = [
     ("mood cards wait for the rats board",    t_rats_moods_wait_for_their_board),
     ("frog enclaves are 20% bigger",          t_frog_enclaves_are_bigger),
     ("enclaves sit where they are dropped",   t_enclaves_do_not_snap),
+    ("enclave aims at the suit circle",       t_enclave_targets_the_suit_marker),
 ]
 
 
