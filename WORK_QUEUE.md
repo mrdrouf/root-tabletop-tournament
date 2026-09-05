@@ -185,20 +185,24 @@ Nothing below is implemented. The maintainer asked to be consulted before each c
       ("maintainer: ...", "he asked for ..."). They carry real rationale and should not just be
       deleted, but they should read as technical notes rather than as a transcript.
 
-- [ ] **Marsh is the only map whose suits are never randomised.** CORRECTING an earlier note in this
-      file that claimed the mod randomises none: it does. shuffleMaps() records every "Clearing
-      Marker" position and rotation, shuffles the objects and reassigns them, so suits land on
-      different clearings every build -- and makeMap calls it for every map EXCEPT Marsh
-      (`if id ~= "Marsh Map" then shuffleMaps(id) end`). root_engine HOOT_RULES says HOOT
-      "randomises suits on every map", so Marsh is the gap. It may be deliberate: Marsh has its own
-      flood and number-token logic keyed to fixed clearings. ASK before changing.
+- [x] ~~Suits are not randomised~~ — WRONG, TWICE, both times asserted without reading the code
+      that does the work. The verified record: **every map randomises its clearing suits.** The five
+      printed-suit maps go through `shuffleMaps`, which shuffles the "Clearing Marker" objects across
+      their recorded positions and rotations. **Marsh** is excluded from that only because it
+      randomises its own inside `rttMarshPlan` -- "SUITS: all 12 clearings randomised (4 of each
+      colour) across 9 fixed + 3 dry" -- which has to be separate, since which clearings exist
+      depends on the flood. Measured over 200 Marsh builds: 4/4/4 every time, positions taking
+      different suits between builds. The Mountain was the only map that dealt nothing, and it is
+      fixed. Nothing to do.
 
-- [ ] **shuffleMaps line 5588 is missing its `for`.** `i=1,10 do clearingMarkers = shuffle(...) end`
-      instead of `for i=1,10 do ... end`. It still parses -- Lua reads `i = 1, 10` then a bare
-      do-block -- so it shuffles ONCE rather than ten times and leaks a global `i`. NOT a correctness
-      bug: shuffle() is a proper Fisher-Yates and one pass is already a uniform permutation, so the
-      ten were never needed. Worth fixing for the stray global and so it stops reading as a bug; the
-      neighbouring ruins line two above it has the `for` and looks identical otherwise.
+- [ ] **Delete the repeat-shuffle loops in shuffleMaps (ask first — behaviour-neutral).**
+      `for i=1,30 do ruins = shuffle(ruins) end` and `i=1,10 do clearingMarkers = shuffle(...) end`.
+      Repeating a shuffle does not make it more random: shuffle() is a correct Fisher-Yates, so ONE
+      pass is already a uniform permutation and the other 29 (and 9) are wasted work. The marker line
+      is also missing its `for`, so it parses as `i = 1, 10` plus a bare do-block -- it happens to run
+      once, which is the right number, and leaks a global `i`. The fix is to call shuffle once on both
+      lines and drop the loops, not to add the missing `for`: that would make the marker line match a
+      neighbour that is itself wrong. No game outcome changes either way.
 
 ### From this session, still unverified
 
