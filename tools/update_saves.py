@@ -16,7 +16,7 @@ is left exactly as it was:
 
 Run from the repo root, after a build:  python3 tools/update_saves.py [--dry-run]
 """
-import glob, json, os, shutil, sys, time
+import glob, json, os, re, shutil, sys, time
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 BUILT = os.path.join(REPO, "dist", "Root_Tabletop_Tournament.json")
@@ -41,9 +41,22 @@ def read(path):
 
 
 def current_sources():
+    """The board, and the box score -- which is NOT a top-level object in the build.
+
+    The mod carries the sheet as a Lua long-bracket string, RTT_BOXSCORE_JSON, and spawns it on
+    demand. Looking for a "Root Box Score" object in the build finds nothing, so the first version of
+    this script silently updated no box scores at all while reporting success, because the
+    "is it current?" check was skipped whenever the source was missing.
+    """
     doc = read(BUILT)
     board = next(o for o in walk(doc) if o.get("GUID") == BOARD)
     box = next((o for o in walk(doc) if o.get("Nickname") == BOXSCORE), None)
+    if box is None:
+        m = re.search(r"^RTT_BOXSCORE_JSON = \[====\[(.*?)\]====\]$", board["LuaScript"], re.M | re.S)
+        if m:
+            box = json.loads(m.group(1))
+    if box is None:
+        raise RuntimeError("no box score in the build: neither an object nor RTT_BOXSCORE_JSON")
     return board, box
 
 
