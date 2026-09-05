@@ -251,8 +251,15 @@ def t_rats_moods_wait_for_their_board(src):
     assert mood(after), "the starting mood never spawned at all"
 
 
-def t_frog_enclaves_are_bigger(src):
-    """The maintainer asked for +20% on every enclave; all twelve must move together."""
+def t_frog_enclaves_match_the_suit_circle(src):
+    """Every enclave is sized to the suit marker's circle, and all twelve move together.
+
+    The circle is the marker's suit lobe: 1.8408 world units across, from the largest circle inscribed
+    in the lobe (texture hole-filled first, so the white glyph does not cap it) scaled by the markers'
+    own 1.30. The enclave art fills 97.2% of its tile, so the tile wants 1.8938 -> scale 0.8343
+    against a 2.27-unit Custom_Tile. That last constant is the one thing not measured from the mod, so
+    if the token reads visibly wrong in TTS this scale is the single number to move.
+    """
     rt = fresh(src)
     d = rt.eval('EVERYTHING["Standard"]["Lilypad Diaspora"]["data"]')
     scales = []
@@ -262,16 +269,16 @@ def t_frog_enclaves_are_bigger(src):
             scales.append(round(j["Transform"]["scaleX"], 6))
     assert len(scales) == 12, "expected 12 enclaves, found %d" % len(scales)
     assert len(set(scales)) == 1, "enclaves came out at mixed sizes: %s" % sorted(set(scales))
-    assert abs(scales[0] / 0.703911364 - 1.2) < 0.001, \
-        "enclave scale %s is not 20%% over the original 0.703911364" % scales[0]
+    assert abs(scales[0] - 0.8343) < 1e-6, "enclave scale %s is not the measured circle" % scales[0]
+    assert scales[0] > 0.703911364, "the enclave is back to its original, smaller size"
 
 
 def t_enclave_targets_the_suit_marker(src):
     """A dropped enclave must aim at the suit marker's symbol circle, not the marker's origin.
 
-    The circle is 0.4452 forward in the marker mesh's local z (read off the mesh UVs against its
-    texture), which is 0.58 world units at the markers' 1.30 scale. Every map's markers already carry
-    the tag "Clearing Marker", so one offset covers all of them.
+    The target is the LOBE centre, model-local z 0.3599 -- not the suit glyph at 0.4447, which sits
+    off-centre in the lobe and would miss by 0.11 world units. The token is also turned to face the
+    clearing's middle, which it gets from the board's rttNearestClearingCentre.
     """
     rt = fresh(src)
     d = rt.eval('EVERYTHING["Standard"]["Lilypad Diaspora"]["data"]')
@@ -283,7 +290,9 @@ def t_enclave_targets_the_suit_marker(src):
         ls = j["LuaScript"]
         assert "function onDrop" in ls, "an enclave has no onDrop handler"
         assert 'getObjectsWithTag("Clearing Marker")' in ls, "an enclave does not look for suit markers"
-        assert "z = 0.4452" in ls, "an enclave lost the measured symbol-circle offset"
+        assert "z = 0.3599" in ls, "an enclave is not aimed at the lobe centre"
+        assert "FROG_FACING" in ls, "an enclave lost its facing"
+        assert "rttNearestClearingCentre" in ls, "an enclave cannot find the clearing centre"
         got += 1
     assert got == 12, "expected 12 scripted enclaves, found %d" % got
 
@@ -308,6 +317,22 @@ def t_enclaves_do_not_snap(src):
     assert set(flags) == {(False, False)}, "some enclaves still snap: %s" % sorted(set(flags))
 
 
+def t_nearest_clearing_centre_helper(src):
+    """The board answers the enclave's "which clearing am I in?" with strings, both ways.
+
+    Raw Lua tables do not reliably cross object-script boundaries in this mod -- there is a comment
+    about exactly that on RTT_SEAT_POS -- so this is "x,z" in and "x,z" out, and "" for every
+    unanswerable case rather than a nil that would blow up at the call site.
+    """
+    rt = fresh(src)
+    rt.execute('RTT_CURRENT_MAP = "Summer Map"')
+    assert rt.eval('rttNearestClearingCentre("18.0,12.0")') == "18.64,12.35"
+    assert rt.eval('rttNearestClearingCentre("-7.0,-18.0")') == "-7.15,-17.75"
+    assert rt.eval('rttNearestClearingCentre("nonsense")') == "", "junk input must not throw"
+    rt.execute("RTT_CURRENT_MAP = nil")
+    assert rt.eval('rttNearestClearingCentre("0,0")') == "", "no map up must answer empty"
+
+
 CASES = [
     ("manual path drives the turn system",   t_manual_turn_order),
     ("manual path spawns 4 / 5 boards",      t_boards_spawn),
@@ -322,9 +347,10 @@ CASES = [
     ("lizards bring their discard blocker",   t_dragon_god_without_a_deck),
     ("a later deck re-seats the blocker",     t_dragon_god_reseated_by_a_later_deck),
     ("mood cards wait for the rats board",    t_rats_moods_wait_for_their_board),
-    ("frog enclaves are 20% bigger",          t_frog_enclaves_are_bigger),
+    ("enclaves match the suit circle",        t_frog_enclaves_match_the_suit_circle),
     ("enclaves sit where they are dropped",   t_enclaves_do_not_snap),
     ("enclave aims at the suit circle",       t_enclave_targets_the_suit_marker),
+    ("board answers nearest clearing",        t_nearest_clearing_centre_helper),
 ]
 
 
