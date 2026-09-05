@@ -1999,19 +1999,51 @@ end
 -- RANKED draft calls -- so on the manual 4-board path the turn system was never configured at all and
 -- the maintainer saw TTS's own ten-colour default order. Same class of bug as the teardown list and the
 -- run-state reset: two setup paths that must agree and did not share code.
+-- Players actually sitting at the table. Grey and Black are the spectator/GM seats in this mod and
+-- never count as a player.
+function rttSeatedCount()
+  local n = 0
+  pcall(function()
+    for _, p in ipairs(Player.getPlayers()) do
+      if p.seated and p.color ~= "Grey" and p.color ~= "Black" then n = n + 1 end
+    end
+  end)
+  return n
+end
+
 function rttEnableTurns(nseats, keepTurn)
   nseats = math.max(1, nseats or 4)
   local torder = {}
   for i = 1, nseats do torder[#torder + 1] = RTT_SETUP_COLORS[i] end
   if #torder == 0 then return end
   RTT_TURN_SEATS = nseats               -- remembered so a later seat change can re-apply the order
+
+  -- Do nothing at all when nothing would change. TTS plays its turn notification whenever the turn
+  -- system is switched on, so re-asserting an identical state on every seat change made it chime
+  -- again for no reason (maintainer: "the sound trigger is annoying"). There is no documented way to
+  -- silence that notification, so the fix is to stop causing it.
+  local want = rttSeatedCount() > 0
+  local same = false
+  pcall(function()
+    if Turns.enable == want and Turns.type == 2 and Turns.order ~= nil and #Turns.order == #torder then
+      same = true
+      for i = 1, #torder do if Turns.order[i] ~= torder[i] then same = false end end
+    end
+  end)
+  if same then return end
+
   pcall(function()
     Turns.type = 2                       -- the custom order below
     Turns.order = torder
     Turns.reverse_order = false
     Turns.skip_empty_hands = false       -- step through every seat, occupied or not
     Turns.pass_turns = true
-    Turns.enable = true
+    -- Only actually START the turn system once somebody is sitting down. Setting up four boards is
+    -- not the start of a game -- the maintainer, 2026-09-05: "the turn order should get started only
+    -- when a player is seated, now it also starts when I select 4 player setup". The order is still
+    -- written here, so the moment a seat is taken onPlayerChangeColor turns it on with the right
+    -- order already in place.
+    Turns.enable = want
     -- keepTurn is the colour whose turn it already was. Re-applying the order mid-game must NOT
     -- hand the turn back to seat 1, so it is restored when it is still one of the seats.
     local want = torder[1]

@@ -39,16 +39,26 @@ def fresh(src):
 
 # ----------------------------------------------------------------- the cases --
 def t_manual_turn_order(src):
-    """The manual path must switch the TTS turn system on, in seat order."""
+    """The manual path must configure the TTS turn system in seat order.
+
+    It no longer switches it ON by itself. Setting boards out is not the start of a game -- the
+    maintainer, 2026-09-05: "the turn order should get started only when a player is seated, now it
+    also starts when I select 4 player setup". The order is written at setup, and the first player to
+    sit down starts it with that order already in place.
+    """
     for arg, n, want in (("nil", 4, ["Red", "Yellow", "Orange", "Teal"]),
                          ("'fivePlayerSetup'", 5, ["Red", "Yellow", "Orange", "Teal", "Green"])):
         rt = fresh(src)
         rt.execute("pcall(function() setupFactionBoards(nil,nil,%s) end) FLUSH(10)" % arg)
         order = list((rt.eval("Turns.order") or {}).values())
-        assert rt.eval("Turns.enable") is True, "%d seats: turn system left off" % n
         assert order == want, "%d seats: order %s, wanted %s" % (n, order, want)
-        assert rt.eval("Turns.turn_color") == "Red", "%d seats: seat 1 does not start" % n
+        assert rt.eval("Turns.enable") is False, "%d seats: turns started with nobody seated" % n
         assert rt.eval("Turns.skip_empty_hands") is False, "%d seats: would skip empty seats" % n
+
+        rt.execute("SEAT('Red') onPlayerChangeColor('Red')")
+        assert rt.eval("Turns.enable") is True, "%d seats: sitting down did not start turns" % n
+        assert list(rt.eval("Turns.order").values()) == want, "%d seats: order lost on seating" % n
+        assert rt.eval("Turns.turn_color") == "Red", "%d seats: seat 1 does not start" % n
 
 
 def t_boards_spawn(src):
@@ -332,7 +342,15 @@ def t_turn_order_reapplies_on_seating(src):
     rt.execute("onPlayerChangeColor('Green')")
     assert rt.eval("Turns.enable") is False, "a seat change before any setup must do nothing"
 
+    # setting boards out is not the start of a game: the order is written, but nothing starts
     rt.execute("rttEnableTurns(4)")
+    assert list(rt.eval("Turns.order").values()) == ["Red", "Yellow", "Orange", "Teal"]
+    assert rt.eval("Turns.enable") is False, "turns started with nobody seated"
+
+    # the first player to sit down starts it, with the order already in place
+    rt.execute("SEAT('Red')")
+    rt.execute("onPlayerChangeColor('Red')")
+    assert rt.eval("Turns.enable") is True, "sitting down did not start the turn system"
     assert list(rt.eval("Turns.order").values()) == ["Red", "Yellow", "Orange", "Teal"]
 
     rt.execute("Turns.turn_color = 'Orange'")
@@ -343,6 +361,15 @@ def t_turn_order_reapplies_on_seating(src):
     rt.execute("Turns.order = {'Teal','Red'}")
     rt.execute("FLUSH(8)")
     assert list(rt.eval("Turns.order").values()) == ["Teal", "Red"], "a manual reorder was overwritten"
+
+    # re-asserting an identical state must be a no-op: TTS chimes every time turns are switched on
+    rt = fresh(src)
+    rt.execute("SEAT('Red') rttEnableTurns(4)")
+    rt.execute("__writes = 0")
+    rt.execute("local mt = {__newindex=function(t,k,v) __writes = __writes + 1 rawset(t,k,v) end}")
+    rt.execute("rttEnableTurns(4)")   # same seat count, same seating: nothing should be written
+    assert rt.eval("Turns.enable") is True and list(rt.eval("Turns.order").values()) \
+        == ["Red", "Yellow", "Orange", "Teal"], "the idempotent path corrupted the order"
 
 
 def t_vagabond_is_published_as_a_faction(src):
