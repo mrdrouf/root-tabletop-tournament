@@ -96,6 +96,9 @@ function getObjectsWithTag(t)
   for _, o in pairs(LIVE) do if not o.__dead and o.hasTag(t) then r[#r+1] = o end end
   return r
 end
+-- the gizmo asks who you are hovering and where you are pointing
+HOVER = {}
+POINTER = {}
 function getAllObjects() local r = {} for _,o in pairs(LIVE) do if not o.__dead then r[#r+1] = o end end return r end
 getObjects = getAllObjects
 function spawnObjectJSON(p)
@@ -163,6 +166,8 @@ for i, c in ipairs(COLORS) do
                [2] = {position = vec{-75, 12, -75 + i}, rotation = vec{0,0,0}, scale = vec{10,5,5}} }
   Player[c] = {
     color = c, seated = false, steam_name = "P_"..c,
+    getHoverObject = function() return HOVER[c] end,
+    getPointerPosition = function() return POINTER[c] or {x=0,y=1,z=0} end,
     getHandTransform = function(n) return HANDS[c][n or 1] end,
     setHandTransform = function(t, n)
       n = n or 1

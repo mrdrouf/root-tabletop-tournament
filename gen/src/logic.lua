@@ -1,13 +1,10 @@
 function onLoad(state)
   pcall(function() rttSnapshotHand2() end)  -- parked hand-2 transforms, restored on every new game
-  pcall(function() rttGizmoLoad(state or "") end)   -- gizmo config; needs no object
-  -- The gizmo answers TTS SCRIPTING BUTTONS, which are bound to the NUMPAD by default -- and a
-  -- MacBook has no numpad (maintainer, 2026-09-04: on a French Mac layout the top-row 0 needs
-  -- Shift and never reaches the gizmo). These two named hotkeys do the same two jobs and can be
-  -- bound to ANY key in Options - Game Keys, so the gizmo is reachable on a laptop keyboard.
+  -- The gizmo answers a TTS SCRIPTING BUTTON, which is numpad-bound by default -- and a MacBook has
+  -- no numpad (maintainer, 2026-09-04: on a French Mac layout the top-row 0 needs Shift and never
+  -- reaches it). One named hotkey does the same job and binds to any key in Options - Game Keys.
   pcall(function()
-    addHotkey("Gizmo: return hovered piece to supply", function(color) onScriptingButtonDown(10, color) end)
-    addHotkey("Gizmo: set supply / destination",       function(color) onScriptingButtonDown(1,  color) end)
+    addHotkey("Gizmo: warrior to / from your supply", function(color) rttGizmoWarrior(color) end)
   end)
   assets = {}
   if self.getName() != "Faction Board" then
@@ -5789,398 +5786,153 @@ end
 
 
 ------------------------------------------------------------------- gizmo --
--- Ginso's Gizmo, PORTED IN rather than spawned. Maintainer: "it should always be there available when
--- spawning the mod, functional but without spawning the item". onScriptingButtonDown is a TTS event
--- that fires in object scripts too, and this script has ZERO runtime dependency on its own object --
--- the only `self` in its 386 lines sits inside a comment -- so it runs unchanged from the setup board.
--- Its onLoad/onSave are renamed to rttGizmoLoad/rttGizmoSave and driven from the board's own hooks.
--- warlord is special, just place next to his supply
-local WARLORD = {
- name = "The Warlord",
- oid = "352369"
-}
+-- Two keystrokes on the warriors of YOUR OWN faction, and nothing else. What used to be here was
+-- the ported Ginso's Gizmo: ~390 lines of "return any hovered component to a supply you configured
+-- first", with per-object destination tracks, saved state and its own error reporting. The
+-- maintainer replaced that spec outright (2026-09-05):
+--
+--   hovering one of your warriors -> it goes back to your supply
+--   hovering nothing              -> one warrior comes out of your supply, at your pointer
+--   nothing in the supply         -> nothing happens
+--
+-- "Yours" is resolved from where you are SEATED. rttPlaceFaction publishes faction -> seat colour
+-- for every faction it places, by both the draft and the manual path (the colour is derived from the
+-- board's own position when the caller does not supply one), so the colour pressing the key
+-- identifies the faction. The faction's blueprint then names its supply bag and its warrior, so
+-- there is no hand-kept table to drift.
 
--- these objects have specific supplies to return to
-local SUPPLIES = {
- Wood = "6d512b",
- ["Cat Warrior"] = "67bcac",
- ["Eyrie Warrior"] = "f18544",
- ["Alliance Warrior"] = "a272b4",
- ["Lizard Cult Warrior"] = "2cc43b",
- ["Riverfolk Warrior"] = "8f5426",
- ["Duchy Warrior"] = "3d1178",
- ["Corvid Warrior"] = "653be4",
- ["Hundreds Warrior"] = "352369",
- ["Keeper Warrior"] = "3ecd38",
- ["Council Warrior"] = "60d78a",
- ["Diaspora Warrior"] = "26cc78",
- ["Knaves Warrior"] = "67bcac",
- -- alliance multistate warriors
- ["Alliance Fox Warrior"] = "a272b4",
- ["Alliance Mouse Warrior"] = "a272b4",
- ["Alliance Rabbit Warrior"] = "a272b4"
-}
-
--- these are tracks of equally spaced objects (or maybe 1 object)
-local TRACKS = {
- -- cats
- ["Saw Mill"] = {x=-9.2, y=0.3, z=-1.265, d=1.75, boardId="52c93d"},
- Workshop = {x=-9.2, y=0.3, z=0.604, d=1.75, boardId="52c93d"},
- Recruiter = {x=-9.2, y=0.3, z=2.4, d=1.75, boardId="52c93d"},
- Keep = {x=-9.6, y=0.4, z=-7.5, d=0, boardId="52c93d"},
- -- eyrie
- Roost = {x=-9.653, y=0.3, z=-0.747, d=1.6, boardId="52af3f"},
- -- lizards
- ["Mouse Garden"] = {x=-4.0, y=0.3, z=3.95, d=1.66, boardId="6a1fe4"},
- ["Rabbit Garden"] = {x=-4.0, y=0.3, z=5.61, d=1.66, boardId="6a1fe4"},
- ["Fox Garden"] = {x=-4.0, y=0.3, z=7.27, d=1.66, boardId="6a1fe4"},
- -- otters
- ["Mouse Trade Post"] = {x=-9.6, y=0.4, z=-7.5, d=0, boardId="22a3b3"},
- ["Rabbit Trade Post"] = {x=-8, y=0.4, z=-7.5, d=0, boardId="22a3b3"},
- ["Fox Trade Post"] = {x=-6.4, y=0.4, z=-7.5, d=0, boardId="22a3b3"},
- Stronghold = {x=-9.6, y=0.4, z=-7.5, d=0, boardId="dbe57b"},
- -- moles
- Citadel = {x=-7.21, y=0.3, z=-2.68, d=1.64, boardId="919e94"},
- Market = {x=-7.21, y=0.3, z=-1.04, d=1.64, boardId="919e94"},
- Tunnel = {x=-9.6, y=0.4, z=-7.5, d=0, boardId="919e94"},
- -- corvids
- Plot = {x=-9.6, y=0.4, z=-7.5, d=0, flip=true, boardId="bcf8d7"},
- -- badgers
- ["Tablet/Figure Waystation"] = {x=-3.95, y=0.3, z=6.8, d=0, boardId="7d2953"},
- ["Jewelry/Tablet Waystation"] = {x=-2.15, y=0.3, z=6.8, d=0, boardId="7d2953", flip=true},
- ["Figure/Jewelry Waystation"] = {x=-0.36, y=0.3, z=6.8, d=0, boardId="7d2953"},
- Relic = {x=-9.6, y=0.4, z=-7.5, d=0, boardId="7d2953", flip=true},
- -- rats
- Stronghold = {x=-9.6, y=0.4, z=-7.5, d=0, boardId="dbe57b"},
- Mob = {x=-8, y=0.4, z=-7.5, d=0, boardId="dbe57b"},
- -- twilight council
- Commune = {x=-3.65, y=0.3, z=0.19, d=1.80, boardId="f443b9"},
- Assembly = {x=-10, y=0.4, z=-7.5, d=0, boardId="f443b9"},
- -- frogs - frog token is for old compat
- ["Frog Token"] = {x=-10, y=0.4, z=-7.5, d=0, boardId="f4ddda"},
- ["Fox Enclave"] = {x=-3.98, y=0.4, z=-2.03, d=1.91, boardId="f4ddda"},
- ["Mouse Enclave"] = {x=-3.98, y=0.4, z=-0.15, d=1.91, boardId="f4ddda"},
- ["Rabbit Enclave"] = {x=-3.98, y=0.4, z= 1.78, d=1.91, boardId="f4ddda"},
- -- knaves
- Hideout = {x=-2.23, y=0.3, z=1.60, d=1.51, boardId="52c93d"},
- -- woodland alliance
- ["Fox Base"] = {x=1.4, y=0.3, z=1.6, d=0, boardId="9a7786"},
- ["Rabbit Base"] = {x=-0.2, y=0.3, z=1.6, d=0, boardId="9a7786"},
- ["Mouse Base"] = {x=-1.8, y=0.3, z=1.6, d=0, boardId="9a7786"},
- Sympathy = {
- boardId="9a7786",
- spots = {
- {x=-9.8, y=0.3, z=5.85},
- {x=-8.2, y=0.3, z=6.55},
- {x=-6.7, y=0.3, z=5.85},
- {x=-5.15, y=0.3, z=6.55},
- {x=-3.6, y=0.3, z=5.85},
- {x=-2.1, y=0.3, z=6.55},
- {x=-0.5, y=0.3, z=5.85},
- {x= 1.05, y=0.3, z=6.55},
- {x= 2.6, y=0.3, z=5.85},
- {x= 4.15, y=0.3, z=6.55}
- }
- }
-}
-
--- custom data to save/load to the object itself, so you can save modded tracks/supplies
-local CUSTOM_DATA = {
- supplies = {},
- tracks = {}
-}
-
--- gets an object by its display name
-local function getObjectsByName(name)
- local arr = {}
- local obj = getAllObjects()
- for _,o in pairs(obj) do
- if o.getName() == name then 
- table.insert(arr,o)
- end
- end
- return arr
+-- faction -> seat colour, as published in Global RTT_SEAT_COLOR
+local function rttSeatColorMap()
+  local m = {}
+  pcall(function()
+    local raw = Global.getVar("RTT_SEAT_COLOR")
+    if type(raw) == "string" and raw ~= "" then
+      local ok, dec = JSON.decode(raw)
+      if type(dec) == "table" then m = dec end
+    end
+  end)
+  return m
 end
 
--- rotates the given vector based on the given y rotation
-local function rotate(rot, v) 
- local a = -rot / 180 * math.pi
- local si = math.sin(a)
- local co = math.cos(a)
- local xx = v.x*co-v.z*si
- local zz = v.x*si+v.z*co
- return {x=xx, y=v.y, z=zz}
+-- which faction does this colour control?
+function rttSeatFaction(color)
+  if color == nil or color == "" then return nil end
+  local found = nil
+  pcall(function()
+    local raw = Global.getVar("RTT_SEAT_COLOR")
+    if type(raw) ~= "string" or raw == "" then return end
+    local dec = JSON.decode(raw)
+    if type(dec) ~= "table" then return end
+    for faction, seat in pairs(dec) do
+      if seat == color then found = faction end
+    end
+  end)
+  return found
 end
 
--- sums the positions together
-local function addPos(guid, v, dx)
- local board = getObjectFromGUID(guid)
- local pos = board.getPosition()
- local rot = board.getRotation()
- v = rotate(rot.y, {x=v.x-dx, y=v.y, z=v.z})
- return pos + v
+-- The supply bag and warrior names come out of the faction's own blueprint: a Custom_Model_Bag
+-- called "<something> Supply", and the piece whose name ends in "Warrior". Reading them beats a
+-- hand-kept table, which would have to list every faction's naming quirk ("Hundreds Supply" for the
+-- rats, "Lizard Cult Warrior" for the lizards) and would rot the moment a faction was added.
+function rttFactionPieceNames(faction)
+  local supply, warrior, firstSupply = nil, nil, nil
+  if faction == nil then return nil, nil end
+  pcall(function()
+    for _, cat in pairs(EVERYTHING) do
+      local def = cat[faction]
+      if def ~= nil and def['data'] ~= nil then
+        -- The warrior first, so the right bag can be recognised by what is inside it. Look at every
+        -- Nickname in the blueprint, not just the top-level pieces: the Alliance keeps ALL of its
+        -- warriors inside the bag, so a top-level-only scan found none for them.
+        for _, v in ipairs(def['data']) do
+          if warrior == nil then
+            for nick in v.json:gmatch('"Nickname":%s*"([^"]*)"') do
+              if warrior == nil and nick:match("Warrior$") then warrior = nick end
+            end
+          end
+        end
+        for _, v in ipairs(def['data']) do
+          local nick = v.json:match('"Nickname":%s*"([^"]*)"')
+          if nick ~= nil and nick:match("Supply$") then
+            if firstSupply == nil then firstSupply = nick end
+            -- A faction can have more than one bag: the Marquise keeps warriors in "Marquise Supply"
+            -- and wood in "Wood Supply", and taking the first match handed out lumber. The warriors'
+            -- bag is the one that CONTAINS a warrior.
+            if supply == nil and warrior ~= nil
+               and v.json:find('"Nickname": "' .. warrior .. '"', 1, true) then
+              supply = nick
+            end
+          end
+        end
+      end
+    end
+  end)
+  return supply or firstSupply, warrior
 end
 
--- gets the location of the coffin helper
-local function getCoffinPos(coffin)
- local x = math.random()*2-1
- local z = math.random()*12-6
- local rot = coffin.getRotation()
- local v = rotate(rot.y, {x=x, y=5, z=z})
- return coffin.getPosition() + v
+local function rttFindByName(name)
+  if name == nil or name == "" then return nil end
+  for _, o in ipairs(getAllObjects()) do
+    if (o.getName() or "") == name then return o end
+  end
+  return nil
 end
 
--- checks if the given object is currently on the board
-local function isOnBoard(color, o, boardId)
- local board = getObjectFromGUID(boardId)
- if board == nil then
- broadcastToColor(
- "Failed to locate board for " .. o.getName() .. ", use NUMPAD 1 to set the center of the right most track location",
- color, {r=1, g=0, b=0}
- )
- return true -- don't try placing on board
- end
- local v = o.getPosition() - board.getPosition()
- local rot = board.getRotation()
- v = rotate(-rot.y, v)
- return math.abs(v.x) < 12 and math.abs(v.z) < 9
+-- The whole gizmo.
+function rttGizmoWarrior(color)
+  local faction = rttSeatFaction(color)
+  if faction == nil then
+    broadcastToColor("Gizmo: no faction is seated in your colour yet.", color, { r = 1, g = 0.6, b = 0.2 })
+    return
+  end
+  local supplyName, warriorName = rttFactionPieceNames(faction)
+  local bag = rttFindByName(supplyName)
+  if bag == nil then
+    broadcastToColor("Gizmo: no " .. tostring(supplyName) .. " on the table.", color, { r = 1, g = 0.6, b = 0.2 })
+    return
+  end
+
+  local hovered = nil
+  pcall(function() hovered = Player[color].getHoverObject() end)
+
+  -- hovering one of YOUR warriors: put it back
+  if hovered ~= nil and warriorName ~= nil and (hovered.getName() or "") == warriorName then
+    pcall(function() bag.putObject(hovered) end)
+    return
+  end
+
+  -- Hovering SOMEBODY ELSE'S warrior does nothing at all. The instruction is "when the mouse is on
+  -- one of the warriors of your faction it goes back", and "if the mouse is not hovering over any
+  -- warrior it pulls one out" -- an enemy warrior is neither, and quietly spawning one of yours
+  -- while you point at an opponent's piece would be a surprise.
+  if hovered ~= nil and (hovered.getName() or ""):match("Warrior$") then return end
+
+  -- hovering nothing, or something that is not a warrior: take one out, at your pointer
+  local n = 0
+  pcall(function() n = bag.getQuantity() end)
+  if n <= 0 then return end                       -- empty supply: nothing happens, by instruction
+
+  local pos = nil
+  pcall(function() pos = Player[color].getPointerPosition() end)
+  if pos == nil then
+    local bp = bag.getPosition()
+    pos = { x = bp.x, y = bp.y + 2, z = bp.z }
+  else
+    pos = { x = pos.x, y = pos.y + 1.5, z = pos.z }
+  end
+  -- tagged like every other faction piece, so the next new game clears it with the rest
+  pcall(function()
+    bag.takeObject({
+      position = pos, smooth = true,
+      callback_function = function(o) pcall(function() o.addTag("RTT Faction") end) end
+    })
+  end)
 end
 
--- counts the number of objects on the board
-local function countItemsOnBoard(color, name, id)
- local boardPos = getObjectFromGUID(id).getPosition()
- local all = getObjectsByName(name)
- local c = 0
- for _, o in pairs(all) do
- local pos = o.getPosition()
- local diff = pos-boardPos
- local dist = diff.x * diff.x + diff.z * diff.z
- if isOnBoard(color, o, id) then
- c = c +1
- end
- end
- return c
-end
-
--- gets the relative position to an object based on the pointers p1osition, rotation sensitive
-local function getRelativePos(color, object)
- local objPos = object.getPosition()
- local pointPos = Player[color].getPointerPosition()
- local globalOffset = {x = pointPos.x - objPos.x, y = 0.3, z = pointPos.z - objPos.z}
- return rotate(object.getRotation().y, globalOffset)
-end
-
--- length of the string "warrior"
-local WARRIOR_LENGTH = string.len("Warrior") + 1
-
--- state for each player currently in the editor
-local STATES = {}
-
-local function getState(color, key)
- if STATES[color] == nil then
- return nil
- end
- return STATES[color][key]
-end
-
--- called when the gizmo is loaded to retrieve data
-function rttGizmoLoad(state)
- -- ignore empty
- if state ~= "" then
- -- decode from JSON
- local data = JSON.decode(state)
- if type(data) == "table" then
- -- ensure required tables are present
- if data.supplies == nil then
- data.supplies = {}
- end
- if data.tracks == nil then
- data.tracks = {}
- end
- CUSTOM_DATA = data
- return
- end
- broadcastToAll("Failed to load data from Gizmo's state", {r=1, g=0, b=0})
- end
- -- reset state on fallback
- CUSTOM_DATA = {
- supplies = {},
- tracks = {}
- }
-end
-
--- called when the gizmo is saved to persist data
-function rttGizmoSave()
- return JSON.encode(CUSTOM_DATA)
-end
-
-function onScriptingButtonDown(idx,color)
- -- numpad 1: save as destination
- if idx == 1 then
- -- if we have a last object, try to save it somewhere
- local lastName = getState(color, "lastName")
- if lastName ~= nil then
- local o = Player[color].getHoverObject()
- 
- -- if we have a first position, we are selecting a second one
- local firstPos = getState(color, "firstPos")
- if firstPos ~= nil then
- local boardId = getState(color, "boardId")
- -- if off board, single position
- if o == nil or o.getGUID() ~= boardId then
- CUSTOM_DATA.tracks[lastName] = { x = firstPos.x, y = 0.3, z = firstPos.z, d = 0, boardId = boardId }
- broadcastToColor("Saved target position for " .. lastName .. " as " .. firstPos.x .. ", " .. firstPos.z, color, {r=1, g=1, b=1})
- -- if on board, track
- else
- local secondPos = getRelativePos(color, o)
- local d = secondPos.x - firstPos.x
- CUSTOM_DATA.tracks[lastName] = { x = firstPos.x, y = 0.3, z = firstPos.z, d = d, boardId = boardId }
- broadcastToColor(
- "Saved target position for " .. lastName .. " as " .. firstPos.x .. ", " .. firstPos.z .. " with offset " .. d,
- color, {r=1, g=1, b=1}
- )
- end
- STATES[color] = nil
- -- if no object, clear state
- elseif o == nil then
- STATES[color] = nil
- broadcastToColor("Canceled setting destination for " .. lastName, color, {r=1, g=1, b=1})
- else
- 
- -- if its a supply, save it as a supply
- if o.getQuantity() ~= -1 then
- CUSTOM_DATA.supplies[lastName] = o.getGUID()
- broadcastToColor("Saved supply " .. o.getName() .. " as destination for " .. lastName, color, {r=1, g=1, b=1})
- STATES[color] = nil
- else
- STATES[color].boardId = o.getGUID()
- STATES[color].firstPos = getRelativePos(color, o)
- broadcastToColor(
- "Selected first location for " .. lastName
- .. ". Select center of second right most track position to setup a track, or select anywhere off the board for a single position.",
- color, {r=1, g=1, b=1}
- )
- end
- end
- else
- -- position debugging
- local o = Player[color].getHoverObject()
- local oriented = getRelativePos(color, o)
- broadcastToColor("Relative Position is " .. oriented.x .. "," .. oriented.z, color, {r=1, g=1, b=1})
- end
- 
- -- numpad 0: return to supply
- elseif idx == 10 then
- -- ensure something is hovered
- local o = Player[color].getHoverObject()
- if o == nil then return end
- 
- -- use the name to determine where it belongs
- local name = o.getName()
- if name == "" then
- broadcastToColor("Objects with no name are not supported, give the object a name to set target",color, {r=1, g=0, b=0})
- STATES[color] = nil
- return
- end
- STATES[color] = {lastName = name}
- local track = CUSTOM_DATA.tracks[name] or TRACKS[name]
- local guid = CUSTOM_DATA.supplies[name] or SUPPLIES[name]
- 
- -- if its a warrior, try to find the supply if missing
- local isWarrior = string.match(name, "Warrior$")
- if isWarrior and (guid == nil or getObjectFromGUID(guid) == nil) then
- -- handle multistate warriors by ignoring the part between the quotes
- local _, _, supplyName = name:find("^(.+) \".+\" Warrior$")
- if supplyName == nil then
- supplyName = name:sub(1, name:len()-WARRIOR_LENGTH)
- end
- supplyName = supplyName .. " Supply"
- local possibleSupplies = getObjectsByName(supplyName)
- -- found a single supply with the name? store it
- if #possibleSupplies == 1 then
- if possibleSupplies[1].getQuantity() == -1 then
- broadcastToColor(
- "Object named '" .. supplyName .. "' is not a valid supply for " .. name .. ", use NUMPAD 1 to set a supply",
- color, {r=1, g=0, b=0}
- )
- return
- end
- broadcastToColor("Automatically found supply for " .. name, color, {r=1, g=1, b=1})
- guid = possibleSupplies[1].getGUID()
- CUSTOM_DATA.supplies[name] = guid
- elseif #possibleSupplies == 0 then
- broadcastToColor("No supply named '" .. supplyName .. "' exists for " .. name .. ", use NUMPAD 1 to set a supply", color, {r=1, g=0, b=0})
- return
- else
- broadcastToColor(
- "Multiple possible supplies named '" .. supplyName .. "' exists for " .. name .. ", use NUMPAD 1 to set a supply",
- color, {r=1, g=0, b=0}
- )
- return
- end
- end
- 
- -- warlord lives next to the hundreds supply
- if name == WARLORD.name then
- local bag = getObjectFromGUID(WARLORD.oid)
- local pos = bag.getPosition()
- local v = rotate(bag.getRotation().y, {x=3, y=0, z=-1})
- o.setPosition(pos + v)
- -- next, try a supply
- elseif guid ~= nil then
- -- ensure the supply is on the board
- local supply = getObjectFromGUID(guid)
- if supply == nil then
- broadcastToColor("Supply for " .. name .. " is not on the board", color, {r=1, g=0, b=0})
- return
- end
- -- go to coffin first if open and the thing is not in the coffin
- local coffin = getObjectFromGUID("8a274d")
- if coffin ~= nil and isWarrior then
- local p1 = o.getPosition()
- local p2 = coffin.getPosition()
- local dx = p1.x-p2.x
- local dz = p1.z-p2.z
- local d = dx*dx+dz*dz
- if d > 45 then 
- o.setPosition(getCoffinPos(coffin))
- broadcastToAll(Player[color].steam_name .. " moved " .. name .. " to coffin", stringColorToRGB(color))
- else 
- supply.putObject(o) 
- broadcastToAll(Player[color].steam_name .. " removed " .. name .. " from coffin", stringColorToRGB(color))
- end
- else
- -- return to supply otherwise
- supply.putObject(o)
- broadcastToAll(Player[color].steam_name .. " removed " .. name, stringColorToRGB(color))
- end
- -- next, try a track
- elseif track ~= nil then
- if isOnBoard(color, o, track.boardId) then return end
- local n = countItemsOnBoard(color, name, track.boardId)
- local pos
- if track.spots ~= nil then
- pos = addPos(track.boardId, track.spots[n+1],0)
- else
- pos = addPos(track.boardId, track, -n * track.d)
- end
- o.setPosition(pos)
- local rotation = getObjectFromGUID(track.boardId).getRotation()
- if track.flip then
- rotation.z = rotation.z + 180
- end
- o.setRotation(rotation)
- broadcastToAll(Player[color].steam_name .. " removed " .. name, stringColorToRGB(color))
- else
- broadcastToColor(
- "This object is not supported, use NUMPAD 1 to set the supply or the center of the right most track location",
- color, {r=1, g=0, b=0}
- )
- end
- end
+-- TTS scripting buttons are numpad-bound, and a laptop has no numpad -- onLoad also registers this
+-- as a named hotkey, bindable to any key in Options - Game Keys.
+function onScriptingButtonDown(idx, color)
+  if idx == 10 then pcall(function() rttGizmoWarrior(color) end) end
 end
 
 
--- the board persists the gizmo's custom supply/track config, since the object that used to own
--- that state no longer exists.
-function onSave() return rttGizmoSave() end

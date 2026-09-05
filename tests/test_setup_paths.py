@@ -404,6 +404,71 @@ def t_vagabond_is_published_as_a_faction(src):
     assert rt.eval("rttFactionKey([[Marquise de Cat]])") == "Marquise de Cat"
 
 
+def t_gizmo_warrior_to_and_from_your_supply(src):
+    """The gizmo, per the maintainer's spec (2026-09-05), and nothing else.
+
+      hovering one of YOUR warriors -> back into your supply
+      hovering nothing              -> one comes out, at your pointer
+      hovering an ENEMY warrior     -> nothing: it is neither of the two cases
+      empty supply                  -> nothing
+      a colour with no faction      -> nothing
+
+    Whose supply is resolved from where you sit: RTT publishes faction -> seat colour, and the
+    faction's own blueprint names the bag and the warrior, so no table has to be maintained here.
+    """
+    rt = fresh(src)
+    rt.execute("""
+      Global.setVar("RTT_SEAT_COLOR", JSON.encode({ ["Lord of the Hundreds"] = "Red" }))
+      BAG = MKOBJ("Hundreds Supply", {0,1,0}, {})
+      BAG.__n = 3
+      BAG.getQuantity = function() return BAG.__n end
+      TOOK, PUT, TAGGED = 0, 0, 0
+      BAG.takeObject = function(p)
+        TOOK = TOOK + 1 BAG.__n = BAG.__n - 1
+        local o = MKOBJ("Hundreds Warrior", p.position, {})
+        if p.callback_function then p.callback_function(o) end
+        if o.hasTag("RTT Faction") then TAGGED = TAGGED + 1 end
+      end
+      BAG.putObject = function(o) PUT = PUT + 1 BAG.__n = BAG.__n + 1 end
+      MINE = MKOBJ("Hundreds Warrior", {5,1,5}, {})
+      THEIRS = MKOBJ("Eyrie Warrior", {6,1,6}, {})
+    """)
+    assert rt.eval('rttSeatFaction("Red")') == "Lord of the Hundreds"
+    assert rt.eval('rttSeatFaction("Teal")') is None
+
+    rt.execute('HOVER["Red"] = MINE  rttGizmoWarrior("Red")')
+    assert (rt.eval("PUT"), rt.eval("TOOK")) == (1, 0), "your own warrior did not go back"
+
+    rt.execute('HOVER["Red"] = nil  rttGizmoWarrior("Red")')
+    assert (rt.eval("PUT"), rt.eval("TOOK")) == (1, 1), "hovering nothing did not take one out"
+    assert rt.eval("TAGGED") == 1, "the warrior taken out was not tagged, so a new game keeps it"
+
+    rt.execute('HOVER["Red"] = THEIRS  rttGizmoWarrior("Red")')
+    assert (rt.eval("PUT"), rt.eval("TOOK")) == (1, 1), "an enemy warrior must do nothing"
+
+    rt.execute('HOVER["Red"] = nil  BAG.__n = 0  rttGizmoWarrior("Red")')
+    assert rt.eval("TOOK") == 1, "an empty supply must do nothing"
+
+    rt.execute('BAG.__n = 5  rttGizmoWarrior("Teal")')
+    assert (rt.eval("PUT"), rt.eval("TOOK")) == (1, 1), "a colour with no faction must do nothing"
+
+
+def t_gizmo_reads_every_faction_from_its_blueprint(src):
+    """Supply and warrior names come out of the blueprints, so no hand-kept table can rot."""
+    rt = fresh(src)
+    want = {
+        "Marquise de Cat": ("Marquise Supply", "Cat Warrior"),
+        "Woodland Alliance": ("Alliance Supply", "Alliance Warrior"),
+        "The Lizard Cult": ("Lizard Supply", "Lizard Cult Warrior"),
+        "Lord of the Hundreds": ("Hundreds Supply", "Hundreds Warrior"),
+        "Keepers in Iron": ("Keeper Supply", "Keeper Warrior"),
+        "Knaves of the Deepwood": ("Knaves Supply", "Knaves Warrior"),
+    }
+    for fac, (sup, war) in want.items():
+        got = rt.eval("{rttFactionPieceNames([[%s]])}" % fac)
+        assert (got[1], got[2]) == (sup, war), "%s -> %s/%s" % (fac, got[1], got[2])
+
+
 CASES = [
     ("manual path drives the turn system",   t_manual_turn_order),
     ("manual path spawns 4 / 5 boards",      t_boards_spawn),
@@ -423,6 +488,8 @@ CASES = [
     ("enclave aims at the suit circle",       t_enclave_targets_the_suit_marker),
     ("turn order re-applies on seating",      t_turn_order_reapplies_on_seating),
     ("vagabond published as a faction",       t_vagabond_is_published_as_a_faction),
+    ("gizmo: warrior to/from supply",         t_gizmo_warrior_to_and_from_your_supply),
+    ("gizmo reads every blueprint",           t_gizmo_reads_every_faction_from_its_blueprint),
 ]
 
 
