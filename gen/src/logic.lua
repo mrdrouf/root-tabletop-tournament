@@ -1,4 +1,44 @@
+-- THE RECORD SURVIVES A SAVE, A RELOAD AND A CRASH. TTS Globals do not -- they are wiped on load --
+-- but an object's own onSave state is written into the save file and handed back to onLoad. There was
+-- no onSave here at all, so a resumed game came back with factions on the table and no idea who was
+-- sitting where: the gizmo answered "no faction seated in your colour" and the box score silently
+-- fell back to guessing rows from hand-zone geometry. Persisting the seats fixes both, and re-mirrors
+-- them into the Globals so anything still reading those sees the same truth.
+function onSave()
+  local ok, enc = pcall(function()
+    local seats = {}
+    for i, s in ipairs(RTT_SEATS or {}) do
+      if s ~= nil and s.pos ~= nil then
+        seats[#seats + 1] = { i = i, pos = { s.pos[1], s.pos[2] }, color = s.color,
+                              faction = s.faction, owner = s.owner, hand = s.hand }
+      end
+    end
+    return JSON.encode({ v = 1, run = RTT_RUN_ID or 0, turnSeats = RTT_TURN_SEATS, seats = seats })
+  end)
+  if ok then return enc end
+  return ""
+end
+
 function onLoad(state)
+  -- Restore the seat record BEFORE anything else: the gizmo hotkey below and every later publish read
+  -- it. Boards are not restored (the objects are re-created by TTS with their own guids and are found
+  -- again by tag); position, colour, faction and owner are, which is everything the record is for.
+  pcall(function()
+    if type(state) ~= "string" or state == "" then return end
+    local d = JSON.decode(state)
+    if type(d) ~= "table" or type(d.seats) ~= "table" then return end
+    RTT_SEATS = {}
+    for _, e in ipairs(d.seats) do
+      if type(e) == "table" and type(e.pos) == "table" then
+        RTT_SEATS[e.i or (#RTT_SEATS + 1)] = { board = nil, pos = { e.pos[1], e.pos[2] },
+                                               color = e.color, faction = e.faction,
+                                               owner = e.owner, hand = e.hand }
+      end
+    end
+    RTT_RUN_ID     = d.run or RTT_RUN_ID
+    RTT_TURN_SEATS = d.turnSeats or RTT_TURN_SEATS
+    if #RTT_SEATS > 0 then rttPublishSeats() end
+  end)
   pcall(function() rttSnapshotHand2() end)  -- parked hand-2 transforms, restored on every new game
   -- The gizmo answers a TTS SCRIPTING BUTTON, which is numpad-bound by default -- and a MacBook has
   -- no numpad (maintainer, 2026-09-04: on a French Mac layout the top-row 0 needs Shift and never
@@ -2026,8 +2066,21 @@ end
 
 function rttEnableTurns(nseats, keepTurn)
   nseats = math.max(1, nseats or 4)
+  -- The order is the SEATS' OWN COLOURS, clockwise from the bottom-right corner -- read off the
+  -- table rather than tabulated. It used to be RTT_SETUP_COLORS[1..nseats], which forced both the
+  -- colours AND the going-round order to a fixed list, and was the reason a wrong seat/spot index
+  -- could put a player in someone else's turn slot. rttSeatOrderIdx is geometric, so it is right for
+  -- any seat count and for boards a player placed by hand.
+  -- Falls back to the fixed list only when there is no seat record at all (a map/deck button pressed
+  -- before any game is set up), which preserves the old pre-game behaviour the tests pin.
   local torder = {}
-  for i = 1, nseats do torder[#torder + 1] = RTT_SETUP_COLORS[i] end
+  for _, i in ipairs(rttSeatOrderIdx()) do
+    local c = RTT_SEATS[i] and RTT_SEATS[i].color
+    if c ~= nil and c ~= "" then torder[#torder + 1] = c end
+  end
+  if #torder == 0 then
+    for i = 1, nseats do torder[#torder + 1] = RTT_SETUP_COLORS[i] end
+  end
   if #torder == 0 then return end
   RTT_TURN_SEATS = nseats               -- remembered so a later seat change can re-apply the order
 
@@ -2085,11 +2138,19 @@ end
 -- Before this, rttEnableTurns ran ONCE per setup and nothing ever touched Turns again, so the
 -- second half was already true and the first half was missing. This is the only place that
 -- re-applies, so a manual reorder still survives everything except somebody taking a seat.
+-- A colour change does NOT move anybody's seat. In TTS the hand, its cards and the slot in
+-- Turns.order all belong to the COLOUR, so a player changing colour has picked up a different seat,
+-- not relabelled themselves -- and the mod deliberately does not chase them. Their old seat keeps its
+-- faction, its cards and its turn slot, waiting for them to take that colour back. That is exactly
+-- what makes a disconnect/reconnect work with no special handling.
+-- All this does is re-assert the order (a colour freed or taken can change what TTS will step
+-- through) and re-publish, so the box score sees the same truth the board holds.
 function onPlayerChangeColor(player_color)
   if RTT_TURN_SEATS == nil then return end          -- no game set up yet: nothing to re-apply
   local keep = nil
   pcall(function() keep = Turns.turn_color end)
   pcall(function() rttEnableTurns(RTT_TURN_SEATS, keep) end)
+  pcall(function() rttPublishSeats() end)
 end
 
 function rttClearGameObjects()
@@ -2126,7 +2187,11 @@ function rttResetRunState()
   RTT_CAP_SPAWN_N    = 0
   RTT_CAP_ITEM_N     = 0
   RTT_CAP_WARRIOR_N  = 0
-  for _, k in ipairs({ "RTT_SEAT_POS", "RTT_SEAT_COLOR", "RTT_SEAT_PLAYER" }) do
+  -- The seat record itself, not just its publication. The ranked path happened to clear RTT_SEATS in
+  -- rttSpawnSelectors, but the manual path never did, so seats piled up across games in one session.
+  RTT_SEATS      = {}
+  RTT_BOARD_SEAT = {}
+  for _, k in ipairs({ "RTT_SEAT_POS", "RTT_SEAT_COLOR", "RTT_SEAT_PLAYER", "RTT_SEAT_RECORD" }) do
     pcall(function() Global.setVar(k, JSON.encode({})) end)
   end
 end
@@ -3316,6 +3381,168 @@ RTT_HAND_SCALE     = { 20, 6, 4 }                                              -
 RTT_CARDID_FOR_N   = { 800, 801, 802, 805, 806 }                              -- seat N -> "Player N" order-card CardID
 RTT_ORDER_CARD_NUM = { [800]=1, [801]=2, [802]=3, [805]=4, [806]=5 }           -- inverse: order-card CardID -> its number
 
+-- ==== THE SEAT RECORD ======================================================
+-- ONE record answers "who sits where, in what colour, playing what", and it is written when
+-- something actually happens -- never re-derived on a timer, never guessed from geometry.
+--
+-- What this replaced got the mapping WRONG, deterministically, in every 4- and 5-player draft
+-- (tester, 2026-09-05: "it's assuming player 4 is player 3 since they were able to spawn p3
+-- warriors with 0"). Two different numberings existed: RTT_POS numbers the six board SPOTS, and
+-- RTT_SETUP_COLORS was indexed by PLAYER NUMBER, with RTT_LAYOUT mapping one to the other.
+-- rttPlaceFaction found the nearest SPOT and then indexed the colour table with that spot number,
+-- never undoing RTT_LAYOUT -- so the published colour was right only where the layout happens to be
+-- the identity (1 and 3 players) and wrong at 2, 4, 5 and 6. Both consumers read that note: the
+-- gizmo to decide which faction you control, and the box score, which treats it as authoritative and
+-- marks the colour used so its own geometry cannot repair it.
+--
+-- The fix is not a corrected lookup, it is deleting the lookup. A seat's position is READ from where
+-- its board actually stands; nothing is matched against a table of expected spots. That also makes
+-- the manual paths work for free: a Faction Select board dragged anywhere is just a seat at that
+-- position, not a special case.
+--
+-- WHY COLOUR IS STORED, and is the seat rather than a label on a person (maintainer, 2026-09-05):
+-- in TTS the HAND belongs to the COLOUR, not to the player -- so do the cards in it, and so does the
+-- slot in Turns.order. Changing colour is therefore not relabelling somebody, it is picking up a
+-- different seat, with different cards. That is exactly why a disconnect/reconnect works: the player
+-- comes back, takes their colour again, and their hand, their cards and their turn slot are all
+-- still there. So the seat owns the colour, and the mod never chases a player who moves.
+
+-- Clockwise around the table from the BOTTOM-RIGHT corner, which is +x/-z = RTT_POS[1]. This is the
+-- single definition of turn order (maintainer: "turn order is decided clockwise by the position from
+-- the first player who's the closest to the bottom right corner"). Computing it from real positions
+-- rather than tabulating it means it is right for any number of seats and for boards placed by hand
+-- -- and it silently fixes RTT_LAYOUT[6], which is NOT clockwise ({1,2,5,6,4,3} where clockwise is
+-- {1,5,2,4,6,3}); that entry is unreachable today (no button asks for 6 seats) but was a trap.
+-- TTS runs Lua 5.2, where math.atan2 exists; the test harness is 5.5, where it was removed.
+local function rttAtan2(y, x)
+  if math.atan2 ~= nil then return math.atan2(y, x) end
+  return math.atan(y, x)
+end
+
+function rttSeatClockwise(x, z)
+  local a = rttAtan2(RTT_POS[1][2], RTT_POS[1][1]) - rttAtan2(z, x)
+  local two = 2 * math.pi
+  a = a % two
+  if a < 0 then a = a + two end
+  return a
+end
+
+-- seat indices in turn order. Ties (two boards at the same angle) fall back to the index so the
+-- order is total and stable -- an unstable comparator makes table.sort's result undefined.
+function rttSeatOrderIdx()
+  local idx = {}
+  for i, s in ipairs(RTT_SEATS or {}) do
+    if s ~= nil and s.pos ~= nil then idx[#idx + 1] = i end
+  end
+  local ang = {}
+  for _, i in ipairs(idx) do ang[i] = rttSeatClockwise(RTT_SEATS[i].pos[1], RTT_SEATS[i].pos[2]) end
+  table.sort(idx, function(a, b)
+    if math.abs(ang[a] - ang[b]) > 1e-9 then return ang[a] < ang[b] end
+    return a < b
+  end)
+  return idx
+end
+
+-- Find the seat whose board stands at (x,z), or make one there. The tolerance is generous because
+-- the six spawn spots are >= 92 apart and a selector board is wide: anything within 12 is the same
+-- seat, anything else is a new one. This is what lets the draft, the 4/5-player setup boards and a
+-- single Faction Select board dragged to an arbitrary spot all travel the same code path.
+function rttSeatAt(x, z, create)
+  RTT_SEATS = RTT_SEATS or {}
+  local best, bd = nil, nil
+  for i, s in ipairs(RTT_SEATS) do
+    if s ~= nil and s.pos ~= nil then
+      local d = (s.pos[1] - x) ^ 2 + (s.pos[2] - z) ^ 2
+      if bd == nil or d < bd then best, bd = i, d end
+    end
+  end
+  if best ~= nil and bd <= 144 then return best end
+  if not create then return nil end
+  RTT_SEATS[#RTT_SEATS + 1] = { board = nil, pos = { x, z }, color = nil, faction = nil, owner = nil,
+                                hand = rttHandForPos(x, z) }
+  return #RTT_SEATS
+end
+
+-- The hand transform for a seat at (x,z). The six spawn spots have baked transforms (RTT_SEAT_HAND);
+-- a board somewhere else gets one derived the same way the baked ones were -- 18 further out from the
+-- table on its own side, facing in.
+function rttHandForPos(x, z)
+  for i, p in ipairs(RTT_POS) do
+    if (p[1] - x) ^ 2 + (p[2] - z) ^ 2 <= 144 then return RTT_SEAT_HAND[i] end
+  end
+  return { pos = { x, 14.62, z + ((z > 0) and 18 or -18) }, rot = { 0, (z > 0) and 180 or 0, 0 } }
+end
+
+-- A colour no human is sitting in and no other seat has taken. An empty seat still holds a faction
+-- and still takes a turn, so it needs one; 10 colours against at most 6 seats means this cannot run
+-- out. Deterministic order, so the same table always produces the same assignment.
+function rttFreeSeatColor()
+  local taken = {}
+  pcall(function()
+    for _, pl in ipairs(Player.getPlayers()) do
+      if pl.color ~= nil then taken[pl.color] = true end
+    end
+  end)
+  for _, s in ipairs(RTT_SEATS or {}) do
+    if s ~= nil and s.color ~= nil then taken[s.color] = true end
+  end
+  for _, c in ipairs(RTT_ALL_COLORS) do
+    if not taken[c] then return c end
+  end
+  return nil
+end
+
+-- Give every seat a colour: the colour of the human sitting at it, or a free one if nobody is. Only
+-- ever FILLS a gap -- a seat that already has a colour keeps it, because that colour owns the hand,
+-- the cards and the turn slot, and reassigning it would take a player's cards away.
+function rttBindSeatColors()
+  for _, s in ipairs(RTT_SEATS or {}) do
+    if s ~= nil and s.color == nil then s.color = rttFreeSeatColor() end
+  end
+end
+
+-- The canonical record, in turn order. This is what leaves the board: published to Globals for
+-- anything that reads them and pushed straight at the box score.
+function rttSeatRecord()
+  local out = { run = RTT_RUN_ID or 0, seats = {} }
+  for _, i in ipairs(rttSeatOrderIdx()) do
+    local s = RTT_SEATS[i]
+    out.seats[#out.seats + 1] = {
+      pos = { s.pos[1], s.pos[2] },
+      color = s.color or "",
+      faction = s.faction or "",
+      owner = s.owner or "",
+    }
+  end
+  return out
+end
+
+-- Publish. The three Globals stay because other objects (and older box-score bakes) read them, but
+-- they are now WRITTEN FROM THE ONE RECORD instead of being three independently-derived guesses.
+-- The push is what actually matters: the sheet stores what it is given and stops re-deriving.
+function rttPublishSeats()
+  local rec = rttSeatRecord()
+  local pos, col, own = {}, {}, {}
+  for _, e in ipairs(rec.seats) do
+    if e.faction ~= "" then
+      pos[e.faction] = { e.pos[1], e.pos[2] }
+      if e.color ~= "" then col[e.faction] = e.color end
+      if e.owner ~= "" then own[e.faction] = e.owner end
+    end
+  end
+  pcall(function() Global.setVar("RTT_SEAT_POS", JSON.encode(pos)) end)
+  pcall(function() Global.setVar("RTT_SEAT_COLOR", JSON.encode(col)) end)
+  pcall(function() Global.setVar("RTT_SEAT_PLAYER", JSON.encode(own)) end)
+  pcall(function() Global.setVar("RTT_SEAT_RECORD", JSON.encode(rec)) end)
+  -- Fire-and-forget at the sheet. It may not exist yet (the box score spawns with the map, factions
+  -- come later), which is why the sheet also PULLS this record on its own onLoad.
+  pcall(function()
+    for _, o in ipairs(getObjectsWithTag(RTT_BOXSCORE_TAG)) do
+      pcall(function() o.call("rttSeatPush", rec) end)
+    end
+  end)
+end
+
 function rttSpawnSelectors()
   for _, o in ipairs(getObjectsWithTag(RTT_SELECTOR_TAG)) do rttDestroyUI(o) end
   RTT_CLONES = {}
@@ -3333,19 +3560,28 @@ function rttSpawnSelectors()
       callback_function = function(o) o.setLock(true) o.addTag(RTT_SELECTOR_TAG) end
     })
     RTT_BOARD_SEAT[board.getGUID()] = i
-    RTT_SEATS[i] = { board = board, color = nil, pos = p, hand = RTT_SEAT_HAND[pi] }
+    -- pos is a COPY: `p` is RTT_POS[pi] itself, and a seat that aliased the spot table would
+    -- corrupt it for every later game the moment anything wrote through s.pos.
+    RTT_SEATS[i] = { board = board, color = nil, pos = { p[1], p[2] }, hand = RTT_SEAT_HAND[pi],
+                     faction = nil, owner = nil }
   end
 end
 
--- Seat by TURN-ORDER CARD, restoring the base placePlayer path (changeColor + base handPositions
--- geometry + base handScale) but TRIGGERED at turn-order time instead of on faction pick. ONE
--- shuffle sets the turn order; each player is seated at the seat matching their card's number and
--- then handed the matching "Player N" card, so it lands in the seated hand (not the off-table reset
--- strip at x=-77.5 that looked like "trash"). Uses the base's exact SAFE sequence: kick everyone to
--- Grey FIRST, then a FRESH getPlayers() loop matched by steam_name -- a pre-kick Player ref is stale
--- after the colour change, which is why capturing refs then kicking would seat nobody.
+-- Seat by TURN-ORDER CARD. ONE shuffle sets the order; each player is assigned the seat matching
+-- their card's number and handed the matching "Player N" card, so it lands in their own hand.
+--
+-- NOBODY IS RECOLOURED (maintainer, 2026-09-05: "players join the game, they can pick their color,
+-- this should never be forced"). This used to copy the base mod's placePlayer: kick the whole table
+-- to Grey, then changeColor everyone into RTT_SETUP_COLORS[seat]. In TTS the HAND -- and the cards in
+-- it, and the slot in Turns.order -- belongs to the COLOUR, so forcing a colour takes a player's hand
+-- away from them and hands it to whoever gets that colour next. What the draft actually needs to
+-- assign is a SEAT, not a colour: the seat then takes the colour its player already has, and that
+-- player's own hand zone is moved behind their board. Nothing is taken from anyone.
+--
+-- The kick is gone with it, and so is the stale-ref hazard that made it necessary: without a
+-- changeColor, a Player ref captured before this loop is still valid afterwards.
 function rttSeatPlayers()
-  -- real humans (steam_names survive the kick; Player refs don't).
+  -- real humans. Grey and Black are the spectator seats in this mod and never play.
   local humans = {}
   for _, p in ipairs(Player.getPlayers()) do
     if p.seated and p.color ~= "Grey" and p.color ~= "Black" then humans[#humans + 1] = p.steam_name end
@@ -3354,8 +3590,7 @@ function rttSeatPlayers()
   -- everyone -- including a lone tester, who previously always landed in seat 1 / "First Player".
   -- Seat NUMBER = each human's position in RTT_ORDER (the SINGLE shuffle done once in rttDealOrder,
   -- which also drives the Roster and box-score order). So the "Player N" turn-order card a person is
-  -- dealt now MATCHES the order they are shown in. Previously a SECOND independent shuffle handed out
-  -- the cards, so 'First Player' and box-score seat 1 were usually different people (audit HIGH).
+  -- dealt MATCHES the order they are shown in.
   local seatOf = {}                                      -- steam_name -> seat number
   for k, e in ipairs(RTT_ORDER or {}) do
     if e.name ~= nil and e.name ~= "" then seatOf[e.name] = k end
@@ -3369,34 +3604,40 @@ function rttSeatPlayers()
       seatOf[name] = freeN; usedSeat[freeN] = true
     end
   end
-  pcall(function() kickPlayersFromSeats() end)           -- base: everyone -> Grey (frees the colours; no hand reset)
   local seated = {}                                      -- [seat N] = seat colour, for the deferred card
-  for _, p in ipairs(Player.getPlayers()) do             -- FRESH, post-kick (base pattern): refs are valid
+  for _, p in ipairs(Player.getPlayers()) do
     local sN = seatOf[p.steam_name]
     if sN ~= nil then
       local seat = RTT_SEATS[sN]
       if seat ~= nil and seat.board ~= nil and seat.hand ~= nil then
-        local color = RTT_SETUP_COLORS[sN]
-        pcall(function() p.changeColor(color) end)       -- base placePlayer op 1: put the player INTO the seat colour
-        pcall(function()                                 -- base placePlayer op 2: move that colour's hand zone (+ base scale)
+        -- THE SEAT TAKES THE PLAYER'S OWN COLOUR. Their hand follows them to their board, which is
+        -- what makes a later reconnect work: they take that colour again and hand, cards and turn
+        -- slot are all exactly where they left them.
+        local color = p.color
+        seat.color = color
+        seat.owner = p.steam_name
+        pcall(function()
           Player[color].setHandTransform(
             { position = seat.hand.pos, rotation = seat.hand.rot, scale = RTT_HAND_SCALE }, 1)
         end)
-        seat.color = color
         RTT_CLONES[color] = seat.board
         seated[sN] = color
       end
     end
   end
+  -- Seats nobody is sitting in still hold a faction and still take a turn, so they need a colour no
+  -- human holds. Done AFTER the humans, so a free colour is never one somebody is wearing.
+  rttBindSeatColors()
+
   -- SWITCH THE TTS TURN SYSTEM ON, with the real seat order.
   -- Nothing in this mod ever did. The scene ships Turns.Enable = false and onLoad only assigns a
   -- hardcoded Turns.order; Turns.enable was never set anywhere in 4,800 lines. So the turn system was
   -- off in every game, which is why the box score sat permanently in manual mode showing END TURN --
   -- it was reporting the truth, there was nothing to follow.
-  -- Order is the SEATED colours in seat order, so seat 1 starts; skip_empty_hands stops TTS pausing on
-  -- colours nobody occupies, which matters because RTT always builds 4-6 seats regardless of how many
-  -- humans joined. enable is set LAST, once the order and starting colour are in place.
+  -- The order is now the seats' own colours CLOCKWISE from the bottom-right corner (rttEnableTurns
+  -- reads rttSeatOrderIdx), so it follows the physical table instead of a fixed colour list.
   rttEnableTurns((RTT_DN or 5) - 1)
+  rttPublishSeats()
 
   -- base pattern: seat, ~20-frame settle, THEN deliver the matching order card.
   rttAfterFrames(function() rttDealOrderCards(seated) end, 20)
@@ -4065,73 +4306,53 @@ end
 function rttPlaceFaction(faction, cx, cz, flip, color, isDraft, category, rotationY, pickerColor, seatHand)
   if not rttSpawnFaction(faction, cx, cz, flip, category, rotationY) then return false end
 
-  -- Raw Lua tables do not cross object-script boundaries, so the accumulated map
-  -- remains a JSON string. Guard decoding because selector boards relay through a
-  -- clone script and an old/malformed Global value must not break faction setup.
-  local seats = {}
-  local okRaw, raw = pcall(function() return Global.getVar("RTT_SEAT_POS") end)
-  if okRaw and type(raw) == "string" and raw ~= "" then
-    local okMap, decoded = pcall(function() return JSON.decode(raw) end)
-    if okMap and type(decoded) == "table" then seats = decoded end
-  end
-  seats[rttFactionKey(faction)] = { cx, cz }
-  Global.setVar("RTT_SEAT_POS", JSON.encode(seats))
-
-  -- Publish the faction's real SEAT COLOUR too. The box score otherwise guesses a row's colour by
-  -- matching the faction's supply to the nearest HAND ZONE, and Player[c].getHandTransform() returns a
-  -- position for every colour whether or not anyone is sitting in it -- so rows came out White/Pink,
-  -- colours RTT never seats anyone in, and solo only one row could ever pick up the player's name.
-  -- Only the DRAFT path is authoritative: there `color` is the seat's colour (RTT_SETUP_COLORS[N]). On
-  -- the manual selector path `color` is just whoever clicked, identical for every faction they pick, so
-  -- publishing it would bind every row to one colour. Hence the isDraft guard.
-  -- The faction's colour is the SEAT's colour, which exists whether or not a human occupies that seat.
-  -- Derived from the seat position rather than from `color`: rttSeatPlayers only sets seat.color for
-  -- SEATED humans, so on the draft path `s.color or args.color` fell back to the PICKER for every empty
-  -- seat -- solo, that published the same colour for every faction and the box score showed one player
-  -- heading several of them.
-  local seatColor = nil
-  do
-    local best, bi = nil, nil
-    for i, sp in ipairs(RTT_POS) do
-      local d = (sp[1] - cx) ^ 2 + (sp[2] - cz) ^ 2
-      if best == nil or d < best then best, bi = d, i end
+  -- THE SEAT RECORD. One write, from facts, at the moment the faction actually lands.
+  --
+  -- What this replaced published three Globals from three separately-derived guesses, and the middle
+  -- one was wrong: it found the nearest of the six board SPOTS and then indexed RTT_SETUP_COLORS --
+  -- a PLAYER-NUMBER table -- with that SPOT number, never undoing RTT_LAYOUT. Right at 1 and 3
+  -- players, wrong at 2, 4, 5 and 6; at four players P3 and P4 held each other's colour all game.
+  --
+  -- There is no lookup here any more. The board's real position IS the seat: rttSeatAt finds the seat
+  -- standing there or opens one, so the ranked draft, the 4/5-player setup boards and a single
+  -- Faction Select board dragged anywhere all arrive the same way, with no special case.
+  local si = rttSeatAt(cx, cz, true)
+  local seat = RTT_SEATS[si]
+  seat.faction = faction
+  -- The seat's colour is the colour of whoever took it. On the draft path rttSeatPlayers has already
+  -- set it from the seated human (and rttCoordFaction only lets you pick on your own seat, so the
+  -- picker IS that human). On the manual paths nobody is seated, so the picker's colour is what the
+  -- seat is worth -- unless that colour is already another seat's, which is what happens when one
+  -- person sets out several boards: those later seats take a free colour instead of stealing one.
+  if seat.color == nil and pickerColor ~= nil and pickerColor ~= "" then
+    local clash = false
+    for i, o in ipairs(RTT_SEATS) do
+      if i ~= si and o ~= nil and o.color == pickerColor then clash = true end
     end
-    if bi ~= nil then seatColor = RTT_SETUP_COLORS[bi] end
+    if not clash then seat.color = pickerColor end
   end
-  if seatColor ~= nil and seatColor ~= "" then
-    local cols = {}
-    local okC, rawC = pcall(function() return Global.getVar("RTT_SEAT_COLOR") end)
-    if okC and type(rawC) == "string" and rawC ~= "" then
-      local okD, dec = pcall(function() return JSON.decode(rawC) end)
-      if okD and type(dec) == "table" then cols = dec end
-    end
-    cols[rttFactionKey(faction)] = seatColor
-    Global.setVar("RTT_SEAT_COLOR", JSON.encode(cols))
-  end
-
-  -- WHO OWNS the faction, published separately from the seat colour. These are two different things and
-  -- conflating them broke naming: the manual 4-board path never recolours anyone, so a player keeps the
-  -- colour they joined with while the rows are coloured by SEAT -- and the box score, which attaches a
-  -- name by matching the row's colour to a seated player, then found no match and showed no name at all.
-  -- Colour stays seat-derived (the turn order needs that); the NAME comes from whoever picked.
-  if pickerColor ~= nil and pickerColor ~= "" then
-    local who = nil
+  if seat.color == nil then seat.color = rttFreeSeatColor() end
+  -- WHO OWNS it is the person who clicked, and is deliberately NOT the same thing as the seat colour.
+  -- Conflating them broke naming before: the manual path never recolours anyone, so a player keeps
+  -- the colour they joined with while the row is coloured by seat, and matching the row's colour
+  -- against seated players then found nobody and the row showed no name at all.
+  if seat.owner == nil and pickerColor ~= nil and pickerColor ~= "" then
     pcall(function()
       for _, pl in ipairs(Player.getPlayers()) do
-        if pl.color == pickerColor and pl.seated then who = pl.steam_name end
+        if pl.color == pickerColor and pl.seated then seat.owner = pl.steam_name end
       end
     end)
-    if who ~= nil and who ~= "" then
-      local owners = {}
-      local okO, rawO = pcall(function() return Global.getVar("RTT_SEAT_PLAYER") end)
-      if okO and type(rawO) == "string" and rawO ~= "" then
-        local okD, dec = pcall(function() return JSON.decode(rawO) end)
-        if okD and type(dec) == "table" then owners = dec end
-      end
-      owners[rttFactionKey(faction)] = who
-      Global.setVar("RTT_SEAT_PLAYER", JSON.encode(owners))
-    end
   end
+  rttPublishSeats()
+  -- Re-apply the turn order from the seats as they now stand. This is what makes the MANUAL paths
+  -- work: nobody is seated there, so the order set at setup time was the fallback colour list, and it
+  -- has to become the real seat colours as factions are picked. keepTurn is passed so rttEnableTurns
+  -- takes its no-change shortcut and does not re-fire the TTS turn chime on every pick.
+  pcall(function()
+    local keep = nil
+    pcall(function() keep = Turns.turn_color end)
+    rttEnableTurns(RTT_TURN_SEATS or #RTT_SEATS, keep or "")
+  end)
 
   local extraFaction, extraX, extraZ, extraFlip, extraDraft = faction, cx, cz, flip, isDraft == true
   Wait.time(function() rttFactionExtras(extraFaction, extraX, extraZ, extraFlip, extraDraft) end, 0.5)
@@ -5904,21 +6125,32 @@ end
 -- identifies the faction. The faction's blueprint then names its supply bag and its warrior, so
 -- there is no hand-kept table to drift.
 
--- faction -> seat colour, as published in Global RTT_SEAT_COLOR
--- which faction does this colour control?
+-- Which faction does this colour control? Straight off the seat record, which the board owns and
+-- persists -- the Global is only a mirror of it for other objects.
+--
+-- The old version read the Global alone, and resolved a duplicate colour with `for faction, seat in
+-- pairs(dec) ... found = faction`: last writer wins, in Lua's arbitrary pairs order. So a stale entry
+-- from an earlier game, or two factions publishing the same colour, silently handed the key-presser
+-- somebody else's supply -- and a different somebody from one press to the next.
 function rttSeatFaction(color)
   if color == nil or color == "" then return nil end
-  local found = nil
+  for _, s in ipairs(RTT_SEATS or {}) do
+    if s ~= nil and s.color == color and s.faction ~= nil and s.faction ~= "" then return s.faction end
+  end
+  -- Fallback for a table this board did not set up (or a record lost with the script's state): read
+  -- the mirror, but refuse an AMBIGUOUS answer rather than pick one at random.
+  local hits = {}
   pcall(function()
     local raw = Global.getVar("RTT_SEAT_COLOR")
     if type(raw) ~= "string" or raw == "" then return end
     local dec = JSON.decode(raw)
     if type(dec) ~= "table" then return end
     for faction, seat in pairs(dec) do
-      if seat == color then found = faction end
+      if seat == color then hits[#hits + 1] = faction end
     end
   end)
-  return found
+  if #hits == 1 then return hits[1] end
+  return nil
 end
 
 -- The supply bag and warrior names come out of the faction's own blueprint: a Custom_Model_Bag

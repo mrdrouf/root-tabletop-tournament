@@ -627,6 +627,177 @@ def t_mountain_deals_a_legal_board(src):
     assert 0.15 < lost / n < 0.35, "Lost City came up %.0f%% of the time, expected ~25%%" % (100*lost/n)
 
 
+def t_published_colour_matches_the_seated_player(src):
+    """THE invariant: the colour published for the faction at seat i is the colour of the PLAYER at seat i.
+
+    Reported from a live tournament, 2026-09-05: "it's assuming player 4 is player 3 since they were
+    able to spawn p3 warriors with 0". Two different numberings exist -- RTT_POS numbers the six board
+    SPOTS, RTT_SETUP_COLORS is indexed by PLAYER NUMBER -- and RTT_LAYOUT maps one to the other so the
+    seating runs counterclockwise. rttSeatPlayers colours a player by PLAYER NUMBER; rttPlaceFaction
+    worked the same player's colour out from the nearest SPOT and indexed the colour table with that,
+    never undoing RTT_LAYOUT. So the published note was wrong wherever the layout is not the identity:
+    right at 1 and 3 players, wrong at 2, 4, 5 and 6. At four players P3 and P4 held each other's
+    colour, which is exactly what the tester saw.
+
+    The gizmo (rttSeatFaction) and the box score (refreshSeats) both read that note, and the box score
+    treats it as authoritative and marks the colour used, so its own geometry cannot repair it.
+
+    This asserts the invariant directly, at every seat count, so no future change can reintroduce a
+    mapping that is merely self-consistent rather than correct.
+    """
+    for n in (2, 3, 4, 5, 6):
+        rt = fresh(src)
+        names = ["H%d" % i for i in range(1, n + 1)]
+        # Seat the humans in colours that are deliberately NOT the seat-colour list, so a test that
+        # passes cannot be passing because the two happen to coincide.
+        joined = ["Purple", "Blue", "White", "Pink", "Green", "Brown"][:n]
+        for c, nm in zip(joined, names):
+            rt.execute("SEAT('%s','%s')" % (c, nm))
+        rt.execute("RTT_ORDER = {} " + " ".join(
+            "RTT_ORDER[%d] = {color='%s', name='%s'}" % (i + 1, joined[i], names[i]) for i in range(n)))
+        rt.execute("rttSpawnSelectors() FLUSH(6) pcall(function() rttSeatPlayers() end) FLUSH(30)")
+
+        facs = ["Marquise de Cat", "Eyrie Dynasties", "Woodland Alliance", "Riverfolk Company",
+                "The Lizard Cult", "Corvid Conspiracy"][:n]
+        for i in range(n):
+            rt.execute("""local s = RTT_SEATS[%d]
+                          pcall(function()
+                            rttPlaceFaction('%s', s.pos[1], s.pos[2], s.pos[2] > 0, s.color,
+                                            true, nil, nil, s.color, nil)
+                          end) FLUSH(4)""" % (i + 1, facs[i]))
+
+        pub = json.loads(rt.eval('GVGET("RTT_SEAT_COLOR")') or "{}")
+        for i in range(n):
+            seat_color = rt.eval("RTT_SEATS[%d].color" % (i + 1))
+            assert seat_color is not None, "%d seats: seat %d has no colour at all" % (n, i + 1)
+            got = pub.get(facs[i])
+            assert got == seat_color, (
+                "%d seats: seat %d's faction %s published %r but that seat's player is %r"
+                % (n, i + 1, facs[i], got, seat_color))
+        # and no two factions may claim the same colour -- rttSeatFaction resolves a duplicate with an
+        # arbitrary pairs() winner, so a collision is a silently wrong gizmo.
+        vals = [pub.get(f) for f in facs]
+        assert len(set(vals)) == len(vals), "%d seats: two factions share a colour %s" % (n, vals)
+
+
+def _seat_ranked(rt, joined, names):
+    """Drive the ranked path's seating with humans already holding `joined` colours."""
+    for c, nm in zip(joined, names):
+        rt.execute("SEAT('%s','%s')" % (c, nm))
+    rt.execute("RTT_ORDER = {} " + " ".join(
+        "RTT_ORDER[%d] = {color='%s', name='%s'}" % (i + 1, joined[i], names[i])
+        for i in range(len(joined))))
+    rt.execute("rttSpawnSelectors() FLUSH(6) pcall(function() rttSeatPlayers() end) FLUSH(30)")
+
+
+def t_nobody_is_recoloured(src):
+    """The draft assigns a SEAT, never a colour.
+
+    The maintainer, 2026-09-05: "players join the game, they can pick their color, this should never
+    be forced". It used to copy the base mod's placePlayer -- kick the whole table to Grey, then
+    changeColor everyone into RTT_SETUP_COLORS[seat]. In TTS the hand, the cards in it and the slot in
+    Turns.order all belong to the COLOUR, so forcing one takes a player's hand away and hands it to
+    whoever gets that colour next.
+    """
+    joined = ["Purple", "Blue", "White", "Pink"]
+    names = ["H1", "H2", "H3", "H4"]
+    rt = fresh(src)
+    _seat_ranked(rt, joined, names)
+    for c, nm in zip(joined, names):
+        assert rt.eval("Player['%s'].seated" % c) is True, "%s (%s) was moved out of their colour" % (nm, c)
+        assert rt.eval("Player['%s'].steam_name" % c) == nm, "%s no longer holds %s" % (nm, c)
+    assert len(list((rt.eval("REC.colors") or {}).values())) == 0, \
+        "somebody was recoloured: %s" % list((rt.eval("REC.colors") or {}).values())
+    # and each seat wears its own player's colour
+    for i, c in enumerate(joined):
+        assert rt.eval("RTT_SEATS[%d].color" % (i + 1)) == c, \
+            "seat %d took %r, not its player's %r" % (i + 1, rt.eval("RTT_SEATS[%d].color" % (i + 1)), c)
+
+
+def t_turn_order_is_clockwise_from_bottom_right(src):
+    """Turn order is read off the table, not out of a list.
+
+    The maintainer: "turn order is decided clockwise by the position from the first player who's the
+    closest to the bottom right corner". Bottom-right is +x/-z, which is RTT_POS[1] = (52,-46).
+    It used to be RTT_SETUP_COLORS[1..n] -- a fixed list that also forced the going-round order, and
+    RTT_LAYOUT[6] is not even clockwise ({1,2,5,6,4,3} where clockwise is {1,5,2,4,6,3}).
+    """
+    import math
+    POS = {1: (52, -46), 2: (-52, -46), 3: (52, 46), 4: (-52, 46), 5: (0, -46), 6: (0, 46)}
+    LAYOUT = {2: [1, 3], 3: [1, 2, 3], 4: [1, 2, 4, 3], 5: [1, 5, 2, 4, 3]}
+    a0 = math.atan2(POS[1][1], POS[1][0])
+    for n in (2, 3, 4, 5):
+        joined = ["Purple", "Blue", "White", "Pink", "Green"][:n]
+        names = ["H%d" % i for i in range(1, n + 1)]
+        rt = fresh(src)
+        _seat_ranked(rt, joined, names)
+        # seat i sits at spot LAYOUT[n][i]; clockwise = decreasing angle from the bottom-right corner
+        want = [joined[i] for i in sorted(
+            range(n), key=lambda i: (a0 - math.atan2(*reversed(POS[LAYOUT[n][i]]))) % (2 * math.pi))]
+        got = list((rt.eval("Turns.order") or {}).values())
+        assert got == want, "%d seats: turn order %s, clockwise from bottom-right is %s" % (n, got, want)
+
+
+def t_seat_record_survives_a_reload(src):
+    """A TTS Global is wiped on load; the board's own onSave state is not.
+
+    Without this a resumed game came back with factions on the table and no idea who sat where: the
+    gizmo said "no faction seated in your color yet" and the box score fell back to guessing rows from
+    hand-zone geometry. The maintainer asked for memory that survives a crash.
+    """
+    rt = fresh(src)
+    _seat_ranked(rt, ["Purple", "Blue", "White", "Pink"], ["H1", "H2", "H3", "H4"])
+    facs = ["Marquise de Cat", "Eyrie Dynasties", "Woodland Alliance", "Riverfolk Company"]
+    for i, f in enumerate(facs):
+        rt.execute("""local s = RTT_SEATS[%d]
+                      pcall(function() rttPlaceFaction('%s', s.pos[1], s.pos[2], s.pos[2] > 0,
+                            s.color, true, nil, nil, s.color, nil) end) FLUSH(4)""" % (i + 1, f))
+    saved = rt.eval("onSave()")
+    assert saved and saved != "", "onSave produced nothing"
+
+    rt2 = fresh(src)                                   # a fresh table: Globals are gone, as on reload
+    assert rt2.eval('Global.getVar("RTT_SEAT_COLOR")') in (None, "", "{}")
+    rt2.execute("onLoad(%s) FLUSH(6)" % json.dumps(saved))
+    for i, (c, f) in enumerate(zip(["Purple", "Blue", "White", "Pink"], facs)):
+        assert rt2.eval("RTT_SEATS[%d].color" % (i + 1)) == c, "seat %d lost its colour" % (i + 1)
+        assert rt2.eval("RTT_SEATS[%d].faction" % (i + 1)) == f, "seat %d lost its faction" % (i + 1)
+    # the gizmo works again straight after the reload, which is the point of persisting it
+    assert rt2.eval("rttSeatFaction('White')") == "Woodland Alliance"
+    pub = json.loads(rt2.eval('GVGET("RTT_SEAT_COLOR")') or "{}")
+    assert pub.get("Riverfolk Company") == "Pink", "the mirror was not re-published on load"
+
+
+def t_manual_pick_binds_the_pickers_own_colour(src):
+    """On the manual paths nobody is seated, so the seat is worth the colour of whoever picked it.
+
+    And one person setting out several boards -- a solo tester -- must not bind every faction to that
+    one colour: the later seats take a free colour instead, so no two factions ever share one (the
+    gizmo cannot tell them apart if they do).
+    """
+    rt = fresh(src)
+    rt.execute("SEAT('Purple','H1') SEAT('Blue','H2')")
+    rt.execute("pcall(function() setupFactionBoards(nil,nil,nil) end) FLUSH(10)")
+    # two different people pick on two different boards
+    rt.execute("""pcall(function() rttPlaceFaction('Marquise de Cat', 52, -46, false, 'Purple',
+                        false, nil, nil, 'Purple', nil) end) FLUSH(4)""")
+    rt.execute("""pcall(function() rttPlaceFaction('Eyrie Dynasties', -52, -46, false, 'Blue',
+                        false, nil, nil, 'Blue', nil) end) FLUSH(4)""")
+    pub = json.loads(rt.eval('GVGET("RTT_SEAT_COLOR")') or "{}")
+    assert pub.get("Marquise de Cat") == "Purple", "picker's colour not bound: %s" % pub
+    assert pub.get("Eyrie Dynasties") == "Blue", "picker's colour not bound: %s" % pub
+    # the same person now sets out two more; they must NOT both become Purple
+    rt.execute("""pcall(function() rttPlaceFaction('Woodland Alliance', 52, 46, true, 'Purple',
+                        false, nil, nil, 'Purple', nil) end) FLUSH(4)""")
+    rt.execute("""pcall(function() rttPlaceFaction('Riverfolk Company', -52, 46, true, 'Purple',
+                        false, nil, nil, 'Purple', nil) end) FLUSH(4)""")
+    pub = json.loads(rt.eval('GVGET("RTT_SEAT_COLOR")') or "{}")
+    vals = [pub.get(f) for f in ("Marquise de Cat", "Eyrie Dynasties",
+                                 "Woodland Alliance", "Riverfolk Company")]
+    assert None not in vals, "a faction went unpublished: %s" % pub
+    assert len(set(vals)) == 4, "two factions share a colour: %s" % vals
+    assert pub["Marquise de Cat"] == "Purple", "the first picker lost their own colour"
+
+
 CASES = [
     ("manual path drives the turn system",   t_manual_turn_order),
     ("manual path spawns 4 / 5 boards",      t_boards_spawn),
@@ -652,6 +823,11 @@ CASES = [
     ("gizmo reads every blueprint",           t_gizmo_reads_every_faction_from_its_blueprint),
     ("gizmo works without the seat map",      t_gizmo_finds_your_supply_without_the_published_map),
     ("UI cleared before destroy",             t_ui_objects_clear_their_xml_before_being_destroyed),
+    ("published colour == seated player",     t_published_colour_matches_the_seated_player),
+    ("nobody is recoloured",                 t_nobody_is_recoloured),
+    ("turn order clockwise from BR",         t_turn_order_is_clockwise_from_bottom_right),
+    ("seat record survives a reload",        t_seat_record_survives_a_reload),
+    ("manual pick binds picker colour",      t_manual_pick_binds_the_pickers_own_colour),
 ]
 
 

@@ -1,5 +1,5 @@
 -- Minimal TTS surface, instrumented so the harness can observe what a setup path DID.
-REC = { destroyed = {}, spawned = {}, hands = {}, globals = {}, turns = {}, calls = {} }
+REC = { destroyed = {}, spawned = {}, hands = {}, globals = {}, turns = {}, calls = {}, colors = {} }
 local function note(t, v) t[#t+1] = v end
 
 Wait = {}
@@ -160,12 +160,39 @@ end
 local HANDS = {}
 local COLORS = {"Red","Yellow","Orange","Teal","Green","Brown","Blue","Purple","Pink","White","Grey","Black"}
 Player = {}
-local SEATED = {}
-for i, c in ipairs(COLORS) do
-  HANDS[c] = { [1] = {position = vec{-75, 12, -75 + i}, rotation = vec{0,0,0}, scale = vec{10,5,5}},
-               [2] = {position = vec{-75, 12, -75 + i}, rotation = vec{0,0,0}, scale = vec{10,5,5}} }
-  Player[c] = {
-    color = c, seated = false, steam_name = "P_"..c,
+
+-- A ROSTER, not one fixed object per colour. The stub used to keep a single Player[c] table per
+-- colour with changeColor as a NO-OP, so every assertion about who sits where was really an assertion
+-- about nothing -- and it could not represent the one state the seating code actually relies on:
+-- kickPlayersFromSeats parks EVERY player in Grey at once, and TTS lets many players share Grey.
+-- Colour is now a property of a person, so a person can move between colours and Grey can hold a
+-- crowd. Hand transforms stay keyed by COLOUR, because in TTS they belong to the colour, not the
+-- person, and exist whether or not anybody is sitting in it.
+local ROSTER = {}                       -- { {name=..., color=...}, ... }, one entry per human
+
+local function holder(c)                -- the person currently in colour c, or nil
+  for _, e in ipairs(ROSTER) do if e.color == c then return e end end
+  return nil
+end
+
+-- ONE STABLE table per colour, refreshed in place rather than rebuilt. Tests monkey-patch these
+-- (Player["Red"].getHandTransform = ...), so handing back a fresh table on every index silently threw
+-- the patch away. Identity is per COLOUR because that is what TTS hands you: Player["Red"] is the
+-- Red SEAT, and who is sitting in it is a property that changes.
+local VIEW = {}
+
+local function refresh(c)
+  local v, e = VIEW[c], holder(c)
+  v.seated     = e ~= nil
+  v.steam_name = e and e.name or ("P_" .. c)
+  return v
+end
+
+for _, c in ipairs(COLORS) do
+  HANDS[c] = { [1] = {position = vec{-75, 12, -75 + _}, rotation = vec{0,0,0}, scale = vec{10,5,5}},
+               [2] = {position = vec{-75, 12, -75 + _}, rotation = vec{0,0,0}, scale = vec{10,5,5}} }
+  VIEW[c] = {
+    color = c, seated = false, steam_name = "P_" .. c,
     getHoverObject = function() return HOVER[c] end,
     getPointerPosition = function() return POINTER[c] or {x=0,y=1,z=0} end,
     getHandTransform = function(n) return HANDS[c][n or 1] end,
@@ -174,13 +201,54 @@ for i, c in ipairs(COLORS) do
       HANDS[c][n] = {position = vec(t.position), rotation = vec(t.rotation), scale = vec(t.scale or {1,1,1})}
       note(REC.hands, string.format("%s#%d -> %.2f,%.2f ry=%.1f", c, n, HANDS[c][n].position.x, HANDS[c][n].position.z, HANDS[c][n].rotation.y))
     end,
-    changeColor = function(nc) end, getHandCount = function() return 2 end,
+    -- REAL. TTS moves the PERSON to the other colour, and the ref you were holding now names a seat
+    -- that person has left -- exactly the staleness rttSeatPlayers documents ("refs are stale after
+    -- the colour change"), which is why it re-reads getPlayers() after the kick. Grey and Black are
+    -- shared, so parking a crowd there is allowed; every other colour seats exactly one person.
+    changeColor = function(nc)
+      local e = holder(c)
+      if e == nil or nc == nil or nc == c then return end
+      if holder(nc) ~= nil and nc ~= "Grey" and nc ~= "Black" then return end   -- TTS refuses a taken seat
+      note(REC.colors, c .. " -> " .. nc)
+      e.color = nc
+    end,
+    getHandCount = function() return 2 end,
     getHandObjects = function() return {} end, print = function() end, broadcast = function() end,
   }
 end
-function Player.getPlayers() local r = {} for _, c in ipairs(COLORS) do if Player[c].seated then r[#r+1] = Player[c] end end return r end
+
+setmetatable(Player, { __index = function(_, c)
+  if type(c) ~= "string" or VIEW[c] == nil then return nil end
+  return refresh(c)
+end })
+
+-- getPlayers hands back ONE ENTRY PER PERSON, not per colour. Grey is shared -- kickPlayersFromSeats
+-- parks the whole table there at once -- so returning the colour view would have collapsed everybody
+-- in Grey into whoever happened to hold it first, and the re-seat loop would have seated one person
+-- N times. Each proxy carries its own person (colour, name) and inherits the COLOUR's methods, so a
+-- test that patched Player["Red"].getHandTransform still sees its patch through the proxy.
+function Player.getPlayers()
+  local r = {}
+  for _, e in ipairs(ROSTER) do
+    r[#r+1] = setmetatable({
+      color = e.color, seated = true, steam_name = e.name,
+      changeColor = function(nc)
+        if nc == nil or nc == e.color then return end
+        if holder(nc) ~= nil and nc ~= "Grey" and nc ~= "Black" then return end
+        note(REC.colors, e.color .. " -> " .. nc)
+        e.color = nc
+      end,
+    }, { __index = function(_, k) return VIEW[e.color][k] end })
+  end
+  return r
+end
 function Player.getSpectators() return {} end
-function SEAT(c, name) Player[c].seated = true; if name then Player[c].steam_name = name end end
+
+function SEAT(c, name)
+  local e = holder(c)
+  if e then e.name = name or e.name return end
+  ROSTER[#ROSTER+1] = { name = name or ("P_" .. c), color = c }
+end
 function HANDOF(c, n) local h = HANDS[c][n]; return {x = h.position.x, z = h.position.z, ry = h.rotation.y} end
 
 -- globals -------------------------------------------------------------------
