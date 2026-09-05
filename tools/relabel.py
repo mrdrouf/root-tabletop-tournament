@@ -141,6 +141,14 @@ def art_alpha_topband(path, frac):
     return trim(im.crop((0, 0, im.width, int(im.height * frac))))
 
 
+def art_rotated(path, deg):
+    """Turn a portrait photo landscape instead of cropping it. The 4-player board shot is 1100x1316,
+    and centre-cropping it to the button's aspect cut the top and bottom off the composition; a
+    quarter turn keeps all four boards and fills the button's width."""
+    im = Image.open(os.path.join(ROOT, path)).convert("RGBA")
+    return im.rotate(deg, expand=True, resample=Image.BICUBIC)
+
+
 def art_crop_aspect(path, aspect, cut_top=0):
     """Centre-crop a photo to a given w/h so it fills the button the way the old label did."""
     im = Image.open(os.path.join(ROOT, path)).convert("RGBA")
@@ -229,7 +237,7 @@ SQUARES = [
 
     ("ThemeArt",      "theme_art_v11",          ["Theme"],          lambda: art_topband("assets/src_art/theme.png"),                 0.70, 0),
     ("RankedArt",     "four_player_draft_v11",  ["4-Player Draft"], lambda: art_crop_aspect("assets/images/ranked.png", 1.33, 210),       0.70, 0),
-    ("FourBoardsArt", "four_player_setup_v11",  ["4-Player Setup"], lambda: art_crop_aspect("assets/images/4players.png", 1.33),     0.70, 0),
+    ("FourBoardsArt", "four_player_setup_v11",  ["4-Player Setup"], lambda: art_rotated("assets/images/4players.png", 90),     0.70, 0),
 ]
 
 WIDES = [

@@ -81,35 +81,6 @@ of four structural faults, not an isolated mistake. Fixing these is worth more t
    chain already in flight is still unguarded.
    FIX SHAPE: rttSetup bumps RTT_RUN_ID; every deferred callback returns early if its captured id is stale.
 
-## OPEN
-
-- [ ] **Re-apply the turn order when a player takes a seat.** ASKED 2026-09-05. What happens today,
-      checked rather than assumed: `rttEnableTurns(nseats)` is called from exactly two places --
-      `rttNewGame` (line ~2064) and the ranked path (line ~3322) -- so the turn system is configured
-      ONCE, when a setup runs. It writes `Turns.order` from the fixed table `RTT_SETUP_COLORS`
-      (Red, Yellow, Orange, Teal, Green, Brown) truncated to the seat count; it does NOT look at who
-      is actually sitting anywhere. There is no `onPlayerChangeColor` or `onPlayerConnect` handler in
-      the whole file -- the only `on*` hooks are onLoad, onScriptingButtonDown and onSave.
-      So: the "do not force it all the time" half is ALREADY satisfied -- nothing rewrites the order
-      after setup, and a manual change sticks for the rest of the game.
-      The missing half is re-applying when someone sits down. FIX SHAPE: an `onPlayerChangeColor`
-      handler that calls `rttEnableTurns` for the current seat count. Note the inherent trade-off the
-      maintainer already accepted: re-applying on a seat change will overwrite a manual reorder made
-      before that seat change. Also decide whether `Turns.skip_empty_hands` should stay false (today
-      the order steps through empty seats too).
-
-- [ ] **Box score COPY shows an empty box; make it emit the tournament-site JSON.** ASKED 2026-09-05.
-      Two separate problems. (1) The field comes up blank: `uiCopy` (boxscore.lua ~1855) bakes
-      `JSON.encode(exportPayload("copy"))` straight into a single-quoted `text='...'` on an
-      InputField, escaping only `&`, `<` and `'`. A stale comment right above it still claims the text
-      is injected by `setAttribute` after the rebuild -- the code does the opposite, so the comment is
-      not evidence of anything; the blank box needs reproducing in TTS before guessing (length limits
-      and TTS's strict XmlUI parser are both candidates). (2) The payload is the mod's OWN internal
-      record, not what the site wants. The target format, the developer's own example, and a
-      field-by-field mapping of what the box score can already fill versus what it cannot, are in
-      `root_boxscore/EXPORT_SCHEMA.md`. Every gap is an optional field, so a first version can emit
-      the core (`board_map`, `deck`, per-participant `turns`) and omit the rest.
-
 ## BLOCKED — need more info from the maintainer
 
 - [ ] **Gizmo: a variant that also places warriors.** NOTE the first half is already done -- since

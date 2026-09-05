@@ -321,6 +321,30 @@ def t_enclaves_do_not_snap(src):
     assert set(flags) == {(False, False)}, "some enclaves still snap: %s" % sorted(set(flags))
 
 
+def t_turn_order_reapplies_on_seating(src):
+    """Re-apply the seat order when someone sits down -- and at no other time.
+
+    Maintainer: readjust each time a player gets seated, but do not force it all the time, so a manual
+    reorder is possible. rttEnableTurns already ran once per setup and nothing ever touched Turns
+    again, so the "do not force" half was free; this adds the seating half without stealing the turn.
+    """
+    rt = fresh(src)
+    rt.execute("onPlayerChangeColor('Green')")
+    assert rt.eval("Turns.enable") is False, "a seat change before any setup must do nothing"
+
+    rt.execute("rttEnableTurns(4)")
+    assert list(rt.eval("Turns.order").values()) == ["Red", "Yellow", "Orange", "Teal"]
+
+    rt.execute("Turns.turn_color = 'Orange'")
+    rt.execute("onPlayerChangeColor('Teal')")
+    assert rt.eval("Turns.turn_color") == "Orange", "seating someone handed the turn back to seat 1"
+    assert list(rt.eval("Turns.order").values()) == ["Red", "Yellow", "Orange", "Teal"]
+
+    rt.execute("Turns.order = {'Teal','Red'}")
+    rt.execute("FLUSH(8)")
+    assert list(rt.eval("Turns.order").values()) == ["Teal", "Red"], "a manual reorder was overwritten"
+
+
 CASES = [
     ("manual path drives the turn system",   t_manual_turn_order),
     ("manual path spawns 4 / 5 boards",      t_boards_spawn),
@@ -338,6 +362,7 @@ CASES = [
     ("enclaves match the suit circle",        t_frog_enclaves_match_the_suit_circle),
     ("enclaves sit where they are dropped",   t_enclaves_do_not_snap),
     ("enclave aims at the suit circle",       t_enclave_targets_the_suit_marker),
+    ("turn order re-applies on seating",      t_turn_order_reapplies_on_seating),
 ]
 
 
