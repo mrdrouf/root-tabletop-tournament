@@ -410,7 +410,7 @@ def t_gizmo_warrior_to_and_from_supply(src):
       hovering ANY warrior -> home to ITS OWN supply, yours or an opponent's
       hovering nothing     -> one comes out of YOUR supply, at your pointer
       empty supply         -> nothing
-      no faction seated    -> nothing to pull from, but putting one back still works
+      no hand zone at all  -> nothing to pull from, but putting one back still works
 
     Putting a warrior back does not depend on who pressed the key: the piece decides where it
     belongs. Only pulling one out needs to know who you are, which comes from where you are seated.
@@ -454,8 +454,12 @@ def t_gizmo_warrior_to_and_from_supply(src):
     rt.execute('MINEBAG.__n = 0  rttGizmoWarrior("Red")')
     assert rt.eval("TOOK") == 1, "an empty supply must do nothing"
 
-    rt.execute('MINEBAG.__n = 5  rttGizmoWarrior("Teal")')
-    assert rt.eval("TOOK") == 1, "a colour with no faction has nothing to pull from"
+    # a colour with no hand zone cannot be placed at all, so there is nothing to pull from.
+    # (A colour that HAS one does now find its nearest supply -- that is the point of the fallback.)
+    rt.execute('MINEBAG.__n = 5')
+    rt.execute('Player["Teal"].getHandTransform = function() return nil end')
+    rt.execute('HOVER["Teal"] = nil  rttGizmoWarrior("Teal")')
+    assert rt.eval("TOOK") == 1, "a colour with no hand zone must do nothing"
 
     # ...but sending a piece home never needed a seat
     rt.execute('HOVER["Teal"] = THEIRS  rttGizmoWarrior("Teal")')
