@@ -266,6 +266,26 @@ def t_frog_enclaves_are_bigger(src):
         "enclave scale %s is not 20%% over the original 0.703911364" % scales[0]
 
 
+def t_enclaves_do_not_snap(src):
+    """An enclave must sit where it is dropped.
+
+    The only snap points in play belong to the MAP -- a ~1.49-unit lattice of warrior/building slots,
+    139 of them -- so a dropped enclave jumped to the nearest slot instead of the clearing's printed
+    centre. Turning the map's snaps off for every other piece was not an option, and the clearing
+    centres the mod knows are only calibrated to ~1 unit, which is over half an enclave. So the token
+    opts out of snapping instead, which 219 other objects in this mod already do.
+    """
+    rt = fresh(src)
+    d = rt.eval('EVERYTHING["Standard"]["Lilypad Diaspora"]["data"]')
+    flags = []
+    for i in range(1, len(d) + 1):
+        j = json.loads(d[i].json)
+        if j.get("Nickname") == "Enclave":
+            flags.append((j.get("Grid"), j.get("Snap")))
+    assert len(flags) == 12, "expected 12 enclaves, found %d" % len(flags)
+    assert set(flags) == {(False, False)}, "some enclaves still snap: %s" % sorted(set(flags))
+
+
 CASES = [
     ("manual path drives the turn system",   t_manual_turn_order),
     ("manual path spawns 4 / 5 boards",      t_boards_spawn),
@@ -281,6 +301,7 @@ CASES = [
     ("a later deck re-seats the blocker",     t_dragon_god_reseated_by_a_later_deck),
     ("mood cards wait for the rats board",    t_rats_moods_wait_for_their_board),
     ("frog enclaves are 20% bigger",          t_frog_enclaves_are_bigger),
+    ("enclaves sit where they are dropped",   t_enclaves_do_not_snap),
 ]
 
 
