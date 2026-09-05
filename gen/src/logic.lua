@@ -5372,6 +5372,16 @@ RTT_MTN_SUIT_DIFFUSE = {
 }
 RTT_MTN_TOWN = { fox = "Foxburrow", rabbit = "Rabbit-Town", mouse = "Mousehold" }
 RTT_MTN_CENTRE_SUIT = nil
+-- Maintainer 2026-09-05: one board in four takes the LOST CITY instead of the matching town.
+-- This is a house call, not documented HOOT: root_engine HOOT_RULES records the Lost City as the
+-- WINTER TOURNAMENT's Mountain substitution, where HOOT "swaps in the matching TOWN". Mixing them
+-- is his to decide; it is recorded here so nobody later reads it as the HOOT rule.
+--
+-- It does NOT leave the centre unsuited. The Lost City clearing counts as ALL THREE suits (rules kb:
+-- "all three for the Lost City", Guerric Samples, OFFICIAL), so the eleven markers still carry their
+-- dealt suits and the centre is wild rather than the suit it drew.
+RTT_MTN_LOST_CITY_CHANCE = 0.25
+RTT_MTN_CENTRE_LOST = false
 
 function rttMountainPlan(objects)
   local ov, slots, jsonForSuit = {}, {}, {}
@@ -5417,6 +5427,8 @@ function rttMountainPlan(objects)
     end
   end
   RTT_MTN_CENTRE_SUIT = bag[#slots + 1]
+  -- rolled once per deal, with the suits, so re-running the landmark spawn cannot re-roll it
+  RTT_MTN_CENTRE_LOST = (math.random() < RTT_MTN_LOST_CITY_CHANCE)
   return ov
 end
 
@@ -5426,8 +5438,10 @@ function rttMountainLandmark()
     if o ~= nil then pcall(function() o.destruct() end) end
   end
   RTT_MTN_LM_PIECES = {}
-  -- the town is decided by the centre clearing's DEALT suit, not drawn separately
-  local name = RTT_MTN_TOWN[RTT_MTN_CENTRE_SUIT or ""] 
+  -- the town is decided by the centre clearing's DEALT suit, not drawn separately -- except for the
+  -- one board in four that takes the Lost City instead, which makes the centre all three suits
+  local name = RTT_MTN_TOWN[RTT_MTN_CENTRE_SUIT or ""]
+  if RTT_MTN_CENTRE_LOST then name = "Lost City" end
   if name == nil then return end
   RTT_MTN_LM_PIECES = rttSpawnLandmarkAt(name, RTT_MTN_LM[1], RTT_MTN_LM[2], RTT_MTN_LM[3],
                      RTT_MTN_CARD[1], RTT_MTN_CARD[2], RTT_MTN_CARD[3],

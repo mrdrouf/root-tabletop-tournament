@@ -185,6 +185,15 @@ Nothing below is implemented. The maintainer asked to be consulted before each c
       ("maintainer: ...", "he asked for ..."). They carry real rationale and should not just be
       deleted, but they should read as technical notes rather than as a transcript.
 
+- [ ] **Suits may need randomising on EVERY map, not just the Mountain.** root_engine HOOT_RULES,
+      comparing this tournament's ruleset to the Winter Tournament's: "HOOT randomises suits on every
+      map where WT randomises only Autumn". The mod randomises NONE of them -- until today it did not
+      even deal the Mountain's. Summer, Winter, Lake, Gorge and Marsh all ship twelve fixed suit
+      markers matching their printed clearings, so every game on those maps uses the printed suits.
+      If HOOT really randomises all of them, this is the same class of divergence as the Mountain bug
+      and larger in scope. ASK FIRST: it changes every map, and printed-suit maps raise a question the
+      Mountain does not -- whether a dealt marker overrides the suit printed under it.
+
 ### From this session, still unverified
 
 - [ ] **Rules audit against root_engine.** The Mountain bug was game-breaking and was found only
