@@ -19,7 +19,11 @@ short orientation for whoever picks the project up next.
 - Every `m###` in the docs is a **historical label, not a file**. The old `mods/` +
   `build.py` pipeline is real but unreachable; it is preserved as the tag
   `legacy/mods-history` (177 commits). Read an old module with
-  `git show legacy/mods-history:mods/m300_duchy_warriors.py`.
+  `git show legacy/mods-history:mods/m300_duchy_warriors.py`. **The `legacy/*` and
+  `discarded/*` tags are LOCAL-ONLY**: they were removed from GitHub on 2026-09-05 because
+  that history carried the maintainer's real identity (since rewritten locally so every
+  commit is MrDrouf). Never push tags; the `.git/hooks/pre-push` guard blocks them and any
+  commit that carries the real name.
 - The **box score** lives in the sibling repo `root_boxscore` and is baked into
   `logic.lua` by `root_boxscore/rebake_into_rtt.py`. **Never hand-edit
   `RTT_BOXSCORE_JSON`** — edit `boxscore.lua` and rebake.

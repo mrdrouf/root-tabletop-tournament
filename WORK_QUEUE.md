@@ -44,7 +44,10 @@ and the root causes of bugs that took more than one attempt.
 The `mods/` pipeline was REAL -- `mods/m###_*.py` + `build.py` over a `base/` mod. It is not in the
 current history because the repo was RE-ROOTED onto the generator; the old chain survives only as
 orphaned objects, now preserved as the tag **`legacy/mods-history`** (177 commits, tip 2026-08-30).
-Read an old module with `git show legacy/mods-history:mods/m300_duchy_warriors.py`. The build is three
+Read an old module with `git show legacy/mods-history:mods/m300_duchy_warriors.py`. That tag (and every
+`legacy/*` / `discarded/*` tag) is **LOCAL-ONLY**: removed from GitHub on 2026-09-05 because the old
+history carried the maintainer's real identity; rewritten locally so every commit is MrDrouf. Never
+push tags -- `.git/hooks/pre-push` blocks them and any commit carrying the real name. The build is three
 files -- `gen/src/save.json` (scene/blueprint, with an `@@BOARD_LUA@@` placeholder), `gen/src/content.lua`
 (Root's object DATA) and `gen/src/logic.lua` (OUR code, the file you edit); `gen/assemble.py` injects
 content+logic into the placeholder. Every `m###` reference in this file, CHANGELOG.md, TODO.md and
