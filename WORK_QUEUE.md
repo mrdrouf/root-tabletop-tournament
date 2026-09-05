@@ -11,6 +11,23 @@ any sync script still aimed at it keeps working, but it is no longer where work 
 push on main; the public README download link points at main, so a build is only really shipped once
 main has it.
 
+## Standing rule: update the maintainer's SAVES, not just the build
+
+A TTS save carries a COPY of every object's script. Dropping a fresh build into the Saves folder only
+helps a game started from scratch: open a saved game, or let TTS autosave and resume, and the old
+script comes back with it. On 2026-09-05 this bit for real -- 27 of 28 saves were stale, and he spent
+a round reporting a box-score fix as broken while his save was silently reverting it.
+
+So after every build, run BOTH:
+
+    cp dist/Root_Tabletop_Tournament.json ~/Library/Tabletop\ Simulator/Saves/
+    python3 tools/update_saves.py
+
+update_saves.py rewrites only three fields on two objects (board bab7e1's LuaScript/XmlUI/
+CustomUIAssets, and any "Root Box Score" LuaScript), so table state and every LuaScriptState -- the
+gizmo config, the box score's recorded game -- survive untouched. Originals are backed up outside the
+Saves folder, last two sets kept.
+
 ## Standing rule: this file only shows OPEN work
 The maintainer, 2026-09-04: "the work should always be cleaned up, and anything that is done needs to go
 in the archive so the work is always clean". Tick an item, then run `python3 tools/queue_archive.py`
