@@ -63,16 +63,17 @@ automatically in a 1–2 player game.
 | **Landmarks** | `makeTool` | The landmark pieces. |
 | **Bat Bungler** | `makeTool` | Spawns the Bat Bungler (Nevakanezah content, like the Mob Lobber). Sits in the slot the Mole Monger used to hold. |
 
-**Ginso's Gizmo has no button.** It is always active with no object on the table — its script is part of
-the board, so **NUMPAD 0** returns a hovered component to its supply and **NUMPAD 1** reassigns that
-component's destination, in every game, with nothing to spawn or toggle.
+**Ginso's Gizmo has no button.** It is always active with no object on the table — its script is part
+of the board, so it works in every game with nothing to spawn or toggle.
 
-Those are TTS *scripting buttons*, bound to the numpad by default, so **a laptop without a numpad cannot
-reach them** — the top-row 0 is a different key, and on a French Mac layout it needs Shift as well. The
-board therefore also registers two named hotkeys in `onLoad`, **"Gizmo: return hovered piece to supply"**
-and **"Gizmo: set supply / destination"**. They appear in *Options → Game Keys* with no key assigned;
-bind them to whatever you like and they call exactly the same code. (Rebinding *Scripting Button 10* and
-*1* in the same menu works too.)
+**NUMPAD 0** is the key, as it always has been. Hovering a warrior — anyone's — sends it home to that
+faction's own supply. Hovering nothing takes one warrior out of YOUR supply, standing up, at your
+pointer; which supply is yours comes from where you are seated. An empty supply does nothing.
+
+That is a TTS *scripting button*, which is numpad-bound, so **on a laptop with no numpad** (a MacBook,
+where the top-row 0 is a different key and needs Shift on a French layout) bind the named hotkey
+**"Gizmo: warrior to / from your supply"** in *Options → Game Keys*. It is registered unbound, so on a
+machine with a numpad there is nothing to configure.
 
 ---
 

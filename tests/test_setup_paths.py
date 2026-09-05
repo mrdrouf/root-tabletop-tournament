@@ -564,6 +564,26 @@ def t_ui_objects_clear_their_xml_before_being_destroyed(src):
         assert line and "rttDestroyUI" in line[0], "%s still calls destruct directly: %s" % (site, line)
 
 
+def t_gizmo_default_key_is_numpad_zero(src):
+    """NUMPAD 0 stays the default, as it always was; the named hotkey is only for machines without one.
+
+    TTS scripting buttons are numbered 1..10 with 10 being numpad 0 -- the convention the original
+    Ginso's Gizmo used, and the one this inherited. A PC user needs to configure nothing. The extra
+    hotkey is registered UNBOUND, so it only matters on a laptop with no numpad, where the top-row 0
+    is a different key entirely (and on a French Mac layout needs Shift as well).
+    """
+    rt = fresh(src)
+    rt.execute("FIRED = 0  rttGizmoWarrior = function(c) FIRED = FIRED + 1 end")
+    for idx in (1, 2, 5, 9):
+        rt.execute("FIRED = 0  onScriptingButtonDown(%d, 'Red')" % idx)
+        assert rt.eval("FIRED") == 0, "scripting button %d should do nothing" % idx
+    rt.execute("FIRED = 0  onScriptingButtonDown(10, 'Red')")
+    assert rt.eval("FIRED") == 1, "numpad 0 no longer triggers the gizmo"
+
+    # and the fallback exists, without stealing a key from anyone
+    assert 'addHotkey("Gizmo: warrior to / from your supply"' in src, "the named hotkey is gone"
+
+
 CASES = [
     ("manual path drives the turn system",   t_manual_turn_order),
     ("manual path spawns 4 / 5 boards",      t_boards_spawn),
@@ -583,6 +603,7 @@ CASES = [
     ("enclave aims at the suit circle",       t_enclave_targets_the_suit_marker),
     ("turn order re-applies on seating",      t_turn_order_reapplies_on_seating),
     ("vagabond published as a faction",       t_vagabond_is_published_as_a_faction),
+    ("gizmo default key is numpad 0",         t_gizmo_default_key_is_numpad_zero),
     ("gizmo: warrior to/from supply",         t_gizmo_warrior_to_and_from_supply),
     ("gizmo reads every blueprint",           t_gizmo_reads_every_faction_from_its_blueprint),
     ("gizmo works without the seat map",      t_gizmo_finds_your_supply_without_the_published_map),
