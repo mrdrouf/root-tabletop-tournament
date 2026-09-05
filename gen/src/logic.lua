@@ -4016,7 +4016,7 @@ function rttPlaceFaction(faction, cx, cz, flip, color, isDraft, category, rotati
     local okMap, decoded = pcall(function() return JSON.decode(raw) end)
     if okMap and type(decoded) == "table" then seats = decoded end
   end
-  seats[faction] = { cx, cz }
+  seats[rttFactionKey(faction)] = { cx, cz }
   Global.setVar("RTT_SEAT_POS", JSON.encode(seats))
 
   -- Publish the faction's real SEAT COLOUR too. The box score otherwise guesses a row's colour by
@@ -4047,7 +4047,7 @@ function rttPlaceFaction(faction, cx, cz, flip, color, isDraft, category, rotati
       local okD, dec = pcall(function() return JSON.decode(rawC) end)
       if okD and type(dec) == "table" then cols = dec end
     end
-    cols[faction] = seatColor
+    cols[rttFactionKey(faction)] = seatColor
     Global.setVar("RTT_SEAT_COLOR", JSON.encode(cols))
   end
 
@@ -4070,7 +4070,7 @@ function rttPlaceFaction(faction, cx, cz, flip, color, isDraft, category, rotati
         local okD, dec = pcall(function() return JSON.decode(rawO) end)
         if okD and type(dec) == "table" then owners = dec end
       end
-      owners[faction] = who
+      owners[rttFactionKey(faction)] = who
       Global.setVar("RTT_SEAT_PLAYER", JSON.encode(owners))
     end
   end
@@ -4127,7 +4127,22 @@ RTT_VP_SHORT = {
 
 -- ONE source for the VP marker's object name, used by BOTH the fresh-marker tagger (rttSpawnFaction)
 -- and rttFindVPMarker, so the two can never drift and silently re-grab the wrong marker (audit).
-function rttVPName(faction) return (RTT_VP_SHORT[faction] or faction) .. " VP" end
+-- A Vagabond is picked as a CHARACTER -- "Tinker", "Ranger" -- but everything downstream is named
+-- for the FACTION. Its score marker is "Vagabond VP", never "Tinker VP", and the box score's roster
+-- knows "Vagabond" too. Without this the marker was never tagged, so it never reached the score
+-- track, and the seat published under "Tinker" matched nothing on the sheet: the faction simply did
+-- not appear. Maintainer, 2026-09-05: "the victory marker didn't go on the tracker, and the faction
+-- didn't get detected."
+function rttFactionKey(faction)
+  if isVagabond(faction) then return "Vagabond" end
+  if faction == "Vagabond Dice and VP" or faction == "Vagabond Layout" then return "Vagabond" end
+  return faction
+end
+
+function rttVPName(faction)
+  local key = rttFactionKey(faction)
+  return (RTT_VP_SHORT[key] or key) .. " VP"
+end
 
 function rttDetectTrackOn(obj)
   local ok, sp = pcall(function() return obj.getSnapPoints() end)

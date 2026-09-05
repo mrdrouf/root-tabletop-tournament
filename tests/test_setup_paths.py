@@ -345,6 +345,29 @@ def t_turn_order_reapplies_on_seating(src):
     assert list(rt.eval("Turns.order").values()) == ["Teal", "Red"], "a manual reorder was overwritten"
 
 
+def t_vagabond_is_published_as_a_faction(src):
+    """A Vagabond is picked as a CHARACTER but named as a FACTION everywhere downstream.
+
+    Its score marker is "Vagabond VP", never "Tinker VP", so with the character name the marker was
+    never tagged and never reached the score track. The seat was published under "Tinker" too, which
+    matches nothing on the box score's roster, so the faction did not appear on the sheet at all.
+    Both reports, 2026-09-05, one cause.
+    """
+    rt = fresh(src)
+    for char in ("Tinker", "Ranger", "Vagrant", "Adventurer", "Arbiter", "Harrier",
+                 "Ronin", "Scoundrel", "Thief", "Gladiator", "Cheat", "Jailor"):
+        assert rt.eval("rttFactionKey([[%s]])" % char) == "Vagabond", char
+        assert rt.eval("rttVPName([[%s]])" % char) == "Vagabond VP", char
+    # the shared kit spawns under its own blueprint names and must not invent a third identity
+    for extra in ("Vagabond Layout", "Vagabond Dice and VP"):
+        assert rt.eval("rttVPName([[%s]])" % extra) == "Vagabond VP", extra
+    # and nothing else moves
+    assert rt.eval("rttVPName([[Knaves of the Deepwood]])") == "Knaves VP"
+    assert rt.eval("rttVPName([[Marquise de Cat]])") == "Marquise VP"
+    assert rt.eval("rttVPName([[Lord of the Hundreds]])") == "Rats VP"
+    assert rt.eval("rttFactionKey([[Marquise de Cat]])") == "Marquise de Cat"
+
+
 CASES = [
     ("manual path drives the turn system",   t_manual_turn_order),
     ("manual path spawns 4 / 5 boards",      t_boards_spawn),
@@ -363,6 +386,7 @@ CASES = [
     ("enclaves sit where they are dropped",   t_enclaves_do_not_snap),
     ("enclave aims at the suit circle",       t_enclave_targets_the_suit_marker),
     ("turn order re-applies on seating",      t_turn_order_reapplies_on_seating),
+    ("vagabond published as a faction",       t_vagabond_is_published_as_a_faction),
 ]
 
 
