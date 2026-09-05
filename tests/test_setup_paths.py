@@ -533,6 +533,37 @@ def t_gizmo_reads_every_faction_from_its_blueprint(src):
         assert got.get(war) == sup, "%s should go home to %s, got %s" % (war, sup, got.get(war))
 
 
+def t_ui_objects_clear_their_xml_before_being_destroyed(src):
+    """Deleting an object that still has XML UI attached can break TTS colour selection.
+
+    Community-reported engine bug: after such a delete the server hands out only Grey, and a colour
+    you have LEFT cannot be retaken, while the hand zones still look fine. The maintainer hit exactly
+    that -- "I changed color to another seat and then I'm not able to go back". This mod deletes
+    XmlUI objects constantly: every manual selector board on a pick, every ranked selector, the box
+    score on each respawn. They all clear the UI first and destroy a frame later.
+    """
+    rt = fresh(src)
+    assert rt.eval("rttDestroyUI") is not None, "the helper is gone"
+
+    rt.execute("""
+      CLEARED, KILLED = 0, 0
+      local o = MKOBJ("victim", {0,1,0}, {})
+      o.UI = { setXml = function() CLEARED = CLEARED + 1 end }
+      o.destruct = function() KILLED = KILLED + 1 end
+      rttDestroyUI(o)
+    """)
+    assert rt.eval("CLEARED") == 1, "the UI was not cleared"
+    assert rt.eval("KILLED") == 0, "it was destroyed in the same frame as the clear"
+    rt.execute("FLUSH(4)")
+    assert rt.eval("KILLED") == 1, "it was never actually destroyed"
+
+    # and every destroy of a UI-bearing object goes through it
+    for site in ('getObjectsWithTag(t)', 'getObjectsWithTag(RTT_SELECTOR_TAG)',
+                 'getObjectsWithTag(RTT_BOXSCORE_TAG)'):
+        line = [l for l in src.splitlines() if site in l and "destr" in l.lower()]
+        assert line and "rttDestroyUI" in line[0], "%s still calls destruct directly: %s" % (site, line)
+
+
 CASES = [
     ("manual path drives the turn system",   t_manual_turn_order),
     ("manual path spawns 4 / 5 boards",      t_boards_spawn),
@@ -555,6 +586,7 @@ CASES = [
     ("gizmo: warrior to/from supply",         t_gizmo_warrior_to_and_from_supply),
     ("gizmo reads every blueprint",           t_gizmo_reads_every_faction_from_its_blueprint),
     ("gizmo works without the seat map",      t_gizmo_finds_your_supply_without_the_published_map),
+    ("UI cleared before destroy",             t_ui_objects_clear_their_xml_before_being_destroyed),
 ]
 
 
