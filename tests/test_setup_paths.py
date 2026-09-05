@@ -202,6 +202,70 @@ def t_captain_deck_without_a_draft(src):
         "a ranked draft deals the captains, so the board copy would be a duplicate"
 
 
+# ---- player-tester reports, 2026-09-04 ---------------------------------------
+def _dg_pos(rt):
+    if not rt.eval('find_object_by_gm_note("Dragon God") ~= nil'):
+        return None
+    v = rt.eval('find_object_by_gm_note("Dragon God").getPosition()')
+    return [round(float(v[k]), 3) for k in ("x", "y", "z")]
+
+
+def t_dragon_god_without_a_deck(src):
+    """Picking the lizards must put the discard blocker out, deck on the table or not.
+
+    It used to reach the table only through the Lizard Wizard BUTTON, and that button was removed --
+    so the Lost Souls board spawned with nothing blocking the discard.
+    """
+    rt = fresh(src)
+    rt.execute("rttLizardSetup() FLUSH(8)")
+    at = _dg_pos(rt)
+    assert at is not None, "the lizards spawned with no Dragon God on the discard"
+    spot = [round(float(rt.eval("rttDragonGodSpot()")[i]), 3) for i in (1, 2, 3)]
+    assert at == spot, "rttDragonGodSpot() %s is not where makeSpecial puts the blocker %s" % (spot, at)
+
+
+def t_dragon_god_reseated_by_a_later_deck(src):
+    """A deck chosen AFTER the lizards drops a fresh discard pile; the blocker goes back on top."""
+    rt = fresh(src)
+    rt.execute("rttLizardSetup() FLUSH(8)")
+    spot = _dg_pos(rt)
+    rt.execute('find_object_by_gm_note("Dragon God").setPosition({0,3,0})')
+    assert _dg_pos(rt) != spot
+    rt.execute('makeDeck(nil, nil, "Standard Deck") FLUSH(8)')
+    assert _dg_pos(rt) == spot, "a later deck left the Dragon God stranded at %s" % (_dg_pos(rt),)
+
+
+def t_rats_moods_wait_for_their_board(src):
+    """The mood cards must not be spawned in the same instant as the board they land on.
+
+    They were, so they were already falling before the board had a collider -- and the mood the rats
+    start with, which spawns dead centre on the printed manager, went through it.
+    """
+    rt = fresh(src)
+    rt.execute("REC.spawned = {} rttSpawnFaction('Lord of the Hundreds', 52, -46, false, 'Standard')")
+    during = [v for v in rt.eval("REC.spawned").values()]
+    rt.execute("FLUSH(8)")
+    after = [v for v in rt.eval("REC.spawned").values()]
+    mood = lambda xs: [x for x in xs if x.startswith("Stubborn")]
+    assert not mood(during), "the starting mood spawned in the same pass as its board"
+    assert mood(after), "the starting mood never spawned at all"
+
+
+def t_frog_enclaves_are_bigger(src):
+    """The maintainer asked for +20% on every enclave; all twelve must move together."""
+    rt = fresh(src)
+    d = rt.eval('EVERYTHING["Standard"]["Lilypad Diaspora"]["data"]')
+    scales = []
+    for i in range(1, len(d) + 1):
+        j = json.loads(d[i].json)
+        if j.get("Nickname") == "Enclave":
+            scales.append(round(j["Transform"]["scaleX"], 6))
+    assert len(scales) == 12, "expected 12 enclaves, found %d" % len(scales)
+    assert len(set(scales)) == 1, "enclaves came out at mixed sizes: %s" % sorted(set(scales))
+    assert abs(scales[0] / 0.703911364 - 1.2) < 0.001, \
+        "enclave scale %s is not 20%% over the original 0.703911364" % scales[0]
+
+
 CASES = [
     ("manual path drives the turn system",   t_manual_turn_order),
     ("manual path spawns 4 / 5 boards",      t_boards_spawn),
@@ -213,6 +277,10 @@ CASES = [
     ("supporters draw with frogs in play",   t_supporters_draw_with_frogs_in_deck),
     ("a new game removes frog cards",        t_new_game_removes_frog_cards),
     ("captain deck when nothing drafts it",  t_captain_deck_without_a_draft),
+    ("lizards bring their discard blocker",   t_dragon_god_without_a_deck),
+    ("a later deck re-seats the blocker",     t_dragon_god_reseated_by_a_later_deck),
+    ("mood cards wait for the rats board",    t_rats_moods_wait_for_their_board),
+    ("frog enclaves are 20% bigger",          t_frog_enclaves_are_bigger),
 ]
 
 

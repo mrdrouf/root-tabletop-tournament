@@ -182,7 +182,7 @@ def square_label(out, art, lines, art_bot_frac, drop=0, pt=SQUARE_PT, floor=SQUE
     return art_px, sz
 
 
-def wide_label(out, art, lines, pt=WIDE_PT):
+def wide_label(out, art, lines, pt=WIDE_PT, floor=SQUEEZE_FLOOR):
     W, H = WIDE
     im = Image.new("RGBA", WIDE, (0, 0, 0, 0))
     if art is not None:
@@ -193,7 +193,7 @@ def wide_label(out, art, lines, pt=WIDE_PT):
         art_px, x0 = a.size, WIDE_ART_W
     else:
         art_px, x0 = (0, 0), 0
-    sz = text_block(im, lines, W - x0 - WIDE_TEXT_PAD, x0 + (W - x0) / 2, 0, H, pt)
+    sz = text_block(im, lines, W - x0 - WIDE_TEXT_PAD, x0 + (W - x0) / 2, 0, H, pt, floor=floor)
     im.save(out)
     return art_px, sz
 
@@ -246,7 +246,9 @@ WIDES = [
     ("FivePlayerArt",      "five_player_draft_v11",   ["5-Player", "Draft"],   lambda: art_crop_aspect("assets/images/5players.png", 0.853)),
     ("Marsh5PLabel",       "five_players_marsh_v11",  ["5-Players", "Marsh"],  lambda: art_topband("assets/upload/map_marsh.png")),
     ("FactionCardsArt",    "faction_cards_v11",       ["Faction", "Cards"],    lambda: art_from_label("faction_cards_label_v4_34723094.png")),
-    ("CreditsBtnArt",      "credits_button_v11",      ["Credits"],             lambda: None),
+    ("CreditsBtnArt",      "credits_button_v11",      ["Credits"],             lambda: None, 96, 1.0),
+    # Credits carries no artwork, so its caption has the whole button to itself: start it far above
+    # the shared size and let the width cap settle it, with no condensing on one short word.
 ]
 
 SAVE = os.path.join(ROOT, "gen/src/save.json")
@@ -275,9 +277,10 @@ def main(write):
         art, sz = square_label(p, mkart(), lines, frac, drop, floor=(rest[0] if rest else SQUEEZE_FLOOR))
         f, u = publish(p); urls[name] = u
         report.append(("SQ", name, art, sz, os.path.basename(f)))
-    for name, stem, lines, mkart in WIDES:
+    for name, stem, lines, mkart, *rest in WIDES:
         p = os.path.join(outdir, stem + ".png")
-        art, sz = wide_label(p, mkart(), lines)
+        art, sz = wide_label(p, mkart(), lines, pt=(rest[0] if rest else WIDE_PT),
+                             floor=(rest[1] if len(rest) > 1 else SQUEEZE_FLOOR))
         f, u = publish(p); urls[name] = u
         report.append(("WD", name, art, sz, os.path.basename(f)))
     for kind, name, art, sz, fn in report:

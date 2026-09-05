@@ -60,11 +60,13 @@ function MKOBJ(name, pos, tags)
   function o.addTag(t) o.__tags[#o.__tags+1] = t end
   function o.hasTag(t) for _,x in ipairs(o.__tags) do if x == t then return true end end return false end
   function o.getTags() return o.__tags end
+  function o.setTags(t) o.__tags = t or {} end
+  function o.getLock() return o.__locked == true end
   function o.destruct() if not o.__dead then o.__dead = true; note(REC.destroyed, o.__name.."|"..table.concat(o.__tags,",")) end end
   o.__bounds = {size = vec{2.5, 0.3, 3.5}, center = vec{0,0,0}}
   function o.getBounds() return o.__bounds end
   function o.setPositionSmooth(p) o.__pos = vec(p); note(REC.hands, string.format("move:%s->%.2f,%.2f", o.__name, o.__pos.x, o.__pos.z)) end
-  function o.setLock() end function o.setColorTint() end function o.shuffle() end
+  function o.setLock(v) o.__locked = (v == true) end function o.setColorTint() end function o.shuffle() end
   function o.randomize() end function o.reload() return o end function o.clone(p) return MKOBJ(o.__name, (p or {}).position, o.__tags) end
   function o.takeObject(p) local t = MKOBJ((p or {}).guid or "taken", (p or {}).position, {})
       if p and p.callback_function then p.callback_function(t) end return t end
