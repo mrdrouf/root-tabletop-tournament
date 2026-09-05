@@ -5802,18 +5802,6 @@ end
 -- there is no hand-kept table to drift.
 
 -- faction -> seat colour, as published in Global RTT_SEAT_COLOR
-local function rttSeatColorMap()
-  local m = {}
-  pcall(function()
-    local raw = Global.getVar("RTT_SEAT_COLOR")
-    if type(raw) == "string" and raw ~= "" then
-      local ok, dec = JSON.decode(raw)
-      if type(dec) == "table" then m = dec end
-    end
-  end)
-  return m
-end
-
 -- which faction does this colour control?
 function rttSeatFaction(color)
   if color == nil or color == "" then return nil end
@@ -5907,6 +5895,38 @@ local function rttFindByName(name)
   return nil
 end
 
+-- WHICH SUPPLY IS YOURS. Two ways, because the first one is not always there.
+--
+-- RTT_SEAT_COLOR is a runtime Global, set as each faction is placed -- and Globals do NOT survive a
+-- save and reload. A game resumed from a save has factions on the table and an empty map, which is
+-- exactly what the maintainer hit: "it says no faction seated in your color yet ... I am seated and
+-- have a faction". So the published map is only a fast path, and the fallback reads the table: your
+-- supply is the faction supply bag nearest your own hand zone. That is how the box score binds
+-- factions to colours too, and it needs nothing to have been published at all.
+function rttMySupplyBag(color)
+  local faction = rttSeatFaction(color)
+  if faction ~= nil then
+    local bag = rttFindByName((rttFactionPieceNames(faction)))
+    if bag ~= nil then return bag end
+  end
+
+  local hp = nil
+  pcall(function() hp = Player[color].getHandTransform(1).position end)
+  if hp == nil then return nil end
+
+  local known = {}
+  for _, sup in pairs(rttWarriorSupplyMap()) do known[sup] = true end
+  local best, bestd = nil, nil
+  for _, o in ipairs(getAllObjects()) do
+    if known[o.getName() or ""] then
+      local p = o.getPosition()
+      local d = (p.x - hp.x) ^ 2 + (p.z - hp.z) ^ 2
+      if bestd == nil or d < bestd then best, bestd = o, d end
+    end
+  end
+  return best
+end
+
 -- The whole gizmo.
 function rttGizmoWarrior(color)
   local hovered = nil
@@ -5922,17 +5942,10 @@ function rttGizmoWarrior(color)
     return
   end
 
-  -- Hovering nothing (or something that is not a warrior): one comes out of YOUR supply. Which is
-  -- yours is resolved from where you are seated.
-  local faction = rttSeatFaction(color)
-  if faction == nil then
-    broadcastToColor("Gizmo: no faction is seated in your colour yet.", color, { r = 1, g = 0.6, b = 0.2 })
-    return
-  end
-  local supplyName = rttFactionPieceNames(faction)
-  local bag = rttFindByName(supplyName)
+  -- Hovering nothing (or something that is not a warrior): one comes out of YOUR supply.
+  local bag = rttMySupplyBag(color)
   if bag == nil then
-    broadcastToColor("Gizmo: no " .. tostring(supplyName) .. " on the table.", color, { r = 1, g = 0.6, b = 0.2 })
+    broadcastToColor("Gizmo: could not tell which supply is yours.", color, { r = 1, g = 0.6, b = 0.2 })
     return
   end
 

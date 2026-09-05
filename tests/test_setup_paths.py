@@ -462,6 +462,46 @@ def t_gizmo_warrior_to_and_from_supply(src):
     assert put()["Eyrie Supply"] == 2, "putting back must not depend on the presser's seat"
 
 
+def t_gizmo_finds_your_supply_without_the_published_map(src):
+    """RTT_SEAT_COLOR is a runtime Global and does NOT survive a save and reload.
+
+    A resumed game therefore has factions on the table and an empty map, which is what the maintainer
+    hit: "it says no faction seated in your color yet ... I am seated and have a faction". Your
+    supply is then the faction supply bag nearest your own hand zone -- no publication required.
+    """
+    rt = fresh(src)
+    rt.execute("""
+      TOOK, LAST = 0, nil
+      local function mkbag(name, x, z)
+        local b = MKOBJ(name, {x,1,z}, {})
+        b.__n = 3
+        b.getQuantity = function() return b.__n end
+        b.putObject = function(o) end
+        b.takeObject = function(p)
+          TOOK = TOOK + 1 LAST = name
+          if p.callback_function then p.callback_function(MKOBJ("W", p.position, {})) end
+        end
+        return b
+      end
+      mkbag("Hundreds Supply", 52, -46)
+      mkbag("Eyrie Supply",   -52,  46)
+      SEAT("Red")   Player["Red"].getHandTransform   = function() return { position = {x=52,y=0,z=-46} } end
+      SEAT("Green") Player["Green"].getHandTransform = function() return { position = {x=-52,y=0,z=46} } end
+    """)
+    assert rt.eval('Global.getVar("RTT_SEAT_COLOR")') in (None, ""), "the fixture must start unpublished"
+
+    rt.execute('HOVER["Red"] = nil rttGizmoWarrior("Red")')
+    assert rt.eval("LAST") == "Hundreds Supply", "Red got %s" % rt.eval("LAST")
+    rt.execute('HOVER["Green"] = nil rttGizmoWarrior("Green")')
+    assert rt.eval("LAST") == "Eyrie Supply", "Green got %s" % rt.eval("LAST")
+    assert rt.eval("TOOK") == 2
+
+    # when the map IS published it wins, since it is authoritative rather than geometric
+    rt.execute('Global.setVar("RTT_SEAT_COLOR", JSON.encode({ ["Eyrie Dynasties"] = "Red" }))')
+    rt.execute('HOVER["Red"] = nil rttGizmoWarrior("Red")')
+    assert rt.eval("LAST") == "Eyrie Supply", "the published map should win, got %s" % rt.eval("LAST")
+
+
 def t_gizmo_reads_every_faction_from_its_blueprint(src):
     """Supply and warrior names come out of the blueprints, so no hand-kept table can rot."""
     rt = fresh(src)
@@ -505,6 +545,7 @@ CASES = [
     ("vagabond published as a faction",       t_vagabond_is_published_as_a_faction),
     ("gizmo: warrior to/from supply",         t_gizmo_warrior_to_and_from_supply),
     ("gizmo reads every blueprint",           t_gizmo_reads_every_faction_from_its_blueprint),
+    ("gizmo works without the seat map",      t_gizmo_finds_your_supply_without_the_published_map),
 ]
 
 
