@@ -128,12 +128,9 @@ Nothing below is implemented. The maintainer asked to be consulted before each c
 
 ### Buttons and real estate
 
-- [ ] **DRAW POND when the frogs are in.** STILL OPEN, and not specifiable yet. The mod's Pond
-      (RTT_POND_JSON) is a Custom_Tile nicknamed "Plot" -- a board, not a deck -- so there is nothing
-      for a pond draw to draw FROM the way the shared deck works. Needs the maintainer to say what it
-      should take: cards laid on the pond tile, a separate deck that does not exist yet, or something
-      else.
-
+- [ ] **Per-faction DRAW ONE buttons, and DRAW POND when the frogs are in.** Zaandaa: old Woodland
+      Tournament mods had a draw button beside each faction board. It avoids high-ping draws from
+      hands and stops accidental overdraws (pressing 11). The maintainer has this on his own list.
 - [ ] **Per-faction VP +1 / -1 buttons, echoing to the chat console.** Same source: the old mods
       printed each score change to the console, which doubles as a game log.
 - [ ] **A one-shot DEAL FIVE button beside the deck when it spawns.** Temporary, removes itself.

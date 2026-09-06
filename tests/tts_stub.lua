@@ -102,12 +102,7 @@ function MKOBJ(name, pos, tags)
   function o.getSnapPoints() return {} end
   function o.call() end function o.setVar() end function o.getVar() end
   function o.setTable() end function o.getTable() end
-  -- RECORDED. It was a no-op, so nothing could check that a button was created, where, or what it
-  -- calls -- and the DRAW button's whole point is which seat it deals to.
-  o.__buttons = {}
-  function o.createButton(p) o.__buttons[#o.__buttons+1] = p end
-  function o.getButtons() return o.__buttons end
-  function o.clearButtons() o.__buttons = {} end
+  function o.createButton() end function o.clearButtons() end
   function o.setSnapPoints() end function o.getQuantity() return 1 end
   function o.getStateId() return 1 end function o.setState(s) return o end
   function o.deal() end function o.flip() end function o.setDescription() end
