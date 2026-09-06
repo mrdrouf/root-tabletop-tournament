@@ -70,7 +70,12 @@ function MKOBJ(name, pos, tags)
   function o.destruct() if not o.__dead then o.__dead = true; note(REC.destroyed, o.__name.."|"..table.concat(o.__tags,",")) end end
   o.__bounds = {size = vec{2.5, 0.3, 3.5}, center = vec{0,0,0}}
   function o.getBounds() return o.__bounds end
-  function o.setPositionSmooth(p) o.__pos = vec(p); note(REC.hands, string.format("move:%s->%.2f,%.2f", o.__name, o.__pos.x, o.__pos.z)) end
+  -- the `fast` flag is recorded: TTS's third argument is the only speed control there is, and the
+  -- gizmo's warrior pull turns on it.
+  function o.setPositionSmooth(p, collide, fast)
+    o.__pos = vec(p); o.__smoothFast = (fast == true)
+    note(REC.hands, string.format("move:%s->%.2f,%.2f%s", o.__name, o.__pos.x, o.__pos.z, fast and " fast" or ""))
+  end
   function o.setLock(v) o.__locked = (v == true) end function o.setColorTint() end function o.shuffle() end
   function o.randomize() end function o.reload() return o end function o.clone(p) return MKOBJ(o.__name, (p or {}).position, o.__tags) end
   function o.takeObject(p) local t = MKOBJ((p or {}).guid or "taken", (p or {}).position, {})

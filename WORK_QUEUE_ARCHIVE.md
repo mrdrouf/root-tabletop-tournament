@@ -1124,3 +1124,27 @@ RTT_LAYOUT so its turn order zig-zags" and "manual END TURN advances by row inde
 ### Housekeeping the maintainer flagged
 ### From this session, still unverified
 ## AWAITING A TEST AT THE TABLE
+
+# RTT Work Queue
+## Standing rule: work on MAIN
+## Standing rule: update the maintainer's SAVES, not just the build
+## Note for future sessions: the `m###` labels are HISTORY, not files
+## Golden rule (the maintainer, repeated + hardened)
+## STRUCTURAL — the pattern behind most of today's bugs (2026-09-04)
+## OPEN — from the Zaandaa play-test discussion (2026-09-05)
+### Bugs
+### Setup and placement
+### Buttons and real estate
+### Gizmo (the maintainer will iterate; ask before changing behaviour)
+- [x] **Make the warrior pull snappier.** DONE 2026-09-06, and it did NOT need the trade-off the
+      entry assumed. takeObject has no speed control, so "fast" and "visible travel" looked like
+      opposites -- but setPositionSmooth's THIRD argument is `fast`. The warrior now pops out AT THE
+      BAG with smooth=false and is then sent to the pointer with setPositionSmooth(pos, false, true).
+      Zaandaa gets speed, the maintainer keeps the travel that shows where the piece came from.
+      IF IT IS STILL TOO SLOW at the table the next step is instant placement: drop the
+      setPositionSmooth and take straight to `pos`. Nothing else in that function would change.
+      Zaandaa's other two suggestions -- a second press removing the one just placed, and placing on
+      top of whatever it collides with -- are separate features and are NOT done.
+### Housekeeping the maintainer flagged
+### From this session, still unverified
+## AWAITING A TEST AT THE TABLE

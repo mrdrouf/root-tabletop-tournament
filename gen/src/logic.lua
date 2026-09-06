@@ -6495,11 +6495,22 @@ function rttGizmoWarrior(color)
   -- the piece faces the same way as the rest of that seat's pieces.
   local ry = 0
   pcall(function() ry = bag.getRotation().y or 0 end)
+  -- FAST, but still visibly from the supply. Zaandaa found the plain smooth take slow; the maintainer
+  -- wanted the travel kept so players can see where the piece came from. takeObject has no speed
+  -- control, so those looked like a trade-off -- but setPositionSmooth does: its third argument is
+  -- `fast`. Pop the warrior out AT THE BAG with smooth=false, then send it to the pointer fast. Both
+  -- things at once instead of one at the other's expense.
+  -- If it is still too slow at the table the next step is instant placement (drop the
+  -- setPositionSmooth and take straight to `pos`); nothing else here would change.
+  local bp = bag.getPosition()
   -- tagged like every other faction piece, so the next new game clears it with the rest
   pcall(function()
     bag.takeObject({
-      position = pos, rotation = { 0, ry, 0 }, smooth = true,
-      callback_function = function(o) pcall(function() o.addTag("RTT Faction") end) end
+      position = { bp.x, bp.y + 1.2, bp.z }, rotation = { 0, ry, 0 }, smooth = false,
+      callback_function = function(o)
+        pcall(function() o.addTag("RTT Faction") end)
+        pcall(function() o.setPositionSmooth(pos, false, true) end)   -- collide=false, fast=true
+      end
     })
   end)
 end

@@ -137,10 +137,6 @@ Nothing below is implemented. The maintainer asked to be consulted before each c
 
 ### Gizmo (the maintainer will iterate; ask before changing behaviour)
 
-- [ ] **Make the warrior pull snappier.** Zaandaa: the current smooth take is slow. Options he
-      raised: place instantly; a second press removes the one just placed; or place on top of
-      whatever it collides with. The maintainer deliberately wanted the visible travel from the
-      supply so players see where it came from -- so this is a taste call, not a bug.
 - [ ] **Extend the gizmo to mobs, strongholds and the rest of the tokens/buildings.** Zaandaa asked
       for it; both agreed the mechanism is an assigned return location per object, and the
       maintainer's proposal is to use each piece's own spawn position from the faction setup. That

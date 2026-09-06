@@ -470,6 +470,22 @@ def t_gizmo_warrior_to_and_from_supply(src):
     rt.execute('HOVER["Teal"] = THEIRS  rttGizmoWarrior("Teal")')
     assert put()["Eyrie Supply"] == 2, "putting back must not depend on the presser's seat"
 
+    # FAST, but still visibly from the supply. Zaandaa found the plain smooth take slow; the
+    # maintainer wanted the travel kept so players see where the piece came from. takeObject has no
+    # speed control -- setPositionSmooth does, in its third argument -- so the warrior pops out AT THE
+    # BAG and is then sent to the pointer fast. Both, instead of one at the other's expense.
+    rt.execute('POINTER["Red"] = {x = 20, y = 1, z = -30} HOVER["Red"] = nil rttGizmoWarrior("Red")')
+    landed = rt.eval("""function()
+      for _, o in ipairs(getAllObjects()) do
+        if (o.getName() or '') == 'Hundreds Warrior' and o.__smoothFast ~= nil then
+          return string.format('%.1f,%.1f,%s', o.__pos.x, o.__pos.z, tostring(o.__smoothFast))
+        end
+      end
+      return 'none'
+    end""")()
+    assert landed == "20.0,-30.0,true", (
+        "the warrior should arrive at the pointer by a FAST smooth move; got %s" % landed)
+
 
 def t_gizmo_finds_your_supply_without_the_published_map(src):
     """RTT_SEAT_COLOR is a runtime Global and does NOT survive a save and reload.
