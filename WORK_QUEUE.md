@@ -105,9 +105,6 @@ Nothing below is implemented. The maintainer asked to be consulted before each c
 
 ### Bugs
 
-- [ ] **Old seat-number cards survive into a new draft.** Zaandaa: "old seat number cards remain if
-      you start a new draft". The teardown clears by tag (RTT_TEARDOWN_TAGS); these are evidently
-      untagged or spawned outside it. Same class as every other teardown miss this repo has had.
 - [ ] **The burrow is not locked when it spawns.** Zaandaa locks it by hand for other players every
       game. Lock it at spawn, like the landmarks and the mood manager already are.
 

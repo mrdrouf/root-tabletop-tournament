@@ -938,3 +938,23 @@ RTT_LAYOUT so its turn order zig-zags" and "manual END TURN advances by row inde
 ### Housekeeping the maintainer flagged
 ### From this session, still unverified
 ## AWAITING A TEST AT THE TABLE
+
+# RTT Work Queue
+## Standing rule: work on MAIN
+## Standing rule: update the maintainer's SAVES, not just the build
+## Note for future sessions: the `m###` labels are HISTORY, not files
+## Golden rule (the maintainer, repeated + hardened)
+## STRUCTURAL — the pattern behind most of today's bugs (2026-09-04)
+## OPEN — from the Zaandaa play-test discussion (2026-09-05)
+### Bugs
+- [x] **Old seat-number cards survive into a new draft.** DONE 2026-09-05. Cause confirmed from the
+      blueprint: the order deck was tracked by GUID in RTT_SPAWNED, but rttDealOrderCards TAKES the
+      cards out of it into hands, and a card taken from a deck is its own object with its own guid,
+      on no list and carrying zero Tags. "RTT Order Card" is now baked into the deck AND every card
+      in both RTT_ORDER_JSON_4/_5, and added to RTT_TEARDOWN_TAGS.
+### Setup and placement
+### Buttons and real estate
+### Gizmo (the maintainer will iterate; ask before changing behaviour)
+### Housekeeping the maintainer flagged
+### From this session, still unverified
+## AWAITING A TEST AT THE TABLE

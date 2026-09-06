@@ -998,10 +998,54 @@ def t_two_vagabonds_get_one_marker_each(src):
     assert chars == ["Ranger", "Thief"], "the record lost the characters: %s" % chars
 
 
+def t_order_cards_do_not_survive_a_new_game(src):
+    """Zaandaa: "old seat number cards remain if you start a new draft".
+
+    A new game clears the table two ways: by TAG, and by RTT_SPAWNED, a list of guids it spawned. The
+    turn-order DECK was on that list, so the deck died -- but rttDealOrderCards TAKES the cards OUT of
+    it into players' hands, and a card taken from a deck is its own object with its own guid, on no
+    list and carrying no tag at all (verified: the blueprint had zero "Tags" entries). So the deck went
+    and everybody kept holding last game's seat number.
+
+    The tag is baked into the CARDS, not just the deck, because that is what makes it hold: a card
+    keeps its own tags when it leaves the deck, so the sweep finds it in a hand, on the table, or as
+    the leftover nobody was dealt.
+    """
+    import re as _re
+    # 1. every object in both order decks carries the tag
+    for name, want_cards in (("RTT_ORDER_JSON_4", 4), ("RTT_ORDER_JSON_5", 5)):
+        head = name + " = [==["
+        i = src.index(head); start = i + len(head); end = src.index("]==]", start)
+        d = json.loads(src[start:end])
+        assert "RTT Order Card" in (d.get("Tags") or []), "%s: the deck itself is untagged" % name
+        cards = d.get("ContainedObjects") or []
+        assert len(cards) == want_cards, "%s holds %d cards, expected %d" % (name, len(cards), want_cards)
+        for c in cards:
+            assert "RTT Order Card" in (c.get("Tags") or []), \
+                "%s: card %s (CardID %s) is untagged -- it would survive a new game" \
+                % (name, c.get("GUID"), c.get("CardID"))
+
+    # 2. the tag is actually swept
+    rt = fresh(src)
+    tags = list((rt.eval("RTT_TEARDOWN_TAGS") or {}).values())
+    assert "RTT Order Card" in tags, "the tag is baked but never swept: %s" % tags
+
+    # 3. and an object carrying it really is destroyed by a new game, on BOTH setup paths
+    for start_game in ("setupFactionBoards(nil,nil,nil)", "rttSetup(nil,nil,'rttRankedBtn')"):
+        rt = fresh(src)
+        rt.execute("SEAT('Purple','H1') math.randomseed(5)")
+        rt.execute('OLDCARD = MKOBJ("Player 3", {10,1,10}, {"RTT Order Card"})')
+        assert rt.eval("OLDCARD.__dead") is not True
+        rt.execute("pcall(function() %s end) FLUSH(24)" % start_game)
+        assert rt.eval("OLDCARD.__dead") is True, \
+            "a seat-number card survived %s" % start_game.split("(")[0]
+
+
 CASES = [
     ("manual path drives the turn system",   t_manual_turn_order),
     ("manual path spawns 4 / 5 boards",      t_boards_spawn),
     ("a new game resets run state",          t_new_game_resets_state),
+    ("order cards cleared by a new game",    t_order_cards_do_not_survive_a_new_game),
     ("manual setup clears ranked objects",   t_ranked_objects_cleared_by_manual),
     ("supporters take the seat explicitly",  t_supporters_take_the_seat_explicitly),
     ("both transform shapes agree",          t_seat_hand_array_shape),
