@@ -1242,12 +1242,12 @@ def t_crafted_board_sits_the_same_side_for_every_faction(src):
     caps  = [i for i in items if i[0] == "Knaves Captains"]
     assert rules and craft and caps, "could not find all three boards: %s" % [(i[0], i[3]) for i in items]
 
-    # the BOARD ITSELF, recentred 2026-09-05 on the maintainer's instruction. It sat at -4.14 while
-    # seven other faction boards cluster at -2.95..-3.29; the whole Knaves assembly moved +1.16 so the
-    # board lands on that cluster. Every piece moved with it, so the internal layout is unchanged.
+    # the BOARD ITSELF, moved right twice on the maintainer's instruction: -4.14 -> -2.98 -> -1.82,
+    # +1.16 each time, the whole assembly together so the internal layout never changes. It now sits
+    # between the cluster (-2.95..-3.29) and Keepers in Iron (-1.69).
     board_dx = rules[0][1] - 52
-    assert abs(board_dx - (-2.98)) < 0.05, \
-        "the Knaves board is at dx %+.2f, it should sit with the cluster at -2.98" % board_dx
+    assert abs(board_dx - (-1.82)) < 0.05, \
+        "the Knaves board is at dx %+.2f, the maintainer put it at -1.82" % board_dx
     assert abs(dx_caps_expected(caps[0][1] - rules[0][1])) < 0.05, \
         "the captains board is at dx %+.4f from the board; his save has -15.7569" % (caps[0][1] - rules[0][1])
 
