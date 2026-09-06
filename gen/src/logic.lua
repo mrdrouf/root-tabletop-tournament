@@ -1979,6 +1979,18 @@ RTT_WIPE_BTN = {
   rttFourBoardsBtn = { fn = "setupFactionBoards",    color = "#3a2f22", icon = "FourBoardsArt",      warn = "WipeConfirmArt" },
   Marsh5P          = { fn = "rttFivePStart",         color = "#463221", icon = "FivePlayerArt",      warn = "WipeConfirmArtWide" },
   Marsh5PSetup     = { fn = "setupFivePlayerBoards", color = "#463221", icon = "FivePlayerSetupArt", warn = "WipeConfirmArtWide" },
+  -- THE MAP BUTTONS. Maintainer, 2026-09-06: they should warn like the faction buttons do. They are
+  -- destructive -- makeMap clears everything tagged "Map Object" (the map, the battle mat, the
+  -- priority markers, the timer, the counter, the box score) and on the Marsh re-rolls the flood and
+  -- the suits -- and until now they did it on a single click with no prompt.
+  -- `map` instead of `fn`: rttArmOrGo's other entries name a no-argument function, but makeMap needs
+  -- the map id, so the dispatch branches on this field.
+  ["Summer Map"]   = { map = "Summer Map",   color = "#4b4d35", icon = "Autumn Map",   warn = "WipeConfirmMapArt" },
+  ["Lake Map"]     = { map = "Lake Map",     color = "#42a0c2", icon = "Lake Map",     warn = "WipeConfirmMapArt" },
+  ["Marsh Map"]    = { map = "Marsh Map",    color = "#9b8551", icon = "Marsh Map",    warn = "WipeConfirmMapArt" },
+  ["Winter Map"]   = { map = "Winter Map",   color = "#6b8a8f", icon = "Winter Map",   warn = "WipeConfirmMapArt" },
+  ["Mountain Map"] = { map = "Mountain Map", color = "#764a52", icon = "Mountain Map", warn = "WipeConfirmMapArt" },
+  ["Gorge Map"]    = { map = "Gorge Map",    color = "#61746b", icon = "Gorge Map",    warn = "WipeConfirmMapArt" },
 }
 RTT_ARM = { id = nil, token = 0 }
 
@@ -2253,8 +2265,11 @@ function rttBusyBegin(sec)
   Wait.time(function() if RTT_BUSY_TOKEN == t then RTT_BUSY = false end end, sec or 15)
 end
 
--- would a setup click actually destroy anything? These are exactly the tags rttSetup tears down.
-function rttWouldWipe()
+-- would this click actually destroy anything? A SETUP click tears down the tags rttSetup owns; a MAP
+-- click tears down "Map Object" instead, so the first map of a session still places instantly with no
+-- prompt -- the same rule the setup buttons already follow.
+function rttWouldWipe(isMap)
+  if isMap then return #getObjectsWithTag("Map Object") > 0 end
   for _, t in ipairs({ "RTT Faction", "RTT Selector", "RTT Manual Selector" }) do
     if #getObjectsWithTag(t) > 0 then return true end
   end
@@ -2274,13 +2289,18 @@ function rttDisarm()
 end
 
 -- one handler for every destructive button: go / arm / commit.
-function rttArmOrGo(id)
+-- `player` is carried through so an armed COMMIT still reaches makeMap as a HUMAN click. makeMap
+-- swallows clicks while busy and clears RTT_5P_MARSH only when type(player) == "table"; committing
+-- with nil would quietly keep 5-player mode alive through a map change, which is the bug fixed
+-- earlier the same day.
+function rttArmOrGo(id, player)
   local d = RTT_WIPE_BTN[id]
   if d == nil then return end
   if RTT_BUSY then return end                    -- a setup is still running: swallow the click
   if RTT_ARM.id == id then                       -- SECOND click on the armed button: commit
     rttDisarm()
-    if     d.fn == "rttSetup"           then rttSetup()
+    if     d.map ~= nil                 then makeMap(player, "", d.map)
+    elseif d.fn == "rttSetup"           then rttSetup()
     elseif d.fn == "rttTheme"           then rttTheme()
     elseif d.fn == "rttFivePStart"      then rttFivePStart()
     elseif d.fn == "setupFactionBoards" then setupFactionBoards()
@@ -2288,8 +2308,9 @@ function rttArmOrGo(id)
     end
     return
   end
-  if not rttWouldWipe() then                     -- clean table: nothing to lose, just run
-    if     d.fn == "rttSetup"           then rttSetup()
+  if not rttWouldWipe(d.map ~= nil) then         -- clean table: nothing to lose, just run
+    if     d.map ~= nil                 then makeMap(player, "", d.map)
+    elseif d.fn == "rttSetup"           then rttSetup()
     elseif d.fn == "rttTheme"           then rttTheme()
     elseif d.fn == "rttFivePStart"      then rttFivePStart()
     elseif d.fn == "setupFactionBoards" then setupFactionBoards()
@@ -2308,11 +2329,14 @@ function rttArmOrGo(id)
   Wait.time(function() if RTT_ARM.token == tok then rttDisarm() end end, 3.0)
 end
 
-function rttArmRanked(player, value, id)  rttArmOrGo("rttRankedBtn") end
-function rttArmTheme(player, value, id)   rttArmOrGo("rttThemeBtn") end
-function rttArmFour(player, value, id)    rttArmOrGo("rttFourBoardsBtn") end
-function rttArmMarsh5P(player, value, id) rttArmOrGo("Marsh5P") end
-function rttArmFiveSetup(player, value, id) rttArmOrGo("Marsh5PSetup") end
+-- the map buttons all come through here; the button's own id IS the map id
+function rttArmMap(player, value, id) rttArmOrGo(id, player) end
+
+function rttArmRanked(player, value, id)  rttArmOrGo("rttRankedBtn", player) end
+function rttArmTheme(player, value, id)   rttArmOrGo("rttThemeBtn", player) end
+function rttArmFour(player, value, id)    rttArmOrGo("rttFourBoardsBtn", player) end
+function rttArmMarsh5P(player, value, id) rttArmOrGo("Marsh5P", player) end
+function rttArmFiveSetup(player, value, id) rttArmOrGo("Marsh5PSetup", player) end
 
 -- Five manual selector boards and nothing else -- the 5-player counterpart of the 4-Player Setup
 -- button. setupFactionBoards keys the seat count off the BUTTON id, so it is passed explicitly here

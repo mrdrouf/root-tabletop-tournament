@@ -17,6 +17,23 @@ function FLUSH(rounds)
   end
 end
 
+-- FLUSH with a CLOCK: run only what is due within `secs`, leaving longer waits pending.
+-- FLUSH has no clock at all -- it fires every callback whatever its delay -- so anything that depends
+-- on a window could not be tested: the wipe confirmation's 3s auto-revert went off between the arm
+-- click and the commit click, and the button was never still armed when the second click arrived.
+function FLUSH_UNTIL(secs, rounds)
+  for _ = 1, (rounds or 12) do
+    local due, later = {}, {}
+    for _, e in ipairs(Q) do
+      if (e.at or 0) <= secs then due[#due+1] = e else later[#later+1] = e end
+    end
+    if #due == 0 then Q = later break end
+    Q = later
+    table.sort(due, function(a,b) return a.at < b.at end)
+    for _, e in ipairs(due) do pcall(e.f) end
+  end
+end
+
 local function vec(t, y2, z2)
   if type(t) == 'number' then t = {t, y2 or 0, z2 or 0} end
   t = t or {}
@@ -321,7 +338,12 @@ self = MKOBJ("Faction Selection", {0, 1, 0}, {})
 self.__scale = vec{15.5, 1.0, 15.5}
 self.getTable = function() return nil end
 self.setTable = function() end
-self.UI = {setXml=function() end, setAttribute=function() end, getAttribute=function() return "" end,
+-- setAttribute RECORDS. It was a no-op, so nothing could check that arming a button actually swaps
+-- its art and colour -- which is the whole visible half of the wipe confirmation.
+UIATTR = {}
+self.UI = {setXml=function() end,
+           setAttribute=function(id, k, v) UIATTR[tostring(id).."."..tostring(k)] = v end,
+           getAttribute=function() return "" end,
            setXmlTable=function() end, getXmlTable=function() return {} end, show=function() end, hide=function() end}
 
 function printToAll() end function printToColor() end function broadcastToAll() end

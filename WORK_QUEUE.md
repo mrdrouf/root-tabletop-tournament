@@ -128,38 +128,6 @@ Nothing below is implemented. The maintainer asked to be consulted before each c
 
 ### Buttons and real estate
 
-- [ ] **Map buttons need a wipe warning: "This will reset the current map."** Maintainer, 2026-09-06,
-      by analogy with the faction/setup buttons, which already arm on the first click and commit on
-      the second. Today a map button replaces the map with no prompt at all -- and it is destructive:
-      makeMap clears everything tagged "Map Object" (the map, the battle mat, priority markers, the
-      timer and counter, the box score) and, on the Marsh, re-rolls the flood and the suits.
-
-      HOW THE EXISTING ONE WORKS, so this matches rather than reinvents:
-      * RTT_WIPE_BTN (logic.lua ~1963) maps a button id -> { fn, color, icon, warn }.
-      * rttArmOrGo(id) (~2244): first click swaps the button's `icon` to the warn ART and its `color`
-        to #a83226, and starts a 3s auto-revert; a second click within that window commits. It
-        dispatches by `d.fn` through an if-chain of NO-ARGUMENT calls.
-      * rttWouldWipe() skips the prompt entirely when there is nothing to lose.
-
-      WHAT THIS ONE NEEDS:
-      1. A new warn image. The pair in assets/buttons/ is wipe_confirm_sq_v3 (272x272) and
-         wipe_confirm_wide_v3 (272x136), content-hashed and served from jsDelivr, registered in the
-         BOARD's CustomUIAssets (not the save's top-level list). Map buttons are 34x34, so the SQUARE
-         aspect fits; the text has to change to "This will reset the current map."
-         NOTE: relabel.py does NOT generate these two -- it has no Wipe row -- so whatever made them
-         was a one-off and will have to be found or redone.
-      2. Six RTT_WIPE_BTN entries, one per map button (Summer/Autumn, Lake, Marsh, Winter, Mountain,
-         Gorge), each keeping its own icon and colour.
-      3. rttArmOrGo's dispatch takes no arguments, but makeMap needs the map id -- so it needs a map
-         branch, e.g. `elseif d.map ~= nil then makeMap(nil, nil, d.map)`. Passing nil as the player
-         matters: makeMap now clears RTT_5P_MARSH only when type(player) == "table", so an armed map
-         commit must still count as a HUMAN click or 5-player mode would survive it. Handle this
-         deliberately -- it is exactly the bug fixed on 2026-09-06.
-      4. A "would this wipe anything" test for maps: getObjectsWithTag("Map Object") is non-empty,
-         rather than rttWouldWipe's faction test, so the first map of a session still places instantly.
-      5. The XmlUI markup is inconsistent and any edit must allow for all three forms: most buttons
-         use `onclick`, Summer Map uses `onClick`, and Landmarks has `onclick =` with a space.
-
 - [ ] **Per-faction DRAW ONE buttons, and DRAW POND when the frogs are in.** Zaandaa: old Woodland
       Tournament mods had a draw button beside each faction board. It avoids high-ping draws from
       hands and stops accidental overdraws (pressing 11). The maintainer has this on his own list.

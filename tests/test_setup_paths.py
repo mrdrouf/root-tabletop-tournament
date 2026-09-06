@@ -1676,6 +1676,69 @@ def t_a_stale_show_factions_cannot_unlock_the_next_game(src):
         "a stale rttShowFactions unlocked the next game's buttons while it was still setting up"
 
 
+def t_map_buttons_warn_before_wiping(src):
+    """Maintainer, 2026-09-06: map buttons should warn like the faction buttons -- "This will reset
+    the current map."
+
+    They are destructive and used to act on a single click: makeMap clears everything tagged
+    "Map Object" -- the map, the battle mat, the priority markers, the timer, the counter, the box
+    score -- and on the Marsh re-rolls the flood and the suits.
+
+    Same mechanism as the setup buttons: first click swaps the art to the red warning and starts a 3s
+    auto-revert, second click within that window commits, and a clean table is placed with no prompt
+    at all.
+
+    The commit carries the CLICKING PLAYER through. makeMap swallows clicks while busy and clears
+    RTT_5P_MARSH only for a human click, so committing with nil would have kept 5-player mode alive
+    through a map change -- the bug fixed earlier the same day, reintroduced by its own fix.
+    """
+    MAPS = ["Summer Map", "Lake Map", "Marsh Map", "Winter Map", "Mountain Map", "Gorge Map"]
+
+    # every map button is armed, and they all use the map warning art
+    rt = fresh(src)
+    for m in MAPS:
+        d = rt.eval("function(k) local e = RTT_WIPE_BTN[k] if e == nil then return 'missing' end "
+                    "return tostring(e.map) .. '|' .. tostring(e.warn) end")(m)
+        assert d == "%s|WipeConfirmMapArt" % m, "%s has wipe entry %s" % (m, d)
+    assert 'id="Vagabond Cards"' not in src   # unrelated guard kept from the button sweep
+
+    # a CLEAN table places at once -- the first map of a session must not need two clicks
+    rt = fresh(src)
+    rt.execute("SEAT('Red')")
+    rt.execute("pcall(function() rttArmMap(Player['Red'],'','Summer Map') end) FLUSH(20)")
+    assert rt.eval("RTT_CURRENT_MAP") == "Summer Map", "the first map click did not place a map"
+    assert rt.eval("RTT_ARM.id") is None, "it armed instead of placing on a clean table"
+
+    # with a map down, the first click ARMS and changes nothing
+    rt.execute("pcall(function() rttArmMap(Player['Red'],'','Lake Map') end) FLUSH_UNTIL(0.5)")
+    assert rt.eval("RTT_ARM.id") == "Lake Map", "a second map click did not arm"
+    assert rt.eval("UIATTR['Lake Map.icon']") == "WipeConfirmMapArt", "the art did not become the warning"
+    assert rt.eval("UIATTR['Lake Map.color']") == "#a83226", "the button did not go red"
+    assert rt.eval("RTT_CURRENT_MAP") == "Summer Map", "the map changed on the FIRST click"
+
+    # the second click commits
+    rt.execute("pcall(function() rttArmMap(Player['Red'],'','Lake Map') end) FLUSH(20)")
+    assert rt.eval("RTT_CURRENT_MAP") == "Lake Map", "the second click did not place the map"
+    assert rt.eval("RTT_ARM.id") is None, "it stayed armed after committing"
+
+    # left alone, it reverts
+    rt.execute("pcall(function() rttArmMap(Player['Red'],'','Gorge Map') end) FLUSH_UNTIL(0.5)")
+    assert rt.eval("RTT_ARM.id") == "Gorge Map"
+    rt.execute("FLUSH(20)")
+    assert rt.eval("RTT_ARM.id") is None, "an armed map button never reverted"
+    assert rt.eval("UIATTR['Gorge Map.icon']") == "Gorge Map", "the art did not revert"
+
+    # AND an armed commit is still a human click
+    rt = fresh(src)
+    rt.execute("SEAT('Red') pcall(function() rttPlaceMarsh5P(nil,nil,'Marsh5PMap') end) FLUSH(30)")
+    assert rt.eval("RTT_5P_MARSH") is True
+    rt.execute("pcall(function() rttArmMap(Player['Red'],'','Summer Map') end) FLUSH_UNTIL(0.5)")
+    rt.execute("pcall(function() rttArmMap(Player['Red'],'','Summer Map') end) FLUSH(20)")
+    assert rt.eval("RTT_CURRENT_MAP") == "Summer Map", "the armed commit did not place the map"
+    assert rt.eval("RTT_5P_MARSH") is False, \
+        "an armed map commit left 5-player mode on -- it must reach makeMap as a HUMAN click"
+
+
 CASES = [
     ("manual path drives the turn system",   t_manual_turn_order),
     ("manual path spawns 4 / 5 boards",      t_boards_spawn),
@@ -1714,6 +1777,7 @@ CASES = [
     ("mountain deals a legal board",          t_mountain_deals_a_legal_board),
     ("5P marsh ruins stay central",          t_five_player_marsh_ruins_stay_central),
     ("a map click leaves 5P mode",           t_a_map_click_leaves_five_player_mode),
+    ("map buttons warn before wiping",       t_map_buttons_warn_before_wiping),
     ("gizmo default key is numpad 0",         t_gizmo_default_key_is_numpad_zero),
     ("gizmo: warrior to/from supply",         t_gizmo_warrior_to_and_from_supply),
     ("gizmo reads every blueprint",           t_gizmo_reads_every_faction_from_its_blueprint),
