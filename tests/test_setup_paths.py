@@ -1309,6 +1309,41 @@ def t_no_setup_card_rides_on_the_crafted_board(src):
         assert has is True, "%s lost its crafted-improvements board" % fac
 
 
+def t_vagabond_cards_come_with_faction_cards(src):
+    """Zaandaa: the Vagabond Cards button is redundant, so fold its deck into Faction Cards.
+
+    Verified before removing it: every Vagabond character blueprint already carries that character's
+    own meeple AND its card, so the tool's 21 meeples were duplicates. Only the twelve-card character
+    deck comes along, as a fifth deck continuing the row's 7.95 spacing.
+    """
+    rt = fresh(src)
+    n = rt.eval("#RTT_HOOT")
+    assert n == 5, "Faction Cards lays %s decks, expected 5" % n
+    xs = sorted(rt.eval("function() local t={} for i,e in ipairs(RTT_HOOT) do t[i]=e.pos[1] end return table.concat(t,',') end")().split(","))
+    xs = sorted(float(v) for v in xs)
+    assert abs(xs[0] - 34.30) < 0.01, "the fifth deck is at x %s, expected 34.30" % xs[0]
+    gaps = [round(xs[i + 1] - xs[i], 2) for i in range(len(xs) - 1)]
+    assert all(7.5 < g < 8.5 for g in gaps), "the row is not evenly spaced: %s" % gaps
+
+    # it is the CHARACTER deck: twelve cards, the vagabond CardIDs
+    ok = rt.eval("""function()
+      for _, e in ipairs(RTT_HOOT) do
+        if math.abs(e.pos[1] - 34.30) < 0.01 then
+          local n = 0
+          for _ in e.json:gmatch('"CardID"') do n = n + 1 end
+          return n
+        end
+      end
+      return -1
+    end""")()
+    assert ok == 12, "the fifth deck holds %s cards, expected 12" % ok
+
+    # and the button is gone, with its art
+    rt.execute("XML = ''")
+    assert 'id="Vagabond Cards"' not in src, "the makeTool button is still declared"
+    assert '{name = "Vagabond Cards"' not in src, "the button art is still registered"
+
+
 CASES = [
     ("manual path drives the turn system",   t_manual_turn_order),
     ("manual path spawns 4 / 5 boards",      t_boards_spawn),
@@ -1320,6 +1355,7 @@ CASES = [
     ("crow plots inside the hidden zone",    t_crow_plots_spawn_inside_the_hidden_zone),
     ("crafted board same side for all",      t_crafted_board_sits_the_same_side_for_every_faction),
     ("no setup card on crafted board",       t_no_setup_card_rides_on_the_crafted_board),
+    ("vagabond cards with faction cards",    t_vagabond_cards_come_with_faction_cards),
     ("manual setup clears ranked objects",   t_ranked_objects_cleared_by_manual),
     ("supporters take the seat explicitly",  t_supporters_take_the_seat_explicitly),
     ("both transform shapes agree",          t_seat_hand_array_shape),

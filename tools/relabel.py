@@ -248,7 +248,6 @@ WIDES = [
     ("Bat Bungler",        "bat_bungler_v11",         ["The Bat", "Bungler"],  lambda: art_from_label("bat_bungler_lum_9d1318f6.png")),
     ("Mob Lobber",         "mob_lobber_v11",          ["Mob", "Lobber"],       lambda: art_from_label("mob_lobber_lum_8c60b59e.png")),
     ("Koffin Keeper",      "koffin_keeper_v11",       ["Koffin", "Keeper"],    lambda: art_from_label("koffin_keeper_lum_e1358cfd.png")),
-    ("Vagabond Cards",     "vagabond_cards_v11",      ["Vagabond", "Cards"],   lambda: trim(Image.open(os.path.join(ROOT, "assets/icons_fit/vbcards.png")).convert("RGBA"))),
     ("Landmarks",          "landmarks_v11",           ["Landmarks"],           lambda: art_alpha_topband("assets/icons_fit/landmarks.png", 0.70)),
     ("FivePlayerSetupArt", "five_player_setup_v11",   ["5-Player", "Setup"],   lambda: art_crop_aspect("assets/images/5players.png", 0.853)),
     ("FivePlayerArt",      "five_player_draft_v11",   ["5-Player", "Draft"],   lambda: art_crop_aspect("assets/images/5players.png", 0.853)),

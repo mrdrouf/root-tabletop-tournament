@@ -10,7 +10,7 @@ Layout, top to bottom:
         [4-Player Setup] [4-Player Draft] [Theme]                              y =  51.5
 [Summer] [Lake] [Marsh] [Winter] [Mountain] [Gorge]                            y =  16.5
                  [Standard] [Exiles] [Squires]                                 y = -23.5
-[Faction Sel][Bat Bungler][Mob Lobber][Koffin Keeper][Vagabond][Landmarks]     y = -55
+[Faction Sel][Bat Bungler][Mob Lobber][Koffin Keeper][   FREE  ][Landmarks]     y = -55
 [5P Setup][5P Draft][5-Players Marsh][Faction Cards][Credits]                  y = -78
                                                          [Clear All]           y = -88.5
 ```
@@ -57,11 +57,14 @@ automatically in a 1–2 player game.
 | **Koffin Keeper** | `makeTool` | Spawns the Koffin Keeper. |
 | **Box Score** | `rttSpawnBoxScore` | Spawns the live box score sheet (destroys any previous one first). |
 | **Clearing Markers** | `makeTool` | The clearing-marker set. |
-| **Vagabond Cards** | `makeTool` | The Vagabond character cards. |
 | **Lizard Wizard** | `makeLizardWizard` | The Lizard Wizard plus its blocker. |
 | **Mob Lobber** | `makeTool` | The Mob Lobber. |
 | **Landmarks** | `makeTool` | The landmark pieces. |
 | **Bat Bungler** | `makeTool` | Spawns the Bat Bungler (Nevakanezah content, like the Mob Lobber). Sits in the slot the Mole Monger used to hold. |
+
+**The Vagabond Cards button is gone** (2026-09-05). Its twelve character cards now spawn as a fifth
+deck with **Faction Cards**; picking a Vagabond manually already brings that character's own meeple
+and card, so the tool's 21 spare meeples were duplicates. The slot at x=57 on the tools row is free.
 
 **Ginso's Gizmo has no button.** It is always active with no object on the table — its script is part
 of the board, so it works in every game with nothing to spawn or toggle.

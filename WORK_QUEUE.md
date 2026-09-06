@@ -128,9 +128,6 @@ Nothing below is implemented. The maintainer asked to be consulted before each c
 
 ### Buttons and real estate
 
-- [ ] **Spawn the Vagabond cards with Faction Cards, and drop the Vagabond Cards button.** Zaandaa:
-      selecting a Vagabond manually already gives you the meeples, so the separate button is
-      redundant, and Faction Cards then serves general manual drafting. Frees a slot on the board.
 - [ ] **Per-faction DRAW ONE buttons, and DRAW POND when the frogs are in.** Zaandaa: old Woodland
       Tournament mods had a draw button beside each faction board. It avoids high-ping draws from
       hands and stops accidental overdraws (pressing 11). The maintainer has this on his own list.

@@ -1101,3 +1101,26 @@ RTT_LAYOUT so its turn order zig-zags" and "manual END TURN advances by row inde
 ### Housekeeping the maintainer flagged
 ### From this session, still unverified
 ## AWAITING A TEST AT THE TABLE
+
+# RTT Work Queue
+## Standing rule: work on MAIN
+## Standing rule: update the maintainer's SAVES, not just the build
+## Note for future sessions: the `m###` labels are HISTORY, not files
+## Golden rule (the maintainer, repeated + hardened)
+## STRUCTURAL — the pattern behind most of today's bugs (2026-09-04)
+## OPEN — from the Zaandaa play-test discussion (2026-09-05)
+### Bugs
+### Setup and placement
+### Buttons and real estate
+- [x] **Spawn the Vagabond cards with Faction Cards, and drop the Vagabond Cards button.** DONE
+      2026-09-05. Faction Cards now lays FIVE decks; the fifth is the twelve Vagabond character cards
+      at x 34.3, continuing the row's 7.95 spacing. Zaandaa's premise verified first: every Vagabond
+      character blueprint already carries that character's own meeple AND its card, so the tool's 21
+      meeples were duplicates -- deck only. Button, its label row in relabel.py and its CustomUIAssets
+      entry all removed; the tools-row slot at x=57 is now FREE. Tools/Vagabond Cards stays in
+      EVERYTHING, unreferenced, because it is base-mod content rather than RTT's to delete.
+
+### Gizmo (the maintainer will iterate; ask before changing behaviour)
+### Housekeeping the maintainer flagged
+### From this session, still unverified
+## AWAITING A TEST AT THE TABLE
