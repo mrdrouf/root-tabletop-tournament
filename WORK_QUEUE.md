@@ -107,9 +107,6 @@ Nothing below is implemented. The maintainer asked to be consulted before each c
 
 ### Setup and placement
 
-- [ ] **Remove the Advanced Setup card** that spawns with the crafted improvements. The maintainer
-      asked, Zaandaa said remove.
-
 - [ ] **Faction boards spawn at different offsets from their seat (maintainer, 2026-09-05).** Real,
       and inherited from the base mod: every faction's rules board carries its own hand-placed
       move_to, and nobody ever normalised them. Measured from the blueprint (dx from the seat centre,

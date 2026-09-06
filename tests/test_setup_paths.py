@@ -1271,6 +1271,44 @@ def t_crafted_board_sits_the_same_side_for_every_faction(src):
     assert not bad, "two BOARDS overlap at the Knaves seat: %s" % bad
 
 
+def t_no_setup_card_rides_on_the_crafted_board(src):
+    """Zaandaa asked for the Advanced Setup card to go; the maintainer agreed.
+
+    Every faction laid ONE card beside its crafted-improvements board -- CardIDs 400, 401, 402, 404,
+    405, 407, 408, 409, 410 on a shared 6x2 sheet, plus 73000 / 73200 / 73300 on their own. Identified
+    by ARTWORK, not by name: the cards carry blank nicknames and blank descriptions, and that shared
+    sheet is the one the "Advanced Setup" tool uses for its faction cards.
+
+    Asserted per faction, so a card creeping back into one blueprint cannot hide behind the other
+    eleven -- and asserted on the BLUEPRINT rather than on a spawn, because that is where it lived.
+    """
+    GONE = {"Marquise de Cat": 400, "Eyrie Dynasties": 401, "Woodland Alliance": 402,
+            "Riverfolk Company": 404, "The Lizard Cult": 405, "Underground Duchy": 407,
+            "Corvid Conspiracy": 408, "Lord of the Hundreds": 409, "Keepers in Iron": 410,
+            "Twilight Council": 73000, "Lilypad Diaspora": 73200, "Knaves of the Deepwood": 73300}
+    rt = fresh(src)
+    for fac, cid in GONE.items():
+        n = rt.eval("""function(f, cid)
+          local n = 0
+          for _, v in ipairs(EVERYTHING['Standard'][f]['data']) do
+            if v.json:find('"CardID": ' .. cid, 1, true)
+               or v.json:find('"CardID":' .. cid, 1, true) then n = n + 1 end
+          end
+          return n
+        end""")(fac, cid)
+        assert n == 0, "%s still carries the setup card (CardID %s) on its crafted board" % (fac, cid)
+
+    # and the crafted board itself is still there -- the removal must not have taken the board with it
+    for fac in GONE:
+        has = rt.eval("""function(f)
+          for _, v in ipairs(EVERYTHING['Standard'][f]['data']) do
+            if v.json:find('D0737E5D33E99FD553C8253', 1, true) then return true end
+          end
+          return false
+        end""")(fac)
+        assert has is True, "%s lost its crafted-improvements board" % fac
+
+
 CASES = [
     ("manual path drives the turn system",   t_manual_turn_order),
     ("manual path spawns 4 / 5 boards",      t_boards_spawn),
@@ -1281,6 +1319,7 @@ CASES = [
     ("timer and counter bottom-right",       t_timer_and_counter_sit_bottom_right),
     ("crow plots inside the hidden zone",    t_crow_plots_spawn_inside_the_hidden_zone),
     ("crafted board same side for all",      t_crafted_board_sits_the_same_side_for_every_faction),
+    ("no setup card on crafted board",       t_no_setup_card_rides_on_the_crafted_board),
     ("manual setup clears ranked objects",   t_ranked_objects_cleared_by_manual),
     ("supporters take the seat explicitly",  t_supporters_take_the_seat_explicitly),
     ("both transform shapes agree",          t_seat_hand_array_shape),

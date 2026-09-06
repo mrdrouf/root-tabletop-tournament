@@ -1079,3 +1079,25 @@ RTT_LAYOUT so its turn order zig-zags" and "manual END TURN advances by row inde
 ### Housekeeping the maintainer flagged
 ### From this session, still unverified
 ## AWAITING A TEST AT THE TABLE
+
+# RTT Work Queue
+## Standing rule: work on MAIN
+## Standing rule: update the maintainer's SAVES, not just the build
+## Note for future sessions: the `m###` labels are HISTORY, not files
+## Golden rule (the maintainer, repeated + hardened)
+## STRUCTURAL — the pattern behind most of today's bugs (2026-09-04)
+## OPEN — from the Zaandaa play-test discussion (2026-09-05)
+### Bugs
+### Setup and placement
+- [x] **Remove the Advanced Setup card** that spawns with the crafted improvements. DONE 2026-09-05.
+      Every faction laid exactly ONE card beside its crafted board -- CardIDs 400/401/402/404/405/407/
+      408/409/410 on a shared 6x2 sheet, plus Council 73000, Frogs 73200, Knaves 73300 on their own.
+      All twelve removed from the blueprints. Identified by ARTWORK, not by name: the cards carry
+      blank nicknames and blank descriptions, and that shared sheet is the one Tools/Advanced Setup
+      uses for its faction cards. The maintainer accepted that inference.
+
+### Buttons and real estate
+### Gizmo (the maintainer will iterate; ask before changing behaviour)
+### Housekeeping the maintainer flagged
+### From this session, still unverified
+## AWAITING A TEST AT THE TABLE
