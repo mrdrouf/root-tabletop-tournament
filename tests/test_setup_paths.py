@@ -1443,6 +1443,57 @@ def t_captain_warriors_line_up_with_their_captains(src):
             % (i, w, c, (w - c) * 8.82)
 
 
+def t_five_player_marsh_ruins_stay_central(src):
+    """Maintainer, 2026-09-06: on 5P Marsh the ruins must spawn only in the central clearings,
+    never the ones at the edge -- clearings 6, 7, 9 and 10.
+
+    The planner used to offer SIX slots (2 fixed plus all four pair spots) and deal four ruins across
+    them, so two a game landed on the rim. The rim pair is marker C's: C.up is clearing 3 at the top
+    edge, C.down is clearing 14 at the bottom. Marker B's pair is 7 and 10, both inland, and the two
+    fixed spots are 6 and 9 -- exactly four slots for four ruins.
+
+    NOTE THE NUMBERING. Clearing numbers are RTT_MARSH_RANK's, which is the printed 1-15 order.
+    RTT_CLEARING_CENTRES["Marsh Map"] is a DIFFERENT order, and reading clearing numbers off it is how
+    this was first mis-read -- so the test pins the four WORLD positions, which are unambiguous.
+    """
+    WANT = {"4.4,7.1", "-4.0,-2.4", "14.3,3.7", "6.2,-6.7"}     # clearings 6, 9, 7, 10
+    RIM  = {"8.1,15.4", "0.5,-19.3"}                            # clearings 3 and 14
+    rt = fresh(src)
+    seen = set()
+    for t in range(120):
+        rt.execute("math.randomseed(%d)" % (t + 1))
+        out = rt.eval("""function()
+          local objs = EVERYTHING['Maps']['Marsh Map']['data']
+          local ov = rttMarshPlan5P(objs)
+          local t = {}
+          for idx, v in ipairs(objs) do
+            if v.json:find('RUIN', 1, true) and ov[idx] and ov[idx].world then
+              t[#t+1] = string.format('%.1f,%.1f', ov[idx].world[1], ov[idx].world[3])
+            end
+          end
+          table.sort(t) return table.concat(t, ';')
+        end""")()
+        got = set(out.split(";"))
+        assert len(got) == 4, "a deal placed %d distinct ruin positions: %s" % (len(got), sorted(got))
+        assert not (got & RIM), "a ruin landed on a rim clearing: %s" % sorted(got & RIM)
+        assert got == WANT, "a deal used %s, expected the four central slots" % sorted(got)
+        seen |= got
+    assert seen == WANT, "over 120 deals the ruins used %s" % sorted(seen)
+
+    # the FLOODING Marsh is deliberately untouched: there only two pair spots are ever dry
+    rt.execute("math.randomseed(7)")
+    n = rt.eval("""function()
+      local objs = EVERYTHING['Maps']['Marsh Map']['data']
+      local ov = rttMarshPlan(objs)
+      local n = 0
+      for idx, v in ipairs(objs) do
+        if v.json:find('RUIN', 1, true) and ov[idx] and ov[idx].world then n = n + 1 end
+      end
+      return n
+    end""")()
+    assert n == 4, "the flooding Marsh should still place 4 ruins, it placed %s" % n
+
+
 CASES = [
     ("manual path drives the turn system",   t_manual_turn_order),
     ("manual path spawns 4 / 5 boards",      t_boards_spawn),
@@ -1473,6 +1524,7 @@ CASES = [
     ("turn order re-applies on seating",      t_turn_order_reapplies_on_seating),
     ("vagabond published as a faction",       t_vagabond_is_published_as_a_faction),
     ("mountain deals a legal board",          t_mountain_deals_a_legal_board),
+    ("5P marsh ruins stay central",          t_five_player_marsh_ruins_stay_central),
     ("gizmo default key is numpad 0",         t_gizmo_default_key_is_numpad_zero),
     ("gizmo: warrior to/from supply",         t_gizmo_warrior_to_and_from_supply),
     ("gizmo reads every blueprint",           t_gizmo_reads_every_faction_from_its_blueprint),

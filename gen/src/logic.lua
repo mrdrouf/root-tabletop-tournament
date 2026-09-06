@@ -5702,12 +5702,28 @@ function rttMarshPlan5P(objects)
   for _, idx in ipairs(floodIx) do
     ov[idx] = { world = { 0, -50, 0 }, rot = nil }
   end
-  -- ruins: 2 fixed + the pair ruin spots (best-effort onto valid clearings)
+  -- RUINS: the four CENTRAL clearings only, never the rim. Maintainer, 2026-09-06: "for 5P Marsh the
+  -- ruins need to spawn only in the center clearing, never in the ones at the edge" -- clearings
+  -- 6, 7, 9 and 10.
+  --
+  -- This used to offer SIX slots -- 2 fixed plus all four pair spots -- and deal the four ruins across
+  -- them, so two ruins a game landed on the rim. The two rim slots are marker C's pair: C.up is
+  -- clearing 3 at the top edge and C.down is clearing 14 at the bottom. Marker B's pair is clearings
+  -- 7 and 10, both inland, and the two fixed spots are clearings 6 and 9. Dropping C leaves exactly
+  -- four slots for four ruins, so placement is now fixed and only WHICH ruin (and so which item) goes
+  -- where is still random.
+  --
+  -- NOTE the numbering: clearing numbers here are RTT_MARSH_RANK's, which is the printed 1-15 order.
+  -- RTT_CLEARING_CENTRES["Marsh Map"] is a DIFFERENT order and reading clearing numbers off it gives
+  -- the wrong answer -- which is how I first mis-read this.
+  -- The flooding Marsh (rttMarshPlan) is untouched: there only two pair spots are ever dry.
   local ruinSlots = {}
   for _, p in ipairs(RTT_MARSH_RUIN_FIXED) do ruinSlots[#ruinSlots + 1] = { p[1], p[2], p[3] } end
   for _, m in ipairs(RTT_MARSH) do
-    if m.up.ruin ~= nil then ruinSlots[#ruinSlots + 1] = m.up.ruin end
-    if m.down.ruin ~= nil then ruinSlots[#ruinSlots + 1] = m.down.ruin end
+    if m.key == "B" then                       -- B only: C's pair is the two edge clearings
+      if m.up.ruin ~= nil then ruinSlots[#ruinSlots + 1] = m.up.ruin end
+      if m.down.ruin ~= nil then ruinSlots[#ruinSlots + 1] = m.down.ruin end
+    end
   end
   rttShuffleList(ruinSlots)
   for i, idx in ipairs(ruinIx) do

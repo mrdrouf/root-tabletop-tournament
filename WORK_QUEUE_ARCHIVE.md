@@ -1148,3 +1148,29 @@ RTT_LAYOUT so its turn order zig-zags" and "manual END TURN advances by row inde
 ### Housekeeping the maintainer flagged
 ### From this session, still unverified
 ## AWAITING A TEST AT THE TABLE
+
+# RTT Work Queue
+## Standing rule: work on MAIN
+## Standing rule: update the maintainer's SAVES, not just the build
+## Note for future sessions: the `m###` labels are HISTORY, not files
+## Golden rule (the maintainer, repeated + hardened)
+## STRUCTURAL — the pattern behind most of today's bugs (2026-09-04)
+## OPEN — from the Zaandaa play-test discussion (2026-09-05)
+### Bugs
+### Setup and placement
+- [x] **5P Marsh: ruins only in the central clearings.** DONE 2026-09-06, maintainer's request. The
+      planner offered SIX slots (2 fixed + all four pair spots) and dealt four ruins across them, so
+      two a game landed on the rim. Marker C's pair IS the rim -- C.up is clearing 3 at the top,
+      C.down is clearing 14 at the bottom -- so C is excluded and the four ruins now always take
+      clearings 6, 7, 9 and 10 (the two fixed spots plus marker B's pair). Placement is fixed;
+      only which ruin, and so which item, goes where is still random. The FLOODING Marsh is untouched:
+      there only two pair spots are ever dry.
+      NUMBERING TRAP, recorded because it cost a round trip: clearing numbers are RTT_MARSH_RANK's,
+      which is the printed 1-15 order. RTT_CLEARING_CENTRES["Marsh Map"] is a DIFFERENT order and I
+      read the numbers off it first, which produced a map that disagreed with the maintainer's.
+
+### Buttons and real estate
+### Gizmo (the maintainer will iterate; ask before changing behaviour)
+### Housekeeping the maintainer flagged
+### From this session, still unverified
+## AWAITING A TEST AT THE TABLE
