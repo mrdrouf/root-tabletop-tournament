@@ -932,6 +932,72 @@ def t_a_vagabond_is_published_under_its_faction_name(src):
         assert rt.eval("rttSeatFaction('Purple')") == char
 
 
+def t_two_vagabonds_get_one_marker_each(src):
+    """Root allows two vagabonds, and the kit ships the pair of markers that makes them tellable apart.
+
+    "Vagabond Dice and VP" spawns exactly two Custom_Tiles, both nicknamed "Vagabond VP": 068b0a is
+    black and plain, 765187 is white and carries the nine TTS player colours as STATES. Both used to
+    spawn for every vagabond, so one left an orphan on the table and two put out four -- and because a
+    box-score row IS its marker's name, both players collapsed onto ONE row with the second showing no
+    score at all.
+
+    White is taken first on purpose: renaming only ever touches the BLACK tile, and the white one
+    carries its nickname ten times over (itself plus nine states), so renaming that one would have to
+    hit all ten or it would rename itself back the moment somebody switched colour.
+
+    Maintainer, 2026-09-05: "vagabonds comes with two vp markers to handle two vagabonds, one white
+    one black, so that might be part of the solution."
+    """
+    rt = fresh(src)
+    rt.execute("SEAT('Purple','H1') SEAT('Blue','H2')")
+    rt.execute("pcall(function() setupFactionBoards(nil,nil,nil) end) FLUSH(10)")
+    for char, x, z, col in (("Ranger", 52, -46, "Purple"), ("Thief", -52, -46, "Blue")):
+        rt.execute("""pcall(function() rttPlaceFaction('%s', %d, %d, false, '%s',
+                            false, nil, nil, '%s', nil) end) FLUSH(4)""" % (char, x, z, col, col))
+        rt.execute("""pcall(function()
+              local si = rttSeatAt(%d, %d, false, '%s')
+              local seat = si and RTT_SEATS[si] or nil
+              local n = (seat and seat.vagN) or 1
+              rttSpawnFaction('Vagabond Dice and VP', %d, %d, false, 'Standard', 0,
+                { vpKeep = RTT_VAGABOND_VP[RTT_VAGABOND_VP_ORDER[n] or 'White'],
+                  vpName = rttVPName(rttVagabondKey(n)) })
+            end) FLUSH(6)""" % (x, z, char, x, z))
+
+    # the kit really does hold eleven identically-named markers -- pinned, because the whole filter
+    # exists to stop all eleven going out, and a blueprint change that dropped them would make the
+    # rest of this test pass for the wrong reason
+    n_tiles = rt.eval('''function()
+      local n = 0
+      for _, v in ipairs(EVERYTHING['Standard']['Vagabond Dice and VP']['data']) do
+        if v.json:find('"Nickname": "Vagabond VP"', 1, true) then n = n + 1 end
+      end
+      return n
+    end''')()
+    assert n_tiles == 2, (
+        "the kit should spawn exactly TWO tiles named 'Vagabond VP' -- 068b0a black and 765187 white "
+        "-- but has %s" % n_tiles)
+    assert rt.eval("RTT_VAGABOND_VP.White") == "765187", "the white marker moved"
+    assert rt.eval("RTT_VAGABOND_VP.Black") == "068b0a", "the black marker moved"
+
+    counts = {}
+    for line in (rt.eval("REC.spawned") or {}).values():
+        nm = str(line).split("@")[0]
+        if "Vagabond" in nm and nm.endswith("VP"):
+            counts[nm] = counts.get(nm, 0) + 1
+    assert counts == {"Vagabond VP": 1, "Vagabond 2 VP": 1}, \
+        "two vagabonds should put out exactly one marker each, got %s" % counts
+
+    # the seats are keyed apart, which is what gives the sheet two rows
+    keys = [rt.eval("RTT_SEATS[%d].key" % i) for i in (1, 2)]
+    assert keys == ["Vagabond", "Vagabond 2"], "seat keys %s" % keys
+    pub = json.loads(rt.eval('GVGET("RTT_SEAT_COLOR")') or "{}")
+    assert pub == {"Vagabond": "Purple", "Vagabond 2": "Blue"}, pub
+    # and the record still carries each seat's CHARACTER, which is what names the variant column
+    rec = json.loads(rt.eval('GVGET("RTT_SEAT_RECORD")') or "{}")
+    chars = sorted(e["faction"] for e in rec["seats"] if e.get("key", "").startswith("Vagabond"))
+    assert chars == ["Ranger", "Thief"], "the record lost the characters: %s" % chars
+
+
 CASES = [
     ("manual path drives the turn system",   t_manual_turn_order),
     ("manual path spawns 4 / 5 boards",      t_boards_spawn),
@@ -966,6 +1032,7 @@ CASES = [
     ("gizmo never takes another supply",     t_gizmo_never_reaches_into_someone_elses_supply),
     ("one seat holds one faction",           t_one_seat_holds_one_faction),
     ("vagabond published under faction",     t_a_vagabond_is_published_under_its_faction_name),
+    ("two vagabonds, one marker each",       t_two_vagabonds_get_one_marker_each),
 ]
 
 

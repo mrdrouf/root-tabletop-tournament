@@ -913,3 +913,28 @@ RTT_LAYOUT so its turn order zig-zags" and "manual END TURN advances by row inde
 ### From this session, still unverified
 ## BLOCKED — need more info from the maintainer
 ## AWAITING A TEST AT THE TABLE
+
+# RTT Work Queue
+## Standing rule: work on MAIN
+## Standing rule: update the maintainer's SAVES, not just the build
+## Seat identity is wrong (tester report, 2026-09-05) -- NOTHING FIXED YET
+### Also confirmed by the same audit (each verified by an adversarial second pass)
+- [x] Two Vagabonds collapse onto one box-score ROW. DONE.
+      CORRECTION to what this entry said before: it claimed the kit holds ELEVEN separately-named
+      Custom_Tiles and that the design agent's two-piece description was wrong. The AGENT WAS RIGHT
+      and I was wrong -- that count came from a regex over content.lua that split on every nested
+      "GUID" including States. Asked at runtime, EVERYTHING['Standard']['Vagabond Dice and VP'].data
+      is six pieces: four Custom_Dice (dropped by the isDice filter) and TWO Custom_Tiles, 068b0a
+      black and plain, 765187 white carrying the nine TTS player colours as STATES.
+
+## Note for future sessions: the `m###` labels are HISTORY, not files
+## Golden rule (the maintainer, repeated + hardened)
+## STRUCTURAL — the pattern behind most of today's bugs (2026-09-04)
+## OPEN — from the Zaandaa play-test discussion (2026-09-05)
+### Bugs
+### Setup and placement
+### Buttons and real estate
+### Gizmo (the maintainer will iterate; ask before changing behaviour)
+### Housekeeping the maintainer flagged
+### From this session, still unverified
+## AWAITING A TEST AT THE TABLE

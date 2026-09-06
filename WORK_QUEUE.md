@@ -33,64 +33,6 @@ rewrote 26 files and a second still swept the autosaves. His saves are his. `--a
 sweep he explicitly asks for; it is never the default. NOTE the consequence, which is his to manage,
 not something to route around: resuming from an autosave still restores the script stored in it.
 
-## Seat identity is wrong (tester report, 2026-09-05) -- NOTHING FIXED YET
-
-Zaandaa, mid-tournament: "it's assuming player 4 is player 3 since they were able to spawn p3
-warriors with 0", "the box score skipped or omitted a number", "it tracked things weirdly".
-
-ROOT CAUSE, confirmed by 4/4 independent verifiers. There are two different numberings:
-  RTT_POS          -- SIX FIXED SPOTS on the table, numbered by where they are
-  RTT_SETUP_COLORS -- PLAYER NUMBER -> colour (P1 Red, P2 Yellow, P3 Orange, P4 Teal, ...)
-  RTT_LAYOUT       -- player number -> spot, so seating runs counterclockwise
-rttSeatPlayers (logic.lua:3379) colours a player by PLAYER NUMBER. rttPlaceFaction
-(logic.lua:4095-4099) works out the same player's colour by finding the nearest SPOT and then
-indexing the colour table with the SPOT number. It never undoes RTT_LAYOUT. So the note published in
-Global RTT_SEAT_COLOR is wrong wherever RTT_LAYOUT is not the identity: right at 1 and 3 players,
-wrong at 2 (1 of 2), 4 (2 of 4 -- P3 and P4 swapped), 5 (3 of 5) and 6 (4 of 6).
-The gizmo (rttSeatFaction, logic.lua:5909) and the box score (refreshSeats, boxscore.lua:893-904)
-both read that note. The box score treats it as authoritative and marks the colour used, so its own
-geometry cannot repair it.
-
-CORRECTION to an earlier comment: logic.lua:4086 says "Hence the isDraft guard", but there is no
-isDraft check on the seatColor block at 4092-4110. The manual path publishes too.
-
-DO NOT FIX BY INVERTING RTT_LAYOUT. Verified to break the manual path: rttPlaceFaction has no seat
-count to invert with (RTT_ORDER is only built by the draft, and rttResetRunState clears neither
-RTT_ORDER nor RTT_DN), and RTT_LAYOUT[5] is not self-inverse so editing the table itself would move
-physical seating at 5 and 6 players.
-
-Two decisions, to be taken with the maintainer BEFORE any code changes:
-### Also confirmed by the same audit (each verified by an adversarial second pass)
-
-GAME-BREAKING
-- [ ] Two Vagabonds collapse onto one box-score ROW. STILL OPEN, and deliberately not attempted
-      blind. The seat record now keeps both names, so the MOD side is no longer collapsed: a seat
-      carries `faction` ("Ranger", which the gizmo needs) and `key` (rttFactionKey -> "Vagabond",
-      which the mirrors are keyed by). What remains is the SHEET: two Vagabonds still produce one row
-      because both score markers are named "Vagabond VP".
-      A design agent proposed renaming the second marker's 10 State nicknames to "Vagabond 2 VP".
-      THAT DESCRIPTION IS WRONG -- checked against gen/src/content.lua: the kit is 4 Custom_Dice
-      (dropped by rttSpawnFaction's isDice filter) and ELEVEN Custom_Tiles, of which 068b0a and ten
-      more are EACH separately nicknamed "Vagabond VP" -- not one plain tile plus one with States.
-      So the rename is an 11-piece question, not a 2-piece one, and it needs a live look at what
-      actually spawns for one Vagabond before anything is renamed. rttFactionKey maps every Vagabond character to "Vagabond",
-      so RTT_SEAT_POS/COLOR/PLAYER keep only the second one and the box score shows ONE Vagabond row.
-      The other player has no score line at all; both "Vagabond VP" markers read into that one row.
-      (logic.lua:4077)
-- [ ] Gizmo hands a Vagabond player an ENEMY supply. rttSeatFaction returns the collapsed key
-      "Vagabond", which is not a blueprint key, so no supply resolves and a neighbour's warrior pops
-      out instead -- silently, because the code only warns when the bag is nil. (logic.lua:6012)
-- [ ] Only 10 round columns are rendered and S.cols never grows, so every lock from round 11 is
-      invisible on the sheet (it is still in the export). (boxscore.lua:2413)
-- [ ] The manual board table diverges from RTT_POS at index 6: (52,46) duplicated, (0,46) missing.
-      Unreachable today (manual only asks for 4 or 5). (logic.lua:1772)
-## Standing rule: this file only shows OPEN work
-The maintainer, 2026-09-04: "the work should always be cleaned up, and anything that is done needs to go
-in the archive so the work is always clean". Tick an item, then run `python3 tools/queue_archive.py`
-before committing -- it moves every `- [x]` into WORK_QUEUE_ARCHIVE.md and drops any section left empty.
-The archive is kept rather than deleted because several entries record WHY something is the way it is,
-and the root causes of bugs that took more than one attempt.
-
 ## Note for future sessions: the `m###` labels are HISTORY, not files
 The `mods/` pipeline was REAL -- `mods/m###_*.py` + `build.py` over a `base/` mod. It is not in the
 current history because the repo was RE-ROOTED onto the generator; the old chain survives only as
