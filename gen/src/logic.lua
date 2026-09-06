@@ -3901,12 +3901,17 @@ RTT_KNAVE_BOARD_IMG = "84529E736BDD4EF6B70CA79E3F99E2D07FA75A2C"  -- Knaves rule
 -- board on the other side, and OFF_Z stays negative to keep it raised.
 -- Recovered from the maintainer's save 'knaves' (TS_Save_21), seat 2: he nudged the captains board,
 -- so these are solved from where he left it relative to the Knaves rules board.
--- 17.5, not the mirror's 15.6676: the -x side is not empty the way the +x side was. The Knaves
--- SUPPLY bag sits at dx -11.83 and a small tile at -14.94, and a straight mirror put the 13.25-wide
--- captains board a unit INTO the supply bag. Measured: the x-gap is -0.97 at 15.6676, -0.13 at 16.5,
--- and first clears at 17.0. 17.5 takes it with ~0.9 to spare.
-RTT_CAP_OFF_X    =  17.5000
-RTT_CAP_OFF_Z    = -4.5206
+-- Read out of the maintainer's save 'knaves' (TS_Save_29, 2026-09-05 22:38), which he took AFTER the
+-- swap and the recentre and then nudged the board closer: captains at dx -15.7569, dz +4.4790 from
+-- the Knaves rules board.
+--
+-- I had put it at 17.5 to clear the supply bag, having measured an overlap of -0.88. That measurement
+-- was WRONG: it treated an object's `scale` as its world footprint, which holds for a flat Custom_Tile
+-- but not for a Custom_Model_Bag, whose mesh is much smaller than its scale number. The supply bag at
+-- "4.65" is nothing like 4.65 units across, so the collision I was avoiding did not exist -- his own
+-- save has the two at exactly this spacing and looks right.
+RTT_CAP_OFF_X    =  15.7569
+RTT_CAP_OFF_Z    = -4.4790
 -- (snaps are BAKED into RTT_CAPTAIN_BOARD_JSON now; the old slot-fraction / self-size constants are gone)
 -- The real Crafted Improvements art, cropped to its TOP 3 overlapping card slots (+ its real title
 -- repainted to "Captains" and its real bottom border). 3 snaps for 3 captains stacked ON TOP of each

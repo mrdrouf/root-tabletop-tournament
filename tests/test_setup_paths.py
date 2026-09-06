@@ -1195,6 +1195,10 @@ def t_crow_plots_spawn_inside_the_hidden_zone(src):
         "the layout is not the 4x3 grid: %s" % sorted(set(offs))
 
 
+def dx_caps_expected(dx):
+    return dx - (-15.7569)
+
+
 def t_crafted_board_sits_the_same_side_for_every_faction(src):
     """Zaandaa: crafts sit immediately right of every other faction board, so the Knaves broke it.
 
@@ -1204,10 +1208,13 @@ def t_crafted_board_sits_the_same_side_for_every_faction(src):
     Swapped at the maintainer's call, each keeping the distance he had tuned rather than snapping to
     the modal +15.84.
 
-    The captains board did NOT simply take crafted's old place. The -x side already holds the Knaves
-    supply bag (dx -11.83) and a small tile (-14.94), and a straight mirror put the 13.25-wide board
-    a unit INTO the supply bag: measured x-gap -0.97 at the mirror offset, first clearing at 17.0.
-    It sits at 17.5.
+    The captains offsets are READ OUT of the maintainer's save 'knaves' (TS_Save_29), which he took
+    after the swap and the recentre and then nudged closer: dx -15.7569, dz +4.4790.
+
+    The overlap check below covers TILES only. An earlier version compared every object by its
+    `scale`, decided the captains board sat 0.88 inside the Knaves supply bag, and moved it to 17.5 to
+    "clear" it -- but `scale` is not a footprint for a Custom_Model_Bag, whose mesh is far smaller
+    than its scale number. The collision never existed; his own save has them at exactly this spacing.
     """
     rt = fresh(src)
     rt.execute("SEAT('Purple','H1') pcall(function() setupFactionBoards(nil,nil,nil) end) FLUSH(10)")
@@ -1241,6 +1248,8 @@ def t_crafted_board_sits_the_same_side_for_every_faction(src):
     board_dx = rules[0][1] - 52
     assert abs(board_dx - (-2.98)) < 0.05, \
         "the Knaves board is at dx %+.2f, it should sit with the cluster at -2.98" % board_dx
+    assert abs(dx_caps_expected(caps[0][1] - rules[0][1])) < 0.05, \
+        "the captains board is at dx %+.4f from the board; his save has -15.7569" % (caps[0][1] - rules[0][1])
 
     dx_craft = craft[0][1] - rules[0][1]
     dx_caps  = caps[0][1] - rules[0][1]
@@ -1250,14 +1259,16 @@ def t_crafted_board_sits_the_same_side_for_every_faction(src):
 
     # and nothing the swap moved landed on anything else. The Advanced Setup card RIDES on the
     # crafted board, so that pair is expected; everything else must be clear.
+    # TILES only -- boards. `scale` is a fair footprint for a flat Custom_Tile and is NOT one for a
+    # Custom_Model_Bag or a stack of cards, which is what made the earlier version of this test invent
+    # a collision that the maintainer's own save disproves.
+    BOARD_W = (8.82, 9.04, 9.11, 9.52, 13.25)
+    boards = [i for i in items if any(abs(i[3] - w) < 0.05 for w in BOARD_W)]
     def overlaps(a, b):
         return abs(a[1] - b[1]) < (a[3] + b[3]) / 2 and abs(a[2] - b[2]) < (a[4] + b[4]) / 2
-    bad = []
-    for i, a in enumerate(items):
-        for b in items[i + 1:]:
-            if overlaps(a, b) and not (abs(a[3] - 2.36) < 0.05 or abs(b[3] - 2.36) < 0.05):
-                bad.append((a[0], round(a[3], 2), b[0], round(b[3], 2)))
-    assert not bad, "the swap left objects on top of each other: %s" % bad
+    bad = [(a[0], round(a[3], 2), b[0], round(b[3], 2))
+           for i, a in enumerate(boards) for b in boards[i + 1:] if overlaps(a, b)]
+    assert not bad, "two BOARDS overlap at the Knaves seat: %s" % bad
 
 
 CASES = [
