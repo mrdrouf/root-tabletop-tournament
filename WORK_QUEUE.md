@@ -105,9 +105,6 @@ Nothing below is implemented. The maintainer asked to be consulted before each c
 
 ### Bugs
 
-- [ ] **The burrow is not locked when it spawns.** Zaandaa locks it by hand for other players every
-      game. Lock it at spawn, like the landmarks and the mood manager already are.
-
 ### Setup and placement
 
 - [ ] **Camera states: use Zaandaa's.** He plays host and streams, so his are the useful defaults.

@@ -1041,11 +1041,45 @@ def t_order_cards_do_not_survive_a_new_game(src):
             "a seat-number card survived %s" % start_game.split("(")[0]
 
 
+def t_the_duchy_burrow_spawns_locked(src):
+    """Zaandaa re-locked the Duchy's burrow by hand for everybody, every game.
+
+    The Burrow is the Underground Duchy's off-map tunnel board -- it never moves during play, but it
+    shipped with "Locked": false, so it could be dragged out of place by accident. Locked in the
+    BLUEPRINT rather than with a setLock(true) in the spawn callback, which is the golden rule and is
+    also safer here: every faction piece is spawned straight at its final position by
+    spawnObjectJSON, so there is no window in which it is loose.
+
+    Locking the tile does not stop warriors being placed on it -- the landmarks work the same way.
+
+    The Drillbit Duchy bot carries the same object (GUID 78c688) and is deliberately NOT locked: the
+    maintainer chose to leave the bot data exactly as the base mod ships it. Nothing spawns it anyway
+    -- "Official Bots" appears in no live code path -- so this is asserted to keep the choice explicit
+    rather than to protect behaviour.
+    """
+    rt = fresh(src)
+    probe = rt.eval("""function(cat, name)
+      for _, v in ipairs(EVERYTHING[cat][name]['data']) do
+        if v.json:find('"Nickname":"The Burrow"', 1, true)
+           or v.json:find('"Nickname": "The Burrow"', 1, true) then
+          return (v.json:match('"GUID":%s*"([0-9a-f]+)"') or '?')
+            .. '/' .. tostring(v.json:match('"Locked":%s*(%a+)'))
+        end
+      end
+      return 'not found'
+    end""")
+    assert probe("Standard", "Underground Duchy") == "78c688/true", \
+        "the Duchy's burrow is %s -- it will be draggable again" % probe("Standard", "Underground Duchy")
+    assert probe("Official Bots", "Drillbit Duchy") == "78c688/false", \
+        "the bot's burrow was changed; the maintainer asked for the live Duchy only"
+
+
 CASES = [
     ("manual path drives the turn system",   t_manual_turn_order),
     ("manual path spawns 4 / 5 boards",      t_boards_spawn),
     ("a new game resets run state",          t_new_game_resets_state),
     ("order cards cleared by a new game",    t_order_cards_do_not_survive_a_new_game),
+    ("duchy burrow spawns locked",           t_the_duchy_burrow_spawns_locked),
     ("manual setup clears ranked objects",   t_ranked_objects_cleared_by_manual),
     ("supporters take the seat explicitly",  t_supporters_take_the_seat_explicitly),
     ("both transform shapes agree",          t_seat_hand_array_shape),
