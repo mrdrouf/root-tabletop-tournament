@@ -1559,10 +1559,133 @@ def t_a_map_click_leaves_five_player_mode(src):
         "the 5-player button cleared its own flag -- it places its map through the same makeMap"
 
 
+def t_clear_all_resets_run_state(src):
+    """Clear All destroyed objects and reset NOTHING, which was the root of three separate bugs.
+
+    It is base-mod code. Found by the 2026-09-06 audit after the maintainer asked whether the sticky
+    RTT_5P_MARSH flag pointed at something wider -- it did.
+
+      * RTT_FAC_TAKEN survived, so a faction picked before a Clear All was PERMANENTLY unpickable:
+        "Marquise de Cat is already in play." on a completely empty table, forever.
+      * RTT_PRIO_MAP survived while its markers were destroyed, so re-clicking the SAME map spawned
+        no clearing-priority markers at all -- rttSpawnPriority's same-map guard returned first.
+      * the seat record and the published Globals survived, so the gizmo and the box score kept
+        answering for a game that no longer existed.
+
+    Clear All now calls rttResetRunState -- the ONE list of everything a new game resets that is not
+    an object -- rather than growing its own copy of it.
+    """
+    rt = fresh(src)
+    rt.execute("SEAT('Purple','H1') pcall(function() setupFactionBoards(nil,nil,nil) end) FLUSH(10)")
+    rt.execute("""RTT_FAC_TAKEN['Marquise de Cat'] = true
+                  RTT_PRIO_MAP = 'Summer Map'
+                  RTT_DRAFT_FACTIONS = {'Knaves of the Deepwood'}
+                  Global.setVar('RTT_SEAT_COLOR', '{"Marquise de Cat":"Purple"}')""")
+    rt.execute("pcall(function() clearAll() end) FLUSH(8)")
+    assert not rt.eval("RTT_FAC_TAKEN['Marquise de Cat']"), \
+        "a faction picked before Clear All is still 'already in play' on an empty table"
+    assert rt.eval("RTT_PRIO_MAP") is None, \
+        "RTT_PRIO_MAP survived Clear All -- the same map re-clicked spawns no priority markers"
+    assert rt.eval("#RTT_DRAFT_FACTIONS") == 0, "the last draft's faction list survived Clear All"
+    assert rt.eval("GVGET('RTT_SEAT_COLOR')") == "{}", "the published seat map survived Clear All"
+
+
+def t_destroying_priority_markers_forgets_their_map(src):
+    """RTT_PRIO_MAP means "which map's markers are ON THE TABLE", so destroying them ends its life.
+
+    rttSpawnPriority skips re-spawning when the map has not changed -- that is what stops the markers
+    flickering on a same-map re-click. Leaving the flag set after the objects are gone turned that
+    optimisation into "never spawn them again".
+    """
+    rt = fresh(src)
+    rt.execute("RTT_PRIO_MAP = 'Summer Map' rttClearPriority()")
+    assert rt.eval("RTT_PRIO_MAP") is None, "clearing the markers left the flag pointing at their map"
+    assert rt.eval("#RTT_PRIO_PIECES") == 0
+
+
+def t_the_manual_path_records_its_seat_count(src):
+    """RTT_DN was written only by the ranked draft, so a manual game inherited the last draft's size.
+
+    5P Draft then 4-Player Setup gave a box score pre-formatted for FIVE rows in a four-player game;
+    5P Setup from a cold table gave four rows for five players. It means "cards this draft dealt" =
+    seats + 1, which rttSpawnBoxScore republishes as RTT_BOXSCORE_MIN.
+    """
+    rt = fresh(src)
+    rt.execute("RTT_DN = 6")                       # as a 5-player draft would leave it
+    rt.execute("pcall(function() setupFactionBoards(nil,nil,nil) end) FLUSH(10)")
+    assert rt.eval("RTT_DN") == 5, "a 4-player manual game reports %s seats+1" % rt.eval("RTT_DN")
+    rt.execute("pcall(function() setupFactionBoards(nil,nil,'fivePlayerSetup') end) FLUSH(10)")
+    assert rt.eval("RTT_DN") == 6, "a 5-player manual game reports %s seats+1" % rt.eval("RTT_DN")
+
+
+def t_a_map_click_is_swallowed_while_busy(src):
+    """RTT_BUSY was consulted only in rttArmOrGo, so the map buttons ignored it.
+
+    Clicking Marsh during the 5-player draft's 6-10s chain landed that game on the FOUR-player board:
+    rttFivePStart sets RTT_5P_MARSH at t=0, but its map is not placed until rttBeginPick seconds
+    later, and the stray click cleared the flag in between. The internal path (rttPlaceMap) passes no
+    player and is never blocked -- otherwise the draft could not place its own map.
+    """
+    rt = fresh(src)
+    rt.execute("SEAT('Red') RTT_BUSY = true")
+    rt.execute("pcall(function() makeMap(Player['Red'], '', 'Summer Map') end) FLUSH(6)")
+    assert rt.eval("RTT_CURRENT_MAP") is None, "a human map click ran while a setup was loading"
+    rt.execute("pcall(function() rttPlaceMap('Summer Map') end) FLUSH(6)")
+    assert rt.eval("RTT_CURRENT_MAP") == "Summer Map", \
+        "the busy guard also blocked the INTERNAL path, which would break the draft's own map"
+
+
+def t_deferred_map_hooks_carry_a_generation(src):
+    """A second map click inside a deferred hook's window used to leave two hooks in flight.
+
+    Two 5-Players Marsh clicks 1.4s apart gave TWO of every town landmark. RTT_RUN_ID cannot cover
+    this -- it bumps on a new GAME and a map click is not one -- so the map build has its own counter.
+    """
+    rt = fresh(src)
+    rt.execute("SEAT('Red')")
+    before = rt.eval("RTT_MAP_GEN")
+    rt.execute("pcall(function() makeMap(Player['Red'], '', 'Summer Map') end) FLUSH(4)")
+    mid = rt.eval("RTT_MAP_GEN")
+    assert mid == before + 1, "a map build did not bump the generation (%s -> %s)" % (before, mid)
+    rt.execute("pcall(function() makeMap(Player['Red'], '', 'Lake Map') end) FLUSH(4)")
+    assert rt.eval("RTT_MAP_GEN") == mid + 1, "the second build did not bump it again"
+
+
+def t_a_stale_show_factions_cannot_unlock_the_next_game(src):
+    """rttShowFactions clears RTT_BUSY, and a copy left in flight by the PREVIOUS game was clearing
+    the NEXT game's latch mid-setup -- so a second destructive click started a second setup on top of
+    the first, whose chain then died at its next run-id check.
+    """
+    # the CALL SITE has to be the guarded one. An earlier version of this test called rttAfterFrames
+    # itself, which of course passed on the broken code too -- it was exercising the helper, not
+    # rttCoordFaction's scheduling of it.
+    i = src.index("function rttCoordFaction(")
+    body = src[i:src.index("\nend", i)]
+    assert "rttAfterFrames(function() rttShowFactions() end" in body, \
+        "rttCoordFaction still schedules rttShowFactions with a bare Wait -- a copy left in flight by " \
+        "the previous game will clear the next game's RTT_BUSY mid-setup"
+    assert "Wait.frames(function() rttShowFactions() end" not in body, \
+        "rttCoordFaction still has an unguarded Wait.frames to rttShowFactions"
+
+    # and the guard really does swallow a stale call
+    rt = fresh(src)
+    rt.execute("RTT_BUSY = true rttAfterFrames(function() rttShowFactions() end, 10)")
+    rt.execute("RTT_RUN_ID = RTT_RUN_ID + 1")      # a new game starts before it fires
+    rt.execute("FLUSH(20)")
+    assert rt.eval("RTT_BUSY") is True, \
+        "a stale rttShowFactions unlocked the next game's buttons while it was still setting up"
+
+
 CASES = [
     ("manual path drives the turn system",   t_manual_turn_order),
     ("manual path spawns 4 / 5 boards",      t_boards_spawn),
     ("a new game resets run state",          t_new_game_resets_state),
+    ("Clear All resets run state",           t_clear_all_resets_run_state),
+    ("clearing markers forgets the map",     t_destroying_priority_markers_forgets_their_map),
+    ("manual path records its seats",        t_the_manual_path_records_its_seat_count),
+    ("map click swallowed while busy",       t_a_map_click_is_swallowed_while_busy),
+    ("map hooks carry a generation",         t_deferred_map_hooks_carry_a_generation),
+    ("stale showFactions cannot unlock",     t_a_stale_show_factions_cannot_unlock_the_next_game),
     ("order cards cleared by a new game",    t_order_cards_do_not_survive_a_new_game),
     ("duchy burrow spawns locked",           t_the_duchy_burrow_spawns_locked),
     ("camera states are the host's",         t_camera_states_are_the_hosts),

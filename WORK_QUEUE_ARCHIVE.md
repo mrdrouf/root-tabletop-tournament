@@ -1198,3 +1198,43 @@ RTT_LAYOUT so its turn order zig-zags" and "manual END TURN advances by row inde
 ### Housekeeping the maintainer flagged
 ### From this session, still unverified
 ## AWAITING A TEST AT THE TABLE
+
+# RTT Work Queue
+## Standing rule: work on MAIN
+## Standing rule: update the maintainer's SAVES, not just the build
+## Note for future sessions: the `m###` labels are HISTORY, not files
+## Golden rule (the maintainer, repeated + hardened)
+## STRUCTURAL — the pattern behind most of today's bugs (2026-09-04)
+## OPEN — from the Zaandaa play-test discussion (2026-09-05)
+### Bugs
+- [x] **Seven stale-state bugs found by the 2026-09-06 audit.** DONE. The maintainer asked whether the
+      sticky RTT_5P_MARSH flag pointed at something wider; it did. Root cause of three of them:
+      **clearAll destroyed objects and reset NOTHING** -- it is base-mod code that never learned about
+      RTT's bookkeeping. Fixed:
+        1. clearAll now calls rttResetRunState (the ONE list of non-object state a new game resets)
+           and rttClearPriority. Kills the "Marquise de Cat is already in play." on an empty table,
+           which made every faction picked before a Clear All permanently unpickable.
+        2. RTT_DRAFT_FACTIONS added to that reset -- after any draft that merely OFFERED the Knaves,
+           picking them manually gave a Captains board with three empty slots and NO deck anywhere.
+        3. rttClearPriority clears RTT_PRIO_MAP: destroying the markers ends that flag's life, so
+           Summer -> Clear All -> Summer spawns them again.
+        4. makeMap honours RTT_BUSY for HUMAN clicks -- clicking a map during the 5-player draft's
+           6-10s chain used to land that game on the four-player board. The internal path is never
+           blocked, or the draft could not place its own map.
+        5. rttNewGame sets RTT_DN from its seat count, so a manual game stops inheriting the last
+           draft's size and the box score is formatted for the right number of rows.
+        6. rttCoordFaction schedules rttShowFactions through rttAfterFrames -- a copy left in flight by
+           the previous game was clearing the NEXT game's RTT_BUSY mid-setup.
+        7. RTT_MAP_GEN: every map build takes a generation and deferred map hooks check it, so two
+           5-Players Marsh clicks 1.4s apart no longer leave two landmark hooks in flight (two of
+           every town). RTT_RUN_ID cannot cover this -- it bumps on a new GAME, not a map click.
+      Six tests, each verified to fail on the previous build.
+      REFUTED by the verify pass, recorded so they are not re-found: RTT_CURRENT_MAP, RTT_VP_PLACED,
+      RTT_BUSY-via-setupFactionBoards'-timer, and RTT_DRAFT_FACTIONS-at-line-4306.
+
+### Setup and placement
+### Buttons and real estate
+### Gizmo (the maintainer will iterate; ask before changing behaviour)
+### Housekeeping the maintainer flagged
+### From this session, still unverified
+## AWAITING A TEST AT THE TABLE

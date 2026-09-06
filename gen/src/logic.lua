@@ -1507,6 +1507,18 @@ end
 
 
 
+-- CLEAR ALL RESETS STATE, NOT JUST OBJECTS. This is base-mod code: it destroys almost everything on
+-- the table and touched none of RTT's bookkeeping, which is the root of three separate bugs found by
+-- the 2026-09-06 audit:
+--   * RTT_FAC_TAKEN survived, so every faction picked before a Clear All became PERMANENTLY
+--     unpickable -- "Marquise de Cat is already in play." on a completely empty table, forever;
+--   * RTT_PRIO_MAP survived while its markers were destroyed, so re-clicking the same map spawned
+--     no clearing-priority markers (rttClearPriority now clears that flag itself, which covers every
+--     other path that destroys them too);
+--   * the seat record and the published Globals survived, so the gizmo and the box score kept
+--     answering for a game that no longer exists.
+-- rttResetRunState is the ONE list of everything a new game resets that is not an object, so Clear
+-- All calls exactly that rather than growing its own copy -- the drift that list exists to prevent.
 function clearAll()
   for _, c in ipairs(getObjects()) do
       if c.name != "HandTrigger"
@@ -1518,6 +1530,8 @@ function clearAll()
         then c.destruct()
         end
   end
+  pcall(function() rttResetRunState() end)
+  pcall(function() rttClearPriority() end)   -- the markers are gone; drop the flag and the handles
 end
 
 redTaken = false
@@ -1984,6 +1998,7 @@ RTT_BUSY_TOKEN = 0
 -- schedule time and simply do not run if the game has moved on. Same argument order as Wait.time /
 -- Wait.frames deliberately, so a call site converts by swapping the name and nothing else.
 RTT_RUN_ID = 0
+RTT_MAP_GEN = 0    -- bumped by every map build; deferred map hooks check it before firing
 function rttAfter(fn, sec)
   local id = RTT_RUN_ID
   Wait.time(function() if RTT_RUN_ID == id then fn() end end, sec)
@@ -2195,6 +2210,17 @@ function rttResetRunState()
   RTT_CAP_SPAWN_N    = 0
   RTT_CAP_ITEM_N     = 0
   RTT_CAP_WARRIOR_N  = 0
+  RTT_PRIO_MAP       = nil     -- "which map's priority markers are out"; a new game holds none
+  RTT_PRIO_PIECES    = {}
+  -- What the LAST draft offered. rttCaptainsAreDrafted reads this, and rttSpawnFaction filters the
+  -- Knaves' own 12-card captain deck out of the spawn when it says yes -- because the ranked draft
+  -- deals captains itself. It was never cleared, so after ANY draft that merely OFFERED the Knaves,
+  -- picking them manually gave a Captains board with three empty slots and no deck anywhere: the
+  -- blueprint copy filtered out, and rttDraftKnavesCaptains only ever runs from the ranked chain.
+  -- The faction was unplayable. Clearing it here restores the documented manual behaviour -- "when I
+  -- don't do the ranked or theme button that drafts the captain cards, the deck of all captains still
+  -- spawns on the faction board".
+  RTT_DRAFT_FACTIONS = {}
   -- The seat record itself, not just its publication. The ranked path happened to clear RTT_SEATS in
   -- rttSpawnSelectors, but the manual path never did, so seats piled up across games in one session.
   RTT_SEATS      = {}
@@ -2210,6 +2236,13 @@ end
 function rttNewGame(seats)
   rttClearGameObjects()                            -- objects, hand zones, run-id bump
   rttResetRunState()                               -- everything teardown cannot see
+  -- HOW MANY SEATS THIS GAME HAS. RTT_DN was written in exactly one place -- rttSetup, the ranked
+  -- path -- so a manual game inherited whatever the last draft left: 5P Draft then 4-Player Setup
+  -- gave a box score pre-formatted for FIVE rows in a four-player game, and 5P Setup from a cold
+  -- table gave four rows for five players. It means "cards this draft dealt" = seats + 1, which is
+  -- what rttSpawnBoxScore reads back as RTT_BOXSCORE_MIN. The ranked path still overwrites it moments
+  -- later with its own draft size; this only fills the gap the manual path left.
+  if seats ~= nil then RTT_DN = seats + 1 end
   rttRemoveFrogsFromDeck()                         -- the deck survives teardown; its frog cards must not
   if seats ~= nil then rttEnableTurns(seats) end
 end
@@ -3160,6 +3193,12 @@ RTT_PRIO_MAP = RTT_PRIO_MAP or nil
 function rttClearPriority()
   for _, o in ipairs(getObjectsWithTag("RTT Priority")) do pcall(function() o.destruct() end) end
   RTT_PRIO_PIECES = {}
+  -- and forget WHICH map's markers we were holding. RTT_PRIO_MAP means two things -- "which map's
+  -- marker objects are on the table" and "which map was last built" -- and rttSpawnPriority's
+  -- same-map guard reads the first. Leaving it set after destroying the objects is what made
+  -- Summer -> Clear All -> Summer come back with no priority markers at all: the guard saw
+  -- RTT_PRIO_MAP == "Summer Map" and returned before spawning anything.
+  RTT_PRIO_MAP = nil
 end
 
 -- Non-Marsh maps: the priority markers are FIXED, so on a SAME-map re-click leave them alone (no
@@ -4258,7 +4297,12 @@ function rttCoordFaction(args)
   -- s.hand is this seat's RTT_SEAT_HAND entry -- exactly what rttSeatPlayers put on hand 1.
   local seatHand = s.hand and { position = s.hand.pos, rotation = s.hand.rot } or nil
   rttPlaceFaction(faction, bp.x, bp.z, bp.z > 0, s.color or args.color, true, nil, nil, args.color, seatHand)
-  Wait.frames(function() rttShowFactions() end, 10)    -- refresh remaining boards
+  rttAfterFrames(function() rttShowFactions() end, 10) -- refresh remaining boards
+  -- rttAfterFrames, not Wait.frames: this clears RTT_BUSY, and a copy left in flight by the
+  -- PREVIOUS game was unlocking the NEXT game's buttons mid-setup. A second destructive click
+  -- then started a second setup on top of the first, whose chain died at the next RTT_RUN_ID
+  -- check -- faction cards half dealt, no boards lit, no faction menu. Guarding on the run id
+  -- makes the stale copy a no-op.
 end
 
 -- spawn a faction's pieces at (cx,cz), WITHOUT dice (m060). Warrior placements (m290
@@ -5883,8 +5927,23 @@ function makeMap(player,value,id)
   -- The discriminator is the PLAYER argument. A real button click passes a Player table; the internal
   -- path (rttPlaceMap -> makeMap("", "", id)) passes "", which is how the 5-player flow sets the flag
   -- and then places its own map without clearing it a line later.
-  if type(player) == "table" then RTT_5P_MARSH = false end
-  if id == "Marsh Map" and RTT_5P_MARSH then Wait.time(function() rttMarshLandmarks() end, 1.4) end
+  -- A HUMAN CLICK IS SWALLOWED WHILE A SETUP IS RUNNING. RTT_BUSY was consulted only in rttArmOrGo,
+  -- so the map buttons ignored it: clicking Marsh during the 5-player draft's 6-10s chain landed that
+  -- game on the FOUR-player board, because rttFivePStart sets RTT_5P_MARSH at t=0 but its map is not
+  -- placed until rttBeginPick seconds later. The internal path passes no player and is never blocked.
+  if type(player) == "table" then
+    if RTT_BUSY then return end
+    RTT_5P_MARSH = false
+  end
+  -- EVERY MAP BUILD GETS A GENERATION. Deferred map hooks below fire up to 1.4s later and used a bare
+  -- Wait, so a second map click inside that window left two in flight and both ran: two 5-Players
+  -- Marsh clicks 1.4s apart gave TWO of every town landmark. RTT_RUN_ID cannot cover this -- it bumps
+  -- on a new GAME, and a map click is not one -- so the map needs its own counter.
+  RTT_MAP_GEN = (RTT_MAP_GEN or 0) + 1
+  local gen = RTT_MAP_GEN
+  if id == "Marsh Map" and RTT_5P_MARSH then
+    Wait.time(function() if RTT_MAP_GEN == gen then rttMarshLandmarks() end end, 1.4)
+  end
   RTT_CURRENT_MAP = id
   if id == "Mountain Map" then Wait.frames(function() rttMountainLandmark() end, 2) end
   if id == "Summer Map" then Wait.frames(function() rttSpawnPriority("Summer Map", RTT_PRIO_SUMMERMAP) end, 2) end
