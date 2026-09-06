@@ -128,6 +128,36 @@ Nothing below is implemented. The maintainer asked to be consulted before each c
 
 ### Buttons and real estate
 
+- [ ] **Faction Cards should also lay the Vagabond faction card.** Maintainer, 2026-09-06: "the save
+      vagabond contains the adset vagabond card that you should place together when pressing the
+      faction cards button. the vagabond card should appear above the 12 vagabond cards, aligned with
+      the 6 militant factions cards to its right."
+
+      THE CARD IS IDENTIFIED: CardID 303, from his save 'vagabond' (TS_Save_34, 2026-09-06 12:19),
+      which is an otherwise empty table holding just that one card -- so the save names the card, not
+      its position. 303 is on the shared 6x2 faction sheet
+      (...03DD57D219121078CF0C1952D6792FF19D9D373A) and is genuinely absent today: the two 6-card
+      decks hold [309,307,310,301,73200,300] and [305,302,73000,304,308,73300], twelve factions
+      between them, and neither has 303. (306 is missing too and is probably the SECOND vagabond card
+      -- Root ships two, one per vagabond. Worth asking whether he wants both.)
+
+      RTT_HOOT as it stands (logic.lua ~4930), verified by running it, not by grep:
+          1  (66.14, 23.26)   6 cards   factions
+          2  (58.22, 23.18)   6 cards   factions
+          3  (50.22, 23.19)  12 cards   Knaves captains
+          4  (50.23, 28.68)  12 cards   Vagabond characters
+          5  (42.27, 23.33)   5 cards   "Player N" turn-order cards
+
+      POSITION STILL TO PIN DOWN. "Above the 12 vagabond cards" reads as z > 28.68 at x ~50.2, but
+      nothing sits to the right of that, so it cannot also be "aligned with the 6 militant faction
+      cards to its right" -- those are on the z=23.2 row. Ask him for the spot, or have him park the
+      card where he wants it and save, the way the timer, counter, captains board and vagabond deck
+      positions were all recovered.
+
+      Adding it is then one more RTT_HOOT entry: a single Card, not a Deck.
+
+
+
 - [ ] **Map buttons need a wipe warning: "This will reset the current map."** Maintainer, 2026-09-06,
       by analogy with the faction/setup buttons, which already arm on the first click and commit on
       the second. Today a map button replaces the map with no prompt at all -- and it is destructive:
