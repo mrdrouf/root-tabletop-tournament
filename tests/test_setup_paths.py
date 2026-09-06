@@ -1385,6 +1385,82 @@ def t_the_two_free_button_slots_are_bottom_right(src):
     assert top.get(57) == "rttCreditsBtn", "the hole at x=57 is filled by %r" % top.get(57)
 
 
+def t_every_faction_board_carries_a_draw_button(src):
+    """Zaandaa: the old Woodland Tournament mods had a draw button beside each faction board.
+
+    It saves dragging a card off the deck across a high-ping table and kills the classic overdraw of
+    hitting 11 instead of 1.
+
+    The board is found by SHAPE, not by a per-faction art hash: every faction's rules board is a
+    Custom_Tile scaled 8.0-9.6, and the only other tile in that band is the crafted-improvements
+    board, which is the same art on all twelve and so is excluded by it. Asserted for all twelve, and
+    asserted as exactly ONE -- a faction gaining a second board in that size band would otherwise
+    quietly get two draw buttons.
+    """
+    FAC = ["Marquise de Cat", "Eyrie Dynasties", "Woodland Alliance", "Riverfolk Company",
+           "The Lizard Cult", "Underground Duchy", "Corvid Conspiracy", "Lord of the Hundreds",
+           "Keepers in Iron", "Twilight Council", "Lilypad Diaspora", "Knaves of the Deepwood"]
+    for fac in FAC:
+        rt = fresh(src)
+        rt.execute("SEAT('Purple','H1') pcall(function() setupFactionBoards(nil,nil,nil) end) FLUSH(10)")
+        rt.execute("""pcall(function() rttPlaceFaction([[%s]], 52, -46, false, 'Purple',
+                            false, nil, nil, 'Purple', nil) end) FLUSH(60)""" % fac)
+        got = rt.eval("""function()
+          local n, w = 0, 0
+          for _, o in ipairs(getAllObjects()) do
+            for _, b in ipairs(o.__buttons or {}) do
+              if b.label == 'DRAW' then n = n + 1; w = o.__scale.x end
+            end
+          end
+          return n .. '|' .. w
+        end""")()
+        n, w = got.split("|")
+        assert int(n) == 1, "%s has %s DRAW buttons, expected exactly 1" % (fac, n)
+        assert 8.0 <= float(w) <= 9.6, "%s put its DRAW button on a tile of scale %s" % (fac, w)
+
+
+def t_draw_deals_to_the_seat_not_the_clicker(src):
+    """TTS cannot restrict who may click an object button.
+
+    So the handler must key off the BOARD's seat, never the presser -- otherwise anyone could take
+    another player's card by mis-clicking theirs. The seat comes from where the board stands, which
+    also makes it right after a reload, when the record is restored but no click has happened yet.
+    """
+    rt = fresh(src)
+    rt.execute("SEAT('Purple','H1') SEAT('Blue','H2')")
+    rt.execute("pcall(function() setupFactionBoards(nil,nil,nil) end) FLUSH(10)")
+    rt.execute("""pcall(function() rttPlaceFaction('Marquise de Cat', 52, -46, false, 'Purple',
+                        false, nil, nil, 'Purple', nil) end) FLUSH(60)""")
+    # a shared deck of 30, recording who it deals to
+    rt.execute("""
+      DEALT = {}
+      local specs = {}
+      for i = 1, 30 do specs[i] = { desc = '', nick = 'c' } end
+      DECK = MKDECK(specs)
+      DECK.deal = function(n, color) DEALT[#DEALT+1] = tostring(n) .. '->' .. tostring(color) end
+    """)
+    board = rt.eval("""function()
+      for _, o in ipairs(getAllObjects()) do
+        for _, b in ipairs(o.__buttons or {}) do if b.label == 'DRAW' then return o end end
+      end
+      return nil
+    end""")()
+    assert board is not None, "no DRAW button was created"
+
+    # BLUE clicks PURPLE's board
+    rt.eval("function(o) rttDrawOne(o, 'Blue', false) end")(board)
+    dealt = [str(v) for v in (rt.eval("DEALT") or {}).values()]
+    assert dealt == ["1->Purple"], \
+        "clicking another seat's DRAW dealt %s -- it must deal to the SEAT, not the clicker" % dealt
+
+    # an empty deck says so rather than dealing nothing in silence
+    rt.execute("DECK.__cards = {} SAID = {}")
+    rt.eval("function(o) rttDrawOne(o, 'Purple', false) end")(board)
+    said = [str(v) for v in (rt.eval("SAID") or {}).values()]
+    assert len(dealt) == 1, "it dealt from an empty deck"
+    assert said, "an empty deck failed silently"
+
+
 CASES = [
     ("manual path drives the turn system",   t_manual_turn_order),
     ("manual path spawns 4 / 5 boards",      t_boards_spawn),
@@ -1398,6 +1474,8 @@ CASES = [
     ("no setup card on crafted board",       t_no_setup_card_rides_on_the_crafted_board),
     ("vagabond cards with faction cards",    t_vagabond_cards_come_with_faction_cards),
     ("two free slots are bottom-right",      t_the_two_free_button_slots_are_bottom_right),
+    ("every board has a DRAW button",        t_every_faction_board_carries_a_draw_button),
+    ("DRAW deals to the seat",               t_draw_deals_to_the_seat_not_the_clicker),
     ("manual setup clears ranked objects",   t_ranked_objects_cleared_by_manual),
     ("supporters take the seat explicitly",  t_supporters_take_the_seat_explicitly),
     ("both transform shapes agree",          t_seat_hand_array_shape),

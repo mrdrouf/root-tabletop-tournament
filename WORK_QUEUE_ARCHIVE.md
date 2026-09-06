@@ -1124,3 +1124,26 @@ RTT_LAYOUT so its turn order zig-zags" and "manual END TURN advances by row inde
 ### Housekeeping the maintainer flagged
 ### From this session, still unverified
 ## AWAITING A TEST AT THE TABLE
+
+# RTT Work Queue
+## Standing rule: work on MAIN
+## Standing rule: update the maintainer's SAVES, not just the build
+## Note for future sessions: the `m###` labels are HISTORY, not files
+## Golden rule (the maintainer, repeated + hardened)
+## STRUCTURAL — the pattern behind most of today's bugs (2026-09-04)
+## OPEN — from the Zaandaa play-test discussion (2026-09-05)
+### Bugs
+### Setup and placement
+### Buttons and real estate
+- [x] **Per-faction DRAW ONE buttons.** DONE 2026-09-05. A DRAW button on every faction's rules
+      board, dealing one card from the shared deck. It DEALS TO THE SEAT, not to whoever pressed it:
+      TTS cannot restrict who clicks an object button, so keying off the presser would let anyone take
+      another player's card by mis-clicking theirs. The seat comes from where the board STANDS
+      (rttSeatAt on its position), which is also right after a reload. The board is found by SHAPE --
+      a Custom_Tile scaled 8.0-9.6 within 10 of the seat -- not by twelve art hashes; the crafted
+      board is excluded by its shared art and the Eyrie's Decree board by the distance cut (it is 8.71
+      wide at x -15.53 and was giving that faction two buttons).
+### Gizmo (the maintainer will iterate; ask before changing behaviour)
+### Housekeeping the maintainer flagged
+### From this session, still unverified
+## AWAITING A TEST AT THE TABLE

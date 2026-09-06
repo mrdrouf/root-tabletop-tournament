@@ -4256,6 +4256,68 @@ function rttCoordFaction(args)
   Wait.frames(function() rttShowFactions() end, 10)    -- refresh remaining boards
 end
 
+-- ---- DRAW ONE: a draw button on every faction board -------------------------------------------
+-- Zaandaa: the old Woodland Tournament mods put a draw button beside each faction board. It saves
+-- dragging a card off the deck across a high-ping table, and it kills the classic overdraw of hitting
+-- 11 instead of 1.
+--
+-- The button belongs to the BOARD, so it arrives and is cleared with the faction; there is no
+-- board-level UI to tear down and nothing to remember on a new game.
+--
+-- IT DEALS TO THE SEAT, NOT TO WHOEVER PRESSED IT. TTS cannot restrict who may click an object
+-- button, so keying off the presser would let anyone take another player's card by mis-clicking.
+-- The seat comes from where the board STANDS -- rttSeatAt on its own position -- so it is right on
+-- both setup paths and after a reload, when the seat record has been restored but no click has
+-- happened yet.
+--
+-- function_owner is the setup board because a faction board carries no script of its own. If someone
+-- deletes the setup board with its `x` button the buttons stop responding; nothing else breaks.
+RTT_CRAFTED_IMG = "D0737E5D33E99FD553C8253"   -- the crafted-improvements art, shared by all twelve
+
+function rttDrawButton(board)
+  if board == nil then return end
+  pcall(function()
+    board.createButton({
+      click_function = "rttDrawOne",
+      function_owner = self,
+      label          = "DRAW",
+      position       = { 0, 0.12, -0.42 },      -- lower edge of the board, just above the face
+      rotation       = { 0, 0, 0 },
+      scale          = { 0.5, 0.5, 0.5 },
+      width          = 1400,
+      height         = 420,
+      font_size      = 260,
+      color          = { 0.13, 0.10, 0.06 },
+      font_color     = { 0.96, 0.89, 0.74 },
+      tooltip        = "Draw one card into this seat's hand",
+    })
+  end)
+end
+
+function rttDrawOne(obj, playerColor, alt)
+  if obj == nil then return end
+  local p = obj.getPosition()
+  local si = rttSeatAt(p.x, p.z, false)
+  local seat = si and RTT_SEATS[si] or nil
+  local color = seat and seat.color or nil
+  if color == nil or color == "" then
+    broadcastToColor("Draw: this board has no seat colour yet.", playerColor, { r = 1, g = 0.6, b = 0.2 })
+    return
+  end
+  local deck = rttFindMainDeck()
+  if deck == nil then
+    broadcastToColor("Draw: no shared deck on the table.", playerColor, { r = 1, g = 0.6, b = 0.2 })
+    return
+  end
+  local n = 0
+  pcall(function() n = #(deck.getObjects() or {}) end)
+  if n <= 0 then
+    broadcastToColor("Draw: the deck is empty.", playerColor, { r = 1, g = 0.6, b = 0.2 })
+    return
+  end
+  pcall(function() deck.deal(1, color) end)
+end
+
 -- spawn a faction's pieces at (cx,cz), WITHOUT dice (m060). Warrior placements (m290
 -- Lizard, m300 Duchy) are baked into the faction data, so they come along. flip rotates
 -- the setup 180 for a far-side (z>0) seat. Mirrors tournamentSpawnDraftFaction's math.
@@ -4355,10 +4417,24 @@ function rttSpawnFaction(faction, cx, cz, flip, category, rotationY, opts)
     -- so they were falling before the board had a collider. Spawning them FROM the board means the
     -- surface they land on already exists -- still the same pass, nothing deferred or moved.
     local isRatsBoard = (faction == "Lord of the Hundreds") and string.find(v.json, RTT_RATS_BOARD_IMG, 1, true)
+    -- The faction's OWN rules board, which is where the DRAW button goes. Identified by shape rather
+    -- than by a per-faction art hash: every faction's board is a Custom_Tile scaled 8.0-9.6, and the
+    -- only other tile in that band is the crafted-improvements board, which is the same art on all
+    -- twelve and so can be excluded by it.
+    local sx = tonumber(v.json:match('"scaleX":%s*([-%d.eE]+)')) or 0
+    -- ...and NEAR the seat. The Eyrie carries a second tile in the same size band -- its Decree board,
+    -- 8.71 wide at move_to x -15.53 -- so shape alone gave that faction two DRAW buttons. Every
+    -- faction's rules board sits between -4.57 and +2.07; the crafted board is at +15.8 and the
+    -- Decree at -15.5, so a 10-unit cut separates them cleanly.
+    local mx = (type(v.move_to) == "table") and math.abs(tonumber(v.move_to[1]) or 99) or 99
+    local isRulesBoard = (v.json:find('"Name": "Custom_Tile"', 1, true) ~= nil)
+                         and sx >= 8.0 and sx <= 9.6 and mx < 10
+                         and (v.json:find(RTT_CRAFTED_IMG, 1, true) == nil)
     local myCb = cb
-    if isKnaveBoard then myCb = function(o) cb(o); rttSpawnCaptainsFor(o) end
-    elseif isCrowBoard then myCb = function(o) cb(o); Wait.frames(function() rttCrowsPlots(cx, cz, flip, false, o) end, 1) end
-    elseif isRatsBoard then myCb = function(o) cb(o); Wait.frames(function() pcall(function() rttRatsMoodManager(cx, cz, flip) end) end, 1) end end
+    if isKnaveBoard then myCb = function(o) cb(o); rttDrawButton(o); rttSpawnCaptainsFor(o) end
+    elseif isCrowBoard then myCb = function(o) cb(o); rttDrawButton(o); Wait.frames(function() rttCrowsPlots(cx, cz, flip, false, o) end, 1) end
+    elseif isRatsBoard then myCb = function(o) cb(o); rttDrawButton(o); Wait.frames(function() pcall(function() rttRatsMoodManager(cx, cz, flip) end) end, 1) end
+    elseif isRulesBoard then myCb = function(o) cb(o); rttDrawButton(o) end end
     spawnObjectJSON({ json = v.json, position = new_pos, callback_function = myCb })
   end
   -- The rats' Mini-Mood Manager is spawned from the rats BOARD's own callback above, not here --
