@@ -1298,3 +1298,30 @@ RTT_LAYOUT so its turn order zig-zags" and "manual END TURN advances by row inde
 
 ### From this session, still unverified
 ## AWAITING A TEST AT THE TABLE
+
+# RTT Work Queue
+## Standing rule: work on MAIN
+## Standing rule: update the maintainer's SAVES, not just the build
+## Note for future sessions: the `m###` labels are HISTORY, not files
+## Golden rule (the maintainer, repeated + hardened)
+## STRUCTURAL — the pattern behind most of today's bugs (2026-09-04)
+## OPEN — from the Zaandaa play-test discussion (2026-09-05)
+### Bugs
+### Setup and placement
+### Buttons and real estate
+### Gizmo (the maintainer will iterate; ask before changing behaviour)
+- [x] **Send-home fill order and the parked pieces.** RESOLVED 2026-09-06 from the maintainer's own
+      table (TS_AutoSave, 17:44), where he had spawned the cats, birds and lizards with every extra
+      piece already moved into its row. Two answers came out of it at once:
+      DIRECTION: every extra sat at the LOWER blueprint-x end of its row, and he asked for the extra
+      stronghold "to the LEFT of the row" -- so lower x is the player's left and higher x their right.
+      RTT_HOME_RIGHT_IS_PLUS_X = true is confirmed, not guessed.
+      THE PARKED PIECES are baked into their rows, so nothing is excluded any more: Recruiter,
+      Workshop and Saw Mill 6th at x -2.83/-2.81/-2.88; Roost 7th at move_to 2.14; each Garden's 5th
+      at -6.75; Enclave 12th at (-19.615, 3.568), completing the 3x4 grid; Stronghold 6th at 1.217,
+      left of the row, with Hundreds Supply shifted 1.4 left to keep the same 3.7 clearance it had.
+      Verified: every group now keeps all its slots (6->6, 7->7, 5->5, 12->12).
+
+### Housekeeping the maintainer flagged
+### From this session, still unverified
+## AWAITING A TEST AT THE TABLE

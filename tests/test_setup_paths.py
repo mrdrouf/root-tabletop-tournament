@@ -1859,6 +1859,29 @@ def t_send_home_fills_the_rightmost_empty_slot(src):
         "Acclaim did not fill one z-row fully before the other: %s" % order
     assert order[0] == order[1] and order[2] == order[3], \
         "Acclaim did not fill two per stack before moving on: %s" % order
+    # AND a stack really fills to two. Maintainer, 2026-09-06: "when two stacks of 2 are empty, you
+    # put 1 in the empty stack then the one after you put it in the other empty stack instead of
+    # filling all stacks with 2 first." Cause: the two slots of a stack differ only in HEIGHT, by 0.1,
+    # and the occupancy test used a fixed 0.6 vertical tolerance -- so the piece in the lower slot made
+    # the upper one read as taken. The tolerance is now half the smallest height step.
+    first = order[0].split("/")
+    rt.execute("LOWER = MKOBJ('Acclaim', {%s, 0.3, %s}, {}) "
+               "A = MKOBJ('Acclaim', {40, 5, 40}, {}) "
+               "HOVER['Red'] = A rttGizmoHome('Red')" % (first[0], first[1]))
+    at = rt.eval("function() return string.format('%.2f/%.2f/%.2f', A.__pos.x, A.__pos.y, A.__pos.z) end")()
+    want = "%.2f/0.40/%.2f" % (float(first[0]), float(first[1]))
+    assert at == want, \
+        "the second acclaim went to %s; it should COMPLETE the first stack at %s" % (at, want)
+
+    # and the rotation follows the SLOT, so a piece never comes home a half-turn out. RTT_HOME is
+    # recorded after spawnRy is applied, which is 180 on a far-row seat.
+    rt.execute("RTT_HOME = {} "
+               "RTT_HOME['s1'] = { n='Roost', f='Eyrie Dynasties', p={3.0,0.2,-4.35}, r={0,180,0} } "
+               "R = MKOBJ('Roost', {40,5,40}, {}) "
+               "HOVER['Red'] = R rttGizmoHome('Red')")
+    ry = rt.eval("function() return string.format('%.0f', R.__rot.y) end")()
+    assert ry == "180", "a returning piece kept its own facing (%s) instead of the slot's 180" % ry
+
 
 
 CASES = [

@@ -4399,14 +4399,6 @@ function rttSpawnFaction(faction, cx, cz, flip, category, rotationY, opts)
   local spawnRy = rotationY or (flip and 180 or 0)
   local function cb(o)
     o.addTag("RTT Faction")
-    -- WHERE THIS PIECE CAME FROM. The gizmo's send-home needs it, and a spawn callback is the only
-    -- moment it is known for certain: the position is chosen here and nothing records it afterwards.
-    -- Keyed by guid, kept in RTT_HOME, and persisted by the board's onSave so it survives a reload.
-    pcall(function()
-      local p, r = o.getPosition(), o.getRotation()
-      RTT_HOME[o.getGUID()] = { n = o.getName() or "", f = faction,
-                                p = { p.x, p.y, p.z }, r = { r.x, r.y, r.z } }
-    end)
     -- Tag THIS spawn's own fresh VP marker. Two of the same faction on the table (solo testing) share
     -- the marker name "<short> VP", so a name-only search grabbed the FIRST (already-placed) marker and
     -- moved it again. The tag lets rttPlaceVP move the marker THIS spawn just created, then clears it.
@@ -4415,6 +4407,16 @@ function rttSpawnFaction(faction, cx, cz, flip, category, rotationY, opts)
     if spawnRy ~= 0 then o.setRotation({ o.getRotation().x, o.getRotation().y + spawnRy, o.getRotation().z }) end
     if o.hasTag("Ruin Set") then o.destroy() end
     if o.hasTag("Shuffleable") then o.shuffle() o.shuffle() end
+    -- WHERE THIS PIECE CAME FROM, recorded LAST -- after spawnRy has been applied. A spawn callback is
+    -- the only moment the position is known for certain, but reading it before that rotation stores a
+    -- facing the piece never had: spawnRy is 180 on a far-row seat, so a building sent home would come
+    -- back a half-turn out. Maintainer, 2026-09-06: "do not forget to rotate them in the right
+    -- direction so they are not upside down."
+    pcall(function()
+      local p, r = o.getPosition(), o.getRotation()
+      RTT_HOME[o.getGUID()] = { n = o.getName() or "", f = faction,
+                                p = { p.x, p.y, p.z }, r = { r.x, r.y, r.z } }
+    end)
   end
   for _, v in ipairs(objects) do
     local vec = Vector(v.move_to) * scale
@@ -6640,18 +6642,44 @@ function rttHomeSlots(name)
 end
 
 -- is any piece of this name already sitting on that slot?
-function rttHomeSlotTaken(slot, name, ignore)
+--
+-- `ytol` matters for STACKS. Acclaim's two slots per stack differ only in height, by 0.1, so a fixed
+-- 0.6 vertical tolerance made the upper slot read as occupied by the piece in the lower one -- the
+-- stack never filled, and each returning acclaim skipped to the next empty stack instead. Maintainer,
+-- 2026-09-06: "when two stacks of 2 are empty, you put 1 in the empty stack then the one after you put
+-- it in the other empty stack instead of filling all stacks with 2 first." The caller passes half the
+-- smallest height gap between slots sharing a spot, so the tolerance can never span a stack step.
+function rttHomeSlotTaken(slot, name, ignore, ytol)
+  ytol = ytol or 0.6
   local taken = false
   pcall(function()
     for _, o in ipairs(getAllObjects()) do
       if o ~= ignore and (o.getName() or "") == name then
         local p = o.getPosition()
         local dx, dy, dz = p.x - slot.p[1], p.y - slot.p[2], p.z - slot.p[3]
-        if dx * dx + dz * dz < 0.36 and math.abs(dy) < 0.6 then taken = true return end
+        if dx * dx + dz * dz < 0.36 and math.abs(dy) < ytol then taken = true return end
       end
     end
   end)
   return taken
+end
+
+-- half the smallest height step between two slots that share a spot, or 0.6 when none do.
+function rttHomeYTol(slots)
+  local best = nil
+  for i, a in ipairs(slots) do
+    for j, b in ipairs(slots) do
+      if i ~= j then
+        local dx, dz = a.p[1] - b.p[1], a.p[3] - b.p[3]
+        if dx * dx + dz * dz < 0.36 then
+          local dy = math.abs(a.p[2] - b.p[2])
+          if dy > 0.001 and (best == nil or dy < best) then best = dy end
+        end
+      end
+    end
+  end
+  if best == nil then return 0.6 end
+  return best * 0.45
 end
 
 -- YOUR supply bag, or nil and the reason why not. The reason matters: this used to return a bare nil
@@ -6727,8 +6755,9 @@ function rttGizmoHome(color)
 
   -- 3. the rightmost empty slot of its kind
   local slots = rttHomeSlots(name)
+  local ytol = rttHomeYTol(slots)
   for _, sl in ipairs(slots) do
-    if not rttHomeSlotTaken(sl, name, hovered) then
+    if not rttHomeSlotTaken(sl, name, hovered, ytol) then
       pcall(function()
         hovered.setPositionSmooth({ sl.p[1], sl.p[2], sl.p[3] }, false, true)
         hovered.setRotation({ sl.r[1], sl.r[2], sl.r[3] })

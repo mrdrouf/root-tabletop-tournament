@@ -137,22 +137,6 @@ Nothing below is implemented. The maintainer asked to be consulted before each c
 
 ### Gizmo (the maintainer will iterate; ask before changing behaviour)
 
-- [ ] **CONFIRM AT THE TABLE: which board-local direction is the player's RIGHT?** Blocking one detail
-      of the send-home fill order, nothing else. RTT_HOME_RIGHT_IS_PLUS_X in logic.lua is the ONE
-      constant; it currently reads TRUE (higher board-local x = the player's right). If roosts,
-      enclaves, strongholds and the moles' buildings refill from the wrong end, flip it to false and
-      rebuild -- no other change. Faction boards carry rotY ~180 and the far row mirrors that, which is
-      the same trap that inverted the crow hidden zone, so it is a coin toss until he looks.
-- [ ] **The PARKED odd piece of several types -- positions still to come.** Roost 7th, Stronghold 6th,
-      Recruiter/Workshop/Saw Mill 6th, each Garden's 5th, Enclave 12th. They sit well away from the
-      neat group and the maintainer has not yet said what those spots are for. Until he does they are
-      EXCLUDED from the fill order (found by nearest-neighbour distance, not a fixed window), so if
-      the group is full the key does nothing rather than guessing. Verified against the real
-      blueprints: 6->5, 7->6, 5->4, 6->5, 12->11, while Sympathy 10->10, Assembly 6->6, Crown 9->9,
-      Mob 5->5 and Acclaim 8->8 are untouched.
-
-
-
 - [ ] **Extend the gizmo to mobs, strongholds and the rest of the tokens/buildings.** Zaandaa asked
       for it; both agreed the mechanism is an assigned return location per object, and the
       maintainer's proposal is to use each piece's own spawn position from the faction setup. That
