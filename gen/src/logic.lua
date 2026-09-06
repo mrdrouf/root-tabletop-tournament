@@ -3706,25 +3706,66 @@ function rttSeatPlayers()
       seatOf[name] = freeN; usedSeat[freeN] = true
     end
   end
-  local seated = {}                                      -- [seat N] = seat colour, for the deferred card
+  -- THE SEAT'S COLOUR IS ITS TURN NUMBER. Maintainer, 2026-09-06: "Force color of seat to be color of
+  -- turn card order. That means that when player are seated they change color; only affects the draft
+  -- since that s the only time turn card order are dealt." So whoever is dealt "Player 1" is Red,
+  -- "Player 2" Yellow, and so on down RTT_SETUP_COLORS: a player's colour states their turn order.
+  --
+  -- This reverses 2026-09-05 ("players join the game, they can pick their color, this should never be
+  -- forced"), and the reason behind that rule still holds everywhere else -- in TTS the hand and the
+  -- cards in it belong to the COLOUR, so forcing one mid-game takes a player's cards away. It is safe
+  -- HERE and nowhere else, because seating runs before a single card is dealt, so every hand is empty
+  -- at this moment. The manual path still never recolours anybody, which is what "only affects the
+  -- draft" asks for.
+  local want = {}                                        -- the players who have a seat, and its colour
   for _, p in ipairs(Player.getPlayers()) do
     local sN = seatOf[p.steam_name]
     if sN ~= nil then
       local seat = RTT_SEATS[sN]
       if seat ~= nil and seat.board ~= nil and seat.hand ~= nil then
-        -- THE SEAT TAKES THE PLAYER'S OWN COLOUR. Their hand follows them to their board, which is
-        -- what makes a later reconnect work: they take that colour again and hand, cards and turn
-        -- slot are all exactly where they left them.
-        local color = p.color
-        seat.color = color
-        seat.owner = p.steam_name
-        pcall(function()
-          Player[color].setHandTransform(
-            { position = seat.hand.pos, rotation = seat.hand.rot, scale = RTT_HAND_SCALE }, 1)
-        end)
-        RTT_CLONES[color] = seat.board
-        seated[sN] = color
+        want[#want + 1] = { p = p, n = sN, name = p.steam_name, c = RTT_SETUP_COLORS[sN] }
       end
+    end
+  end
+  -- TWO PHASES, because a straight swap cannot work: when Red must become Yellow while Yellow becomes
+  -- Red, each changeColor is refused for a colour somebody still holds. Park everyone who is standing
+  -- on a colour that is not theirs in Grey first -- the base mod's own kickPlayersFromSeats trick --
+  -- and then every target is free. Grey is this mod's spectator seat and holds any number of players.
+  local target = {}
+  for _, w in ipairs(want) do if w.c ~= nil then target[w.c] = true end end
+  for _, p in ipairs(Player.getPlayers()) do
+    local mine = nil
+    for _, w in ipairs(want) do if w.name == p.steam_name then mine = w.c end end
+    if p.color ~= "Grey" and p.color ~= "Black" and p.color ~= mine and target[p.color] then
+      pcall(function() p.changeColor("Grey") end)
+    end
+  end
+  for _, w in ipairs(want) do
+    if w.c ~= nil and w.p.color ~= w.c then pcall(function() w.p.changeColor(w.c) end) end
+  end
+
+  local seated = {}                                      -- [seat N] = seat colour, for the deferred card
+  for _, w in ipairs(want) do
+    local seat  = RTT_SEATS[w.n]
+    local color = w.c or w.p.color
+    seat.color = color
+    seat.owner = w.name
+    pcall(function()
+      Player[color].setHandTransform(
+        { position = seat.hand.pos, rotation = seat.hand.rot, scale = RTT_HAND_SCALE }, 1)
+    end)
+    RTT_CLONES[color] = seat.board
+    seated[w.n] = color
+  end
+  -- A seat nobody is sitting in takes its own turn number's colour as well, so the scheme reads the
+  -- same all the way round the table instead of breaking at the first empty chair.
+  for i, s in ipairs(RTT_SEATS or {}) do
+    if s ~= nil and s.color == nil and RTT_SETUP_COLORS[i] ~= nil then
+      local free = true
+      for _, o in ipairs(RTT_SEATS) do
+        if o ~= nil and o.color == RTT_SETUP_COLORS[i] then free = false end
+      end
+      if free then s.color = RTT_SETUP_COLORS[i] end
     end
   end
   -- Seats nobody is sitting in still hold a faction and still take a turn, so they need a colour no

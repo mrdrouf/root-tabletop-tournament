@@ -693,28 +693,57 @@ def _seat_ranked(rt, joined, names):
     rt.execute("rttSpawnSelectors() FLUSH(6) pcall(function() rttSeatPlayers() end) FLUSH(30)")
 
 
-def t_nobody_is_recoloured(src):
-    """The draft assigns a SEAT, never a colour.
+def t_seat_colour_is_the_turn_order(src):
+    """A seat's colour IS its turn-order number, and the player is recoloured into it.
 
-    The maintainer, 2026-09-05: "players join the game, they can pick their color, this should never
-    be forced". It used to copy the base mod's placePlayer -- kick the whole table to Grey, then
-    changeColor everyone into RTT_SETUP_COLORS[seat]. In TTS the hand, the cards in it and the slot in
-    Turns.order all belong to the COLOUR, so forcing one takes a player's hand away and hands it to
-    whoever gets that colour next.
+    The maintainer, 2026-09-06: "Force color of seat to be color of turn card order. That means that
+    when player are seated they change color; only affects the draft since that s the only time turn
+    card order are dealt." So whoever is dealt "Player 1" is Red, "Player 2" Yellow, and so on.
+
+    This REVERSES his 2026-09-05 rule ("players join the game, they can pick their color, this should
+    never be forced"), and the reason that rule existed still holds everywhere else: in TTS the hand
+    and the cards in it belong to the COLOUR. Forcing one is safe HERE and only here, because seating
+    runs before a single card is dealt, so every hand is empty at that moment.
+
+    The swap case is the one that actually bites: two players holding each other's target colours
+    cannot both change directly, because each target is still occupied. Hence the park-in-Grey pass.
     """
-    joined = ["Purple", "Blue", "White", "Pink"]
+    SETUP = ["Red", "Yellow", "Orange", "Teal", "Green"]
+    # H1 joined as Yellow and must become Red; H2 joined as Red and must become Yellow -- a direct
+    # swap, which fails outright without the two-phase park.
+    joined = ["Yellow", "Red", "White", "Pink"]
     names = ["H1", "H2", "H3", "H4"]
     rt = fresh(src)
     _seat_ranked(rt, joined, names)
-    for c, nm in zip(joined, names):
-        assert rt.eval("Player['%s'].seated" % c) is True, "%s (%s) was moved out of their colour" % (nm, c)
-        assert rt.eval("Player['%s'].steam_name" % c) == nm, "%s no longer holds %s" % (nm, c)
-    assert len(list((rt.eval("REC.colors") or {}).values())) == 0, \
-        "somebody was recoloured: %s" % list((rt.eval("REC.colors") or {}).values())
-    # and each seat wears its own player's colour
-    for i, c in enumerate(joined):
-        assert rt.eval("RTT_SEATS[%d].color" % (i + 1)) == c, \
-            "seat %d took %r, not its player's %r" % (i + 1, rt.eval("RTT_SEATS[%d].color" % (i + 1)), c)
+
+    for n, nm in enumerate(names, start=1):
+        want = SETUP[n - 1]
+        assert rt.eval("Player['%s'].steam_name" % want) == nm, \
+            "seat %d should be %s (%s); %s holds it instead" % (
+                n, want, nm, rt.eval("Player['%s'].steam_name" % want))
+        assert rt.eval("Player['%s'].seated" % want) is True, "%s is not seated in %s" % (nm, want)
+        assert rt.eval("RTT_SEATS[%d].color" % n) == want, \
+            "seat %d records %r, not its turn colour %r" % (n, rt.eval("RTT_SEATS[%d].color" % n), want)
+        assert rt.eval("RTT_SEATS[%d].owner" % n) == nm, "seat %d lost its owner" % n
+
+    # nobody is left parked in the spectator seat by the two-phase swap
+    for nm in names:
+        assert rt.eval("Player['Grey'].steam_name") != nm, "%s was left in Grey" % nm
+
+    # the hand follows the FORCED colour to that seat -- otherwise a player is recoloured into a seat
+    # whose hand is still out at the table edge, which is worse than not forcing at all
+    for n in range(1, len(names) + 1):
+        want = SETUP[n - 1]
+        hx = rt.eval("Player['%s'].getHandTransform(1).position.x" % want)
+        hz = rt.eval("Player['%s'].getHandTransform(1).position.z" % want)
+        sx = rt.eval("RTT_SEATS[%d].hand.pos[1]" % n)
+        sz = rt.eval("RTT_SEATS[%d].hand.pos[3]" % n)
+        assert abs(hx - sx) < 0.01 and abs(hz - sz) < 0.01, \
+            "seat %d: %s's hand is at (%.1f,%.1f), its seat is at (%.1f,%.1f)" % (n, want, hx, hz, sx, sz)
+
+    # and the turn system runs on those same colours, in seat order
+    assert list((rt.eval("Turns.order") or {}).values()) == SETUP[:len(names)], \
+        "turn order is not the forced colours: %s" % list((rt.eval("Turns.order") or {}).values())
 
 
 def t_turn_order_is_clockwise_from_bottom_right(src):
@@ -735,10 +764,16 @@ def t_turn_order_is_clockwise_from_bottom_right(src):
         rt = fresh(src)
         _seat_ranked(rt, joined, names)
         # seat i sits at spot LAYOUT[n][i]; clockwise = decreasing angle from the bottom-right corner
-        want = [joined[i] for i in sorted(
+        # Seat i now WEARS RTT_SETUP_COLORS[i] (the turn-card colour), so the expected order is that
+        # list read off the table geometrically -- the derivation is still the geometry, not the list.
+        SETUP = ["Red", "Yellow", "Orange", "Teal", "Green", "Brown"]
+        want = [SETUP[i] for i in sorted(
             range(n), key=lambda i: (a0 - math.atan2(*reversed(POS[LAYOUT[n][i]]))) % (2 * math.pi))]
         got = list((rt.eval("Turns.order") or {}).values())
         assert got == want, "%d seats: turn order %s, clockwise from bottom-right is %s" % (n, got, want)
+        # LAYOUT is built so that seat index order IS clockwise order; if that ever stops being true
+        # the colours would no longer state the turn order, which is the whole point of forcing them.
+        assert got == SETUP[:n], "%d seats: colour no longer states turn order: %s" % (n, got)
 
 
 def t_seat_record_survives_a_reload(src):
@@ -761,13 +796,14 @@ def t_seat_record_survives_a_reload(src):
     rt2 = fresh(src)                                   # a fresh table: Globals are gone, as on reload
     assert rt2.eval('Global.getVar("RTT_SEAT_COLOR")') in (None, "", "{}")
     rt2.execute("onLoad(%s) FLUSH(6)" % json.dumps(saved))
-    for i, (c, f) in enumerate(zip(["Purple", "Blue", "White", "Pink"], facs)):
+    # The seats wear their turn-order colours, not the colours the players joined in.
+    for i, (c, f) in enumerate(zip(["Red", "Yellow", "Orange", "Teal"], facs)):
         assert rt2.eval("RTT_SEATS[%d].color" % (i + 1)) == c, "seat %d lost its colour" % (i + 1)
         assert rt2.eval("RTT_SEATS[%d].faction" % (i + 1)) == f, "seat %d lost its faction" % (i + 1)
     # the gizmo works again straight after the reload, which is the point of persisting it
-    assert rt2.eval("rttSeatFaction('White')") == "Woodland Alliance"
+    assert rt2.eval("rttSeatFaction('Orange')") == "Woodland Alliance"
     pub = json.loads(rt2.eval('GVGET("RTT_SEAT_COLOR")') or "{}")
-    assert pub.get("Riverfolk Company") == "Pink", "the mirror was not re-published on load"
+    assert pub.get("Riverfolk Company") == "Teal", "the mirror was not re-published on load"
 
 
 def t_manual_pick_binds_the_pickers_own_colour(src):
@@ -835,8 +871,8 @@ def t_the_seat_record_is_pushed_to_the_sheet(src):
     assert isinstance(arg, str), "pushed a %s -- raw Lua tables do not cross object boundaries" % type(arg).__name__
     rec = json.loads(arg)
     seats = {e["faction"]: e for e in rec["seats"] if e.get("faction")}
-    for f, c in zip(facs, ["Purple", "Blue", "White", "Pink"]):
-        assert seats[f]["color"] == c, "%s pushed as %s, its player is %s" % (f, seats[f]["color"], c)
+    for f, c in zip(facs, ["Red", "Yellow", "Orange", "Teal"]):
+        assert seats[f]["color"] == c, "%s pushed as %s, its seat's turn colour is %s" % (f, seats[f]["color"], c)
         assert seats[f]["owner"] != "", "%s pushed with no owner" % f
     # and the pushed order IS the turn order, clockwise from the bottom-right
     pushed_order = [e["color"] for e in rec["seats"]]
@@ -2048,7 +2084,7 @@ CASES = [
     ("gizmo works without the seat map",      t_gizmo_finds_your_supply_without_the_published_map),
     ("UI cleared before destroy",             t_ui_objects_clear_their_xml_before_being_destroyed),
     ("published colour == seated player",     t_published_colour_matches_the_seated_player),
-    ("nobody is recoloured",                 t_nobody_is_recoloured),
+    ("seat colour is the turn order",        t_seat_colour_is_the_turn_order),
     ("turn order clockwise from BR",         t_turn_order_is_clockwise_from_bottom_right),
     ("seat record survives a reload",        t_seat_record_survives_a_reload),
     ("manual pick binds picker colour",      t_manual_pick_binds_the_pickers_own_colour),
