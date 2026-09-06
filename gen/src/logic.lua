@@ -4397,6 +4397,9 @@ function rttSpawnFaction(faction, cx, cz, flip, category, rotationY, opts)
   scale.x = 1 / scale.x
   scale.z = 1 / scale.z
   local spawnRy = rotationY or (flip and 180 or 0)
+  -- Which extra return slots this spawn has already recorded, so the first piece of a given name
+  -- claims them and later pieces of the same name do not redo the work. See rttAddHomeExtras.
+  local extrasDone = {}
   local function cb(o)
     o.addTag("RTT Faction")
     -- Tag THIS spawn's own fresh VP marker. Two of the same faction on the table (solo testing) share
@@ -4416,6 +4419,11 @@ function rttSpawnFaction(faction, cx, cz, flip, category, rotationY, opts)
       local p, r = o.getPosition(), o.getRotation()
       RTT_HOME[o.getGUID()] = { n = o.getName() or "", f = faction,
                                 p = { p.x, p.y, p.z }, r = { r.x, r.y, r.z } }
+      -- THIS is also the only moment the extra return slots can learn their facing: they have no
+      -- piece of their own, so they copy it from a real piece of the same name -- and that piece
+      -- only exists here, inside its own spawn callback.
+      rttAddHomeExtras(faction, cx, cz, flip, rotationY,
+                       o.getName() or "", { r.x, r.y, r.z }, extrasDone)
     end)
   end
   for _, v in ipairs(objects) do
@@ -4458,9 +4466,15 @@ function rttSpawnFaction(faction, cx, cz, flip, category, rotationY, opts)
   if faction == "Underground Duchy" then
     pcall(function() rttMoleMonger(cx, cz, flip) end)
   end
-  -- the gizmo's extra return slots for this faction, after every piece has spawned so their facing
-  -- can be copied from what actually landed
-  pcall(function() rttAddHomeExtras(faction, cx, cz, flip, rotationY) end)
+  -- The gizmo's extra return slots are NOT added here. They used to be, and it looked right -- the
+  -- loop above has finished, so "every piece has spawned" seemed true. It is not: the loop only ASKS
+  -- for the pieces. spawnObjectJSON's callback, the only place a piece's real facing is known, runs a
+  -- frame or more later, so the copy always found an empty RTT_HOME and fell back to a flat 180.
+  -- The pieces' own blueprint facing IS 180, so that fallback was right by luck on a near-row seat and
+  -- a half turn out on every FAR-row one, where spawnRy adds 180 and they land at 0. Maintainer,
+  -- 2026-09-06: "some gardens still return upside
+  -- down with gizmo 0; I think it s only the first ones" -- the first, because the extra slot sorts
+  -- ahead of the spawned ones and so is the first slot filled. They are recorded from cb instead.
   return true
 end
 
@@ -6593,35 +6607,38 @@ RTT_HOME_EXTRA = {
   ["Lilypad Diaspora"] = { { "Enclave",       { -19.615, 0.1,  3.568 } } },
 }
 
--- Add a faction's extra return slots, transformed exactly as rttSpawnFaction transforms a piece's
--- move_to, and given the same facing as the pieces of that name that just spawned -- so a returning
--- roost is never a half-turn out from its neighbours.
-function rttAddHomeExtras(faction, cx, cz, flip, rotationY)
+-- Add a faction's extra return slots -- the spots the maintainer measured that are NOT spawn
+-- positions -- transformed exactly as rttSpawnFaction transforms a piece's move_to.
+--
+-- Called FROM the spawn callback, once per piece, with the name and facing of the piece that just
+-- landed. A slot has no piece of its own, so its facing has to be copied from a real one; the only
+-- moment a real one exists with spawnRy already applied is inside its own callback. `done` is this
+-- spawn's guard so the first Fox Garden to land claims the Fox Garden slot and the rest skip it.
+function rttAddHomeExtras(faction, cx, cz, flip, rotationY, name, rot, done)
   local list = RTT_HOME_EXTRA[faction]
-  if list == nil then return end
+  if list == nil or name == nil or name == "" or rot == nil then return end
+  done = done or {}
   local scale = self.getScale()
   scale.x = 1 / scale.x
   scale.z = 1 / scale.z
   for i, e in ipairs(list) do
-    local name, mv = e[1], e[2]
-    local vec = Vector(mv) * scale
-    if rotationY ~= nil then
-      vec = vec * Vector(15.5, 1, 15.5)
-      vec:rotateOver("y", rotationY)
-    elseif flip then
-      vec = vec * Vector(-15.5, 1, -15.5)
-    else
-      vec = vec * Vector(15.5, 1, 15.5)
+    if e[1] == name and not done[i] then
+      done[i] = true
+      local vec = Vector(e[2]) * scale
+      if rotationY ~= nil then
+        vec = vec * Vector(15.5, 1, 15.5)
+        vec:rotateOver("y", rotationY)
+      elseif flip then
+        vec = vec * Vector(-15.5, 1, -15.5)
+      else
+        vec = vec * Vector(15.5, 1, 15.5)
+      end
+      RTT_HOME["x" .. faction .. e[1] .. i] = {
+        n = e[1], f = faction,
+        p = { cx + vec.x, 11.56 + vec.y - 0.1, cz + vec.z },
+        r = { rot[1], rot[2], rot[3] },
+      }
     end
-    local rot = nil
-    for _, h in pairs(RTT_HOME or {}) do
-      if h.n == name and h.f == faction then rot = h.r break end
-    end
-    RTT_HOME["x" .. faction .. name .. i] = {
-      n = name, f = faction,
-      p = { cx + vec.x, 11.56 + vec.y - 0.1, cz + vec.z },
-      r = rot or { 0, 180, 0 },
-    }
   end
 end
 

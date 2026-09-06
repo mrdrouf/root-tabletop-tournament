@@ -1949,6 +1949,59 @@ def t_return_slots_are_not_spawn_positions(src):
         "the stronghold row is not evenly spaced after the move: %s" % gaps
 
 
+def t_extra_return_slots_face_the_same_way(src):
+    """An extra return slot must face the way the pieces of that name ACTUALLY landed.
+
+    An extra slot has no piece of its own, so it copies the facing from a real one. That copy used to
+    run straight after the spawn LOOP -- which only asks for the pieces; their callbacks, the one place
+    a real facing is known, run a frame later. So it always read an empty RTT_HOME and fell back to a
+    flat 180. The gardens' own blueprint facing is already 180, so that was right by luck on a near-row
+    seat -- and a half turn out on every FAR-row one, where spawnRy adds 180 and they land at 0.
+
+    Maintainer, 2026-09-06: "some gardens still return upside down with gizmo 0; I think it s only the
+    first ones" -- the first, because the extra slot sorts ahead of the spawned ones, so it is the
+    first slot the gizmo fills. And: "its the same for each carboard ... the other gardens rotate
+    properly", which is the whole assertion here: extra and spawned must agree.
+
+    Checked on BOTH seats, because the old fallback happened to be right on one of them.
+    """
+    for cz, flip, where in ((-46, False, "near row"), (46, True, "far row")):
+        rt = fresh(src)
+        rt.execute("SEAT('Purple','H1') pcall(function() setupFactionBoards(nil,nil,nil) end) FLUSH(10)")
+        rt.execute("RTT_HOME = {}")
+        rt.execute("pcall(function() rttPlaceFaction('The Lizard Cult', 52, %d, %s, 'Purple', "
+                   "false, nil, nil, 'Purple', nil) end) FLUSH(40)" % (cz, "true" if flip else "false"))
+        got = rt.eval("function()\n"
+                      "  local t = {}\n"
+                      "  for k, h in pairs(RTT_HOME) do\n"
+                      "    if string.find(h.n or '', 'Garden', 1, true) then\n"
+                      "      local extra = (string.sub(k, 1, 1) == 'x') and 'extra' or 'spawn'\n"
+                      "      t[#t+1] = h.n .. '|' .. extra .. '|' .. string.format('%.1f', h.r[2])\n"
+                      "    end\n"
+                      "  end\n"
+                      "  table.sort(t)\n"
+                      "  return table.concat(t, ',')\n"
+                      "end")()
+        assert got, "no garden slots recorded at all on the %s" % where
+        spawn, extra = {}, {}
+        for row in got.split(","):
+            name, kind, ry = row.split("|")
+            (extra if kind == "extra" else spawn).setdefault(name, set()).add(float(ry))
+        assert extra, "no EXTRA garden return slot was recorded on the %s: %s" % (where, got)
+        for name, rys in sorted(extra.items()):
+            assert len(rys) == 1, "%s: extra slot has more than one facing: %s" % (name, rys)
+            assert name in spawn, "%s: an extra slot but no spawned piece to copy from" % name
+            # Physics settles a tile a tenth of a degree either way, so the spawned pieces are only
+            # required to AGREE, not to be identical; a half turn is 180 and cannot hide in that.
+            got_spawn = sorted(spawn[name])
+            assert got_spawn[-1] - got_spawn[0] < 1.0, \
+                "%s: the spawned pieces disagree on facing, so the test cannot judge: %s" % (name, got_spawn)
+            want, have = got_spawn[0], rys.pop()
+            assert abs(((want - have + 180) % 360) - 180) < 1.0, \
+                "%s on the %s: the extra return slot faces %.1f but the gardens landed at %.1f -- " \
+                "sent home it would be a half turn out" % (name, where, have, want)
+
+
 CASES = [
     ("manual path drives the turn system",   t_manual_turn_order),
     ("manual path spawns 4 / 5 boards",      t_boards_spawn),
@@ -2003,6 +2056,7 @@ CASES = [
     ("gizmo never takes another supply",     t_gizmo_never_reaches_into_someone_elses_supply),
     ("send home fills rightmost empty",      t_send_home_fills_the_rightmost_empty_slot),
     ("return slots are not spawn spots",     t_return_slots_are_not_spawn_positions),
+    ("extra slots face like the rest",       t_extra_return_slots_face_the_same_way),
     ("one seat holds one faction",           t_one_seat_holds_one_faction),
     ("vagabond published under faction",     t_a_vagabond_is_published_under_its_faction_name),
     ("two vagabonds, one marker each",       t_two_vagabonds_get_one_marker_each),
