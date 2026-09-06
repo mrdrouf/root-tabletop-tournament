@@ -103,7 +103,12 @@ function getAllObjects() local r = {} for _,o in pairs(LIVE) do if not o.__dead 
 getObjects = getAllObjects
 function spawnObjectJSON(p)
   local j = (p or {}).json or ""
-  local n = j:match('"Nickname":%s*"([^"]*)"') or j:match('"Name":%s*"([^"]*)"') or "?"
+  -- An EMPTY nickname is no nickname. TTS shows such an object by its Name, and several blueprints
+  -- ship that way (the Digital_Clock and the Counter both do) -- but "" is TRUTHY in Lua, so the
+  -- `or` chain stopped at it and every one of them came out named "", invisible to any test.
+  local n = j:match('"Nickname":%s*"([^"]*)"')
+  if n == nil or n == "" then n = j:match('"Name":%s*"([^"]*)"') end
+  if n == nil or n == "" then n = "?" end
   local o = MKOBJ(n, (p or {}).position, {})
   note(REC.spawned, string.format("%s@%.1f,%.1f", n, o.__pos.x, o.__pos.z))
   if p and p.callback_function then p.callback_function(o) end

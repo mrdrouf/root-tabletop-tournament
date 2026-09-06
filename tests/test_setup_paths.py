@@ -1099,6 +1099,45 @@ def t_camera_states_are_the_hosts(src):
             "%s does not carry the host's camera states" % path
 
 
+def t_timer_and_counter_sit_bottom_right(src):
+    """Zaandaa: put the turn timer and counter to the right of the board's bottom-right corner.
+
+    The space under the battle mat is otherwise unused and is the easiest place to reach on screen --
+    and explicitly NOT the box score there, which he says is too much. The maintainer placed them by
+    hand and saved as TS_Save_27; these are those coordinates.
+
+    He also resized the COUNTER while he was there, 1.25 -> 1.55, and left the CLOCK alone. Both are
+    asserted, because "the clock is still 1.107" is the decision, not an omission.
+
+    Both objects ship with a BLANK Nickname, so they are found by Name -- "Digital_Clock" and
+    "Counter" -- never by nickname.
+    """
+    rt = fresh(src)
+    want = {"Digital_Clock": (29.4800, -17.1446), "Counter": (29.6331, -20.8561)}
+    for k, (x, z) in want.items():
+        got = rt.eval("RTT_%s_POS" % ("TIMER" if k == "Digital_Clock" else "COUNTER"))
+        gx, gz = got[1], got[3]
+        assert abs(gx - x) < 1e-3 and abs(gz - z) < 1e-3, \
+            "%s is at (%.4f, %.4f), the maintainer placed it at (%.4f, %.4f)" % (k, gx, gz, x, z)
+
+    # scales, straight out of the blueprint blobs
+    for key, want_scale in (("RTT_COUNTER_JSON", 1.55), ("RTT_TIMER_JSON", 1.107143)):
+        head = key + " = [==["
+        i = src.index(head); j = src.index("]==]", i)
+        t = json.loads(src[i + len(head):j])["Transform"]
+        assert abs(t["scaleX"] - want_scale) < 1e-4, \
+            "%s scaleX is %.6f, expected %.6f" % (key, t["scaleX"], want_scale)
+
+    # and they really do come out with the map, tagged so the next map replaces them
+    rt.execute("pcall(function() makeMap('', '', 'Summer Map') end) FLUSH(40)")
+    spawned = [str(x) for x in (rt.eval("REC.spawned") or {}).values()]
+    for k, (x, z) in want.items():
+        hit = [l for l in spawned if l.startswith(k + "@")]
+        assert hit, "%s did not spawn with the map (spawned: %s)" % (k, spawned[:6])
+        at = hit[-1].split("@")[1]
+        assert at == "%.1f,%.1f" % (x, z), "%s spawned at %s, expected %.1f,%.1f" % (k, at, x, z)
+
+
 CASES = [
     ("manual path drives the turn system",   t_manual_turn_order),
     ("manual path spawns 4 / 5 boards",      t_boards_spawn),
@@ -1106,6 +1145,7 @@ CASES = [
     ("order cards cleared by a new game",    t_order_cards_do_not_survive_a_new_game),
     ("duchy burrow spawns locked",           t_the_duchy_burrow_spawns_locked),
     ("camera states are the host's",         t_camera_states_are_the_hosts),
+    ("timer and counter bottom-right",       t_timer_and_counter_sit_bottom_right),
     ("manual setup clears ranked objects",   t_ranked_objects_cleared_by_manual),
     ("supporters take the seat explicitly",  t_supporters_take_the_seat_explicitly),
     ("both transform shapes agree",          t_seat_hand_array_shape),

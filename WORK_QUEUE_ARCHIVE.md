@@ -1008,3 +1008,27 @@ RTT_LAYOUT so its turn order zig-zags" and "manual END TURN advances by row inde
 ### Housekeeping the maintainer flagged
 ### From this session, still unverified
 ## AWAITING A TEST AT THE TABLE
+
+# RTT Work Queue
+## Standing rule: work on MAIN
+## Standing rule: update the maintainer's SAVES, not just the build
+## Note for future sessions: the `m###` labels are HISTORY, not files
+## Golden rule (the maintainer, repeated + hardened)
+## STRUCTURAL — the pattern behind most of today's bugs (2026-09-04)
+## OPEN — from the Zaandaa play-test discussion (2026-09-05)
+### Bugs
+### Setup and placement
+- [x] **Turn counter and timer: bottom-right, slightly bigger.** DONE 2026-09-05. Positions baked
+      from TS_Save_27 where the maintainer placed them by hand:
+          RTT_TIMER_POS    { 17.3624, 11.6669, -26.3142 }  ->  { 29.4800, 11.6669, -17.1446 }
+          RTT_COUNTER_POS  { 22.9297, 11.5240, -25.1741 }  ->  { 29.6331, 11.5150, -20.8561 }
+      Rotations unchanged. CORRECTION to what this entry claimed: a scale WAS changed in that save --
+      the counter is 1.25 -> 1.55 (+24%). Baked. The CLOCK is deliberately left at its shipped
+      1.107: the maintainer had both in front of him and resized only the counter, and confirmed
+      that was the intent.
+
+### Buttons and real estate
+### Gizmo (the maintainer will iterate; ask before changing behaviour)
+### Housekeeping the maintainer flagged
+### From this session, still unverified
+## AWAITING A TEST AT THE TABLE
