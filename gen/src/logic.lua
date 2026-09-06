@@ -44,7 +44,8 @@ function onLoad(state)
   -- no numpad (maintainer, 2026-09-04: on a French Mac layout the top-row 0 needs Shift and never
   -- reaches it). One named hotkey does the same job and binds to any key in Options - Game Keys.
   pcall(function()
-    addHotkey("Gizmo: warrior to / from your supply", function(color) rttGizmoWarrior(color) end)
+    addHotkey("Gizmo: send the hovered piece home", function(color) rttGizmoHome(color) end)
+    addHotkey("Gizmo: take a warrior from your supply", function(color) rttGizmoTake(color) end)
   end)
   assets = {}
   if self.getName() != "Faction Board" then
@@ -2011,6 +2012,7 @@ RTT_BUSY_TOKEN = 0
 -- Wait.frames deliberately, so a call site converts by swapping the name and nothing else.
 RTT_RUN_ID = 0
 RTT_MAP_GEN = 0    -- bumped by every map build; deferred map hooks check it before firing
+RTT_HOME = {}      -- [guid] = {n=name, f=faction, p={x,y,z}, r={x,y,z}} where a piece spawned
 function rttAfter(fn, sec)
   local id = RTT_RUN_ID
   Wait.time(function() if RTT_RUN_ID == id then fn() end end, sec)
@@ -2222,6 +2224,7 @@ function rttResetRunState()
   RTT_CAP_SPAWN_N    = 0
   RTT_CAP_ITEM_N     = 0
   RTT_CAP_WARRIOR_N  = 0
+  RTT_HOME           = {}      -- where every faction piece spawned; a new game re-records it
   RTT_PRIO_MAP       = nil     -- "which map's priority markers are out"; a new game holds none
   RTT_PRIO_PIECES    = {}
   -- What the LAST draft offered. rttCaptainsAreDrafted reads this, and rttSpawnFaction filters the
@@ -4396,6 +4399,14 @@ function rttSpawnFaction(faction, cx, cz, flip, category, rotationY, opts)
   local spawnRy = rotationY or (flip and 180 or 0)
   local function cb(o)
     o.addTag("RTT Faction")
+    -- WHERE THIS PIECE CAME FROM. The gizmo's send-home needs it, and a spawn callback is the only
+    -- moment it is known for certain: the position is chosen here and nothing records it afterwards.
+    -- Keyed by guid, kept in RTT_HOME, and persisted by the board's onSave so it survives a reload.
+    pcall(function()
+      local p, r = o.getPosition(), o.getRotation()
+      RTT_HOME[o.getGUID()] = { n = o.getName() or "", f = faction,
+                                p = { p.x, p.y, p.z }, r = { r.x, r.y, r.z } }
+    end)
     -- Tag THIS spawn's own fresh VP marker. Two of the same faction on the table (solo testing) share
     -- the marker name "<short> VP", so a name-only search grabbed the FIRST (already-placed) marker and
     -- moved it again. The tag lets rttPlaceVP move the marker THIS spawn just created, then clears it.
@@ -6502,23 +6513,9 @@ end
 -- so the piece decides the destination, not whoever pressed the key. Built once and cached: the
 -- scan reads every blueprint's JSON.
 RTT_WARRIOR_SUPPLY = nil
-function rttWarriorSupplyMap()
-  if RTT_WARRIOR_SUPPLY ~= nil then return RTT_WARRIOR_SUPPLY end
-  local m = {}
-  pcall(function()
-    for _, cat in pairs(EVERYTHING) do
-      for _, def in pairs(cat) do
-        if type(def) == "table" and def['data'] ~= nil then
-          local sup, war = rttPieceNamesFromDef(def)
-          if sup ~= nil and war ~= nil and m[war] == nil then m[war] = sup end
-        end
-      end
-    end
-  end)
-  RTT_WARRIOR_SUPPLY = m
-  return m
-end
-
+-- the first object on the table with this name. Declared HERE, above every user: it is a `local`, so
+-- anything calling it EARLIER in the file would resolve a nil GLOBAL instead. (Deleted by accident
+-- while restructuring the gizmo and restored -- the tests caught it immediately.)
 local function rttFindByName(name)
   if name == nil or name == "" then return nil end
   for _, o in ipairs(getAllObjects()) do
@@ -6527,24 +6524,144 @@ local function rttFindByName(name)
   return nil
 end
 
--- WHICH SUPPLY IS YOURS. Two ways, because the first one is not always there.
+-- piece name -> the BAG it belongs in, for every faction in the mod. Not just warriors: the
+-- Marquise's "Wood" lives in "Wood Supply" the same way, and the maintainer wants NUMPAD 0 to send it
+-- home too. Anything a blueprint stores inside a Custom_Model_Bag is covered by construction, so a
+-- faction added later needs no table edited here. Built once and cached.
+RTT_BAG_OF = nil
+function rttBagOfMap()
+  if RTT_BAG_OF ~= nil then return RTT_BAG_OF end
+  local m = {}
+  pcall(function()
+    for _, cat in pairs(EVERYTHING) do
+      for _, def in pairs(cat) do
+        if type(def) == "table" and def['data'] ~= nil then
+          for _, v in ipairs(def['data']) do
+            local bag = v.json:match('"Nickname":%s*"([^"]*Supply)"')
+            if bag ~= nil then
+              for nick in v.json:gmatch('"Nickname":%s*"([^"]*)"') do
+                if nick ~= "" and nick ~= bag and m[nick] == nil then m[nick] = bag end
+              end
+            end
+          end
+        end
+      end
+    end
+  end)
+  RTT_BAG_OF = m
+  return m
+end
+
+-- kept for the warriors-only callers: the same map, narrowed to names ending in "Warrior".
+RTT_WARRIOR_SUPPLY = nil
+function rttWarriorSupplyMap()
+  if RTT_WARRIOR_SUPPLY ~= nil then return RTT_WARRIOR_SUPPLY end
+  local m = {}
+  for nick, bag in pairs(rttBagOfMap()) do
+    if nick:match("Warrior$") then m[nick] = bag end
+  end
+  RTT_WARRIOR_SUPPLY = m
+  return m
+end
+
+-- ---- SEND HOME: the home SLOTS of a repeated piece, and which are free ------------------------
+-- Maintainer, 2026-09-06: a returning piece does not go back to its OWN spot, it goes to the
+-- rightmost empty slot of its kind -- roosts, enclaves, the moles' buildings. Acclaim is a special
+-- case he specified stack by stack. Tunnels go back to their own spot, having no row to speak of.
 --
--- RTT_SEAT_COLOR is a runtime Global, set as each faction is placed -- and Globals do NOT survive a
--- save and reload. A game resumed from a save has factions on the table and an empty map, which is
--- exactly what the maintainer hit: "it says no faction seated in your color yet ... I am seated and
--- have a faction". So the published map is only a fast path, and the fallback reads the table: your
--- supply is the faction supply bag nearest your own hand zone. That is how the box score binds
--- factions to colours too, and it needs nothing to have been published at all.
+-- DIRECTION IS UNCONFIRMED. Board-local +x is the player's right on one row and their left on the
+-- other, because faction boards carry rotY ~180 and the far row mirrors that -- the same trap that
+-- inverted the crow hidden zone. The maintainer is checking at the table; RTT_HOME_RIGHT_IS_PLUS_X is
+-- the ONE place to flip when he says. Everything else is direction-agnostic.
+RTT_HOME_RIGHT_IS_PLUS_X = true
+
+-- Types that do NOT use a fill order: each piece returns to its own recorded spot.
+RTT_HOME_OWN_SPOT = { ["Tunnel"] = true }
+
+-- Acclaim fills stack by stack, in the maintainer's order: bottom-right, bottom-left, top-right,
+-- top-left, two per stack.
+RTT_HOME_STACKED = { ["Acclaim"] = 2 }
+
+-- Every home slot recorded for one piece NAME, most-preferred first. Built from RTT_HOME, so it
+-- reflects what actually spawned at this table rather than a table that could drift from it.
+function rttHomeSlots(name)
+  local out = {}
+  for _, h in pairs(RTT_HOME or {}) do
+    if h.n == name then out[#out + 1] = h end
+  end
+  if #out == 0 then return out end
+  -- The PARKED ODD ONE OUT. Several types keep one piece well away from the neat group -- a roost at
+  -- x -17.5 against a row at 3.7..11.7, an enclave at -3.0 against a grid at -16..-19. The maintainer
+  -- has not said what those spots are yet and asked that nothing be sent there meanwhile, so they are
+  -- dropped from the fill order: if the group is full, the key does nothing rather than guessing.
+  --
+  -- Found by NEAREST-NEIGHBOUR distance, not by a fixed window. A window has to be wide enough for a
+  -- 12-slot grid and narrow enough to catch an outlier 22 away, and there is no such number. Every
+  -- slot in a real group has a close neighbour -- 1.6 along a roost row, 1.8 across the enclave grid,
+  -- 0.1 between two acclaim in a stack -- while a parked piece has none, so anything more than four
+  -- times the typical spacing from its nearest fellow is the odd one out. That works for rows, grids
+  -- and stacks without knowing which it is looking at.
+  if #out > 2 then
+    local near = {}
+    for i, h in ipairs(out) do
+      local best = nil
+      for j, g in ipairs(out) do
+        if i ~= j then
+          local dx, dy, dz = h.p[1]-g.p[1], h.p[2]-g.p[2], h.p[3]-g.p[3]
+          local d = dx*dx + dy*dy + dz*dz
+          if best == nil or d < best then best = d end
+        end
+      end
+      near[i] = math.sqrt(best or 0)
+    end
+    local sorted = {}
+    for _, v in ipairs(near) do sorted[#sorted + 1] = v end
+    table.sort(sorted)
+    local med = sorted[math.max(1, math.ceil(#sorted / 2))]
+    local keep = {}
+    for i, h in ipairs(out) do
+      if near[i] <= math.max(med * 4, 0.05) then keep[#keep + 1] = h end
+    end
+    if #keep > 0 then out = keep end
+  end
+  local right = RTT_HOME_RIGHT_IS_PLUS_X and 1 or -1
+  local per = RTT_HOME_STACKED[name]
+  table.sort(out, function(a, b)
+    if per ~= nil then                       -- stacks: bottom row first, then right to left, then up
+      if math.abs(a.p[3] - b.p[3]) > 0.2 then return a.p[3] < b.p[3] end
+      if math.abs(a.p[1] - b.p[1]) > 0.2 then return a.p[1] * right > b.p[1] * right end
+      return a.p[2] < b.p[2]
+    end
+    if math.abs(a.p[1] - b.p[1]) > 0.2 then return a.p[1] * right > b.p[1] * right end
+    if math.abs(a.p[3] - b.p[3]) > 0.2 then return a.p[3] < b.p[3] end
+    return a.p[2] < b.p[2]
+  end)
+  return out
+end
+
+-- is any piece of this name already sitting on that slot?
+function rttHomeSlotTaken(slot, name, ignore)
+  local taken = false
+  pcall(function()
+    for _, o in ipairs(getAllObjects()) do
+      if o ~= ignore and (o.getName() or "") == name then
+        local p = o.getPosition()
+        local dx, dy, dz = p.x - slot.p[1], p.y - slot.p[2], p.z - slot.p[3]
+        if dx * dx + dz * dz < 0.36 and math.abs(dy) < 0.6 then taken = true return end
+      end
+    end
+  end)
+  return taken
+end
+
 -- YOUR supply bag, or nil and the reason why not. The reason matters: this used to return a bare nil
 -- and let the caller fall through to a geometric search of the whole table, so a Vagabond seat -- which
 -- has no warriors AT ALL -- silently handed the player the NEAREST supply, which is an opponent's.
--- Every failure now says something instead of quietly acting on the wrong faction.
 function rttMySupplyBag(color)
   local faction = rttSeatFaction(color)
   if faction ~= nil then
     local supName, warName = rttFactionPieceNames(faction)
     if supName == nil or warName == nil then
-      -- Vagabonds, the Vagabot and the Vagabond kits reach here: no supply bag, no warrior.
       return nil, "the " .. faction .. " has no warrior supply."
     end
     local bag = rttFindByName(supName)
@@ -6574,77 +6691,106 @@ function rttMySupplyBag(color)
   return nil, "no faction is seated in your colour."
 end
 
--- The whole gizmo.
-function rttGizmoWarrior(color)
+-- NUMPAD 0 -- SEND HOME. Maintainer, 2026-09-06. It no longer spawns anything: hovering nothing does
+-- nothing at all. What it does is put whatever you ARE hovering back where it belongs.
+--   * a warrior, or the Marquise's wood -> back into its own supply bag (rttBagOfMap covers both, and
+--     anything else a blueprint stores in a bag, without a hand-kept list);
+--   * a building or token with a home -> the RIGHTMOST EMPTY slot of its kind, not its own spot, so
+--     roosts, enclaves, strongholds and the moles' buildings refill a tidy row;
+--   * Acclaim -> stack by stack, two per stack, in his order;
+--   * a Tunnel -> its own spot, having no row;
+--   * anything else -> nothing, silently. His call: a hireling or a card is not the gizmo's business
+--     and a message every time would be noise.
+function rttGizmoHome(color)
   local hovered = nil
   pcall(function() hovered = Player[color].getHoverObject() end)
+  if hovered == nil then return end                    -- hovering nothing: NOT a spawn any more
+  local name = hovered.getName() or ""
+  if name == "" then return end
 
-  -- ANY warrior goes home to ITS OWN supply -- yours or an opponent's. That is the original gizmo's
-  -- behaviour and the maintainer kept it: the piece decides where it belongs, not whoever pressed
-  -- the key. Only the other half, pulling one out, depends on who you are.
-  local hoveredName = hovered ~= nil and (hovered.getName() or "") or ""
-  if hoveredName:match("Warrior$") then
-    local supName = rttWarriorSupplyMap()[hoveredName]
-    local bag = supName ~= nil and rttFindByName(supName) or nil
-    if bag ~= nil then pcall(function() bag.putObject(hovered) end) return end
-    -- A warband with no supply bag in any blueprint -- the hirelings (Advocate, Roamer, Farmer) are
-    -- named "... Warrior" but live in their own boxes. This used to return here in silence, so the
-    -- key looked broken and repeated presses did nothing at all.
-    broadcastToColor("Gizmo: " .. hoveredName .. " has no supply bag to go back to.", color,
-                     { r = 1, g = 0.6, b = 0.2 })
+  -- 1. does it live in a bag?
+  local bag = rttFindByName(rttBagOfMap()[name])
+  if bag ~= nil then
+    pcall(function() bag.putObject(hovered) end)
     return
   end
 
-  -- Hovering nothing (or something that is not a warrior): one comes out of YOUR supply.
+  -- 2. its own spot, for the types that have no row
+  local home = (RTT_HOME or {})[hovered.getGUID()]
+  if RTT_HOME_OWN_SPOT[name] and home ~= nil then
+    pcall(function()
+      hovered.setPositionSmooth({ home.p[1], home.p[2], home.p[3] }, false, true)
+      hovered.setRotation({ home.r[1], home.r[2], home.r[3] })
+    end)
+    return
+  end
+
+  -- 3. the rightmost empty slot of its kind
+  local slots = rttHomeSlots(name)
+  for _, sl in ipairs(slots) do
+    if not rttHomeSlotTaken(sl, name, hovered) then
+      pcall(function()
+        hovered.setPositionSmooth({ sl.p[1], sl.p[2], sl.p[3] }, false, true)
+        hovered.setRotation({ sl.r[1], sl.r[2], sl.r[3] })
+      end)
+      return
+    end
+  end
+
+  -- 4. its own recorded spot, if it has one and every slot was full
+  if home ~= nil then
+    pcall(function()
+      hovered.setPositionSmooth({ home.p[1], home.p[2], home.p[3] }, false, true)
+      hovered.setRotation({ home.r[1], home.r[2], home.r[3] })
+    end)
+  end
+  -- 5. otherwise nothing, and nothing said
+end
+
+-- NUMPAD 1 -- TAKE A WARRIOR from your own supply, at your pointer. What numpad 0 used to do when it
+-- was hovering nothing; now it is its own key and does NOT care what the pointer is over.
+-- Which supply is yours comes from where you are SEATED, so a mis-hover cannot take somebody else's.
+function rttGizmoTake(color)
   local bag, why = rttMySupplyBag(color)
   if bag == nil then
     broadcastToColor("Gizmo: " .. (why or "could not tell which supply is yours."), color,
                      { r = 1, g = 0.6, b = 0.2 })
     return
   end
-
   local n = 0
   pcall(function() n = bag.getQuantity() end)
-  if n <= 0 then return end                       -- empty supply: nothing happens, by instruction
-
+  if n <= 0 then
+    broadcastToColor("Gizmo: the supply is empty.", color, { r = 1, g = 0.6, b = 0.2 })
+    return
+  end
   local pos = nil
   pcall(function() pos = Player[color].getPointerPosition() end)
-  if pos == nil then
-    local bp = bag.getPosition()
-    pos = { x = bp.x, y = bp.y + 2, z = bp.z }
-  else
-    pos = { x = pos.x, y = pos.y + 1.5, z = pos.z }
-  end
+  local bp = bag.getPosition()
+  if pos == nil then pos = { x = bp.x, y = bp.y + 2, z = bp.z }
+  else pos = { x = pos.x, y = pos.y + 1.5, z = pos.z } end
   -- Stand it up. takeObject otherwise keeps whatever pose the piece had inside the bag, and the
-  -- blueprints show plenty lying over -- a few Hundreds and Riverfolk warriors are stored at 30-70
-  -- degrees. Every warrior's upright pose is rotX 0, rotZ 0; the Y is taken from the supply bag so
-  -- the piece faces the same way as the rest of that seat's pieces.
+  -- blueprints show plenty lying over. Fast, but still visibly from the supply: pop out AT THE BAG,
+  -- then a fast smooth move to the pointer (takeObject has no speed control; setPositionSmooth does).
   local ry = 0
   pcall(function() ry = bag.getRotation().y or 0 end)
-  -- FAST, but still visibly from the supply. Zaandaa found the plain smooth take slow; the maintainer
-  -- wanted the travel kept so players can see where the piece came from. takeObject has no speed
-  -- control, so those looked like a trade-off -- but setPositionSmooth does: its third argument is
-  -- `fast`. Pop the warrior out AT THE BAG with smooth=false, then send it to the pointer fast. Both
-  -- things at once instead of one at the other's expense.
-  -- If it is still too slow at the table the next step is instant placement (drop the
-  -- setPositionSmooth and take straight to `pos`); nothing else here would change.
-  local bp = bag.getPosition()
-  -- tagged like every other faction piece, so the next new game clears it with the rest
   pcall(function()
     bag.takeObject({
       position = { bp.x, bp.y + 1.2, bp.z }, rotation = { 0, ry, 0 }, smooth = false,
       callback_function = function(o)
         pcall(function() o.addTag("RTT Faction") end)
-        pcall(function() o.setPositionSmooth(pos, false, true) end)   -- collide=false, fast=true
+        pcall(function() o.setPositionSmooth(pos, false, true) end)
       end
     })
   end)
 end
 
--- TTS scripting buttons are numpad-bound, and a laptop has no numpad -- onLoad also registers this
--- as a named hotkey, bindable to any key in Options - Game Keys.
+-- kept as the old name so nothing that calls it breaks; it is the TAKE half.
+function rttGizmoWarrior(color) rttGizmoTake(color) end
+
 function onScriptingButtonDown(idx, color)
-  if idx == 10 then pcall(function() rttGizmoWarrior(color) end) end
+  if     idx == 10 then pcall(function() rttGizmoHome(color) end)   -- numpad 0: send home
+  elseif idx == 1  then pcall(function() rttGizmoTake(color) end)   -- numpad 1: take a warrior
+  end
 end
 
 

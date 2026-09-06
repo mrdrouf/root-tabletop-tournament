@@ -405,20 +405,21 @@ def t_vagabond_is_published_as_a_faction(src):
 
 
 def t_gizmo_warrior_to_and_from_supply(src):
-    """The gizmo, per the maintainer's spec (2026-09-05).
+    """The two halves, per the maintainer's 2026-09-06 spec.
 
-      hovering ANY warrior -> home to ITS OWN supply, yours or an opponent's
-      hovering nothing     -> one comes out of YOUR supply, at your pointer
-      empty supply         -> nothing
-      no hand zone at all  -> nothing to pull from, but putting one back still works
+      numpad 0, hovering ANY warrior  -> home to ITS OWN supply, yours or an opponent's
+      numpad 0, hovering the wood     -> home to Wood Supply, by the same rule
+      numpad 0, hovering NOTHING      -> nothing. It does not spawn any more.
+      numpad 1                        -> one warrior out of YOUR supply, at your pointer,
+                                         whatever the pointer happens to be over
 
-    Putting a warrior back does not depend on who pressed the key: the piece decides where it
-    belongs. Only pulling one out needs to know who you are, which comes from where you are seated.
+    Putting a piece back does not depend on who pressed the key: the piece decides where it belongs.
+    Only taking one needs to know who you are, which comes from where you are seated.
     """
     rt = fresh(src)
     rt.execute("""
       Global.setVar("RTT_SEAT_COLOR", JSON.encode({ ["Lord of the Hundreds"] = "Red" }))
-      PUT, TOOK, TAGGED = {}, 0, 0
+      PUT, TOOK = {}, 0
       local function mkbag(name)
         local b = MKOBJ(name, {0,1,0}, {})
         b.__n = 3
@@ -426,74 +427,45 @@ def t_gizmo_warrior_to_and_from_supply(src):
         b.putObject = function(o) PUT[name] = (PUT[name] or 0) + 1 end
         b.takeObject = function(p)
           TOOK = TOOK + 1
-          ROT = p.rotation
           local o = MKOBJ("Hundreds Warrior", p.position, {})
           if p.callback_function then p.callback_function(o) end
-          if o.hasTag("RTT Faction") then TAGGED = TAGGED + 1 end
         end
         return b
       end
       MINEBAG  = mkbag("Hundreds Supply")
       THEIRBAG = mkbag("Eyrie Supply")
+      WOODBAG  = mkbag("Wood Supply")
       MINE   = MKOBJ("Hundreds Warrior", {5,1,5}, {})
       THEIRS = MKOBJ("Eyrie Warrior", {6,1,6}, {})
+      WOOD   = MKOBJ("Wood", {7,1,7}, {})
     """)
     put = lambda: {k: rt.eval("PUT")[k] for k in rt.eval("PUT").keys()}
 
-    rt.execute('HOVER["Red"] = MINE  rttGizmoWarrior("Red")')
+    rt.execute('HOVER["Red"] = MINE   rttGizmoHome("Red")')
     assert put() == {"Hundreds Supply": 1}, put()
-
-    rt.execute('HOVER["Red"] = THEIRS  rttGizmoWarrior("Red")')
+    rt.execute('HOVER["Red"] = THEIRS rttGizmoHome("Red")')
     assert put() == {"Hundreds Supply": 1, "Eyrie Supply": 1}, \
-        "an enemy warrior must go home to ITS supply: %s" % put()
-    assert rt.eval("TOOK") == 0, "hovering a warrior must never pull one out"
+        "an opponent's warrior must go to ITS supply, not the presser's: %s" % put()
+    rt.execute('HOVER["Red"] = WOOD   rttGizmoHome("Red")')
+    assert put().get("Wood Supply") == 1, "the Marquise's wood did not go back to Wood Supply: %s" % put()
 
-    rt.execute('HOVER["Red"] = nil  rttGizmoWarrior("Red")')
-    assert rt.eval("TOOK") == 1, "hovering nothing did not take one from your supply"
-    assert rt.eval("TAGGED") == 1, "the warrior taken out was not tagged, so a new game keeps it"
-    rot = rt.eval("ROT")
-    assert rot is not None, "no rotation was given, so it keeps whatever pose it had in the bag"
-    assert rot[1] == 0 and rot[3] == 0, "the warrior must come out standing up, got %s" % (
-        [rot[i] for i in (1, 2, 3)],)
+    # hovering NOTHING no longer spawns
+    rt.execute('HOVER["Red"] = nil  rttGizmoHome("Red")')
+    assert rt.eval("TOOK") == 0, "numpad 0 spawned a warrior -- it must only send pieces home now"
 
-    rt.execute('MINEBAG.__n = 0  rttGizmoWarrior("Red")')
-    assert rt.eval("TOOK") == 1, "an empty supply must do nothing"
-
-    # a colour with no hand zone cannot be placed at all, so there is nothing to pull from.
-    # (A colour that HAS one does now find its nearest supply -- that is the point of the fallback.)
-    rt.execute('MINEBAG.__n = 5')
-    rt.execute('Player["Teal"].getHandTransform = function() return nil end')
-    rt.execute('HOVER["Teal"] = nil  rttGizmoWarrior("Teal")')
-    assert rt.eval("TOOK") == 1, "a colour with no hand zone must do nothing"
-
-    # ...but sending a piece home never needed a seat
-    rt.execute('HOVER["Teal"] = THEIRS  rttGizmoWarrior("Teal")')
-    assert put()["Eyrie Supply"] == 2, "putting back must not depend on the presser's seat"
-
-    # FAST, but still visibly from the supply. Zaandaa found the plain smooth take slow; the
-    # maintainer wanted the travel kept so players see where the piece came from. takeObject has no
-    # speed control -- setPositionSmooth does, in its third argument -- so the warrior pops out AT THE
-    # BAG and is then sent to the pointer fast. Both, instead of one at the other's expense.
-    # clear the warriors this test has already pulled: getAllObjects has no order, so without this
-    # the probe can return one of THOSE -- left at the stub's default position -- instead of the one
-    # this pull just produced, and the assertion measures the wrong object
-    rt.execute("""for _, o in ipairs(getAllObjects()) do
-                    if (o.getName() or '') == 'Hundreds Warrior' then o.destruct() end
-                  end""")
-    rt.execute('POINTER["Red"] = {x = 20, y = 1, z = -30} HOVER["Red"] = nil rttGizmoWarrior("Red")')
+    # numpad 1 takes, and does NOT care what the pointer is over
+    rt.execute('POINTER["Red"] = {x = 20, y = 1, z = -30} HOVER["Red"] = MINE rttGizmoTake("Red")')
+    assert rt.eval("TOOK") == 1, "numpad 1 did not take a warrior while hovering one"
     landed = rt.eval("""function()
       local hit = nil
       for _, o in ipairs(getAllObjects()) do
-        if (o.getName() or '') == 'Hundreds Warrior' and o.__smoothFast ~= nil then
-          if hit ~= nil then return 'AMBIGUOUS' end
-          hit = o
-        end
+        if (o.getName() or '') == 'Hundreds Warrior' and o.__smoothFast ~= nil then hit = o end
       end
       if hit == nil then return 'none' end
       return string.format('%.1f,%.1f,%s', hit.__pos.x, hit.__pos.z, tostring(hit.__smoothFast))
     end""")()
-    assert landed == "20.0,-30.0,true", (
-        "the warrior should arrive at the pointer by a FAST smooth move; got %s" % landed)
+    assert landed == "20.0,-30.0,true", \
+        "the warrior should arrive at the pointer by a FAST smooth move; got %s" % landed
 
 
 def t_gizmo_finds_your_supply_without_the_published_map(src):
@@ -590,23 +562,29 @@ def t_ui_objects_clear_their_xml_before_being_destroyed(src):
 
 
 def t_gizmo_default_key_is_numpad_zero(src):
-    """NUMPAD 0 stays the default, as it always was; the named hotkey is only for machines without one.
+    """TWO keys now, at the maintainer's request (2026-09-06): numpad 0 SENDS HOME, numpad 1 TAKES.
 
-    TTS scripting buttons are numbered 1..10 with 10 being numpad 0 -- the convention the original
-    Ginso's Gizmo used, and the one this inherited. A PC user needs to configure nothing. The extra
-    hotkey is registered UNBOUND, so it only matters on a laptop with no numpad, where the top-row 0
-    is a different key entirely (and on a French Mac layout needs Shift as well).
+    Numpad 0 no longer spawns anything -- hovering nothing does nothing at all -- and numpad 1 does
+    what 0 used to do when hovering nothing, without caring what the pointer is over.
+
+    TTS scripting buttons are numbered 1..10 with 10 being numpad 0, the convention the original
+    Ginso's Gizmo used. A PC user configures nothing; the two named hotkeys are registered UNBOUND for
+    machines with no numpad, where the top-row 0 is a different key (and needs Shift on a French Mac).
     """
     rt = fresh(src)
-    rt.execute("FIRED = 0  rttGizmoWarrior = function(c) FIRED = FIRED + 1 end")
-    for idx in (1, 2, 5, 9):
-        rt.execute("FIRED = 0  onScriptingButtonDown(%d, 'Red')" % idx)
-        assert rt.eval("FIRED") == 0, "scripting button %d should do nothing" % idx
-    rt.execute("FIRED = 0  onScriptingButtonDown(10, 'Red')")
-    assert rt.eval("FIRED") == 1, "numpad 0 no longer triggers the gizmo"
+    rt.execute("HOME, TAKE = 0, 0")
+    rt.execute("rttGizmoHome = function(c) HOME = HOME + 1 end")
+    rt.execute("rttGizmoTake = function(c) TAKE = TAKE + 1 end")
+    for idx in (2, 3, 5, 9):
+        rt.execute("HOME, TAKE = 0, 0  onScriptingButtonDown(%d, 'Red')" % idx)
+        assert rt.eval("HOME") == 0 and rt.eval("TAKE") == 0, "button %d should do nothing" % idx
+    rt.execute("HOME, TAKE = 0, 0  onScriptingButtonDown(10, 'Red')")
+    assert rt.eval("HOME") == 1 and rt.eval("TAKE") == 0, "numpad 0 must SEND HOME, not take"
+    rt.execute("HOME, TAKE = 0, 0  onScriptingButtonDown(1, 'Red')")
+    assert rt.eval("TAKE") == 1 and rt.eval("HOME") == 0, "numpad 1 must TAKE a warrior"
 
-    # and the fallback exists, without stealing a key from anyone
-    assert 'addHotkey("Gizmo: warrior to / from your supply"' in src, "the named hotkey is gone"
+    assert 'addHotkey("Gizmo: send the hovered piece home"' in src, "the send-home hotkey is gone"
+    assert 'addHotkey("Gizmo: take a warrior from your supply"' in src, "the take hotkey is gone"
 
 
 def t_mountain_deals_a_legal_board(src):
@@ -867,14 +845,15 @@ def t_the_seat_record_is_pushed_to_the_sheet(src):
 
 
 def t_gizmo_never_reaches_into_someone_elses_supply(src):
-    """Every gizmo failure must SAY something, never quietly act on the wrong faction.
+    """Taking must never quietly act on the wrong faction; SENDING HOME must never guess.
 
-    A Vagabond seat has no warriors at all, so rttFactionPieceNames returns nothing for it. The code
-    then fell through to a geometric search of the whole table and handed the player the NEAREST
-    warrior supply -- an opponent's -- with no message: their bag silently lost a piece and an extra
-    warrior appeared on the board. The hirelings hit the mirror image of this: "Advocate Warrior"
-    ends in "Warrior" but has no supply bag in any blueprint, so hovering one returned in silence and
-    the key just looked broken.
+    A Vagabond seat has no warriors at all, so rttFactionPieceNames returns nothing for it. The take
+    half used to fall through to a geometric search of the whole table and hand the player the NEAREST
+    supply -- an opponent's -- with no message. It reports why instead.
+
+    The send-home half takes the opposite rule, at the maintainer's request: a piece it cannot place
+    is left alone SILENTLY. A hireling warband or a card is not the gizmo's business and a message
+    every time would be noise.
     """
     rt = fresh(src)
     rt.execute("""
@@ -883,32 +862,31 @@ def t_gizmo_never_reaches_into_someone_elses_supply(src):
         local b = MKOBJ(name, {x,1,z}, {})
         b.__n = 3
         b.getQuantity = function() return b.__n end
-        b.putObject = function(o) end
+        b.putObject = function(o) PUTN = (PUTN or 0) + 1 end
         b.takeObject = function(p) TOOK = TOOK + 1 end
         return b
       end
       mkbag("Eyrie Supply", -52, -46)
       mkbag("Marquise Supply", 52, 46)
-      -- Red plays the Ranger: a Vagabond, so no supply of their own anywhere on the table
       Global.setVar("RTT_SEAT_COLOR", JSON.encode({ ["Ranger"] = "Red" }))
       Player["Red"].getHandTransform = function() return { position = {x=-52,y=0,z=-64} } end
-      SAID = {}
+      SAID, PUTN = {}, 0
     """)
-    rt.execute('HOVER["Red"] = nil rttGizmoWarrior("Red")')
+    rt.execute('HOVER["Red"] = nil rttGizmoTake("Red")')
     assert rt.eval("TOOK") == 0, "a Vagabond seat pulled a warrior out of somebody else's supply"
     said = [str(x) for x in (rt.eval("SAID") or {}).values()]
-    assert said, "it failed silently -- the player is told nothing"
-    assert "Ranger" in said[0], "the message does not name the faction: %r" % said[0]
+    assert said and "Ranger" in said[0], "taking failed without naming the faction: %r" % said
 
-    # a hireling warband: named "... Warrior" but in nobody's supply map
+    # send-home on something it cannot place: silent, and nothing moves
     rt.execute("""SAID = {}
-                  HIRE = MKOBJ("Advocate Warrior", {0,1,0}, {})
+                  HIRE = MKOBJ("Advocate Warrior", {3,1,3}, {})
                   HOVER["Red"] = HIRE
-                  rttGizmoWarrior("Red")""")
-    said = [str(x) for x in (rt.eval("SAID") or {}).values()]
-    assert said, "hovering a hireling warband did nothing and said nothing"
-    assert "Advocate Warrior" in said[0], "the message does not name the piece: %r" % said[0]
-    assert rt.eval("TOOK") == 0, "hovering a hireling pulled a warrior out of a supply"
+                  rttGizmoHome("Red")""")
+    assert not [str(x) for x in (rt.eval("SAID") or {}).values()], \
+        "send-home spoke about a piece it cannot place; the maintainer asked for silence"
+    assert rt.eval("PUTN") == 0, "send-home put an unknown piece into a bag"
+    at = rt.eval("function() return string.format('%.1f,%.1f', HIRE.__pos.x, HIRE.__pos.z) end")()
+    assert at == "3.0,3.0", "send-home moved a piece it does not know: now at %s" % at
 
 
 def t_one_seat_holds_one_faction(src):
@@ -1797,6 +1775,92 @@ def t_maps_shuffle_once_and_uniformly(src):
     assert same == 20, "shuffle() lost or duplicated elements (%s of 20 survived)" % same
 
 
+def t_send_home_fills_the_rightmost_empty_slot(src):
+    """Maintainer, 2026-09-06: a returning piece goes to the RIGHTMOST EMPTY slot of its kind, not
+    back to its own spot -- roosts, enclaves, strongholds, the moles' buildings.
+
+    Slots come from RTT_HOME, recorded as each piece spawns, so they describe the table that actually
+    exists rather than a hand-kept list that could drift from the blueprints.
+
+    DIRECTION IS UNCONFIRMED. Board-local +x is the player's right on one row and their left on the
+    other, because faction boards carry rotY ~180 and the far row mirrors it. He is checking at the
+    table; this asserts the ORDERING BEHAVIOUR against whatever RTT_HOME_RIGHT_IS_PLUS_X says, so
+    flipping that one constant flips the test with it and nothing else has to change.
+    """
+    rt = fresh(src)
+    # six Roost slots in a row, plus the parked odd one far away that he has not specified yet
+    rt.execute("""
+      RTT_HOME = {}
+      local xs = {3.74, 5.34, 6.92, 8.49, 10.12, 11.72}
+      for i, x in ipairs(xs) do
+        RTT_HOME['r'..i] = { n = 'Roost', f = 'Eyrie Dynasties',
+                             p = { x, 0.2, -4.35 }, r = { 0, 0, 0 } }
+      end
+      RTT_HOME['odd'] = { n = 'Roost', f = 'Eyrie Dynasties', p = { -17.54, 0.1, 5.76 }, r = {0,0,0} }
+    """)
+    slots = rt.eval("""function()
+      local t = {}
+      for _, s in ipairs(rttHomeSlots('Roost')) do t[#t+1] = string.format('%.2f', s.p[1]) end
+      return table.concat(t, ',')
+    end""")()
+    xs = [float(v) for v in slots.split(",")]
+    assert len(xs) == 6, "the parked outlier was not excluded: %d slots" % len(xs)
+    assert -17.54 not in xs, "the parked outlier is in the fill order; he asked for it to be skipped"
+    plus = rt.eval("RTT_HOME_RIGHT_IS_PLUS_X")
+    want = sorted(xs, reverse=bool(plus))
+    assert xs == want, "slots are not ordered right-to-left for RIGHT_IS_PLUS_X=%s: %s" % (plus, xs)
+
+    # a returning Roost takes the first FREE slot, not its own
+    rt.execute("""
+      OCC = MKOBJ('Roost', {%f, 0.2, -4.35}, {})     -- the preferred slot is already taken
+      MOVER = MKOBJ('Roost', {40, 5, 40}, {})
+      HOVER['Red'] = MOVER
+      rttGizmoHome('Red')
+    """ % xs[0])
+    at = rt.eval("function() return string.format('%.2f', MOVER.__pos.x) end")()
+    assert abs(float(at) - xs[1]) < 0.01, \
+        "a returning Roost went to %s; the first free slot is %.2f" % (at, xs[1])
+
+    # a Tunnel goes to its OWN spot -- no row to fill
+    rt.execute("""
+      RTT_HOME = {}
+      T = MKOBJ('Tunnel', {40, 5, 40}, {})
+      RTT_HOME[T.getGUID()] = { n='Tunnel', f='Underground Duchy', p={10.04,0.1,6.91}, r={0,0,0} }
+      RTT_HOME['t2'] = { n='Tunnel', f='Underground Duchy', p={9.97,0.1,5.24}, r={0,0,0} }
+      HOVER['Red'] = T
+      rttGizmoHome('Red')
+    """)
+    at = rt.eval("function() return string.format('%.2f,%.2f', T.__pos.x, T.__pos.z) end")()
+    assert at == "10.04,6.91", "a Tunnel should return to its own spot, it went to %s" % at
+
+    # Acclaim fills stack by stack, two per stack, bottom row before top
+    rt.execute("""
+      RTT_HOME = {}
+      local i = 0
+      for _, z in ipairs({-4.43, -2.54}) do
+        for _, x in ipairs({7.19, 5.26}) do
+          for _, y in ipairs({0.3, 0.4}) do
+            i = i + 1
+            RTT_HOME['a'..i] = { n='Acclaim', f='Knaves of the Deepwood', p={x,y,z}, r={0,0,0} }
+          end
+        end
+      end
+    """)
+    order = rt.eval("""function()
+      local t = {}
+      for _, s in ipairs(rttHomeSlots('Acclaim')) do
+        t[#t+1] = string.format('%.2f/%.2f', s.p[1], s.p[3])
+      end
+      return table.concat(t, ' ')
+    end""")().split()
+    assert len(order) == 8, "expected 8 Acclaim slots, got %d" % len(order)
+    zs = [p.split("/")[1] for p in order]
+    assert zs[:4] == ["-4.43"] * 4 and zs[4:] == ["-2.54"] * 4, \
+        "Acclaim did not fill one z-row fully before the other: %s" % order
+    assert order[0] == order[1] and order[2] == order[3], \
+        "Acclaim did not fill two per stack before moving on: %s" % order
+
+
 CASES = [
     ("manual path drives the turn system",   t_manual_turn_order),
     ("manual path spawns 4 / 5 boards",      t_boards_spawn),
@@ -1849,6 +1913,7 @@ CASES = [
     ("manual pick binds picker colour",      t_manual_pick_binds_the_pickers_own_colour),
     ("seat record is pushed to sheet",       t_the_seat_record_is_pushed_to_the_sheet),
     ("gizmo never takes another supply",     t_gizmo_never_reaches_into_someone_elses_supply),
+    ("send home fills rightmost empty",      t_send_home_fills_the_rightmost_empty_slot),
     ("one seat holds one faction",           t_one_seat_holds_one_faction),
     ("vagabond published under faction",     t_a_vagabond_is_published_under_its_faction_name),
     ("two vagabonds, one marker each",       t_two_vagabonds_get_one_marker_each),
