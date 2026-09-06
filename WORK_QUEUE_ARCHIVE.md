@@ -837,3 +837,79 @@ bugs that took several attempts — that context is easy to lose and expensive t
       only be added through the Custom UI Assets PANEL, which no scripting API reaches. The sheet stays on
       TTS's default face; the reason is commented in boxscore.lua so nobody tries again.
 ## BLOCKED — need more info from the maintainer
+
+# RTT Work Queue
+## Standing rule: work on MAIN
+## Standing rule: update the maintainer's SAVES, not just the build
+## Seat identity is wrong (tester report, 2026-09-05) -- NOTHING FIXED YET
+- [x] BUG: make the published colour match the seat's real colour. Small.
+- [x] DESIGN: stop re-reading a volatile Global every 6s. RTT pushes the seat list to the sheet once
+      (it is tagged "RTT BoxScore", so the channel already exists); the sheet stores it in S, which
+      onSave persists, so it survives save/load; geometry stays only for non-RTT tables; add a way to
+      correct a row's colour by hand (today there is none).
+- [x] DESIGN, raised by the maintainer 2026-09-05: should the ranked draft force colours at all?
+      Today it kicks everyone to Grey and recolours by player number (logic.lua:3380, inherited from
+      the base mod's placePlayer). "players join the game, they can pick their color, this should
+      never be forced". Not forcing would delete this whole bug class, but turn order stops being
+      readable from colour (Red = first player) and rttEnableTurns builds its order from
+      RTT_SETUP_COLORS[1..n], so that has to change too. The manual path already does not force.
+
+### Also confirmed by the same audit (each verified by an adversarial second pass)
+- [x] Box score round column is derived from a live divisor (#S.rows), so a row appearing or
+      disappearing mid-game retroactively re-maps every future lock: a whole column comes out blank
+      or two rounds show the same numbers. STRONG CANDIDATE for "it skipped a number".
+      (boxscore.lua:1813)
+- [x] A turn pass by a colour with no row records nothing AND does not advance S.turns, so every
+      other row's columns drift one to the left for the rest of the game. (boxscore.lua:1852)
+
+MAJOR
+- [x] Save/reload wipes RTT_SEAT_COLOR and the sheet silently re-colours every row with the geometric
+      guess that note exists to replace -- rows get tinted White/Pink, nobody is sitting in them, and
+      turn attribution follows the wrong row. (boxscore.lua:893)
+- [x] The "Faction Select" tool publishes every faction it places as "Red" (its board spawns
+      equidistant between spots 1 and 3), so several factions claim Red and rttSeatFaction picks an
+      arbitrary pairs() winner -- a different one from press to press. (logic.lua:1824)
+- [x] EDIT's round-number button resets the within-round position to zero, shifting half the table by
+      a full round. (boxscore.lua:2200)
+- [x] Exported turn_order is the geometric row index, so on the manual setup path it records where a
+      player sat, not the order they played. (boxscore.lua:1201)
+- [x] A Vagabond seat has no supply, so the gizmo pulls from a neighbour's bag with no warning.
+      (logic.lua:6012)
+- [x] On the manual path the gizmo matches the player's JOINED colour against SEAT colours, so anyone
+      who happens to have joined as Red/Yellow/Orange/Teal gets another seat's supply.
+      (logic.lua:5918)
+
+MINOR / COSMETIC
+- [x] At six seats the sheet's angle sort gives row order 1,3,2,5,4,6, disagreeing with RTT_LAYOUT[6];
+      four of six exported turn_orders are wrong. (boxscore.lua:1010)
+- [x] Hovering a hireling warband makes the gizmo do nothing, silently -- it does not fall through to
+      the spawn branch. (logic.lua:6043)
+- [x] pinFirstSeat's comment documents a 4-seat-only invariant and calls POSITION indices seat
+      numbers -- the reason the six-seat divergence above stayed invisible. (boxscore.lua:1054)
+
+REFUTED by the verify pass, recorded so they are not re-found: "manual setup never applies
+RTT_LAYOUT so its turn order zig-zags" and "manual END TURN advances by row index".
+
+## Standing rule: this file only shows OPEN work
+## Note for future sessions: the `m###` labels are HISTORY, not files
+## Golden rule (the maintainer, repeated + hardened)
+## STRUCTURAL — the pattern behind most of today's bugs (2026-09-04)
+## OPEN — from the Zaandaa play-test discussion (2026-09-05)
+### Bugs
+### Setup and placement
+### Buttons and real estate
+### Gizmo (the maintainer will iterate; ask before changing behaviour)
+### Housekeeping the maintainer flagged
+- [x] ~~Suits are not randomised~~ — WRONG, TWICE, both times asserted without reading the code
+      that does the work. The verified record: **every map randomises its clearing suits.** The five
+      printed-suit maps go through `shuffleMaps`, which shuffles the "Clearing Marker" objects across
+      their recorded positions and rotations. **Marsh** is excluded from that only because it
+      randomises its own inside `rttMarshPlan` -- "SUITS: all 12 clearings randomised (4 of each
+      colour) across 9 fixed + 3 dry" -- which has to be separate, since which clearings exist
+      depends on the flood. Measured over 200 Marsh builds: 4/4/4 every time, positions taking
+      different suits between builds. The Mountain was the only map that dealt nothing, and it is
+      fixed. Nothing to do.
+
+### From this session, still unverified
+## BLOCKED — need more info from the maintainer
+## AWAITING A TEST AT THE TABLE
