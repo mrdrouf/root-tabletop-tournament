@@ -1174,3 +1174,27 @@ RTT_LAYOUT so its turn order zig-zags" and "manual END TURN advances by row inde
 ### Housekeeping the maintainer flagged
 ### From this session, still unverified
 ## AWAITING A TEST AT THE TABLE
+
+# RTT Work Queue
+## Standing rule: work on MAIN
+## Standing rule: update the maintainer's SAVES, not just the build
+## Note for future sessions: the `m###` labels are HISTORY, not files
+## Golden rule (the maintainer, repeated + hardened)
+## STRUCTURAL — the pattern behind most of today's bugs (2026-09-04)
+## OPEN — from the Zaandaa play-test discussion (2026-09-05)
+### Bugs
+### Setup and placement
+### Buttons and real estate
+- [x] **Faction Cards should also lay the Vagabond faction card.** DONE 2026-09-06. CardID 303,
+      identified from his save 'vagabond' (TS_Save_34, an otherwise empty table holding just that
+      card). It is on the same 6x2 faction sheet as the others but was in NEITHER 6-card deck -- those
+      hold twelve factions between them and 303 is not among them -- so Faction Cards laid out every
+      faction except the vagabond. Placed at (58.220, 11.640, 28.681): the vagabond row, to the right
+      of the 12 character cards and in line with the first 6-card faction deck below it, which is the
+      spot the maintainer chose.
+      306 is still missing and is probably the SECOND vagabond card (Root ships one per vagabond). Not
+      added -- he asked for this one. Worth putting to him if two vagabonds ever come up again.
+### Gizmo (the maintainer will iterate; ask before changing behaviour)
+### Housekeeping the maintainer flagged
+### From this session, still unverified
+## AWAITING A TEST AT THE TABLE

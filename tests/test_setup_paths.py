@@ -474,14 +474,23 @@ def t_gizmo_warrior_to_and_from_supply(src):
     # maintainer wanted the travel kept so players see where the piece came from. takeObject has no
     # speed control -- setPositionSmooth does, in its third argument -- so the warrior pops out AT THE
     # BAG and is then sent to the pointer fast. Both, instead of one at the other's expense.
+    # clear the warriors this test has already pulled: getAllObjects has no order, so without this
+    # the probe can return one of THOSE -- left at the stub's default position -- instead of the one
+    # this pull just produced, and the assertion measures the wrong object
+    rt.execute("""for _, o in ipairs(getAllObjects()) do
+                    if (o.getName() or '') == 'Hundreds Warrior' then o.destruct() end
+                  end""")
     rt.execute('POINTER["Red"] = {x = 20, y = 1, z = -30} HOVER["Red"] = nil rttGizmoWarrior("Red")')
     landed = rt.eval("""function()
+      local hit = nil
       for _, o in ipairs(getAllObjects()) do
         if (o.getName() or '') == 'Hundreds Warrior' and o.__smoothFast ~= nil then
-          return string.format('%.1f,%.1f,%s', o.__pos.x, o.__pos.z, tostring(o.__smoothFast))
+          if hit ~= nil then return 'AMBIGUOUS' end
+          hit = o
         end
       end
-      return 'none'
+      if hit == nil then return 'none' end
+      return string.format('%.1f,%.1f,%s', hit.__pos.x, hit.__pos.z, tostring(hit.__smoothFast))
     end""")()
     assert landed == "20.0,-30.0,true", (
         "the warrior should arrive at the pointer by a FAST smooth move; got %s" % landed)
@@ -1334,31 +1343,51 @@ def t_vagabond_cards_come_with_faction_cards(src):
     """
     rt = fresh(src)
     n = rt.eval("#RTT_HOOT")
-    assert n == 5, "Faction Cards lays %s decks, expected 5" % n
+    assert n == 6, "Faction Cards lays %s entries, expected 6 (five decks + the vagabond card)" % n
     # its spot is the maintainer's own, from his save 'faction' (TS_Save_30): a SECOND ROW behind the
     # captains deck, not a fifth along the first row, which is where I had guessed it.
-    at = rt.eval("""function()
-      for _, e in ipairs(RTT_HOOT) do
-        if math.abs(e.pos[3] - 28.681) < 0.01 then
-          return string.format('%.3f,%.3f', e.pos[1], e.pos[3])
-        end
-      end
-      return 'missing'
-    end""")()
+    # TWO entries share the vagabond row now -- the 12-card deck and the single faction card -- so
+    # match on the card COUNT, not on z alone
+    def entry_at(n_cards):
+        return rt.eval("""function(want)
+          for _, e in ipairs(RTT_HOOT) do
+            local n = 0
+            for _ in e.json:gmatch('"CardID":%s*%d+') do n = n + 1 end
+            if n == want and math.abs(e.pos[3] - 28.681) < 0.01 then
+              return string.format('%.3f,%.3f', e.pos[1], e.pos[3])
+            end
+          end
+          return 'missing'
+        end""")(n_cards)
+    at = entry_at(12)
     assert at == "50.225,28.681", "the vagabond deck is at %s; his save has 50.225,28.681" % at
 
-    # it is the CHARACTER deck: twelve cards, the vagabond CardIDs
+    # the VAGABOND FACTION card (CardID 303), to the right of the character deck and in line with the
+    # first 6-card faction deck below it. It is on the same sheet as the other faction cards but is in
+    # neither 6-card deck, so Faction Cards used to lay out every faction EXCEPT the vagabond.
+    card = entry_at(1)
+    assert card == "58.220,28.681", "the vagabond faction card is at %s, expected 58.220,28.681" % card
+    has303 = rt.eval("""function()
+      for _, e in ipairs(RTT_HOOT) do
+        if e.json:find('"CardID": 303', 1, true) or e.json:find('"CardID":303', 1, true) then
+          return true
+        end
+      end
+      return false
+    end""")()
+    assert has303 is True, "CardID 303 is not in RTT_HOOT at all"
+
+    # it is the CHARACTER deck: twelve cards, the vagabond CardIDs. Matched by count as well as z,
+    # because the vagabond faction card now shares that row.
     ok = rt.eval("""function()
       for _, e in ipairs(RTT_HOOT) do
-        if math.abs(e.pos[3] - 28.681) < 0.01 then
-          local n = 0
-          for _ in e.json:gmatch('"CardID"') do n = n + 1 end
-          return n
-        end
+        local n = 0
+        for _ in e.json:gmatch('"CardID"') do n = n + 1 end
+        if n == 12 and math.abs(e.pos[3] - 28.681) < 0.01 then return n end
       end
       return -1
     end""")()
-    assert ok == 12, "the fifth deck holds %s cards, expected 12" % ok
+    assert ok == 12, "no twelve-card deck on the vagabond row (got %s)" % ok
 
     # and the button is gone, with its art
     rt.execute("XML = ''")
