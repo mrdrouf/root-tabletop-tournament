@@ -3511,10 +3511,19 @@ function rttSeatRecord()
   local out = { run = RTT_RUN_ID or 0, seats = {} }
   for _, i in ipairs(rttSeatOrderIdx()) do
     local s = RTT_SEATS[i]
+    -- TWO names, because they answer different questions.
+    --   faction : the blueprint name, e.g. "Ranger". The gizmo needs it to find that faction's
+    --             supply bag and warrior.
+    --   key     : the name everything DOWNSTREAM knows the faction by, via rttFactionKey. A Vagabond
+    --             is picked as a CHARACTER but scores as a FACTION -- its marker is "Vagabond VP",
+    --             never "Ranger VP" -- so the box score's row is "Vagabond" and a record published
+    --             under "Ranger" matches nothing on the sheet. Publishing the raw name is exactly
+    --             the regression this comment exists to stop coming back.
     out.seats[#out.seats + 1] = {
       pos = { s.pos[1], s.pos[2] },
       color = s.color or "",
       faction = s.faction or "",
+      key = (s.faction ~= nil) and rttFactionKey(s.faction) or "",
       owner = s.owner or "",
     }
   end
@@ -3528,10 +3537,11 @@ function rttPublishSeats()
   local rec = rttSeatRecord()
   local pos, col, own = {}, {}, {}
   for _, e in ipairs(rec.seats) do
-    if e.faction ~= "" then
-      pos[e.faction] = { e.pos[1], e.pos[2] }
-      if e.color ~= "" then col[e.faction] = e.color end
-      if e.owner ~= "" then own[e.faction] = e.owner end
+    local k = (e.key ~= nil and e.key ~= "") and e.key or e.faction
+    if k ~= "" then
+      pos[k] = { e.pos[1], e.pos[2] }
+      if e.color ~= "" then col[k] = e.color end
+      if e.owner ~= "" then own[k] = e.owner end
     end
   end
   pcall(function() Global.setVar("RTT_SEAT_POS", JSON.encode(pos)) end)

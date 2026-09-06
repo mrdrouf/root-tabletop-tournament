@@ -60,12 +60,12 @@ RTT_ORDER nor RTT_DN), and RTT_LAYOUT[5] is not self-inverse so editing the tabl
 physical seating at 5 and 6 players.
 
 Two decisions, to be taken with the maintainer BEFORE any code changes:
-- [ ] BUG: make the published colour match the seat's real colour. Small.
-- [ ] DESIGN: stop re-reading a volatile Global every 6s. RTT pushes the seat list to the sheet once
+- [x] BUG: make the published colour match the seat's real colour. Small.
+- [x] DESIGN: stop re-reading a volatile Global every 6s. RTT pushes the seat list to the sheet once
       (it is tagged "RTT BoxScore", so the channel already exists); the sheet stores it in S, which
       onSave persists, so it survives save/load; geometry stays only for non-RTT tables; add a way to
       correct a row's colour by hand (today there is none).
-- [ ] DESIGN, raised by the maintainer 2026-09-05: should the ranked draft force colours at all?
+- [x] DESIGN, raised by the maintainer 2026-09-05: should the ranked draft force colours at all?
       Today it kicks everyone to Grey and recolours by player number (logic.lua:3380, inherited from
       the base mod's placePlayer). "players join the game, they can pick their color, this should
       never be forced". Not forcing would delete this whole bug class, but turn order stops being
@@ -75,47 +75,57 @@ Two decisions, to be taken with the maintainer BEFORE any code changes:
 ### Also confirmed by the same audit (each verified by an adversarial second pass)
 
 GAME-BREAKING
-- [ ] Two Vagabonds collapse onto one key. rttFactionKey maps every Vagabond character to "Vagabond",
+- [ ] Two Vagabonds collapse onto one box-score ROW. STILL OPEN, and deliberately not attempted
+      blind. The seat record now keeps both names, so the MOD side is no longer collapsed: a seat
+      carries `faction` ("Ranger", which the gizmo needs) and `key` (rttFactionKey -> "Vagabond",
+      which the mirrors are keyed by). What remains is the SHEET: two Vagabonds still produce one row
+      because both score markers are named "Vagabond VP".
+      A design agent proposed renaming the second marker's 10 State nicknames to "Vagabond 2 VP".
+      THAT DESCRIPTION IS WRONG -- checked against gen/src/content.lua: the kit is 4 Custom_Dice
+      (dropped by rttSpawnFaction's isDice filter) and ELEVEN Custom_Tiles, of which 068b0a and ten
+      more are EACH separately nicknamed "Vagabond VP" -- not one plain tile plus one with States.
+      So the rename is an 11-piece question, not a 2-piece one, and it needs a live look at what
+      actually spawns for one Vagabond before anything is renamed. rttFactionKey maps every Vagabond character to "Vagabond",
       so RTT_SEAT_POS/COLOR/PLAYER keep only the second one and the box score shows ONE Vagabond row.
       The other player has no score line at all; both "Vagabond VP" markers read into that one row.
       (logic.lua:4077)
 - [ ] Gizmo hands a Vagabond player an ENEMY supply. rttSeatFaction returns the collapsed key
       "Vagabond", which is not a blueprint key, so no supply resolves and a neighbour's warrior pops
       out instead -- silently, because the code only warns when the bag is nil. (logic.lua:6012)
-- [ ] Box score round column is derived from a live divisor (#S.rows), so a row appearing or
+- [x] Box score round column is derived from a live divisor (#S.rows), so a row appearing or
       disappearing mid-game retroactively re-maps every future lock: a whole column comes out blank
       or two rounds show the same numbers. STRONG CANDIDATE for "it skipped a number".
       (boxscore.lua:1813)
-- [ ] A turn pass by a colour with no row records nothing AND does not advance S.turns, so every
+- [x] A turn pass by a colour with no row records nothing AND does not advance S.turns, so every
       other row's columns drift one to the left for the rest of the game. (boxscore.lua:1852)
 
 MAJOR
-- [ ] Save/reload wipes RTT_SEAT_COLOR and the sheet silently re-colours every row with the geometric
+- [x] Save/reload wipes RTT_SEAT_COLOR and the sheet silently re-colours every row with the geometric
       guess that note exists to replace -- rows get tinted White/Pink, nobody is sitting in them, and
       turn attribution follows the wrong row. (boxscore.lua:893)
-- [ ] The "Faction Select" tool publishes every faction it places as "Red" (its board spawns
+- [x] The "Faction Select" tool publishes every faction it places as "Red" (its board spawns
       equidistant between spots 1 and 3), so several factions claim Red and rttSeatFaction picks an
       arbitrary pairs() winner -- a different one from press to press. (logic.lua:1824)
 - [ ] Only 10 round columns are rendered and S.cols never grows, so every lock from round 11 is
       invisible on the sheet (it is still in the export). (boxscore.lua:2413)
-- [ ] EDIT's round-number button resets the within-round position to zero, shifting half the table by
+- [x] EDIT's round-number button resets the within-round position to zero, shifting half the table by
       a full round. (boxscore.lua:2200)
-- [ ] Exported turn_order is the geometric row index, so on the manual setup path it records where a
+- [x] Exported turn_order is the geometric row index, so on the manual setup path it records where a
       player sat, not the order they played. (boxscore.lua:1201)
-- [ ] A Vagabond seat has no supply, so the gizmo pulls from a neighbour's bag with no warning.
+- [x] A Vagabond seat has no supply, so the gizmo pulls from a neighbour's bag with no warning.
       (logic.lua:6012)
-- [ ] On the manual path the gizmo matches the player's JOINED colour against SEAT colours, so anyone
+- [x] On the manual path the gizmo matches the player's JOINED colour against SEAT colours, so anyone
       who happens to have joined as Red/Yellow/Orange/Teal gets another seat's supply.
       (logic.lua:5918)
 
 MINOR / COSMETIC
-- [ ] At six seats the sheet's angle sort gives row order 1,3,2,5,4,6, disagreeing with RTT_LAYOUT[6];
+- [x] At six seats the sheet's angle sort gives row order 1,3,2,5,4,6, disagreeing with RTT_LAYOUT[6];
       four of six exported turn_orders are wrong. (boxscore.lua:1010)
-- [ ] Hovering a hireling warband makes the gizmo do nothing, silently -- it does not fall through to
+- [x] Hovering a hireling warband makes the gizmo do nothing, silently -- it does not fall through to
       the spawn branch. (logic.lua:6043)
 - [ ] The manual board table diverges from RTT_POS at index 6: (52,46) duplicated, (0,46) missing.
       Unreachable today (manual only asks for 4 or 5). (logic.lua:1772)
-- [ ] pinFirstSeat's comment documents a 4-seat-only invariant and calls POSITION indices seat
+- [x] pinFirstSeat's comment documents a 4-seat-only invariant and calls POSITION indices seat
       numbers -- the reason the six-seat divergence above stayed invisible. (boxscore.lua:1054)
 
 REFUTED by the verify pass, recorded so they are not re-found: "manual setup never applies

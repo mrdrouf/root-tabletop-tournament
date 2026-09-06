@@ -906,6 +906,32 @@ def t_one_seat_holds_one_faction(src):
     assert len(set(vals)) == 3, "three factions from one board share a colour: %s" % vals
 
 
+def t_a_vagabond_is_published_under_its_faction_name(src):
+    """A Vagabond is picked as a CHARACTER but known downstream as a FACTION.
+
+    Its score marker is "Vagabond VP", never "Ranger VP", so the box score's row is "Vagabond" and a
+    seat published under "Ranger" matches nothing on the sheet -- the faction simply does not appear.
+    The seat record therefore carries BOTH: `faction` (the blueprint name, which the gizmo needs to
+    find the supply) and `key` (rttFactionKey, which is what the mirrors are keyed by).
+    """
+    for char in ("Ranger", "Tinker", "Thief", "Arbiter"):
+        rt = fresh(src)
+        rt.execute("SEAT('Purple','H1')")
+        rt.execute("pcall(function() setupFactionBoards(nil,nil,nil) end) FLUSH(10)")
+        rt.execute("""pcall(function() rttPlaceFaction('%s', 52, -46, false, 'Purple',
+                            false, nil, nil, 'Purple', nil) end) FLUSH(4)""" % char)
+        pub = json.loads(rt.eval('GVGET("RTT_SEAT_COLOR")') or "{}")
+        assert pub.get("Vagabond") == "Purple", \
+            "%s published as %s -- the box score looks for 'Vagabond'" % (char, list(pub))
+        assert char not in pub, "%s published under its character name too: %s" % (char, list(pub))
+        rec = json.loads(rt.eval('GVGET("RTT_SEAT_RECORD")') or "{}")
+        seat = [e for e in rec["seats"] if e.get("key") == "Vagabond"][0]
+        assert seat["faction"] == char, \
+            "the record lost the character name the gizmo needs: %s" % seat
+        # and the gizmo still resolves the CHARACTER, not the collapsed key
+        assert rt.eval("rttSeatFaction('Purple')") == char
+
+
 CASES = [
     ("manual path drives the turn system",   t_manual_turn_order),
     ("manual path spawns 4 / 5 boards",      t_boards_spawn),
@@ -939,6 +965,7 @@ CASES = [
     ("seat record is pushed to sheet",       t_the_seat_record_is_pushed_to_the_sheet),
     ("gizmo never takes another supply",     t_gizmo_never_reaches_into_someone_elses_supply),
     ("one seat holds one faction",           t_one_seat_holds_one_faction),
+    ("vagabond published under faction",     t_a_vagabond_is_published_under_its_faction_name),
 ]
 
 
