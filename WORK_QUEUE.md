@@ -107,6 +107,19 @@ Nothing below is implemented. The maintainer asked to be consulted before each c
 
 ### Setup and placement
 
+- [ ] **Turn counter and timer: bottom-right, slightly bigger.** Zaandaa: put them to the right of
+      the board's bottom-right corner -- the space under the battle mat is otherwise unused and is
+      the easiest place to reach on screen. NOT the box score, which he says is too much there.
+      POSITIONS RECOVERED, ready to bake -- the maintainer placed them and saved as TS_Save_27
+      (2026-09-05 15:24); read out of that save and compared against what the mod ships:
+
+          RTT_TIMER_POS    { 17.3624, 11.6669, -26.3142 }  ->  { 29.480, 11.667, -17.145 }
+          RTT_COUNTER_POS  { 22.9297, 11.5240, -25.1741 }  ->  { 29.633, 11.515, -20.856 }
+
+      Rotations are unchanged: the clock stays upright at { 90, 359.98, 0 } and the counter flat at
+      { 0, 0, 0 }. Both objects have a BLANK Nickname, so find them by Name -- "Digital_Clock" and
+      "Counter" -- not by nickname. Still to decide: Zaandaa also asked for them slightly BIGGER,
+      and no scale was changed in that save, so the size is a separate call.
 - [ ] **Crow plots should spawn in the hidden zone.** They do not today because the zone's position
       was unsettled. The maintainer has since placed the hidden zone (rttCrowsHiddenZone) and asked
       Zaandaa whether that spot is good -- if yes, spawn the plots directly into it.
