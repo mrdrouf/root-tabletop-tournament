@@ -1884,6 +1884,71 @@ def t_send_home_fills_the_rightmost_empty_slot(src):
 
 
 
+def t_return_slots_are_not_spawn_positions(src):
+    """The maintainer gave positions for the gizmo to RETURN pieces to, NOT to change where they spawn.
+
+    His words, after I did change them: "I gave you the position so you know where to return the
+    buildings and tokens with gizmo option but did not tell you to change the spawning dispositions !!!
+    restore the spawning !!!"
+
+    So the blueprint still parks the odd piece where it always did -- a roost at move_to -17.54 against
+    a row at 3.74..11.72 -- and RTT_HOME_EXTRA carries the row position it should RETURN to. This
+    asserts BOTH halves, because passing one and failing the other is exactly what happened.
+
+    The rats are the one deliberate exception: he asked for their sixth stronghold to join the row
+    outright, so that IS a blueprint change, with the supply, warlord and four warriors shifted 1.4 to
+    clear it.
+    """
+    rt = fresh(src)
+    rt.execute("SEAT('Purple','H1') pcall(function() setupFactionBoards(nil,nil,nil) end) FLUSH(10)")
+    rt.execute("RTT_HOME = {} SPAWNED = {}")
+    rt.execute("local _s = spawnObjectJSON "
+               "spawnObjectJSON = function(p) local o = _s(p) "
+               "  local n = o.getName() or '' "
+               "  SPAWNED[n] = SPAWNED[n] or {} "
+               "  SPAWNED[n][#SPAWNED[n]+1] = o.__pos.x - 52 "
+               "  return o end")
+    rt.execute("""pcall(function() rttPlaceFaction('Eyrie Dynasties', 52, -46, false, 'Purple',
+                        false, nil, nil, 'Purple', nil) end) FLUSH(40)""")
+    spawned = sorted(float(v) for v in rt.eval("SPAWNED")["Roost"].values())
+    assert any(abs(v + 17.54) < 0.1 for v in spawned), \
+        "the parked roost no longer SPAWNS at -17.54; the blueprint was changed: %s" % spawned
+
+    slots = rt.eval("""function()
+      local t = {}
+      for _, s in ipairs(rttHomeSlots('Roost')) do t[#t+1] = string.format('%.2f', s.p[1] - 52) end
+      return table.concat(t, ',')
+    end""")()
+    xs = [float(v) for v in slots.split(",")]
+    assert len(xs) == 7, "expected 7 roost return slots, got %d: %s" % (len(xs), xs)
+    assert not any(abs(v + 17.54) < 0.1 for v in xs), \
+        "the parked spot is still a RETURN slot; it should be the row position instead: %s" % xs
+    assert abs(min(xs) - 2.14) < 0.05, "the extra return slot is not at 2.14: %s" % xs
+    assert xs == sorted(xs, reverse=True), "return slots are not ordered rightmost-first: %s" % xs
+
+    # the rats ARE changed, deliberately: six strongholds in one evenly spaced row
+    rt = fresh(src)
+    rt.execute("SEAT('Purple','H1') pcall(function() setupFactionBoards(nil,nil,nil) end) FLUSH(10)")
+    rt.execute("RTT_HOME = {}")
+    rt.execute("""pcall(function() rttPlaceFaction('Lord of the Hundreds', 52, -46, false, 'Purple',
+                        false, nil, nil, 'Purple', nil) end) FLUSH(40)""")
+    got = rt.eval("""function()
+      local t = {}
+      for _, h in pairs(RTT_HOME) do
+        if h.n == 'Stronghold' then t[#t+1] = h.p[1] - 52 end
+      end
+      table.sort(t)
+      local o = {}
+      for _, v in ipairs(t) do o[#o+1] = string.format('%.3f', v) end
+      return table.concat(o, ',')
+    end""")()
+    xs = sorted(float(v) for v in got.split(","))
+    assert len(xs) == 6, "expected 6 strongholds, got %d" % len(xs)
+    gaps = [round(xs[i + 1] - xs[i], 2) for i in range(5)]
+    assert all(abs(g - 1.41) < 0.02 for g in gaps), \
+        "the stronghold row is not evenly spaced after the move: %s" % gaps
+
+
 CASES = [
     ("manual path drives the turn system",   t_manual_turn_order),
     ("manual path spawns 4 / 5 boards",      t_boards_spawn),
@@ -1937,6 +2002,7 @@ CASES = [
     ("seat record is pushed to sheet",       t_the_seat_record_is_pushed_to_the_sheet),
     ("gizmo never takes another supply",     t_gizmo_never_reaches_into_someone_elses_supply),
     ("send home fills rightmost empty",      t_send_home_fills_the_rightmost_empty_slot),
+    ("return slots are not spawn spots",     t_return_slots_are_not_spawn_positions),
     ("one seat holds one faction",           t_one_seat_holds_one_faction),
     ("vagabond published under faction",     t_a_vagabond_is_published_under_its_faction_name),
     ("two vagabonds, one marker each",       t_two_vagabonds_get_one_marker_each),

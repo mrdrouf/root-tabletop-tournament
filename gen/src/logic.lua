@@ -4458,6 +4458,9 @@ function rttSpawnFaction(faction, cx, cz, flip, category, rotationY, opts)
   if faction == "Underground Duchy" then
     pcall(function() rttMoleMonger(cx, cz, flip) end)
   end
+  -- the gizmo's extra return slots for this faction, after every piece has spawned so their facing
+  -- can be copied from what actually landed
+  pcall(function() rttAddHomeExtras(faction, cx, cz, flip, rotationY) end)
   return true
 end
 
@@ -6564,6 +6567,62 @@ function rttWarriorSupplyMap()
   end
   RTT_WARRIOR_SUPPLY = m
   return m
+end
+
+-- EXTRA RETURN SLOTS -- where a piece goes back to, which is NOT always where it spawned.
+--
+-- Several factions park one piece well away from its row: a roost at move_to -17.5 against a row at
+-- 3.7..11.7, an enclave at -3.0 against a grid at -16..-19, the sixth recruiter/workshop/saw mill,
+-- each garden's fifth. The maintainer spawned the cats, birds and lizards and moved every one of them
+-- into its row so I could read the positions off (TS_AutoSave, 2026-09-06 17:44) -- and was explicit
+-- that this was for the GIZMO to return them to, NOT a change to where they spawn. The blueprint is
+-- therefore untouched and these live here instead, in the same move_to frame, added to the slot list
+-- when the faction spawns.
+--
+-- The rats are the exception and are NOT here: he asked for their sixth stronghold to join the row
+-- outright, so that one IS a blueprint change, with the supply, the warlord and the four warriors all
+-- shifted 1.4 to clear it.
+RTT_HOME_EXTRA = {
+  ["Marquise de Cat"]  = { { "Recruiter",     { -2.829, 0.2,  -7.484 } },
+                           { "Workshop",      { -2.811, 0.2,  -5.637 } },
+                           { "Saw Mill",      { -2.875, 0.2,  -3.675 } } },
+  ["Eyrie Dynasties"]  = { { "Roost",         {  2.140, 0.2,  -4.330 } } },
+  ["The Lizard Cult"]  = { { "Fox Garden",    { -6.756, 0.2, -12.144 } },
+                           { "Rabbit Garden", { -6.733, 0.2, -10.538 } },
+                           { "Mouse Garden",  { -6.752, 0.2,  -8.936 } } },
+  ["Lilypad Diaspora"] = { { "Enclave",       { -19.615, 0.1,  3.568 } } },
+}
+
+-- Add a faction's extra return slots, transformed exactly as rttSpawnFaction transforms a piece's
+-- move_to, and given the same facing as the pieces of that name that just spawned -- so a returning
+-- roost is never a half-turn out from its neighbours.
+function rttAddHomeExtras(faction, cx, cz, flip, rotationY)
+  local list = RTT_HOME_EXTRA[faction]
+  if list == nil then return end
+  local scale = self.getScale()
+  scale.x = 1 / scale.x
+  scale.z = 1 / scale.z
+  for i, e in ipairs(list) do
+    local name, mv = e[1], e[2]
+    local vec = Vector(mv) * scale
+    if rotationY ~= nil then
+      vec = vec * Vector(15.5, 1, 15.5)
+      vec:rotateOver("y", rotationY)
+    elseif flip then
+      vec = vec * Vector(-15.5, 1, -15.5)
+    else
+      vec = vec * Vector(15.5, 1, 15.5)
+    end
+    local rot = nil
+    for _, h in pairs(RTT_HOME or {}) do
+      if h.n == name and h.f == faction then rot = h.r break end
+    end
+    RTT_HOME["x" .. faction .. name .. i] = {
+      n = name, f = faction,
+      p = { cx + vec.x, 11.56 + vec.y - 0.1, cz + vec.z },
+      r = rot or { 0, 180, 0 },
+    }
+  end
 end
 
 -- ---- SEND HOME: the home SLOTS of a repeated piece, and which are free ------------------------
