@@ -1385,6 +1385,54 @@ def t_the_two_free_button_slots_are_bottom_right(src):
     assert top.get(57) == "rttCreditsBtn", "the hole at x=57 is filled by %r" % top.get(57)
 
 
+def t_captain_warriors_line_up_with_their_captains(src):
+    """Maintainer, 2026-09-05: the warrior spawned by the captain board is a bit misaligned.
+
+    The two rows were measured off his save separately and came out with different starts AND
+    different steps -- meeples -0.551 step 0.272, warriors -0.510 step 0.250 -- so each warrior sat a
+    little to the side of its own captain, by a different amount per column: +0.36 world units under
+    the first, +0.17 under the second, -0.03 under the third. Sharing the captain's x fixes all three
+    at once; the warrior row keeps its own z.
+
+    Asserted as a shared FORMULA rather than three literals, so a future nudge to the captain row
+    carries the warriors with it instead of silently reopening the gap.
+    """
+    rt = fresh(src)
+    got = rt.eval("""function()
+      local t = {}
+      -- drive the two placement helpers against a stand-in board whose transform is the identity,
+      -- so the board-local numbers come straight back out
+      local kb = MKOBJ('KB', {0, 0, 0}, {})   -- MKOBJ already defaults scale to 1 and rotation to 0
+      RTT_CAP_KNAVE_GUID = kb.getGUID()
+      RTT_CAP_MEEPLE_JSON = { X = '{"Nickname": "Captain - X"}' }
+      RTT_CAP_WARRIOR_JSON = '{"Nickname": "Knaves Warrior"}'
+      RTT_CAP_WARRIOR_N = 0
+      for idx = 0, 2 do
+        SPAWNED_AT = nil
+        rttSpawnCaptainMeeple('X', idx)
+        local cx = SPAWNED_AT
+        SPAWNED_AT = nil
+        rttSpawnCaptainWarrior(idx)
+        t[#t+1] = string.format('%.4f|%.4f', cx or -99, SPAWNED_AT or -99)
+      end
+      return table.concat(t, ';')
+    end""")
+    rt.execute("""
+      local _s = spawnObjectJSON
+      spawnObjectJSON = function(p)
+        local pos = (p or {}).position
+        SPAWNED_AT = pos and (pos.x or pos[1]) or nil
+        return _s(p)
+      end
+    """)
+    rows = got().split(";")
+    for i, r in enumerate(rows):
+        cx, wx = (float(v) for v in r.split("|"))
+        assert cx != -99 and wx != -99, "column %d spawned nothing (%s)" % (i, r)
+        assert abs(wx - cx) < 1e-6, \
+            "column %d: the warrior is at x %.4f under a captain at %.4f" % (i, wx, cx)
+
+
 CASES = [
     ("manual path drives the turn system",   t_manual_turn_order),
     ("manual path spawns 4 / 5 boards",      t_boards_spawn),
@@ -1398,6 +1446,7 @@ CASES = [
     ("no setup card on crafted board",       t_no_setup_card_rides_on_the_crafted_board),
     ("vagabond cards with faction cards",    t_vagabond_cards_come_with_faction_cards),
     ("two free slots are bottom-right",      t_the_two_free_button_slots_are_bottom_right),
+    ("captain warriors line up",             t_captain_warriors_line_up_with_their_captains),
     ("manual setup clears ranked objects",   t_ranked_objects_cleared_by_manual),
     ("supporters take the seat explicitly",  t_supporters_take_the_seat_explicitly),
     ("both transform shapes agree",          t_seat_hand_array_shape),

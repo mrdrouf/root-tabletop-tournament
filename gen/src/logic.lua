@@ -4080,13 +4080,18 @@ function rttSpawnCaptainMeeple(name, idx)
   pcall(function() rttSpawnCaptainItems(name, idx) end)  -- this captain's 2 items = its column (top+bottom)
 end
 
--- one Knaves warrior below the captain row (board-local from his save: z=-1.137, x = -0.510, -0.260, -0.007).
+-- one Knaves warrior below the captain row, board-local z=-1.137 from his save.
+-- The X IS THE CAPTAIN'S, deliberately. Both rows were measured off his save separately and came out
+-- with different starts AND different steps -- meeples -0.551 step 0.272, warriors -0.510 step 0.250 --
+-- so each warrior sat a little to the side of its own captain, and by a different amount per column:
+-- +0.36 world units under the first, +0.17 under the second, -0.03 under the third. Sharing the
+-- captain's x makes every warrior land directly beneath its captain; the z stays where he put it.
 function rttSpawnCaptainWarrior(idx)
   if RTT_CAP_WARRIOR_JSON == nil then rttBuildCaptainWarrior() end
   local kb = getObjectFromGUID(RTT_CAP_KNAVE_GUID or "")
   if RTT_CAP_WARRIOR_JSON == nil or kb == nil then return end
   local fry = kb.getRotation().y; local by = kb.getPosition().y
-  local wp = kb.positionToWorld({ -0.510 + idx * 0.25, 0, -1.137 })
+  local wp = kb.positionToWorld({ -0.551 + idx * 0.272, 0, -1.137 })   -- captain's x, warrior's z
   spawnObjectJSON({ json = RTT_CAP_WARRIOR_JSON, position = { wp.x, by + 1.4, wp.z }, rotation = { 0, fry, 0 },
     callback_function = function(o) pcall(function() o.addTag("RTT Faction") end) end })
 end
