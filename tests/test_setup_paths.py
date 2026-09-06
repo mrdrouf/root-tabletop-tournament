@@ -841,6 +841,71 @@ def t_the_seat_record_is_pushed_to_the_sheet(src):
         "the pushed order %s is not the turn order %s" % (pushed_order, list((rt.eval("Turns.order") or {}).values()))
 
 
+def t_gizmo_never_reaches_into_someone_elses_supply(src):
+    """Every gizmo failure must SAY something, never quietly act on the wrong faction.
+
+    A Vagabond seat has no warriors at all, so rttFactionPieceNames returns nothing for it. The code
+    then fell through to a geometric search of the whole table and handed the player the NEAREST
+    warrior supply -- an opponent's -- with no message: their bag silently lost a piece and an extra
+    warrior appeared on the board. The hirelings hit the mirror image of this: "Advocate Warrior"
+    ends in "Warrior" but has no supply bag in any blueprint, so hovering one returned in silence and
+    the key just looked broken.
+    """
+    rt = fresh(src)
+    rt.execute("""
+      TOOK = 0
+      local function mkbag(name, x, z)
+        local b = MKOBJ(name, {x,1,z}, {})
+        b.__n = 3
+        b.getQuantity = function() return b.__n end
+        b.putObject = function(o) end
+        b.takeObject = function(p) TOOK = TOOK + 1 end
+        return b
+      end
+      mkbag("Eyrie Supply", -52, -46)
+      mkbag("Marquise Supply", 52, 46)
+      -- Red plays the Ranger: a Vagabond, so no supply of their own anywhere on the table
+      Global.setVar("RTT_SEAT_COLOR", JSON.encode({ ["Ranger"] = "Red" }))
+      Player["Red"].getHandTransform = function() return { position = {x=-52,y=0,z=-64} } end
+      SAID = {}
+    """)
+    rt.execute('HOVER["Red"] = nil rttGizmoWarrior("Red")')
+    assert rt.eval("TOOK") == 0, "a Vagabond seat pulled a warrior out of somebody else's supply"
+    said = [str(x) for x in (rt.eval("SAID") or {}).values()]
+    assert said, "it failed silently -- the player is told nothing"
+    assert "Ranger" in said[0], "the message does not name the faction: %r" % said[0]
+
+    # a hireling warband: named "... Warrior" but in nobody's supply map
+    rt.execute("""SAID = {}
+                  HIRE = MKOBJ("Advocate Warrior", {0,1,0}, {})
+                  HOVER["Red"] = HIRE
+                  rttGizmoWarrior("Red")""")
+    said = [str(x) for x in (rt.eval("SAID") or {}).values()]
+    assert said, "hovering a hireling warband did nothing and said nothing"
+    assert "Advocate Warrior" in said[0], "the message does not name the piece: %r" % said[0]
+    assert rt.eval("TOOK") == 0, "hovering a hireling pulled a warrior out of a supply"
+
+
+def t_one_seat_holds_one_faction(src):
+    """The manual Faction Select board is NOT destroyed when you pick on it.
+
+    So several factions can be placed from the same spot. Matching a seat on position alone would let
+    the second overwrite the first and lose a whole seat -- and with it that faction's colour, owner
+    and turn slot.
+    """
+    rt = fresh(src)
+    rt.execute("SEAT('Purple','H1')")
+    rt.execute("pcall(function() setupFactionBoards(nil,nil,nil) end) FLUSH(10)")
+    for fac in ("Marquise de Cat", "Eyrie Dynasties", "Woodland Alliance"):
+        rt.execute("""pcall(function() rttPlaceFaction('%s', 54.81, 0, false, 'Purple',
+                            false, nil, nil, 'Purple', nil) end) FLUSH(4)""" % fac)
+    pub = json.loads(rt.eval('GVGET("RTT_SEAT_COLOR")') or "{}")
+    for fac in ("Marquise de Cat", "Eyrie Dynasties", "Woodland Alliance"):
+        assert fac in pub, "%s was overwritten by a later pick on the same board: %s" % (fac, pub)
+    vals = [pub[f] for f in ("Marquise de Cat", "Eyrie Dynasties", "Woodland Alliance")]
+    assert len(set(vals)) == 3, "three factions from one board share a colour: %s" % vals
+
+
 CASES = [
     ("manual path drives the turn system",   t_manual_turn_order),
     ("manual path spawns 4 / 5 boards",      t_boards_spawn),
@@ -872,6 +937,8 @@ CASES = [
     ("seat record survives a reload",        t_seat_record_survives_a_reload),
     ("manual pick binds picker colour",      t_manual_pick_binds_the_pickers_own_colour),
     ("seat record is pushed to sheet",       t_the_seat_record_is_pushed_to_the_sheet),
+    ("gizmo never takes another supply",     t_gizmo_never_reaches_into_someone_elses_supply),
+    ("one seat holds one faction",           t_one_seat_holds_one_faction),
 ]
 
 

@@ -271,7 +271,11 @@ self.UI = {setXml=function() end, setAttribute=function() end, getAttribute=func
            setXmlTable=function() end, getXmlTable=function() return {} end, show=function() end, hide=function() end}
 
 function printToAll() end function printToColor() end function broadcastToAll() end
-function broadcastToColor() end function log() end function logStyle() end
+-- recorded, because "the gizmo said why instead of silently acting on the wrong faction" is now
+-- something the tests have to be able to check.
+SAID = {}
+function broadcastToColor(msg, color) SAID[#SAID+1] = tostring(color) .. ': ' .. tostring(msg) end
+function log() end function logStyle() end
 function startLuaCoroutine(o, f) if _G[f] then _G[f]() end return 1 end
 function getSeatedPlayers() local r = {} for _,c in ipairs(COLORS) do if Player[c].seated then r[#r+1]=c end end return r end
 function destroyObject(o) if o and o.destruct then o.destruct() end end

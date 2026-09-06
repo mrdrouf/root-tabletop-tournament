@@ -3447,11 +3447,15 @@ end
 -- the six spawn spots are >= 92 apart and a selector board is wide: anything within 12 is the same
 -- seat, anything else is a new one. This is what lets the draft, the 4/5-player setup boards and a
 -- single Faction Select board dragged to an arbitrary spot all travel the same code path.
-function rttSeatAt(x, z, create)
+-- `faction` matters because A SEAT HOLDS EXACTLY ONE FACTION. The manual Faction Select board is not
+-- destroyed when you pick on it, so several factions can be placed from the same spot; matching on
+-- position alone would have let the second overwrite the first and lose a whole seat.
+function rttSeatAt(x, z, create, faction)
   RTT_SEATS = RTT_SEATS or {}
   local best, bd = nil, nil
   for i, s in ipairs(RTT_SEATS) do
-    if s ~= nil and s.pos ~= nil then
+    if s ~= nil and s.pos ~= nil
+       and (faction == nil or s.faction == nil or s.faction == faction) then
       local d = (s.pos[1] - x) ^ 2 + (s.pos[2] - z) ^ 2
       if bd == nil or d < bd then best, bd = i, d end
     end
@@ -4319,7 +4323,7 @@ function rttPlaceFaction(faction, cx, cz, flip, color, isDraft, category, rotati
   -- There is no lookup here any more. The board's real position IS the seat: rttSeatAt finds the seat
   -- standing there or opens one, so the ranked draft, the 4/5-player setup boards and a single
   -- Faction Select board dragged anywhere all arrive the same way, with no special case.
-  local si = rttSeatAt(cx, cz, true)
+  local si = rttSeatAt(cx, cz, true, faction)
   local seat = RTT_SEATS[si]
   seat.faction = faction
   -- The seat's colour is the colour of whoever took it. On the draft path rttSeatPlayers has already
@@ -6241,16 +6245,29 @@ end
 -- have a faction". So the published map is only a fast path, and the fallback reads the table: your
 -- supply is the faction supply bag nearest your own hand zone. That is how the box score binds
 -- factions to colours too, and it needs nothing to have been published at all.
+-- YOUR supply bag, or nil and the reason why not. The reason matters: this used to return a bare nil
+-- and let the caller fall through to a geometric search of the whole table, so a Vagabond seat -- which
+-- has no warriors AT ALL -- silently handed the player the NEAREST supply, which is an opponent's.
+-- Every failure now says something instead of quietly acting on the wrong faction.
 function rttMySupplyBag(color)
   local faction = rttSeatFaction(color)
   if faction ~= nil then
-    local bag = rttFindByName((rttFactionPieceNames(faction)))
+    local supName, warName = rttFactionPieceNames(faction)
+    if supName == nil or warName == nil then
+      -- Vagabonds, the Vagabot and the Vagabond kits reach here: no supply bag, no warrior.
+      return nil, "the " .. faction .. " has no warrior supply."
+    end
+    local bag = rttFindByName(supName)
     if bag ~= nil then return bag end
+    return nil, "could not find the " .. supName .. " on the table."
   end
 
+  -- No seat record for this colour: a table this board did not set up, or a colour nobody drafted in.
+  -- Fall back to the supply nearest your own hand -- but only if it is genuinely YOURS. The seats are
+  -- 92 apart and a supply sits ~18 from its own hand, so anything past 50 belongs to somebody else.
   local hp = nil
   pcall(function() hp = Player[color].getHandTransform(1).position end)
-  if hp == nil then return nil end
+  if hp == nil then return nil, "you are not seated at a hand." end
 
   local known = {}
   for _, sup in pairs(rttWarriorSupplyMap()) do known[sup] = true end
@@ -6262,7 +6279,9 @@ function rttMySupplyBag(color)
       if bestd == nil or d < bestd then best, bestd = o, d end
     end
   end
-  return best
+  if best ~= nil and bestd <= 2500 then return best end
+  if best ~= nil then return nil, "the nearest supply is not at your seat." end
+  return nil, "no faction is seated in your colour."
 end
 
 -- The whole gizmo.
@@ -6275,15 +6294,22 @@ function rttGizmoWarrior(color)
   -- the key. Only the other half, pulling one out, depends on who you are.
   local hoveredName = hovered ~= nil and (hovered.getName() or "") or ""
   if hoveredName:match("Warrior$") then
-    local bag = rttFindByName(rttWarriorSupplyMap()[hoveredName])
-    if bag ~= nil then pcall(function() bag.putObject(hovered) end) end
+    local supName = rttWarriorSupplyMap()[hoveredName]
+    local bag = supName ~= nil and rttFindByName(supName) or nil
+    if bag ~= nil then pcall(function() bag.putObject(hovered) end) return end
+    -- A warband with no supply bag in any blueprint -- the hirelings (Advocate, Roamer, Farmer) are
+    -- named "... Warrior" but live in their own boxes. This used to return here in silence, so the
+    -- key looked broken and repeated presses did nothing at all.
+    broadcastToColor("Gizmo: " .. hoveredName .. " has no supply bag to go back to.", color,
+                     { r = 1, g = 0.6, b = 0.2 })
     return
   end
 
   -- Hovering nothing (or something that is not a warrior): one comes out of YOUR supply.
-  local bag = rttMySupplyBag(color)
+  local bag, why = rttMySupplyBag(color)
   if bag == nil then
-    broadcastToColor("Gizmo: could not tell which supply is yours.", color, { r = 1, g = 0.6, b = 0.2 })
+    broadcastToColor("Gizmo: " .. (why or "could not tell which supply is yours."), color,
+                     { r = 1, g = 0.6, b = 0.2 })
     return
   end
 
