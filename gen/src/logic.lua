@@ -6089,7 +6089,9 @@ function shuffleMaps(id)
   for x, ruin in ipairs(ruins) do
     positions[x] = ruin.getPosition()
   end
-  for i=1,30 do ruins = shuffle(ruins) end
+  -- ONCE. shuffle() is a correct Fisher-Yates, so one pass is already a uniform permutation and
+  -- composing thirty of them just gives another uniform permutation -- 29 wasted passes per map build.
+  ruins = shuffle(ruins)
   for x=1, #ruins do
     ruins[x].setPosition(positions[x])
   end
@@ -6101,7 +6103,12 @@ function shuffleMaps(id)
     positions[x] = clearingMarker.getPosition()
     rotations[x] = clearingMarker.getRotation()
   end
-  i=1,10 do clearingMarkers = shuffle(clearingMarkers) end
+  -- ONCE, for the same reason. What was here read `i=1,10 do ... end` with no `for`, which Lua parses
+  -- as the assignment `i = 1, 10` (the 10 discarded) followed by a bare do-block -- so it shuffled
+  -- exactly once, which is the right number, by accident, and leaked a global `i`. Written properly it
+  -- says what it does; the missing `for` was deliberately NOT restored, since that would have turned
+  -- an accidentally-correct line into a genuinely wasteful one to match its neighbour above.
+  clearingMarkers = shuffle(clearingMarkers)
   for x=1, #clearingMarkers do
     clearingMarkers[x].setPosition(positions[x])
     clearingMarkers[x].setRotation(rotations[x])

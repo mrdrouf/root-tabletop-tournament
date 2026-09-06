@@ -1271,3 +1271,30 @@ RTT_LAYOUT so its turn order zig-zags" and "manual END TURN advances by row inde
 ### Housekeeping the maintainer flagged
 ### From this session, still unverified
 ## AWAITING A TEST AT THE TABLE
+
+# RTT Work Queue
+## Standing rule: work on MAIN
+## Standing rule: update the maintainer's SAVES, not just the build
+## Note for future sessions: the `m###` labels are HISTORY, not files
+## Golden rule (the maintainer, repeated + hardened)
+## STRUCTURAL — the pattern behind most of today's bugs (2026-09-04)
+## OPEN — from the Zaandaa play-test discussion (2026-09-05)
+### Bugs
+### Setup and placement
+### Buttons and real estate
+### Gizmo (the maintainer will iterate; ask before changing behaviour)
+### Housekeeping the maintainer flagged
+- [x] **Delete the repeat-shuffle loops in shuffleMaps.** DONE 2026-09-06, maintainer approved.
+      Both lines now call shuffle() once. shuffle() is a correct Fisher-Yates, so one pass is already
+      a uniform permutation -- the ruins line ran 30 and 29 were wasted on every map build.
+      The marker line was `i=1,10 do ... end` with no `for`, which Lua parses as the assignment
+      `i = 1, 10` (the 10 discarded) plus a bare do-block: it shuffled exactly ONCE, the right number,
+      by accident, and leaked a global `i`. The missing `for` was deliberately NOT restored -- that
+      would have turned an accidentally-correct line into a genuinely wasteful one to match its
+      neighbour.
+      DISTRIBUTION-neutral, not sequence-identical: dropping 29 calls changes how many random numbers
+      are drawn, so a given seed now yields different specific boards with the same odds. Nothing
+      depends on a reproducible sequence.
+
+### From this session, still unverified
+## AWAITING A TEST AT THE TABLE

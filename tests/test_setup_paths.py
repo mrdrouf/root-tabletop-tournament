@@ -1739,6 +1739,64 @@ def t_map_buttons_warn_before_wiping(src):
         "an armed map commit left 5-player mode on -- it must reach makeMap as a HUMAN click"
 
 
+def t_maps_shuffle_once_and_uniformly(src):
+    """shuffleMaps repeated its shuffles, which buys nothing.
+
+    shuffle() is a correct Fisher-Yates, so ONE pass is already a uniform permutation and composing
+    thirty of them just gives another uniform permutation -- the ruins line ran 30 passes and 29 were
+    wasted work on every map build.
+
+    The clearing-marker line was stranger: `i=1,10 do ... end` with no `for`, which Lua parses as the
+    assignment `i = 1, 10` (the 10 discarded) followed by a bare do-block. It shuffled exactly ONCE --
+    the right number -- by accident, and leaked a global `i`. Writing it properly was the fix; adding
+    the missing `for` was NOT, since that would have turned an accidentally-correct line into a
+    genuinely wasteful one to match its neighbour.
+
+    Behaviour is distribution-neutral, not sequence-identical: dropping 29 calls changes how many
+    random numbers are drawn, so a given seed yields different specific boards with the same odds.
+    """
+    # the loops are gone, and the missing `for` was not "restored"
+    assert "for i=1,30 do ruins = shuffle(ruins) end" not in src, "the 30x ruins loop is still there"
+    assert "i=1,10 do clearingMarkers" not in src, "the malformed marker line is still there"
+    assert "for i=1,10 do clearingMarkers" not in src, \
+        "the missing `for` was added -- that makes an accidentally-correct line wasteful"
+    assert "ruins = shuffle(ruins)" in src and "clearingMarkers = shuffle(clearingMarkers)" in src
+
+    rt = fresh(src)
+    # shuffle() itself is uniform: every element reaches position 1 equally often
+    got = rt.eval("""function(n)
+      math.randomseed(20260906)
+      local hits = {}
+      for _ = 1, n do
+        local t = {}
+        for k = 1, 12 do t[k] = k end
+        t = shuffle(t)
+        hits[t[1]] = (hits[t[1]] or 0) + 1
+      end
+      local out = {}
+      for k = 1, 12 do out[#out+1] = tostring(hits[k] or 0) end
+      return table.concat(out, ',')
+    end""")(4800)
+    counts = [int(v) for v in got.split(",")]
+    assert len(counts) == 12 and sum(counts) == 4800
+    exp = 4800 / 12
+    chi = sum((c - exp) ** 2 / exp for c in counts)
+    assert chi < 19.68, "shuffle() is not uniform: chi-square %.2f on 11 df (5%% critical 19.68)" % chi
+
+    # and it really is a permutation, not a partial one
+    same = rt.eval("""function()
+      local t = {}
+      for k = 1, 20 do t[k] = k end
+      t = shuffle(t)
+      local seen = {}
+      for _, v in ipairs(t) do seen[v] = true end
+      local n = 0
+      for _ in pairs(seen) do n = n + 1 end
+      return n
+    end""")()
+    assert same == 20, "shuffle() lost or duplicated elements (%s of 20 survived)" % same
+
+
 CASES = [
     ("manual path drives the turn system",   t_manual_turn_order),
     ("manual path spawns 4 / 5 boards",      t_boards_spawn),
@@ -1775,6 +1833,7 @@ CASES = [
     ("turn order re-applies on seating",      t_turn_order_reapplies_on_seating),
     ("vagabond published as a faction",       t_vagabond_is_published_as_a_faction),
     ("mountain deals a legal board",          t_mountain_deals_a_legal_board),
+    ("maps shuffle once, uniformly",         t_maps_shuffle_once_and_uniformly),
     ("5P marsh ruins stay central",          t_five_player_marsh_ruins_stay_central),
     ("a map click leaves 5P mode",           t_a_map_click_leaves_five_player_mode),
     ("map buttons warn before wiping",       t_map_buttons_warn_before_wiping),

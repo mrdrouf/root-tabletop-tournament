@@ -157,15 +157,6 @@ Nothing below is implemented. The maintainer asked to be consulted before each c
       ("maintainer: ...", "he asked for ..."). They carry real rationale and should not just be
       deleted, but they should read as technical notes rather than as a transcript.
 
-- [ ] **Delete the repeat-shuffle loops in shuffleMaps (ask first — behaviour-neutral).**
-      `for i=1,30 do ruins = shuffle(ruins) end` and `i=1,10 do clearingMarkers = shuffle(...) end`.
-      Repeating a shuffle does not make it more random: shuffle() is a correct Fisher-Yates, so ONE
-      pass is already a uniform permutation and the other 29 (and 9) are wasted work. The marker line
-      is also missing its `for`, so it parses as `i = 1, 10` plus a bare do-block -- it happens to run
-      once, which is the right number, and leaks a global `i`. The fix is to call shuffle once on both
-      lines and drop the loops, not to add the missing `for`: that would make the marker line match a
-      neighbour that is itself wrong. No game outcome changes either way.
-
 ### From this session, still unverified
 
 - [ ] **Rules audit against root_engine.** The Mountain bug was game-breaking and was found only
