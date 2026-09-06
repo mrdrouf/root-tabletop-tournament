@@ -1074,12 +1074,38 @@ def t_the_duchy_burrow_spawns_locked(src):
         "the bot's burrow was changed; the maintainer asked for the live Duchy only"
 
 
+def t_camera_states_are_the_hosts(src):
+    """The number-key camera views are Zaandaa's, because he hosts and streams.
+
+    His are steeper and closer than the ones the mod shipped -- the seat views go from a 50-56 degree
+    oblique at distance ~48 to 73-79 degrees at ~53-60, which reads better on a stream and makes
+    clearings easier to pick out. 9 of the 10 differed; state 0 was already identical.
+
+    Unlike everything else in this suite this reads the SAVE, not the board script: CameraStates is a
+    top-level field of the save file, nothing to do with the Lua. It is checked against `cs`, the
+    fragment Zaandaa supplied, so regenerating gen/src/save.json from a stale table cannot quietly put
+    the old views back.
+
+    NOTE for the maintainer: tools/update_saves.py rewrites only the board's script/XmlUI/assets, so
+    this does NOT reach a resumed autosave. A game started fresh from the shipped save gets it.
+    """
+    frag = open(os.path.join(REPO, "cs"), encoding="utf-8").read().strip().rstrip(",")
+    want = json.loads("{" + frag + "}")["CameraStates"]
+    for path in ("dist/Root_Tabletop_Tournament.json", "gen/src/save.json"):
+        got = json.load(open(os.path.join(REPO, path), encoding="utf-8")).get("CameraStates")
+        assert got is not None, "%s has no CameraStates at all" % path
+        assert len(got) == 10, "%s has %d camera states, expected 10" % (path, len(got))
+        assert json.dumps(got, sort_keys=True) == json.dumps(want, sort_keys=True), \
+            "%s does not carry the host's camera states" % path
+
+
 CASES = [
     ("manual path drives the turn system",   t_manual_turn_order),
     ("manual path spawns 4 / 5 boards",      t_boards_spawn),
     ("a new game resets run state",          t_new_game_resets_state),
     ("order cards cleared by a new game",    t_order_cards_do_not_survive_a_new_game),
     ("duchy burrow spawns locked",           t_the_duchy_burrow_spawns_locked),
+    ("camera states are the host's",         t_camera_states_are_the_hosts),
     ("manual setup clears ranked objects",   t_ranked_objects_cleared_by_manual),
     ("supporters take the seat explicitly",  t_supporters_take_the_seat_explicitly),
     ("both transform shapes agree",          t_seat_hand_array_shape),

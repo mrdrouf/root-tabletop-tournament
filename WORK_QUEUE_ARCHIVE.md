@@ -978,3 +978,33 @@ RTT_LAYOUT so its turn order zig-zags" and "manual END TURN advances by row inde
 ### Housekeeping the maintainer flagged
 ### From this session, still unverified
 ## AWAITING A TEST AT THE TABLE
+
+# RTT Work Queue
+## Standing rule: work on MAIN
+## Standing rule: update the maintainer's SAVES, not just the build
+## Note for future sessions: the `m###` labels are HISTORY, not files
+## Golden rule (the maintainer, repeated + hardened)
+## STRUCTURAL — the pattern behind most of today's bugs (2026-09-04)
+## OPEN — from the Zaandaa play-test discussion (2026-09-05)
+### Bugs
+### Setup and placement
+- [x] **Camera states: use Zaandaa's.** DONE 2026-09-05. The `cs` fragment spliced into
+      gen/src/save.json in BINARY mode (that file is CRLF; a text round-trip would rewrite every line
+      ending). 9 of 10 states changed -- his seat views are steeper and closer, 73-79 degrees at
+      distance 53-60 against the mod's 50-56 at ~48. The mod's only wide overview (state 7, distance
+      103) is gone with them; the maintainer accepted that and can re-save one from the table.
+      CAVEAT: update_saves.py rewrites only the board's script/XmlUI/assets, so this does NOT reach a
+      resumed autosave -- only a game started fresh from the shipped save.
+
+          RTT_TIMER_POS    { 17.3624, 11.6669, -26.3142 }  ->  { 29.480, 11.667, -17.145 }
+          RTT_COUNTER_POS  { 22.9297, 11.5240, -25.1741 }  ->  { 29.633, 11.515, -20.856 }
+
+      Rotations are unchanged: the clock stays upright at { 90, 359.98, 0 } and the counter flat at
+      { 0, 0, 0 }. Both objects have a BLANK Nickname, so find them by Name -- "Digital_Clock" and
+      "Counter" -- not by nickname. Still to decide: Zaandaa also asked for them slightly BIGGER,
+      and no scale was changed in that save, so the size is a separate call.
+### Buttons and real estate
+### Gizmo (the maintainer will iterate; ask before changing behaviour)
+### Housekeeping the maintainer flagged
+### From this session, still unverified
+## AWAITING A TEST AT THE TABLE
