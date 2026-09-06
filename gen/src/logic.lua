@@ -5864,6 +5864,19 @@ end
 RTT_POND_JSON = [==[{"GUID": "347917","Name": "Custom_Tile","Transform": {"posX": -20.61854,"posY": 35.8698158,"posZ": -58.718235,"rotX": 0.016451491,"rotY": 179.94725,"rotZ": 0.08010805,"scaleX": 4.238119,"scaleY": 1.0,"scaleZ": 4.238119},"Nickname": "The Pond","Description": "","GMNotes": "","AltLookAngle": {"x": 0.0,"y": 0.0,"z": 0.0},"ColorDiffuse": {"r": 0.6901961,"g": 0.5960784,"b": 0.0156862754},"LayoutGroupSortIndex": 0,"Value": 0,"Locked": false,"Grid": true,"Snap": true,"IgnoreFoW": false,"MeasureMovement": false,"DragSelectable": true,"Autoraise": true,"Sticky": true,"Tooltip": true,"GridProjection": false,"HideWhenFaceDown": false,"Hands": false,"CustomImage": {"ImageURL": "https://steamusercontent-a.akamaihd.net/ugc/12393369561771611633/E59B2DE66EC1B0F68F19F6E7C071F8B8D38718B8/","ImageSecondaryURL": "https://steamusercontent-a.akamaihd.net/ugc/12393369561771611633/E59B2DE66EC1B0F68F19F6E7C071F8B8D38718B8/","ImageScalar": 1.0,"WidthScale": 0.0,"CustomTile": {"Type": 0,"Thickness": 0.2,"Stackable": false,"Stretch": true}},"LuaScript": "","LuaScriptState": "","XmlUI": "","AttachedSnapPoints": [{"Position": {"x": -0.000120528261,"y": 0.200000748,"z": -0.08064375},"Rotation": {"x": 3.824257E-06,"y": 0.00134896243,"z": 180.0}}]
   }]==]
 function makeMap(player,value,id)
+  -- A HUMAN CLICKING A MAP BUTTON MEANS "GIVE ME THIS MAP, PLAINLY", so it leaves 5-player mode.
+  --
+  -- RTT_5P_MARSH is the 5-player Marsh variant's mode flag. It was SET by its own two entry points
+  -- and cleared in exactly ONE place -- inside rttSetup, the ranked-draft path -- so after using
+  -- 5-Players Marsh, clicking the plain Marsh button still built the FIVE-player board: rttMarshPlan5P
+  -- instead of rttMarshPlan, which means no flooded clearings, and the town landmarks placed and left
+  -- behind. Maintainer, 2026-09-06. Every other map was affected too, just less visibly: the flag
+  -- stayed true across Summer, Lake, Winter and so on, so the next Marsh click was still 5-player.
+  --
+  -- The discriminator is the PLAYER argument. A real button click passes a Player table; the internal
+  -- path (rttPlaceMap -> makeMap("", "", id)) passes "", which is how the 5-player flow sets the flag
+  -- and then places its own map without clearing it a line later.
+  if type(player) == "table" then RTT_5P_MARSH = false end
   if id == "Marsh Map" and RTT_5P_MARSH then Wait.time(function() rttMarshLandmarks() end, 1.4) end
   RTT_CURRENT_MAP = id
   if id == "Mountain Map" then Wait.frames(function() rttMountainLandmark() end, 2) end

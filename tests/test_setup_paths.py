@@ -1494,6 +1494,42 @@ def t_five_player_marsh_ruins_stay_central(src):
     assert n == 4, "the flooding Marsh should still place 4 ruins, it placed %s" % n
 
 
+def t_a_map_click_leaves_five_player_mode(src):
+    """Maintainer, 2026-09-06: after 5-Players Marsh, clicking Marsh with 4 players gave no flooded
+    clearings and left the landmarks.
+
+    RTT_5P_MARSH is the 5-player Marsh variant's mode flag. It was SET by its two entry points and
+    cleared in exactly ONE place -- inside rttSetup, the ranked-draft path -- so a plain map click
+    never reset it and rttMarshPlan5P ran instead of rttMarshPlan: no flooding, towns placed.
+
+    The flag did TWO jobs with different lifetimes ("this placement is the 5-player variant" and
+    "this game is a 5-player Marsh game"), which is why no single clear point was right for both. A
+    human clicking a map button ends the second one, so that is where it clears; the internal path
+    (rttPlaceMap -> makeMap("", "", id)) passes no player and keeps it.
+    """
+    rt = fresh(src)
+    rt.execute("SEAT('Red')")
+
+    # the maintainer's sequence
+    rt.execute("pcall(function() rttPlaceMarsh5P(nil,nil,'Marsh5PMap') end) FLUSH(40)")
+    assert rt.eval("RTT_5P_MARSH") is True, "5-Players Marsh did not enter 5-player mode"
+    rt.execute("pcall(function() makeMap(Player['Red'], '', 'Marsh Map') end) FLUSH(40)")
+    assert rt.eval("RTT_5P_MARSH") is False, \
+        "clicking Marsh left 5-player mode on -- no flooding, and the towns stay"
+
+    # ANY map click clears it, not just Marsh: the flag used to survive across every other map too
+    for m in ("Summer Map", "Lake Map", "Winter Map", "Mountain Map", "Gorge Map"):
+        rt.execute("pcall(function() rttPlaceMarsh5P(nil,nil,'Marsh5PMap') end) FLUSH(20)")
+        assert rt.eval("RTT_5P_MARSH") is True
+        rt.execute("pcall(function() makeMap(Player['Red'], '', [[%s]]) end) FLUSH(30)" % m)
+        assert rt.eval("RTT_5P_MARSH") is False, "%s did not clear 5-player mode" % m
+
+    # ...and the 5-player path itself must still keep it, or it would break its own map
+    rt.execute("pcall(function() rttPlaceMarsh5P(nil,nil,'Marsh5PMap') end) FLUSH(40)")
+    assert rt.eval("RTT_5P_MARSH") is True, \
+        "the 5-player button cleared its own flag -- it places its map through the same makeMap"
+
+
 CASES = [
     ("manual path drives the turn system",   t_manual_turn_order),
     ("manual path spawns 4 / 5 boards",      t_boards_spawn),
@@ -1525,6 +1561,7 @@ CASES = [
     ("vagabond published as a faction",       t_vagabond_is_published_as_a_faction),
     ("mountain deals a legal board",          t_mountain_deals_a_legal_board),
     ("5P marsh ruins stay central",          t_five_player_marsh_ruins_stay_central),
+    ("a map click leaves 5P mode",           t_a_map_click_leaves_five_player_mode),
     ("gizmo default key is numpad 0",         t_gizmo_default_key_is_numpad_zero),
     ("gizmo: warrior to/from supply",         t_gizmo_warrior_to_and_from_supply),
     ("gizmo reads every blueprint",           t_gizmo_reads_every_faction_from_its_blueprint),
