@@ -121,7 +121,10 @@ function MKOBJ(name, pos, tags)
                 dy / (o.__scale.y ~= 0 and o.__scale.y or 1),
                 z / (o.__scale.z ~= 0 and o.__scale.z or 1) }
   end
-  function o.getSnapPoints() return {} end
+  -- Snap points come from the BLUEPRINT (see spawnObjectJSON). They were a flat {} , which made
+  -- rttFindMapObject -- 'the Map Object with the most snap points' -- return nil for every table,
+  -- so nothing that depends on finding the map board could be tested at all.
+  function o.getSnapPoints() return o.__snaps or {} end
   function o.call() end function o.setVar() end function o.getVar() end
   function o.setTable() end function o.getTable() end
   function o.createButton() end function o.clearButtons() end
@@ -167,6 +170,14 @@ function spawnObjectJSON(p)
   local sy = tonumber(j:match('"scaleY":%s*([-%d.eE]+)'))
   local sz = tonumber(j:match('"scaleZ":%s*([-%d.eE]+)'))
   if sx and sy and sz then o.__scale = vec{sx, sy, sz} end
+  -- The board is identified by snap-point COUNT (rttFindMapObject / rttMapBoardIndex), so the count
+  -- has to survive the spawn. Only the number matters, not the coordinates.
+  local snapBlock = j:match('"AttachedSnapPoints"%s*:%s*%[(.*)')
+  if snapBlock ~= nil then
+    local sn = {}
+    for _ in snapBlock:gmatch('"Position"') do sn[#sn + 1] = { position = { 0, 0, 0 } } end
+    o.__snaps = sn
+  end
   local ry = tonumber(j:match('"rotY":%s*([-%d.eE]+)'))
   if ry then o.__rot = vec{0, ry, 0} end
   if p and p.rotation then o.__rot = vec(p.rotation) end

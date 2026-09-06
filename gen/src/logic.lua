@@ -2248,9 +2248,34 @@ end
 -- ONE new-game entry point, called by BOTH setup paths instead of each keeping its own copy of the
 -- teardown + reset sequence. `seats` is how many seats to configure the turn system for, or nil to
 -- leave the turn system alone -- the ranked draft sets it later, from the real seating.
+-- Re-place the map a new game is starting on, KEEPING the board itself.
+--
+-- Maintainer, 2026-09-06: "reset the clearing makers the landmarks everything that goes on the board
+-- because anyway they are reshuffled, reset the board itself and the clearing numbers only if it is
+-- another map." Choosing a different map is a map-button click, which is a full rebuild already, so
+-- the only case this covers is the SAME map -- hence the board always stays.
+--
+-- It matters most on the Marsh, which is the only map that is not the same board twice: every build
+-- re-rolls which three clearings flood, which suits stand where and where the ruins go, AND it has two
+-- different layouts behind one button (4-player flooded, 5-player with town landmarks). Without this,
+-- starting a 4-player game after a 5-player Marsh game left the FIVE-player board on the table --
+-- towns still standing, no flooding -- because the map id had not changed so nothing rebuilt.
+-- Maintainer, twice: "spawning marsh 4 players after marsh 5 players still does not span the flooded
+-- clearings properly and keep the landmarks."
+function rttRefreshMap()
+  local id = RTT_CURRENT_MAP
+  if id == nil or id == "" then return end        -- no map down yet: nothing to refresh
+  if EVERYTHING["Maps"] == nil or EVERYTHING["Maps"][id] == nil then return end
+  makeMap("", "", id, true)                       -- "" = internal path, so it never clears RTT_5P_MARSH
+end
+
 function rttNewGame(seats)
   rttClearGameObjects()                            -- objects, hand zones, run-id bump
   rttResetRunState()                               -- everything teardown cannot see
+  -- ONE FRAME LATER, because the 5-player Marsh flag is set by rttFivePStart immediately AFTER
+  -- rttSetup returns -- and rttSetup is what called us. Refreshing here and now would read the flag
+  -- as false and build the four-player Marsh for a five-player game.
+  Wait.frames(function() pcall(function() rttRefreshMap() end) end, 1)
   -- HOW MANY SEATS THIS GAME HAS. RTT_DN was written in exactly one place -- rttSetup, the ranked
   -- path -- so a manual game inherited whatever the last draft left: 5P Draft then 4-Player Setup
   -- gave a box score pre-formatted for FIVE rows in a four-player game, and 5P Setup from a cold
@@ -6009,7 +6034,7 @@ end
 
 RTT_POND_JSON = [==[{"GUID": "347917","Name": "Custom_Tile","Transform": {"posX": -20.61854,"posY": 35.8698158,"posZ": -58.718235,"rotX": 0.016451491,"rotY": 179.94725,"rotZ": 0.08010805,"scaleX": 4.238119,"scaleY": 1.0,"scaleZ": 4.238119},"Nickname": "The Pond","Description": "","GMNotes": "","AltLookAngle": {"x": 0.0,"y": 0.0,"z": 0.0},"ColorDiffuse": {"r": 0.6901961,"g": 0.5960784,"b": 0.0156862754},"LayoutGroupSortIndex": 0,"Value": 0,"Locked": false,"Grid": true,"Snap": true,"IgnoreFoW": false,"MeasureMovement": false,"DragSelectable": true,"Autoraise": true,"Sticky": true,"Tooltip": true,"GridProjection": false,"HideWhenFaceDown": false,"Hands": false,"CustomImage": {"ImageURL": "https://steamusercontent-a.akamaihd.net/ugc/12393369561771611633/E59B2DE66EC1B0F68F19F6E7C071F8B8D38718B8/","ImageSecondaryURL": "https://steamusercontent-a.akamaihd.net/ugc/12393369561771611633/E59B2DE66EC1B0F68F19F6E7C071F8B8D38718B8/","ImageScalar": 1.0,"WidthScale": 0.0,"CustomTile": {"Type": 0,"Thickness": 0.2,"Stackable": false,"Stretch": true}},"LuaScript": "","LuaScriptState": "","XmlUI": "","AttachedSnapPoints": [{"Position": {"x": -0.000120528261,"y": 0.200000748,"z": -0.08064375},"Rotation": {"x": 3.824257E-06,"y": 0.00134896243,"z": 180.0}}]
   }]==]
-function makeMap(player,value,id)
+function makeMap(player,value,id,keepBoard)
   -- A HUMAN CLICKING A MAP BUTTON MEANS "GIVE ME THIS MAP, PLAINLY", so it leaves 5-player mode.
   --
   -- RTT_5P_MARSH is the 5-player Marsh variant's mode flag. It was SET by its own two entry points
@@ -6047,7 +6072,14 @@ function makeMap(player,value,id)
   if id == "Winter Map" then Wait.frames(function() rttSpawnPriority("Winter Map", RTT_PRIO_WINTERMAP) end, 2) end
   if id == "Gorge Map" then Wait.frames(function() rttSpawnPriority("Gorge Map", RTT_PRIO_GORGEMAP) end, 2) end
   if id == "Marsh Map" then Wait.frames(function() rttSpawnMarshNumbers() end, 3) end
-  removeMapItems()
+  -- A SAME-MAP REBUILD KEEPS THE BOARD. rttNewGame re-places the current map so a new game never
+  -- inherits the last one's layout -- most visibly the Marsh, which re-rolls its flooding, its suits
+  -- and its ruins on every build, and which has two different boards (4-player flooded, 5-player with
+  -- towns) behind one button. Destroying and respawning the board underneath all that is pure churn,
+  -- so it stays put and only what sits on it is cleared.
+  local RTT_KEEP_BOARD = nil
+  if keepBoard then pcall(function() RTT_KEEP_BOARD = rttFindMapObject() end) end
+  removeMapItems(RTT_KEEP_BOARD)
   Wait.time(function() pcall(function() rttPlaceUnplacedVPs() end) end, 2.0)  -- markers that had no track yet
   -- The battle mat belongs to the map, so it spawns HERE, with every map placement -- the map BUTTONS
   -- call makeMap directly and so never got one; only the draft's rttPlaceMap did. Tagged "Map Object",
@@ -6082,14 +6114,15 @@ function makeMap(player,value,id)
   scale.x = 1/scale.x
   scale.z = 1/scale.z
 
+  local boardIdx = (RTT_KEEP_BOARD ~= nil) and rttMapBoardIndex(objects) or nil
   for idx,v in ipairs(objects) do
     local rtt_rot = nil
     local rtt_ov = false
     local new_pos
     local ovJson = nil
-    local skip = false
+    local skip = (boardIdx ~= nil and idx == boardIdx)   -- the board is already on the table
     if RTT_OV ~= nil and RTT_OV[idx] ~= nil then
-      skip = (RTT_OV[idx].skip == true)
+      skip = skip or (RTT_OV[idx].skip == true)   -- `or`: never un-skip the board we kept
       ovJson = RTT_OV[idx].json
     end
     if RTT_OV ~= nil and RTT_OV[idx] ~= nil and RTT_OV[idx].world ~= nil then
@@ -6452,10 +6485,29 @@ end
 
 
 
-function removeMapItems()
+-- `keep` spares ONE object, which is how a same-map rebuild leaves the board itself standing while
+-- everything on it is cleared and re-rolled. Maintainer, 2026-09-06: "reset the clearing makers the
+-- landmarks everything that goes on the board because anyway they are reshuffled, reset the board
+-- itself and the clearing numbers only if it is another map."
+function removeMapItems(keep)
     for _,v in ipairs(getObjectsWithTag("Map Object")) do
-      v.destruct()
+      if keep == nil or v ~= keep then v.destruct() end
     end
+end
+
+-- Which blueprint entry IS the board. Same rule rttFindMapObject uses on the spawned objects -- the
+-- piece with the most snap points -- applied to the json instead, so the two always agree on which
+-- one to leave alone. Counting the entry TYPE does not work: the board is a Custom_Token on the
+-- Marsh but Lake ships two of those and Mountain seven.
+function rttMapBoardIndex(objects)
+  local best, bestN = nil, -1
+  for idx, v in ipairs(objects or {}) do
+    local n = 0
+    local sp = string.match(v.json, '"AttachedSnapPoints"%s*:%s*%[(.*)')
+    if sp ~= nil then for _ in string.gmatch(sp, '"Position"') do n = n + 1 end end
+    if n > bestN then best, bestN = idx, n end
+  end
+  return best
 end
 
 

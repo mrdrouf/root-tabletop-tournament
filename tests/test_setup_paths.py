@@ -2091,6 +2091,77 @@ def t_marsh_after_5p_marsh_rebuilds_the_4p_board(src):
             "%s: the 4-player board floods 3 clearings, this one floods %s" % (how, flooded)
 
 
+def t_a_new_game_refreshes_the_map_but_keeps_the_board(src):
+    """A new game re-rolls what sits ON the map; the board itself stays.
+
+    Maintainer, 2026-09-06: "reset the clearing makers the landmarks everything that goes on the board
+    because anyway they are reshuffled, reset the board itself and the clearing numbers only if it is
+    another map." Choosing a different map is a map-button click, which is a full rebuild anyway, so
+    the only case here is the SAME map and the board always stays.
+
+    The bug that forced this, reported twice: "spawning marsh 4 players after marsh 5 players still
+    does not span the flooded clearings properly and keep the landmarks." Starting a 4-player game
+    after a 5-player Marsh game left the FIVE-player board on the table -- towns standing, no flooding
+    -- because rttSetup cleared the flag but nothing rebuilt the map, the id being unchanged. The
+    earlier fix corrected the flag, which in this flow was never the thing that was wrong.
+    """
+    TOWNS = ("function()\n  local n = 0\n"
+             "  for _, o in ipairs(getAllObjects()) do\n"
+             "    local nm = o.getName() or ''\n"
+             "    if nm == 'Mousehold' or nm == 'Foxburrow' or nm == 'Rabbit-Town' then n = n + 1 end\n"
+             "  end\n  return n\nend")
+    BOARD = "function() local b = rttFindMapObject() return b and b.getGUID() or '' end"
+    FLOOD = ("function()\n  local t = {}\n"
+             "  for _, f in ipairs(RTT_MARSH_FLOODED or {}) do\n"
+             "    t[#t+1] = string.format('%.1f/%.1f', f[1], f[2])\n"
+             "  end\n  table.sort(t)\n  return table.concat(t, ' ')\nend")
+
+    def two_clicks(rt, fn, bid):
+        rt.execute("pcall(function() %s(Player['Purple'],'','%s') end) FLUSH_UNTIL(0.5,4)" % (fn, bid))
+        rt.execute("pcall(function() %s(Player['Purple'],'','%s') end) FLUSH(200)" % (fn, bid))
+
+    rt = fresh(src)
+    for c, n in zip(["Purple", "Blue", "White", "Pink", "Green"], ["H1", "H2", "H3", "H4", "H5"]):
+        rt.execute("SEAT('%s','%s')" % (c, n))
+
+    # the maintainer's sequence: a 5-player Marsh game, then a 4-player one
+    two_clicks(rt, "rttArmMarsh5P", "Marsh5P")
+    assert rt.eval(TOWNS)() > 0, "the 5-player Marsh placed no towns, so this proves nothing"
+    board5 = rt.eval(BOARD)()
+    assert board5 != "", "no map board found -- rttFindMapObject needs snap points"
+
+    two_clicks(rt, "rttArmRanked", "rttRankedBtn")
+    assert rt.eval("RTT_5P_MARSH") is False, "the 4-player draft stayed in 5-player mode"
+    left = rt.eval(TOWNS)()
+    assert left == 0, "%d town landmark(s) survived into the 4-player game" % left
+    assert len((rt.eval(FLOOD)() or "").split()) == 3, "the 4-player Marsh is not flooded"
+    assert rt.eval(BOARD)() == board5, "the board itself was respawned; it should have been kept"
+
+    # a MAP BUTTON is still a full rebuild -- that is the "another map" case, and the board goes
+    rt.execute("pcall(function() makeMap(Player['Purple'],'','Marsh Map') end) FLUSH(200)")
+    assert rt.eval(BOARD)() != board5, "the map button no longer rebuilds the board"
+
+    # the 5-player path must still build its OWN board through the same refresh
+    rt2 = fresh(src)
+    for c, n in zip(["Purple", "Blue", "White", "Pink", "Green"], ["H1", "H2", "H3", "H4", "H5"]):
+        rt2.execute("SEAT('%s','%s')" % (c, n))
+    two_clicks(rt2, "rttArmMarsh5P", "Marsh5P")
+    two_clicks(rt2, "rttArmMarsh5P", "Marsh5P")
+    assert rt2.eval(TOWNS)() > 0, "a second 5-player game lost its town landmarks"
+    assert rt2.eval("RTT_5P_MARSH") is True, "a second 5-player game left 5-player mode"
+
+    # and the flood is genuinely re-rolled, not inherited: 8 games, more than one layout
+    rt3 = fresh(src)
+    for c, n in zip(["Purple", "Blue", "White", "Pink", "Green"], ["H1", "H2", "H3", "H4", "H5"]):
+        rt3.execute("SEAT('%s','%s')" % (c, n))
+    rt3.execute("pcall(function() makeMap(Player['Purple'],'','Marsh Map') end) FLUSH(200)")
+    seen = {rt3.eval(FLOOD)()}
+    for _ in range(8):
+        two_clicks(rt3, "rttArmRanked", "rttRankedBtn")
+        seen.add(rt3.eval(FLOOD)())
+    assert len(seen) > 1, "every new game got the same flood layout: %s" % seen
+
+
 CASES = [
     ("manual path drives the turn system",   t_manual_turn_order),
     ("manual path spawns 4 / 5 boards",      t_boards_spawn),
@@ -2131,6 +2202,7 @@ CASES = [
     ("5P marsh ruins stay central",          t_five_player_marsh_ruins_stay_central),
     ("a map click leaves 5P mode",           t_a_map_click_leaves_five_player_mode),
     ("marsh 4P rebuilds after 5P",          t_marsh_after_5p_marsh_rebuilds_the_4p_board),
+    ("new game refreshes the map",          t_a_new_game_refreshes_the_map_but_keeps_the_board),
     ("map buttons warn before wiping",       t_map_buttons_warn_before_wiping),
     ("gizmo default key is numpad 0",         t_gizmo_default_key_is_numpad_zero),
     ("gizmo: warrior to/from supply",         t_gizmo_warrior_to_and_from_supply),
