@@ -2038,6 +2038,59 @@ def t_extra_return_slots_face_the_same_way(src):
                 "sent home it would be a half turn out" % (name, where, have, want)
 
 
+def t_marsh_after_5p_marsh_rebuilds_the_4p_board(src):
+    """The OUTCOME, not just the flag: after 5-Players Marsh, a plain Marsh click must flood and must
+    take the town landmarks away.
+
+    Maintainer, 2026-09-06, reporting it a SECOND time: "spawning marsh 4 players after marsh 5
+    players still does not span the flooded clearings properly and keep the landmarks."
+
+    The first fix was real but t_a_map_click_leaves_five_player_mode only asserted RTT_5P_MARSH went
+    false. A flag is not a board. This drives it through rttArmMap -- the button the maintainer
+    actually presses, which needs TWO clicks since the wipe warning went in -- and then looks at what
+    is on the table.
+
+    FLUSH_UNTIL, not FLUSH, between the two clicks: FLUSH fires every pending callback whatever its
+    delay, so the arm's own 3-second auto-revert goes off before the second click arrives and the
+    commit silently becomes another arm. That cost me a false "the button path does nothing".
+    """
+    TOWNS = ("Mousehold", "Foxburrow", "Rabbit-Town")
+    COUNT = ("function()\n"
+             "  local n = 0\n"
+             "  for _, o in ipairs(getAllObjects()) do\n"
+             "    local nm = o.getName() or ''\n"
+             "    if nm == 'Mousehold' or nm == 'Foxburrow' or nm == 'Rabbit-Town' then n = n + 1 end\n"
+             "  end\n"
+             "  return n\n"
+             "end")
+    for how, drive in (
+        ("called directly", "pcall(function() makeMap(Player['Red'], '', 'Marsh Map') end) FLUSH(80)"),
+        ("through the button", None),
+    ):
+        rt = fresh(src)
+        rt.execute("SEAT('Red')")
+        rt.execute("pcall(function() rttPlaceMarsh5P(nil,nil,'Marsh5PMap') end) FLUSH(80)")
+        assert rt.eval("RTT_5P_MARSH") is True, "%s: 5-Players Marsh did not enter 5-player mode" % how
+        towns = rt.eval(COUNT)()
+        assert towns > 0, "%s: the 5-player Marsh placed no town landmarks, so this proves nothing" % how
+
+        if drive is not None:
+            rt.execute(drive)
+        else:
+            # the real button: first click arms, second commits, and the 3s window must not expire
+            rt.execute("pcall(function() rttArmMap(Player['Red'],'','Marsh Map') end) FLUSH_UNTIL(0.5, 4)")
+            assert rt.eval("function() return tostring(RTT_ARM and RTT_ARM.id) end")() == "Marsh Map", \
+                "the first click did not arm the Marsh button"
+            rt.execute("pcall(function() rttArmMap(Player['Red'],'','Marsh Map') end) FLUSH(80)")
+
+        assert rt.eval("RTT_5P_MARSH") is False, "%s: still in 5-player mode" % how
+        left = rt.eval(COUNT)()
+        assert left == 0, "%s: %d town landmark(s) survived the rebuild" % (how, left)
+        flooded = rt.eval("function() return #(RTT_MARSH_FLOODED or {}) end")()
+        assert flooded == 3, \
+            "%s: the 4-player board floods 3 clearings, this one floods %s" % (how, flooded)
+
+
 CASES = [
     ("manual path drives the turn system",   t_manual_turn_order),
     ("manual path spawns 4 / 5 boards",      t_boards_spawn),
@@ -2077,6 +2130,7 @@ CASES = [
     ("maps shuffle once, uniformly",         t_maps_shuffle_once_and_uniformly),
     ("5P marsh ruins stay central",          t_five_player_marsh_ruins_stay_central),
     ("a map click leaves 5P mode",           t_a_map_click_leaves_five_player_mode),
+    ("marsh 4P rebuilds after 5P",          t_marsh_after_5p_marsh_rebuilds_the_4p_board),
     ("map buttons warn before wiping",       t_map_buttons_warn_before_wiping),
     ("gizmo default key is numpad 0",         t_gizmo_default_key_is_numpad_zero),
     ("gizmo: warrior to/from supply",         t_gizmo_warrior_to_and_from_supply),
