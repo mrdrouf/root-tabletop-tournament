@@ -1138,6 +1138,62 @@ def t_timer_and_counter_sit_bottom_right(src):
         assert at == "%.1f,%.1f" % (x, z), "%s spawned at %s, expected %.1f,%.1f" % (k, at, x, z)
 
 
+def t_crow_plots_spawn_inside_the_hidden_zone(src):
+    """The crows' 12 plots go INSIDE their hidden zone, face up.
+
+    They used to lie face DOWN on the crow board's own 4x3 grid, so the crow player could not read
+    their own plots without picking each one up in front of everybody. The zone beside the board is
+    already fogged to that player's colour, so face UP inside it they read at a glance while opponents
+    see a blank block. Face down in a zone would gain nothing -- a face-down tile is unreadable to its
+    owner too.
+
+    Positions are derived from the zone rather than written down separately, so if the zone is moved
+    (the maintainer has asked Zaandaa whether the spot is right) only RTT_CROW_HZ_LX/_LZ change and the
+    plots follow on the next spawn.
+
+    Absolute coordinates here are stub artifacts -- its positionToWorld does not apply the board's
+    transform -- so this asserts the RELATIVE geometry, which is what the change is about.
+    """
+    rt = fresh(src)
+    rt.execute("SEAT('Purple','H1') pcall(function() setupFactionBoards(nil,nil,nil) end) FLUSH(10)")
+    rt.execute("""pcall(function() rttPlaceFaction('Corvid Conspiracy', 52, -46, false, 'Purple',
+                        false, nil, nil, 'Purple', nil) end) FLUSH(40)""")
+    got = rt.eval("""function()
+      local zone, plots = nil, {}
+      for _, o in ipairs(getAllObjects()) do
+        local n = o.getName() or ''
+        if n == 'Plot' then plots[#plots+1] = o
+        elseif n:find('FogOfWar') then zone = o end
+      end
+      if zone == nil then return 'NO ZONE' end
+      local t = { string.format('%d|%f|%f|%f|%f', #plots, zone.__pos.x, zone.__pos.z,
+                                zone.__scale.x, zone.__scale.z) }
+      for _, p in ipairs(plots) do
+        t[#t+1] = string.format('%f|%f|%f', p.__pos.x - zone.__pos.x, p.__pos.z - zone.__pos.z, p.__rot.z)
+      end
+      return table.concat(t, ';')
+    end""")()
+    assert got != "NO ZONE", "the crows spawned no hidden zone at all"
+    rows = got.split(";")
+    n, zx, zz, sx, sz = rows[0].split("|")
+    assert int(n) == 12, "expected 12 plots, got %s" % n
+    half_x, half_z = float(sx) / 2, float(sz) / 2
+
+    offs = []
+    for r in rows[1:]:
+        dx, dz, rotz = (float(v) for v in r.split("|"))
+        assert abs(dx) < half_x and abs(dz) < half_z, \
+            "a plot sits OUTSIDE the hidden zone: offset (%.2f, %.2f) against half-extents (%.2f, %.2f)" \
+            % (dx, dz, half_x, half_z)
+        assert abs(rotz) < 1 or abs(rotz - 360) < 1, \
+            "a plot spawned face DOWN (rotZ %.0f) -- inside a zone that hides it from its own owner" % rotz
+        offs.append((round(dx, 3), round(dz, 3)))
+
+    assert len(set(offs)) == 12, "plots are stacked on each other: %d distinct spots" % len(set(offs))
+    assert len(set(x for x, _ in offs)) == 4 and len(set(z for _, z in offs)) == 3, \
+        "the layout is not the 4x3 grid: %s" % sorted(set(offs))
+
+
 CASES = [
     ("manual path drives the turn system",   t_manual_turn_order),
     ("manual path spawns 4 / 5 boards",      t_boards_spawn),
@@ -1146,6 +1202,7 @@ CASES = [
     ("duchy burrow spawns locked",           t_the_duchy_burrow_spawns_locked),
     ("camera states are the host's",         t_camera_states_are_the_hosts),
     ("timer and counter bottom-right",       t_timer_and_counter_sit_bottom_right),
+    ("crow plots inside the hidden zone",    t_crow_plots_spawn_inside_the_hidden_zone),
     ("manual setup clears ranked objects",   t_ranked_objects_cleared_by_manual),
     ("supporters take the seat explicitly",  t_supporters_take_the_seat_explicitly),
     ("both transform shapes agree",          t_seat_hand_array_shape),

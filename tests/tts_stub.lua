@@ -110,6 +110,10 @@ function spawnObjectJSON(p)
   if n == nil or n == "" then n = j:match('"Name":%s*"([^"]*)"') end
   if n == nil or n == "" then n = "?" end
   local o = MKOBJ(n, (p or {}).position, {})
+  -- The spawn ROTATION and SCALE, which the stub used to drop on the floor -- so no test could tell a
+  -- tile spawned face up from one spawned face down, which is exactly what the crow plots turn on.
+  if p and p.rotation then o.__rot = vec(p.rotation) end
+  if p and p.scale then o.__scale = vec(p.scale) end
   note(REC.spawned, string.format("%s@%.1f,%.1f", n, o.__pos.x, o.__pos.z))
   if p and p.callback_function then p.callback_function(o) end
   return o

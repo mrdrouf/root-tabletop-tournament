@@ -5090,23 +5090,39 @@ RTT_CROW_WAR = { { 0.330, -1.157 }, { 0.499, -1.157 }, { 0.668, -1.157 }, { 0.83
 function rttCrowsPlots(cx, cz, flip, isDraft, board)
   board = board or rttFindSeatBoard(cx, cz)
   if board == nil then return end
-  -- The Corvid blueprint no longer spawns loose Plot tiles or the bot card (removed from the data), so
-  -- there is nothing to destroy/replace: place the 12 plots straight into the 4x3 grid FACE DOWN in ONE
-  -- step (rttSetup clears any leftovers from a prior game). Spawn-final -- no old-then-new (audit).
+  -- THE HIDDEN ZONE FIRST, because the plots now go INSIDE it and take their positions from it.
+  -- They used to be laid face DOWN on the crow board's own 4x3 grid, which meant the crow player could
+  -- not read their own plots without picking each one up in front of everybody. The zone is fogged to
+  -- that player's colour, so face UP inside it they read at a glance and opponents see a blank block.
+  -- (Face down in a zone would gain nothing: a face-down tile is unreadable to its owner too.)
+  local hz = rttCrowsHiddenZone(board, cx, cz, isDraft)
   local ry = board.getRotation().y
   for i, blob in ipairs(RTT_CROW_PLOTS or {}) do
     local idx = i - 1
     local col = math.floor(idx / 3) + 1
     local row = (idx % 3) + 1
-    local w = board.positionToWorld({ RTT_CROW_COLS[col], 0.03, RTT_CROW_ROWS[row] })
+    local w, rz
+    if hz ~= nil then
+      -- 4 x 3 centred on the zone. Spacing is world units, not board-local: the grid is 4.7 x 3.3
+      -- against a 13.3 x 9.5 zone, so it sits well inside with room to grab a tile.
+      local dx = (col - 2.5) * RTT_CROW_PLOT_GAP
+      local dz = (row - 2.0) * RTT_CROW_PLOT_GAP
+      local ca, sa = math.cos(math.rad(ry)), math.sin(math.rad(ry))
+      w  = { x = hz.x + dx * ca + dz * sa, y = hz.y, z = hz.z - dx * sa + dz * ca }
+      rz = 0                              -- FACE UP: the zone is what hides them
+    else
+      -- no zone (an older bake, or the blob missing): the original on-board grid, face down
+      w  = board.positionToWorld({ RTT_CROW_COLS[col], 0.03, RTT_CROW_ROWS[row] })
+      w.y = w.y + 0.2
+      rz = 180
+    end
     spawnObjectJSON({
       json = blob,
-      position = { w.x, w.y + 0.2, w.z },
-      rotation = { 0, ry, 180 },            -- face DOWN
+      position = { w.x, w.y, w.z },
+      rotation = { 0, ry, rz },
       callback_function = function(o) o.setLock(false) o.addTag("RTT Faction") end   -- cleared with the faction
     })
   end
-  rttCrowsHiddenZone(board, cx, cz, isDraft)
 end
 
 -- the maintainer's hidden-plot cover: a Hidden Zone (FogOfWarTrigger) parked to the RIGHT of the plot grid.
@@ -5159,6 +5175,11 @@ function rttCrowsHiddenZone(board, cx, cz, isDraft)
     scale = { RTT_CROW_HZ_SX, RTT_CROW_HZ_SY, RTT_CROW_HZ_SZ },  -- uniform dimensions for every seat
     callback_function = function(o) o.setLock(true) o.addTag("RTT Faction") end
   })
+  -- Where it went, so rttCrowsPlots can lay the plots inside it. Returning this rather than having the
+  -- caller recompute the same arithmetic is what keeps the two in step: if the zone is moved -- and the
+  -- maintainer has asked Zaandaa whether this spot is right -- only RTT_CROW_HZ_LX/_LZ change, and the
+  -- plots follow on the next spawn with nothing else to update.
+  return { x = w.x, y = 14.11 + RTT_CROW_PLOT_Y, z = w.z }
 end
 
 -- ---- Lizard Cult ----------------------------------------------------------
@@ -5456,6 +5477,10 @@ RTT_CROW_HZ_LX = 3.074    -- board-local X magnitude on the RIGHT side (seats 2 
 RTT_CROW_HZ_LX_LEFT = 2.26 -- LEFT side (seats 1 & 3): closer to the faction board by the crafted board's
                           -- width (7.2 world / 8.82 = 0.82 board-local) since no crafted sits on that side.
 RTT_CROW_HZ_LZ = -0.565   -- board-local Z: near the crow board's depth centre
+-- plot layout INSIDE the hidden zone: world-unit spacing, and how far above the zone's own y they
+-- sit so they rest visibly in it rather than at its floor.
+RTT_CROW_PLOT_GAP = 1.60
+RTT_CROW_PLOT_Y   = -2.20
 RTT_CROW_HZ_SX = 13.29    -- uniform box dimensions for every seat (his hand-placed size)
 RTT_CROW_HZ_SY = 5.10
 RTT_CROW_HZ_SZ = 9.50

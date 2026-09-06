@@ -1032,3 +1032,26 @@ RTT_LAYOUT so its turn order zig-zags" and "manual END TURN advances by row inde
 ### Housekeeping the maintainer flagged
 ### From this session, still unverified
 ## AWAITING A TEST AT THE TABLE
+
+# RTT Work Queue
+## Standing rule: work on MAIN
+## Standing rule: update the maintainer's SAVES, not just the build
+## Note for future sessions: the `m###` labels are HISTORY, not files
+## Golden rule (the maintainer, repeated + hardened)
+## STRUCTURAL — the pattern behind most of today's bugs (2026-09-04)
+## OPEN — from the Zaandaa play-test discussion (2026-09-05)
+### Bugs
+### Setup and placement
+- [x] **Crow plots should spawn in the hidden zone.** DONE 2026-09-05. The 12 plots now spawn INSIDE
+      the zone, FACE UP, in a 4x3 grid centred on it (RTT_CROW_PLOT_GAP 1.60, RTT_CROW_PLOT_Y -2.20).
+      Face up is the point: a face-down tile is unreadable to its owner too, so the crow player used
+      to have to pick each one up in front of everybody. Grid is 4.7 x 3.3 against a 13.3 x 9.5 zone.
+      NOT blocked on Zaandaa after all: rttCrowsHiddenZone now RETURNS where it put the zone and the
+      plots are placed from that, so moving the zone (RTT_CROW_HZ_LX/_LZ) moves the plots with it on
+      the next spawn, with nothing else to update. The old on-board grid survives as the fallback for
+      a bake with no zone blob.
+### Buttons and real estate
+### Gizmo (the maintainer will iterate; ask before changing behaviour)
+### Housekeeping the maintainer flagged
+### From this session, still unverified
+## AWAITING A TEST AT THE TABLE

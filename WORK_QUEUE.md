@@ -107,9 +107,6 @@ Nothing below is implemented. The maintainer asked to be consulted before each c
 
 ### Setup and placement
 
-- [ ] **Crow plots should spawn in the hidden zone.** They do not today because the zone's position
-      was unsettled. The maintainer has since placed the hidden zone (rttCrowsHiddenZone) and asked
-      Zaandaa whether that spot is good -- if yes, spawn the plots directly into it.
 - [ ] **Swap the Knaves captains object with the crafted improvements object.** Zaandaa: crafts sit
       immediately right of every other faction board, so the captains break the pattern. The
       maintainer's counter: you move the captain card to the active captain slot, so left felt
