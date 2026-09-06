@@ -1389,48 +1389,42 @@ def t_captain_warriors_line_up_with_their_captains(src):
     """Maintainer, 2026-09-05: the warrior spawned by the captain board is a bit misaligned.
 
     The two rows were measured off his save separately and came out with different starts AND
-    different steps -- meeples -0.551 step 0.272, warriors -0.510 step 0.250 -- so each warrior sat a
-    little to the side of its own captain, by a different amount per column: +0.36 world units under
-    the first, +0.17 under the second, -0.03 under the third. Sharing the captain's x fixes all three
-    at once; the warrior row keeps its own z.
+    different steps -- meeples -0.551 step 0.272, warriors -0.510 step 0.250 -- so each warrior sat
+    beside its own captain rather than under it, by a different amount per column: +0.36 world units
+    under the first, +0.17 under the second, -0.03 under the third.
 
-    Asserted as a shared FORMULA rather than three literals, so a future nudge to the captain row
-    carries the warriors with it instead of silently reopening the gap.
+    Records EVERY spawn, not just the last. rttSpawnCaptainMeeple calls rttSpawnCaptainWarrior
+    itself, so the first version of this test -- which kept only the most recent position -- was
+    comparing the warrior against the warrior, and passed on the broken code as happily as the fixed.
     """
     rt = fresh(src)
-    got = rt.eval("""function()
-      local t = {}
-      -- drive the two placement helpers against a stand-in board whose transform is the identity,
-      -- so the board-local numbers come straight back out
-      local kb = MKOBJ('KB', {0, 0, 0}, {})   -- MKOBJ already defaults scale to 1 and rotation to 0
+    rt.execute("""
+      SPAWNS = {}
+      local _s = spawnObjectJSON
+      spawnObjectJSON = function(p)
+        local j = (p or {}).json or ''
+        local pos = (p or {}).position
+        local x = pos and (pos.x or pos[1]) or nil
+        local what = j:find('Knaves Warrior', 1, true) and 'W' or 'C'
+        if x then SPAWNS[#SPAWNS+1] = what .. '|' .. x end
+        return _s(p)
+      end
+      local kb = MKOBJ('KB', {0, 0, 0}, {})   -- identity transform: local numbers come straight back
       RTT_CAP_KNAVE_GUID = kb.getGUID()
       RTT_CAP_MEEPLE_JSON = { X = '{"Nickname": "Captain - X"}' }
       RTT_CAP_WARRIOR_JSON = '{"Nickname": "Knaves Warrior"}'
       RTT_CAP_WARRIOR_N = 0
-      for idx = 0, 2 do
-        SPAWNED_AT = nil
-        rttSpawnCaptainMeeple('X', idx)
-        local cx = SPAWNED_AT
-        SPAWNED_AT = nil
-        rttSpawnCaptainWarrior(idx)
-        t[#t+1] = string.format('%.4f|%.4f', cx or -99, SPAWNED_AT or -99)
-      end
-      return table.concat(t, ';')
-    end""")
-    rt.execute("""
-      local _s = spawnObjectJSON
-      spawnObjectJSON = function(p)
-        local pos = (p or {}).position
-        SPAWNED_AT = pos and (pos.x or pos[1]) or nil
-        return _s(p)
-      end
+      for idx = 0, 2 do rttSpawnCaptainMeeple('X', idx) end
     """)
-    rows = got().split(";")
-    for i, r in enumerate(rows):
-        cx, wx = (float(v) for v in r.split("|"))
-        assert cx != -99 and wx != -99, "column %d spawned nothing (%s)" % (i, r)
-        assert abs(wx - cx) < 1e-6, \
-            "column %d: the warrior is at x %.4f under a captain at %.4f" % (i, wx, cx)
+    rows = [str(v) for v in (rt.eval("SPAWNS") or {}).values()]
+    caps = [float(r.split("|")[1]) for r in rows if r.startswith("C|")]
+    wars = [float(r.split("|")[1]) for r in rows if r.startswith("W|")]
+    assert len(caps) == 3, "expected 3 captain meeples, got %d (%s)" % (len(caps), rows)
+    assert len(wars) == 3, "expected 3 warriors, got %d (%s)" % (len(wars), rows)
+    for i, (c, w) in enumerate(zip(caps, wars)):
+        assert abs(w - c) < 1e-6, \
+            "column %d: warrior at x %.4f under a captain at %.4f (off by %.3f world units)" \
+            % (i, w, c, (w - c) * 8.82)
 
 
 CASES = [
