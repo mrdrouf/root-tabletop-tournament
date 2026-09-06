@@ -1187,11 +1187,70 @@ def t_crow_plots_spawn_inside_the_hidden_zone(src):
             % (dx, dz, half_x, half_z)
         assert abs(rotz) < 1 or abs(rotz - 360) < 1, \
             "a plot spawned face DOWN (rotZ %.0f) -- inside a zone that hides it from its own owner" % rotz
-        offs.append((round(dx, 3), round(dz, 3)))
+        # 1dp: the board transform carries float noise, so -2.401 and -2.399 are the same column
+        offs.append((round(dx, 1), round(dz, 1)))
 
     assert len(set(offs)) == 12, "plots are stacked on each other: %d distinct spots" % len(set(offs))
     assert len(set(x for x, _ in offs)) == 4 and len(set(z for _, z in offs)) == 3, \
         "the layout is not the 4x3 grid: %s" % sorted(set(offs))
+
+
+def t_crafted_board_sits_the_same_side_for_every_faction(src):
+    """Zaandaa: crafts sit immediately right of every other faction board, so the Knaves broke it.
+
+    Measured across all twelve before moving anything: the crafted-improvements board is at
+    dx +15.7 to +16.3 from its own rules board on ELEVEN factions, and the Knaves were the single
+    exception at -15.6 -- the captains board held the standard spot and crafted was mirrored away.
+    Swapped at the maintainer's call, each keeping the distance he had tuned rather than snapping to
+    the modal +15.84.
+
+    The captains board did NOT simply take crafted's old place. The -x side already holds the Knaves
+    supply bag (dx -11.83) and a small tile (-14.94), and a straight mirror put the 13.25-wide board
+    a unit INTO the supply bag: measured x-gap -0.97 at the mirror offset, first clearing at 17.0.
+    It sits at 17.5.
+    """
+    rt = fresh(src)
+    rt.execute("SEAT('Purple','H1') pcall(function() setupFactionBoards(nil,nil,nil) end) FLUSH(10)")
+    rt.execute("""pcall(function() rttPlaceFaction('Knaves of the Deepwood', 52, -46, false, 'Purple',
+                        false, nil, nil, 'Purple', nil) end) FLUSH(60)""")
+    got = rt.eval("""function()
+      local t = {}
+      for _, o in ipairs(getAllObjects()) do
+        local n = tostring(o.getName())
+        if o.__scale and o.__scale.x and o.__scale.x > 2
+           and n ~= 'Faction Board' and n ~= 'Faction Selection' then
+          t[#t+1] = n .. '|' .. o.__pos.x .. '|' .. o.__pos.z .. '|' .. o.__scale.x .. '|' .. o.__scale.z
+        end
+      end
+      return table.concat(t, ';')
+    end""")
+    items = []
+    for r in got().split(";"):
+        if not r: continue
+        n, x, z, sx, sz = r.split("|")
+        items.append((n, float(x), float(z), float(sx), float(sz)))
+
+    rules = [i for i in items if abs(i[3] - 8.82) < 0.05]
+    craft = [i for i in items if abs(i[3] - 9.52) < 0.05]
+    caps  = [i for i in items if i[0] == "Knaves Captains"]
+    assert rules and craft and caps, "could not find all three boards: %s" % [(i[0], i[3]) for i in items]
+
+    dx_craft = craft[0][1] - rules[0][1]
+    dx_caps  = caps[0][1] - rules[0][1]
+    assert dx_craft > 12, \
+        "the crafted board is at dx %+.2f from the rules board -- every other faction has it at +15.8" % dx_craft
+    assert dx_caps < -12, "the captains board should be on the mirror side, it is at dx %+.2f" % dx_caps
+
+    # and nothing the swap moved landed on anything else. The Advanced Setup card RIDES on the
+    # crafted board, so that pair is expected; everything else must be clear.
+    def overlaps(a, b):
+        return abs(a[1] - b[1]) < (a[3] + b[3]) / 2 and abs(a[2] - b[2]) < (a[4] + b[4]) / 2
+    bad = []
+    for i, a in enumerate(items):
+        for b in items[i + 1:]:
+            if overlaps(a, b) and not (abs(a[3] - 2.36) < 0.05 or abs(b[3] - 2.36) < 0.05):
+                bad.append((a[0], round(a[3], 2), b[0], round(b[3], 2)))
+    assert not bad, "the swap left objects on top of each other: %s" % bad
 
 
 CASES = [
@@ -1203,6 +1262,7 @@ CASES = [
     ("camera states are the host's",         t_camera_states_are_the_hosts),
     ("timer and counter bottom-right",       t_timer_and_counter_sit_bottom_right),
     ("crow plots inside the hidden zone",    t_crow_plots_spawn_inside_the_hidden_zone),
+    ("crafted board same side for all",      t_crafted_board_sits_the_same_side_for_every_faction),
     ("manual setup clears ranked objects",   t_ranked_objects_cleared_by_manual),
     ("supporters take the seat explicitly",  t_supporters_take_the_seat_explicitly),
     ("both transform shapes agree",          t_seat_hand_array_shape),

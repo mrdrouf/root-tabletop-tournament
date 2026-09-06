@@ -51,11 +51,16 @@ function MKOBJ(name, pos, tags)
   function o.getGUID() return o.__guid end
   function o.getName() return o.__name end
   function o.setName(n) o.__name = n end
-  function o.getPosition() return o.__pos end
+  -- COPIES, not the live tables. TTS returns a fresh Vector from each of these, and callers rely
+  -- on that: makeSpecial does `local scale = self.getScale(); scale.x = 1/scale.x`, which with a
+  -- live table silently INVERTED the setup board's real scale -- and then again on the next call,
+  -- so every spawn after the first landed somewhere different. Invisible while the stub's scale
+  -- was 1 (1/1 == 1); it only surfaced once the stub carried the board's real 15.5.
+  function o.getPosition() return vec(o.__pos) end
   function o.setPosition(p) o.__pos = vec(p) end
-  function o.getRotation() return o.__rot end
+  function o.getRotation() return vec(o.__rot) end
   function o.setRotation(r) o.__rot = vec(r) end
-  function o.getScale() return o.__scale end
+  function o.getScale() return vec(o.__scale) end
   function o.setScale(s) o.__scale = vec(s) end
   function o.addTag(t) o.__tags[#o.__tags+1] = t end
   function o.hasTag(t) for _,x in ipairs(o.__tags) do if x == t then return true end end return false end
@@ -72,8 +77,28 @@ function MKOBJ(name, pos, tags)
       if p and p.callback_function then p.callback_function(t) end return t end
   function o.putObject(x) return x end
   function o.getObjects() return {} end
-  function o.positionToWorld(v) return vec(v) end
-  function o.positionToLocal(v) return vec(v) end
+  -- A REAL transform: scale, then rotate about Y, then translate. These returned the local vector
+  -- UNCHANGED, so every world position derived from a board -- the crow plots, the crow hidden zone,
+  -- the Knaves captains board -- came out as raw board-local numbers and no test could check where
+  -- anything actually lands. Only Y rotation is modelled; nothing in this mod tilts a board.
+  function o.positionToWorld(v)
+    local l = vec(v)
+    local sx, sy, sz = o.__scale.x, o.__scale.y, o.__scale.z
+    local a = math.rad(o.__rot.y or 0)
+    local ca, sa = math.cos(a), math.sin(a)
+    local x, y, z = l.x * sx, l.y * sy, l.z * sz
+    return vec{ o.__pos.x + x * ca + z * sa, o.__pos.y + y, o.__pos.z - x * sa + z * ca }
+  end
+  function o.positionToLocal(v)
+    local w = vec(v)
+    local dx, dy, dz = w.x - o.__pos.x, w.y - o.__pos.y, w.z - o.__pos.z
+    local a = math.rad(o.__rot.y or 0)
+    local ca, sa = math.cos(a), math.sin(a)
+    local x, z = dx * ca - dz * sa, dx * sa + dz * ca
+    return vec{ x / (o.__scale.x ~= 0 and o.__scale.x or 1),
+                dy / (o.__scale.y ~= 0 and o.__scale.y or 1),
+                z / (o.__scale.z ~= 0 and o.__scale.z or 1) }
+  end
   function o.getSnapPoints() return {} end
   function o.call() end function o.setVar() end function o.getVar() end
   function o.setTable() end function o.getTable() end
@@ -112,6 +137,16 @@ function spawnObjectJSON(p)
   local o = MKOBJ(n, (p or {}).position, {})
   -- The spawn ROTATION and SCALE, which the stub used to drop on the floor -- so no test could tell a
   -- tile spawned face up from one spawned face down, which is exactly what the crow plots turn on.
+  -- Transform from the BLUEPRINT first, then let the spawn call override it. A faction piece is
+  -- spawned with a position only -- its scale and rotation live in its own json -- so reading the
+  -- blueprint is what makes positionToWorld give a real answer for boards like the crow rules board
+  -- (scale 8.82) that everything else is positioned against.
+  local sx = tonumber(j:match('"scaleX":%s*([-%d.eE]+)'))
+  local sy = tonumber(j:match('"scaleY":%s*([-%d.eE]+)'))
+  local sz = tonumber(j:match('"scaleZ":%s*([-%d.eE]+)'))
+  if sx and sy and sz then o.__scale = vec{sx, sy, sz} end
+  local ry = tonumber(j:match('"rotY":%s*([-%d.eE]+)'))
+  if ry then o.__rot = vec{0, ry, 0} end
   if p and p.rotation then o.__rot = vec(p.rotation) end
   if p and p.scale then o.__scale = vec(p.scale) end
   note(REC.spawned, string.format("%s@%.1f,%.1f", n, o.__pos.x, o.__pos.z))
@@ -274,6 +309,11 @@ function GVGET(k) return GV[k] end
 Turns = setmetatable({}, {__newindex = function(t, k, v) rawset(t, k, v); note(REC.turns, tostring(k).."="..tostring(v)) end})
 
 self = MKOBJ("Faction Selection", {0, 1, 0}, {})
+-- The REAL setup board is scale 15.5 (gen/src/save.json, guid bab7e1), and rttSpawnFaction
+-- multiplies every piece's move_to by (1/self.scale) * 15.5 -- which cancels to 1:1 only at
+-- that scale. Left at 1, the stub placed every faction piece 15.5x too far out, so any test
+-- measuring where a board or a token lands was measuring a number the game never produces.
+self.__scale = vec{15.5, 1.0, 15.5}
 self.getTable = function() return nil end
 self.setTable = function() end
 self.UI = {setXml=function() end, setAttribute=function() end, getAttribute=function() return "" end,

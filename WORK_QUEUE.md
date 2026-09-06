@@ -107,12 +107,25 @@ Nothing below is implemented. The maintainer asked to be consulted before each c
 
 ### Setup and placement
 
-- [ ] **Swap the Knaves captains object with the crafted improvements object.** Zaandaa: crafts sit
-      immediately right of every other faction board, so the captains break the pattern. The
-      maintainer's counter: you move the captain card to the active captain slot, so left felt
-      natural. UNRESOLVED between them -- ask before moving.
 - [ ] **Remove the Advanced Setup card** that spawns with the crafted improvements. The maintainer
       asked, Zaandaa said remove.
+
+- [ ] **Faction boards spawn at different offsets from their seat (maintainer, 2026-09-05).** Real,
+      and inherited from the base mod: every faction's rules board carries its own hand-placed
+      move_to, and nobody ever normalised them. Measured from the blueprint (dx from the seat centre,
+      board widths 8.82-9.11):
+
+          Twilight Council  -4.57   Marquise      -3.29   Keepers in Iron  -1.69
+          The Lizard Cult   -4.16   Riverfolk     -2.99   Underground Duchy -0.69
+          Knaves            -4.14   Lord of Hund. -2.98   Woodland Alliance +0.22
+          Corvid            -3.73   Lilypad Diasp -2.95   Eyrie Dynasties   +2.07
+
+      Spread 6.64 units, median -2.98. NOTE the Knaves is NOT the outlier it looks like -- at -4.14 it
+      is third from the left, with Council and Lizard as far or further; Eyrie (+2.07) is the odd one
+      the other way. What made the Knaves LOOK offset was its captains board hanging off one side.
+      To fix: shift each faction's rules board to a common x AND shift that faction's other pieces by
+      the same delta, or the pieces detach from their board. Needs a per-faction overlap check
+      afterwards, exactly like the Knaves swap needed.
 
 ### Buttons and real estate
 

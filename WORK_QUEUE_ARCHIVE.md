@@ -1055,3 +1055,27 @@ RTT_LAYOUT so its turn order zig-zags" and "manual END TURN advances by row inde
 ### Housekeeping the maintainer flagged
 ### From this session, still unverified
 ## AWAITING A TEST AT THE TABLE
+
+# RTT Work Queue
+## Standing rule: work on MAIN
+## Standing rule: update the maintainer's SAVES, not just the build
+## Note for future sessions: the `m###` labels are HISTORY, not files
+## Golden rule (the maintainer, repeated + hardened)
+## STRUCTURAL — the pattern behind most of today's bugs (2026-09-04)
+## OPEN — from the Zaandaa play-test discussion (2026-09-05)
+### Bugs
+### Setup and placement
+- [x] **Swap the Knaves captains object with the crafted improvements object.** DONE 2026-09-05,
+      maintainer chose Zaandaa's version. Measured all twelve first: crafted sits at dx +15.7..+16.3
+      from its own rules board on ELEVEN factions and the Knaves were the single exception at -15.6.
+      Crafted move_to x -19.760590 -> 11.484704 (the Advanced Setup card riding on it moved with it,
+      -19.786410 -> 11.510524); RTT_CAP_OFF_X -15.6676 -> 17.5000.
+      NOT a clean mirror: the -x side already holds the Knaves supply bag (dx -11.83) and a small tile
+      (-14.94), and mirroring exactly put the 13.25-wide captains board a unit INTO the supply bag --
+      x-gap -0.97 at 15.6676, -0.13 at 16.5, first clear at 17.0. 17.5 leaves ~0.9.
+
+### Buttons and real estate
+### Gizmo (the maintainer will iterate; ask before changing behaviour)
+### Housekeeping the maintainer flagged
+### From this session, still unverified
+## AWAITING A TEST AT THE TABLE

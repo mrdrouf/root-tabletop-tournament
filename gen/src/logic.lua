@@ -3890,12 +3890,22 @@ RTT_KNAVE_CAP = {
 -- scale is BAKED and the board LOCKED (no resize panel). To retune: unlock in-game, resize, save,
 -- tell me the new scale and I rebake RTT_CAPTAIN_BOARD_JSON. Snaps land on the 3 slot centres.
 RTT_KNAVE_BOARD_IMG = "84529E736BDD4EF6B70CA79E3F99E2D07FA75A2C"  -- Knaves rules board face (the maintainer's anchor)
--- captains board = maintainer's LEFT of the Knaves board, raised HIGHER. His save has it at world
--- (63.71,-46.18) = worldoff (+15.84,+4.80); spawn formula gives worldoff = (-OFF_X, -OFF_Z), so both signs
--- are NEGATIVE. (The crafted board now sits on the SAME left, stacked BELOW it -- see its move_to.)
+-- SWAPPED 2026-09-05, Zaandaa's call: the crafted-improvements board sits at dx +15.8 from the rules
+-- board on all ELEVEN other factions, and the Knaves were the only exception -- the captains board
+-- held that spot and the crafted board was mirrored to -15.6. Measured across every faction before
+-- moving anything. The captains board now takes the mirror side and crafted takes the standard one,
+-- each keeping the distance the maintainer had tuned rather than snapping to the modal +15.84.
+-- The maintainer's counter (you move the captain card to the active slot, so the reaching side felt
+-- natural) is real but he chose consistency. His original placement was worldoff (+15.84,+4.80) from
+-- his save; the spawn formula gives worldoff = (-OFF_X, -OFF_Z), so OFF_X is now POSITIVE to put the
+-- board on the other side, and OFF_Z stays negative to keep it raised.
 -- Recovered from the maintainer's save 'knaves' (TS_Save_21), seat 2: he nudged the captains board,
 -- so these are solved from where he left it relative to the Knaves rules board.
-RTT_CAP_OFF_X    = -15.6676
+-- 17.5, not the mirror's 15.6676: the -x side is not empty the way the +x side was. The Knaves
+-- SUPPLY bag sits at dx -11.83 and a small tile at -14.94, and a straight mirror put the 13.25-wide
+-- captains board a unit INTO the supply bag. Measured: the x-gap is -0.97 at 15.6676, -0.13 at 16.5,
+-- and first clears at 17.0. 17.5 takes it with ~0.9 to spare.
+RTT_CAP_OFF_X    =  17.5000
 RTT_CAP_OFF_Z    = -4.5206
 -- (snaps are BAKED into RTT_CAPTAIN_BOARD_JSON now; the old slot-fraction / self-size constants are gone)
 -- The real Crafted Improvements art, cropped to its TOP 3 overlapping card slots (+ its real title
