@@ -120,12 +120,14 @@ Nothing below is implemented. The maintainer asked to be consulted before each c
           Knaves            -4.14   Lord of Hund. -2.98   Woodland Alliance +0.22
           Corvid            -3.73   Lilypad Diasp -2.95   Eyrie Dynasties   +2.07
 
-      Spread 6.64 units, median -2.98. NOTE the Knaves is NOT the outlier it looks like -- at -4.14 it
-      is third from the left, with Council and Lizard as far or further; Eyrie (+2.07) is the odd one
-      the other way. What made the Knaves LOOK offset was its captains board hanging off one side.
-      To fix: shift each faction's rules board to a common x AND shift that faction's other pieces by
-      the same delta, or the pieces detach from their board. Needs a per-faction overlap check
-      afterwards, exactly like the Knaves swap needed.
+      Spread 6.64 units, median -2.98. KNAVES DONE 2026-09-05: the maintainer asked for it 1.16 right,
+      so the whole assembly (52 pieces) shifted +1.16 in move_to x and the board now sits at -2.98 on
+      the main cluster. Everything moved together, so the internal layout is untouched; the captains
+      board follows automatically because it is placed relative to the rules board, not the seat.
+      THE OTHER ELEVEN ARE UNTOUCHED and still spread 6.64. Doing them the same way is mechanical --
+      shift each board to a common x and shift that faction's own pieces by the same delta, then check
+      each seat for overlaps -- but Eyrie would move 5.05 and Alliance 3.20, which pushes their crafted
+      boards further out, so it wants the maintainer's eye before it happens.
 
 ### Buttons and real estate
 
