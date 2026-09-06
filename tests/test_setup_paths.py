@@ -1319,16 +1319,22 @@ def t_vagabond_cards_come_with_faction_cards(src):
     rt = fresh(src)
     n = rt.eval("#RTT_HOOT")
     assert n == 5, "Faction Cards lays %s decks, expected 5" % n
-    xs = sorted(rt.eval("function() local t={} for i,e in ipairs(RTT_HOOT) do t[i]=e.pos[1] end return table.concat(t,',') end")().split(","))
-    xs = sorted(float(v) for v in xs)
-    assert abs(xs[0] - 34.30) < 0.01, "the fifth deck is at x %s, expected 34.30" % xs[0]
-    gaps = [round(xs[i + 1] - xs[i], 2) for i in range(len(xs) - 1)]
-    assert all(7.5 < g < 8.5 for g in gaps), "the row is not evenly spaced: %s" % gaps
+    # its spot is the maintainer's own, from his save 'faction' (TS_Save_30): a SECOND ROW behind the
+    # captains deck, not a fifth along the first row, which is where I had guessed it.
+    at = rt.eval("""function()
+      for _, e in ipairs(RTT_HOOT) do
+        if math.abs(e.pos[3] - 28.681) < 0.01 then
+          return string.format('%.3f,%.3f', e.pos[1], e.pos[3])
+        end
+      end
+      return 'missing'
+    end""")()
+    assert at == "50.225,28.681", "the vagabond deck is at %s; his save has 50.225,28.681" % at
 
     # it is the CHARACTER deck: twelve cards, the vagabond CardIDs
     ok = rt.eval("""function()
       for _, e in ipairs(RTT_HOOT) do
-        if math.abs(e.pos[1] - 34.30) < 0.01 then
+        if math.abs(e.pos[3] - 28.681) < 0.01 then
           local n = 0
           for _ in e.json:gmatch('"CardID"') do n = n + 1 end
           return n
@@ -1344,6 +1350,41 @@ def t_vagabond_cards_come_with_faction_cards(src):
     assert '{name = "Vagabond Cards"' not in src, "the button art is still registered"
 
 
+def t_the_two_free_button_slots_are_bottom_right(src):
+    """Maintainer, 2026-09-05: "the two empty button option should be in the second row to the right".
+
+    Dropping the Vagabond Cards button left a hole mid-row. The tool rows have six slots each at
+    x = -95, -57, -19, 19, 57, 95; there are ten buttons for twelve slots, so two are always empty and
+    where they sit is a choice. Credits moved up one row -- its x did not change, only its row -- which
+    fills the hole and puts both gaps at the right end of the SECOND row.
+
+    Reads the built save, because this is XmlUI on the board object rather than anything in the Lua.
+    """
+    x = json.load(open(os.path.join(REPO, "dist/Root_Tabletop_Tournament.json"),
+                       encoding="utf-8"))["ObjectStates"]
+    def walk(objs):
+        for o in objs:
+            yield o
+            for c in (o.get("ContainedObjects") or []): yield from walk([c])
+    xml = [o for o in walk(x) if o.get("GUID") == "bab7e1"][0]["XmlUI"]
+
+    import re as _re
+    rows = {}
+    for m in _re.finditer(r'<Button\b[^>]*>', xml):
+        seg = m.group(0)
+        pos = _re.search(r'position="(-?\d+) (-?\d+) (-?\d+)"', seg)
+        w = _re.search(r'width="(\d+)"', seg)
+        i = _re.search(r'id="([^"]*)"', seg)
+        if pos and w and w.group(1) == "36":          # the 36x20 option buttons only
+            rows.setdefault(int(pos.group(2)), {})[int(pos.group(1))] = i.group(1) if i else "?"
+    SLOTS = [-95, -57, -19, 19, 57, 95]
+    top, bottom = rows.get(-55, {}), rows.get(-78, {})
+    assert len(top) == 6, "the first tool row has %d of 6 slots filled: %s" % (len(top), sorted(top))
+    free = [s for s in SLOTS if s not in bottom]
+    assert free == [57, 95], "the free slots are at %s, they should be the two rightmost of row 2" % free
+    assert top.get(57) == "rttCreditsBtn", "the hole at x=57 is filled by %r" % top.get(57)
+
+
 CASES = [
     ("manual path drives the turn system",   t_manual_turn_order),
     ("manual path spawns 4 / 5 boards",      t_boards_spawn),
@@ -1356,6 +1397,7 @@ CASES = [
     ("crafted board same side for all",      t_crafted_board_sits_the_same_side_for_every_faction),
     ("no setup card on crafted board",       t_no_setup_card_rides_on_the_crafted_board),
     ("vagabond cards with faction cards",    t_vagabond_cards_come_with_faction_cards),
+    ("two free slots are bottom-right",      t_the_two_free_button_slots_are_bottom_right),
     ("manual setup clears ranked objects",   t_ranked_objects_cleared_by_manual),
     ("supporters take the seat explicitly",  t_supporters_take_the_seat_explicitly),
     ("both transform shapes agree",          t_seat_hand_array_shape),
