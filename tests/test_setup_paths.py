@@ -2478,6 +2478,53 @@ def t_table_fixtures_survive_a_map_change(src):
         assert after[n] == first[n], "%s was rebuilt by a new game; nothing about it is per-game" % n
 
 
+def t_send_home_fills_from_the_players_own_right(src):
+    """"Rightmost empty slot" means the PLAYER'S right, at every seat.
+
+    Maintainer, 2026-09-06: "it look s like the issue is that you take the absolute direction for left
+    or right for the sympathy token but its rightmost for the player looking at his faction board. so
+    for seat 1 and 2 its the opposite absolute direction than for seat 3 and 4 with 4 players. this is
+    a mistake you do often and should check for the other tokens."
+
+    And the rule it comes from, which is why this test covers four piece types rather than sympathy:
+    "everything is always referenced with respect to the vision of the player otherwise instructions
+    would change depending on seat which makes no sense."
+
+    rttHomeSlots used ONE sign for the whole table (RTT_HOME_RIGHT_IS_PLUS_X), so the fill ran to the
+    player's right on the near row and to their LEFT on the far row. A far-row seat is rotated 180, so
+    both axes invert together; the comparator now multiplies by the seat's own sign, which IS that half
+    turn.
+    """
+    CASES = (("Woodland Alliance", "Sympathy"),
+             ("Eyrie Dynasties",   "Roost"),
+             ("The Lizard Cult",   "Fox Garden"),
+             ("Lord of the Hundreds", "Stronghold"))
+    for fac, piece in CASES:
+        for cz, flip, where in ((-46, False, "near row"), (46, True, "far row")):
+            rt = fresh(src)
+            rt.execute("SEAT('Purple','H1')")
+            rt.execute("RTT_HOME = {}")
+            rt.execute("pcall(function() rttPlaceFaction('%s', 52, %d, %s, 'Purple', false, nil, nil, "
+                       "'Purple', nil) end) FLUSH(80)" % (fac, cz, "true" if flip else "false"))
+            raw = rt.eval("function(n)\n  local t = {}\n"
+                          "  for _, s in ipairs(rttHomeSlots(n)) do\n"
+                          "    t[#t+1] = string.format('%.2f', s.p[1] - 52)\n"
+                          "  end\n  return table.concat(t, ' ')\nend")(piece)
+            xs = [float(v) for v in raw.split()] if raw else []
+            assert len(xs) >= 3, "%s / %s on the %s: only %d slots, nothing to order" % (
+                fac, piece, where, len(xs))
+            # the player's right is +x on the near row and -x on the far row, because a far seat is
+            # turned around. Either way the FIRST slot filled must be the one furthest to their right.
+            if flip:
+                bad = [i for i in range(len(xs) - 1) if xs[i] > xs[i + 1] + 0.01]
+            else:
+                bad = [i for i in range(len(xs) - 1) if xs[i] < xs[i + 1] - 0.01]
+            assert not bad, (
+                "%s / %s on the %s fills toward the player's LEFT: %s\n"
+                "    (on the far row the seat is rotated 180, so their right is -x)"
+                % (fac, piece, where, xs))
+
+
 CASES = [
     ("manual path drives the turn system",   t_manual_turn_order),
     ("manual path spawns 4 / 5 boards",      t_boards_spawn),
@@ -2538,6 +2585,7 @@ CASES = [
     ("seat record is pushed to sheet",       t_the_seat_record_is_pushed_to_the_sheet),
     ("gizmo never takes another supply",     t_gizmo_never_reaches_into_someone_elses_supply),
     ("send home fills rightmost empty",      t_send_home_fills_the_rightmost_empty_slot),
+    ("fill runs from the player's right", t_send_home_fills_from_the_players_own_right),
     ("return slots are not spawn spots",     t_return_slots_are_not_spawn_positions),
     ("extra slots face like the rest",       t_extra_return_slots_face_the_same_way),
     ("one seat holds one faction",           t_one_seat_holds_one_faction),

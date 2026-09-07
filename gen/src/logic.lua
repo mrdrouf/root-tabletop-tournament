@@ -6328,6 +6328,8 @@ end
 -- other, because faction boards carry rotY ~180 and the far row mirrors that -- the same trap that
 -- inverted the crow hidden zone. The maintainer is checking at the table; RTT_HOME_RIGHT_IS_PLUS_X is
 -- the ONE place to flip when he says. Everything else is direction-agnostic.
+-- Kept for reference: +x is the player's right on the NEAR row. rttHomeSlots no longer reads it --
+-- it derives the sign per seat, because one global sign is wrong for half the table.
 RTT_HOME_RIGHT_IS_PLUS_X = true
 
 -- Types that do NOT use a fill order: each piece returns to its own recorded spot.
@@ -6379,16 +6381,32 @@ function rttHomeSlots(name)
     end
     if #keep > 0 then out = keep end
   end
-  local right = RTT_HOME_RIGHT_IS_PLUS_X and 1 or -1
+  -- FROM THE PLAYER'S VIEW, NOT THE TABLE'S. Maintainer, 2026-09-06: "it look s like the issue is that
+  -- you take the absolute direction for left or right ... but its rightmost for the player looking at
+  -- his faction board. so for seat 1 and 2 its the opposite absolute direction than for seat 3 and 4",
+  -- and the rule behind it: "everything is always referenced with respect to the vision of the player
+  -- otherwise instructions would change depending on seat which makes no sense".
+  --
+  -- RTT_HOME_RIGHT_IS_PLUS_X was ONE sign for the whole table, so "the rightmost empty slot" meant the
+  -- player's right on the near row and their LEFT on the far row -- which is what he saw with the
+  -- Alliance's sympathy. A far-row seat is rotated 180, so BOTH axes invert together: the player's
+  -- right becomes -x and "nearer me" becomes larger z. Multiplying both comparisons by the same sign
+  -- is exactly that half-turn, so the comparator reads the row in the seat's own frame.
+  --
+  -- The sign comes from where the slots ARE, not from a table: every slot of one piece name belongs to
+  -- one faction at one seat, and seats sit at z about -46 or +46.
+  local sz = 0
+  for _, h in ipairs(out) do sz = sz + h.p[3] end
+  local s = (sz > 0) and -1 or 1
   local per = RTT_HOME_STACKED[name]
   table.sort(out, function(a, b)
-    if per ~= nil then                       -- stacks: bottom row first, then right to left, then up
-      if math.abs(a.p[3] - b.p[3]) > 0.2 then return a.p[3] < b.p[3] end
-      if math.abs(a.p[1] - b.p[1]) > 0.2 then return a.p[1] * right > b.p[1] * right end
+    if per ~= nil then                       -- stacks: nearest row first, then right to left, then up
+      if math.abs(a.p[3] - b.p[3]) > 0.2 then return a.p[3] * s < b.p[3] * s end
+      if math.abs(a.p[1] - b.p[1]) > 0.2 then return a.p[1] * s > b.p[1] * s end
       return a.p[2] < b.p[2]
     end
-    if math.abs(a.p[1] - b.p[1]) > 0.2 then return a.p[1] * right > b.p[1] * right end
-    if math.abs(a.p[3] - b.p[3]) > 0.2 then return a.p[3] < b.p[3] end
+    if math.abs(a.p[1] - b.p[1]) > 0.2 then return a.p[1] * s > b.p[1] * s end
+    if math.abs(a.p[3] - b.p[3]) > 0.2 then return a.p[3] * s < b.p[3] * s end
     return a.p[2] < b.p[2]
   end)
   return out
