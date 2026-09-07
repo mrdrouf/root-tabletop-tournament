@@ -2593,7 +2593,9 @@ def t_the_turn_panel_button_really_swaps_them(src):
     assert n("RTT Clock") == 0 and n("RTT Counter") == 0, \
         "the old clock/counter came with the map (%d/%d)" % (n("RTT Clock"), n("RTT Counter"))
 
-    rt.execute("pcall(function() rttToggleTurnPanel() end) FLUSH(60)")
+    # called the way TTS calls a button handler -- fn(player, value, id) -- not bare. The bare form was
+    # all this test ever exercised, so a signature mismatch would have gone unseen.
+    rt.execute("pcall(function() rttToggleTurnPanel(Player['Purple'],'','rttTurnPanelBtn') end) FLUSH(60)")
     assert n("RTT Panel") == 0, "the button did not take the panel away"
     assert n("RTT Clock") == 1 and n("RTT Counter") == 1, \
         "the button did not bring back the clock and counter (%d/%d)" % (n("RTT Clock"), n("RTT Counter"))
@@ -2602,7 +2604,7 @@ def t_the_turn_panel_button_really_swaps_them(src):
     assert n("RTT Panel") == 0, "a map change re-spawned the panel on top of the clock"
     assert n("RTT Clock") == 1 and n("RTT Counter") == 1, "the clock/counter did not survive a map change"
 
-    rt.execute("pcall(function() rttToggleTurnPanel() end) FLUSH(60)")
+    rt.execute("pcall(function() rttToggleTurnPanel(Player['Purple'],'','rttTurnPanelBtn') end) FLUSH(60)")
     assert n("RTT Panel") == 1, "the second press did not restore the panel"
     assert n("RTT Clock") == 0 and n("RTT Counter") == 0, \
         "the old pair survived the swap back (%d/%d)" % (n("RTT Clock"), n("RTT Counter"))
@@ -2654,7 +2656,7 @@ def t_the_panel_flashes_after_twenty_minutes(src):
         # The alarm is a SOLID red panel emitted under the content, so what proves it is the ground
         # colour being in the markup at all. A translucent wash over the top read pink and tinted the
         # type; this replaces the ground instead.
-        return ALARM if "#B3140A" in (g.LASTXML or "") else NORMAL
+        return ALARM if "#A83226" in (g.LASTXML or "") else NORMAL
 
     NORMAL, ALARM = "quiet", "washed"
     rt.execute('UIW["pnlwash.active"] = "False"')   # buildUI emits it hidden
@@ -2668,7 +2670,16 @@ def t_the_panel_flashes_after_twenty_minutes(src):
     seq = [at(1000 + 20 * 60 + k) for k in range(8)]
     assert ALARM in seq and NORMAL in seq, "past twenty minutes it does not flash at all: %s" % seq
     flips = sum(1 for a, b in zip(seq, seq[1:]) if a != b)
-    assert flips >= 3, "the flash is too slow: %s (%d changes in 8 samples)" % (seq, flips)
+    assert flips >= 2, "the flash is too slow: %s (%d changes in 8 samples)" % (seq, flips)
+
+    # A REBUILD MUST NOT BLANK THE READOUTS. Every flash frame re-emits the whole UI, and buildUI used
+    # to hardcode the placeholders -- so the round flickered to "-" and the clock to 0:00 twice a
+    # second. Maintainer: "the flash makes turn 1 flicker to - symbol for some reason."
+    rt.execute('PANEL_RTXT = "7" PANEL_TTXT = "3:21"')
+    g.buildUI()
+    xml = g.LASTXML or ""
+    assert ">7<" in xml, "a rebuild lost the round number: it re-emits the placeholder"
+    assert ">3:21<" in xml, "a rebuild lost the clock: it re-emits the placeholder"
 
     # the demo: three DEAL presses inside three seconds, with no turn running at all
     g.PANEL_START = None
@@ -2676,7 +2687,8 @@ def t_the_panel_flashes_after_twenty_minutes(src):
     for _ in range(3):
         g.panelDeal()
     assert g.PANEL_DEMO == 2015, "three quick presses did not arm the preview: %s" % g.PANEL_DEMO
-    demo = [at(2002 + k) for k in range(3)]
+    # eight samples, not three: the beat is three ticks now, so a short window can sit in one phase
+    demo = [at(2002 + k) for k in range(8)]
     assert ALARM in demo and NORMAL in demo, "the preview does not flash: %s" % demo
     assert at(2020) == NORMAL, "the preview never ends"
 
@@ -2686,13 +2698,13 @@ def t_the_panel_flashes_after_twenty_minutes(src):
     rt.execute("PANEL_ALARM = true")
     g.buildUI()
     xml = g.LASTXML or ""
-    assert "#B3140A" in xml, "no red ground in the alarm markup"
-    assert xml.index("#B3140A") < xml.index("<VerticalLayout"), \
+    assert "#A83226" in xml, "no red ground in the alarm markup"
+    assert xml.index("#A83226") < xml.index("<VerticalLayout"), \
         "the red ground is emitted after the content; it would sit on top of the type"
     assert "#FFFFFF" in xml, "the type does not go white while it warns"
     rt.execute("PANEL_ALARM = false")
     g.buildUI()
-    assert "#B3140A" not in (g.LASTXML or ""), "the red ground is drawn when nothing is wrong"
+    assert "#A83226" not in (g.LASTXML or ""), "the red ground is drawn when nothing is wrong"
 
     # and the preview drives its own timer, so it survives the periodic tick stopping
     assert "panelFlashStep" in lua, "the preview has no timer of its own"
