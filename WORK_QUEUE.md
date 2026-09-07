@@ -197,6 +197,34 @@ Nothing below is implemented. The maintainer asked to be consulted before each c
 
 ### Gizmo (the maintainer will iterate; ask before changing behaviour)
 
+- [ ] **Numpad 0 goes dead on buildings after a reload (and maybe after an undo).** AWAITING HIS TEST.
+      Reported 2026-09-07: "it seems that gizmo options breaks after doing an undo". Cause found, not
+      yet fixed at his request. `RTT_HOME` -- name, position and facing for every piece a faction set
+      out -- is a bare top-level table, written ONLY inside rttSpawnFaction's spawn callback, and it is
+      NOT in onSave. Anything that re-runs the board's script empties it and nothing rebuilds it, so
+      `rttHomeSlots` returns nothing and rttGizmoHome falls through to its silent last case. Warriors
+      and the Marquise's wood are unaffected: they go home by NAME through rttBagOfMap, which is built
+      from blueprint data and cannot be lost.
+      THE TEST THAT SETTLES IT: after an undo, hover your own WARRIOR and press numpad 0. Warrior goes
+      home but a building does not -> it is RTT_HOME, and the fix is to persist it beside RTT_LAID.
+      Nothing happens at all -> it is the key registration, and the hotkeys/onScriptingButtonDown are
+      where to look instead. The RELOAD half of this is certain regardless of what undo does.
+
+- [x] **Numpad 1 keeps handing you your FIRST faction after you pick another** (FIXED 2026-09-07).
+      He chose: the gizmo follows the faction that COLOUR last picked, recorded separately from the
+      seats so turn order, the box score and the seat record are untouched. Numpad 0's ownership gate
+      reads the same answer, or you could not put your new faction's pieces away. Survives a reload,
+      cleared by a new game. He ruled out the alternative outright -- pointing at a board -- "2. is
+      completely nonsensical since pieces go all over the board". Original diagnosis: Reported 2026-09-07:
+      "I am changing seats by selecting new factions but the gizmo numpad 1 does not seem to understand
+      that." Deliberate, and the comment says why: on the manual paths nobody is seated, so the picker's
+      colour is what a seat is worth "unless that colour is already another seat's, which is what
+      happens when one person sets out several boards: those later seats take a free colour instead of
+      stealing one". So your first pick takes your colour and every later pick is given a free one --
+      rttSeatFaction(yourColour) therefore returns the first faction for ever. Fixing it means choosing
+      between "one person switching faction" and "one person setting boards out for other people";
+      those two want opposite behaviour and it is his call, not mine.
+
 - [x] **Numpad 0 is your own faction only** (DONE 2026-09-07). "gizmo 0 should not work on other
       player's warriors and token buildings." This REVERSES the earlier rule, which was recorded in
       the code as "the piece decides the destination, not whoever pressed the key" -- he was shown

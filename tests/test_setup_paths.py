@@ -3059,6 +3059,58 @@ def t_no_warning_when_there_is_nothing_to_wipe(src):
     assert rt.eval("rttWouldWipe(false)") is True, "a faction on the table did not warn"
 
 
+def t_the_gizmo_follows_the_faction_you_last_picked(src):
+    """Pick a different faction and BOTH gizmo keys come with you.
+
+    Maintainer, 2026-09-07: "I am changing seats by selecting new factions but the gizmo numpad 1 does
+    not seem to understand that." Seat colours cannot answer this and are not supposed to: your FIRST
+    pick takes your colour, and every later pick is deliberately handed a free one so that one person
+    can set out several boards without every seat becoming theirs. So the seat record says you are
+    still your first faction, for ever.
+
+    The gizmo now asks a separate question -- which faction did this COLOUR last pick -- so switching
+    moves the supply you draw from and the pieces you may send home, while turn order, the box score
+    and the seat record are untouched. It survives a reload, and a new game forgets it.
+    """
+    rt = fresh(src)
+    rt.execute("""
+      TOOK = {}
+      for _, n in ipairs({'Marquise Supply', 'Eyrie Supply'}) do
+        local b = MKOBJ(n, {0,1,0}, {})
+        b.__n = 5
+        b.getQuantity = function() return b.__n end
+        b.takeObject = function(p) TOOK[#TOOK+1] = n end
+        b.putObject = function(o) end
+      end
+      POINTER['Red'] = {x = 0, y = 1, z = 0}
+    """)
+
+    def take():
+        rt.execute("TOOK = {} rttGizmoTake('Red') FLUSH(5)")
+        return [str(v) for v in (rt.eval("TOOK") or {}).values()]
+
+    rt.execute("RTT_LAST_PICK['Red'] = 'Marquise de Cat'")
+    assert take() == ["Marquise Supply"], "numpad 1 did not use the picked faction: %s" % take()
+
+    # switch faction: the seat record still says Marquise, the gizmo must not
+    rt.execute("RTT_LAST_PICK['Red'] = 'Eyrie Dynasties'")
+    assert take() == ["Eyrie Supply"], \
+        "numpad 1 stayed on the first faction after a switch: %s" % take()
+
+    # numpad 0 moves with it too, or you could not put your own new pieces away
+    assert rt.eval("rttMyFaction('Red')") == "Eyrie Dynasties", \
+        "the gizmo's idea of your faction did not move: %r" % rt.eval("rttMyFaction('Red')")
+    rt.execute("MINE = MKOBJ('Roost', {1,1,1}, {}) OLD = MKOBJ('Recruiter', {2,1,2}, {})")
+    assert rt.eval("rttPieceFaction(MINE)") == "Eyrie Dynasties", \
+        "a Roost is not recognised as the birds': %r" % rt.eval("rttPieceFaction(MINE)")
+    assert rt.eval("rttPieceFaction(OLD)") == "Marquise de Cat", \
+        "the faction you left is still yours as far as numpad 0 is concerned"
+
+    # a new game forgets who picked what
+    rt.execute("rttResetRunState()")
+    assert not rt.eval("RTT_LAST_PICK['Red']"), "a new game kept last game's pick"
+
+
 CASES = [
     ("manual path drives the turn system",   t_manual_turn_order),
     ("manual path spawns 4 / 5 boards",      t_boards_spawn),
@@ -3074,6 +3126,7 @@ CASES = [
     ("camera states are the host's",         t_camera_states_are_the_hosts),
     ("turn panel is the only clock",      t_the_turn_panel_is_the_only_clock),
     ("no warning with nothing to wipe",   t_no_warning_when_there_is_nothing_to_wipe),
+    ("gizmo follows your last pick",      t_the_gizmo_follows_the_faction_you_last_picked),
     ("panel flashes past 20 minutes",      t_the_panel_flashes_after_twenty_minutes),
     ("crow plots inside the hidden zone",    t_crow_plots_spawn_inside_the_hidden_zone),
     ("crafted board same side for all",      t_crafted_board_sits_the_same_side_for_every_faction),

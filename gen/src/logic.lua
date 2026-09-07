@@ -16,7 +16,7 @@ function onSave()
     -- laid: which warriors numpad 2 put down, and what they looked like standing. Without this a
     -- reload leaves them cream and locked with nothing able to undo it.
     return JSON.encode({ v = 1, run = RTT_RUN_ID or 0, turnSeats = RTT_TURN_SEATS, seats = seats,
-                         laid = RTT_LAID or {} })
+                         laid = RTT_LAID or {}, pick = RTT_LAST_PICK or {} })
   end)
   if ok then return enc end
   return ""
@@ -41,6 +41,7 @@ function onLoad(state)
     RTT_RUN_ID     = d.run or RTT_RUN_ID
     RTT_TURN_SEATS = d.turnSeats or RTT_TURN_SEATS
     if type(d.laid) == "table" then RTT_LAID = d.laid end
+    if type(d.pick) == "table" then RTT_LAST_PICK = d.pick end
     if #RTT_SEATS > 0 then rttPublishSeats() end
   end)
   pcall(function() rttSnapshotHand2() end)  -- parked hand-2 transforms, restored on every new game
@@ -1757,6 +1758,7 @@ function rttResetRunState()
   -- rttSpawnSelectors, but the manual path never did, so seats piled up across games in one session.
   RTT_SEATS      = {}
   RTT_BOARD_SEAT = {}
+  RTT_LAST_PICK  = {}          -- last game's pick must not decide this game's supply
   for _, k in ipairs({ "RTT_SEAT_POS", "RTT_SEAT_COLOR", "RTT_SEAT_PLAYER", "RTT_SEAT_RECORD" }) do
     pcall(function() Global.setVar(k, JSON.encode({})) end)
   end
@@ -3020,6 +3022,13 @@ RTT_SEAT_HAND = {
   { pos = { 0, 14.62, 64 }, rot = { 0, 180, 0 } },     -- pos6 (0,46)
 }
 RTT_SEATS = {}          -- [seat] = { board=obj, color=<colour|nil>, pos={x,z}, hand=<RTT_SEAT_HAND entry> }
+-- WHICH FACTION YOU LAST PICKED, by the colour of whoever clicked. Seat colours cannot answer this:
+-- the first faction you pick takes your colour and every later pick is handed a FREE one instead, so
+-- that one person can set out several boards without every seat becoming theirs. Correct for setting
+-- up, useless for the gizmo -- "I am changing seats by selecting new factions but the gizmo numpad 1
+-- does not seem to understand that" (2026-09-07). This follows the person, not the seat, and nothing
+-- downstream reads it: turn order, the box score and the seat record are all untouched.
+RTT_LAST_PICK = {}      -- [picker colour] = faction
 RTT_BOARD_SEAT = {}     -- [board guid] = seat index
 
 -- ==== seat-by-turn-order-card tables (RTT seating restore) ==================
@@ -4170,6 +4179,7 @@ function rttPlaceFaction(faction, cx, cz, flip, color, isDraft, category, rotati
   -- Conflating them broke naming before: the manual path never recolours anyone, so a player keeps
   -- the colour they joined with while the row is coloured by seat, and matching the row's colour
   -- against seated players then found nobody and the row showed no name at all.
+  if pickerColor ~= nil and pickerColor ~= "" then RTT_LAST_PICK[pickerColor] = faction end
   if seat.owner == nil and pickerColor ~= nil and pickerColor ~= "" then
     pcall(function()
       for _, pl in ipairs(Player.getPlayers()) do
@@ -6560,8 +6570,17 @@ end
 -- YOUR supply bag, or nil and the reason why not. The reason matters: this used to return a bare nil
 -- and let the caller fall through to a geometric search of the whole table, so a Vagabond seat -- which
 -- has no warriors AT ALL -- silently handed the player the NEAREST supply, which is an opponent's.
+-- WHICH FACTION IS YOURS, for the gizmo only. Your last pick if you have made one, otherwise the seat
+-- record. Both gizmo keys ask this, so switching faction moves the whole gizmo with you rather than
+-- half of it.
+function rttMyFaction(color)
+  local last = RTT_LAST_PICK[color]
+  if last ~= nil and last ~= "" then return last end
+  return rttSeatFaction(color)
+end
+
 function rttMySupplyBag(color)
-  local faction = rttSeatFaction(color)
+  local faction = rttMyFaction(color)
   if faction ~= nil then
     local supName, warName = rttFactionPieceNames(faction)
     if supName == nil or warName == nil then
@@ -6618,7 +6637,7 @@ function rttGizmoHome(color)
   -- map token -- is not blocked here: it simply has no home below and falls out silently, as before.
   local owner = rttPieceFaction(hovered)
   if owner ~= nil then
-    local mine = rttSeatFaction(color)
+    local mine = rttMyFaction(color)
     if mine == nil then
       broadcastToColor("Gizmo: no faction is seated in your colour.", color, { r = 1, g = 0.6, b = 0.2 })
       return
