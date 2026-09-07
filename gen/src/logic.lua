@@ -6331,51 +6331,6 @@ function rttWarriorSupplyMap()
   return m
 end
 
--- WHOSE PIECE IS THIS. Two sources, the exact one first.
---
--- 1. RTT_HOME already records the faction that a piece was set out for, keyed by GUID, so anything
---    this board put on the table answers for certain.
--- 2. Otherwise the NAME: every nickname in a faction's blueprint belongs to that faction. A name that
---    two factions ship is recorded as ambiguous and never answers, because a wrong answer here would
---    silently refuse a player his own piece.
---
--- Built once and cached, like rttBagOfMap, so a faction added later needs no table edited here.
-RTT_FACTION_OF = nil
-function rttFactionOfMap()
-  if RTT_FACTION_OF ~= nil then return RTT_FACTION_OF end
-  local m = {}
-  pcall(function()
-    for faction, def in pairs(EVERYTHING['Standard'] or {}) do
-      if type(def) == "table" and def['data'] ~= nil then
-        local seen = {}
-        for _, v in ipairs(def['data']) do
-          for nick in v.json:gmatch('"Nickname":%s*"([^"]*)"') do
-            if nick ~= "" and not seen[nick] then
-              seen[nick] = true
-              if m[nick] == nil then m[nick] = faction
-              elseif m[nick] ~= faction then m[nick] = false end   -- two owners: no answer
-            end
-          end
-        end
-      end
-    end
-  end)
-  RTT_FACTION_OF = m
-  return m
-end
-
--- the faction a piece belongs to, or nil when it cannot be told for certain.
-function rttPieceFaction(obj)
-  if obj == nil then return nil end
-  local guid = nil
-  pcall(function() guid = obj.getGUID() end)
-  local rec = guid ~= nil and (RTT_HOME or {})[guid] or nil
-  if rec ~= nil and rec.f ~= nil and rec.f ~= "" then return rec.f end
-  local byName = rttFactionOfMap()[(obj.getName() or "")]
-  if byName == false or byName == nil then return nil end
-  return byName
-end
-
 -- EXTRA RETURN SLOTS -- where a piece goes back to, which is NOT always where it spawned.
 --
 -- Several factions park one piece well away from its row: a roost at move_to -17.5 against a row at
@@ -6630,20 +6585,12 @@ function rttGizmoHome(color)
   local name = hovered.getName() or ""
   if name == "" then return end
 
-  -- YOUR OWN PIECES ONLY. Maintainer, 2026-09-07: "gizmo 0 should not work on other player's warriors
-  -- and token buildings." This reverses the earlier rule, which was that the PIECE chose its
-  -- destination so an enemy warrior went home to its own supply; that note is gone and this is the
-  -- rule now. Ownership is exact (rttPieceFaction), and a piece nobody owns -- a hireling, a card, a
-  -- map token -- is not blocked here: it simply has no home below and falls out silently, as before.
-  local owner = rttPieceFaction(hovered)
-  if owner ~= nil then
-    local mine = rttMyFaction(color)
-    if mine == nil then
-      broadcastToColor("Gizmo: no faction is seated in your colour.", color, { r = 1, g = 0.6, b = 0.2 })
-      return
-    end
-    if owner ~= mine then return end                  -- somebody else's: nothing, and nothing said
-  end
+  -- NO PERMISSION CHECK. There was one for a few hours -- "gizmo 0 should not work on other player's
+  -- warriors and token buildings" -- and it was removed the same day: "remove the player permission
+  -- with numpad 0 so it s not broken when it s wrong about who is who". Deciding whose piece it is
+  -- means deciding who YOU are, and when that answer is wrong the key silently does nothing, which is
+  -- worse than moving somebody else's warrior to its own supply. The PIECE chooses its destination
+  -- again, so being wrong about the player costs nothing.
 
   -- 1. does it live in a bag?
   local bag = rttFindByName(rttBagOfMap()[name])

@@ -407,17 +407,15 @@ def t_vagabond_is_published_as_a_faction(src):
 def t_gizmo_warrior_to_and_from_supply(src):
     """The two halves, per the maintainer's 2026-09-06 spec.
 
-      numpad 0, hovering YOUR OWN warrior -> home to its supply
-      numpad 0, hovering an opponent's     -> nothing, silently
-      numpad 0, hovering your wood         -> home to Wood Supply, by the same rule
+      numpad 0, hovering ANY warrior       -> home to ITS OWN supply, yours or an opponent's
+      numpad 0, hovering the wood          -> home to Wood Supply, by the same rule
       numpad 0, hovering NOTHING           -> nothing. It does not spawn any more.
       numpad 1                             -> one warrior out of YOUR supply, at your pointer,
                                               whatever the pointer happens to be over
 
-    Both halves now turn on who pressed the key, which comes from where you are seated. Sending home
-    used to be the exception -- the PIECE chose its destination, so an enemy warrior went to its own
-    supply -- and the maintainer reversed that on 2026-09-07: "gizmo 0 should not work on other
-    player's warriors and token buildings."
+    Putting a piece back does not depend on who pressed the key: the piece decides where it belongs.
+    Only TAKING one needs to know who you are. An ownership check on the send-home half lasted a few
+    hours on 2026-09-07 and was removed again -- "so it s not broken when it s wrong about who is who".
     """
     rt = fresh(src)
     rt.execute("""
@@ -447,8 +445,8 @@ def t_gizmo_warrior_to_and_from_supply(src):
     rt.execute('HOVER["Red"] = MINE   rttGizmoHome("Red")')
     assert put() == {"Hundreds Supply": 1}, put()
     rt.execute('HOVER["Red"] = THEIRS rttGizmoHome("Red")')
-    assert put() == {"Hundreds Supply": 1}, \
-        "an opponent's warrior was sent home; numpad 0 is your own pieces only: %s" % put()
+    assert put() == {"Hundreds Supply": 1, "Eyrie Supply": 1}, \
+        "an opponent's warrior must go to ITS supply, not the presser's: %s" % put()
     # the wood is the MARQUISE's, so only a Marquise player can send it back -- same rule as above
     rt.execute('Global.setVar("RTT_SEAT_COLOR", JSON.encode({ ["Marquise de Cat"] = "Red" }))')
     rt.execute('HOVER["Red"] = WOOD   rttGizmoHome("Red")')
@@ -2818,43 +2816,45 @@ def t_the_dragon_god_goes_out_with_its_faction(src):
     assert rt.eval(COUNT)("Dragon God") == 0, "the adopted blocker still survived a new game"
 
 
-def t_send_home_leaves_other_peoples_pieces_alone(src):
-    """Numpad 0 acts on YOUR faction and nothing else.
+def t_send_home_asks_no_permission(src):
+    """Numpad 0 puts a piece where the PIECE belongs, whoever pressed the key.
 
-    It used to have no ownership check at all: the piece chose its destination, so hovering an enemy
-    warrior sent it home to that faction's supply. That was deliberate and is now reversed --
-    maintainer, 2026-09-07: "gizmo 0 should not work on other player's warriors and token buildings."
+    It had an ownership check for a few hours on 2026-09-07 -- "gizmo 0 should not work on other
+    player's warriors and token buildings" -- and it came straight back out the same day: "remove the
+    player permission with numpad 0 so it s not broken when it s wrong about who is who". Deciding
+    whose piece it is means deciding who YOU are, and when that answer is wrong the key silently does
+    nothing, which is worse than the thing the check was preventing.
 
-    Ownership is exact rather than guessed from the name: RTT_HOME already records the faction a piece
-    was set out for, and a loose warrior is identified by the blueprint that ships its nickname.
-    A piece nobody owns is not blocked here -- it just has no home and falls out silently, as before.
+    So there is no seat lookup on this path at all: an unseated player, a player the mod has mixed up,
+    and a player holding four factions at once all get the same behaviour.
     """
     rt = fresh(src)
     rt.execute("""
       PUT = {}
-      local function mkbag(name)
-        local b = MKOBJ(name, {0,1,0}, {})
-        b.putObject = function(o) PUT[#PUT+1] = (o.getName() or "") end
-        return b
+      for _, n in ipairs({'Eyrie Supply', 'Marquise Supply'}) do
+        local b = MKOBJ(n, {0,1,0}, {})
+        b.putObject = function(o) PUT[#PUT+1] = (o.getName() or '') end
       end
-      mkbag("Eyrie Supply")
-      mkbag("Marquise Supply")
-      MINE  = MKOBJ("Eyrie Warrior", {1,1,1}, {})
-      THEIRS = MKOBJ("Marquise Warrior", {2,1,2}, {})
-      Global.setVar("RTT_SEAT_COLOR", JSON.encode({ ["Eyrie Dynasties"] = "Red" }))
+      MINE   = MKOBJ('Eyrie Warrior', {1,1,1}, {})
+      THEIRS = MKOBJ('Cat Warrior', {2,1,2}, {})
       SAID = {}
     """)
+    put = lambda: [str(x) for x in (rt.eval("PUT") or {}).values()]
 
+    # nobody is seated in any colour at all
     rt.execute('HOVER["Red"] = MINE rttGizmoHome("Red") FLUSH(5)')
-    put = [str(x) for x in (rt.eval("PUT") or {}).values()]
-    assert put == ["Eyrie Warrior"], "your own warrior did not go home: %s" % put
+    assert put() == ["Eyrie Warrior"], "an unseated player could not send a warrior home: %s" % put()
 
     rt.execute('HOVER["Red"] = THEIRS rttGizmoHome("Red") FLUSH(5)')
-    put = [str(x) for x in (rt.eval("PUT") or {}).values()]
-    assert put == ["Eyrie Warrior"], (
-        "an opponent's warrior was sent home by numpad 0: %s" % put)
+    assert put() == ["Eyrie Warrior", "Cat Warrior"], \
+        "the key refused a piece that was not the presser's: %s" % put()
+
     said = [str(x) for x in (rt.eval("SAID") or {}).values()]
-    assert not said, "refusing somebody else's piece should say nothing: %s" % said
+    assert not said, "numpad 0 should stay silent, it said: %s" % said
+
+    # and nothing is left that could start refusing again
+    for gone in ("rttPieceFaction", "rttFactionOfMap"):
+        assert gone not in src, "%s is back; numpad 0 asks no permission now" % gone
 
 
 def t_numpad_two_lays_a_warrior_down_and_back_up(src):
@@ -3068,9 +3068,9 @@ def t_the_gizmo_follows_the_faction_you_last_picked(src):
     can set out several boards without every seat becoming theirs. So the seat record says you are
     still your first faction, for ever.
 
-    The gizmo now asks a separate question -- which faction did this COLOUR last pick -- so switching
-    moves the supply you draw from and the pieces you may send home, while turn order, the box score
-    and the seat record are untouched. It survives a reload, and a new game forgets it.
+    Numpad 1 now asks a separate question -- which faction did this COLOUR last pick -- so switching
+    moves the supply you draw from, while turn order, the box score and the seat record are untouched.
+    It survives a reload, and a new game forgets it. Numpad 0 asks nothing at all.
     """
     rt = fresh(src)
     rt.execute("""
@@ -3097,15 +3097,8 @@ def t_the_gizmo_follows_the_faction_you_last_picked(src):
     assert take() == ["Eyrie Supply"], \
         "numpad 1 stayed on the first faction after a switch: %s" % take()
 
-    # numpad 0 moves with it too, or you could not put your own new pieces away
     assert rt.eval("rttMyFaction('Red')") == "Eyrie Dynasties", \
         "the gizmo's idea of your faction did not move: %r" % rt.eval("rttMyFaction('Red')")
-    rt.execute("MINE = MKOBJ('Roost', {1,1,1}, {}) OLD = MKOBJ('Recruiter', {2,1,2}, {})")
-    assert rt.eval("rttPieceFaction(MINE)") == "Eyrie Dynasties", \
-        "a Roost is not recognised as the birds': %r" % rt.eval("rttPieceFaction(MINE)")
-    assert rt.eval("rttPieceFaction(OLD)") == "Marquise de Cat", \
-        "the faction you left is still yours as far as numpad 0 is concerned"
-
     # a new game forgets who picked what
     rt.execute("rttResetRunState()")
     assert not rt.eval("RTT_LAST_PICK['Red']"), "a new game kept last game's pick"
@@ -3183,7 +3176,7 @@ CASES = [
     ("selector icons load with table",     t_every_selector_icon_is_downloaded_with_the_table),
     ("dragon god goes out with lizards",  t_the_dragon_god_goes_out_with_its_faction),
     ("placement ignores board size",       t_placement_never_asks_the_board_how_big_it_is),
-    ("send home skips other seats",       t_send_home_leaves_other_peoples_pieces_alone),
+    ("send home asks no permission",      t_send_home_asks_no_permission),
     ("numpad 2 lays a warrior down",      t_numpad_two_lays_a_warrior_down_and_back_up),
     ("board shows the build number",      t_the_board_shows_the_build_number),
     ("panel pauses the clock",            t_the_panel_pauses_the_clock),

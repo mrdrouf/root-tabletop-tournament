@@ -225,7 +225,13 @@ Nothing below is implemented. The maintainer asked to be consulted before each c
       between "one person switching faction" and "one person setting boards out for other people";
       those two want opposite behaviour and it is his call, not mine.
 
-- [x] **Numpad 0 is your own faction only** (DONE 2026-09-07). "gizmo 0 should not work on other
+- [x] **Numpad 0 asks no permission** (REVERSED the same day, 2026-09-07). The ownership check below
+      shipped in the morning and came out in the evening: "remove the player permission with numpad 0
+      so it s not broken when it s wrong about who is who". Deciding whose piece it is means deciding
+      who YOU are, and when that answer is wrong the key silently does nothing -- worse than the thing
+      the check prevented. Its worst case was an UNSEATED player, who could not send anything home at
+      all; the test for the new rule fails on the build that had the check, on exactly that. Gone with
+      it: rttPieceFaction and rttFactionOfMap, which nothing else used. Superseded entry: "gizmo 0 should not work on other
       player's warriors and token buildings." This REVERSES the earlier rule, which was recorded in
       the code as "the piece decides the destination, not whoever pressed the key" -- he was shown
       that note and confirmed the reversal. Ownership is exact, not guessed: RTT_HOME already records

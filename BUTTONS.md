@@ -90,16 +90,17 @@ puts the clock and counter back. It is an OPTION while the panel is still being 
 **Ginso's Gizmo has no button.** It is always active with no object on the table — its script is part
 of the board, so it works in every game with nothing to spawn or toggle.
 
-**NUMPAD 0 — send it home.** Hovering one of YOUR OWN faction's pieces puts it back: a warrior or the
-Marquise's wood into its supply bag, a building or token into the rightmost empty slot of its kind,
-Acclaim two to a stack, a Tunnel to its own spot. Hovering another player's piece does nothing, and
-says nothing — the maintainer, 2026-09-07: "gizmo 0 should not work on other player's warriors and
-token buildings." (It used to work on anyone's, sending the piece to its own faction's supply.)
-Hovering something no faction owns — a hireling, a card — does nothing either.
+**NUMPAD 0 — send it home.** Hovering ANY piece puts it back where that piece belongs: a warrior or
+the Marquise's wood into its own supply bag, a building or token into the rightmost empty slot of its
+kind, Acclaim two to a stack, a Tunnel to its own spot. It asks no permission and does not care who
+pressed it — the piece decides its destination, so being wrong about who you are costs nothing. (An
+ownership check lived here for a few hours on 2026-09-07 and came out again: "remove the player
+permission with numpad 0 so it s not broken when it s wrong about who is who".) Hovering something
+with no home — a hireling, a card — does nothing, and says nothing.
 
 **NUMPAD 1 — take a warrior** out of YOUR supply, standing up, at your pointer, whatever the pointer
-happens to be over. Which supply is yours comes from where you are seated. An empty supply does
-nothing.
+happens to be over. Yours is the faction you last PICKED, not the seat you started in, so switching
+faction moves the supply with you. An empty supply does nothing.
 
 **NUMPAD 2 — lay a warrior down.** Hovering ANY warrior, yours or an opponent's, tips it over, turns
 it the mod's cream and locks it. Pressing it again on the same warrior stands it up, gives back its
