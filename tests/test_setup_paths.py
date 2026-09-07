@@ -2654,10 +2654,12 @@ def t_the_panel_flashes_after_twenty_minutes(src):
         # that can actually appear on screen.
         rt.execute("T = %d" % t)
         g.panelTick()
-        xml = g.LASTXML or ""
-        return ALARM if "#E86B5A66" in xml else NORMAL
+        # the wash is always in the markup; what changes is its "active" attribute, which is the one
+        # show/hide mechanism this mod already proves works (the board's credits page uses it).
+        return ALARM if g.UIW["pnlwash.active"] == "True" else NORMAL
 
     NORMAL, ALARM = "quiet", "washed"
+    rt.execute('UIW["pnlwash.active"] = "False"')   # buildUI emits it hidden
     assert at(1000) == NORMAL, "the panel is tinted before any turn has started"
     g.PANEL_START = 1000
     assert at(1060) == NORMAL, "a one-minute turn is already warning"
