@@ -3726,6 +3726,37 @@ def t_the_faction_pick_survives_a_reload(src):
         "the pick did not reach the seat after a reload: %r" % rt2.eval("RTT_SEATS[1].faction")
 
 
+def t_the_drafts_shuffle_is_saved_and_forgotten(src):
+    """The one shuffle that decides who sits where must survive a reload and not outlive its game.
+
+    RTT_ORDER is not a duplicate of the seat record -- it is the INPUT that decides which seat each
+    person gets, and it is needed in the window between the order cards being dealt and the players
+    being seated. Two faults, both from the audit:
+
+      * it was never persisted, so a reload in that window left the draft unfinishable -- rttBeginPick
+        returns on an empty order, and rttSeatPlayers has nothing to match a human to a seat with;
+      * it was never CLEARED, only overwritten by the next deal, so a manual game started after a
+        draft still carried the previous draft's person-to-seat mapping.
+    """
+    rt = fresh(src)
+    rt.execute("""
+      RTT_ORDER = { { color = 'Red', name = 'Alice' }, { color = 'Yellow', name = 'Bob' } }
+    """)
+    saved = rt.eval("onSave()")
+
+    rt2 = fresh(src)
+    rt2.execute("pcall(function() onLoad(%s) end) FLUSH(6)" % json.dumps(saved))
+    got = [(str(rt2.eval("RTT_ORDER[%d].color" % i)), str(rt2.eval("RTT_ORDER[%d].name" % i)))
+           for i in range(1, int(rt2.eval("#RTT_ORDER")) + 1)]
+    assert got == [("Red", "Alice"), ("Yellow", "Bob")], \
+        "the draft's shuffle did not survive a reload: %s" % got
+
+    # and a new game forgets it, rather than carrying it into the next one
+    rt2.execute("rttResetRunState()")
+    assert rt2.eval("#RTT_ORDER") == 0, \
+        "last game's person-to-seat mapping survived a new game: %s" % rt2.eval("#RTT_ORDER")
+
+
 CASES = [
     ("manual path drives the turn system",   t_manual_turn_order),
     ("manual path spawns 4 / 5 boards",      t_boards_spawn),
@@ -3802,6 +3833,7 @@ CASES = [
     ("one seat holds one faction",           t_one_seat_holds_one_faction),
     ("one writer owns seat colour",       t_one_writer_owns_a_seats_colour),
     ("the pick survives a reload",        t_the_faction_pick_survives_a_reload),
+    ("the draft shuffle is saved",        t_the_drafts_shuffle_is_saved_and_forgotten),
     ("vagabond published under faction",     t_a_vagabond_is_published_under_its_faction_name),
     ("two vagabonds, one marker each",       t_two_vagabonds_get_one_marker_each),
     ("selector icons load with table",     t_every_selector_icon_is_downloaded_with_the_table),

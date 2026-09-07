@@ -23,7 +23,14 @@ function onSave()
     -- laid: which warriors numpad 2 put down, and what they looked like standing. Without this a
     -- reload leaves them cream and locked with nothing able to undo it.
     return JSON.encode({ v = 1, run = RTT_RUN_ID or 0, turnSeats = RTT_TURN_SEATS, seats = seats,
-                         laid = RTT_LAID or {}, pickN = RTT_PICK_N or 0 })
+                         laid = RTT_LAID or {}, pickN = RTT_PICK_N or 0,
+                         -- order: the draft's single shuffle, person -> seat number. It is not a
+                         -- duplicate of the seats -- it is the INPUT that decides which seat each
+                         -- person gets, and it is needed in the window between the order cards being
+                         -- dealt and the players being seated. Lost on a reload in that window, the
+                         -- draft could not be finished: rttBeginPick returns on an empty order and
+                         -- rttSeatPlayers has nothing to match a human to a seat with.
+                         order = RTT_ORDER or {} })
   end)
   if ok then return enc end
   return ""
@@ -56,6 +63,7 @@ function onLoad(state)
     RTT_TURN_SEATS = d.turnSeats or RTT_TURN_SEATS
     if type(d.laid) == "table" then RTT_LAID = d.laid end
     RTT_PICK_N = d.pickN or RTT_PICK_N
+    if type(d.order) == "table" then RTT_ORDER = d.order end
     if #RTT_SEATS > 0 then rttPublishSeats() end
   end)
   pcall(function() rttSnapshotHand2() end)  -- parked hand-2 transforms, restored on every new game
@@ -1778,6 +1786,10 @@ function rttResetRunState()
   -- rttSpawnSelectors, but the manual path never did, so seats piled up across games in one session.
   RTT_SEATS      = {}
   RTT_PICK_N     = 0           -- pick ordering belongs to this game only
+  -- The draft's shuffle was NEVER cleared: it only ever got overwritten by the next rttDealOrder, so
+  -- a manual game started after a draft still carried the previous draft's person-to-seat mapping,
+  -- and anything reading it got last game's answer.
+  RTT_ORDER      = {}
   RTT_TURN_SEATS = nil         -- the seat COUNT outlived the seats and rebuilt orders out of nothing
   for _, k in ipairs({ "RTT_SEAT_POS", "RTT_SEAT_COLOR", "RTT_SEAT_PLAYER", "RTT_SEAT_RECORD" }) do
     pcall(function() Global.setVar(k, JSON.encode({})) end)
