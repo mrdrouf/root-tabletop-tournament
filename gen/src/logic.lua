@@ -1490,11 +1490,11 @@ end
 --   RankedArt     -> "4-Player Draft"     FourBoardsArt -> "4-Player Setup"
 --   FivePlayerArt -> "5-Player Draft"     FivePlayerSetupArt -> "5-Player Setup"
 RTT_WIPE_BTN = {
-  rttRankedBtn     = { fn = "rttSetup",              color = "#030411", icon = "RankedArt",          warn = "WipeConfirmArt" },
-  rttThemeBtn      = { fn = "rttTheme",              color = "#49514b", icon = "ThemeArt",           warn = "WipeConfirmArt" },
-  rttFourBoardsBtn = { fn = "setupFactionBoards",    color = "#3a2f22", icon = "FourBoardsArt",      warn = "WipeConfirmArt" },
-  Marsh5P          = { fn = "rttFivePStart",         color = "#463221", icon = "FivePlayerArt",      warn = "WipeConfirmArtWide" },
-  Marsh5PSetup     = { fn = "setupFivePlayerBoards", color = "#463221", icon = "FivePlayerSetupArt", warn = "WipeConfirmArtWide" },
+  rttRankedBtn     = { fn = "rttSetup",              color = "#030411", icon = "RankedArt",          warn = "WipeConfirmArt", warnMap = "WipeConfirmMapArt" },
+  rttThemeBtn      = { fn = "rttTheme",              color = "#49514b", icon = "ThemeArt",           warn = "WipeConfirmArt", warnMap = "WipeConfirmMapArt" },
+  rttFourBoardsBtn = { fn = "setupFactionBoards",    color = "#3a2f22", icon = "FourBoardsArt",      warn = "WipeConfirmArt", warnMap = "WipeConfirmMapArt" },
+  Marsh5P          = { fn = "rttFivePStart",         color = "#463221", icon = "FivePlayerArt",      warn = "WipeConfirmArtWide", warnMap = "WipeConfirmMapArtWide" },
+  Marsh5PSetup     = { fn = "setupFivePlayerBoards", color = "#463221", icon = "FivePlayerSetupArt", warn = "WipeConfirmArtWide", warnMap = "WipeConfirmMapArtWide" },
   -- 5-Players Marsh places the Marsh map and nothing else, so it can only ever cost you the map.
   -- BUTTONS.md used to say it "is not destructive, so it does not prompt"; it goes through
   -- rttPlaceMap -> makeMap -> removeMapItems like any other map placement, so that was simply wrong.
@@ -1701,42 +1701,7 @@ end
 -- what makes a disconnect/reconnect work with no special handling.
 -- All this does is re-assert the order (a colour freed or taken can change what TTS will step
 -- through) and re-publish, so the box score sees the same truth the board holds.
--- A DISC BELONGS TO A PERSON, NOT TO A COLOUR. It is drawn in the colour of whoever laid the warrior
--- down, so when that person changes seat the marker has to come with them -- the maintainer,
--- 2026-09-07: "I changed color and it did not change the color of the circle." Matched on the player
--- rather than the colour, because a colour can be handed to somebody else.
---
--- Redrawn rather than re-tinted: the transparency lives in the tile's ColorDiffuse alpha, and
--- setColorTint is not a reliable way to keep it.
-function rttRecolourLaidDiscs(newColor)
-  local me = nil
-  pcall(function() me = Player[newColor].steam_name end)
-  if me == nil or me == "" then return end
-  for guid, rec in pairs(RTT_LAID or {}) do
-    if rec ~= nil and rec.owner == me and rec.who ~= newColor and rec.mark == "glow" then
-      rec.who = newColor
-      pcall(function()
-        local o = getObjectFromGUID(guid)
-        if o ~= nil then o.highlightOn(rttMarkColor(newColor)) end
-      end)
-    end
-    if rec ~= nil and rec.owner == me and rec.who ~= newColor and rec.disc ~= nil then
-      local old = getObjectFromGUID(rec.disc)
-      if old ~= nil then
-        local pos, sc = old.getPosition(), old.getScale()
-        pcall(function() old.destruct() end)
-        rec.disc = nil
-        rec.who  = newColor
-        rttSpawnLaidDisc(newColor, pos.x, pos.y, pos.z, sc.x, function(o)
-          if RTT_LAID[guid] ~= nil then RTT_LAID[guid].disc = o.getGUID() end
-        end)
-      end
-    end
-  end
-end
-
 function onPlayerChangeColor(player_color)
-  pcall(function() rttRecolourLaidDiscs(player_color) end)
   if RTT_TURN_SEATS == nil then return end          -- no game set up yet: nothing to re-apply
   local keep = nil
   pcall(function() keep = Turns.turn_color end)
@@ -1899,6 +1864,18 @@ end
 -- So: the setup buttons say factions, because clearing the factions is what they are for; the map row
 -- and 5-Players Marsh say map. A button's warning no longer depends on the state of the table.
 function rttWarnArt(d)
+  -- ...BUT NEVER A WARNING FOR SOMETHING IT WILL NOT DO. The setup buttons clear the factions AND
+  -- re-place the map, so which of the two is at stake depends on the table: with factions out they
+  -- cost you the factions, and with none they cost you only the map. Saying "reset all factions" to a
+  -- table that has none is what the maintainer hit twice -- 2026-09-07: "still have a warning about
+  -- wiping factions while the only thing I spawned is a map", and then "This will reset the map BUT
+  -- ONLY IF IT INDEED DOES!!! some buttons do not".
+  --
+  -- Only the buttons that really do both carry warnMap. A map button has one effect and one wording,
+  -- and can never claim to touch a faction. This is not the old adaptive rule that swapped every
+  -- button's wording by table state: the faction warning still appears in every case where a faction
+  -- would actually be lost.
+  if d.warnMap ~= nil and not rttFactionsOnTable() then return d.warnMap end
   return d.warn
 end
 
@@ -6836,10 +6813,11 @@ function rttGizmoMark(color, mark)
     foot = b.center.y - b.size.y / 2
     wide = math.max(b.size.x, b.size.z) * 1.275   -- 15% smaller than the 1.5 it shipped at
   end
-  local owner = nil
-  pcall(function() owner = Player[color].steam_name end)
+  -- THE MARK KEEPS THE COLOUR IT WAS MADE IN. It followed the person for one build, so a colour change
+  -- redrew every disc they had put down -- which in hotseat, where one person holds every colour, moved
+  -- all of them at once. Maintainer, 2026-09-07: pin it "at the moment of the press".
   RTT_LAID[guid] = { rot = { r.x, r.y, r.z }, pos = { p.x, p.y, p.z }, disc = nil,
-                     who = color, owner = owner, mark = mark or "disc" }
+                     who = color, mark = mark or "disc" }
   pcall(function() hovered.setRotation({ 90, r.y, r.z }) end)   -- tips forward, away from the player
   -- The bounds only report the new shape once TTS has applied the rotation, so the drop and the lock
   -- wait a frame. Locking before that is what pinned it mid-air.

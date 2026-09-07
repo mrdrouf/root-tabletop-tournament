@@ -2399,18 +2399,26 @@ def t_the_five_player_buttons_warn_before_wiping(src):
     assert armed(rt) == "nil", "5-Players Marsh prompted on a clean table"
     assert rt.eval("RTT_5P_MARSH") is True, "5-Players Marsh did not run on a clean table"
 
-    # EACH BUTTON KEEPS ITS OWN WORDING, whatever is on the table. Maintainer, 2026-09-07: "Put back
-    # the appropriate warning to the appropriate buttons! since some buttons reset the map others the
-    # factions." It used to switch by table state, which meant a setup button said "reset the map" on a
-    # table with no faction down yet -- and that read as the faction warning having been deleted.
-    WORDING = (("rttArmMarsh5PMap", "Marsh5PMap",       "WipeConfirmMapArt"),   # places a map
-               ("rttArmMap",        "Summer Map",       "WipeConfirmMapArt"),   # ditto
-               ("rttArmMarsh5P",    "Marsh5P",          "WipeConfirmArt"),      # starts a game
-               ("rttArmFiveSetup",  "Marsh5PSetup",     "WipeConfirmArt"),
-               ("rttArmFour",       "rttFourBoardsBtn", "WipeConfirmArt"),
-               ("rttArmRanked",     "rttRankedBtn",     "WipeConfirmArt"))
+    # EVERY BUTTON WARNS ABOUT WHAT IT WILL ACTUALLY DO -- no more, and no less.
+    #
+    # A MAP button only ever places a map, so it says map whatever is on the table and can never claim
+    # to touch a faction. A SETUP button clears the factions AND re-places the map, so which of the two
+    # it costs you depends on what is out: with factions down it says factions, with none it says map.
+    #
+    # Both halves are the maintainer's, a day apart. "Put back the appropriate warning to the
+    # appropriate buttons! since some buttons reset the map others the factions" killed the old rule,
+    # which swapped EVERY button's wording by table state and read as the faction warning having been
+    # deleted. Then: "still have a warning about wiping factions while the only thing I spawned is a
+    # map", and "This will reset the map BUT ONLY IF IT INDEED DOES!!! some buttons do not".
+    WORDING = (("rttArmMarsh5PMap", "Marsh5PMap",       "WipeConfirmMapArt", "WipeConfirmMapArt"),
+               ("rttArmMap",        "Summer Map",       "WipeConfirmMapArt", "WipeConfirmMapArt"),
+               ("rttArmMarsh5P",    "Marsh5P",          "WipeConfirmMapArt", "WipeConfirmArt"),
+               ("rttArmFiveSetup",  "Marsh5PSetup",     "WipeConfirmMapArt", "WipeConfirmArt"),
+               ("rttArmFour",       "rttFourBoardsBtn", "WipeConfirmMapArt", "WipeConfirmArt"),
+               ("rttArmRanked",     "rttRankedBtn",     "WipeConfirmMapArt", "WipeConfirmArt"))
     for withFactions in (False, True):
-        for fn, bid, want in WORDING:
+        for fn, bid, mapOnly, withFac in WORDING:
+            want = withFac if withFactions else mapOnly
             rt = fresh_seated()
             rt.execute("pcall(function() makeMap(Player['Purple'],'','Summer Map') end) FLUSH(200)")
             if withFactions:
@@ -2419,7 +2427,7 @@ def t_the_five_player_buttons_warn_before_wiping(src):
             assert armed(rt) == bid, "%s did not warn (factions on table: %s)" % (bid, withFactions)
             got = icon(rt, bid)
             assert got.startswith(want), (
-                "%s shows %s with factions=%s; it should always show %s"
+                "%s shows %s with factions=%s; it should show %s"
                 % (bid, got, withFactions, want))
 
     # and the second click actually commits
@@ -2911,17 +2919,13 @@ def t_numpad_two_lays_a_warrior_down_and_back_up(src):
     assert abs(sc - 1.275) < 0.001, "the disc is not 1.275x the piece's footprint: %s" % sc
     assert rt.eval("#getObjectsWithTag('RTT Laid Disc')") == 1, "no disc was drawn under the piece"
 
-    # THE DISC BELONGS TO A PERSON. Change seat and it comes with you -- "I changed color and it did
-    # not change the color of the circle". Matched on the player, not the colour, because a colour can
-    # be handed to somebody else.
+    # PINNED AT THE PRESS. It followed the player for one build; in hotseat, where one person holds
+    # every colour, changing colour then moved every disc they had put down at once. "Pin it at the
+    # moment of the press" (2026-09-07).
     rt.execute("LASTJSON = nil SEAT('Yellow', Player['Red'].steam_name) "
                "onPlayerChangeColor('Yellow') FLUSH(5)")
-    moved = rt.eval("LASTJSON") or ""
-    yellow = rt.eval("RTT_PLAYER_RGB['Yellow']")
-    assert '"g":%s' % round(yellow[2], 3) in moved.replace(" ", ""), \
-        "the disc did not follow its owner to the new colour: %s" % moved[:200]
-    assert rt.eval("#getObjectsWithTag('RTT Laid Disc')") == 1, \
-        "recolouring left a second disc behind"
+    assert not rt.eval("LASTJSON"), "changing colour redrew the disc; it is pinned now"
+    assert rt.eval("#getObjectsWithTag('RTT Laid Disc')") == 1, "the disc did not survive a colour change"
 
     # and it all comes back
     rt.execute('HOVER["Red"] = MINE rttGizmoLay("Red") FLUSH(3)')
@@ -3089,9 +3093,22 @@ def t_no_warning_when_there_is_nothing_to_wipe(src):
     assert rt.eval("rttWouldWipe(false)") is True, "a map on the table did not warn"
     assert rt.eval("rttWouldWipe(true)") is True, "a map on the table did not warn a map button"
 
+    # ...and the WORDING follows what that button is really about to take away. A setup button clears
+    # the factions AND re-places the map, so with no factions out the truthful half is the map --
+    # "This will reset the map BUT ONLY IF IT INDEED DOES!!! some buttons do not" (2026-09-07).
+    setup = rt.eval("RTT_WIPE_BTN['rttFourBoardsBtn']")
+    amap  = rt.eval("RTT_WIPE_BTN['Summer Map']")
+    assert rt.eval("rttWarnArt")(setup) == "WipeConfirmMapArt", \
+        "a setup button says factions when there are none: %s" % rt.eval("rttWarnArt")(setup)
+    assert rt.eval("rttWarnArt")(amap) == "WipeConfirmMapArt", "a map button changed its wording"
+
     # and so is a faction, on its own
     rt.execute("MAPBIT.destruct() MKOBJ('Eyrie Warrior', {2,1,2}, {'RTT Faction'})")
     assert rt.eval("rttWouldWipe(false)") is True, "a faction on the table did not warn"
+    assert rt.eval("rttWarnArt")(setup) == "WipeConfirmArt", \
+        "with factions out a setup button must warn about the FACTIONS"
+    assert rt.eval("rttWarnArt")(amap) == "WipeConfirmMapArt", \
+        "a map button must never claim to reset factions -- it does not touch them"
 
 
 def t_the_gizmo_follows_the_faction_you_last_picked(src):
@@ -3162,11 +3179,10 @@ def t_numpad_three_lights_the_piece_instead(src):
     assert rt.eval("#getObjectsWithTag('RTT Laid Disc')") == 0, \
         "numpad 3 drew a disc as well; it is the alternative to one, not an addition"
 
-    # the glow follows its owner, exactly as the disc does
+    # pinned at the press, exactly as the disc is
     rt.execute("SEAT('Yellow', Player['Red'].steam_name) onPlayerChangeColor('Yellow') FLUSH(5)")
-    yellow = rt.eval("RTT_PLAYER_RGB['Yellow']")
-    assert round(rt.eval("W.__glow").g, 3) == round(yellow[2], 3), \
-        "the glow did not follow its owner to the new colour"
+    assert round(rt.eval("W.__glow").r, 3) == round(red[1], 3), \
+        "changing colour repainted the glow; it is pinned at the press"
 
     # and pressing again puts everything back
     rt.execute('HOVER["Red"] = W rttGizmoGlow("Red") FLUSH(3)')
