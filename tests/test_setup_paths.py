@@ -2544,6 +2544,48 @@ def t_send_home_fills_from_the_players_own_right(src):
                 % (fac, piece, where, xs))
 
 
+def t_the_turn_panel_button_really_swaps_them(src):
+    """Pressing Turn Panel must REMOVE the clock and counter, and pressing it again bring them back.
+
+    Maintainer, 2026-09-07, with a screenshot of both sitting on top of each other: "not replacing
+    properly clock and counter when chosen".
+
+    The cause was a name lookup. The clock and counter ship with a BLANK Nickname, and TTS's getName()
+    returns the nickname -- so rttFixture("Digital_Clock") matched nothing in the game and the toggle
+    had nothing to destroy. The harness could not see it, because the stub falls back to an object's
+    Name when its nickname is empty, which TTS does not do.
+
+    So this checks by TAG, which is what the code now uses and what the stub cannot fake.
+    """
+    COUNT = ("function(t) return #getObjectsWithTag(t) end")
+    rt = fresh(src)
+    rt.execute("SEAT('Purple','H1')")
+    rt.execute("pcall(function() makeMap(Player['Purple'],'','Summer Map') end) FLUSH(200)")
+    n = rt.eval(COUNT)
+    assert n("RTT Clock") == 1 and n("RTT Counter") == 1, \
+        "the map should place one clock and one counter, got %d/%d" % (n("RTT Clock"), n("RTT Counter"))
+    assert n("RTT Panel") == 0, "the panel is out before anyone pressed its button"
+
+    rt.execute("pcall(function() rttToggleTurnPanel() end) FLUSH(60)")
+    assert n("RTT Panel") == 1, "the button did not put the panel out"
+    assert n("RTT Clock") == 0 and n("RTT Counter") == 0, \
+        "the clock/counter survived the swap (%d/%d) -- they would sit on top of the panel" % (
+            n("RTT Clock"), n("RTT Counter"))
+
+    # a map change must not bring them back while the panel is out
+    rt.execute("pcall(function() makeMap(Player['Purple'],'','Marsh Map') end) FLUSH(200)")
+    assert n("RTT Clock") == 0 and n("RTT Counter") == 0, \
+        "a map change re-spawned the clock/counter under the panel"
+    assert n("RTT Panel") == 1, "the panel did not survive a map change"
+
+    # and pressing again puts them back
+    rt.execute("pcall(function() rttToggleTurnPanel() end) FLUSH(60)")
+    assert n("RTT Panel") == 0, "the second press left the panel out"
+    assert n("RTT Clock") == 1 and n("RTT Counter") == 1, \
+        "the second press did not restore the clock and counter (%d/%d)" % (
+            n("RTT Clock"), n("RTT Counter"))
+
+
 CASES = [
     ("manual path drives the turn system",   t_manual_turn_order),
     ("manual path spawns 4 / 5 boards",      t_boards_spawn),
@@ -2558,6 +2600,7 @@ CASES = [
     ("duchy burrow spawns locked",           t_the_duchy_burrow_spawns_locked),
     ("camera states are the host's",         t_camera_states_are_the_hosts),
     ("turn panel is an option",            t_the_turn_panel_is_an_option_not_the_default),
+    ("turn panel button swaps them",       t_the_turn_panel_button_really_swaps_them),
     ("crow plots inside the hidden zone",    t_crow_plots_spawn_inside_the_hidden_zone),
     ("crafted board same side for all",      t_crafted_board_sits_the_same_side_for_every_faction),
     ("no setup card on crafted board",       t_no_setup_card_rides_on_the_crafted_board),

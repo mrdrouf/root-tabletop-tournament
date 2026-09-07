@@ -2914,12 +2914,16 @@ RTT_BOXSCORE_TAG = "RTT BoxScore"
 -- actually missing; a new game still gets a fresh sheet, because rttNewGame drops it explicitly.
 RTT_FIXTURE_TAG = "RTT Fixture"
 
-function rttFixture(name)
-  for _, o in ipairs(getObjectsWithTag(RTT_FIXTURE_TAG)) do
-    local ok, n = pcall(function() return o.getName() end)
-    if ok and n == name then return o end
-  end
-  return nil
+-- BY TAG, NOT BY NAME. The clock and the counter ship with a BLANK Nickname, and TTS's getName()
+-- returns the nickname -- so matching on "Digital_Clock" found nothing in the game and the panel could
+-- not remove them: the maintainer got both on top of each other. The harness hid it, because the stub
+-- falls back to the object's Name when the nickname is empty. Every fixture now carries its own tag.
+RTT_TAG_CLOCK, RTT_TAG_COUNTER, RTT_TAG_PANEL, RTT_TAG_MAT =
+  "RTT Clock", "RTT Counter", "RTT Panel", "RTT Mat"
+
+function rttFixture(tag)
+  local t = getObjectsWithTag(tag)
+  return (t ~= nil and #t > 0) and t[1] or nil
 end
 
 RTT_PICK_DEFS = {
@@ -3379,7 +3383,7 @@ RTT_COUNTER_POS = { 29.6331, 11.5150, -20.8561 }
 RTT_TIMER_ROT   = { 90.0000, 359.9836, 0.0000 }
 RTT_COUNTER_ROT = { -0.0000, -0.0001, -0.0000 }
 
-RTT_TURN_PANEL_JSON = [====[{"Name":"Custom_Tile","Transform":{"posX":0.0,"posY":11.56,"posZ":0.0,"rotX":0.0,"rotY":180.0,"rotZ":0.0,"scaleX":6.2,"scaleY":1.0,"scaleZ":6.2},"Nickname":"Turn Panel","Description":"Round, turn clock, and the start-of-game buttons.","GMNotes":"","ColorDiffuse":{"r":0.0,"g":0.0,"b":0.0},"Locked":true,"Grid":true,"Snap":true,"IgnoreFoW":false,"MeasureMovement":false,"DragSelectable":true,"Autoraise":true,"Sticky":true,"Tooltip":true,"GridProjection":false,"HideWhenFaceDown":false,"Hands":false,"CustomImage":{"ImageURL":"https://cdn.jsdelivr.net/gh/mrdrouf/root-tabletop-tournament@main/assets/labels/turn_panel_54b12ce4.png","ImageSecondaryURL":"","ImageScalar":1.0,"WidthScale":0.0,"CustomTile":{"Type":0,"Thickness":0.1,"Stackable":false,"Stretch":true}},"LuaScript":"-- RTT TURN PANEL -- optional replacement for the clock and counter (its button toggles it).\n-- Owns no game state: the ROUND is read from the box score so the two counters cannot drift, and the\n-- per-player turn LENGTHS are recorded by the sheet and shown beside each name.\n\n-- Geometry as fractions of the ART (880x600). A Custom_Tile with WidthScale 0 takes the image's\n-- aspect, so x runs -1..+1 across the width and z runs -1/A..+1/A down the height. Everything below is\n-- \"where it sits in the picture\", so moving the art moves the buttons with it.\nIMG_W, IMG_H = 880, 600\nlocal function LX(px) return 2 * px / IMG_W - 1 end\nlocal function LZ(py) return (2 * py / IMG_H - 1) / (IMG_W / IMG_H) end\n\nPANEL_START = nil          -- os.time when the turn in progress began; nil = not started\nPANEL_DEALT = false\nPANEL_TURN  = nil\n\nfunction onSave() return JSON.encode({ s = PANEL_START, d = PANEL_DEALT, t = PANEL_TURN }) end\n\nfunction onLoad(state)\n  pcall(function()\n    if state ~= nil and state ~= \"\" then\n      local d = JSON.decode(state)\n      if type(d) == \"table\" then PANEL_START=d.s; PANEL_DEALT=(d.d==true); PANEL_TURN=d.t end\n    end\n  end)\n  buildPanel()\n  Wait.time(panelTick, 0.25, -1)\nend\n\nfunction sheet()\n  local t = getObjectsWithTag(\"RTT BoxScore\")\n  return (t ~= nil and #t > 0) and t[1] or nil\nend\n\nfunction buildPanel()\n  self.clearButtons()\n  -- readouts: invisible, inert, label-only\n  self.createButton({ click_function=\"panelNop\", function_owner=self, label=\"-\",\n    position={ LX(246), 0.2, LZ(245) }, width=0, height=0, font_size=150,\n    font_color={0.10,0.08,0.05} })\n  self.createButton({ click_function=\"panelNop\", function_owner=self, label=\"0:00\",\n    position={ LX(634), 0.2, LZ(245) }, width=0, height=0, font_size=130,\n    font_color={0.10,0.08,0.05} })\n  if not PANEL_DEALT then\n    self.createButton({ click_function=\"panelDeal\", function_owner=self, label=\"DEAL 5 CARDS\",\n      position={ LX(440), 0.2, LZ(400) }, width=520, height=80, font_size=54,\n      color={0.86,0.78,0.60}, font_color={0.10,0.08,0.05},\n      tooltip=\"Deal five cards to every seated player\" })\n  end\n  self.createButton({ click_function=\"panelStart\", function_owner=self, label=\"START TURN 1\",\n    position={ LX(440), 0.2, LZ(500) }, width=520, height=80, font_size=54,\n    color={0.80,0.68,0.42}, font_color={0.10,0.08,0.05},\n    tooltip=\"Start the clock and set the box score to round 1, first seat\" })\nend\n\nfunction panelNop() end\n\n-- index 0 = round, 1 = clock; then deal (when shown) and start. editButton by index relabels in place.\nfunction panelTick()\n  local r = \"-\"\n  pcall(function()\n    local s = sheet()\n    if s ~= nil then local v = s.call(\"rttRound\"); if v ~= nil then r = tostring(v) end end\n  end)\n  pcall(function() self.editButton({ index = 0, label = r }) end)\n  local cur = nil\n  pcall(function() cur = Turns.turn_color end)\n  if cur ~= nil and cur ~= \"\" and cur ~= PANEL_TURN then\n    PANEL_TURN = cur\n    if PANEL_START ~= nil then PANEL_START = os.time() end\n  end\n  local txt = \"0:00\"\n  if PANEL_START ~= nil then\n    local n = os.time() - PANEL_START\n    if n < 0 then n = 0 end\n    txt = string.format(\"%d:%02d\", math.floor(n/60), n % 60)\n  end\n  pcall(function() self.editButton({ index = 1, label = txt }) end)\nend\n\nfunction panelStart()\n  PANEL_START = os.time()\n  pcall(function()\n    local o = Turns.order\n    if o ~= nil and #o > 0 then Turns.turn_color = o[1] end\n    PANEL_TURN = Turns.turn_color\n  end)\n  pcall(function() local s = sheet() if s ~= nil then s.call(\"rttStartTurnOne\") end end)\n  broadcastToAll(\"Turn 1.\", { r=0.85, g=0.75, b=0.55 })\nend\n\nfunction panelDeal()\n  if PANEL_DEALT then return end\n  local deck = nil\n  for _, o in ipairs(getObjectsWithTag(\"Deck Object\")) do\n    local ok, n = pcall(function() return o.getQuantity() end)\n    if ok and n ~= nil and n > 20 then deck = o break end\n  end\n  if deck == nil then\n    broadcastToAll(\"Deal 5: no deck on the table.\", { r=1, g=0.6, b=0.2 }) return\n  end\n  local n = 0\n  for _, p in ipairs(Player.getPlayers()) do\n    if p.seated and p.color ~= \"Grey\" and p.color ~= \"Black\" then\n      pcall(function() deck.deal(5, p.color) end); n = n + 1\n    end\n  end\n  if n == 0 then broadcastToAll(\"Deal 5: nobody is seated.\", { r=1, g=0.6, b=0.2 }) return end\n  PANEL_DEALT = true\n  buildPanel()\n  broadcastToAll(\"Dealt 5 cards to \" .. n .. \" player(s).\", { r=0.85, g=0.75, b=0.55 })\nend\n","LuaScriptState":"","XmlUI":""}]====]
+RTT_TURN_PANEL_JSON = [====[{"Name":"Custom_Tile","Transform":{"posX":0.0,"posY":11.56,"posZ":0.0,"rotX":0.0,"rotY":180.0,"rotZ":0.0,"scaleX":4.6,"scaleY":1.0,"scaleZ":4.6},"Nickname":"Turn Panel","Description":"Round, turn clock, and the start-of-game buttons.","GMNotes":"","ColorDiffuse":{"r":0.0,"g":0.0,"b":0.0},"Locked":true,"Grid":true,"Snap":true,"IgnoreFoW":false,"MeasureMovement":false,"DragSelectable":true,"Autoraise":true,"Sticky":true,"Tooltip":true,"GridProjection":false,"HideWhenFaceDown":false,"Hands":false,"CustomImage":{"ImageURL":"https://cdn.jsdelivr.net/gh/mrdrouf/root-tabletop-tournament@main/assets/labels/turn_panel_73a76d2e.png","ImageSecondaryURL":"","ImageScalar":1.0,"WidthScale":0.0,"CustomTile":{"Type":0,"Thickness":0.1,"Stackable":false,"Stretch":true}},"LuaScript":"-- RTT TURN PANEL -- optional replacement for the clock and counter (its button toggles it).\n-- Owns no game state: the ROUND is read from the box score so the two counters cannot drift, and the\n-- per-player turn LENGTHS are recorded by the sheet and shown beside each name.\n\n-- SIZES ARE ZERO ON PURPOSE. A TTS button with width/height 0 sizes itself to its label; the first\n-- build gave the two action buttons explicit 520x80 and neither of them rendered at all, while the\n-- auto-sized readouts came out fine. Do not put numbers back without checking at the table.\n-- Geometry as fractions of the ART (880x520). A Custom_Tile with WidthScale 0 takes the image's\n-- aspect, so x runs -1..+1 across the width and z runs -1/A..+1/A down the height. Everything below is\n-- \"where it sits in the picture\", so moving the art moves the buttons with it.\nIMG_W, IMG_H = 880, 520\nlocal function LX(px) return 2 * px / IMG_W - 1 end\nlocal function LZ(py) return (2 * py / IMG_H - 1) / (IMG_W / IMG_H) end\n\nPANEL_START = nil          -- os.time when the turn in progress began; nil = not started\nPANEL_DEALT = false\nPANEL_TURN  = nil\n\nfunction onSave() return JSON.encode({ s = PANEL_START, d = PANEL_DEALT, t = PANEL_TURN }) end\n\nfunction onLoad(state)\n  pcall(function()\n    if state ~= nil and state ~= \"\" then\n      local d = JSON.decode(state)\n      if type(d) == \"table\" then PANEL_START=d.s; PANEL_DEALT=(d.d==true); PANEL_TURN=d.t end\n    end\n  end)\n  buildPanel()\n  Wait.time(panelTick, 0.25, -1)\nend\n\nfunction sheet()\n  local t = getObjectsWithTag(\"RTT BoxScore\")\n  return (t ~= nil and #t > 0) and t[1] or nil\nend\n\nfunction buildPanel()\n  self.clearButtons()\n  -- readouts: invisible, inert, label-only\n  self.createButton({ click_function=\"panelNop\", function_owner=self, label=\"-\",\n    position={ LX(246), 0.2, LZ(187) }, width=0, height=0, font_size=170,\n    font_color={0.10,0.08,0.05} })\n  self.createButton({ click_function=\"panelNop\", function_owner=self, label=\"0:00\",\n    position={ LX(634), 0.2, LZ(187) }, width=0, height=0, font_size=150,\n    font_color={0.10,0.08,0.05} })\n  if not PANEL_DEALT then\n    self.createButton({ click_function=\"panelDeal\", function_owner=self, label=\"DEAL 5 CARDS\",\n      position={ LX(440), 0.2, LZ(350) }, width=0, height=0, font_size=90,\n      color={0.86,0.78,0.60}, font_color={0.10,0.08,0.05},\n      tooltip=\"Deal five cards to every seated player\" })\n  end\n  self.createButton({ click_function=\"panelStart\", function_owner=self, label=\"START TURN 1\",\n    position={ LX(440), 0.2, LZ(440) }, width=0, height=0, font_size=90,\n    color={0.80,0.68,0.42}, font_color={0.10,0.08,0.05},\n    tooltip=\"Start the clock and set the box score to round 1, first seat\" })\nend\n\nfunction panelNop() end\n\n-- index 0 = round, 1 = clock; then deal (when shown) and start. editButton by index relabels in place.\nfunction panelTick()\n  local r = \"-\"\n  pcall(function()\n    local s = sheet()\n    if s ~= nil then local v = s.call(\"rttRound\"); if v ~= nil then r = tostring(v) end end\n  end)\n  pcall(function() self.editButton({ index = 0, label = r }) end)\n  local cur = nil\n  pcall(function() cur = Turns.turn_color end)\n  if cur ~= nil and cur ~= \"\" and cur ~= PANEL_TURN then\n    PANEL_TURN = cur\n    if PANEL_START ~= nil then PANEL_START = os.time() end\n  end\n  local txt = \"0:00\"\n  if PANEL_START ~= nil then\n    local n = os.time() - PANEL_START\n    if n < 0 then n = 0 end\n    txt = string.format(\"%d:%02d\", math.floor(n/60), n % 60)\n  end\n  pcall(function() self.editButton({ index = 1, label = txt }) end)\nend\n\nfunction panelStart()\n  PANEL_START = os.time()\n  pcall(function()\n    local o = Turns.order\n    if o ~= nil and #o > 0 then Turns.turn_color = o[1] end\n    PANEL_TURN = Turns.turn_color\n  end)\n  pcall(function() local s = sheet() if s ~= nil then s.call(\"rttStartTurnOne\") end end)\n  broadcastToAll(\"Turn 1.\", { r=0.85, g=0.75, b=0.55 })\nend\n\nfunction panelDeal()\n  if PANEL_DEALT then return end\n  local deck = nil\n  for _, o in ipairs(getObjectsWithTag(\"Deck Object\")) do\n    local ok, n = pcall(function() return o.getQuantity() end)\n    if ok and n ~= nil and n > 20 then deck = o break end\n  end\n  if deck == nil then\n    broadcastToAll(\"Deal 5: no deck on the table.\", { r=1, g=0.6, b=0.2 }) return\n  end\n  local n = 0\n  for _, p in ipairs(Player.getPlayers()) do\n    if p.seated and p.color ~= \"Grey\" and p.color ~= \"Black\" then\n      pcall(function() deck.deal(5, p.color) end); n = n + 1\n    end\n  end\n  if n == 0 then broadcastToAll(\"Deal 5: nobody is seated.\", { r=1, g=0.6, b=0.2 }) return end\n  PANEL_DEALT = true\n  buildPanel()\n  broadcastToAll(\"Dealt 5 cards to \" .. n .. \" player(s).\", { r=0.85, g=0.75, b=0.55 })\nend\n","LuaScriptState":"","XmlUI":""}]====]
 
 
 -- THE TURN PANEL, in place of the old clock and counter. Maintainer, 2026-09-06: "in stead of the
@@ -3399,9 +3403,9 @@ function rttSpawnMapExtras()
   -- pressed -- maintainer, 2026-09-07, seeing the first draft: "at the moment make this an option to
   -- replace the clock and counter. make an option button for that so while we work on it the rest can
   -- keep being functional." So nothing here knows about the panel; rttSpawnTurnPanel does the swap.
-  if rttFixture("Turn Panel") ~= nil then return end   -- the panel is in charge of this corner
-  for _, e in ipairs({ { RTT_TIMER_JSON, RTT_TIMER_POS, RTT_TIMER_ROT, "Digital_Clock" },
-                       { RTT_COUNTER_JSON, RTT_COUNTER_POS, RTT_COUNTER_ROT, "Counter" } }) do
+  if rttFixture(RTT_TAG_PANEL) ~= nil then return end   -- the panel is in charge of this corner
+  for _, e in ipairs({ { RTT_TIMER_JSON, RTT_TIMER_POS, RTT_TIMER_ROT, RTT_TAG_CLOCK },
+                       { RTT_COUNTER_JSON, RTT_COUNTER_POS, RTT_COUNTER_ROT, RTT_TAG_COUNTER } }) do
     if rttFixture(e[4]) == nil then                -- already on the table: leave it alone
       spawnObjectJSON({
         json = e[1],
@@ -3410,6 +3414,7 @@ function rttSpawnMapExtras()
         callback_function = function(o)
           pcall(function()
             local t = o.getTags(); table.insert(t, "Map Object"); table.insert(t, RTT_FIXTURE_TAG)
+            table.insert(t, e[4])
             o.setTags(t)
           end)
         end
@@ -3421,10 +3426,9 @@ end
 -- THE TURN PANEL BUTTON. Swaps the clock and counter for the panel, or the panel back for them, so the
 -- table stays usable while the panel is still being shaped.
 function rttToggleTurnPanel()
-  local had = rttFixture("Turn Panel")
-  for _, n in ipairs({ "Turn Panel", "Digital_Clock", "Counter" }) do
-    local o = rttFixture(n)
-    if o ~= nil then pcall(function() o.destruct() end) end
+  local had = rttFixture(RTT_TAG_PANEL)
+  for _, tg in ipairs({ RTT_TAG_PANEL, RTT_TAG_CLOCK, RTT_TAG_COUNTER }) do
+    for _, o in ipairs(getObjectsWithTag(tg)) do pcall(function() o.destruct() end) end
   end
   if had ~= nil then
     Wait.frames(function() pcall(function() rttSpawnMapExtras() end) end, 2)   -- back to clock+counter
@@ -3437,6 +3441,7 @@ function rttToggleTurnPanel()
     callback_function = function(o)
       pcall(function()
         local t = o.getTags(); table.insert(t, "Map Object"); table.insert(t, RTT_FIXTURE_TAG)
+        table.insert(t, RTT_TAG_PANEL)
         o.setTags(t)
       end)
       pcall(function() o.setLock(true) end)
@@ -5670,11 +5675,13 @@ function makeMap(player,value,id,keepBoard)
   -- so removeMapItems above clears the previous one and there is never a second. Maintainer 2026-09-04:
   -- "spawn automatically when any map is selected... remove the battle map option button".
   Wait.frames(function()
-    if rttFixture("Battle Mat") == nil then
+    if rttFixture(RTT_TAG_MAT) == nil then
       makeSpecialWithTag("Tools", "Battle Mat", 33.17, 1.55, 9.21, "Map Object")
       Wait.frames(function()
         for _, o in ipairs(getObjectsWithTag("Map Object")) do
-          pcall(function() if o.getName() == "Battle Mat" then o.addTag(RTT_FIXTURE_TAG) end end)
+          pcall(function()
+            if o.getName() == "Battle Mat" then o.addTag(RTT_FIXTURE_TAG) o.addTag(RTT_TAG_MAT) end
+          end)
         end
       end, 2)
     end
