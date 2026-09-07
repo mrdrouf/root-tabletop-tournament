@@ -2311,6 +2311,73 @@ def t_every_new_game_button_leaves_the_five_player_marsh(src):
             assert towns == 0, "%s: %d town landmark(s) survived into a four-player game" % (label, towns)
 
 
+def t_the_five_player_buttons_warn_before_wiping(src):
+    """The 5-player buttons must warn when they reset factions OR the map.
+
+    Maintainer, 2026-09-06: "the options buttons should also have the warnings when they reset factions
+    or maps", naming "the 5 players draft, 5 players marsh, 5 player setup option buttons".
+
+    Two separate holes. 5-Players Marsh had NO wipe entry at all, so it replaced the map on a single
+    click with no prompt -- BUTTONS.md even claimed it "is not destructive". And the other two only
+    consulted rttWouldWipe's FACTION tags, which was right until rttNewGame started re-placing the map:
+    after that, starting a game on a table with a map but no factions destroyed the map silently.
+
+    The wording follows what is actually at stake. A button that clears factions and the map should not
+    promise to "reset all factions" when there is not a faction in sight, so with only a map down it
+    shows the map warning instead.
+    """
+    def icon(rt, bid):
+        return rt.eval("function(b) return tostring(UIATTR[b .. '.icon']) end")(bid)
+    def armed(rt):
+        return rt.eval("function() return tostring(RTT_ARM and RTT_ARM.id) end")()
+    def fresh_seated():
+        rt = fresh(src)
+        rt.execute("SEAT('Purple','H1') SEAT('Blue','H2')")
+        return rt
+    def click(rt, fn, bid):
+        rt.execute("pcall(function() %s(Player['Purple'],'','%s') end) FLUSH_UNTIL(0.5,4)" % (fn, bid))
+
+    # nothing on the table: no prompt, the click just runs -- the rule the other buttons already follow
+    rt = fresh_seated()
+    click(rt, "rttArmMarsh5PMap", "Marsh5PMap")
+    assert armed(rt) == "nil", "5-Players Marsh prompted on a clean table"
+    assert rt.eval("RTT_5P_MARSH") is True, "5-Players Marsh did not run on a clean table"
+
+    # a map down: all three arm, and say MAP because no faction is at stake
+    for fn, bid in (("rttArmMarsh5PMap", "Marsh5PMap"),
+                    ("rttArmMarsh5P",    "Marsh5P"),
+                    ("rttArmFiveSetup",  "Marsh5PSetup"),
+                    ("rttArmFour",       "rttFourBoardsBtn"),
+                    ("rttArmRanked",     "rttRankedBtn")):
+        rt = fresh_seated()
+        rt.execute("pcall(function() makeMap(Player['Purple'],'','Summer Map') end) FLUSH(200)")
+        click(rt, fn, bid)
+        assert armed(rt) == bid, "%s did not warn with a map on the table" % bid
+        assert icon(rt, bid).startswith("WipeConfirmMap"), \
+            "%s warned about factions when only the map was at stake: %s" % (bid, icon(rt, bid))
+
+    # factions down: the faction wording comes back
+    for fn, bid in (("rttArmMarsh5P",   "Marsh5P"),
+                    ("rttArmFiveSetup", "Marsh5PSetup"),
+                    ("rttArmRanked",    "rttRankedBtn")):
+        rt = fresh_seated()
+        rt.execute("pcall(function() makeMap(Player['Purple'],'','Summer Map') end) FLUSH(200)")
+        rt.execute("pcall(function() setupFactionBoards(nil,nil,nil) end) FLUSH(200)")
+        click(rt, fn, bid)
+        assert armed(rt) == bid, "%s did not warn with factions on the table" % bid
+        got = icon(rt, bid)
+        assert got.startswith("WipeConfirmArt"), \
+            "%s should warn about factions when factions are on the table, showed %s" % (bid, got)
+
+    # and the second click actually commits
+    rt = fresh_seated()
+    rt.execute("pcall(function() makeMap(Player['Purple'],'','Summer Map') end) FLUSH(200)")
+    click(rt, "rttArmMarsh5PMap", "Marsh5PMap")
+    rt.execute("pcall(function() rttArmMarsh5PMap(Player['Purple'],'','Marsh5PMap') end) FLUSH(200)")
+    assert armed(rt) == "nil", "the commit click left the button armed"
+    assert rt.eval("RTT_5P_MARSH") is True, "the commit click did not place the 5-player Marsh"
+
+
 CASES = [
     ("manual path drives the turn system",   t_manual_turn_order),
     ("manual path spawns 4 / 5 boards",      t_boards_spawn),
@@ -2354,6 +2421,7 @@ CASES = [
     ("a click is userdata, not a table",    t_a_button_click_is_recognised_when_the_player_is_userdata),
     ("new game refreshes the map",          t_a_new_game_refreshes_the_map_but_keeps_the_board),
     ("every new-game button leaves 5P",     t_every_new_game_button_leaves_the_five_player_marsh),
+    ("5-player buttons warn first",         t_the_five_player_buttons_warn_before_wiping),
     ("map buttons warn before wiping",       t_map_buttons_warn_before_wiping),
     ("gizmo default key is numpad 0",         t_gizmo_default_key_is_numpad_zero),
     ("gizmo: warrior to/from supply",         t_gizmo_warrior_to_and_from_supply),

@@ -21,7 +21,7 @@ Every row sits half an option button (8.5) lower than it used to, so the top row
 
 ## Start a game
 
-These four are **destructive** — they clear the current game. Each asks first: one click turns the
+These are **destructive** — they clear the current game, and the map with it. Each asks first: one click turns the
 button red and reads *"This will reset all factions."*, a second click within 3 seconds goes ahead, and
 it reverts on its own if you leave it. **If there is nothing to wipe, there is no prompt** — the button
 just runs. Clicks are ignored while a setup is still loading (they are dropped, never queued).
@@ -34,8 +34,15 @@ just runs. Clicks are ignored while a setup is still loading (they are dropped, 
 | **5-Player Draft** | `rttArmMarsh5P` → `rttFivePStart` | 5-player Marsh ranked draft: Marsh map, 6-card draft. |
 | **5-Player Setup** | `rttArmFiveSetup` → `setupFivePlayerBoards` | Five manual selector boards and nothing else -- the 5-player counterpart of 4-Player Setup. |
 
-**Marsh 5P** (`rttPlaceMarsh5P`) places *only* the 5-player Marsh board — no draft, no seating.
-It is not destructive, so it does not prompt.
+**5-Players Marsh** (`rttArmMarsh5PMap` → `rttPlaceMarsh5P`) places *only* the 5-player Marsh board —
+no draft, no seating. It IS destructive: it goes through `rttPlaceMap` → `makeMap` → `removeMapItems`
+like any other map placement, so it prompts when a map is already down. This page used to claim the
+opposite, which is how it stayed the one destructive button with no warning.
+
+**What the prompt says depends on what is at stake.** A setup button clears the factions *and*, since
+a new game re-places the map (`rttRefreshMap`), the map. With factions on the table it reads *"This
+will reset all factions."*; with only a map down it reads *"This will reset the current map."* instead,
+rather than promising to reset factions that are not there.
 
 ## Maps
 

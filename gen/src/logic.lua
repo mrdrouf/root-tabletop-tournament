@@ -1983,11 +1983,15 @@ end
 --   RankedArt     -> "4-Player Draft"     FourBoardsArt -> "4-Player Setup"
 --   FivePlayerArt -> "5-Player Draft"     FivePlayerSetupArt -> "5-Player Setup"
 RTT_WIPE_BTN = {
-  rttRankedBtn     = { fn = "rttSetup",              color = "#030411", icon = "RankedArt",          warn = "WipeConfirmArt" },
-  rttThemeBtn      = { fn = "rttTheme",              color = "#49514b", icon = "ThemeArt",           warn = "WipeConfirmArt" },
-  rttFourBoardsBtn = { fn = "setupFactionBoards",    color = "#3a2f22", icon = "FourBoardsArt",      warn = "WipeConfirmArt" },
-  Marsh5P          = { fn = "rttFivePStart",         color = "#463221", icon = "FivePlayerArt",      warn = "WipeConfirmArtWide" },
-  Marsh5PSetup     = { fn = "setupFivePlayerBoards", color = "#463221", icon = "FivePlayerSetupArt", warn = "WipeConfirmArtWide" },
+  rttRankedBtn     = { fn = "rttSetup",              color = "#030411", icon = "RankedArt",          warn = "WipeConfirmArt", warnMap = "WipeConfirmMapArt" },
+  rttThemeBtn      = { fn = "rttTheme",              color = "#49514b", icon = "ThemeArt",           warn = "WipeConfirmArt", warnMap = "WipeConfirmMapArt" },
+  rttFourBoardsBtn = { fn = "setupFactionBoards",    color = "#3a2f22", icon = "FourBoardsArt",      warn = "WipeConfirmArt", warnMap = "WipeConfirmMapArt" },
+  Marsh5P          = { fn = "rttFivePStart",         color = "#463221", icon = "FivePlayerArt",      warn = "WipeConfirmArtWide", warnMap = "WipeConfirmMapArtWide" },
+  Marsh5PSetup     = { fn = "setupFivePlayerBoards", color = "#463221", icon = "FivePlayerSetupArt", warn = "WipeConfirmArtWide", warnMap = "WipeConfirmMapArtWide" },
+  -- 5-Players Marsh places the Marsh map and nothing else, so it can only ever cost you the map.
+  -- BUTTONS.md used to say it "is not destructive, so it does not prompt"; it goes through
+  -- rttPlaceMap -> makeMap -> removeMapItems like any other map placement, so that was simply wrong.
+  Marsh5PMap       = { fn = "rttPlaceMarsh5P",       color = "#81745b", icon = "Marsh5PLabel",       warn = "WipeConfirmMapArtWide" },
   -- THE MAP BUTTONS. Maintainer, 2026-09-06: they should warn like the faction buttons do. They are
   -- destructive -- makeMap clears everything tagged "Map Object" (the map, the battle mat, the
   -- priority markers, the timer, the counter, the box score) and on the Marsh re-rolls the flood and
@@ -2306,10 +2310,29 @@ end
 -- prompt -- the same rule the setup buttons already follow.
 function rttWouldWipe(isMap)
   if isMap then return #getObjectsWithTag("Map Object") > 0 end
+  if rttFactionsOnTable() then return true end
+  -- A SETUP CLICK NOW TAKES THE MAP TOO. rttNewGame re-places it (rttRefreshMap), so starting a game
+  -- on a table that has a map is destructive even with no faction on it -- and it used to go through
+  -- with no prompt at all. Maintainer, 2026-09-06: "the options buttons should also have the warnings
+  -- when they reset factions or maps."
+  return #getObjectsWithTag("Map Object") > 0
+end
+
+-- Is there anything of a GAME on the table, as opposed to just a map?
+function rttFactionsOnTable()
   for _, t in ipairs({ "RTT Faction", "RTT Selector", "RTT Manual Selector" }) do
     if #getObjectsWithTag(t) > 0 then return true end
   end
   return false
+end
+
+-- WHICH WARNING TO SHOW. A button that clears factions AND the map should not promise to "reset all
+-- factions" when there is not a faction in sight -- at that point the only thing it costs you is the
+-- map, so it says so. Buttons with no warnMap (the map row) always meant the map anyway.
+function rttWarnArt(d)
+  if d.warnMap == nil then return d.warn end
+  if rttFactionsOnTable() then return d.warn end
+  return d.warnMap
 end
 
 function rttDisarm()
@@ -2329,29 +2352,31 @@ end
 -- swallows clicks while busy and clears RTT_5P_MARSH only for a player carrying a colour; committing
 -- with nil would quietly keep 5-player mode alive through a map change, which is the bug fixed
 -- earlier the same day.
+-- The one place a wipe-button's action is named. It used to be written out TWICE inside rttArmOrGo,
+-- once for the armed commit and once for the nothing-to-lose shortcut, so every new button had to be
+-- added in both -- exactly the drift the rest of this file keeps warning about.
+function rttRunBtn(d, player)
+  if     d.map ~= nil                    then makeMap(player, "", d.map)
+  elseif d.fn == "rttSetup"              then rttSetup()
+  elseif d.fn == "rttTheme"              then rttTheme()
+  elseif d.fn == "rttFivePStart"         then rttFivePStart()
+  elseif d.fn == "rttPlaceMarsh5P"       then rttPlaceMarsh5P()
+  elseif d.fn == "setupFactionBoards"    then setupFactionBoards()
+  elseif d.fn == "setupFivePlayerBoards" then setupFivePlayerBoards()
+  end
+end
+
 function rttArmOrGo(id, player)
   local d = RTT_WIPE_BTN[id]
   if d == nil then return end
   if RTT_BUSY then return end                    -- a setup is still running: swallow the click
   if RTT_ARM.id == id then                       -- SECOND click on the armed button: commit
     rttDisarm()
-    if     d.map ~= nil                 then makeMap(player, "", d.map)
-    elseif d.fn == "rttSetup"           then rttSetup()
-    elseif d.fn == "rttTheme"           then rttTheme()
-    elseif d.fn == "rttFivePStart"      then rttFivePStart()
-    elseif d.fn == "setupFactionBoards" then setupFactionBoards()
-    elseif d.fn == "setupFivePlayerBoards" then setupFivePlayerBoards()
-    end
+    rttRunBtn(d, player)
     return
   end
   if not rttWouldWipe(d.map ~= nil) then         -- clean table: nothing to lose, just run
-    if     d.map ~= nil                 then makeMap(player, "", d.map)
-    elseif d.fn == "rttSetup"           then rttSetup()
-    elseif d.fn == "rttTheme"           then rttTheme()
-    elseif d.fn == "rttFivePStart"      then rttFivePStart()
-    elseif d.fn == "setupFactionBoards" then setupFactionBoards()
-    elseif d.fn == "setupFivePlayerBoards" then setupFivePlayerBoards()
-    end
+    rttRunBtn(d, player)
     return
   end
   rttDisarm()                                    -- a different button was armed: revert it first
@@ -2359,7 +2384,7 @@ function rttArmOrGo(id, player)
   RTT_ARM.token = RTT_ARM.token + 1
   local tok = RTT_ARM.token
   pcall(function()
-    self.UI.setAttribute(id, "icon", d.warn)     -- the art itself becomes the red question
+    self.UI.setAttribute(id, "icon", rttWarnArt(d))  -- the art itself becomes the red question
     self.UI.setAttribute(id, "color", "#a83226") -- matches the plaque so the rounded corners blend
   end)
   Wait.time(function() if RTT_ARM.token == tok then rttDisarm() end end, 3.0)
@@ -2373,6 +2398,7 @@ function rttArmTheme(player, value, id)   rttArmOrGo("rttThemeBtn", player) end
 function rttArmFour(player, value, id)    rttArmOrGo("rttFourBoardsBtn", player) end
 function rttArmMarsh5P(player, value, id) rttArmOrGo("Marsh5P", player) end
 function rttArmFiveSetup(player, value, id) rttArmOrGo("Marsh5PSetup", player) end
+function rttArmMarsh5PMap(player, value, id) rttArmOrGo("Marsh5PMap", player) end
 
 -- Five manual selector boards and nothing else -- the 5-player counterpart of the 4-Player Setup
 -- button. setupFactionBoards keys the seat count off the BUTTON id, so it is passed explicitly here
