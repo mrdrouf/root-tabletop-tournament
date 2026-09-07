@@ -2378,6 +2378,49 @@ def t_the_five_player_buttons_warn_before_wiping(src):
     assert rt.eval("RTT_5P_MARSH") is True, "the commit click did not place the 5-player Marsh"
 
 
+def t_a_destroyed_object_cannot_crash_the_map_scan(src):
+    """A handle that dies mid-scan must not take the board's script down with it.
+
+    Maintainer, 2026-09-06, with a screenshot: "[Faction Selection - bab7e1] Lua Error: Object
+    reference not set to an instance of an object." -- once, just after a button press. That message is
+    TTS surfacing a .NET NullReferenceException, which is what calling a method on a destroyed object
+    gives you.
+
+    rttFindMapObject's fallback called o.getGUID() bare, and getAllObjects hands back a snapshot: any
+    entry can be destroyed before the loop reaches it. The fallback only runs when no tagged map piece
+    has snap points -- which is precisely a map TEARDOWN, just after removeMapItems, just after a button
+    press. rttWhenMapReady then made it hot by polling through exactly that window.
+
+    Two fixes, both checked here: every call on a possibly-dead handle is protected, and the polling
+    path uses rttMapBoardTagged, which never walks the whole table at all.
+    """
+    rt = fresh(src)
+    rt.execute("SEAT('Purple','H1')")
+    # a handle that behaves like a destroyed TTS object: every method throws
+    rt.execute("""
+      DEAD = { }
+      setmetatable(DEAD, { __index = function() return function()
+        error("Object reference not set to an instance of an object.")
+      end end })
+      local _all = getAllObjects
+      getAllObjects = function()
+        local t = _all()
+        table.insert(t, 1, DEAD)      -- first, so a bare call hits it immediately
+        return t
+      end
+    """)
+    # no tagged map piece: this is the teardown window, so the fallback is what runs
+    ok = rt.eval("function() local o, e = pcall(function() return rttFindMapObject() end) "
+                 "return tostring(o) .. '|' .. tostring(e) end")()
+    assert ok.startswith("true"), "rttFindMapObject died on a destroyed handle: %s" % ok
+
+    # and the polling path must not touch the whole-table scan at all
+    rt.execute("SAWALL = false local _a = getAllObjects getAllObjects = function() SAWALL = true return _a() end")
+    rt.execute("pcall(function() rttWhenMapReady(function() end, 2) end) FLUSH(20)")
+    assert rt.eval("SAWALL") is False, \
+        "rttWhenMapReady walked every object on the table; it should only look at tagged map pieces"
+
+
 CASES = [
     ("manual path drives the turn system",   t_manual_turn_order),
     ("manual path spawns 4 / 5 boards",      t_boards_spawn),
@@ -2422,6 +2465,7 @@ CASES = [
     ("new game refreshes the map",          t_a_new_game_refreshes_the_map_but_keeps_the_board),
     ("every new-game button leaves 5P",     t_every_new_game_button_leaves_the_five_player_marsh),
     ("5-player buttons warn first",         t_the_five_player_buttons_warn_before_wiping),
+    ("a dead handle cannot crash us",       t_a_destroyed_object_cannot_crash_the_map_scan),
     ("map buttons warn before wiping",       t_map_buttons_warn_before_wiping),
     ("gizmo default key is numpad 0",         t_gizmo_default_key_is_numpad_zero),
     ("gizmo: warrior to/from supply",         t_gizmo_warrior_to_and_from_supply),

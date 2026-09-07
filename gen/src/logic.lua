@@ -5539,15 +5539,31 @@ end
 -- Find the game MAP board. Every spawned map piece carries tag "Map Object" (makeMap), and among them
 -- the board has the most snap points. Scanning ALL objects by snap-count returned bab7e1 (the score
 -- grid) or a faction board instead, so badger relics / forest centres landed on the wrong board (audit).
-function rttFindMapObject()
+-- The map board among the objects TAGGED as map pieces: the one with the most snap points. Cheap --
+-- it looks at a handful of objects -- and safe to call repeatedly, which rttWhenMapReady does.
+function rttMapBoardTagged()
   local best, bestN = nil, 0
   for _, o in ipairs(getObjectsWithTag("Map Object")) do
     local ok, sp = pcall(function() return o.getSnapPoints() end)
     if ok and sp and #sp > bestN then best, bestN = o, #sp end
   end
+  return best
+end
+
+function rttFindMapObject()
+  local best = rttMapBoardTagged()
   if best ~= nil then return best end
-  for _, o in ipairs(getAllObjects()) do       -- fallback: exclude the coordinator/score board
-    if o.getGUID() ~= "bab7e1" then
+  -- FALLBACK, for a table this board did not lay out: scan everything. Only reachable when no tagged
+  -- map piece has snap points, which also means it runs during a map TEARDOWN, when removeMapItems has
+  -- just destroyed them all. getGUID was called bare here, and a handle that getAllObjects returned a
+  -- moment before can be gone by the time it is asked -- "Object reference not set to an instance of an
+  -- object", which the maintainer hit once just after a button press on 2026-09-06. Every call to a
+  -- possibly-dead object is protected now.
+  local bestN = 0
+  for _, o in ipairs(getAllObjects()) do
+    local guid = nil
+    pcall(function() guid = o.getGUID() end)
+    if guid ~= nil and guid ~= "bab7e1" then   -- exclude the coordinator/score board
       local ok, sp = pcall(function() return o.getSnapPoints() end)
       if ok and sp and #sp > bestN then best, bestN = o, #sp end
     end
@@ -6086,7 +6102,10 @@ function rttWhenMapReady(fn, tries)
   local function tick()
     n = n + 1
     local ready = false
-    pcall(function() ready = (rttFindMapObject() ~= nil) end)
+    -- rttMapBoardTagged, NOT rttFindMapObject: the latter falls back to walking every object on the
+    -- table, and this polls during a teardown when nothing is tagged yet, so it would do that on every
+    -- tick over a table full of objects being destroyed. We only ever want THIS board's own map here.
+    pcall(function() ready = (rttMapBoardTagged() ~= nil) end)
     if ready or n >= tries then pcall(fn) return end
     Wait.frames(tick, 3)
   end
