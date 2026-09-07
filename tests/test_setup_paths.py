@@ -3555,6 +3555,58 @@ def t_a_duplicate_or_late_pass_cannot_invent_a_round(src):
         "a re-delivered pass restarted the turn clock: %s" % rt.eval("PANEL_TTXT")
 
 
+def t_the_record_names_the_row_the_sheet_will_look_up(src):
+    """RTT publishes what the SHEET calls each seat, not only what RTT calls it.
+
+    The two names differ -- "Marquise de Cat" here, "Marquise" on the sheet -- and the sheet bridged
+    them with a hand-written twelve-entry table of its own. A thirteenth faction, or a rename on
+    either side, silently cost that seat its colour, its owner and its position, with no error. We
+    already own the map that table duplicates, so we publish the answer.
+
+    A vagabond's row name is its ordinal one -- "Vagabond 2" -- and never the character.
+    """
+    rt = fresh(src)
+    rt.execute("""
+      RTT_SEATS = {
+        { pos = {  52, -46 }, color = "Red",    faction = "Marquise de Cat", key = "Marquise de Cat" },
+        { pos = { -52, -46 }, color = "Yellow", faction = "Lord of the Hundreds", key = "Lord of the Hundreds" },
+        { pos = {  52,  46 }, color = "Orange", faction = "Ranger", key = "Vagabond 2", vagN = 2 },
+      }
+      pcall(rttPublishSeats)
+    """)
+    rec = json.loads(rt.eval('GVGET("RTT_SEAT_RECORD")'))
+    rows = {e["key"]: e.get("row") for e in rec["seats"]}
+    assert rows.get("Marquise de Cat") == "Marquise", \
+        "the long id was published with no row name: %s" % rows
+    assert rows.get("Lord of the Hundreds") == "Rats", \
+        "the rats' row name is not the sheet's: %s" % rows
+    assert rows.get("Vagabond 2") == "Vagabond 2", \
+        "a vagabond's row must be its ordinal name, never the character: %s" % rows
+    for e in rec["seats"]:
+        assert e.get("row"), "a seat was published with no row name: %s" % e
+
+
+def t_an_unclaimed_seat_takes_a_colour_the_sheet_knows(src):
+    """A free colour must be one the turn order and the sheet can both use.
+
+    rttFreeSeatColor walked all ten TTS colours, so an unclaimed seat could be handed Blue, Purple,
+    Pink or White -- colours the turn-card order does not use and the box score's own colour pass does
+    not know, so that row could never bind to a seat. The six seating colours are tried first now.
+    """
+    rt = fresh(src)
+    setup = [str(v) for v in rt.eval("RTT_SETUP_COLORS").values()]
+    rt.execute("RTT_SEATS = { { pos = {52,-46}, color = 'Red' } }")
+    for _ in range(len(setup) - 1):
+        got = rt.eval("rttFreeSeatColor()")
+        assert got in setup, "an unclaimed seat was handed %r, which is not a seating colour" % got
+        rt.execute("RTT_SEATS[#RTT_SEATS+1] = { pos = {0,0}, color = %r }" % got)
+
+    # only once all six are gone may it reach outside them
+    got = rt.eval("rttFreeSeatColor()")
+    assert got is not None and got not in setup, \
+        "with every seating colour taken it should still find one: %r" % got
+
+
 CASES = [
     ("manual path drives the turn system",   t_manual_turn_order),
     ("manual path spawns 4 / 5 boards",      t_boards_spawn),
@@ -3621,6 +3673,8 @@ CASES = [
     ("new game forgets the seat count",   t_a_new_game_forgets_last_games_seat_count),
     ("manual pick binds picker colour",      t_manual_pick_binds_the_pickers_own_colour),
     ("seat record is pushed to sheet",       t_the_seat_record_is_pushed_to_the_sheet),
+    ("record names the sheet row",       t_the_record_names_the_row_the_sheet_will_look_up),
+    ("a free colour is a seat colour",    t_an_unclaimed_seat_takes_a_colour_the_sheet_knows),
     ("gizmo never takes another supply",     t_gizmo_never_reaches_into_someone_elses_supply),
     ("send home fills rightmost empty",      t_send_home_fills_the_rightmost_empty_slot),
     ("fill runs from the player's right", t_send_home_fills_from_the_players_own_right),
