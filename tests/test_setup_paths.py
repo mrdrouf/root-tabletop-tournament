@@ -3190,6 +3190,58 @@ def t_numpad_three_lights_the_piece_instead(src):
     assert rt.eval("W.getLock()") is False, "the piece stayed locked"
 
 
+def t_start_does_not_arm_a_suppression_it_never_uses(src):
+    """START must not leave the sheet's one-shot armed, or it eats the first real turn.
+
+    The panel armed `rttSuppressNextLock` unconditionally and then moved the turn ONLY if the colour
+    differed. START is normally pressed when it is already seat 1's turn -- rttEnableTurns has just set
+    turn_color to seat 1 -- so no pass fired, nothing consumed the flag, and it sat armed until it
+    swallowed the first REAL turn of the game. The flag is cleared in exactly one place, inside
+    onPlayerTurn.
+
+    That is the missing round reported over and over, and it survived five separate START fixes because
+    the panel's own script has never been executed by a test. This runs it.
+    """
+    panel = json.loads(re.search(r"RTT_TURN_PANEL_JSON = \[====\[(.*?)\]====\]", src, re.S).group(1))
+    rt = lupa.LuaRuntime(unpack_returned_tuples=True)
+    rt.execute(open(os.path.join(HERE, "tts_stub.lua"), encoding="utf-8").read())
+    rt.execute("CLOCK = 1000 os.time = function() return CLOCK end")
+    rt.execute(panel["LuaScript"].replace("!=", "~="))
+    rt.execute("""
+      CALLS = {}
+      SHEET = MKOBJ("Root Box Score", {0,1,0}, {"RTT Box Score"})
+      SHEET.call = function(fn)
+        CALLS[#CALLS+1] = fn
+        if fn == "rttHasData" then return false end
+        return true
+      end
+      sheet = function() return SHEET end
+      self.UI.setXml = function() end
+      Turns.order = {"Red", "Yellow"}
+      Turns.enable = true
+    """)
+
+    def press(turn_color):
+        rt.execute("CALLS = {} Turns.turn_color = %r pcall(panelStart) FLUSH(20)" % turn_color)
+        return [str(v) for v in (rt.eval("CALLS") or {}).values()]
+
+    # ALREADY seat 1's turn: no pass will fire, so nothing may be armed
+    said = press("Red")
+    assert "rttSuppressNextLock" not in said, (
+        "START armed the sheet's one-shot without causing a pass; it will swallow the first real "
+        "turn of the game: %s" % said)
+    assert "rttResetAndStart" in said, "START did not reset the sheet: %s" % said
+
+    # somebody ELSE holds the turn: a pass is coming, so it must be armed before the turn moves
+    said = press("Yellow")
+    assert "rttSuppressNextLock" in said, (
+        "START moved the turn without arming the one-shot; the pass it causes will be recorded as a "
+        "completed turn at 0: %s" % said)
+    assert said.index("rttSuppressNextLock") < said.index("rttResetAndStart"), \
+        "the one-shot must be armed BEFORE the pass it is meant to swallow: %s" % said
+    assert rt.eval("Turns.turn_color") == "Red", "START did not hand the turn to seat 1"
+
+
 CASES = [
     ("manual path drives the turn system",   t_manual_turn_order),
     ("manual path spawns 4 / 5 boards",      t_boards_spawn),
@@ -3267,6 +3319,7 @@ CASES = [
     ("numpad 3 lights the piece",         t_numpad_three_lights_the_piece_instead),
     ("board shows the build number",      t_the_board_shows_the_build_number),
     ("panel pauses the clock",            t_the_panel_pauses_the_clock),
+    ("start arms only a real pass",       t_start_does_not_arm_a_suppression_it_never_uses),
 ]
 
 
