@@ -53,8 +53,13 @@ Battle Mat; and any VP markers still waiting for a score track.
 
 ## Decks
 
-**Standard · Exiles & Partisans · Squires & Disciples** — all `makeDeck`. The small-count variant loads
-automatically in a 1–2 player game.
+**Standard · Exiles & Partisans · Squires & Disciples** — all `makeDeck`.
+
+This page used to claim "the small-count variant loads automatically in a 1–2 player game". It did
+not, and could not: `makeDeck` branches on `ends_with(id, "2")`, but no button id ends in `2` and
+nothing anywhere builds one, so `Standard Deck 2` and its siblings had no path to load. That inherited
+base-mod data was removed on 2026-09-06 (165 KB). The branch is harmless and stays, in case the
+variant is ever wired up on purpose.
 
 ## Tools
 

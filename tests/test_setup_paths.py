@@ -1091,10 +1091,11 @@ def t_the_duchy_burrow_spawns_locked(src):
 
     Locking the tile does not stop warriors being placed on it -- the landmarks work the same way.
 
-    The Drillbit Duchy bot carries the same object (GUID 78c688) and is deliberately NOT locked: the
-    maintainer chose to leave the bot data exactly as the base mod ships it. Nothing spawns it anyway
-    -- "Official Bots" appears in no live code path -- so this is asserted to keep the choice explicit
-    rather than to protect behaviour.
+    The Drillbit Duchy bot carried the same object (GUID 78c688), deliberately NOT locked, and this
+    used to assert that too. EVERYTHING['Official Bots'] was removed on 2026-09-06 -- 497 KB of
+    blueprint for eight bots with no button, no lookup and no spawn path, exactly as this docstring
+    already said ("Official Bots appears in no live code path"). The bot half of the assertion went
+    with the data; the live Duchy half is the one that protects behaviour.
     """
     rt = fresh(src)
     probe = rt.eval("""function(cat, name)
@@ -1109,8 +1110,6 @@ def t_the_duchy_burrow_spawns_locked(src):
     end""")
     assert probe("Standard", "Underground Duchy") == "78c688/true", \
         "the Duchy's burrow is %s -- it will be draggable again" % probe("Standard", "Underground Duchy")
-    assert probe("Official Bots", "Drillbit Duchy") == "78c688/false", \
-        "the bot's burrow was changed; the maintainer asked for the live Duchy only"
 
 
 def t_camera_states_are_the_hosts(src):
