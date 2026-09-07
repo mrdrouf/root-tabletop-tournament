@@ -3112,46 +3112,77 @@ def t_no_warning_when_there_is_nothing_to_wipe(src):
 
 
 def t_the_gizmo_follows_the_faction_you_last_picked(src):
-    """Pick a different faction and BOTH gizmo keys come with you.
+    """Pick a faction and numpad 1 comes with you -- but only while the seat and the colour are yours.
 
-    Maintainer, 2026-09-07: "I am changing seats by selecting new factions but the gizmo numpad 1 does
-    not seem to understand that." Seat colours cannot answer this and are not supposed to: your FIRST
-    pick takes your colour, and every later pick is deliberately handed a free one so that one person
-    can set out several boards without every seat becoming theirs. So the seat record says you are
-    still your first faction, for ever.
+    Seat colours cannot answer "which faction is mine": your FIRST pick takes your colour and every
+    later pick is deliberately handed a free one, so one person can set out several boards without
+    every seat becoming theirs. The gizmo therefore keeps its own note.
 
-    Numpad 1 now asks a separate question -- which faction did this COLOUR last pick -- so switching
-    moves the supply you draw from, while turn order, the box score and the seat record are untouched.
-    It survives a reload, and a new game forgets it. Numpad 0 asks nothing at all.
+    Three ways that note was wrong, all found by audit after it shipped:
+      - it was keyed by colour and never invalidated, so a colour that changed hands carried the old
+        claim: Alice picks the Marquise as Red and leaves, Bob takes Red, Bob draws Marquise warriors;
+      - the earlier version of this test wrote the note by hand and never called rttPlaceFaction, so
+        nothing verified that picking a faction records anything at all. It does now.
     """
-    rt = fresh(src)
-    rt.execute("""
-      TOOK = {}
-      for _, n in ipairs({'Marquise Supply', 'Eyrie Supply'}) do
-        local b = MKOBJ(n, {0,1,0}, {})
-        b.__n = 5
-        b.getQuantity = function() return b.__n end
-        b.takeObject = function(p) TOOK[#TOOK+1] = n end
-        b.putObject = function(o) end
-      end
-      POINTER['Red'] = {x = 0, y = 1, z = 0}
-    """)
+    def table_with_supplies():
+        rt = fresh(src)
+        rt.execute("""
+          TOOK = {}
+          for _, n in ipairs({'Marquise Supply', 'Eyrie Supply'}) do
+            local b = MKOBJ(n, {0,1,0}, {})
+            b.__n = 5
+            b.getQuantity = function() return b.__n end
+            b.takeObject = function(p) TOOK[#TOOK+1] = n end
+            b.putObject = function(o) end
+          end
+          POINTER['Red'] = {x = 0, y = 1, z = 0}
+        """)
+        return rt
 
-    def take():
+    def take(rt):
         rt.execute("TOOK = {} rttGizmoTake('Red') FLUSH(5)")
         return [str(v) for v in (rt.eval("TOOK") or {}).values()]
 
-    rt.execute("RTT_LAST_PICK['Red'] = 'Marquise de Cat'")
-    assert take() == ["Marquise Supply"], "numpad 1 did not use the picked faction: %s" % take()
+    def pick(rt, faction, x, z):
+        rt.execute("pcall(function() rttPlaceFaction(%r, %f, %f, false, 'Red', false, 'Standard', 0, 'Red') end) "
+                   "FLUSH(120)" % (faction, x, z))
 
-    # switch faction: the seat record still says Marquise, the gizmo must not
-    rt.execute("RTT_LAST_PICK['Red'] = 'Eyrie Dynasties'")
-    assert take() == ["Eyrie Supply"], \
-        "numpad 1 stayed on the first faction after a switch: %s" % take()
+    # A REAL PICK writes the note
+    rt = table_with_supplies()
+    rt.execute("SEAT('Red','H1')")
+    pick(rt, "Marquise de Cat", 52, -46)
+    assert rt.eval("rttMyFaction('Red')") == "Marquise de Cat", \
+        "picking a faction did not tell the gizmo whose it is: %r" % rt.eval("rttMyFaction('Red')")
+    assert take(rt) == ["Marquise Supply"], "numpad 1 did not use the picked faction: %s" % take(rt)
 
-    assert rt.eval("rttMyFaction('Red')") == "Eyrie Dynasties", \
-        "the gizmo's idea of your faction did not move: %r" % rt.eval("rttMyFaction('Red')")
-    # a new game forgets who picked what
+    # SWITCHING to another seat brings it with you
+    pick(rt, "Eyrie Dynasties", -52, -46)
+    assert take(rt) == ["Eyrie Supply"], "numpad 1 stayed on the first faction: %s" % take(rt)
+
+    # IT SURVIVES A RELOAD
+    saved = rt.eval("onSave()")
+    rt2 = table_with_supplies()
+    rt2.execute("SEAT('Red','H1')")
+    rt2.execute("pcall(function() onLoad(%s) end) FLUSH(6)" % json.dumps(saved))
+    assert rt2.eval("rttMyFaction('Red')") == "Eyrie Dynasties", \
+        "the pick did not survive a reload: %r" % rt2.eval("rttMyFaction('Red')")
+
+    # A COLOUR THAT CHANGES HANDS does not carry the claim.
+    # The note and the seat record disagree here on purpose: Alice's second pick was handed a free
+    # colour, so the record still says Red = Marquise while the note says Eyrie. That gap is the whole
+    # reason the note exists -- and it must belong to Alice, not to the colour she was using.
+    rt3 = table_with_supplies()
+    rt3.execute("SEAT('Red','Alice')")
+    pick(rt3, "Marquise de Cat", 52, -46)
+    pick(rt3, "Eyrie Dynasties", -52, -46)
+    assert rt3.eval("rttMyFaction('Red')") == "Eyrie Dynasties", "Alice's own last pick was lost"
+
+    rt3.execute("SEAT('Red','Bob') FLUSH(2)")      # same colour, different person
+    assert rt3.eval("rttMyFaction('Red')") == "Marquise de Cat", \
+        "Bob inherited Alice's last pick instead of falling back to the seat he is actually in: %r" \
+        % rt3.eval("rttMyFaction('Red')")
+
+    # A NEW GAME forgets it
     rt.execute("rttResetRunState()")
     assert not rt.eval("RTT_LAST_PICK['Red']"), "a new game kept last game's pick"
 

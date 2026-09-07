@@ -4210,8 +4210,27 @@ function rttPlaceFaction(faction, cx, cz, flip, color, isDraft, category, rotati
   -- Conflating them broke naming before: the manual path never recolours anyone, so a player keeps
   -- the colour they joined with while the row is coloured by seat, and matching the row's colour
   -- against seated players then found nobody and the row showed no name at all.
-  if pickerColor ~= nil and pickerColor ~= "" then RTT_LAST_PICK[pickerColor] = faction end
-  if seat.owner == nil and pickerColor ~= nil and pickerColor ~= "" then
+  -- EVERY pick by this person, deliberately. The maintainer chose it when asked: "I am changing seats
+  -- by selecting new factions but the gizmo numpad 1 does not seem to understand that", and picked
+  -- "follow your last pick" over the alternative. So this is written even when the seat itself was
+  -- handed a free colour, because that is exactly the case where the seat record cannot answer.
+  --
+  -- What IS recorded alongside it is WHO made the claim. Keyed by colour alone it was never
+  -- invalidated, so a colour that changed hands carried the claim with it -- Alice picks the Marquise
+  -- as Red and leaves, Bob takes Red, Bob's numpad 1 hands him Marquise warriors.
+  if pickerColor ~= nil and pickerColor ~= "" then
+    local who = nil
+    pcall(function()
+      for _, pl in ipairs(Player.getPlayers()) do
+        if pl.color == pickerColor and pl.seated then who = pl.steam_name end
+      end
+    end)
+    RTT_LAST_PICK[pickerColor] = { faction = faction, owner = who }
+  end
+  -- REFRESHED, NOT WRITTEN ONCE. `if seat.owner == nil` meant a seat kept the first name it ever saw:
+  -- Alice drafts the Marquise, disconnects, Bob takes her colour, and the sheet -- which PREFERS this
+  -- name over the live occupant -- credits the whole game to Alice.
+  if pickerColor ~= nil and pickerColor ~= "" then
     pcall(function()
       for _, pl in ipairs(Player.getPlayers()) do
         if pl.color == pickerColor and pl.seated then seat.owner = pl.steam_name end
@@ -6560,8 +6579,24 @@ end
 -- record. Both gizmo keys ask this, so switching faction moves the whole gizmo with you rather than
 -- half of it.
 function rttMyFaction(color)
+  -- THE CLAIM BELONGS TO THE PERSON, NOT THE COLOUR. This was keyed by colour alone and never
+  -- invalidated, so a colour that changed hands carried its old claim with it: Alice picks the
+  -- Marquise as Red and leaves, Bob joins and takes Red, and Bob's numpad 1 handed him Marquise
+  -- warriors. It also outlived a reload. Now the record carries who made the claim, and it only
+  -- answers while that same person still holds the colour.
   local last = RTT_LAST_PICK[color]
-  if last ~= nil and last ~= "" then return last end
+  if type(last) == "table" and last.faction ~= nil and last.faction ~= "" then
+    local who = nil
+    pcall(function()
+      for _, pl in ipairs(Player.getPlayers()) do
+        if pl.color == color and pl.seated then who = pl.steam_name end
+      end
+    end)
+    -- nobody seated in the colour: nothing has taken it over, so the claim still stands
+    if who == nil or last.owner == nil or last.owner == "" or who == last.owner then
+      return last.faction
+    end
+  end
   return rttSeatFaction(color)
 end
 
