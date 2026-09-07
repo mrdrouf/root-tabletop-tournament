@@ -2969,7 +2969,7 @@ def t_the_board_shows_the_build_number(src):
     shrink = float(re.search(r'scale="([\d.]+) ', el).group(1))
     font = float(re.search(r'fontSize="(\d+)"', el).group(1))
     assert shrink < 0.5, "the version is drawn at its final size; it will render soft: scale %s" % shrink
-    assert font * shrink < 9, "the version reads too big on the board: %.1f" % (font * shrink)
+    assert font * shrink < 6, "the credit line reads too big on the board: %.1f" % (font * shrink)
 
     shown = re.search(r'text="by MrDrouf v(\d+)"', el)
     assert shown, 'the corner does not read "by MrDrouf v<n>": %s' % el
@@ -2978,7 +2978,8 @@ def t_the_board_shows_the_build_number(src):
         "the board says v%s but VERSION says %s -- run tools/bump_version.py --restamp"
         % (shown.group(1), on_disk))
 
-    assert 'color="#F9E6BB"' in el, "the build number is not in the mod's cream: %s" % el
+    # ink, not cream: it is a credit line, meant to sit quiet on the wood rather than announce itself
+    assert 'color="#26170B' in el, "the credit line is not in the mod's ink: %s" % el
     # the RIGHT EDGE is what pins it to the corner: the line is right-aligned, so it grows leftwards
     # and the panel's centre moves as the text gets longer. The board's UI reaches about x 124.
     x, y = (float(v) for v in re.search(r'position="([-\d.]+) ([-\d.]+)', el).groups())

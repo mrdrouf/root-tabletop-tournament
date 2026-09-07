@@ -25,6 +25,11 @@ VERSION_FILE = os.path.join(REPO, "VERSION")
 SAVE = os.path.join(REPO, "gen", "src", "save.json")
 BOARD = "bab7e1"
 CREAM = "#F9E6BB"          # the mod's one cream
+# The credit line is NOT in it. Cream on the board's pale wood shouted -- the maintainer,
+# 2026-09-07: "make the by mrdrouf smaller and maybe in black and thinner so it's less obnoxious and
+# visible". This is the mod's ink at 78% alpha: TTS <Text> has no weight below Normal, so alpha is
+# the only way to thin a stroke. Drop the last two digits for a solid line, raise them to fade it.
+INK = "#26170BC8"
 ANCHOR = '<Image id="rootLogo"'
 
 # Hard into the top right, opposite the logo -- the maintainer, 2026-09-07: "version more to the
@@ -39,14 +44,14 @@ ANCHOR = '<Image id="rootLogo"'
 # stay crisp. Effective size on the board is FONT * SHRINK; raise FONT and lower SHRINK together for
 # a sharper line, change FONT alone to resize it.
 SHRINK = 0.2
-FONT = 34                      # 34 * 0.2 = 6.8 on the board, against the 12 it replaced
+FONT = 24                      # 24 * 0.2 = 4.8 on the board, down from 6.8
 # The line reads "by MrDrouf v<n>" -- the maintainer, 2026-09-07. It is right-ALIGNED, so it grows
 # leftwards and its right edge stays put however long the number gets; the panel is centred at 90 so
 # that edge lands at 120, the same place the bare number sat.
 ELEMENT = ('<Panel id="rttVersion" position="90 87 -20" width="300" height="70" '
            'scale="%s %s 1" color="#00000000" raycastTarget="false">'
            '<Text text="by MrDrouf v%%d" fontSize="%d" color="%s" alignment="MiddleRight"/>'
-           '</Panel>') % (SHRINK, SHRINK, FONT, CREAM)
+           '</Panel>') % (SHRINK, SHRINK, FONT, INK)
 PATTERN = re.compile(r'<Panel id="rttVersion".*?</Panel>', re.S)
 
 
