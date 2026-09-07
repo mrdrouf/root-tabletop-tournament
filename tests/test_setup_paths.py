@@ -2648,15 +2648,16 @@ def t_the_panel_flashes_after_twenty_minutes(src):
     g = rt.globals()
 
     def at(t):
-        # the tint is EMITTED INTO THE XML, not poked in with setAttribute -- an Image's colour is not
-        # an attribute TTS re-reads once the UI is up, which is why the first version showed nothing.
+        # The warning is an OVERLAY PANEL emitted into the XML, not a tint. Two earlier versions failed
+        # silently -- setAttribute writes an attribute TTS does not re-read, and color= on an <Image> is
+        # not honoured at all -- so this asks whether the wash is IN the markup, which is the only thing
+        # that can actually appear on screen.
         rt.execute("T = %d" % t)
         g.panelTick()
         xml = g.LASTXML or ""
-        m = re.search(r'id="pnlbg"[^>]*color="([^"]+)"', xml)
-        return m.group(1) if m else "(no pnlbg in the XML)"
+        return ALARM if "#E86B5A66" in xml else NORMAL
 
-    NORMAL, ALARM = "#FFFFFF", "#E86B5A"
+    NORMAL, ALARM = "quiet", "washed"
     assert at(1000) == NORMAL, "the panel is tinted before any turn has started"
     g.PANEL_START = 1000
     assert at(1060) == NORMAL, "a one-minute turn is already warning"
