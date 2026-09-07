@@ -687,29 +687,6 @@ end
 
 
 
-local hirelings = {
-  {"Marquise de Cat","Forest Patrol","Feline Physicians"},
-  {"Eyrie Dynasties","Last Dynasty","Bluebird Nobles"},
-  {"Woodland Alliance","Spring Uprising","Rabbit Scouts"},
-  {"Vagabond","The Exile","The Brigand"},
-
-  {"The Lizard Cult","Warm Sun Prophets","Lizard Envoys"},
-  {"Riverfolk Company","Riverfolk Flotilla","Otter Divers"},
-  {"Underground Duchy","Sunward Expedition","Mole Artisans"},
-  {"Corvid Conspiracy","Corvid Spies","Raven Sentries"},
-
-  {"Lord of the Hundreds","Flame Bearers","Rat Smugglers"},
-  {"Keepers in Iron","Vault Keepers","Badger Bodyguards"},
-
-  {"Woodland Band","Popular Band","Street Band"},
-  {"Furious Protector","Furious Protector","Stoic Protector"},
-  {"Highway Bandits","Highway Bandits","Bandit Gangs"},
-
-  {"Twilight Council","Sunny Advocates","Bat Messengers"},
-  {"Lilypad Diaspora","River Roamers","Frog Tinkers"},
-  {"Prosperous Farmers","Prosperous Farmers","Struggling Farmers"},
-  -- {"Knaves of the Deepwood","The Exile","The Brigand"}
-}
 
 
 local hirelingMarkerLocations = {
@@ -2310,9 +2287,6 @@ end
 
 function makeDeck(player,value,id)
   clearInfo()
-  if id == "Dark Deck" or id == "Dark Deck 2" then
-    makeDarkDeckSpecials()
-  end
   removeDeckItems()
   local my_rot = self.getRotation()
   local objects = {}
@@ -2320,18 +2294,13 @@ function makeDeck(player,value,id)
   scale.x = 1/scale.x
   scale.z = 1/scale.z
 
-  if (starts_with(id,"Dark Deck")) then
-    if (ends_with(id,"2")) then
-      allObjects = {EVERYTHING["Decks"]['Dark Refill Card']['data'],EVERYTHING["Decks"][id]['data']}
-    else
-      allObjects = {EVERYTHING["Decks"]['Dark Refill Card']['data'],EVERYTHING["Decks"]["Dark Dominance Track Card"]['data'],EVERYTHING["Decks"][id]['data']}
-    end
+  -- The DARK DECK branch is gone with its data. makeDeck can only ever be handed one of three ids --
+  -- the three deck buttons in the board XmlUI, and the same three in RTT_PICK_DEFS -- so nothing could
+  -- ever reach it, and it was the only thing keeping 216 KB of Dark Deck blueprint alive.
+  if (ends_with(id,"2")) then
+    allObjects = {EVERYTHING["Decks"]['Refill Card']['data'],EVERYTHING["Decks"][id]['data']}
   else
-    if (ends_with(id,"2")) then
-      allObjects = {EVERYTHING["Decks"]['Refill Card']['data'],EVERYTHING["Decks"][id]['data']}
-    else
-      allObjects = {EVERYTHING["Decks"]['Refill Card']['data'],EVERYTHING["Decks"]["Dominance Track Card"]['data'],EVERYTHING["Decks"][id]['data']}
-    end
+    allObjects = {EVERYTHING["Decks"]['Refill Card']['data'],EVERYTHING["Decks"]["Dominance Track Card"]['data'],EVERYTHING["Decks"][id]['data']}
   end
 
   for _,n in ipairs(allObjects) do
@@ -2479,11 +2448,6 @@ end
 
 
 
-function makeDarkDeckSpecials()
-  makeSpecialWithTag("Tools","Dark Side Card",31.6,1.55,22.57,"Deck Object")
-  makeSpecialWithTag("Tools","Dark Deck Box",-71.18,1.56,9.24,"Deck Object")
-  makeSpecialWithTag("Decks","Dark Deck Instructions",-41.84,1.7,-16.69,"Deck Object")
-end
 
 
 
