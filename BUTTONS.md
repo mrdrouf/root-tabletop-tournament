@@ -90,14 +90,26 @@ puts the clock and counter back. It is an OPTION while the panel is still being 
 **Ginso's Gizmo has no button.** It is always active with no object on the table — its script is part
 of the board, so it works in every game with nothing to spawn or toggle.
 
-**NUMPAD 0** is the key, as it always has been. Hovering a warrior — anyone's — sends it home to that
-faction's own supply. Hovering nothing takes one warrior out of YOUR supply, standing up, at your
-pointer; which supply is yours comes from where you are seated. An empty supply does nothing.
+**NUMPAD 0 — send it home.** Hovering one of YOUR OWN faction's pieces puts it back: a warrior or the
+Marquise's wood into its supply bag, a building or token into the rightmost empty slot of its kind,
+Acclaim two to a stack, a Tunnel to its own spot. Hovering another player's piece does nothing, and
+says nothing — the maintainer, 2026-09-07: "gizmo 0 should not work on other player's warriors and
+token buildings." (It used to work on anyone's, sending the piece to its own faction's supply.)
+Hovering something no faction owns — a hireling, a card — does nothing either.
 
-That is a TTS *scripting button*, which is numpad-bound, so **on a laptop with no numpad** (a MacBook,
-where the top-row 0 is a different key and needs Shift on a French layout) bind the named hotkey
-**"Gizmo: warrior to / from your supply"** in *Options → Game Keys*. It is registered unbound, so on a
-machine with a numpad there is nothing to configure.
+**NUMPAD 1 — take a warrior** out of YOUR supply, standing up, at your pointer, whatever the pointer
+happens to be over. Which supply is yours comes from where you are seated. An empty supply does
+nothing.
+
+**NUMPAD 2 — lay a warrior down.** Hovering ANY warrior, yours or an opponent's, tips it over, turns
+it the mod's cream and locks it. Pressing it again on the same warrior stands it up, gives back its
+own colour and unlocks it. It survives a reload. Only warriors: buildings and tokens are ignored.
+
+Those are TTS *scripting buttons*, which are numpad-bound, so **on a laptop with no numpad** (a
+MacBook, where the top-row 0 is a different key and needs Shift on a French layout) bind the named
+hotkeys in *Options → Game Keys*: **"Gizmo: send the hovered piece home"**, **"Gizmo: take a warrior
+from your supply"** and **"Gizmo: lay the hovered warrior down"**. They are registered unbound, so on
+a machine with a numpad there is nothing to configure.
 
 ---
 

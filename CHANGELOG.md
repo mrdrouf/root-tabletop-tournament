@@ -468,3 +468,28 @@ identical; only the broken case changes. Guarded by
 t_placement_never_asks_the_board_how_big_it_is, which drives a map at three
 board sizes and demands one answer -- it fails on the pre-fix build, moving 30
 of 44 pieces.
+
+## Gizmo: own pieces only, and a lay-down key - 2026-09-07
+- NUMPAD 0 now acts on YOUR OWN faction's pieces and nothing else. It had no
+  ownership check at all: the piece chose its destination, so hovering an enemy
+  warrior sent it home to that faction's supply. That was deliberate and is now
+  reversed -- "gizmo 0 should not work on other player's warriors and token
+  buildings". Ownership is exact rather than guessed from the name: RTT_HOME
+  records the faction each piece was set out for, and a loose piece is identified
+  by the blueprint that ships its nickname, with a name two factions share never
+  answering. Somebody else's piece does nothing and says nothing.
+- NUMPAD 2 lays a warrior down: tipped over, turned the mod's cream, locked.
+  Pressing it again stands it up, gives back its own tint and unlocks it. ANY
+  warrior, not only your own. Undo restores what the piece actually looked like --
+  every faction's warrior carries a different tint and three are plain white with
+  the colour in the texture -- and the record rides in onSave, so a reload cannot
+  strand one cream and locked. Rebindable in Options - Game Keys like the others.
+
+## One cream for the whole mod - 2026-09-07
+"all cream in the mod should use the same cream color." Everything drawn at
+runtime is now #F9E6BB, the crafted card's own ground: the box score sheet and
+its input fields (#F1E5C8), the ranked selector's titles (#f3e9cf), the turn
+panel's START caption (#F1E5C8) and the two credit buttons on the setup board
+(#f6e4bd). Left alone deliberately: #E7D8B4, the box score's darker soft-button
+tone, which is a second shade rather than a second cream, and #E4C88E, a gold.
+The BAKED label art still carries its own cream (#EDE0C0) -- see WORK_QUEUE.

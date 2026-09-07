@@ -407,14 +407,17 @@ def t_vagabond_is_published_as_a_faction(src):
 def t_gizmo_warrior_to_and_from_supply(src):
     """The two halves, per the maintainer's 2026-09-06 spec.
 
-      numpad 0, hovering ANY warrior  -> home to ITS OWN supply, yours or an opponent's
-      numpad 0, hovering the wood     -> home to Wood Supply, by the same rule
-      numpad 0, hovering NOTHING      -> nothing. It does not spawn any more.
-      numpad 1                        -> one warrior out of YOUR supply, at your pointer,
-                                         whatever the pointer happens to be over
+      numpad 0, hovering YOUR OWN warrior -> home to its supply
+      numpad 0, hovering an opponent's     -> nothing, silently
+      numpad 0, hovering your wood         -> home to Wood Supply, by the same rule
+      numpad 0, hovering NOTHING           -> nothing. It does not spawn any more.
+      numpad 1                             -> one warrior out of YOUR supply, at your pointer,
+                                              whatever the pointer happens to be over
 
-    Putting a piece back does not depend on who pressed the key: the piece decides where it belongs.
-    Only taking one needs to know who you are, which comes from where you are seated.
+    Both halves now turn on who pressed the key, which comes from where you are seated. Sending home
+    used to be the exception -- the PIECE chose its destination, so an enemy warrior went to its own
+    supply -- and the maintainer reversed that on 2026-09-07: "gizmo 0 should not work on other
+    player's warriors and token buildings."
     """
     rt = fresh(src)
     rt.execute("""
@@ -444,10 +447,13 @@ def t_gizmo_warrior_to_and_from_supply(src):
     rt.execute('HOVER["Red"] = MINE   rttGizmoHome("Red")')
     assert put() == {"Hundreds Supply": 1}, put()
     rt.execute('HOVER["Red"] = THEIRS rttGizmoHome("Red")')
-    assert put() == {"Hundreds Supply": 1, "Eyrie Supply": 1}, \
-        "an opponent's warrior must go to ITS supply, not the presser's: %s" % put()
+    assert put() == {"Hundreds Supply": 1}, \
+        "an opponent's warrior was sent home; numpad 0 is your own pieces only: %s" % put()
+    # the wood is the MARQUISE's, so only a Marquise player can send it back -- same rule as above
+    rt.execute('Global.setVar("RTT_SEAT_COLOR", JSON.encode({ ["Marquise de Cat"] = "Red" }))')
     rt.execute('HOVER["Red"] = WOOD   rttGizmoHome("Red")')
     assert put().get("Wood Supply") == 1, "the Marquise's wood did not go back to Wood Supply: %s" % put()
+    rt.execute('Global.setVar("RTT_SEAT_COLOR", JSON.encode({ ["Lord of the Hundreds"] = "Red" }))')
 
     # hovering NOTHING no longer spawns
     rt.execute('HOVER["Red"] = nil  rttGizmoHome("Red")')
@@ -1900,6 +1906,9 @@ def t_send_home_fills_the_rightmost_empty_slot(src):
     rt.execute("""
       OCC = MKOBJ('Roost', {%f, 0.2, -4.35}, {})     -- the preferred slot is already taken
       MOVER = MKOBJ('Roost', {40, 5, 40}, {})
+      -- SEATED as the birds: since 2026-09-07 numpad 0 only moves your own faction's pieces, so a
+      -- Roost cannot be sent home by nobody.
+      Global.setVar("RTT_SEAT_COLOR", JSON.encode({ ["Eyrie Dynasties"] = "Red" }))
       HOVER['Red'] = MOVER
       rttGizmoHome('Red')
     """ % xs[0])
@@ -1913,6 +1922,7 @@ def t_send_home_fills_the_rightmost_empty_slot(src):
       T = MKOBJ('Tunnel', {40, 5, 40}, {})
       RTT_HOME[T.getGUID()] = { n='Tunnel', f='Underground Duchy', p={10.04,0.1,6.91}, r={0,0,0} }
       RTT_HOME['t2'] = { n='Tunnel', f='Underground Duchy', p={9.97,0.1,5.24}, r={0,0,0} }
+      Global.setVar("RTT_SEAT_COLOR", JSON.encode({ ["Underground Duchy"] = "Red" }))
       HOVER['Red'] = T
       rttGizmoHome('Red')
     """)
@@ -1931,6 +1941,7 @@ def t_send_home_fills_the_rightmost_empty_slot(src):
           end
         end
       end
+      Global.setVar("RTT_SEAT_COLOR", JSON.encode({ ["Knaves of the Deepwood"] = "Red" }))
     """)
     order = rt.eval("""function()
       local t = {}
@@ -1962,6 +1973,7 @@ def t_send_home_fills_the_rightmost_empty_slot(src):
     # and the rotation follows the SLOT, so a piece never comes home a half-turn out. RTT_HOME is
     # recorded after spawnRy is applied, which is 180 on a far-row seat.
     rt.execute("RTT_HOME = {} "
+               "Global.setVar('RTT_SEAT_COLOR', JSON.encode({ ['Eyrie Dynasties'] = 'Red' })) "
                "RTT_HOME['s1'] = { n='Roost', f='Eyrie Dynasties', p={3.0,0.2,-4.35}, r={0,180,0} } "
                "R = MKOBJ('Roost', {40,5,40}, {}) "
                "HOVER['Red'] = R rttGizmoHome('Red')")
@@ -2800,6 +2812,140 @@ def t_placement_never_asks_the_board_how_big_it_is(src):
                next((b for a, b in zip(got, right) if a != b), None)))
 
 
+def t_the_dragon_god_goes_out_with_its_faction(src):
+    """The lizards' discard blocker must be cleared by a new game.
+
+    Reported 2026-09-07: "the lizard god called dragon god is not cleared with its faction". Every
+    spawn of the blocker went through
+
+        makeSpecial(category, name, x, y, z, rotation, tag)
+
+    whose SEVENTH argument is the teardown tag -- and not one of the three call sites passed one, so
+    the object reached the table with no tags at all. RTT_TEARDOWN_TAGS ("RTT Selector", "RTT Manual
+    Selector", "RTT Faction", "RTT Pond", "RTT Order Card") therefore never matched it and
+    rttClearGameObjects walked straight past, leaving the Dragon God on the discard across every
+    game of the session. Salty Old Stan, which replaces it, spawned the same way and leaked too.
+
+    This is fault 3 from the work queue -- something a game leaves behind that teardown cannot see --
+    and the tag is what makes it visible.
+    """
+    COUNT = ("function(nm) local n = 0 for _, o in ipairs(getAllObjects()) do "
+             "if (o.getName() or '') == nm then n = n + 1 end end return n end")
+    TAGS = ("function(nm) for _, o in ipairs(getAllObjects()) do "
+            "if (o.getName() or '') == nm then return table.concat(o.getTags(), ',') end "
+            "end return '<absent>' end")
+
+    for spawn, name in (("rttPlaceDragonGod()", "Dragon God"),
+                        ("summonLizardBlocker()", "Dragon God"),
+                        ("summonSaltyOldStan()", "Salty Old Stan")):
+        rt = fresh(src)
+        rt.execute("pcall(function() %s end) FLUSH(20)" % spawn)
+        assert rt.eval(COUNT)(name) == 1, "%s did not put a %s on the table" % (spawn, name)
+        assert "RTT Faction" in (rt.eval(TAGS)(name) or ""), (
+            "%s spawned %s tagged %r -- teardown sweeps by tag and cannot see it"
+            % (spawn, name, rt.eval(TAGS)(name)))
+        rt.execute("pcall(function() rttNewGame(nil) end) FLUSH(40)")
+        assert rt.eval(COUNT)(name) == 0, \
+            "a new game left the %s from %s on the table" % (name, spawn)
+
+    # an untagged one already out -- an old save, or the Lizard Wizard button -- must be adopted
+    rt = fresh(src)
+    rt.execute("MKOBJ('Dragon God', {-31.09, 5, 2.31}, {}) FLUSH(4)")
+    assert "RTT Faction" not in (rt.eval(TAGS)("Dragon God") or ""), "fixture: it should start untagged"
+    rt.execute("pcall(function() rttPlaceDragonGod() end) FLUSH(20)")
+    assert "RTT Faction" in (rt.eval(TAGS)("Dragon God") or ""), \
+        "a blocker already on the table was repositioned but not adopted, so it leaks one more game"
+    rt.execute("pcall(function() rttNewGame(nil) end) FLUSH(40)")
+    assert rt.eval(COUNT)("Dragon God") == 0, "the adopted blocker still survived a new game"
+
+
+def t_send_home_leaves_other_peoples_pieces_alone(src):
+    """Numpad 0 acts on YOUR faction and nothing else.
+
+    It used to have no ownership check at all: the piece chose its destination, so hovering an enemy
+    warrior sent it home to that faction's supply. That was deliberate and is now reversed --
+    maintainer, 2026-09-07: "gizmo 0 should not work on other player's warriors and token buildings."
+
+    Ownership is exact rather than guessed from the name: RTT_HOME already records the faction a piece
+    was set out for, and a loose warrior is identified by the blueprint that ships its nickname.
+    A piece nobody owns is not blocked here -- it just has no home and falls out silently, as before.
+    """
+    rt = fresh(src)
+    rt.execute("""
+      PUT = {}
+      local function mkbag(name)
+        local b = MKOBJ(name, {0,1,0}, {})
+        b.putObject = function(o) PUT[#PUT+1] = (o.getName() or "") end
+        return b
+      end
+      mkbag("Eyrie Supply")
+      mkbag("Marquise Supply")
+      MINE  = MKOBJ("Eyrie Warrior", {1,1,1}, {})
+      THEIRS = MKOBJ("Marquise Warrior", {2,1,2}, {})
+      Global.setVar("RTT_SEAT_COLOR", JSON.encode({ ["Eyrie Dynasties"] = "Red" }))
+      SAID = {}
+    """)
+
+    rt.execute('HOVER["Red"] = MINE rttGizmoHome("Red") FLUSH(5)')
+    put = [str(x) for x in (rt.eval("PUT") or {}).values()]
+    assert put == ["Eyrie Warrior"], "your own warrior did not go home: %s" % put
+
+    rt.execute('HOVER["Red"] = THEIRS rttGizmoHome("Red") FLUSH(5)')
+    put = [str(x) for x in (rt.eval("PUT") or {}).values()]
+    assert put == ["Eyrie Warrior"], (
+        "an opponent's warrior was sent home by numpad 0: %s" % put)
+    said = [str(x) for x in (rt.eval("SAID") or {}).values()]
+    assert not said, "refusing somebody else's piece should say nothing: %s" % said
+
+
+def t_numpad_two_lays_a_warrior_down_and_back_up(src):
+    """Down: flat, cream, locked. Up: exactly as it stood, whatever colour that was.
+
+    Maintainer, 2026-09-07: "pressing numpad 2 should put a warrior laying down; change the color of
+    the warrior cream white ... and lock it. repressing numpad 2 undoes all of that." ANY warrior --
+    he was asked, and said opponents' too, unlike numpad 0.
+
+    Undo has to hand back the piece's OWN tint. Every faction's warrior carries a different one and
+    three of them are plain white because the colour is in the texture, so a blanket "set it white"
+    would repaint half the mod. Warriors only: a building is not the key's business.
+    """
+    rt = fresh(src)
+    rt.execute("""
+      MINE   = MKOBJ("Eyrie Warrior", {1,1,1}, {})
+      MINE.setColorTint({r=0.145, g=0.457, b=0.810})
+      MINE.setRotation({0, 137, 0})
+      THEIRS = MKOBJ("Marquise Warrior", {2,1,2}, {})
+      ROOST  = MKOBJ("Eyrie Roost", {3,1,3}, {})
+      Global.setVar("RTT_SEAT_COLOR", JSON.encode({ ["Eyrie Dynasties"] = "Red" }))
+    """)
+
+    def state(obj):
+        rt.execute("local o = %s T = o.getColorTint() R = o.getRotation() L = o.getLock()" % obj)
+        t, r = rt.eval("T"), rt.eval("R")
+        return (round(t.r, 3), round(t.g, 3), round(t.b, 3)), (round(r.x, 1), round(r.y, 1)), rt.eval("L")
+
+    before = state("MINE")
+    assert before == ((0.145, 0.457, 0.81), (0.0, 137.0), False), before
+
+    rt.execute('HOVER["Red"] = MINE rttGizmoLay("Red") FLUSH(3)')
+    tint, rot, locked = state("MINE")
+    assert locked is True, "a laid warrior was not locked"
+    assert rot[0] == 90.0, "a laid warrior is not lying down: rotX %s" % rot[0]
+    assert rot[1] == 137.0, "laying it down turned it: rotY %s" % rot[1]
+    assert tint == (0.977, 0.902, 0.733), "not the mod's cream: %s" % (tint,)
+
+    rt.execute('HOVER["Red"] = MINE rttGizmoLay("Red") FLUSH(3)')
+    assert state("MINE") == before, "standing it back up did not restore it: %s" % (state("MINE"),)
+
+    # any warrior, not only your own
+    rt.execute('HOVER["Red"] = THEIRS rttGizmoLay("Red") FLUSH(3)')
+    assert state("THEIRS")[2] is True, "numpad 2 refused an opponent's warrior"
+
+    # and nothing that is not a warrior
+    rt.execute('HOVER["Red"] = ROOST rttGizmoLay("Red") FLUSH(3)')
+    assert state("ROOST")[2] is False, "numpad 2 laid a building down"
+
+
 CASES = [
     ("manual path drives the turn system",   t_manual_turn_order),
     ("manual path spawns 4 / 5 boards",      t_boards_spawn),
@@ -2869,7 +3015,10 @@ CASES = [
     ("vagabond published under faction",     t_a_vagabond_is_published_under_its_faction_name),
     ("two vagabonds, one marker each",       t_two_vagabonds_get_one_marker_each),
     ("selector icons load with table",     t_every_selector_icon_is_downloaded_with_the_table),
+    ("dragon god goes out with lizards",  t_the_dragon_god_goes_out_with_its_faction),
     ("placement ignores board size",       t_placement_never_asks_the_board_how_big_it_is),
+    ("send home skips other seats",       t_send_home_leaves_other_peoples_pieces_alone),
+    ("numpad 2 lays a warrior down",      t_numpad_two_lays_a_warrior_down_and_back_up),
 ]
 
 

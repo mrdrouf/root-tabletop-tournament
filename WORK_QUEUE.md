@@ -178,6 +178,24 @@ Nothing below is implemented. The maintainer asked to be consulted before each c
 
 ### Gizmo (the maintainer will iterate; ask before changing behaviour)
 
+- [x] **Numpad 0 is your own faction only** (DONE 2026-09-07). "gizmo 0 should not work on other
+      player's warriors and token buildings." This REVERSES the earlier rule, which was recorded in
+      the code as "the piece decides the destination, not whoever pressed the key" -- he was shown
+      that note and confirmed the reversal. Ownership is exact, not guessed: RTT_HOME already records
+      the faction each piece was set out for, and a loose piece is identified by the blueprint that
+      ships its nickname (rttFactionOfMap, ambiguous names never answer). Somebody else's piece:
+      nothing, silently. A piece no faction owns is not blocked -- it just has no home, as before.
+      If nobody is seated in your colour it says so, the way numpad 1 already does.
+
+- [x] **Numpad 2 lays a warrior down** (DONE 2026-09-07). "pressing numpad 2 should put a warrior
+      laying down; change the color of the warrior cream white ... and lock it. repressing numpad 2
+      undoes all of that." ANY warrior, his call when asked -- not only your own, unlike numpad 0.
+      Warriors only. Undo restores the piece's OWN tint, because every faction's warrior carries a
+      different one and three are plain white with the colour in the texture; the pose and tint ride
+      in onSave so a reload cannot strand one cream and locked. Rebindable as "Gizmo: lay the hovered
+      warrior down" like the other two. TO CHECK AT THE TABLE: that it falls the way he wants -- it
+      tips forward, away from the player, and flipping that is one number.
+
 - [ ] **Extend the gizmo to mobs, strongholds and the rest of the tokens/buildings.** Zaandaa asked
       for it; both agreed the mechanism is an assigned return location per object, and the
       maintainer's proposal is to use each piece's own spawn position from the faction setup. That
@@ -186,6 +204,17 @@ Nothing below is implemented. The maintainer asked to be consulted before each c
       the maintainer said it is early. Open.
 
 ### Housekeeping the maintainer flagged
+
+- [ ] **The BAKED label art still uses its own cream.** The runtime UI is all #F9E6BB now, but the
+      button labels are rendered PNGs and `tools/make_labels.py`, `tools/relabel.py` and
+      `tools/render_assets.py` draw their type in #EDE0C0 (237,224,192), with one secondary at
+      #E9DDBE. Bringing those in line means RE-RENDERING the label set -- and `publish()` names every
+      file by a hash of its contents (jsDelivr caches by URL, which is why the hash exists), so every
+      regenerated label lands on a NEW filename and every asset URL that points at it has to be
+      re-pointed. Two things to settle before starting: whether the tools still cover the whole
+      current label set -- a label they miss would keep the old cream and leave the mod LESS
+      consistent than it is now -- and `assets/labels/turn_panel_frame_*.png`, which no tool
+      regenerates at all. Not attempted; it wants a plan, not a sweep.
 
 - [ ] **Fan-made content still referenced in the built save.** 22 distinct fan names survive,
       including live asset links: Infected (42 references), Roamer (10), Advocate (9), Farmer
@@ -210,6 +239,33 @@ Nothing below is implemented. The maintainer asked to be consulted before each c
       Mountain centre is one -- so the engine's defaults are not automatically what this group plays.
 
 ## AWAITING A TEST AT THE TABLE
+
+- [ ] **Box score: two adversarial findings fixed 2026-09-07, need a look at the table.** Found by
+      the new `root_boxscore/tests/test_adversarial.py` battery (19 cases: player churn, lag, seat
+      changes, object churn, reload, endgame).
+      1. **A VP marker put in a bag wiped that faction's whole record.** Dropping a marker into a bag
+         DESTROYS the object in TTS, and the prune had `guidGone` as an independent trigger, which
+         short-circuited both the faction-presence test and the two-poll grace the comment promises.
+         The faction's supply was still on the table and the row went anyway, coming back empty --
+         the export showed that faction with `turns: []`. Now prunes only on the faction being
+         absent, as the comment always said.
+      2. **A duplicate or late-delivered turn event invented a round.** lockRow reads "this row
+         already locked this round" as proof the table came round, so a re-delivered pass gave one
+         faction an extra cell and ran the round counter ahead. onPlayerTurn now refuses a pass whose
+         `previous` is not the colour holding the turn AND would invent a round.
+      TO CHECK: put a VP marker in a bag mid-game and take it back out -- the row keeps its rounds;
+      and a normal game still counts its rounds correctly.
+
+- [ ] **Dragon God cleared with the lizards (fixed 2026-09-07, needs a look at the table).** Reported:
+      "the lizard god called dragon god is not cleared with its faction". All three spawns of the
+      discard blocker went through `makeSpecial(category,name,x,y,z,rotation,tag)` without passing the
+      SEVENTH argument, the teardown tag, so the object reached the table with no tags at all and
+      `RTT_TEARDOWN_TAGS` never matched it. Salty Old Stan, which replaces it, leaked the same way.
+      All three now spawn tagged `RTT Faction`, and `rttPlaceDragonGod` adopts an untagged blocker
+      that is already out (an old save, or the Lizard Wizard button) so it does not leak one more
+      game. Guarded by `dragon god goes out with lizards` in tests/test_setup_paths.py, which fails
+      on the old build. TO CHECK: draft the lizards, start a new game, confirm the blocker is gone
+      from the discard and that a Stan game clears too.
 
 - [ ] **Seat colour cannot be re-taken after leaving it.** Reported 2026-09-05: "I was in that
       color, then I changed color to another seat, and then I'm not able to go back". Nothing in
