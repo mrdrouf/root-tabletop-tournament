@@ -314,12 +314,37 @@ def t_enclave_targets_the_suit_marker(src):
             continue
         ls = j["LuaScript"]
         assert "function onDrop" in ls, "an enclave has no onDrop handler"
-        assert 'getObjectsWithTag("Clearing Marker")' in ls, "an enclave does not look for suit markers"
-        assert "z = 0.3599" in ls, "an enclave is not aimed at the lobe centre"
-        assert "FROG_FACING" in ls, "an enclave has no facing"
-        assert "bestMarker.getRotation()" in ls, "an enclave is not taking the marker's rotation"
-        assert "atan" not in ls, "an enclave computes a bearing again instead of copying"
         got += 1
+        if got > 1:
+            continue
+
+        # AND RUN IT. This used to assert on substrings of the script -- "z = 0.3599", "FROG_FACING",
+        # no "atan" -- and never execute a line of it, so the behaviour it describes had no coverage
+        # at all: any rewrite that kept the words and changed the maths would have passed.
+        er = lupa.LuaRuntime(unpack_returned_tuples=True)
+        er.execute(open(os.path.join(HERE, "tts_stub.lua"), encoding="utf-8").read())
+        er.execute(ls.replace("!=", "~="))
+        er.execute("""
+          MARKER = MKOBJ("Clearing Marker", { 10, 11.6, -4 }, { "Clearing Marker" })
+          MARKER.setRotation({ 0, 137, 0 })
+          -- the lobe centre is model-local z 0.3599; positionToWorld carries the marker's own turn
+          MARKER.__scale = Vector({ 1, 1, 1 })
+          self.__pos = Vector({ 10.6, 12, -4.5 })
+          self.__rot = Vector({ 0, 0, 0 })
+        """)
+        er.execute("pcall(function() onDrop('Red') end) FLUSH(20)")
+        p = er.eval("self.getPosition()")
+        r = er.eval("self.getRotation()")
+
+        want = er.eval("MARKER.positionToWorld(Vector({ 0.0056, 0.0174, 0.3599 }))")
+        assert abs(p.x - want.x) < 0.05 and abs(p.z - want.z) < 0.05, (
+            "a dropped enclave landed at %.3f,%.3f; the marker's lobe centre is %.3f,%.3f"
+            % (p.x, p.z, want.x, want.z))
+        # the facing is the MARKER's, plus the blueprint's own offset -- copied, never recomputed
+        off = er.eval("FROG_FACING") or 0
+        assert abs(((r.y - (137 + off)) + 180) % 360 - 180) < 0.5, (
+            "a dropped enclave faces %.1f; the marker faces 137 and the offset is %s" % (r.y, off))
+
     assert got == 12, "expected 12 scripted enclaves, found %d" % got
 
 
