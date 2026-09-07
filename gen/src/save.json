@@ -2416,7 +2416,184 @@
       },
       "LuaScript": "",
       "LuaScriptState": "",
-      "XmlUI": ""
+      "XmlUI": "",
+      "CustomUIAssets": [
+        {
+          "Type": 0,
+          "Name": "Marquise de Cat",
+          "URL": "https://steamusercontent-a.akamaihd.net/ugc/1861696999739429295/F6CF523AAA7DCC91AF3812339EBB3354F6D9891A/"
+        },
+        {
+          "Type": 0,
+          "Name": "Eyrie Dynasties",
+          "URL": "https://steamusercontent-a.akamaihd.net/ugc/1728793291755958213/960DFA43E52D99A3250863FC63F3BA3AE5104325/"
+        },
+        {
+          "Type": 0,
+          "Name": "Woodland Alliance",
+          "URL": "https://steamusercontent-a.akamaihd.net/ugc/1728793291755956632/E99D3C9B246A94F6A898EC0D8098A05FA9467473/"
+        },
+        {
+          "Type": 0,
+          "Name": "Knaves of the Deepwood",
+          "URL": "https://steamusercontent-a.akamaihd.net/ugc/14468202139363768412/1012F7145C45B86F395C099B9AE80EA536529DD3/"
+        },
+        {
+          "Type": 0,
+          "Name": "The Lizard Cult",
+          "URL": "https://steamusercontent-a.akamaihd.net/ugc/1728793291755960838/D88CBE9192488A678AF3EC6DFC45B4C728C9A169/"
+        },
+        {
+          "Type": 0,
+          "Name": "Riverfolk Company",
+          "URL": "https://steamusercontent-a.akamaihd.net/ugc/1728793291755963912/C9589D96259534C6FB15DD91F78E7E90A073FDD8/"
+        },
+        {
+          "Type": 0,
+          "Name": "Underground Duchy",
+          "URL": "https://steamusercontent-a.akamaihd.net/ugc/1728793291755961872/1E2748C8EDD0BDE039B81658AFD0B19C771569BD/"
+        },
+        {
+          "Type": 0,
+          "Name": "Corvid Conspiracy",
+          "URL": "https://steamusercontent-a.akamaihd.net/ugc/1728793291755959858/69B8EC707AD26EF2F558ACAB65B39163B812D3F6/"
+        },
+        {
+          "Type": 0,
+          "Name": "Lord of the Hundreds",
+          "URL": "https://steamusercontent-a.akamaihd.net/ugc/1833522185818578726/CE952087E18A1C0B6B94E44EF53EB009A97A7122/"
+        },
+        {
+          "Type": 0,
+          "Name": "Keepers in Iron",
+          "URL": "https://steamusercontent-a.akamaihd.net/ugc/1833522185818579404/C0D7197A109DBF0C2EFB34DF50AE2CA70A66C25B/"
+        },
+        {
+          "Type": 0,
+          "Name": "Twilight Council",
+          "URL": "https://steamusercontent-a.akamaihd.net/ugc/2452866064845174396/6228F6A71DDC36CD883777CA958857CB123D7ECB/"
+        },
+        {
+          "Type": 0,
+          "Name": "Lilypad Diaspora",
+          "URL": "https://steamusercontent-a.akamaihd.net/ugc/2508034524425991747/77C277526C0042FE2754C83836A1E2C3C03FAD38/"
+        },
+        {
+          "Type": 0,
+          "Name": "CloseX",
+          "URL": "https://cdn.jsdelivr.net/gh/mrdrouf/root-tabletop-tournament@main/assets/labels/close_x.png"
+        },
+        {
+          "Type": 0,
+          "Name": "Adventurer",
+          "URL": "https://steamusercontent-a.akamaihd.net/ugc/1728793291756318712/DAB9CB5B2AA9CF5AF4BDD67CFED687B8595411CF/"
+        },
+        {
+          "Type": 0,
+          "Name": "Arbiter",
+          "URL": "https://steamusercontent-a.akamaihd.net/ugc/1728793291756223555/8BB76979D215E9C042976005212DD7D0F9EBCDBD/"
+        },
+        {
+          "Type": 0,
+          "Name": "Cheat",
+          "URL": "https://steamusercontent-a.akamaihd.net/ugc/14685838847886183596/2F910C564507478E736E783C2B01011BF710E3D0/"
+        },
+        {
+          "Type": 0,
+          "Name": "Gladiator",
+          "URL": "https://steamusercontent-a.akamaihd.net/ugc/16433884667023926/65F0E372EB9EEF805369BB5F766846F066BD62AF/"
+        },
+        {
+          "Type": 0,
+          "Name": "Harrier",
+          "URL": "https://steamusercontent-a.akamaihd.net/ugc/1728793291756321980/D728E9E7523EF9917554681B8CCFA7A79D6E95DC/"
+        },
+        {
+          "Type": 0,
+          "Name": "Jailor",
+          "URL": "https://steamusercontent-a.akamaihd.net/ugc/10906121492486022753/B8147FE9BB8652380D0027EB4AF0C7FF8C7C66AE/"
+        },
+        {
+          "Type": 0,
+          "Name": "Ranger",
+          "URL": "https://steamusercontent-a.akamaihd.net/ugc/1728793291756323292/B5CDBACDB5E58637478F86047D574579AECBC763/"
+        },
+        {
+          "Type": 0,
+          "Name": "Ronin",
+          "URL": "https://steamusercontent-a.akamaihd.net/ugc/1861696999739435936/8C15D8C6D58FAF51A22B66697740CBA5BAEBBEFB/"
+        },
+        {
+          "Type": 0,
+          "Name": "Scoundrel",
+          "URL": "https://steamusercontent-a.akamaihd.net/ugc/1728793291756324621/71561324D23947260120C7F2EDF0A692986619EB/"
+        },
+        {
+          "Type": 0,
+          "Name": "Thief",
+          "URL": "https://steamusercontent-a.akamaihd.net/ugc/1728793291756326469/AA4F3B6BF91AC337A240B582DF46C07DF9A374E5/"
+        },
+        {
+          "Type": 0,
+          "Name": "Tinker",
+          "URL": "https://steamusercontent-a.akamaihd.net/ugc/1728793291756328063/25E9D54EAFE7A483877DECF1013DE57C96B0F214/"
+        },
+        {
+          "Type": 0,
+          "Name": "Vagrant",
+          "URL": "https://steamusercontent-a.akamaihd.net/ugc/1728793291756329310/FEBDC9CB90C879DFC4ECAE1BBDDA857DBF9CD95C/"
+        },
+        {
+          "Type": 0,
+          "Name": "VagabondAndKnaves",
+          "URL": "https://steamusercontent-a.akamaihd.net/ugc/11747765109863371101/6EB77E31F0244DFD039474C19C18D49AD0C93DBD/"
+        },
+        {
+          "Type": 0,
+          "Name": "Autumn Map",
+          "URL": "https://steamusercontent-a.akamaihd.net/ugc/9338841708247799860/688C6CB9F5A34B2A2B067C6DA493AD653B7D9C6A/"
+        },
+        {
+          "Type": 0,
+          "Name": "Winter Map",
+          "URL": "https://steamusercontent-a.akamaihd.net/ugc/12863190738702993416/F9C676622A48D6E15BB3AE235E26CE7BC8D11283/"
+        },
+        {
+          "Type": 0,
+          "Name": "Lake Map",
+          "URL": "https://steamusercontent-a.akamaihd.net/ugc/11224158918879846636/C034E1855CED11FD28D76E3020D629478FABD195/"
+        },
+        {
+          "Type": 0,
+          "Name": "Mountain Map",
+          "URL": "https://steamusercontent-a.akamaihd.net/ugc/17146621840035729417/55256EFBD832F89B16ADAF98A382D4BF09162487/"
+        },
+        {
+          "Type": 0,
+          "Name": "Marsh Map",
+          "URL": "https://steamusercontent-a.akamaihd.net/ugc/12189840401890527004/1A5500DF801E01874A28C059E04D049043948426/"
+        },
+        {
+          "Type": 0,
+          "Name": "Gorge Map",
+          "URL": "https://steamusercontent-a.akamaihd.net/ugc/17163206417596942920/65DEC204EF54C27F6BAFE8202D3AE63F73D28DD3/"
+        },
+        {
+          "Type": 0,
+          "Name": "Standard Deck",
+          "URL": "https://steamusercontent-a.akamaihd.net/ugc/1791848789393178780/9438FC204F346D081D3E66A95BBEAC918288004A/"
+        },
+        {
+          "Type": 0,
+          "Name": "Exiles and Partisans Deck",
+          "URL": "https://steamusercontent-a.akamaihd.net/ugc/1791848789393180099/504416827060BE54A0038F2C9BCF5D5A9475367F/"
+        },
+        {
+          "Type": 0,
+          "Name": "Squires and Disciples Deck",
+          "URL": "https://steamusercontent-a.akamaihd.net/ugc/16423108253239612/4B2CC3EBFD87C25AD92E61110CF80A5C0E461BD6/"
+        }
+      ]
     }
   ]
 }

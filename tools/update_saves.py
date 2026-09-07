@@ -13,6 +13,7 @@ is left exactly as it was:
 
     board bab7e1        LuaScript, XmlUI, CustomUIAssets
     "Root Box Score"    LuaScript
+    table surface 4ee1f2 CustomUIAssets
 
 SCOPE: the base RTT save ONLY -- Root_Tabletop_Tournament.json. Nothing else, by instruction
 (2026-09-05, after a first pass rewrote 26 files and a second still covered the autosaves). Autosaves
@@ -31,6 +32,11 @@ BACKUPS = os.path.expanduser("~/Library/Tabletop Simulator/RTT_save_backups")
 KEEP_SETS = 2
 BASE_SAVE = "Root_Tabletop_Tournament.json"   # the only save this touches by default
 BOARD = "bab7e1"
+# The table surface carries nothing but a list of URLs: the art of the two faction selectors, which
+# are spawned mid-game and would otherwise be asking for their icons for the first time at the moment
+# TTS draws them -- too late, and the board comes up with no buttons. Its own mesh and transform are
+# never touched here; only that list.
+SURFACE = "4ee1f2"
 BOXSCORE = "Root Box Score"
 PANEL    = "Turn Panel"      # spawned from RTT_TURN_PANEL_JSON, same problem as the sheet
 
@@ -57,6 +63,9 @@ def current_sources():
     """
     doc = read(BUILT)
     board = next(o for o in walk(doc) if o.get("GUID") == BOARD)
+    surface = next((o for o in walk(doc) if o.get("GUID") == SURFACE), None)
+    if surface is None or not surface.get("CustomUIAssets"):
+        raise RuntimeError("no pre-fetch asset list on the table surface %s in the build" % SURFACE)
     box = next((o for o in walk(doc) if o.get("Nickname") == BOXSCORE), None)
     if box is None:
         m = re.search(r"^RTT_BOXSCORE_JSON = \[====\[(.*?)\]====\]$", board["LuaScript"], re.M | re.S)
@@ -75,10 +84,10 @@ def current_sources():
             panel = json.loads(m.group(1))
     if panel is None:
         raise RuntimeError("no turn panel in the build: neither an object nor RTT_TURN_PANEL_JSON")
-    return board, box, panel
+    return board, box, panel, surface
 
 
-def update_doc(doc, board, box, panel=None):
+def update_doc(doc, board, box, panel=None, surface=None):
     """-> list of what changed. Only ever writes script/UI fields, never a transform or state."""
     changed = []
     for o in walk(doc):
@@ -87,6 +96,10 @@ def update_doc(doc, board, box, panel=None):
                 if k in board and o.get(k) != board[k]:
                     o[k] = json.loads(json.dumps(board[k]))
                     changed.append("board." + k)
+        elif surface is not None and o.get("GUID") == SURFACE:
+            if o.get("CustomUIAssets") != surface["CustomUIAssets"]:
+                o["CustomUIAssets"] = json.loads(json.dumps(surface["CustomUIAssets"]))
+                changed.append("surface.CustomUIAssets")
         elif box is not None and o.get("Nickname") == BOXSCORE:
             if o.get("LuaScript") != box["LuaScript"]:
                 o["LuaScript"] = box["LuaScript"]
@@ -114,7 +127,7 @@ def in_scope(path, every):
 def main():
     dry = "--dry-run" in sys.argv
     every = "--all" in sys.argv
-    board, box, panel = current_sources()
+    board, box, panel, surface = current_sources()
     print("built board script: %d chars; box score: %s"
           % (len(board["LuaScript"]), "%d chars" % len(box["LuaScript"]) if box else "not in build"))
 
@@ -135,7 +148,7 @@ def main():
             continue
         if not any(o.get("GUID") == BOARD or o.get("Nickname") == BOXSCORE for o in walk(doc)):
             continue
-        changed = update_doc(doc, board, box, panel)
+        changed = update_doc(doc, board, box, panel, surface)
         if not changed:
             skipped += 1
             continue

@@ -421,3 +421,29 @@ and the table centre. Every seat now spawns it on the player's own half.
   The attributions were read out of the base mod's own hover-credit mapping rather
   than guessed.
 - The wipe warning is much bigger: font 54 (was ~39) square, 33 (was ~24) wide.
+
+## Cold load: the faction board's art now downloads with the table - 2026-09-07
+The board each player picks a faction on does not exist in the save. It is built
+from a blueprint string and spawned mid-game, and its buttons are 26 images that
+nothing else in the mod ever asks for. TTS resolves an object's XmlUI icon
+references ONCE, when the object is instantiated, and never re-composites as
+downloads finish -- so on a first load the images had not arrived yet, the whole
+button group painted blank, and only a second load of the mod fixed it. The wood
+still rendered, because CustomImage is a separate pipeline. Reported 2026-09-07:
+"faction board showed no buttons ... resolved by reloading the mod ... still there
+for people loading the mod the first time".
+
+This is the 2026-08-29 cold-load bug in a place that fix never reached. m660 cured
+the setup board, whose icons are listed in the save and so download with the table.
+It could not cover the boards we spawn, whose icons are buried in a Lua string.
+They used to be safe by accident: the twelve faction icons were the setup board's
+own files. Re-rendering every setup label in Luminari moved the setup board onto
+new art and left the selectors on the old Steam URLs, which nothing else fetches.
+
+FIX, in the blueprint: all 35 icons of both spawned selectors are now listed on the
+table surface (4ee1f2 -- locked, permanent, no UI of its own), so TTS downloads
+them while the table loads and the spawned board finds every one on disk. The setup
+board's own asset list is untouched, at 48; the count that was confirmed working
+cold in-game was 147, and nothing here goes near it. Guarded by
+t_every_selector_icon_is_downloaded_with_the_table, and carried into the
+maintainer's base save by update_saves.py.

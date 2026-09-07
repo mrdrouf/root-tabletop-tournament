@@ -105,6 +105,29 @@ Nothing below is implemented. The maintainer asked to be consulted before each c
 
 ### Bugs
 
+- [x] **Faction board spawns with no buttons on a first load** (FIXED 2026-09-07, needs a COLD test).
+      Reported with screenshots: "faction board showed no buttons ... it was resolved by reloading the
+      mod ... still there for people loading the mod the first time". This is the 2026-08-29 cold-load
+      bug in a place that fix never reached. The selector boards are spawned mid-game from a Lua
+      blueprint, so their 35 icons are not in the save and TTS only learns about them at the instant it
+      draws the board -- too late, and it never re-composites. They were safe by accident until every
+      setup label was re-rendered in Luminari (74cefe8), which moved the setup board onto new art and
+      left these boards on the old Steam URLs that nothing else fetches. FIX: those 35 URLs are now
+      listed on the table surface 4ee1f2 in gen/src/save.json, so they download with the table.
+      VERIFY: someone loading the mod for the FIRST time (a warm cache cannot show this) gets a faction
+      board with buttons without reloading.
+
+- [ ] **Map and items load "all over the place" on a first load** (OPEN -- reported 2026-09-07 with
+      screenshots, on the CURRENT build). Ruled out so far: the map BOARD is not what moved. Every
+      entry of a map's blueprint goes through the identical position formula in makeMap, and the board
+      entry is `"Locked": true`, so physics cannot push it either. What is displaced is loose pieces
+      and -- in the first screenshot -- the turn panel, which sits in the middle of the map instead of
+      off its right edge. That last part is unexplained: RTT_PANEL_POS has been {29-32, ~11.6, ~-19} in
+      every build since the panel existed, dist carries {30.5759, 11.6515, -20.3423}, and measuring the
+      screenshot against the battle mat (33.17, 9.21) as a ruler puts the panel at roughly world x=-2.
+      Nothing shipped explains that. Do NOT guess a mechanism; the next step is to reproduce or to get
+      a save from the moment it happened.
+
 ### Setup and placement
 
 - [ ] **Faction boards spawn at different offsets from their seat (maintainer, 2026-09-05).** Real,

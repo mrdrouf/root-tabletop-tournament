@@ -2718,6 +2718,56 @@ def t_the_panel_flashes_after_twenty_minutes(src):
     assert g.PANEL_DEMO is None, "presses five seconds apart armed the preview"
 
 
+def t_every_selector_icon_is_downloaded_with_the_table(src):
+    """A board we SPAWN must never be the first thing in the mod to ask for its own art.
+
+    Neither faction selector exists in the save: both are built from a blueprint string and spawned
+    mid-game. TTS resolves an object's XmlUI icon references ONCE, at the instant the object is
+    instantiated, and never re-composites as downloads finish -- the cold-load finding of 2026-08-29
+    (WORK_QUEUE_ARCHIVE). An icon that is not already on the player's disk when the board appears is
+    an icon that never appears: the board renders its wood and not one button, and only a second load
+    of the mod fixes it.
+
+    The twelve faction icons used to be the setup board's own files, so the table fetched them at load
+    and the spawned boards found them warm. Re-rendering every setup label in Luminari (74cefe8) moved
+    the setup board onto new art and left these blueprints on the old Steam URLs, which nothing else in
+    the mod asks for -- and the blank faction board came back for anyone loading the mod for the first
+    time. Maintainer, 2026-09-07: "faction board showed no buttons ... it was resolved by reloading the
+    mod ... still there for people loading the mod the first time".
+
+    So: every image a spawned board asks for must also be listed on an object that IS in the save.
+    """
+    save = json.loads(open(os.path.join(REPO, "dist", "Root_Tabletop_Tournament.json"),
+                           encoding="utf-8").read())
+
+    def walk(objs):
+        for o in objs:
+            yield o
+            yield from walk(o.get("ContainedObjects") or [])
+
+    # every URL TTS is told about while the table itself loads
+    at_load = set()
+    for o in walk(save["ObjectStates"]):
+        for a in (o.get("CustomUIAssets") or []):
+            at_load.add(a.get("URL"))
+    for a in (save.get("CustomUIAssets") or []):
+        at_load.add(a.get("URL"))
+
+    for var in ("MANUAL_FACTION_SELECTOR_JSON", "RTT_SELECTOR_JSON"):
+        m = re.search(re.escape(var) + r" = \[===\[(\{.*?)\]===\]", src, re.S)
+        assert m is not None, "%s: blueprint not found" % var
+        blueprint = json.loads(m.group(1))
+        by_name = {a["Name"]: a["URL"] for a in (blueprint.get("CustomUIAssets") or [])}
+        used = set(re.findall(r'(?:icon|image)="([^"]+)"', blueprint.get("XmlUI") or ""))
+        assert used, "%s: no icons found -- did the XmlUI change shape?" % var
+        for name in sorted(used):
+            assert name in by_name, "%s: button icon %r has no asset entry" % (var, name)
+            assert by_name[name] in at_load, (
+                "%s: icon %r is only ever requested when the board is SPAWNED, so it is missing on a "
+                "cold load and the board comes up with no buttons. List it on the table surface "
+                "(4ee1f2) in gen/src/save.json." % (var, name))
+
+
 CASES = [
     ("manual path drives the turn system",   t_manual_turn_order),
     ("manual path spawns 4 / 5 boards",      t_boards_spawn),
@@ -2786,6 +2836,7 @@ CASES = [
     ("one seat holds one faction",           t_one_seat_holds_one_faction),
     ("vagabond published under faction",     t_a_vagabond_is_published_under_its_faction_name),
     ("two vagabonds, one marker each",       t_two_vagabonds_get_one_marker_each),
+    ("selector icons load with table",     t_every_selector_icon_is_downloaded_with_the_table),
 ]
 
 
