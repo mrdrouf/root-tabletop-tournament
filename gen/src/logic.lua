@@ -1817,14 +1817,30 @@ end
 -- would this click actually destroy anything? A SETUP click tears down the tags rttSetup owns; a MAP
 -- click tears down "Map Object" instead, so the first map of a session still places instantly with no
 -- prompt -- the same rule the setup buttons already follow.
+-- What a rebuild would actually DESTROY. Not simply "a Map Object": the battle mat, the box score and
+-- the turn panel all carry that tag and all SURVIVE, because removeMapItems keeps anything tagged as
+-- a fixture. Counting them made every setup button demand confirmation on a table holding nothing but
+-- its own furniture -- maintainer, 2026-09-07: "a warning of wipe all factions appeared while there
+-- was no faction to wipe." This is the same test removeMapItems applies, so the warning appears
+-- exactly when something is going to be taken away.
+function rttLoseableMapItems()
+  local n = 0
+  for _, o in ipairs(getObjectsWithTag("Map Object")) do
+    local fixture = false
+    pcall(function() fixture = o.hasTag(RTT_FIXTURE_TAG) end)
+    if not fixture then n = n + 1 end
+  end
+  return n
+end
+
 function rttWouldWipe(isMap)
-  if isMap then return #getObjectsWithTag("Map Object") > 0 end
+  if isMap then return rttLoseableMapItems() > 0 end
   if rttFactionsOnTable() then return true end
   -- A SETUP CLICK NOW TAKES THE MAP TOO. rttNewGame re-places it (rttRefreshMap), so starting a game
   -- on a table that has a map is destructive even with no faction on it -- and it used to go through
   -- with no prompt at all. Maintainer, 2026-09-06: "the options buttons should also have the warnings
   -- when they reset factions or maps."
-  return #getObjectsWithTag("Map Object") > 0
+  return rttLoseableMapItems() > 0
 end
 
 -- Is there anything of a GAME on the table, as opposed to just a map?
@@ -3474,37 +3490,11 @@ function rttSpawnPanel()
   })
 end
 
-function rttSpawnOldClock()
-  for _, e in ipairs({ { RTT_TIMER_JSON, RTT_TIMER_POS, RTT_TIMER_ROT, RTT_TAG_CLOCK },
-                       { RTT_COUNTER_JSON, RTT_COUNTER_POS, RTT_COUNTER_ROT, RTT_TAG_COUNTER } }) do
-    if rttFixture(e[4]) == nil then
-      spawnObjectJSON({
-        json = e[1], position = e[2], rotation = e[3],
-        callback_function = function(o)
-          pcall(function()
-            local t = o.getTags(); table.insert(t, "Map Object"); table.insert(t, RTT_FIXTURE_TAG)
-            table.insert(t, e[4])
-            o.setTags(t)
-          end)
-        end
-      })
-    end
-  end
-end
-
--- THE TURN PANEL BUTTON. Swaps the clock and counter for the panel, or the panel back for them, so the
--- table stays usable while the panel is still being shaped.
-function rttToggleTurnPanel()
-  local hadPanel = rttFixture(RTT_TAG_PANEL)
-  for _, tg in ipairs({ RTT_TAG_PANEL, RTT_TAG_CLOCK, RTT_TAG_COUNTER }) do
-    for _, o in ipairs(getObjectsWithTag(tg)) do pcall(function() o.destruct() end) end
-  end
-  Wait.frames(function()
-    pcall(function()
-      if hadPanel ~= nil then rttSpawnOldClock() else rttSpawnPanel() end
-    end)
-  end, 2)
-end
+-- The turn panel is simply what the table has now. It shipped as an OPTION, with a button that
+-- swapped it for the old digital clock and counter while it was still being shaped -- that is
+-- finished, and the maintainer asked for the button on 2026-09-07: "remove the button turn panel".
+-- Gone with it: rttToggleTurnPanel, and rttSpawnOldClock, which nothing else ever called.
+-- RTT_TIMER_JSON and RTT_COUNTER_JSON are unreachable now; WORK_QUEUE carries them for a cleanup pass.
 
 function rttPlaceMap(mapId)
   makeMap("", "", mapId)      -- makeMap spawns the battle mat itself now

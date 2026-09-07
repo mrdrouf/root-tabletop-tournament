@@ -224,6 +224,16 @@ Nothing below is implemented. The maintainer asked to be consulted before each c
 
 ### Housekeeping the maintainer flagged
 
+- [ ] **The old digital clock and counter are unreachable.** The turn panel is the only clock now, so
+      the button that swapped them, `rttToggleTurnPanel` and `rttSpawnOldClock` are gone -- but
+      `RTT_TIMER_JSON`, `RTT_COUNTER_JSON` and their POS/ROT constants are still in the file with
+      nothing calling them. Drop them in the next cleanup pass, along with `RTT_TAG_CLOCK` /
+      `RTT_TAG_COUNTER` if nothing else reads those.
+
+- [ ] **Row two of the option buttons has a hole.** Removing the turn-panel button freed x=19, so the
+      row now reads: three buttons, a gap at 19, a gap at 57, Credits anchored at 95. Nothing was
+      rearranged to close it -- that is a layout call for the maintainer, not something to do quietly.
+
 - [ ] **The BAKED label art still uses its own cream.** The runtime UI is all #F9E6BB now, but the
       button labels are rendered PNGs and `tools/make_labels.py`, `tools/relabel.py` and
       `tools/render_assets.py` draw their type in #EDE0C0 (237,224,192), with one secondary at

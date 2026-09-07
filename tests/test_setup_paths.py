@@ -1143,17 +1143,14 @@ def t_camera_states_are_the_hosts(src):
             "%s does not carry the host's camera states" % path
 
 
-def t_the_turn_panel_is_an_option_not_the_default(src):
-    """The turn panel is what SHIPS; its button swaps back to the old clock and counter.
+def t_the_turn_panel_is_the_only_clock(src):
+    """The panel is simply what the table has -- no option, no way back to the old clock.
 
-    Maintainer, 2026-09-07: "make this clock qnd counter the one by default". It was the other way round
-    for a day while the panel was being shaped -- the roles are reversed now, and the old pair is kept
-    so the button has something to swap to.
+    It shipped as an option, with a button that swapped it for the digital clock and counter while it
+    was still being shaped. That is finished: "remove the button turn panel" (2026-09-07). The button,
+    rttToggleTurnPanel and rttSpawnOldClock are all gone, and nothing must quietly bring them back.
     """
     rt = fresh(src)
-    # the clock and counter are back, and they are what a map places
-    for key in ("RTT_TIMER_JSON", "RTT_COUNTER_JSON"):
-        assert key in src, "%s is missing; the panel was meant to be optional, not a replacement" % key
     rt.execute("pcall(function() makeMap('', '', 'Summer Map') end) FLUSH(60)")
     spawned = [str(x) for x in (rt.eval("REC.spawned") or {}).values()]
     assert any(l.startswith("Turn Panel@") for l in spawned), \
@@ -1162,8 +1159,9 @@ def t_the_turn_panel_is_an_option_not_the_default(src):
         assert not any(l.startswith(name + "@") for l in spawned), \
             "%s spawned with the map; the panel is the default now" % name
 
-    # the toggle exists and is wired to a button
-    assert "function rttToggleTurnPanel" in src, "no rttToggleTurnPanel"
+    # the toggle and its button are gone, art included
+    for gone in ("function rttToggleTurnPanel", "function rttSpawnOldClock"):
+        assert gone not in src, "%s is back; the panel is the only clock now" % gone
     x = json.load(open(os.path.join(REPO, "dist/Root_Tabletop_Tournament.json"),
                        encoding="utf-8"))["ObjectStates"]
     def walk(objs):
@@ -1171,9 +1169,9 @@ def t_the_turn_panel_is_an_option_not_the_default(src):
             yield o
             for c in (o.get("ContainedObjects") or []): yield from walk([c])
     board = [o for o in walk(x) if o.get("GUID") == "bab7e1"][0]
-    assert 'onclick="rttToggleTurnPanel"' in board["XmlUI"], "no button calls rttToggleTurnPanel"
-    assert any(a["Name"] == "TurnPanelLabel" for a in board["CustomUIAssets"]), \
-        "the toggle's label art is not registered"
+    assert "rttToggleTurnPanel" not in board["XmlUI"], "a button still calls the toggle"
+    assert not any(a["Name"] == "TurnPanelLabel" for a in board["CustomUIAssets"]), \
+        "the removed button's label art is still registered"
 
     # and the panel object itself is sound
     head = "RTT_TURN_PANEL_JSON = [====["
@@ -1466,9 +1464,9 @@ def t_the_two_free_button_slots_are_bottom_right(src):
     the position with the faction cards button. the new option button for the new clock/counter should
     be second row to the leftmost."
 
-    So Credits went to the bottom-right slot, Faction Cards took the spot it left in the FIRST row, and
-    the Turn Panel toggle took the leftmost slot still free in the second row. One slot is now spare,
-    at the right of row two.
+    So Credits went to the bottom-right slot and Faction Cards took the spot it left in the FIRST row.
+    The Turn Panel toggle held x=19 of row two until "remove the button turn panel" (2026-09-07); with
+    it gone, row two has TWO spare slots, 19 and 57, with Credits still anchored at 95.
 
     Reads the built save, because this is XmlUI on the board object rather than anything in the Lua.
     """
@@ -1493,11 +1491,9 @@ def t_the_two_free_button_slots_are_bottom_right(src):
     top, bottom = rows.get(-55, {}), rows.get(-78, {})
     assert len(top) == 6, "the first tool row has %d of 6 slots filled: %s" % (len(top), sorted(top))
     free = [s for s in SLOTS if s not in bottom]
-    assert free == [57], "the free slots are at %s; only x=57 of row 2 should be spare" % free
+    assert free == [19, 57], "the free slots are at %s; 19 and 57 of row 2 should be spare" % free
     assert top.get(57) == "Faction Cards", "x=57 of row 1 holds %r, not Faction Cards" % top.get(57)
     assert bottom.get(95) == "rttCreditsBtn", "the bottom-right slot holds %r, not Credits" % bottom.get(95)
-    assert bottom.get(19) == "rttTurnPanelBtn", \
-        "the leftmost free slot of row 2 holds %r, not the turn-panel toggle" % bottom.get(19)
 
 
 def t_captain_warriors_line_up_with_their_captains(src):
@@ -2585,43 +2581,6 @@ def t_send_home_fills_from_the_players_own_right(src):
                 % (fac, piece, where, xs))
 
 
-def t_the_turn_panel_button_really_swaps_them(src):
-    """The button swaps the panel for the old clock and counter, and back.
-
-    Maintainer, 2026-09-07, when they were stacked on top of each other: "not replacing properly clock
-    and counter when chosen". The cause was a name lookup -- both ship with a BLANK Nickname and TTS's
-    getName() returns the nickname, so matching on "Digital_Clock" found nothing. The harness could not
-    see it either: the stub falls back to an object's Name when the nickname is empty, which TTS does
-    not do. So this counts BY TAG, which the stub cannot fake.
-
-    The panel is the default now, so the swap runs the other way round.
-    """
-    COUNT = "function(t) return #getObjectsWithTag(t) end"
-    rt = fresh(src)
-    rt.execute("SEAT('Purple','H1')")
-    rt.execute("pcall(function() makeMap(Player['Purple'],'','Summer Map') end) FLUSH(200)")
-    n = rt.eval(COUNT)
-    assert n("RTT Panel") == 1, "the map should place the panel, got %d" % n("RTT Panel")
-    assert n("RTT Clock") == 0 and n("RTT Counter") == 0, \
-        "the old clock/counter came with the map (%d/%d)" % (n("RTT Clock"), n("RTT Counter"))
-
-    # called the way TTS calls a button handler -- fn(player, value, id) -- not bare. The bare form was
-    # all this test ever exercised, so a signature mismatch would have gone unseen.
-    rt.execute("pcall(function() rttToggleTurnPanel(Player['Purple'],'','rttTurnPanelBtn') end) FLUSH(60)")
-    assert n("RTT Panel") == 0, "the button did not take the panel away"
-    assert n("RTT Clock") == 1 and n("RTT Counter") == 1, \
-        "the button did not bring back the clock and counter (%d/%d)" % (n("RTT Clock"), n("RTT Counter"))
-
-    rt.execute("pcall(function() makeMap(Player['Purple'],'','Marsh Map') end) FLUSH(200)")
-    assert n("RTT Panel") == 0, "a map change re-spawned the panel on top of the clock"
-    assert n("RTT Clock") == 1 and n("RTT Counter") == 1, "the clock/counter did not survive a map change"
-
-    rt.execute("pcall(function() rttToggleTurnPanel(Player['Purple'],'','rttTurnPanelBtn') end) FLUSH(60)")
-    assert n("RTT Panel") == 1, "the second press did not restore the panel"
-    assert n("RTT Clock") == 0 and n("RTT Counter") == 0, \
-        "the old pair survived the swap back (%d/%d)" % (n("RTT Clock"), n("RTT Counter"))
-
-
 def t_the_panel_flashes_after_twenty_minutes(src):
     """A turn past twenty minutes tints the panel red, about once a second.
 
@@ -3060,6 +3019,46 @@ def t_the_panel_pauses_the_clock(src):
     assert shown() == "0:45", "the clock did not pick up where it stopped: %s" % shown()
 
 
+def t_no_warning_when_there_is_nothing_to_wipe(src):
+    """The confirm appears when something is going to be taken away, and not otherwise.
+
+    Maintainer, 2026-09-07: "a warning of wipe all factions appeared while there was no faction to
+    wipe." The test was "is there a Map Object" -- but the battle mat, the box score and the turn panel
+    all carry that tag and all SURVIVE a rebuild, because removeMapItems keeps anything tagged as a
+    fixture. So a table holding nothing but its own furniture read as a table full of things to lose,
+    and every setup button demanded confirmation for a wipe that would remove nothing.
+
+    It now counts what removeMapItems would actually destroy, which is the same test that does the
+    destroying.
+    """
+    rt = fresh(src)
+    fixture = rt.eval("RTT_FIXTURE_TAG")
+
+    # a bare table: nothing at all
+    assert rt.eval("rttWouldWipe(false)") is False, "warned on an empty table"
+    assert rt.eval("rttWouldWipe(true)") is False, "warned on an empty table for a map button"
+
+    # the panel, the box score and the mat -- all tagged Map Object, all survive a rebuild
+    rt.execute("""
+      for _, n in ipairs({'Turn Panel', 'Root Box Score', 'Battle Mat'}) do
+        MKOBJ(n, {0,1,0}, {'Map Object', %r})
+      end
+    """ % fixture)
+    assert rt.eval("rttWouldWipe(false)") is False, \
+        "the table's own furniture counted as something to wipe"
+    assert rt.eval("rttWouldWipe(true)") is False, \
+        "the table's own furniture counted as a map to replace"
+
+    # a real map piece is a real loss
+    rt.execute("MAPBIT = MKOBJ('Ruin', {1,1,1}, {'Map Object'})")
+    assert rt.eval("rttWouldWipe(false)") is True, "a map on the table did not warn"
+    assert rt.eval("rttWouldWipe(true)") is True, "a map on the table did not warn a map button"
+
+    # and so is a faction, on its own
+    rt.execute("MAPBIT.destruct() MKOBJ('Eyrie Warrior', {2,1,2}, {'RTT Faction'})")
+    assert rt.eval("rttWouldWipe(false)") is True, "a faction on the table did not warn"
+
+
 CASES = [
     ("manual path drives the turn system",   t_manual_turn_order),
     ("manual path spawns 4 / 5 boards",      t_boards_spawn),
@@ -3073,9 +3072,9 @@ CASES = [
     ("order cards cleared by a new game",    t_order_cards_do_not_survive_a_new_game),
     ("duchy burrow spawns locked",           t_the_duchy_burrow_spawns_locked),
     ("camera states are the host's",         t_camera_states_are_the_hosts),
-    ("turn panel is the default",         t_the_turn_panel_is_an_option_not_the_default),
+    ("turn panel is the only clock",      t_the_turn_panel_is_the_only_clock),
+    ("no warning with nothing to wipe",   t_no_warning_when_there_is_nothing_to_wipe),
     ("panel flashes past 20 minutes",      t_the_panel_flashes_after_twenty_minutes),
-    ("turn panel button swaps them",       t_the_turn_panel_button_really_swaps_them),
     ("crow plots inside the hidden zone",    t_crow_plots_spawn_inside_the_hidden_zone),
     ("crafted board same side for all",      t_crafted_board_sits_the_same_side_for_every_faction),
     ("no setup card on crafted board",       t_no_setup_card_rides_on_the_crafted_board),
