@@ -3394,7 +3394,12 @@ RTT_TURN_PANEL_JSON = [====[{"Name":"BlockSquare","Transform":{"posX":0.0,"posY"
 --
 -- It sits where the clock stood. Like the other fixtures it survives a map change and is only spawned
 -- when missing, so the running clock is not reset by picking a different board.
-RTT_PANEL_POS = { 29.4800, 11.5600, -18.9000 }   -- between the old clock and counter spots
+-- CENTRED UNDER THE BATTLE MAT, at the map's lower edge. Maintainer, 2026-09-07: "position it
+-- centered below the battle map but at the low border of the map like the height is correct not much
+-- the horizontal position" -- so z stays and x moves. The mat's own world x is 32.04, measured in the
+-- harness after a map build rather than read off its call, because makeSpecialWithTag adds the
+-- blueprint's move_to to the x it is given (33.17) and the two are not the same number.
+RTT_PANEL_POS = { 32.0400, 11.5600, -18.9000 }
 RTT_PANEL_ROT = { 0.0000, 180.0000, 0.0000 }
 
 function rttSpawnMapExtras()
