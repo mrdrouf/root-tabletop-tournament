@@ -40,9 +40,12 @@ ANCHOR = '<Image id="rootLogo"'
 # a sharper line, change FONT alone to resize it.
 SHRINK = 0.2
 FONT = 34                      # 34 * 0.2 = 6.8 on the board, against the 12 it replaced
-ELEMENT = ('<Panel id="rttVersion" position="104 87 -20" width="160" height="70" '
+# The line reads "by MrDrouf v<n>" -- the maintainer, 2026-09-07. It is right-ALIGNED, so it grows
+# leftwards and its right edge stays put however long the number gets; the panel is centred at 90 so
+# that edge lands at 120, the same place the bare number sat.
+ELEMENT = ('<Panel id="rttVersion" position="90 87 -20" width="300" height="70" '
            'scale="%s %s 1" color="#00000000" raycastTarget="false">'
-           '<Text text="v%%d" fontSize="%d" color="%s" alignment="MiddleRight"/>'
+           '<Text text="by MrDrouf v%%d" fontSize="%d" color="%s" alignment="MiddleRight"/>'
            '</Panel>') % (SHRINK, SHRINK, FONT, CREAM)
 PATTERN = re.compile(r'<Panel id="rttVersion".*?</Panel>', re.S)
 

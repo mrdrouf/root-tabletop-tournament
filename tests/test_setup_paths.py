@@ -2971,16 +2971,21 @@ def t_the_board_shows_the_build_number(src):
     assert shrink < 0.5, "the version is drawn at its final size; it will render soft: scale %s" % shrink
     assert font * shrink < 9, "the version reads too big on the board: %.1f" % (font * shrink)
 
-    shown = re.search(r'text="v(\d+)"', el)
-    assert shown, "the build number is not in the form v<n>: %s" % el
+    shown = re.search(r'text="by MrDrouf v(\d+)"', el)
+    assert shown, 'the corner does not read "by MrDrouf v<n>": %s' % el
     on_disk = open(os.path.join(REPO, "VERSION"), encoding="utf-8").read().strip()
     assert shown.group(1) == on_disk, (
         "the board says v%s but VERSION says %s -- run tools/bump_version.py --restamp"
         % (shown.group(1), on_disk))
 
     assert 'color="#F9E6BB"' in el, "the build number is not in the mod's cream: %s" % el
+    # the RIGHT EDGE is what pins it to the corner: the line is right-aligned, so it grows leftwards
+    # and the panel's centre moves as the text gets longer. The board's UI reaches about x 124.
     x, y = (float(v) for v in re.search(r'position="([-\d.]+) ([-\d.]+)', el).groups())
-    assert x > 95 and y > 82, "the build number is not hard in the top right corner: %s,%s" % (x, y)
+    w, h = (float(v) for v in re.search(r'width="([\d.]+)" height="([\d.]+)"', el).groups())
+    right, top = x + w * shrink / 2, y + h * shrink / 2
+    assert 110 < right < 124, "the line is not pinned to the right edge: %.1f" % right
+    assert top > 88, "the line is not hard against the top: %.1f" % top
 
     # ONE version, and it belongs to the mod. The sheet used to sign itself "made by MrDrouf . <BUILD>"
     # from a build string of its own; the box score ships inside the mod now, so that is gone --
@@ -2991,6 +2996,9 @@ def t_the_board_shows_the_build_number(src):
     code = [ln for ln in lua.split("\n") if not ln.strip().startswith("--")]
     assert not [ln for ln in code if "BUILD" in ln], \
         "the box score has a version of its own again: %s" % [ln for ln in code if "BUILD" in ln][:1]
+    assert not [ln for ln in code if "MrDrouf" in ln], \
+        "the box score signs itself again; the credit belongs on the board: %s" \
+        % [ln for ln in code if "MrDrouf" in ln][:1]
 
 
 CASES = [
