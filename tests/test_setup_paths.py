@@ -1178,6 +1178,21 @@ def t_the_turn_panel_is_an_option_not_the_default(src):
     for fn in ("panelStart", "panelDeal", "rttResetAndStart", "rttHasData", "rttRound"):
         assert fn in blob["LuaScript"], "the panel script never mentions %s" % fn
 
+    # EVERY FUNCTION THE PANEL CALLS ON THE SHEET MUST EXIST IN THE BUILD. The panel reaches the box
+    # score with obj.call(name) inside a pcall, so a missing function fails SILENTLY -- the button just
+    # does nothing. That is exactly what happened on 2026-09-07: rttSuppressNextLock was added to
+    # boxscore.lua but rebake_into_rtt.py was never run, so the mod shipped without it and the
+    # maintainer reported "none of the two bugs have been resolved". The old check only asserted the
+    # panel NAMED the function, which was true and useless.
+    called = sorted(set(re.findall(r's\.call\("([A-Za-z_][A-Za-z0-9_]*)"', blob["LuaScript"])))
+    assert called, "the panel calls nothing on the sheet; this check has stopped checking"
+    built = open(os.path.join(REPO, "dist/Root_Tabletop_Tournament.json"),
+                 encoding="utf-8", errors="surrogateescape").read()
+    for fn in called:
+        assert ("function " + fn) in built, (
+            "the panel calls %s on the box score, but no such function is in the built save --"
+            " root_boxscore was edited without re-running rebake_into_rtt.py" % fn)
+
     # IT IS RENDERED THE WAY THE BOX SCORE IS: a plain slab carrying an object XmlUI, sized to the UI.
     # Maintainer, 2026-09-07, on the createButton version: "position of numbers inside box, position of
     # buttons inside the swuares, all is still off, needs more precision". Hand-placed widgets over a

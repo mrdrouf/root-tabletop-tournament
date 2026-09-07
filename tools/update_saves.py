@@ -32,6 +32,7 @@ KEEP_SETS = 2
 BASE_SAVE = "Root_Tabletop_Tournament.json"   # the only save this touches by default
 BOARD = "bab7e1"
 BOXSCORE = "Root Box Score"
+PANEL    = "Turn Panel"      # spawned from RTT_TURN_PANEL_JSON, same problem as the sheet
 
 
 def walk(o):
@@ -63,11 +64,22 @@ def current_sources():
             box = json.loads(m.group(1))
     if box is None:
         raise RuntimeError("no box score in the build: neither an object nor RTT_BOXSCORE_JSON")
-    return board, box
+    # THE TURN PANEL HAS THE SAME PROBLEM, and it cost two rounds of "none of the two bugs have been
+    # resolved" on 2026-09-07: the panel is spawned from RTT_TURN_PANEL_JSON, so one already sitting on
+    # a table keeps whatever script it spawned with, for ever. Rebuilding never reached it -- exactly
+    # as it never reached the box score before that case was handled.
+    panel = next((o for o in walk(doc) if o.get("Nickname") == PANEL), None)
+    if panel is None:
+        m = re.search(r"^RTT_TURN_PANEL_JSON = \[====\[(.*?)\]====\]$", board["LuaScript"], re.M | re.S)
+        if m:
+            panel = json.loads(m.group(1))
+    if panel is None:
+        raise RuntimeError("no turn panel in the build: neither an object nor RTT_TURN_PANEL_JSON")
+    return board, box, panel
 
 
-def update_doc(doc, board, box):
-    """-> list of what changed. Only ever writes the three script/UI fields."""
+def update_doc(doc, board, box, panel=None):
+    """-> list of what changed. Only ever writes script/UI fields, never a transform or state."""
     changed = []
     for o in walk(doc):
         if o.get("GUID") == BOARD:
@@ -79,6 +91,12 @@ def update_doc(doc, board, box):
             if o.get("LuaScript") != box["LuaScript"]:
                 o["LuaScript"] = box["LuaScript"]
                 changed.append("boxscore.LuaScript")
+        elif panel is not None and o.get("Nickname") == PANEL:
+            # script ONLY: the maintainer places this panel by hand, so its Transform is his and must
+            # survive, and LuaScriptState holds the running clock.
+            if o.get("LuaScript") != panel["LuaScript"]:
+                o["LuaScript"] = panel["LuaScript"]
+                changed.append("panel.LuaScript")
     return changed
 
 
@@ -96,7 +114,7 @@ def in_scope(path, every):
 def main():
     dry = "--dry-run" in sys.argv
     every = "--all" in sys.argv
-    board, box = current_sources()
+    board, box, panel = current_sources()
     print("built board script: %d chars; box score: %s"
           % (len(board["LuaScript"]), "%d chars" % len(box["LuaScript"]) if box else "not in build"))
 
@@ -117,7 +135,7 @@ def main():
             continue
         if not any(o.get("GUID") == BOARD or o.get("Nickname") == BOXSCORE for o in walk(doc)):
             continue
-        changed = update_doc(doc, board, box)
+        changed = update_doc(doc, board, box, panel)
         if not changed:
             skipped += 1
             continue
