@@ -10,8 +10,8 @@ Layout, top to bottom:
         [4-Player Setup] [4-Player Draft] [Theme]                              y =  51.5
 [Summer] [Lake] [Marsh] [Winter] [Mountain] [Gorge]                            y =  16.5
                  [Standard] [Exiles] [Squires]                                 y = -23.5
-[Faction Sel][Bat Bungler][Mob Lobber][Koffin Keeper][Credits][Landmarks]      y = -55
-[5P Setup][5P Draft][5-Players Marsh][Faction Cards][Credits]                  y = -78
+[Faction Sel][Bat Bungler][Mob Lobber][Koffin Keeper][Faction Cards][Landmarks] y = -55
+[5P Setup][5P Draft][5-Players Marsh][Turn Panel][    ][Credits]               y = -78
                                                          [Clear All]           y = -88.5
 ```
 
@@ -79,6 +79,12 @@ variant is ever wired up on purpose.
 spot, from his save 'faction'; picking a Vagabond manually already brings that character's own meeple
 and card, so the tool's 21 spare meeples were duplicates. Credits moved up into the freed slot at x=57, so the two empty slots are now the two rightmost of the
 SECOND tool row (x=57 and x=95, y=-78) -- the maintainer asked for the gaps to sit there.
+
+**Turn Panel** (`rttToggleTurnPanel`) swaps the clock and counter for a single parchment panel that
+shows the ROUND (read from the box score, so the two counters cannot drift) and a clock for the turn in
+progress, plus START TURN 1 and a DEAL 5 CARDS button that removes itself once used. Pressing it again
+puts the clock and counter back. It is an OPTION while the panel is still being shaped -- the maintainer,
+2026-09-07: "make an option button for that so while we work on it the rest can keep being functional."
 
 **Ginso's Gizmo has no button.** It is always active with no object on the table — its script is part
 of the board, so it works in every game with nothing to spawn or toggle.

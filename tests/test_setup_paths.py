@@ -1137,45 +1137,55 @@ def t_camera_states_are_the_hosts(src):
             "%s does not carry the host's camera states" % path
 
 
-def t_the_turn_panel_replaces_the_clock_and_counter(src):
-    """The turn panel stands where the clock and counter used to, and they are gone.
+def t_the_turn_panel_is_an_option_not_the_default(src):
+    """The clock and counter still ship; the turn panel is a button that swaps them.
 
-    Maintainer, 2026-09-06: "in stead of the current clock kand counter I would like a nice beautifully
-    designed ... rectangle that show which turn it is now, using the boxscore turn counter, a clock
-    that measur the time of each player turn", with START TURN 1 and a DEAL 5 CARDS button above it
-    that disappears once used -- and, asked whether it should replace them or sit alongside: "yes
-    replace".
+    Maintainer, 2026-09-07, on the first draft: "looks like shit at the moment ... at the moment make
+    this an option to replace the clock and counter. make an option button for that so while we work on
+    it the rest can keep being functional."
 
-    The spot is still Zaandaa's: right of the board's bottom-right corner, under the battle mat, where
-    he had placed the clock and counter by hand (TS_Save_27). The panel sits between the two.
-
-    It is a FIXTURE, so changing map does not rebuild it and restart a running clock.
+    So rttSpawnMapExtras spawns the clock and counter as before, and rttToggleTurnPanel swaps either
+    way. The panel is still a FIXTURE while it is out, so a map change does not restart its clock.
     """
     rt = fresh(src)
-    pos = rt.eval("RTT_PANEL_POS")
-    px, pz = pos[1], pos[3]
-    assert 29.0 < px < 30.0 and -21.0 < pz < -17.0, \
-        "the panel is at (%.2f, %.2f), not where the clock and counter stood" % (px, pz)
-
-    # the old objects are gone from the build entirely
-    for dead in ("RTT_TIMER_JSON", "RTT_COUNTER_JSON"):
-        assert dead not in src, "%s is still in the build; the panel was meant to replace it" % dead
-
-    # it spawns with the map, once, and carries its script
+    # the clock and counter are back, and they are what a map places
+    for key in ("RTT_TIMER_JSON", "RTT_COUNTER_JSON"):
+        assert key in src, "%s is missing; the panel was meant to be optional, not a replacement" % key
     rt.execute("pcall(function() makeMap('', '', 'Summer Map') end) FLUSH(60)")
     spawned = [str(x) for x in (rt.eval("REC.spawned") or {}).values()]
-    hits = [l for l in spawned if l.startswith("Turn Panel@")]
-    assert len(hits) == 1, "expected exactly one Turn Panel, got %d (%s)" % (len(hits), hits)
+    for name in ("Digital_Clock", "Counter"):
+        assert any(l.startswith(name + "@") for l in spawned), \
+            "%s did not come with the map (spawned: %s)" % (name, spawned[:8])
+    assert not any(l.startswith("Turn Panel@") for l in spawned), \
+        "the turn panel spawned with the map; it should only appear when its button is pressed"
 
+    # the toggle exists and is wired to a button
+    assert "function rttToggleTurnPanel" in src, "no rttToggleTurnPanel"
+    x = json.load(open(os.path.join(REPO, "dist/Root_Tabletop_Tournament.json"),
+                       encoding="utf-8"))["ObjectStates"]
+    def walk(objs):
+        for o in objs:
+            yield o
+            for c in (o.get("ContainedObjects") or []): yield from walk([c])
+    board = [o for o in walk(x) if o.get("GUID") == "bab7e1"][0]
+    assert 'onclick="rttToggleTurnPanel"' in board["XmlUI"], "no button calls rttToggleTurnPanel"
+    assert any(a["Name"] == "TurnPanelLabel" for a in board["CustomUIAssets"]), \
+        "the toggle's label art is not registered"
+
+    # and the panel object itself is sound
     head = "RTT_TURN_PANEL_JSON = [====["
     i = src.index(head); j = src.index("]====]", i)
     blob = json.loads(src[i + len(head):j])
     assert blob["Nickname"] == "Turn Panel"
-    assert blob["Locked"] is True, "the panel should be locked like the captains board"
+    assert blob["Locked"] is True
+    # BLACK sides, like the crafted board's own -- maintainer, 2026-09-07: "knaves captain board on the
+    # side is not black as the crafted improvememnt". On a Custom_Tile ColorDiffuse tints the 3D edge.
+    assert blob["ColorDiffuse"] == {"r": 0.0, "g": 0.0, "b": 0.0}, \
+        "the panel's sides are not black: %s" % blob["ColorDiffuse"]
+    assert blob["CustomImage"]["WidthScale"] == 0.0, \
+        "WidthScale must be 0 so the tile takes the art's aspect"
     for fn in ("panelStart", "panelDeal", "rttStartTurnOne", "rttRound"):
         assert fn in blob["LuaScript"], "the panel script never mentions %s" % fn
-    assert blob["CustomImage"]["WidthScale"] == 0.0, \
-        "WidthScale must be 0 so the tile takes the art's aspect, or the panel is squashed"
 
 
 def t_crow_plots_spawn_inside_the_hidden_zone(src):
@@ -1411,12 +1421,16 @@ def t_vagabond_cards_come_with_faction_cards(src):
 
 
 def t_the_two_free_button_slots_are_bottom_right(src):
-    """Maintainer, 2026-09-05: "the two empty button option should be in the second row to the right".
+    """Where the spare option slots sit, and who sits where.
 
-    Dropping the Vagabond Cards button left a hole mid-row. The tool rows have six slots each at
-    x = -95, -57, -19, 19, 57, 95; there are ten buttons for twelve slots, so two are always empty and
-    where they sit is a choice. Credits moved up one row -- its x did not change, only its row -- which
-    fills the hole and puts both gaps at the right end of the SECOND row.
+    Maintainer, 2026-09-05: "the two empty button option should be in the second row to the right".
+    Then 2026-09-07, with the turn panel: "put the credits option button to the bottom right replace
+    the position with the faction cards button. the new option button for the new clock/counter should
+    be second row to the leftmost."
+
+    So Credits went to the bottom-right slot, Faction Cards took the spot it left in the FIRST row, and
+    the Turn Panel toggle took the leftmost slot still free in the second row. One slot is now spare,
+    at the right of row two.
 
     Reads the built save, because this is XmlUI on the board object rather than anything in the Lua.
     """
@@ -1441,8 +1455,11 @@ def t_the_two_free_button_slots_are_bottom_right(src):
     top, bottom = rows.get(-55, {}), rows.get(-78, {})
     assert len(top) == 6, "the first tool row has %d of 6 slots filled: %s" % (len(top), sorted(top))
     free = [s for s in SLOTS if s not in bottom]
-    assert free == [57, 95], "the free slots are at %s, they should be the two rightmost of row 2" % free
-    assert top.get(57) == "rttCreditsBtn", "the hole at x=57 is filled by %r" % top.get(57)
+    assert free == [57], "the free slots are at %s; only x=57 of row 2 should be spare" % free
+    assert top.get(57) == "Faction Cards", "x=57 of row 1 holds %r, not Faction Cards" % top.get(57)
+    assert bottom.get(95) == "rttCreditsBtn", "the bottom-right slot holds %r, not Credits" % bottom.get(95)
+    assert bottom.get(19) == "rttTurnPanelBtn", \
+        "the leftmost free slot of row 2 holds %r, not the turn-panel toggle" % bottom.get(19)
 
 
 def t_captain_warriors_line_up_with_their_captains(src):
@@ -2436,11 +2453,11 @@ def t_table_fixtures_survive_a_map_change(src):
     rttNewGame drops it and the map refresh spawns a new one. The other three persist even then --
     nothing about them belongs to a particular game.
     """
-    NAMES = ("Battle Mat", "Turn Panel", "Root Box Score")
+    NAMES = ("Battle Mat", "Digital_Clock", "Counter", "Root Box Score")
     Q = ("function()\n  local t = {}\n"
          "  for _, o in ipairs(getAllObjects()) do\n"
          "    local n = o.getName() or ''\n"
-         "    for _, w in ipairs({'Battle Mat','Turn Panel','Root Box Score'}) do\n"
+         "    for _, w in ipairs({'Battle Mat','Digital_Clock','Counter','Root Box Score'}) do\n"
          "      if n == w then t[#t+1] = n .. '|' .. o.getGUID() end\n"
          "    end\n  end\n  table.sort(t)\n  return table.concat(t, ';')\nend")
 
@@ -2476,7 +2493,7 @@ def t_table_fixtures_survive_a_map_change(src):
         "a new game left %s box score sheets" % len(after.get("Root Box Score", []))
     assert after["Root Box Score"] != first["Root Box Score"], \
         "a new game kept the OLD box score; it would still hold the previous game"
-    for n in ("Battle Mat", "Turn Panel"):
+    for n in ("Battle Mat", "Digital_Clock", "Counter"):
         assert after[n] == first[n], "%s was rebuilt by a new game; nothing about it is per-game" % n
 
 
@@ -2540,7 +2557,7 @@ CASES = [
     ("order cards cleared by a new game",    t_order_cards_do_not_survive_a_new_game),
     ("duchy burrow spawns locked",           t_the_duchy_burrow_spawns_locked),
     ("camera states are the host's",         t_camera_states_are_the_hosts),
-    ("turn panel replaces clock+counter", t_the_turn_panel_replaces_the_clock_and_counter),
+    ("turn panel is an option",            t_the_turn_panel_is_an_option_not_the_default),
     ("crow plots inside the hidden zone",    t_crow_plots_spawn_inside_the_hidden_zone),
     ("crafted board same side for all",      t_crafted_board_sits_the_same_side_for_every_faction),
     ("no setup card on crafted board",       t_no_setup_card_rides_on_the_crafted_board),
