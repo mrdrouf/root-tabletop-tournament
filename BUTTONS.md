@@ -41,7 +41,7 @@ opposite, which is how it stayed the one destructive button with no warning.
 
 **What the prompt says depends on what is at stake.** A setup button clears the factions *and*, since
 a new game re-places the map (`rttRefreshMap`), the map. With factions on the table it reads *"This
-will reset all factions."*; with only a map down it reads *"This will reset the current map."* instead,
+will reset all factions."*; with only a map down it reads *"This will reset the map."* instead,
 rather than promising to reset factions that are not there.
 
 ## Maps
