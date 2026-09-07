@@ -3301,6 +3301,43 @@ def t_a_reload_keeps_two_vagabonds_apart(src):
         "the seat after the hole never reached the published record: %s" % pub3
 
 
+def t_a_new_game_forgets_last_games_seat_count(src):
+    """No fabricated turn order may reach the sheet.
+
+    RTT_TURN_SEATS was not cleared by rttResetRunState, so it outlived the seats it counted. On the
+    ranked path rttNewGame(nil) deliberately does not set the turn system up -- the real seating does,
+    ten seconds later, once the cards have been dealt. In between, the record is empty but the count
+    still says 5, so one colour change ran rttEnableTurns(5) against no seats at all: the order fell
+    back to the static Red..Green list and rttPublishSeats published {} -- which the box score caches
+    and treats as the truth.
+
+    Also covered: the six-colour literal that onLoad assigned on every single load, after the seat
+    record had already been restored and published. It is the line the commit that first switched the
+    turn system on named as the reason nothing worked.
+    """
+    assert 'Turns.order =   {"Red","Yellow","Orange","Teal","Green","Brown"}' not in src, \
+        "onLoad still overwrites the turn order with a literal on every load"
+
+    rt = fresh(src)
+    rt.execute("SEAT('Red','H1') SEAT('Yellow','H2')")
+    rt.execute("pcall(function() setupFactionBoards(nil,nil,nil) end) FLUSH(60)")
+    assert rt.eval("RTT_TURN_SEATS") == 4, "the manual path did not record its seat count"
+
+    # a new game must not inherit it
+    rt.execute("pcall(rttResetRunState) FLUSH(5)")
+    assert rt.eval("RTT_TURN_SEATS") is None, \
+        "last game's seat count survived: %s" % rt.eval("RTT_TURN_SEATS")
+
+    # and with no count, a colour change mid-draft cannot rebuild an order out of nothing
+    rt.execute("Turns.order = {} Turns.enable = false RTT_SEATS = {}")
+    rt.execute("Global.setVar('RTT_SEAT_RECORD', 'sentinel')")
+    rt.execute("onPlayerChangeColor('Red') FLUSH(10)")
+    order = list((rt.eval("Turns.order") or {}).values())
+    assert order == [], "a colour change invented a turn order from an empty record: %s" % order
+    assert rt.eval("GVGET('RTT_SEAT_RECORD')") == "sentinel", \
+        "an empty seat record was published over the real one"
+
+
 CASES = [
     ("manual path drives the turn system",   t_manual_turn_order),
     ("manual path spawns 4 / 5 boards",      t_boards_spawn),
@@ -3361,6 +3398,7 @@ CASES = [
     ("turn order clockwise from BR",         t_turn_order_is_clockwise_from_bottom_right),
     ("seat record survives a reload",        t_seat_record_survives_a_reload),
     ("reload keeps vagabonds apart",      t_a_reload_keeps_two_vagabonds_apart),
+    ("new game forgets the seat count",   t_a_new_game_forgets_last_games_seat_count),
     ("manual pick binds picker colour",      t_manual_pick_binds_the_pickers_own_colour),
     ("seat record is pushed to sheet",       t_the_seat_record_is_pushed_to_the_sheet),
     ("gizmo never takes another supply",     t_gizmo_never_reaches_into_someone_elses_supply),

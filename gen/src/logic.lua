@@ -289,7 +289,12 @@ function onLoad(state)
     _G['TurnOrder'] = {}
     _G['ColorsTaken'] = {}
     vagabondChosen = false
-    Turns.order =   {"Red","Yellow","Orange","Teal","Green","Brown"}
+    -- THE SIX-COLOUR LITERAL IS GONE. It sat here assigning a turn order on every single load, after
+    -- the seat record had already been restored and published a line above -- so a resumed game
+    -- briefly ran an order that contradicted its own record. It is also the line the commit that
+    -- first switched the turn system on identified as the reason nothing worked: Turns.enable was
+    -- never assigned anywhere, so this was the only Turns statement in the file and it did nothing
+    -- but overwrite. rttEnableTurns owns the order now, and it derives it from the seats.
 
 
     -- RTT m640: onLoad setCustomAssets removed (cold-load blank fix). The saved
@@ -1772,6 +1777,7 @@ function rttResetRunState()
   RTT_SEATS      = {}
   RTT_BOARD_SEAT = {}
   RTT_LAST_PICK  = {}          -- last game's pick must not decide this game's supply
+  RTT_TURN_SEATS = nil         -- the seat COUNT outlived the seats and rebuilt orders out of nothing
   for _, k in ipairs({ "RTT_SEAT_POS", "RTT_SEAT_COLOR", "RTT_SEAT_PLAYER", "RTT_SEAT_RECORD" }) do
     pcall(function() Global.setVar(k, JSON.encode({})) end)
   end
