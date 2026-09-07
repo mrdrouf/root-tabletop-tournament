@@ -16,13 +16,14 @@ function onSave()
         -- its position while its marker on the table was still called "Vagabond 2 VP".
         seats[#seats + 1] = { i = i, pos = { s.pos[1], s.pos[2] }, color = s.color,
                               faction = s.faction, owner = s.owner, hand = s.hand,
-                              key = s.key, vagN = s.vagN }
+                              key = s.key, vagN = s.vagN,
+                              picker = s.picker, pickedAt = s.pickedAt }
       end
     end
     -- laid: which warriors numpad 2 put down, and what they looked like standing. Without this a
     -- reload leaves them cream and locked with nothing able to undo it.
     return JSON.encode({ v = 1, run = RTT_RUN_ID or 0, turnSeats = RTT_TURN_SEATS, seats = seats,
-                         laid = RTT_LAID or {}, pick = RTT_LAST_PICK or {} })
+                         laid = RTT_LAID or {}, pickN = RTT_PICK_N or 0 })
   end)
   if ok then return enc end
   return ""
@@ -47,13 +48,14 @@ function onLoad(state)
         RTT_SEATS[#RTT_SEATS + 1] = { board = nil, pos = { e.pos[1], e.pos[2] },
                                       color = e.color, faction = e.faction,
                                       owner = e.owner, hand = e.hand,
-                                      key = e.key, vagN = e.vagN }
+                                      key = e.key, vagN = e.vagN,
+                                      picker = e.picker, pickedAt = e.pickedAt }
       end
     end
     RTT_RUN_ID     = d.run or RTT_RUN_ID
     RTT_TURN_SEATS = d.turnSeats or RTT_TURN_SEATS
     if type(d.laid) == "table" then RTT_LAID = d.laid end
-    if type(d.pick) == "table" then RTT_LAST_PICK = d.pick end
+    RTT_PICK_N = d.pickN or RTT_PICK_N
     if #RTT_SEATS > 0 then rttPublishSeats() end
   end)
   pcall(function() rttSnapshotHand2() end)  -- parked hand-2 transforms, restored on every new game
@@ -1776,7 +1778,7 @@ function rttResetRunState()
   -- rttSpawnSelectors, but the manual path never did, so seats piled up across games in one session.
   RTT_SEATS      = {}
   RTT_BOARD_SEAT = {}
-  RTT_LAST_PICK  = {}          -- last game's pick must not decide this game's supply
+  RTT_PICK_N     = 0           -- pick ordering belongs to this game only
   RTT_TURN_SEATS = nil         -- the seat COUNT outlived the seats and rebuilt orders out of nothing
   for _, k in ipairs({ "RTT_SEAT_POS", "RTT_SEAT_COLOR", "RTT_SEAT_PLAYER", "RTT_SEAT_RECORD" }) do
     pcall(function() Global.setVar(k, JSON.encode({})) end)
@@ -3053,13 +3055,15 @@ RTT_SEAT_HAND = {
   { pos = { 0, 14.62, 64 }, rot = { 0, 180, 0 } },     -- pos6 (0,46)
 }
 RTT_SEATS = {}          -- [seat] = { board=obj, color=<colour|nil>, pos={x,z}, hand=<RTT_SEAT_HAND entry> }
--- WHICH FACTION YOU LAST PICKED, by the colour of whoever clicked. Seat colours cannot answer this:
--- the first faction you pick takes your colour and every later pick is handed a FREE one instead, so
--- that one person can set out several boards without every seat becoming theirs. Correct for setting
--- up, useless for the gizmo -- "I am changing seats by selecting new factions but the gizmo numpad 1
--- does not seem to understand that" (2026-09-07). This follows the person, not the seat, and nothing
--- downstream reads it: turn order, the box score and the seat record are all untouched.
-RTT_LAST_PICK = {}      -- [picker colour] = faction
+-- HOW MANY PICKS HAVE HAPPENED. A seat records which press created it (seat.picker, seat.pickedAt),
+-- which is what the gizmo needs and what a separate table used to hold: the first faction you pick
+-- takes your colour and every later pick is handed a FREE one, so seat COLOUR cannot answer "which
+-- faction is mine" -- "I am changing seats by selecting new factions but the gizmo numpad 1 does not
+-- seem to understand that" (2026-09-07).
+--
+-- It lives on the seat now rather than beside it. One record answering every question about a seat is
+-- the point: it persists with the seats, it is cleared with the seats, and it cannot drift from them.
+RTT_PICK_N = 0
 RTT_BOARD_SEAT = {}     -- [board guid] = seat index
 
 -- ==== seat-by-turn-order-card tables (RTT seating restore) ==================
@@ -3192,12 +3196,36 @@ function rttFreeSeatColor()
   return nil
 end
 
+-- THE ONE PLACE A SEAT'S COLOUR IS WRITTEN.
+--
+-- It was assigned in four: the draft's seating loop, the empty-seat filler beside it, the faction
+-- pick, and the gap-filler below. Each carried its own version of the same two rules, and each was
+-- the site of a bug -- at four players P3 and P4 held each other's colour in every game, and a manual
+-- board placing two factions from one spot let the second silently take the first's colour, owner and
+-- turn slot.
+--
+-- The rules, once:
+--   * NO TWO SEATS SHARE A COLOUR. The colour owns the hand, the cards and the slot in Turns.order,
+--     so a duplicate does not merely confuse a lookup, it hands one player another's cards.
+--   * A SEAT THAT HAS ONE KEEPS IT unless the caller says otherwise. Reassigning takes a player's
+--     hand away.
+-- Returns the colour actually set, or nil if it refused.
+function rttSetSeatColor(seat, color, replace)
+  if seat == nil or color == nil or color == "" then return nil end
+  if seat.color ~= nil and not replace then return seat.color end
+  for _, o in ipairs(RTT_SEATS or {}) do
+    if o ~= nil and o ~= seat and o.color == color then return nil end
+  end
+  seat.color = color
+  return color
+end
+
 -- Give every seat a colour: the colour of the human sitting at it, or a free one if nobody is. Only
 -- ever FILLS a gap -- a seat that already has a colour keeps it, because that colour owns the hand,
 -- the cards and the turn slot, and reassigning it would take a player's cards away.
 function rttBindSeatColors()
   for _, s in ipairs(RTT_SEATS or {}) do
-    if s ~= nil and s.color == nil then s.color = rttFreeSeatColor() end
+    if s ~= nil and s.color == nil then rttSetSeatColor(s, rttFreeSeatColor()) end
   end
 end
 
@@ -3368,7 +3396,9 @@ function rttSeatPlayers()
   for _, w in ipairs(want) do
     local seat  = RTT_SEATS[w.n]
     local color = w.c or w.p.color
-    seat.color = color
+    -- replace: the draft DOES reassign, deliberately -- seat N wears turn-card N's colour, and the
+    -- players were parked in Grey a moment ago precisely so this can happen without a clash.
+    rttSetSeatColor(seat, color, true)
     seat.owner = w.name
     pcall(function()
       Player[color].setHandTransform(
@@ -3380,13 +3410,7 @@ function rttSeatPlayers()
   -- A seat nobody is sitting in takes its own turn number's colour as well, so the scheme reads the
   -- same all the way round the table instead of breaking at the first empty chair.
   for i, s in ipairs(RTT_SEATS or {}) do
-    if s ~= nil and s.color == nil and RTT_SETUP_COLORS[i] ~= nil then
-      local free = true
-      for _, o in ipairs(RTT_SEATS) do
-        if o ~= nil and o.color == RTT_SETUP_COLORS[i] then free = false end
-      end
-      if free then s.color = RTT_SETUP_COLORS[i] end
-    end
+    if s ~= nil and s.color == nil then rttSetSeatColor(s, RTT_SETUP_COLORS[i]) end
   end
   -- Seats nobody is sitting in still hold a faction and still take a turn, so they need a colour no
   -- human holds. Done AFTER the humans, so a free colour is never one somebody is wearing.
@@ -4216,14 +4240,8 @@ function rttPlaceFaction(faction, cx, cz, flip, color, isDraft, category, rotati
   -- picker IS that human). On the manual paths nobody is seated, so the picker's colour is what the
   -- seat is worth -- unless that colour is already another seat's, which is what happens when one
   -- person sets out several boards: those later seats take a free colour instead of stealing one.
-  if seat.color == nil and pickerColor ~= nil and pickerColor ~= "" then
-    local clash = false
-    for i, o in ipairs(RTT_SEATS) do
-      if i ~= si and o ~= nil and o.color == pickerColor then clash = true end
-    end
-    if not clash then seat.color = pickerColor end
-  end
-  if seat.color == nil then seat.color = rttFreeSeatColor() end
+  rttSetSeatColor(seat, pickerColor)
+  if seat.color == nil then rttSetSeatColor(seat, rttFreeSeatColor()) end
   -- WHO OWNS it is the person who clicked, and is deliberately NOT the same thing as the seat colour.
   -- Conflating them broke naming before: the manual path never recolours anyone, so a player keeps
   -- the colour they joined with while the row is coloured by seat, and matching the row's colour
@@ -4236,14 +4254,11 @@ function rttPlaceFaction(faction, cx, cz, flip, color, isDraft, category, rotati
   -- What IS recorded alongside it is WHO made the claim. Keyed by colour alone it was never
   -- invalidated, so a colour that changed hands carried the claim with it -- Alice picks the Marquise
   -- as Red and leaves, Bob takes Red, Bob's numpad 1 hands him Marquise warriors.
+  -- WHO MADE THIS PICK, AND WHEN. Both belong to the seat: the gizmo reads the most recent seat this
+  -- person made, which is "the faction I last picked" without a second table to keep in step.
   if pickerColor ~= nil and pickerColor ~= "" then
-    local who = nil
-    pcall(function()
-      for _, pl in ipairs(Player.getPlayers()) do
-        if pl.color == pickerColor and pl.seated then who = pl.steam_name end
-      end
-    end)
-    RTT_LAST_PICK[pickerColor] = { faction = faction, owner = who }
+    RTT_PICK_N = (RTT_PICK_N or 0) + 1
+    seat.picker, seat.pickedAt = pickerColor, RTT_PICK_N
   end
   -- REFRESHED, NOT WRITTEN ONCE. `if seat.owner == nil` meant a seat kept the first name it ever saw:
   -- Alice drafts the Marquise, disconnects, Bob takes her colour, and the sheet -- which PREFERS this
@@ -6597,24 +6612,28 @@ end
 -- record. Both gizmo keys ask this, so switching faction moves the whole gizmo with you rather than
 -- half of it.
 function rttMyFaction(color)
-  -- THE CLAIM BELONGS TO THE PERSON, NOT THE COLOUR. This was keyed by colour alone and never
-  -- invalidated, so a colour that changed hands carried its old claim with it: Alice picks the
-  -- Marquise as Red and leaves, Bob joins and takes Red, and Bob's numpad 1 handed him Marquise
-  -- warriors. It also outlived a reload. Now the record carries who made the claim, and it only
-  -- answers while that same person still holds the colour.
-  local last = RTT_LAST_PICK[color]
-  if type(last) == "table" and last.faction ~= nil and last.faction ~= "" then
-    local who = nil
-    pcall(function()
-      for _, pl in ipairs(Player.getPlayers()) do
-        if pl.color == color and pl.seated then who = pl.steam_name end
-      end
-    end)
-    -- nobody seated in the colour: nothing has taken it over, so the claim still stands
-    if who == nil or last.owner == nil or last.owner == "" or who == last.owner then
-      return last.faction
+  -- YOUR MOST RECENT PICK, read off the seats themselves. There is no side table any more: each seat
+  -- remembers which press created it and in what order, so "the faction I last picked" is just the
+  -- newest seat I made.
+  --
+  -- Matched on the PERSON where there is one -- a colour that changes hands must not carry the old
+  -- claim with it: Alice picks the Marquise as Red and leaves, Bob takes Red, and Bob's numpad 1 used
+  -- to hand him Marquise warriors. Where nobody is seated (hotseat, or a table nobody has joined) the
+  -- pressing colour is the only identity there is, so it is used instead.
+  local who = nil
+  pcall(function()
+    for _, pl in ipairs(Player.getPlayers()) do
+      if pl.color == color and pl.seated then who = pl.steam_name end
+    end
+  end)
+  local best, bestN = nil, -1
+  for _, s in ipairs(RTT_SEATS or {}) do
+    if s ~= nil and s.faction ~= nil and s.faction ~= "" and (s.pickedAt or 0) > bestN then
+      local mine = (who ~= nil and s.owner == who) or (who == nil and s.picker == color)
+      if mine then best, bestN = s.faction, s.pickedAt or 0 end
     end
   end
+  if best ~= nil then return best end
   return rttSeatFaction(color)
 end
 

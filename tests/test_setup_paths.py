@@ -3159,6 +3159,10 @@ def t_the_gizmo_follows_the_faction_you_last_picked(src):
         claim: Alice picks the Marquise as Red and leaves, Bob takes Red, Bob draws Marquise warriors;
       - the earlier version of this test wrote the note by hand and never called rttPlaceFaction, so
         nothing verified that picking a faction records anything at all. It does now.
+
+    The note is not a table beside the seats any more. Each seat records which press created it and in
+    what order, so "the faction I last picked" is the newest seat I made -- one record answering the
+    question, persisted with the seats and cleared with them.
     """
     def table_with_supplies():
         rt = fresh(src)
@@ -3221,9 +3225,10 @@ def t_the_gizmo_follows_the_faction_you_last_picked(src):
         "Bob inherited Alice's last pick instead of falling back to the seat he is actually in: %r" \
         % rt3.eval("rttMyFaction('Red')")
 
-    # A NEW GAME forgets it
+    # A NEW GAME forgets it -- the seats go, and the pick goes with them because it IS a seat field
     rt.execute("rttResetRunState()")
-    assert not rt.eval("RTT_LAST_PICK['Red']"), "a new game kept last game's pick"
+    assert rt.eval("#RTT_SEATS") == 0, "a new game kept last game's seats"
+    assert rt.eval("rttMyFaction('Red')") is None, "a new game kept last game's pick"
 
 
 def t_numpad_three_lights_the_piece_instead(src):
@@ -3609,6 +3614,59 @@ def t_an_unclaimed_seat_takes_a_colour_the_sheet_knows(src):
         "with every seating colour taken it should still find one: %r" % got
 
 
+def t_one_writer_owns_a_seats_colour(src):
+    """No two seats may share a colour, and nothing may reassign one behind the draft's back.
+
+    A seat's colour was assigned in four places -- the draft's seating loop, the empty-seat filler
+    beside it, the faction pick, and the gap-filler -- each carrying its own copy of the same two
+    rules, and each the site of a bug: at four players P3 and P4 held each other's colour in every
+    game, and a manual board placing two factions from one spot let the second silently take the
+    first's colour, its owner and its turn slot.
+
+    The colour owns the hand, the cards and the slot in Turns.order, so a duplicate does not merely
+    confuse a lookup -- it hands one player another's cards.
+    """
+    rt = fresh(src)
+    rt.execute("""
+      RTT_SEATS = {
+        { pos = {  52, -46 }, color = "Red" },
+        { pos = { -52, -46 } },
+        { pos = {  52,  46 } },
+      }
+    """)
+    # a colour another seat already holds is refused
+    assert rt.eval("rttSetSeatColor(RTT_SEATS[2], 'Red')") is None, \
+        "a second seat was allowed to take a colour already in use"
+    assert rt.eval("RTT_SEATS[2].color") is None, "and it wrote it anyway"
+
+    # a free one is taken
+    assert rt.eval("rttSetSeatColor(RTT_SEATS[2], 'Yellow')") == "Yellow"
+
+    # a seat that has a colour KEEPS it -- reassigning takes a player's hand away
+    assert rt.eval("rttSetSeatColor(RTT_SEATS[2], 'Orange')") == "Yellow", \
+        "an occupied seat's colour was quietly reassigned"
+    assert rt.eval("RTT_SEATS[2].color") == "Yellow"
+
+    # ...unless the caller means it, which is what the draft does after parking everyone in Grey
+    assert rt.eval("rttSetSeatColor(RTT_SEATS[2], 'Orange', true)") == "Orange", \
+        "the draft could not reassign a seat it had deliberately freed"
+
+    # AND THE RULE HOLDS THROUGH A REAL SETUP, at every seat count
+    for n, arg in ((4, "nil"), (5, "'fivePlayerSetup'")):
+        rt2 = fresh(src)
+        for i, c in enumerate(("Red", "Yellow", "Orange", "Teal", "Green")[:n]):
+            rt2.execute("SEAT(%r,'H%d')" % (c, i + 1))
+        rt2.execute("pcall(function() setupFactionBoards(nil,nil,%s) end) FLUSH(60)" % arg)
+        for i, (fac, x, z) in enumerate((("Marquise de Cat", 52, -46), ("Eyrie Dynasties", -52, -46),
+                                         ("Woodland Alliance", 52, 46), ("The Lizard Cult", -52, 46),
+                                         ("Riverfolk Company", 0, -46))[:n]):
+            rt2.execute("pcall(function() rttPlaceFaction(%r,%f,%f,false,nil,false,'Standard',0,%r) end) "
+                        "FLUSH(120)" % (fac, x, z, ("Red", "Yellow", "Orange", "Teal", "Green")[i]))
+        cols = [str(rt2.eval("RTT_SEATS[%d].color" % (i + 1)) or "") for i in range(int(rt2.eval("#RTT_SEATS")))]
+        assert all(cols), "%d seats: a seat ended with no colour: %s" % (n, cols)
+        assert len(set(cols)) == len(cols), "%d seats: two seats share a colour: %s" % (n, cols)
+
+
 CASES = [
     ("manual path drives the turn system",   t_manual_turn_order),
     ("manual path spawns 4 / 5 boards",      t_boards_spawn),
@@ -3683,6 +3741,7 @@ CASES = [
     ("return slots are not spawn spots",     t_return_slots_are_not_spawn_positions),
     ("extra slots face like the rest",       t_extra_return_slots_face_the_same_way),
     ("one seat holds one faction",           t_one_seat_holds_one_faction),
+    ("one writer owns seat colour",       t_one_writer_owns_a_seats_colour),
     ("vagabond published under faction",     t_a_vagabond_is_published_under_its_faction_name),
     ("two vagabonds, one marker each",       t_two_vagabonds_get_one_marker_each),
     ("selector icons load with table",     t_every_selector_icon_is_downloaded_with_the_table),
