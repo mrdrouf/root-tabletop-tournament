@@ -1178,7 +1178,7 @@ def t_the_turn_panel_is_an_option_not_the_default(src):
     blob = json.loads(src[i + len(head):j])
     assert blob["Nickname"] == "Turn Panel"
     assert blob["Locked"] is True
-    for fn in ("panelStart", "panelDeal", "rttStartTurnOne", "rttRound"):
+    for fn in ("panelStart", "panelDeal", "rttResetAndStart", "rttHasData", "rttRound"):
         assert fn in blob["LuaScript"], "the panel script never mentions %s" % fn
 
     # IT IS RENDERED THE WAY THE BOX SCORE IS: a plain slab carrying an object XmlUI, sized to the UI.
@@ -1193,9 +1193,12 @@ def t_the_turn_panel_is_an_option_not_the_default(src):
     assert "VerticalLayout" in lua and "HorizontalLayout" in lua, "no layout elements"
     assert "self.setScale" in lua, "the slab is not sized to its UI (the box score's PX_PER_UNIT rule)"
     assert "setCustomAssets" in lua, "the crafted-border frame is not registered as a UI image"
-    # the palette is the box score's, so the two objects look like one product
-    for hexc in ("#F1E5C8", "#E7D8B4", "#C9A05C", "#E4C88E", "#26170B", "#7E4A1E"):
-        assert hexc in lua, "the panel does not use the box score palette entry %s" % hexc
+    # The readout fields use the crafted CARD's own ground (#F9E6BB, measured off the real texture),
+    # not the box score's ledger tone -- a design study pointed out the panel was wearing the wrong
+    # palette for the object it is imitating. The interactive tones stay the box score's, so the hover
+    # and press states match the rest of the mod.
+    for hexc in ("#F9E6BB", "#C9A05C", "#E4C88E", "#26170B", "#7E4A1E"):
+        assert hexc in lua, "the panel does not use palette entry %s" % hexc
 
     # the captains board's 3D sides are black like the crafted board's own
     ch = "RTT_CAPTAIN_BOARD_JSON = [==["
