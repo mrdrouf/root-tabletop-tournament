@@ -2946,6 +2946,36 @@ def t_numpad_two_lays_a_warrior_down_and_back_up(src):
     assert state("ROOST")[2] is False, "numpad 2 laid a building down"
 
 
+def t_the_board_shows_the_build_number(src):
+    """One version, on the board, in the mod's cream.
+
+    The maintainer, 2026-09-07: "the mod version should be written in cream white at the top right
+    corner of the main setup board", and "do not have a boxscore version since now we only work with
+    boxscore integrated to the mod" -- so there is exactly one number and it belongs to the mod.
+
+    It is a STATIC element in bab7e1's saved XmlUI, which is safe because the board only ever calls
+    setAttribute on elements that are already there; it never rewrites its own XML. VERSION and the
+    stamp are kept in step by tools/bump_version.py, which the pre-commit hook runs.
+    """
+    save = json.loads(open(os.path.join(REPO, "dist", "Root_Tabletop_Tournament.json"),
+                           encoding="utf-8").read())
+    board = [o for o in save["ObjectStates"] if o.get("GUID") == BOARD][0]
+    m = re.search(r'<Text id="rttVersion"[^>]*/>', board.get("XmlUI") or "")
+    assert m, "the setup board carries no build number"
+    el = m.group(0)
+
+    shown = re.search(r'text="v(\d+)"', el)
+    assert shown, "the build number is not in the form v<n>: %s" % el
+    on_disk = open(os.path.join(REPO, "VERSION"), encoding="utf-8").read().strip()
+    assert shown.group(1) == on_disk, (
+        "the board says v%s but VERSION says %s -- run tools/bump_version.py --restamp"
+        % (shown.group(1), on_disk))
+
+    assert 'color="#F9E6BB"' in el, "the build number is not in the mod's cream: %s" % el
+    x, y = (float(v) for v in re.search(r'position="([-\d.]+) ([-\d.]+)', el).groups())
+    assert x > 60 and y > 60, "the build number is not in the top right corner: %s,%s" % (x, y)
+
+
 CASES = [
     ("manual path drives the turn system",   t_manual_turn_order),
     ("manual path spawns 4 / 5 boards",      t_boards_spawn),
@@ -3019,6 +3049,7 @@ CASES = [
     ("placement ignores board size",       t_placement_never_asks_the_board_how_big_it_is),
     ("send home skips other seats",       t_send_home_leaves_other_peoples_pieces_alone),
     ("numpad 2 lays a warrior down",      t_numpad_two_lays_a_warrior_down_and_back_up),
+    ("board shows the build number",      t_the_board_shows_the_build_number),
 ]
 
 

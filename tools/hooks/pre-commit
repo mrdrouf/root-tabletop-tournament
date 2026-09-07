@@ -1,0 +1,17 @@
+#!/bin/sh
+# Every commit gets a build number, so every push carries one nobody has seen before.
+# The maintainer, 2026-09-07: "you need to make sure there is an iteration of that every time
+# github is pushed."
+#
+# Bumps VERSION, stamps it on the setup board's XmlUI, rebuilds dist, and stages all three. If the
+# build fails the commit is refused rather than shipping a save that does not assemble.
+#
+# INSTALL:  cp tools/hooks/pre-commit .git/hooks/pre-commit && chmod +x .git/hooks/pre-commit
+# (.git/hooks is not versioned, so the copy in tools/ is the one that survives a fresh clone.)
+root=$(git rev-parse --show-toplevel) || exit 1
+python3 "$root/tools/bump_version.py" --quiet || {
+  echo "pre-commit: BLOCKED -- the version bump or the build failed." >&2
+  exit 1
+}
+git add "$root/VERSION" "$root/gen/src/save.json" "$root/dist/Root_Tabletop_Tournament.json" || exit 1
+exit 0
