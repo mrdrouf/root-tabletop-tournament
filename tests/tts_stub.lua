@@ -344,7 +344,24 @@ Global = {
 }
 function GVGET(k) return GV[k] end
 
-Turns = setmetatable({}, {__newindex = function(t, k, v) rawset(t, k, v); note(REC.turns, tostring(k).."="..tostring(v)) end})
+-- turn_color is a PROPERTY, not a field: assigning it hands the turn over the way TTS does (an event,
+-- possibly late), and reading it back before the event lands returns the OUTGOING colour -- which is
+-- the bug that made the turn panel's clock fire twice.
+Turns = setmetatable({}, {
+  __index = function(t, k)
+    if k == "turn_color" then return rawget(t, "__color") end
+    return nil
+  end,
+  __newindex = function(t, k, v)
+    note(REC.turns, k .. "=" .. tostring(v))
+    if k == "turn_color" then
+      if rawget(t, "__color") == nil and rawget(t, "enable") ~= true then rawset(t, "__color", nil) end
+      TURN_SET(v)
+      return
+    end
+    rawset(t, k, v)
+  end,
+})
 
 self = MKOBJ("Faction Selection", {0, 1, 0}, {})
 -- The REAL setup board is scale 15.5 (gen/src/save.json, guid bab7e1), and rttSpawnFaction
@@ -376,6 +393,83 @@ UI = {setAttribute=function() end, getAttribute=function() return "" end, setXml
       show=function() end, hide=function() end, setValue=function() end, getValue=function() return "" end}
 Notes = {setNotebookTabs=function() end, getNotebookTabs=function() return {} end, setNotes=function() end, getNotes=function() return "" end}
 Lighting = {} Physics = {cast=function() return {} end} Backgrounds = {} Turns.enable = false
+
+-- A TURN ENGINE, because there was none and that is why the turn system keeps breaking.
+--
+-- `Turns` was a bare recording table: nothing ever advanced turn_color and nothing ever fired an
+-- event, so every test that mentioned turn order was asserting on a value the test itself had just
+-- written. The one thing the maintainer reports breaking version after version -- "how unstable
+-- boxscore is and how it does not work resiliently with the TTS turn order" -- had never been
+-- executed by a test at all.
+--
+-- This models what TTS actually does, including the parts this project has had to learn the hard way
+-- and written down in its own commit messages:
+--
+--   * onPlayerTurn(next, previous) is an EVENT, delivered to every script that defines it. TURN_LAG
+--     controls how late; at 0 it lands inline, above 0 it goes through the Wait queue, which is what
+--     "arrives when it likes" means in practice.
+--   * assigning turn_color the colour it ALREADY holds still fires the event. This is the single
+--     costliest wrong assumption in the history of this file, so the engine reproduces it.
+--   * turn_color does not stick at all while Turns.enable is false.
+--   * reading turn_color straight back after assigning it returns the OUTGOING colour, because the
+--     change lands with the event, not with the assignment.
+--   * skip_empty_hands is honoured, so a table with unoccupied seats can be driven either way.
+--
+-- TURN_EVENTS records every delivery, so a test can assert on duplicates and ordering rather than
+-- only on the end state.
+TURN_LAG = 0            -- frames between the assignment and the event; 0 = inline
+TURN_EVENTS = {}
+TURN_PENDING = nil      -- the colour the turn is moving TO, before the event lands
+
+local function deliver(nextC, prevC)
+  TURN_PENDING = nil
+  Turns.__color = nextC
+  TURN_EVENTS[#TURN_EVENTS + 1] = string.format("%s<-%s", tostring(nextC), tostring(prevC))
+  local np = (nextC ~= nil) and Player[nextC] or nil
+  local pp = (prevC ~= nil) and Player[prevC] or nil
+  if onPlayerTurn then pcall(function() onPlayerTurn(np, pp) end) end
+end
+
+-- Hand the turn to a colour the way TTS does, event and all.
+function TURN_SET(c)
+  if Turns.enable ~= true then return false end        -- does not stick while the system is off
+  local prev = Turns.__color
+  TURN_PENDING = c
+  if (TURN_LAG or 0) <= 0 then deliver(c, prev)
+  else Wait.frames(function() deliver(c, prev) end, TURN_LAG) end
+  return true
+end
+
+-- The next colour in Turns.order, skipping empty hands when TTS would.
+function TURN_NEXT()
+  local o, cur = Turns.order or {}, Turns.__color
+  if #o == 0 then return nil end
+  local at = 1
+  for i, c in ipairs(o) do if c == cur then at = i end end
+  for step = 1, #o do
+    local c = o[((at - 1 + step) % #o) + 1]
+    if Turns.skip_empty_hands ~= true then return c end
+    local seated = false
+    pcall(function() seated = Player[c].seated == true end)
+    if seated then return c end
+  end
+  return nil
+end
+
+-- One whole go-round, in order, from wherever the turn is now.
+function TURN_ROUND(n)
+  for _ = 1, (n or 1) * #(Turns.order or {}) do TURN_SET(TURN_NEXT()) end
+end
+
+-- Deliver the SAME transition again -- TTS does, and a duplicate does not merely lock twice, it
+-- invents a round. Nothing could test that before.
+function TURN_REDELIVER()
+  local e = TURN_EVENTS[#TURN_EVENTS]
+  if e == nil then return end
+  local nextC, prevC = e:match("^(.-)<%-(.*)$")
+  if prevC == "nil" then prevC = nil end
+  deliver(nextC, prevC)
+end
 Color = setmetatable({fromString = function(s) return {r=0,g=0,b=0} end}, {__call = function(_, ...) return {...} end})
 
 -- A real enough JSON: the mod round-trips RTT_SEAT_POS/_COLOR/_PLAYER through it,

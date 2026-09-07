@@ -3139,9 +3139,10 @@ def t_the_gizmo_follows_the_faction_you_last_picked(src):
         """)
         return rt
 
-    def take(rt):
-        rt.execute("TOOK = {} rttGizmoTake('Red') FLUSH(5)")
-        return [str(v) for v in (rt.eval("TOOK") or {}).values()]
+    def supply(rt):
+        rt.execute("BAG = rttMySupplyBag('Red')")
+        b = rt.eval("BAG")
+        return b and str(b.getName()) or None
 
     def pick(rt, faction, x, z):
         rt.execute("pcall(function() rttPlaceFaction(%r, %f, %f, false, 'Red', false, 'Standard', 0, 'Red') end) "
@@ -3153,11 +3154,13 @@ def t_the_gizmo_follows_the_faction_you_last_picked(src):
     pick(rt, "Marquise de Cat", 52, -46)
     assert rt.eval("rttMyFaction('Red')") == "Marquise de Cat", \
         "picking a faction did not tell the gizmo whose it is: %r" % rt.eval("rttMyFaction('Red')")
-    assert take(rt) == ["Marquise Supply"], "numpad 1 did not use the picked faction: %s" % take(rt)
+    assert supply(rt) == "Marquise Supply", \
+        "numpad 1 did not use the picked faction: %s" % supply(rt)
 
     # SWITCHING to another seat brings it with you
     pick(rt, "Eyrie Dynasties", -52, -46)
-    assert take(rt) == ["Eyrie Supply"], "numpad 1 stayed on the first faction: %s" % take(rt)
+    assert supply(rt) == "Eyrie Supply", \
+        "numpad 1 stayed on the first faction: %s" % supply(rt)
 
     # IT SURVIVES A RELOAD
     saved = rt.eval("onSave()")
@@ -3369,6 +3372,62 @@ def t_a_new_game_forgets_last_games_seat_count(src):
         "an empty seat record was published over the real one"
 
 
+def t_a_real_turn_cycle_runs_in_seat_order(src):
+    """Drive the TTS turn system for real, which no test in this project has ever done.
+
+    `Turns` was a bare recording table in the harness: nothing advanced turn_color and nothing fired an
+    event, so every test that mentioned turn order was asserting on a value it had written itself. The
+    one thing reported broken version after version -- "how unstable boxscore is and how it does not
+    work resiliently with the TTS turn order" -- had never been executed at all.
+
+    The engine reproduces what TTS actually does, including the parts this project learned the hard
+    way: the event is delivered late, assigning turn_color the colour it ALREADY holds still fires it,
+    and reading turn_color straight back returns the OUTGOING colour.
+    """
+    rt = fresh(src)
+    for i, c in enumerate(("Red", "Yellow", "Orange", "Teal")):
+        rt.execute("SEAT(%r,'H%d')" % (c, i + 1))
+    rt.execute("pcall(function() setupFactionBoards(nil,nil,nil) end) FLUSH(60)")
+    rt.execute("onPlayerChangeColor('Red') FLUSH(20)")
+
+    order = list(rt.eval("Turns.order").values())
+    assert order == ["Red", "Yellow", "Orange", "Teal"], "the seat order is wrong: %s" % order
+    assert rt.eval("Turns.enable") is True, "seating did not start the turn system"
+
+    # TWO WHOLE ROUNDS, colour by colour
+    rt.execute("TURN_EVENTS = {} TURN_ROUND(2) FLUSH(30)")
+    seen = [str(v) for v in rt.eval("TURN_EVENTS").values()]
+    assert len(seen) == 8, "two rounds of four seats delivered %d events: %s" % (len(seen), seen)
+    assert seen[0].startswith("Yellow<-Red") and seen[3].startswith("Red<-Teal"), \
+        "the cycle did not run in seat order: %s" % seen[:4]
+    assert rt.eval("Turns.turn_color") == "Red", \
+        "two full rounds did not come back to seat 1: %s" % rt.eval("Turns.turn_color")
+
+    # THE EVENT IS LATE. Reading turn_color straight back must give the OUTGOING colour -- this is
+    # what made the panel's clock fire twice.
+    rt.execute("TURN_LAG = 2 Turns.turn_color = 'Orange'")
+    assert rt.eval("Turns.turn_color") == "Red", \
+        "turn_color read back as the incoming colour; the real one lands with the event"
+    rt.execute("FLUSH(10)")
+    assert rt.eval("Turns.turn_color") == "Orange", "the turn never landed"
+    rt.execute("TURN_LAG = 0")
+
+    # ASSIGNING THE COLOUR IT ALREADY HOLDS STILL FIRES. The costliest wrong assumption in this
+    # project's history, and the reason START recorded a phantom turn.
+    rt.execute("TURN_EVENTS = {} Turns.turn_color = 'Orange' FLUSH(10)")
+    assert len(rt.eval("TURN_EVENTS")) == 1, \
+        "re-assigning the current colour fired no event; TTS fires one"
+
+    # A COLOUR CHANGE MID-GAME MUST NOT REWIND THE TURN
+    rt.execute("Turns.turn_color = 'Teal' FLUSH(5) onPlayerChangeColor('Yellow') FLUSH(20)")
+    assert rt.eval("Turns.turn_color") == "Teal", \
+        "somebody changing colour handed the turn back to seat 1: %s" % rt.eval("Turns.turn_color")
+
+    # AND THE SYSTEM LATCHES ON: standing up must not switch it off
+    rt.execute("ROSTER = {} onPlayerChangeColor('Grey') FLUSH(20)")
+    assert rt.eval("Turns.enable") is True, "a player leaving switched the turn system off"
+
+
 CASES = [
     ("manual path drives the turn system",   t_manual_turn_order),
     ("manual path spawns 4 / 5 boards",      t_boards_spawn),
@@ -3406,6 +3465,7 @@ CASES = [
     ("enclaves sit where they are dropped",   t_enclaves_do_not_snap),
     ("enclave aims at the suit circle",       t_enclave_targets_the_suit_marker),
     ("turn order re-applies on seating",      t_turn_order_reapplies_on_seating),
+    ("a real turn cycle runs",            t_a_real_turn_cycle_runs_in_seat_order),
     ("vagabond published as a faction",       t_vagabond_is_published_as_a_faction),
     ("mountain deals a legal board",          t_mountain_deals_a_legal_board),
     ("maps shuffle once, uniformly",         t_maps_shuffle_once_and_uniformly),
