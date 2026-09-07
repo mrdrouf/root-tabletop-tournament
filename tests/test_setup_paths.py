@@ -2596,6 +2596,74 @@ def t_the_turn_panel_button_really_swaps_them(src):
         "the old pair survived the swap back (%d/%d)" % (n("RTT Clock"), n("RTT Counter"))
 
 
+def t_the_panel_flashes_after_twenty_minutes(src):
+    """A turn past twenty minutes tints the panel red, about once a second.
+
+    Maintainer, 2026-09-07: "when a turn gets to 20 mins, have the board background flash red like
+    avery second or so as a soft warning that it has been 20 min", and, so it could be looked at
+    without waiting: "if I press 3 times deal 5 cards in less than 3 seconds have that warning trigger
+    so I can check how it looks."
+
+    THIS IS THE FIRST TEST OF THE PANEL'S OWN SCRIPT. The harness does not execute a spawned object's
+    script, so panelTick and panelDeal had no coverage at all -- every earlier panel bug (buttons with
+    no click area, the wipe racing the turn event) was found at the table. The script only needs a
+    handful of TTS globals, so it runs here against a stub with a clock we control.
+    """
+    lua = json.loads(src[src.index("RTT_TURN_PANEL_JSON = [====[") + len("RTT_TURN_PANEL_JSON = [====["):
+                         src.index("]====]", src.index("RTT_TURN_PANEL_JSON = [====["))])["LuaScript"]
+    rt = lupa.LuaRuntime(unpack_returned_tuples=True)
+    rt.execute("""
+      T = 1000
+      os = { time = function() return T end }
+      Wait = { time = function() end, frames = function(f) end }
+      JSON = { encode = function() return "" end, decode = function() return {} end }
+      Turns = { turn_color = "Red", order = {"Red"} }
+      UIW = {}
+      self = { UI = { setXml=function() end, setValue=function() end, setCustomAssets=function() end,
+                      setAttribute=function(id,k,v) UIW[id.."."..k]=v end },
+               setScale=function() end, clearButtons=function() end }
+      function getObjectsWithTag() return {} end
+      function broadcastToAll() end
+      function getAllObjects() return {} end
+      Player = { getPlayers = function() return {} end }
+    """)
+    rt.execute(lua.replace("Wait.time(panelTick, 0.25, -1)", ""))
+    g = rt.globals()
+
+    def at(t):
+        rt.execute("T = %d" % t)
+        g.panelTick()
+        return g.UIW["pnlbg.color"]
+
+    NORMAL, ALARM = "#FFFFFF", "#E86B5A"
+    assert at(1000) == NORMAL, "the panel is tinted before any turn has started"
+    g.PANEL_START = 1000
+    assert at(1060) == NORMAL, "a one-minute turn is already warning"
+    assert at(1000 + 19 * 60 + 59) == NORMAL, "it warns at 19:59, before the twenty minutes are up"
+    seq = [at(1000 + 20 * 60 + k) for k in range(4)]
+    assert ALARM in seq and NORMAL in seq, "past twenty minutes the tint does not alternate: %s" % seq
+    assert seq[0] != seq[1] and seq[1] != seq[2], \
+        "the flash is not once a second: %s" % seq
+
+    # the demo: three DEAL presses inside three seconds, with no turn running at all
+    g.PANEL_START = None
+    rt.execute("T = 2000")
+    for _ in range(3):
+        g.panelDeal()
+    assert g.PANEL_DEMO == 2015, "three quick presses did not arm the preview: %s" % g.PANEL_DEMO
+    demo = [at(2002 + k) for k in range(3)]
+    assert ALARM in demo and NORMAL in demo, "the preview does not flash: %s" % demo
+    assert at(2020) == NORMAL, "the preview never ends"
+
+    # and pressing slowly must NOT arm it
+    g.PANEL_DEMO = None
+    rt.execute("PANEL_TAPS = {}")
+    for k in range(3):
+        rt.execute("T = %d" % (3000 + k * 5))
+        g.panelDeal()
+    assert g.PANEL_DEMO is None, "presses five seconds apart armed the preview"
+
+
 CASES = [
     ("manual path drives the turn system",   t_manual_turn_order),
     ("manual path spawns 4 / 5 boards",      t_boards_spawn),
@@ -2610,6 +2678,7 @@ CASES = [
     ("duchy burrow spawns locked",           t_the_duchy_burrow_spawns_locked),
     ("camera states are the host's",         t_camera_states_are_the_hosts),
     ("turn panel is the default",         t_the_turn_panel_is_an_option_not_the_default),
+    ("panel flashes past 20 minutes",      t_the_panel_flashes_after_twenty_minutes),
     ("turn panel button swaps them",       t_the_turn_panel_button_really_swaps_them),
     ("crow plots inside the hidden zone",    t_crow_plots_spawn_inside_the_hidden_zone),
     ("crafted board same side for all",      t_crafted_board_sits_the_same_side_for_every_faction),
