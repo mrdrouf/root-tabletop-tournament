@@ -40,9 +40,11 @@ Each fallback is individually reasonable. Together they mean the sheet can be co
   with a pre-reload colour on the first turn after loading.
 - **`S.turnStart` survives as an absolute `os.time`.** The first turn to end after a reload writes a
   `lastTurn` measured from whenever the game was saved. `mmss` does not cap minutes.
-- **An empty string erases.** `rttFieldMap` (boxscore.lua:903) drops `""`, and if no seat carries a
-  field it returns nil for the WHOLE map — dropping every row at once to the geometric guess. One seat
-  publishing `color = ""` is enough.
+- **An empty string erases.** `rttFieldMap` drops `""` per seat, and if NO seat carries a field it
+  returns nil for the whole map — dropping every row at once to the geometric guess.
+  CORRECTED 2026-09-07: my first summary of this said one seat publishing `color = ""` was enough. It
+  is not — an empty field skips that seat only. The whole-map fallback needs every seat to be empty.
+  Guarded at the source instead: RTT must never publish a seat that has a faction and no colour.
 - **A 12-entry name bridge.** RTT publishes long ids ("Marquise de Cat"); the sheet's rows are short
   ("Marquise"). `RTT_FACTION_ID` (boxscore.lua:1006) bridges exactly 12. A 13th faction, or a rename on
   either side, silently loses that seat's colour, owner and position.
@@ -318,3 +320,56 @@ Every item was re-checked against the code before being fixed. Three did not sur
 
 Recording these matters as much as the fixes. An audit finding is a hypothesis, and three of nineteen
 were wrong.
+
+---
+
+## 11. Where this ended (2026-09-07)
+
+**Section 9 is complete apart from one item, which is deliberately not done.**
+
+### Fixed, each with a test that fails on the build before it
+
+1. START armed the sheet's one-shot without causing a pass, so it swallowed the first real turn of
+   the game. The missing round, reported repeatedly, surviving five START fixes in one day because
+   the panel's own script had never been executed by a test.
+2. `key` and `vagN` were not saved, so two vagabonds collapsed into one after a reload.
+3. A hole in the seat array truncated eight `ipairs` loops.
+4. A stale seat count and a dead `Turns.order` literal could publish an empty record mid-draft.
+5. The gizmo's note was keyed by colour, so a colour changing hands carried the old claim.
+6. `seat.owner` was written once, so a game was credited to whoever had left.
+7. `turnHolder` and `turnStart` survived a reload as live state.
+8. The record's `run` number was published and never read.
+9. The opening pointer resolved a colour that may have been guessed from geometry.
+10. The export recorded the row index instead of the turn order.
+11. The map/deck pick was unreachable code, and its relay and art went with it.
+12. The draft's shuffle was neither saved nor cleared.
+
+### Structural
+
+- **Four storage locations gone**: `RTT_LAST_PICK`, `RTT_BOARD_SEAT`, `RTT_CLONES`, and the four
+  separate writers of a seat's colour. Seventeen down to thirteen, and the ones that went were the
+  ones that could not survive a save.
+- **The seat record carries everything about a seat** and is published as a pure projection with an
+  epoch, a row name the sheet looks up by, and one writer per fact.
+- **The faction pick survives a reload**, which it never has.
+
+### Testing
+
+- **A turn engine in the harness.** There was none: nothing advanced `turn_color` or fired an event,
+  so the thing that kept breaking had never been executed. It models the late event, the re-fire on
+  an unchanged colour, the dead assignment while disabled, and the stale read-back.
+- **Named hotkeys are pressed**, where `addHotkey` did not exist in the harness at all.
+- **Seven weak tests fixed**, two mutation-checked rather than assumed.
+- Both setup paths are now held to the same invariants in one test.
+
+### Not done, on purpose
+
+**`RTT_HOME` is still not persisted.** It is the record of where every faction piece belongs, built
+only when a faction is set out, and lost whenever the board's script re-runs -- which is why numpad 0
+goes dead on buildings after a reload. The fix is one line beside `RTT_LAID`. The maintainer asked to
+test first: after an undo, hover your own WARRIOR and press numpad 0. Warrior goes home but a building
+does not, and it is this; nothing happens at all, and it is the key registration instead.
+
+### Three findings that were wrong
+
+Recorded in section 10. An audit finding is a hypothesis.

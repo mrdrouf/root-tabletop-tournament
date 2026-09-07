@@ -3914,8 +3914,13 @@ def t_both_setup_paths_leave_the_same_kind_of_record(src):
         assert len(rec.get("seats", [])) == n, \
             "%s: published %d seats of %d" % (name, len(rec.get("seats", [])), n)
         for e in rec["seats"]:
+            # NO EMPTY FIELDS. The sheet drops an empty value per seat and falls back to guessing that
+            # row's colour from hand-zone geometry -- silently, because an empty string reads as "no
+            # answer" rather than as an error. A seat that has a faction has a colour, a key and a row
+            # name, or it should not be in the record at all.
             assert e["color"] and e["key"] and e.get("row"), \
                 "%s: a published seat is missing a field: %s" % (name, e)
+            assert e["faction"], "%s: a published seat has no faction: %s" % (name, e)
         assert sorted(e["color"] for e in rec["seats"]) == sorted(cols), \
             "%s: the record's colours are not the seats': %s vs %s" % (name, rec["seats"], cols)
 
