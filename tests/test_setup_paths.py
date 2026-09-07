@@ -3802,6 +3802,77 @@ def t_six_seats_cannot_happen_while_the_layout_is_not_clockwise(src):
         "if not, someone reordered it and the comment about it should go too")
 
 
+def t_both_setup_paths_leave_the_same_kind_of_record(src):
+    """The two ways to start a game must agree about what a seat record looks like.
+
+    "structural fault 2 for the fifth time" is a real commit message in this repo: the ranked draft
+    and the manual picker have disagreed about the teardown tag list, the run-state reset, the busy
+    flag, hand-1 ordering and the turn system, each fixed in one path and forgotten in the other. The
+    tests drove them separately, so a difference between them was never itself the thing under test.
+
+    This drives BOTH to a finished four-seat table and asserts the same invariants on each -- not that
+    they produce identical values (they cannot: the draft forces turn-card colours, the manual path
+    takes whatever the picker was wearing) but that every rule the rest of the system relies on holds
+    either way.
+    """
+    def ranked():
+        rt = fresh(src)
+        joined = ["Purple", "Blue", "White", "Pink"]
+        _seat_ranked(rt, joined, ["H1", "H2", "H3", "H4"])
+        for i, fac in enumerate(("Marquise de Cat", "Eyrie Dynasties",
+                                 "Woodland Alliance", "The Lizard Cult")):
+            rt.execute("""local s = RTT_SEATS[%d]
+                          pcall(function()
+                            rttPlaceFaction(%r, s.pos[1], s.pos[2], s.pos[2] > 0, s.color,
+                                            true, nil, nil, s.color, nil)
+                          end) FLUSH(60)""" % (i + 1, fac))
+        return rt
+
+    def manual():
+        rt = fresh(src)
+        for i, c in enumerate(("Red", "Yellow", "Orange", "Teal")):
+            rt.execute("SEAT(%r,'H%d')" % (c, i + 1))
+        rt.execute("pcall(function() setupFactionBoards(nil,nil,nil) end) FLUSH(60)")
+        for i, (fac, x, z) in enumerate((("Marquise de Cat", 52, -46), ("Eyrie Dynasties", -52, -46),
+                                         ("Woodland Alliance", 52, 46), ("The Lizard Cult", -52, 46))):
+            rt.execute("pcall(function() rttPlaceFaction(%r,%f,%f,%s,nil,false,'Standard',0,%r) end) "
+                       "FLUSH(60)" % (fac, x, z, "true" if z > 0 else "false",
+                                      ("Red", "Yellow", "Orange", "Teal")[i]))
+        return rt
+
+    for name, rt in (("ranked", ranked()), ("manual", manual())):
+        n = int(rt.eval("#RTT_SEATS"))
+        assert n == 4, "%s: %d seats, expected 4" % (name, n)
+
+        seats = [{k: rt.eval("RTT_SEATS[%d].%s" % (i + 1, k)) for k in
+                  ("color", "faction", "key", "owner")} for i in range(n)]
+
+        cols = [s["color"] for s in seats]
+        assert all(cols), "%s: a seat has no colour: %s" % (name, cols)
+        assert len(set(cols)) == n, "%s: two seats share a colour: %s" % (name, cols)
+        assert all(s["faction"] for s in seats), "%s: a seat has no faction" % name
+        assert all(s["key"] for s in seats), "%s: a seat has no key -- the sheet keys on it" % name
+
+        # the array is contiguous: a hole truncates eight different loops
+        assert int(rt.eval("function() local k = 0 for _ in ipairs(RTT_SEATS) do k = k + 1 end return k end")()) == n, \
+            "%s: the seat array has a hole in it" % name
+
+        # the published record is a faithful projection of it
+        rec = json.loads(rt.eval('GVGET("RTT_SEAT_RECORD")') or "{}")
+        assert len(rec.get("seats", [])) == n, \
+            "%s: published %d seats of %d" % (name, len(rec.get("seats", [])), n)
+        for e in rec["seats"]:
+            assert e["color"] and e["key"] and e.get("row"), \
+                "%s: a published seat is missing a field: %s" % (name, e)
+        assert sorted(e["color"] for e in rec["seats"]) == sorted(cols), \
+            "%s: the record's colours are not the seats': %s vs %s" % (name, rec["seats"], cols)
+
+        # and the turn order is exactly those colours
+        order = list((rt.eval("Turns.order") or {}).values())
+        assert sorted(order) == sorted(cols), \
+            "%s: turn order %s is not the seat colours %s" % (name, order, cols)
+
+
 CASES = [
     ("manual path drives the turn system",   t_manual_turn_order),
     ("manual path spawns 4 / 5 boards",      t_boards_spawn),
@@ -3878,6 +3949,7 @@ CASES = [
     ("extra slots face like the rest",       t_extra_return_slots_face_the_same_way),
     ("one seat holds one faction",           t_one_seat_holds_one_faction),
     ("one writer owns seat colour",       t_one_writer_owns_a_seats_colour),
+    ("both paths agree on the record",    t_both_setup_paths_leave_the_same_kind_of_record),
     ("the pick survives a reload",        t_the_faction_pick_survives_a_reload),
     ("the draft shuffle is saved",        t_the_drafts_shuffle_is_saved_and_forgotten),
     ("vagabond published under faction",     t_a_vagabond_is_published_under_its_faction_name),
