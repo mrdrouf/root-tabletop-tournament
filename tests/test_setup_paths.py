@@ -1137,43 +1137,45 @@ def t_camera_states_are_the_hosts(src):
             "%s does not carry the host's camera states" % path
 
 
-def t_timer_and_counter_sit_bottom_right(src):
-    """Zaandaa: put the turn timer and counter to the right of the board's bottom-right corner.
+def t_the_turn_panel_replaces_the_clock_and_counter(src):
+    """The turn panel stands where the clock and counter used to, and they are gone.
 
-    The space under the battle mat is otherwise unused and is the easiest place to reach on screen --
-    and explicitly NOT the box score there, which he says is too much. The maintainer placed them by
-    hand and saved as TS_Save_27; these are those coordinates.
+    Maintainer, 2026-09-06: "in stead of the current clock kand counter I would like a nice beautifully
+    designed ... rectangle that show which turn it is now, using the boxscore turn counter, a clock
+    that measur the time of each player turn", with START TURN 1 and a DEAL 5 CARDS button above it
+    that disappears once used -- and, asked whether it should replace them or sit alongside: "yes
+    replace".
 
-    He also resized the COUNTER while he was there, 1.25 -> 1.55, and left the CLOCK alone. Both are
-    asserted, because "the clock is still 1.107" is the decision, not an omission.
+    The spot is still Zaandaa's: right of the board's bottom-right corner, under the battle mat, where
+    he had placed the clock and counter by hand (TS_Save_27). The panel sits between the two.
 
-    Both objects ship with a BLANK Nickname, so they are found by Name -- "Digital_Clock" and
-    "Counter" -- never by nickname.
+    It is a FIXTURE, so changing map does not rebuild it and restart a running clock.
     """
     rt = fresh(src)
-    want = {"Digital_Clock": (29.4800, -17.1446), "Counter": (29.6331, -20.8561)}
-    for k, (x, z) in want.items():
-        got = rt.eval("RTT_%s_POS" % ("TIMER" if k == "Digital_Clock" else "COUNTER"))
-        gx, gz = got[1], got[3]
-        assert abs(gx - x) < 1e-3 and abs(gz - z) < 1e-3, \
-            "%s is at (%.4f, %.4f), the maintainer placed it at (%.4f, %.4f)" % (k, gx, gz, x, z)
+    pos = rt.eval("RTT_PANEL_POS")
+    px, pz = pos[1], pos[3]
+    assert 29.0 < px < 30.0 and -21.0 < pz < -17.0, \
+        "the panel is at (%.2f, %.2f), not where the clock and counter stood" % (px, pz)
 
-    # scales, straight out of the blueprint blobs
-    for key, want_scale in (("RTT_COUNTER_JSON", 1.55), ("RTT_TIMER_JSON", 1.107143)):
-        head = key + " = [==["
-        i = src.index(head); j = src.index("]==]", i)
-        t = json.loads(src[i + len(head):j])["Transform"]
-        assert abs(t["scaleX"] - want_scale) < 1e-4, \
-            "%s scaleX is %.6f, expected %.6f" % (key, t["scaleX"], want_scale)
+    # the old objects are gone from the build entirely
+    for dead in ("RTT_TIMER_JSON", "RTT_COUNTER_JSON"):
+        assert dead not in src, "%s is still in the build; the panel was meant to replace it" % dead
 
-    # and they really do come out with the map, tagged so the next map replaces them
-    rt.execute("pcall(function() makeMap('', '', 'Summer Map') end) FLUSH(40)")
+    # it spawns with the map, once, and carries its script
+    rt.execute("pcall(function() makeMap('', '', 'Summer Map') end) FLUSH(60)")
     spawned = [str(x) for x in (rt.eval("REC.spawned") or {}).values()]
-    for k, (x, z) in want.items():
-        hit = [l for l in spawned if l.startswith(k + "@")]
-        assert hit, "%s did not spawn with the map (spawned: %s)" % (k, spawned[:6])
-        at = hit[-1].split("@")[1]
-        assert at == "%.1f,%.1f" % (x, z), "%s spawned at %s, expected %.1f,%.1f" % (k, at, x, z)
+    hits = [l for l in spawned if l.startswith("Turn Panel@")]
+    assert len(hits) == 1, "expected exactly one Turn Panel, got %d (%s)" % (len(hits), hits)
+
+    head = "RTT_TURN_PANEL_JSON = [====["
+    i = src.index(head); j = src.index("]====]", i)
+    blob = json.loads(src[i + len(head):j])
+    assert blob["Nickname"] == "Turn Panel"
+    assert blob["Locked"] is True, "the panel should be locked like the captains board"
+    for fn in ("panelStart", "panelDeal", "rttStartTurnOne", "rttRound"):
+        assert fn in blob["LuaScript"], "the panel script never mentions %s" % fn
+    assert blob["CustomImage"]["WidthScale"] == 0.0, \
+        "WidthScale must be 0 so the tile takes the art's aspect, or the panel is squashed"
 
 
 def t_crow_plots_spawn_inside_the_hidden_zone(src):
@@ -2434,11 +2436,11 @@ def t_table_fixtures_survive_a_map_change(src):
     rttNewGame drops it and the map refresh spawns a new one. The other three persist even then --
     nothing about them belongs to a particular game.
     """
-    NAMES = ("Battle Mat", "Digital_Clock", "Counter", "Root Box Score")
+    NAMES = ("Battle Mat", "Turn Panel", "Root Box Score")
     Q = ("function()\n  local t = {}\n"
          "  for _, o in ipairs(getAllObjects()) do\n"
          "    local n = o.getName() or ''\n"
-         "    for _, w in ipairs({'Battle Mat','Digital_Clock','Counter','Root Box Score'}) do\n"
+         "    for _, w in ipairs({'Battle Mat','Turn Panel','Root Box Score'}) do\n"
          "      if n == w then t[#t+1] = n .. '|' .. o.getGUID() end\n"
          "    end\n  end\n  table.sort(t)\n  return table.concat(t, ';')\nend")
 
@@ -2474,7 +2476,7 @@ def t_table_fixtures_survive_a_map_change(src):
         "a new game left %s box score sheets" % len(after.get("Root Box Score", []))
     assert after["Root Box Score"] != first["Root Box Score"], \
         "a new game kept the OLD box score; it would still hold the previous game"
-    for n in ("Battle Mat", "Digital_Clock", "Counter"):
+    for n in ("Battle Mat", "Turn Panel"):
         assert after[n] == first[n], "%s was rebuilt by a new game; nothing about it is per-game" % n
 
 
@@ -2538,7 +2540,7 @@ CASES = [
     ("order cards cleared by a new game",    t_order_cards_do_not_survive_a_new_game),
     ("duchy burrow spawns locked",           t_the_duchy_burrow_spawns_locked),
     ("camera states are the host's",         t_camera_states_are_the_hosts),
-    ("timer and counter bottom-right",       t_timer_and_counter_sit_bottom_right),
+    ("turn panel replaces clock+counter", t_the_turn_panel_replaces_the_clock_and_counter),
     ("crow plots inside the hidden zone",    t_crow_plots_spawn_inside_the_hidden_zone),
     ("crafted board same side for all",      t_crafted_board_sits_the_same_side_for_every_faction),
     ("no setup card on crafted board",       t_no_setup_card_rides_on_the_crafted_board),
