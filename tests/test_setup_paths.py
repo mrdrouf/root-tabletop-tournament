@@ -2162,6 +2162,79 @@ def t_a_new_game_refreshes_the_map_but_keeps_the_board(src):
     assert len(seen) > 1, "every new game got the same flood layout: %s" % seen
 
 
+class TTSPlayer(object):
+    """A player the way TABLETOP SIMULATOR passes one to a button handler: NOT a Lua table.
+
+    lupa hands a plain Python object to Lua as USERDATA, which is what a TTS Player actually is. The
+    stub's own Player entries are Lua tables, so every click test in this file has been exercising a
+    kind of player that TTS never produces -- and that hid a bug for three rounds of "fixed".
+    """
+    def __init__(self, color, name="H1"):
+        self.color = color
+        self.steam_name = name
+        self.seated = True
+
+
+def t_a_button_click_is_recognised_when_the_player_is_userdata(src):
+    """makeMap must know a human click even though a TTS Player is userdata, not a table.
+
+    Maintainer, three times, most recently "bug still there when spawning 4 player marsh after 5 player
+    marsh", pressing 5-Players Marsh and then Marsh, and seeing the flood tiles missing and the town
+    landmarks still standing.
+
+    Both symptoms are one cause: makeMap decided "a human clicked this" with type(player) == "table".
+    In TTS a Player is USERDATA, so that was false for every click ever made, RTT_5P_MARSH was never
+    cleared, and the Marsh button rebuilt the FIVE-player board -- flood tiles parked under the table
+    at y -50, towns placed. The suite stayed green throughout because the stub's Player IS a table, so
+    the guard ran in the harness and nowhere else. The lesson is in the assertion below: drive the
+    click with something that is not a table.
+    """
+    rt = fresh(src)
+    rt.execute("SEAT('Purple','H1')")
+    assert rt.eval("function(p) return type(p) end")(TTSPlayer("Purple")) == "userdata", \
+        "this test is pointless unless the player reaches Lua as userdata"
+
+    rt.execute("pcall(function() rttPlaceMarsh5P(nil,nil,'Marsh5PMap') end) FLUSH(200)")
+    assert rt.eval("RTT_5P_MARSH") is True, "5-Players Marsh did not enter 5-player mode"
+
+    rt.eval("function(p) pcall(function() makeMap(p, '', 'Marsh Map') end) end")(TTSPlayer("Purple"))
+    rt.execute("FLUSH(200)")
+
+    assert rt.eval("RTT_5P_MARSH") is False, \
+        "a userdata player was not recognised as a human click, so 5-player mode never cleared"
+
+    # the three flood marker tiles: the 5-player plan parks them under the table at y -50, the
+    # 4-player one floods three clearings at about y 11.7. This is the only honest way to tell the
+    # two boards apart -- RTT_MARSH_FLOODED holds three entries either way (the 5-player plan puts
+    # the TOWNS in it), which is why every earlier assertion on it was blind to this.
+    ys = rt.eval("function()\n"
+                 "  local t = {}\n"
+                 "  for _, o in ipairs(getAllObjects()) do\n"
+                 "    local s = o.getScale()\n"
+                 "    if s and math.abs(s.x - 3.70906973) < 0.01 then\n"
+                 "      t[#t+1] = string.format('%.1f', o.getPosition().y)\n"
+                 "    end\n  end\n  return table.concat(t, ' ')\nend")()
+    vals = [float(v) for v in ys.split()]
+    assert len(vals) == 3, "expected 3 flood marker tiles, found %d" % len(vals)
+    assert all(v > 0 for v in vals), \
+        "the flood tiles are still under the table at %s -- the FIVE-player board was built" % vals
+
+    towns = rt.eval("function()\n  local n = 0\n"
+                    "  for _, o in ipairs(getAllObjects()) do\n"
+                    "    local nm = o.getName() or ''\n"
+                    "    if nm == 'Mousehold' or nm == 'Foxburrow' or nm == 'Rabbit-Town' then n = n + 1 end\n"
+                    "  end\n  return n\nend")()
+    assert towns == 0, "%d town landmark(s) still standing on the 4-player Marsh" % towns
+
+    # the INTERNAL path must still be invisible: "" has no colour, so it places the 5-player map
+    # without clearing the flag out from under itself
+    rt2 = fresh(src)
+    rt2.execute("SEAT('Purple','H1')")
+    rt2.execute("pcall(function() rttPlaceMarsh5P(nil,nil,'Marsh5PMap') end) FLUSH(200)")
+    assert rt2.eval("RTT_5P_MARSH") is True, \
+        "the internal path cleared the flag it had just set"
+
+
 CASES = [
     ("manual path drives the turn system",   t_manual_turn_order),
     ("manual path spawns 4 / 5 boards",      t_boards_spawn),
@@ -2202,6 +2275,7 @@ CASES = [
     ("5P marsh ruins stay central",          t_five_player_marsh_ruins_stay_central),
     ("a map click leaves 5P mode",           t_a_map_click_leaves_five_player_mode),
     ("marsh 4P rebuilds after 5P",          t_marsh_after_5p_marsh_rebuilds_the_4p_board),
+    ("a click is userdata, not a table",    t_a_button_click_is_recognised_when_the_player_is_userdata),
     ("new game refreshes the map",          t_a_new_game_refreshes_the_map_but_keeps_the_board),
     ("map buttons warn before wiping",       t_map_buttons_warn_before_wiping),
     ("gizmo default key is numpad 0",         t_gizmo_default_key_is_numpad_zero),

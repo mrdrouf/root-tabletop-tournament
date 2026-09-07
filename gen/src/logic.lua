@@ -2318,7 +2318,7 @@ end
 
 -- one handler for every destructive button: go / arm / commit.
 -- `player` is carried through so an armed COMMIT still reaches makeMap as a HUMAN click. makeMap
--- swallows clicks while busy and clears RTT_5P_MARSH only when type(player) == "table"; committing
+-- swallows clicks while busy and clears RTT_5P_MARSH only for a player carrying a colour; committing
 -- with nil would quietly keep 5-player mode alive through a map change, which is the bug fixed
 -- earlier the same day.
 function rttArmOrGo(id, player)
@@ -6051,7 +6051,17 @@ function makeMap(player,value,id,keepBoard)
   -- so the map buttons ignored it: clicking Marsh during the 5-player draft's 6-10s chain landed that
   -- game on the FOUR-player board, because rttFivePStart sets RTT_5P_MARSH at t=0 but its map is not
   -- placed until rttBeginPick seconds later. The internal path passes no player and is never blocked.
-  if type(player) == "table" then
+  -- A REAL CLICK IS ONE THAT CARRIES A COLOUR. This used to read type(player) == "table" -- and in
+  -- Tabletop Simulator a Player is USERDATA, not a table, so the test was false for every human click
+  -- ever made and RTT_5P_MARSH was never cleared. The 5-player flag therefore survived, the Marsh
+  -- button rebuilt the FIVE-player board every time, and the maintainer reported the same bug three
+  -- times while the test suite stayed green: the stub's Player is a plain Lua table, so type() said
+  -- "table" and the guard ran in the harness and only in the harness.
+  -- The internal path (rttPlaceMap -> makeMap("", "", id)) passes "", which has no .color, so it
+  -- still places the 5-player map without clearing the flag a line later.
+  local byHuman = false
+  pcall(function() byHuman = (player ~= nil and player ~= "" and player.color ~= nil) end)
+  if byHuman then
     if RTT_BUSY then return end
     RTT_5P_MARSH = false
   end
