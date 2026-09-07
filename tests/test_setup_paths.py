@@ -2768,6 +2768,38 @@ def t_every_selector_icon_is_downloaded_with_the_table(src):
                 "(4ee1f2) in gen/src/save.json." % (var, name))
 
 
+def t_placement_never_asks_the_board_how_big_it_is(src):
+    """A map must land in the same place whatever the board's size happens to be at that instant.
+
+    Every move_to in content.lua was recorded against a board of scale 15.5, and ten spawn paths turned
+    one into a world position with "move_to / self.getScale() * 15.5". That made every placement depend
+    on the board's live size -- and the board is a Custom_Tile with WidthScale 0, so TTS works its shape
+    out FROM ITS PICTURE, which has to download first. The maintainer can watch it happen: objects come
+    up one size and then resize. Anything placed inside that window lands scaled about the world origin,
+    which is what "the map and items loaded all over the place" looks like, and why a second load of the
+    mod always fixed it (2026-09-07).
+
+    Nothing resizes these boards, so the term was 1 by construction; it is now 1 by definition. This
+    drives a map twice with two wildly different board sizes and demands the same answer both times.
+    """
+    def spawns(board_scale):
+        rt = fresh(src)
+        rt.execute("self.__scale = Vector({%r, 1.0, %r})" % (board_scale, board_scale))
+        rt.execute("REC.spawned = {} pcall(function() makeMap('', '', 'Summer Map') end) FLUSH(30)")
+        rec = rt.eval("REC.spawned")
+        return [str(rec[i]) for i in range(1, len(rec) + 1)]
+
+    right = spawns(15.5)
+    assert right, "the map spawned nothing -- the test is not exercising makeMap"
+    for wrong_scale in (1.0, 7.75, 31.0):
+        got = spawns(wrong_scale)
+        assert got == right, (
+            "board scale %s moved the map: %d of %d pieces landed elsewhere, first difference %r vs %r"
+            % (wrong_scale, sum(1 for a, b in zip(got, right) if a != b), len(right),
+               next((a for a, b in zip(got, right) if a != b), None),
+               next((b for a, b in zip(got, right) if a != b), None)))
+
+
 CASES = [
     ("manual path drives the turn system",   t_manual_turn_order),
     ("manual path spawns 4 / 5 boards",      t_boards_spawn),
@@ -2837,6 +2869,7 @@ CASES = [
     ("vagabond published under faction",     t_a_vagabond_is_published_under_its_faction_name),
     ("two vagabonds, one marker each",       t_two_vagabonds_get_one_marker_each),
     ("selector icons load with table",     t_every_selector_icon_is_downloaded_with_the_table),
+    ("placement ignores board size",       t_placement_never_asks_the_board_how_big_it_is),
 ]
 
 

@@ -447,3 +447,24 @@ board's own asset list is untouched, at 48; the count that was confirmed working
 cold in-game was 147, and nothing here goes near it. Guarded by
 t_every_selector_icon_is_downloaded_with_the_table, and carried into the
 maintainer's base save by update_saves.py.
+
+## Placement no longer waits for the board's picture - 2026-09-07
+Every move_to in content.lua was recorded against a board of scale 15.5, and ten
+spawn paths turned one into a world position with `move_to / self.getScale() *
+15.5`. That asked the board how big it was on every single placement -- and all
+three boards that run this code are Custom_Tiles with `WidthScale: 0`, so TTS
+works their shape out from a picture that has to download first. On a cold load
+the mod was asking a board how big it is while the thing that decides that was
+still arriving.
+
+Anything placed inside that window is scaled about the world ORIGIN. The map
+board's own move_to is ~(0,0), so it barely moves while pieces twenty units out
+fly across the table -- "the map and items loaded all over the place", and gone
+on a second load because the picture is cached by then.
+
+The question was pointless: nothing resizes these boards, so 15.5/scale was
+always 1. It is now a constant, RTT_BOARD_SCALE. Positions on a normal load are
+identical; only the broken case changes. Guarded by
+t_placement_never_asks_the_board_how_big_it_is, which drives a map at three
+board sizes and demands one answer -- it fails on the pre-fix build, moving 30
+of 44 pieces.

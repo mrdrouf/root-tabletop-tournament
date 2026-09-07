@@ -117,16 +117,34 @@ Nothing below is implemented. The maintainer asked to be consulted before each c
       VERIFY: someone loading the mod for the FIRST time (a warm cache cannot show this) gets a faction
       board with buttons without reloading.
 
-- [ ] **Map and items load "all over the place" on a first load** (OPEN -- reported 2026-09-07 with
-      screenshots, on the CURRENT build). Ruled out so far: the map BOARD is not what moved. Every
-      entry of a map's blueprint goes through the identical position formula in makeMap, and the board
-      entry is `"Locked": true`, so physics cannot push it either. What is displaced is loose pieces
-      and -- in the first screenshot -- the turn panel, which sits in the middle of the map instead of
-      off its right edge. That last part is unexplained: RTT_PANEL_POS has been {29-32, ~11.6, ~-19} in
-      every build since the panel existed, dist carries {30.5759, 11.6515, -20.3423}, and measuring the
-      screenshot against the battle mat (33.17, 9.21) as a ruler puts the panel at roughly world x=-2.
-      Nothing shipped explains that. Do NOT guess a mechanism; the next step is to reproduce or to get
-      a save from the moment it happened.
+- [x] **Map and items load "all over the place" on a first load** (FIXED 2026-09-07, needs a COLD
+      test). Also healed by a reload, exactly like the blank faction board. CAUSE: every move_to in
+      content.lua was recorded against a board of scale 15.5, and TEN spawn paths turned one into a
+      world position with `move_to / self.getScale() * 15.5` -- makeMap, makeDeck, makeTool,
+      makeMapTool, makeSpecial, makeSpecialWithTag, rttSpawnFaction, rttAddHomeExtras,
+      spawnDraftFaction, rttDragonGodSpot. So every placement asked the board how big it was, and all
+      three boards that run this code are Custom_Tiles with `WidthScale: 0`, which means TTS derives
+      their shape FROM THEIR PICTURE. On a cold load the picture has not arrived, so the mod was asking
+      a board how big it is while the thing that decides that was still downloading. The maintainer sees
+      the tail of it every load: "we see the full sized one then the resized one and it looks clunky".
+      Anything placed in that window is scaled about the world ORIGIN -- and because the map board's own
+      move_to is ~(0,0) it barely moves while pieces 20 units out fly, which is precisely "the board
+      looks fine, the items are everywhere". FIX: the scale is a constant (RTT_BOARD_SCALE = 15.5) and
+      the term is 1 by definition; nothing resizes these boards, so behaviour on a normal load is
+      identical. t_placement_never_asks_the_board_how_big_it_is drives a map at three board sizes and
+      demands one answer; it FAILS on the pre-fix build (30 of 44 pieces move).
+      VERIFY: someone loading the mod for the FIRST time places a map and gets it laid out correctly.
+      STILL EXPOSED, not changed: rttFindSeatBoard identifies a selector by `getScale().x >= 7.5`. If a
+      cold board really does report a smaller size, that lookup can miss. Left alone -- it is a
+      tolerant threshold and nothing has been reported against it.
+
+- [ ] **Objects visibly resize as the table loads** (COSMETIC, open). All 557 image-backed objects in
+      the mod carry `WidthScale: 0`, the base mod's own included: TTS works each one's shape out from
+      its picture, so everything appears at a placeholder shape and then re-aspects when the download
+      lands. The only lever is a non-zero WidthScale per object, which means measuring 557 images
+      (most on Steam UGC, so they would all have to be downloaded) and getting every one right or
+      permanently distorting a piece. It would also not remove the separate placeholder-then-real-mesh
+      swap. Not worth it for a cosmetic gain now that nothing computes positions from the scale.
 
 ### Setup and placement
 
