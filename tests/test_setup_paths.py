@@ -2927,15 +2927,26 @@ def t_numpad_two_lays_a_warrior_down_and_back_up(src):
     before = state("MINE")
     assert before == ((0.145, 0.457, 0.81), (0.0, 137.0), False), before
 
-    rt.execute('HOVER["Red"] = MINE rttGizmoLay("Red") FLUSH(3)')
+    # a standing warrior is 3 tall with its foot on the board; flat it is 1 thick, so TTS reports a
+    # different box and the piece has to come DOWN by the difference or it locks in mid-air.
+    rt.execute("MINE.__bounds = {size = Vector({1, 3, 1}), center = Vector({1, 2.5, 1})}")
+    rt.execute('HOVER["Red"] = MINE rttGizmoLay("Red") '
+               'MINE.__bounds = {size = Vector({1, 1, 3}), center = Vector({1, 2.5, 1})} FLUSH(3)')
     tint, rot, locked = state("MINE")
     assert locked is True, "a laid warrior was not locked"
+    rt.execute("P = MINE.getPosition()")
+    assert abs(rt.eval("P").y - 0.0) < 0.001, (
+        "the laid warrior did not come down onto the board: y %s" % rt.eval("P").y)
     assert rot[0] == 90.0, "a laid warrior is not lying down: rotX %s" % rot[0]
     assert rot[1] == 137.0, "laying it down turned it: rotY %s" % rot[1]
     assert tint == (0.977, 0.902, 0.733), "not the mod's cream: %s" % (tint,)
 
     rt.execute('HOVER["Red"] = MINE rttGizmoLay("Red") FLUSH(3)')
     assert state("MINE") == before, "standing it back up did not restore it: %s" % (state("MINE"),)
+    rt.execute("P = MINE.getPosition()")
+    p = rt.eval("P")
+    assert (round(p.x, 3), round(p.y, 3), round(p.z, 3)) == (1.0, 1.0, 1.0), (
+        "standing it up did not put it back where it stood: %s,%s,%s" % (p.x, p.y, p.z))
 
     # any warrior, not only your own
     rt.execute('HOVER["Red"] = THEIRS rttGizmoLay("Red") FLUSH(3)')
@@ -3001,6 +3012,52 @@ def t_the_board_shows_the_build_number(src):
     assert not [ln for ln in code if "MrDrouf" in ln], \
         "the box score signs itself again; the credit belongs on the board: %s" \
         % [ln for ln in code if "MrDrouf" in ln][:1]
+
+
+def t_the_panel_pauses_the_clock(src):
+    """After START, DEAL 5 CARDS becomes the clock control.
+
+    The maintainer, 2026-09-07: "after start game, the button deal 5 cards become pause to pause the
+    clock/ then the button becomes continue / then back again to pause to restop." Dealing is a
+    once-per-game job, so its half of the row is free the moment the game is running.
+
+    Resuming must not lose the turn's elapsed time: the pause pushes PANEL_START forward by the length
+    of the break rather than restarting it, so the clock picks up exactly where it stopped.
+    """
+    panel = json.loads(re.search(r"RTT_TURN_PANEL_JSON = \[====\[(.*?)\]====\]", src, re.S).group(1))
+    rt = lupa.LuaRuntime(unpack_returned_tuples=True)
+    rt.execute(open(os.path.join(HERE, "tts_stub.lua"), encoding="utf-8").read())
+    rt.execute("CLOCK = 1000 os.time = function() return CLOCK end")
+    rt.execute(panel["LuaScript"].replace("!=", "~="))
+    rt.execute("LASTXML = '' self.UI.setXml = function(x) LASTXML = x end")
+
+    def label():
+        rt.execute("buildUI()")
+        m = re.search(r'id="pnlDeal".*?<Text[^>]*>([^<]*)</Text>', rt.eval("LASTXML"), re.S)
+        return m.group(1) if m else None
+
+    def shown():
+        rt.execute("panelTick()")
+        return rt.eval("PANEL_TTXT")
+
+    assert label() == "DEAL 5 CARDS", "before START the button is not the deal: %s" % label()
+
+    rt.execute("PANEL_START = CLOCK")                 # the game is running
+    assert label() == "PAUSE", "after START the button did not become PAUSE: %s" % label()
+
+    rt.execute("CLOCK = 1030")
+    assert shown() == "0:30", "the clock did not run: %s" % shown()
+
+    rt.execute("panelPause()")
+    assert label() == "CONTINUE", "pausing did not offer CONTINUE: %s" % label()
+    rt.execute("CLOCK = 1200")
+    assert shown() == "0:30", "the clock kept running while paused: %s" % shown()
+
+    rt.execute("panelPause()")
+    assert label() == "PAUSE", "continuing did not offer PAUSE again: %s" % label()
+    assert shown() == "0:30", "resuming lost the turn's elapsed time: %s" % shown()
+    rt.execute("CLOCK = 1215")
+    assert shown() == "0:45", "the clock did not pick up where it stopped: %s" % shown()
 
 
 CASES = [
@@ -3077,6 +3134,7 @@ CASES = [
     ("send home skips other seats",       t_send_home_leaves_other_peoples_pieces_alone),
     ("numpad 2 lays a warrior down",      t_numpad_two_lays_a_warrior_down_and_back_up),
     ("board shows the build number",      t_the_board_shows_the_build_number),
+    ("panel pauses the clock",            t_the_panel_pauses_the_clock),
 ]
 
 
