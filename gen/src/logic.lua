@@ -3167,10 +3167,12 @@ end
 -- A colour no human is sitting in and no other seat has taken. An empty seat still holds a faction
 -- and still takes a turn, so it needs one; 10 colours against at most 6 seats means this cannot run
 -- out. Deterministic order, so the same table always produces the same assignment.
--- A COLOUR THE REST OF THE SYSTEM CAN ACTUALLY MATCH. This used to walk RTT_ALL_COLORS, all ten of
--- them, so an unclaimed seat could be handed Blue, Purple, Pink or White -- colours the turn-card
--- order does not use and the box score's own colour pass does not know, so that row could never bind
--- to a seat. The six seating colours are tried first and the other four only if all six are taken.
+-- A COLOUR THE REST OF THE SYSTEM CAN ACTUALLY MATCH. The audit read this as a live defect -- an
+-- unclaimed seat handed Blue, Purple, Pink or White, colours the turn-card order does not use and the
+-- sheet's own colour pass does not know, leaving that row unable to bind. IT WAS NOT ONE:
+-- RTT_ALL_COLORS already begins with exactly the six seating colours, in the same order, so the walk
+-- reached them first anyway. This changes no behaviour. It states the rule outright instead of
+-- leaving it resting on the order of a list nobody would think to keep, and a test pins it.
 function rttFreeSeatColor()
   local taken = {}
   pcall(function()

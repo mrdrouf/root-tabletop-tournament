@@ -3589,9 +3589,11 @@ def t_the_record_names_the_row_the_sheet_will_look_up(src):
 def t_an_unclaimed_seat_takes_a_colour_the_sheet_knows(src):
     """A free colour must be one the turn order and the sheet can both use.
 
-    rttFreeSeatColor walked all ten TTS colours, so an unclaimed seat could be handed Blue, Purple,
-    Pink or White -- colours the turn-card order does not use and the box score's own colour pass does
-    not know, so that row could never bind to a seat. The six seating colours are tried first now.
+    The audit read this as a live defect and it was not: RTT_ALL_COLORS already begins with exactly
+    the six seating colours, in the same order, so walking all ten reached them first anyway. This
+    passes on the build before the change too, and is here as a GUARD rather than as proof of a fix --
+    the rule was resting on the order of a list nobody would think to keep, and now it is written down
+    in both places.
     """
     rt = fresh(src)
     setup = [str(v) for v in rt.eval("RTT_SETUP_COLORS").values()]
