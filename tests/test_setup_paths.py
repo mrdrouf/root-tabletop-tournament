@@ -2420,6 +2420,64 @@ def t_a_destroyed_object_cannot_crash_the_map_scan(src):
         "rttWhenMapReady walked every object on the table; it should only look at tagged map pieces"
 
 
+def t_table_fixtures_survive_a_map_change(src):
+    """The battle mat, box score, clock and counter are the same objects whatever map is down.
+
+    Maintainer, 2026-09-06: "when resetting a map for another map no need to reset battle mat boxscore
+    clock counter since they are the same objects."
+
+    It cost more than a flicker. rttSpawnBoxScore destructs the old sheet before spawning, and it ran
+    on every map build -- so changing map mid-session THREW AWAY the recorded game. The mat, clock and
+    counter are tagged "Map Object", so removeMapItems killed those too.
+
+    A NEW GAME still gets a fresh sheet: holding this game is the whole point of the box score, so
+    rttNewGame drops it and the map refresh spawns a new one. The other three persist even then --
+    nothing about them belongs to a particular game.
+    """
+    NAMES = ("Battle Mat", "Digital_Clock", "Counter", "Root Box Score")
+    Q = ("function()\n  local t = {}\n"
+         "  for _, o in ipairs(getAllObjects()) do\n"
+         "    local n = o.getName() or ''\n"
+         "    for _, w in ipairs({'Battle Mat','Digital_Clock','Counter','Root Box Score'}) do\n"
+         "      if n == w then t[#t+1] = n .. '|' .. o.getGUID() end\n"
+         "    end\n  end\n  table.sort(t)\n  return table.concat(t, ';')\nend")
+
+    def fixtures(rt):
+        raw = rt.eval(Q)() or ""
+        out = {}
+        for row in [r for r in raw.split(";") if r]:
+            name, guid = row.split("|")
+            out.setdefault(name, []).append(guid)
+        return out
+
+    rt = fresh(src)
+    rt.execute("SEAT('Purple','H1')")
+    rt.execute("pcall(function() makeMap(Player['Purple'],'','Summer Map') end) FLUSH(200)")
+    first = fixtures(rt)
+    for n in NAMES:
+        assert len(first.get(n, [])) == 1, "%s: expected exactly 1 after the first map, got %s" % (n, first.get(n))
+
+    for m in ("Marsh Map", "Lake Map", "Winter Map"):
+        rt.execute("pcall(function() makeMap(Player['Purple'],'','%s') end) FLUSH(200)" % m)
+        now = fixtures(rt)
+        for n in NAMES:
+            assert len(now.get(n, [])) == 1, \
+                "%s: %d copies after switching to %s -- it was respawned, not kept" % (n, len(now.get(n, [])), m)
+            assert now[n] == first[n], \
+                "%s was destroyed and rebuilt by the %s change (%s -> %s)" % (n, m, first[n], now[n])
+
+    # a new game replaces ONLY the sheet
+    rt.execute("pcall(function() rttArmRanked(Player['Purple'],'','rttRankedBtn') end) FLUSH_UNTIL(0.5,4)")
+    rt.execute("pcall(function() rttArmRanked(Player['Purple'],'','rttRankedBtn') end) FLUSH(200)")
+    after = fixtures(rt)
+    assert len(after.get("Root Box Score", [])) == 1, \
+        "a new game left %s box score sheets" % len(after.get("Root Box Score", []))
+    assert after["Root Box Score"] != first["Root Box Score"], \
+        "a new game kept the OLD box score; it would still hold the previous game"
+    for n in ("Battle Mat", "Digital_Clock", "Counter"):
+        assert after[n] == first[n], "%s was rebuilt by a new game; nothing about it is per-game" % n
+
+
 CASES = [
     ("manual path drives the turn system",   t_manual_turn_order),
     ("manual path spawns 4 / 5 boards",      t_boards_spawn),
@@ -2462,6 +2520,7 @@ CASES = [
     ("marsh 4P rebuilds after 5P",          t_marsh_after_5p_marsh_rebuilds_the_4p_board),
     ("a click is userdata, not a table",    t_a_button_click_is_recognised_when_the_player_is_userdata),
     ("new game refreshes the map",          t_a_new_game_refreshes_the_map_but_keeps_the_board),
+    ("fixtures survive a map change",       t_table_fixtures_survive_a_map_change),
     ("every new-game button leaves 5P",     t_every_new_game_button_leaves_the_five_player_marsh),
     ("5-player buttons warn first",         t_the_five_player_buttons_warn_before_wiping),
     ("a dead handle cannot crash us",       t_a_destroyed_object_cannot_crash_the_map_scan),
