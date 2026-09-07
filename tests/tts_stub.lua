@@ -417,6 +417,22 @@ Lighting = {} Physics = {cast=function() return {} end} Backgrounds = {} Turns.e
 --
 -- TURN_EVENTS records every delivery, so a test can assert on duplicates and ordering rather than
 -- only on the end state.
+-- NAMED HOTKEYS. There was no addHotkey at all, and onLoad calls it inside a pcall -- so registration
+-- failed silently and no test could reach the handler. The gizmo's keys are registered here as well
+-- as bound to scripting buttons, and a MacBook has no numpad, so for the maintainer these ARE the
+-- gizmo. HOTKEYS[label] = fn, so a test can press one.
+HOTKEYS = {}
+function addHotkey(label, fn, triggerOnKeyUp)
+  HOTKEYS[label] = fn
+  note(REC.calls, "addHotkey:" .. tostring(label))
+end
+function PRESS(label, color)
+  local fn = HOTKEYS[label]
+  if fn == nil then return false end
+  fn(color or "Red")
+  return true
+end
+
 TURN_LAG = 0            -- frames between the assignment and the event; 0 = inline
 TURN_EVENTS = {}
 TURN_PENDING = nil      -- the colour the turn is moving TO, before the event lands

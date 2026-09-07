@@ -612,20 +612,47 @@ def t_gizmo_default_key_is_numpad_zero(src):
     Ginso's Gizmo used. A PC user configures nothing; the two named hotkeys are registered UNBOUND for
     machines with no numpad, where the top-row 0 is a different key (and needs Shift on a French Mac).
     """
-    rt = fresh(src)
-    rt.execute("HOME, TAKE = 0, 0")
-    rt.execute("rttGizmoHome = function(c) HOME = HOME + 1 end")
-    rt.execute("rttGizmoTake = function(c) TAKE = TAKE + 1 end")
-    for idx in (2, 3, 5, 9):
-        rt.execute("HOME, TAKE = 0, 0  onScriptingButtonDown(%d, 'Red')" % idx)
-        assert rt.eval("HOME") == 0 and rt.eval("TAKE") == 0, "button %d should do nothing" % idx
-    rt.execute("HOME, TAKE = 0, 0  onScriptingButtonDown(10, 'Red')")
-    assert rt.eval("HOME") == 1 and rt.eval("TAKE") == 0, "numpad 0 must SEND HOME, not take"
-    rt.execute("HOME, TAKE = 0, 0  onScriptingButtonDown(1, 'Red')")
-    assert rt.eval("TAKE") == 1 and rt.eval("HOME") == 0, "numpad 1 must TAKE a warrior"
+    KEYS = ((10, "HOME"), (1, "TAKE"), (2, "LAY"), (3, "GLOW"))
+    COUNTERS = "HOME, TAKE, LAY, GLOW"
 
-    assert 'addHotkey("Gizmo: send the hovered piece home"' in src, "the send-home hotkey is gone"
-    assert 'addHotkey("Gizmo: take a warrior from your supply"' in src, "the take hotkey is gone"
+    def wired():
+        rt = fresh(src)
+        rt.execute("%s = 0, 0, 0, 0" % COUNTERS)
+        rt.execute("rttGizmoHome = function(c) HOME = HOME + 1 end")
+        rt.execute("rttGizmoTake = function(c) TAKE = TAKE + 1 end")
+        rt.execute("rttGizmoLay  = function(c) LAY  = LAY  + 1 end")
+        rt.execute("rttGizmoGlow = function(c) GLOW = GLOW + 1 end")
+        return rt
+
+    def counts(rt):
+        return {n: rt.eval(n) for _, n in KEYS}
+
+    # the four bound buttons, and nothing else
+    for idx, which in KEYS:
+        rt = wired()
+        rt.execute("%s = 0, 0, 0, 0  onScriptingButtonDown(%d, 'Red')" % (COUNTERS, idx))
+        got = counts(rt)
+        assert got[which] == 1 and sum(got.values()) == 1, \
+            "scripting button %d fired %s" % (idx, {k: v for k, v in got.items() if v})
+    for idx in (4, 5, 6, 7, 8, 9):
+        rt = wired()
+        rt.execute("%s = 0, 0, 0, 0  onScriptingButtonDown(%d, 'Red')" % (COUNTERS, idx))
+        assert sum(counts(rt).values()) == 0, "button %d should do nothing" % idx
+
+    # AND THE NAMED HOTKEYS, which are what the maintainer actually uses -- a MacBook has no numpad.
+    # These were asserted as SOURCE TEXT, and addHotkey did not even exist in the harness: onLoad
+    # calls it inside a pcall, so registration failed silently and nothing reached the handler.
+    LABELS = (("Gizmo: send the hovered piece home", "HOME"),
+              ("Gizmo: take a warrior from your supply", "TAKE"),
+              ("Gizmo: lay the hovered warrior down", "LAY"),
+              ("Gizmo: lay it down and light it up", "GLOW"))
+    for label, which in LABELS:
+        rt = wired()
+        rt.execute("%s = 0, 0, 0, 0" % COUNTERS)
+        assert rt.eval("PRESS(%r, 'Red')" % label) is True, "no hotkey registered as %r" % label
+        got = counts(rt)
+        assert got[which] == 1 and sum(got.values()) == 1, \
+            "hotkey %r fired %s" % (label, {k: v for k, v in got.items() if v})
 
 
 def t_mountain_deals_a_legal_board(src):
