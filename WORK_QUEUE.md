@@ -11,6 +11,25 @@ any sync script still aimed at it keeps working, but it is no longer where work 
 push on main; the public README download link points at main, so a build is only really shipped once
 main has it.
 
+## Standing rule: TWO version numbers, and the minor never skips
+
+`VERSION` holds `<major>.<minor>`, shown as "by MrDrouf v<major>.<minor>" in the setup board's top
+right corner. There is ONE version and it belongs to the mod: the box score ships inside it and has
+none of its own.
+
+- **minor** — everything else: a fix, a colour, a nudge. The pre-commit hook bumps it on EVERY commit.
+- **major** — a real change in what the mod DOES. Never automatic. Arm it with
+  `python3 tools/bump_version.py --major` and the NEXT commit lands on `<major+1>.0`.
+
+The minor must never skip. The maintainer, 2026-09-07: "this number cannot be skipped its very
+important to keep track of versions to keep track of buggs" — a version has to name exactly one
+build, or a bug report cannot be tied to one. The pre-push hook walks the commits being pushed and
+refuses the push if the sequence has a hole.
+
+Both hooks live in `tools/hooks/` as well, because `.git/hooks` is not versioned:
+
+    cp tools/hooks/pre-commit tools/hooks/pre-push .git/hooks/ && chmod +x .git/hooks/pre-*
+
 ## Standing rule: update the maintainer's SAVES, not just the build
 
 A TTS save carries a COPY of every object's script. Dropping a fresh build into the Saves folder only

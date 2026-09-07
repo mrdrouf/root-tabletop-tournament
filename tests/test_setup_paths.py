@@ -2971,15 +2971,16 @@ def t_the_board_shows_the_build_number(src):
     assert shrink < 0.5, "the version is drawn at its final size; it will render soft: scale %s" % shrink
     assert font * shrink < 6, "the credit line reads too big on the board: %.1f" % (font * shrink)
 
-    shown = re.search(r'text="by MrDrouf v(\d+)"', el)
-    assert shown, 'the corner does not read "by MrDrouf v<n>": %s' % el
+    # TWO numbers: major for a real change in what the mod does, minor for everything else.
+    shown = re.search(r'text="by MrDrouf v(\d+)\.(\d+)"', el)
+    assert shown, 'the corner does not read "by MrDrouf v<major>.<minor>": %s' % el
     on_disk = open(os.path.join(REPO, "VERSION"), encoding="utf-8").read().strip()
-    assert shown.group(1) == on_disk, (
-        "the board says v%s but VERSION says %s -- run tools/bump_version.py --restamp"
-        % (shown.group(1), on_disk))
+    assert "%s.%s" % shown.groups() == on_disk, (
+        "the board says v%s.%s but VERSION says %s -- run tools/bump_version.py --restamp"
+        % (shown.group(1), shown.group(2), on_disk))
 
-    # ink, not cream: it is a credit line, meant to sit quiet on the wood rather than announce itself
-    assert 'color="#26170B' in el, "the credit line is not in the mod's ink: %s" % el
+    # Black and SOLID. Cream shouted; dark-at-78%-alpha was unreadable. Quiet comes from the size.
+    assert 'color="#000000"' in el, "the credit line is not solid black: %s" % el
     # the RIGHT EDGE is what pins it to the corner: the line is right-aligned, so it grows leftwards
     # and the panel's centre moves as the text gets longer. The board's UI reaches about x 124.
     x, y = (float(v) for v in re.search(r'position="([-\d.]+) ([-\d.]+)', el).groups())
