@@ -2679,6 +2679,15 @@ def t_the_panel_flashes_after_twenty_minutes(src):
     assert ALARM in demo and NORMAL in demo, "the preview does not flash: %s" % demo
     assert at(2020) == NORMAL, "the preview never ends"
 
+    # THE WASH MUST BE THE LAST CHILD, or the readouts and buttons draw over it and the only red that
+    # can show is the 30px margin -- which is what "Message appears but no red" was.
+    xml = g.LASTXML or ""
+    assert xml.index('id="pnlwash"') > xml.index("</VerticalLayout>"), \
+        "the wash is emitted before the content; it will be hidden behind it"
+
+    # and the preview drives its own timer, so it survives the periodic tick stopping
+    assert "panelFlashStep" in lua, "the preview has no timer of its own"
+
     # and pressing slowly must NOT arm it
     g.PANEL_DEMO = None
     rt.execute("PANEL_TAPS = {}")
