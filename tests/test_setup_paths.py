@@ -3757,6 +3757,51 @@ def t_the_drafts_shuffle_is_saved_and_forgotten(src):
         "last game's person-to-seat mapping survived a new game: %s" % rt2.eval("#RTT_ORDER")
 
 
+def t_six_seats_cannot_happen_while_the_layout_is_not_clockwise(src):
+    """A trip-wire, not a fix: RTT_LAYOUT[6] is not clockwise, and nothing can reach it today.
+
+    The audit listed six-seat row order as unverified in either direction. Checking it: five players
+    draft SIX cards (RTT_DRAFT_N = 6) and the seat count is RTT_DN - 1, so five is the maximum; the
+    manual path asks for 4 or 5. Six seats cannot occur, so the mismatch cannot bite -- and there is
+    nothing to fix.
+
+    But if six are ever enabled, it bites immediately. Turn order is derived clockwise from the seat
+    POSITIONS, while a seat's colour is RTT_SETUP_COLORS[seat index] and the index comes from
+    RTT_LAYOUT. At 2-5 those two orders coincide. RTT_LAYOUT[6] is {1,2,5,6,4,3} where clockwise is
+    {1,5,2,4,6,3}, so at six seats a player's colour would stop stating their turn order -- which is
+    the whole point of forcing the colours.
+
+    This fails the moment six seats become reachable, and points at the reason.
+    """
+    import math
+    rt = fresh(src)
+
+    # 1. six seats are not reachable
+    for arg, want in (("nil", 4), ("'fivePlayerSetup'", 5)):
+        r = fresh(src)
+        r.execute("pcall(function() setupFactionBoards(nil,nil,%s) end) FLUSH(20)" % arg)
+        assert r.eval("RTT_TURN_SEATS") == want, \
+            "the manual path asked for %s seats, not %d" % (r.eval("RTT_TURN_SEATS"), want)
+    assert int(rt.eval("RTT_DRAFT_N or 0")) in (0, 6), \
+        "the draft size changed: %s" % rt.eval("RTT_DRAFT_N")
+
+    # 2. and while that holds, every REACHABLE layout is clockwise, so colour states turn order
+    POS = {i: (rt.eval("RTT_POS[%d][1]" % i), rt.eval("RTT_POS[%d][2]" % i)) for i in range(1, 7)}
+    a0 = math.atan2(POS[1][1], POS[1][0])
+    for n in (2, 3, 4, 5):
+        layout = [int(rt.eval("RTT_LAYOUT[%d]" % n)[i]) for i in range(1, n + 1)]
+        angles = [(a0 - math.atan2(POS[p][1], POS[p][0])) % (2 * math.pi) for p in layout]
+        assert angles == sorted(angles), \
+            "%d seats: RTT_LAYOUT is not in clockwise order: %s" % (n, layout)
+
+    # 3. THE TRIP-WIRE. Six is not clockwise; if it ever becomes reachable this must be fixed first.
+    layout6 = [int(rt.eval("RTT_LAYOUT[6]")[i]) for i in range(1, 7)]
+    angles6 = [(a0 - math.atan2(POS[p][1], POS[p][0])) % (2 * math.pi) for p in layout6]
+    assert angles6 != sorted(angles6), (
+        "RTT_LAYOUT[6] is clockwise now -- if six seats have been enabled, delete this trip-wire; "
+        "if not, someone reordered it and the comment about it should go too")
+
+
 CASES = [
     ("manual path drives the turn system",   t_manual_turn_order),
     ("manual path spawns 4 / 5 boards",      t_boards_spawn),
@@ -3818,6 +3863,7 @@ CASES = [
     ("published colour == seated player",     t_published_colour_matches_the_seated_player),
     ("seat colour is the turn order",        t_seat_colour_is_the_turn_order),
     ("turn order clockwise from BR",         t_turn_order_is_clockwise_from_bottom_right),
+    ("six seats cannot happen yet",       t_six_seats_cannot_happen_while_the_layout_is_not_clockwise),
     ("seat record survives a reload",        t_seat_record_survives_a_reload),
     ("reload keeps vagabonds apart",      t_a_reload_keeps_two_vagabonds_apart),
     ("new game forgets the seat count",   t_a_new_game_forgets_last_games_seat_count),

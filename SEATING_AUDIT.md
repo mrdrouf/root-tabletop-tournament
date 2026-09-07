@@ -297,3 +297,24 @@ Rules:
 2. **A turn engine in the stub** — without it none of this is testable (§5.1).
 3. **The refactor**, against the invariants in §5 as the contract.
 4. **The adversarial battery**, targeting §6.2's recurrence list and §6.3's walked-back assumptions.
+
+---
+
+## 10. Findings that did NOT hold up
+
+Every item was re-checked against the code before being fixed. Three did not survive that:
+
+- **`rttFreeSeatColor` handing out a colour the sheet cannot match.** `RTT_ALL_COLORS` already begins
+  with exactly the six seating colours, in the same order, so walking all ten reached them first
+  anyway. The change made the rule explicit and altered no behaviour; the test is a guard, not proof
+  of a fix.
+- **`RTT_DN` never cleared.** It is never cleared, but both entry points write it before anything
+  reads it: `rttSetup` sets it synchronously and the box score does not spawn until several frames
+  later, and the manual path sets it in `rttNewGame`. No stale value can be read. Left alone.
+- **Six-seat row order unverified.** Six seats cannot occur: five players draft SIX cards
+  (`RTT_DRAFT_N = 6`) and the seat count is `RTT_DN - 1`, so five is the maximum, and the manual path
+  asks for 4 or 5. `RTT_LAYOUT[6]` is unreachable. Pinned with a trip-wire test instead: it fails the
+  moment six seats become reachable, and says why the layout must be reordered first.
+
+Recording these matters as much as the fixes. An audit finding is a hypothesis, and three of nineteen
+were wrong.
