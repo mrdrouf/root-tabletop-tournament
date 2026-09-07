@@ -3242,6 +3242,65 @@ def t_start_does_not_arm_a_suppression_it_never_uses(src):
     assert rt.eval("Turns.turn_color") == "Red", "START did not hand the turn to seat 1"
 
 
+def t_a_reload_keeps_two_vagabonds_apart(src):
+    """A saved seat must come back as the same seat -- ordinal included, and with no holes.
+
+    TWO FAULTS IN ONE FUNCTION, both found by audit:
+
+    onSave persisted pos/color/faction/owner/hand and NOT `key` or `vagN`. rttSeatRecord rebuilds a
+    missing key with rttFactionKey(faction), which answers "Vagabond" for every vagabond -- so after a
+    reload both vagabond seats published under one key, the same Global entry was written twice, and
+    the second lost its colour, its owner and its position. Its VP marker was still "Vagabond 2 VP".
+
+    And onSave skips a seat with no position, so the seat NUMBERS it writes can have holes; restoring
+    into RTT_SEATS[e.i] reproduced the hole, and eight separate ipairs(RTT_SEATS) loops stop dead at
+    the first one -- the turn order, the published record, the free-colour search, the vagabond
+    ordinal, rttSeatFaction.
+    """
+    rt = fresh(src)
+    rt.execute("""
+      RTT_SEATS = {
+        { pos = {  52, -46 }, color = "Red",    faction = "Ranger", key = "Vagabond",   vagN = 1 },
+        { pos = { -52, -46 }, color = "Yellow", faction = "Thief",  key = "Vagabond 2", vagN = 2 },
+        { pos = {  52,  46 }, color = "Orange", faction = "Marquise de Cat", key = "Marquise de Cat" },
+      }
+    """)
+    saved = rt.eval("onSave()")
+    assert saved, "onSave produced nothing"
+
+    rt2 = fresh(src)
+    rt2.execute("pcall(function() onLoad(%s) end) FLUSH(6)" % json.dumps(saved))
+
+    keys = [str(v) for v in rt2.eval(
+        "function() local t = {} for _, s in ipairs(RTT_SEATS) do t[#t+1] = s.key or '?' end return t end")().values()]
+    assert keys == ["Vagabond", "Vagabond 2", "Marquise de Cat"], \
+        "the seats' own keys did not survive the reload: %s" % keys
+
+    pub = json.loads(rt2.eval("GVGET('RTT_SEAT_COLOR')"))
+    assert pub.get("Vagabond") == "Red" and pub.get("Vagabond 2") == "Yellow", \
+        "the two vagabonds collapsed onto one published key: %s" % pub
+
+    # A HOLE MUST NOT SURVIVE EITHER. A seat with no position is dropped by onSave, so the numbers it
+    # writes skip one -- and every ipairs over the array would stop there.
+    rt3 = fresh(src)
+    rt3.execute("""
+      RTT_SEATS = {
+        { pos = {  52, -46 }, color = "Red",    faction = "Marquise de Cat", key = "Marquise de Cat" },
+        { color = "Yellow", faction = "Eyrie Dynasties", key = "Eyrie Dynasties" },   -- no pos: dropped
+        { pos = {  52,  46 }, color = "Orange", faction = "The Lizard Cult", key = "The Lizard Cult" },
+      }
+    """)
+    saved3 = rt3.eval("onSave()")
+    rt4 = fresh(src)
+    rt4.execute("pcall(function() onLoad(%s) end) FLUSH(6)" % json.dumps(saved3))
+    n_ipairs = rt4.eval("function() local n = 0 for _ in ipairs(RTT_SEATS) do n = n + 1 end return n end")()
+    assert n_ipairs == 2, \
+        "ipairs stops at the hole the dropped seat left: reached %s of 2 seats" % n_ipairs
+    pub3 = json.loads(rt4.eval("GVGET('RTT_SEAT_COLOR')"))
+    assert pub3.get("The Lizard Cult") == "Orange", \
+        "the seat after the hole never reached the published record: %s" % pub3
+
+
 CASES = [
     ("manual path drives the turn system",   t_manual_turn_order),
     ("manual path spawns 4 / 5 boards",      t_boards_spawn),
@@ -3301,6 +3360,7 @@ CASES = [
     ("seat colour is the turn order",        t_seat_colour_is_the_turn_order),
     ("turn order clockwise from BR",         t_turn_order_is_clockwise_from_bottom_right),
     ("seat record survives a reload",        t_seat_record_survives_a_reload),
+    ("reload keeps vagabonds apart",      t_a_reload_keeps_two_vagabonds_apart),
     ("manual pick binds picker colour",      t_manual_pick_binds_the_pickers_own_colour),
     ("seat record is pushed to sheet",       t_the_seat_record_is_pushed_to_the_sheet),
     ("gizmo never takes another supply",     t_gizmo_never_reaches_into_someone_elses_supply),

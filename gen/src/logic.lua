@@ -9,8 +9,14 @@ function onSave()
     local seats = {}
     for i, s in ipairs(RTT_SEATS or {}) do
       if s ~= nil and s.pos ~= nil then
+        -- KEY AND vagN ARE SAVED, NOT RECOMPUTED. They were left out, and rttSeatRecord rebuilds a
+        -- missing key with rttFactionKey(faction) -- which answers "Vagabond" for EVERY vagabond. Two
+        -- vagabonds in play therefore both republished under one key after a reload: the same Global
+        -- entry written twice, last one wins, and the second vagabond lost its colour, its owner and
+        -- its position while its marker on the table was still called "Vagabond 2 VP".
         seats[#seats + 1] = { i = i, pos = { s.pos[1], s.pos[2] }, color = s.color,
-                              faction = s.faction, owner = s.owner, hand = s.hand }
+                              faction = s.faction, owner = s.owner, hand = s.hand,
+                              key = s.key, vagN = s.vagN }
       end
     end
     -- laid: which warriors numpad 2 put down, and what they looked like standing. Without this a
@@ -33,9 +39,15 @@ function onLoad(state)
     RTT_SEATS = {}
     for _, e in ipairs(d.seats) do
       if type(e) == "table" and type(e.pos) == "table" then
-        RTT_SEATS[e.i or (#RTT_SEATS + 1)] = { board = nil, pos = { e.pos[1], e.pos[2] },
-                                               color = e.color, faction = e.faction,
-                                               owner = e.owner, hand = e.hand }
+        -- APPEND, NEVER INDEX BY THE SAVED NUMBER. onSave skips a seat with no position, so the
+        -- numbers it writes can have holes -- and restoring into RTT_SEATS[e.i] reproduces the hole.
+        -- Eight separate ipairs(RTT_SEATS) loops stop dead at the first one: the turn order, the
+        -- published record, the free-colour search, the vagabond ordinal, rttSeatFaction. The array
+        -- has to be contiguous, so the seats are appended in the order they were written.
+        RTT_SEATS[#RTT_SEATS + 1] = { board = nil, pos = { e.pos[1], e.pos[2] },
+                                      color = e.color, faction = e.faction,
+                                      owner = e.owner, hand = e.hand,
+                                      key = e.key, vagN = e.vagN }
       end
     end
     RTT_RUN_ID     = d.run or RTT_RUN_ID
