@@ -29,9 +29,20 @@ ANCHOR = '<Image id="rootLogo"'
 
 # Top right, opposite the logo. The board's UI runs x -95..117 and y -88..80, so this sits in the
 # corner without touching the (inactive) close button at 117.
-ELEMENT = ('<Text id="rttVersion" text="v%d" position="94 80 -20" width="44" height="14" '
-           'fontSize="12" color="' + CREAM + '" alignment="MiddleRight" raycastTarget="false"/>')
-PATTERN = re.compile(r'<Text id="rttVersion".*?/>', re.S)
+#
+# WHY THE PANEL. Object XmlUI is rendered once and then magnified onto the object, and this board is
+# scale 15.5, so type set at its final size comes out soft -- the maintainer, 2026-09-07: "the version
+# number is out of focus and too big". Drawing it large inside a panel scaled down by SHRINK gives
+# 1/SHRINK times the pixels for the same footprint, which is the same trick the turn panel uses to
+# stay crisp. Effective size on the board is FONT * SHRINK; raise FONT and lower SHRINK together for
+# a sharper line, change FONT alone to resize it.
+SHRINK = 0.2
+FONT = 34                      # 34 * 0.2 = 6.8 on the board, against the 12 it replaced
+ELEMENT = ('<Panel id="rttVersion" position="94 80 -20" width="220" height="70" '
+           'scale="%s %s 1" color="#00000000" raycastTarget="false">'
+           '<Text text="v%%d" fontSize="%d" color="%s" alignment="MiddleRight"/>'
+           '</Panel>') % (SHRINK, SHRINK, FONT, CREAM)
+PATTERN = re.compile(r'<Panel id="rttVersion".*?</Panel>', re.S)
 
 
 def read_version():

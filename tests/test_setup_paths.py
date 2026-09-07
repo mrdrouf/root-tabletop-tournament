@@ -2960,9 +2960,16 @@ def t_the_board_shows_the_build_number(src):
     save = json.loads(open(os.path.join(REPO, "dist", "Root_Tabletop_Tournament.json"),
                            encoding="utf-8").read())
     board = [o for o in save["ObjectStates"] if o.get("GUID") == BOARD][0]
-    m = re.search(r'<Text id="rttVersion"[^>]*/>', board.get("XmlUI") or "")
+    m = re.search(r'<Panel id="rttVersion".*?</Panel>', board.get("XmlUI") or "", re.S)
     assert m, "the setup board carries no build number"
     el = m.group(0)
+
+    # drawn large inside a shrunk panel: object XmlUI is magnified onto a scale-15.5 board, so type
+    # set at its final size comes out soft. Effective size is fontSize * scale.
+    shrink = float(re.search(r'scale="([\d.]+) ', el).group(1))
+    font = float(re.search(r'fontSize="(\d+)"', el).group(1))
+    assert shrink < 0.5, "the version is drawn at its final size; it will render soft: scale %s" % shrink
+    assert font * shrink < 9, "the version reads too big on the board: %.1f" % (font * shrink)
 
     shown = re.search(r'text="v(\d+)"', el)
     assert shown, "the build number is not in the form v<n>: %s" % el
