@@ -2059,7 +2059,7 @@ def t_marsh_after_5p_marsh_rebuilds_the_4p_board(src):
              "  local n = 0\n"
              "  for _, o in ipairs(getAllObjects()) do\n"
              "    local nm = o.getName() or ''\n"
-             "    if nm == 'Mousehold' or nm == 'Foxburrow' or nm == 'Rabbit-Town' then n = n + 1 end\n"
+             "    if nm == 'Mousehold' or nm == 'Foxburrow' or nm == 'Rabbit-town' then n = n + 1 end\n"
              "  end\n"
              "  return n\n"
              "end")
@@ -2086,9 +2086,20 @@ def t_marsh_after_5p_marsh_rebuilds_the_4p_board(src):
         assert rt.eval("RTT_5P_MARSH") is False, "%s: still in 5-player mode" % how
         left = rt.eval(COUNT)()
         assert left == 0, "%s: %d town landmark(s) survived the rebuild" % (how, left)
-        flooded = rt.eval("function() return #(RTT_MARSH_FLOODED or {}) end")()
-        assert flooded == 3, \
-            "%s: the 4-player board floods 3 clearings, this one floods %s" % (how, flooded)
+        # NOT #RTT_MARSH_FLOODED: rttMarshPlan5P fills that table too, with the three TOWNS, so it
+        # holds 3 entries under BOTH layouts and can never tell them apart. The flood marker TILES can:
+        # the 5-player plan parks them under the table at y -50, the 4-player one floods clearings.
+        ys = rt.eval("function()\n"
+                     "  local t = {}\n"
+                     "  for _, o in ipairs(getAllObjects()) do\n"
+                     "    local sc = o.getScale()\n"
+                     "    if sc and math.abs(sc.x - 3.70906973) < 0.01 then\n"
+                     "      t[#t+1] = string.format('%.1f', o.getPosition().y)\n"
+                     "    end\n  end\n  return table.concat(t, ' ')\nend")()
+        vals = [float(v) for v in ys.split()]
+        assert len(vals) == 3, "%s: expected 3 flood tiles, found %d" % (how, len(vals))
+        assert all(v > 0 for v in vals), \
+            "%s: flood tiles still under the table at %s -- the 5-player board was built" % (how, vals)
 
 
 def t_a_new_game_refreshes_the_map_but_keeps_the_board(src):
@@ -2108,7 +2119,7 @@ def t_a_new_game_refreshes_the_map_but_keeps_the_board(src):
     TOWNS = ("function()\n  local n = 0\n"
              "  for _, o in ipairs(getAllObjects()) do\n"
              "    local nm = o.getName() or ''\n"
-             "    if nm == 'Mousehold' or nm == 'Foxburrow' or nm == 'Rabbit-Town' then n = n + 1 end\n"
+             "    if nm == 'Mousehold' or nm == 'Foxburrow' or nm == 'Rabbit-town' then n = n + 1 end\n"
              "  end\n  return n\nend")
     BOARD = "function() local b = rttFindMapObject() return b and b.getGUID() or '' end"
     FLOOD = ("function()\n  local t = {}\n"
@@ -2222,7 +2233,7 @@ def t_a_button_click_is_recognised_when_the_player_is_userdata(src):
     towns = rt.eval("function()\n  local n = 0\n"
                     "  for _, o in ipairs(getAllObjects()) do\n"
                     "    local nm = o.getName() or ''\n"
-                    "    if nm == 'Mousehold' or nm == 'Foxburrow' or nm == 'Rabbit-Town' then n = n + 1 end\n"
+                    "    if nm == 'Mousehold' or nm == 'Foxburrow' or nm == 'Rabbit-town' then n = n + 1 end\n"
                     "  end\n  return n\nend")()
     assert towns == 0, "%d town landmark(s) still standing on the 4-player Marsh" % towns
 
@@ -2233,6 +2244,71 @@ def t_a_button_click_is_recognised_when_the_player_is_userdata(src):
     rt2.execute("pcall(function() rttPlaceMarsh5P(nil,nil,'Marsh5PMap') end) FLUSH(200)")
     assert rt2.eval("RTT_5P_MARSH") is True, \
         "the internal path cleared the flag it had just set"
+
+
+def t_every_new_game_button_leaves_the_five_player_marsh(src):
+    """EVERY button that starts a game must leave the 5-player Marsh behind -- except the 5-player one.
+
+    rttSetup (the ranked path) has always cleared RTT_5P_MARSH. setupFactionBoards -- the 4-Player
+    Setup button -- never did. That was harmless while a new game left the map alone, and became a live
+    bug the moment rttNewGame started refreshing it: the refresh goes through the INTERNAL path, which
+    deliberately does not clear the flag, so 4-Player Setup rebuilt the FIVE-player board.
+
+    Found by a review agent after the maintainer had reported the Marsh bug three times and I had
+    declared it fixed twice. My own tests never composed this pair: they drove makeMap, the map button
+    and the ranked draft, and only ever pressed 4-Player Setup on a clean table, where there is nothing
+    to get wrong.
+
+    The census below spells the town 'Rabbit-town', with a lower-case t, which is how content.lua
+    nicknames it. Spelling it 'Rabbit-Town' -- as three assertions in this file did -- counts 2 towns
+    on a board that has 3, so a surviving Rabbit-town was invisible to every one of them.
+    """
+    TOWNS = ("function()\n  local n = 0\n"
+             "  for _, o in ipairs(getAllObjects()) do\n"
+             "    local nm = o.getName() or ''\n"
+             "    if nm == 'Mousehold' or nm == 'Foxburrow' or nm == 'Rabbit-town' then n = n + 1 end\n"
+             "  end\n  return n\nend")
+    FLOODY = ("function()\n  local t = {}\n"
+              "  for _, o in ipairs(getAllObjects()) do\n"
+              "    local sc = o.getScale()\n"
+              "    if sc and math.abs(sc.x - 3.70906973) < 0.01 then\n"
+              "      t[#t+1] = string.format('%.1f', o.getPosition().y)\n"
+              "    end\n  end\n  return table.concat(t, ' ')\nend")
+
+    def two_clicks(rt, fn, bid):
+        rt.execute("pcall(function() %s(Player['Purple'],'','%s') end) FLUSH_UNTIL(0.5,4)" % (fn, bid))
+        rt.execute("pcall(function() %s(Player['Purple'],'','%s') end) FLUSH(200)" % (fn, bid))
+
+    # (label, arm fn, button id, should the FIVE-player board survive?)
+    BUTTONS = (
+        ("4-Player Setup", "rttArmFour",      "rttFourBoardsBtn", False),
+        ("4-Player Draft", "rttArmRanked",    "rttRankedBtn",     False),
+        ("Theme",          "rttArmTheme",     "rttThemeBtn",      True),   # Theme IS the 5-player draft
+        ("5P Setup",       "rttArmFiveSetup", "Marsh5PSetup",     True),   # a five-player game keeps it
+    )
+    for label, fn, bid, keep5p in BUTTONS:
+        rt = fresh(src)
+        for c, n in zip(["Purple", "Blue", "White", "Pink", "Green"], ["H1", "H2", "H3", "H4", "H5"]):
+            rt.execute("SEAT('%s','%s')" % (c, n))
+        rt.execute("pcall(function() rttPlaceMarsh5P(nil,nil,'Marsh5PMap') end) FLUSH(200)")
+        assert rt.eval("RTT_5P_MARSH") is True, "%s: the 5-player Marsh did not set its flag" % label
+        assert rt.eval(TOWNS)() == 3, \
+            "%s: the 5-player Marsh should stand 3 towns, found %d" % (label, rt.eval(TOWNS)())
+
+        two_clicks(rt, fn, bid)
+
+        vals = [float(v) for v in (rt.eval(FLOODY)() or "").split()]
+        assert len(vals) == 3, "%s: expected 3 flood tiles, found %d" % (label, len(vals))
+        towns = rt.eval(TOWNS)()
+        if keep5p:
+            assert all(v < 0 for v in vals), \
+                "%s is a five-player game and should KEEP the 5-player board; flood tiles at %s" % (label, vals)
+            assert towns == 3, "%s lost the towns off its own 5-player board" % label
+        else:
+            assert rt.eval("RTT_5P_MARSH") is False, "%s left 5-player mode on" % label
+            assert all(v > 0 for v in vals), \
+                "%s: flood tiles still under the table at %s -- it rebuilt the 5-player board" % (label, vals)
+            assert towns == 0, "%s: %d town landmark(s) survived into a four-player game" % (label, towns)
 
 
 CASES = [
@@ -2277,6 +2353,7 @@ CASES = [
     ("marsh 4P rebuilds after 5P",          t_marsh_after_5p_marsh_rebuilds_the_4p_board),
     ("a click is userdata, not a table",    t_a_button_click_is_recognised_when_the_player_is_userdata),
     ("new game refreshes the map",          t_a_new_game_refreshes_the_map_but_keeps_the_board),
+    ("every new-game button leaves 5P",     t_every_new_game_button_leaves_the_five_player_marsh),
     ("map buttons warn before wiping",       t_map_buttons_warn_before_wiping),
     ("gizmo default key is numpad 0",         t_gizmo_default_key_is_numpad_zero),
     ("gizmo: warrior to/from supply",         t_gizmo_warrior_to_and_from_supply),

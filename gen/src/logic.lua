@@ -1814,6 +1814,14 @@ function setupFactionBoards(player, value, id)
   rttBusyBegin(3)
   local count = 4
   if id == "fivePlayerSetup" then count = 5 end
+  -- THE BUTTON IS THE TRUTH ABOUT THE BOARD. 4-Player Setup is a four-player game, so it leaves the
+  -- 5-player Marsh variant behind. rttSetup (the ranked path) has always cleared this; setupFactionBoards
+  -- never did -- harmless while a new game left the map alone, and a live bug the moment rttNewGame
+  -- started refreshing it, because the refresh goes through the INTERNAL path ("" for player) and so
+  -- deliberately does not clear the flag itself. Pressing 4-Player Setup after a 5-player Marsh
+  -- therefore rebuilt the FIVE-player board: flood tiles parked under the table, towns re-spawned.
+  -- 5P Setup is left alone: it is a five-player game, so keeping the five-player Marsh is right.
+  if id ~= "fivePlayerSetup" then RTT_5P_MARSH = false end
 
   -- clear PRIOR manual selectors AND every faction board/piece already spawned (RTT Faction) -- re-clicking
   -- the player-count button starts over, so tear the old boards down first (maintainer request). Still NOT
