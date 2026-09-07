@@ -2139,10 +2139,6 @@
           "URL": "https://cdn.jsdelivr.net/gh/mrdrouf/root-tabletop-tournament@main/assets/buttons/wipe_confirm_map_79250013.png"
         },
         {
-          "Name": "CreditArt",
-          "URL": "https://cdn.jsdelivr.net/gh/mrdrouf/root-tabletop-tournament@main/assets/credit/credit_ink_v2_e40f828c.png"
-        },
-        {
           "Type": 0,
           "Name": "ThemeArt",
           "URL": "https://cdn.jsdelivr.net/gh/mrdrouf/root-tabletop-tournament@main/assets/labels/theme_art_v11_b331ca29.png"
@@ -2191,11 +2187,6 @@
           "Type": 0,
           "Name": "FourBoardsArt",
           "URL": "https://cdn.jsdelivr.net/gh/mrdrouf/root-tabletop-tournament@main/assets/labels/four_player_setup_v11_bba95085.png"
-        },
-        {
-          "Type": 0,
-          "Name": "BoxScoreArt",
-          "URL": "https://cdn.jsdelivr.net/gh/mrdrouf/root-tabletop-tournament@main/assets/labels/box_score_btn_v2_46b7cdb4.png"
         },
         {
           "Type": 0,
@@ -2281,11 +2272,6 @@
           "Type": 0,
           "Name": "Mini-Mood Manager",
           "URL": "https://steamusercontent-a.akamaihd.net/ugc/1782839567653163566/583C3FE604C4B4E943BD914071325274C515E9D8/"
-        },
-        {
-          "Type": 0,
-          "Name": "Clearing Markers",
-          "URL": "https://steamusercontent-a.akamaihd.net/ugc/18105714333446016542/1C77868231CEA4360B4404A43211931D57921DC0/"
         },
         {
           "Type": 0,

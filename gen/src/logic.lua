@@ -54,114 +54,19 @@ function onLoad(state)
         {name = "ThemeArt", url = "https://steamusercontent-a.akamaihd.net/ugc/16316853328531788856/FE0894D6BBC40E7876FE4A683368A61FC1B35547/"},
         {name = "RankedArt", url = "https://steamusercontent-a.akamaihd.net/ugc/17736006513028835727/23F7EB2248073953C65D1AAD44636708E9E2DFE1/"},
         {name = "FivePlayerArt", url = "https://steamusercontent-a.akamaihd.net/ugc/10646501209524696434/622AC9B1FA1D4C6B239DF99C896C07640F449574/"},
-        {name = "WWDraftTool", url = "https://steamusercontent-a.akamaihd.net/ugc/1862809540303472326/2081F779AB2B2A6FA9D15696F6920FE2067BC4C6/"},
 
-        {name = "WWMapAndDeckLabel", url = "https://steamusercontent-a.akamaihd.net/ugc/1862809798758457073/089EBACF82C9F5F6A57DE99BC4B039C26025C7DE/"},
-        {name = "WWDeckPlus", url = "https://steamusercontent-a.akamaihd.net/ugc/1862809798762847395/53113D7B4CA59080584242196F2EA48B3FCA8D6E/"},
-        {name = "WWFactionLabel", url = "https://steamusercontent-a.akamaihd.net/ugc/1862809798758458688/3E0EB033B013FBF8DC17AB401A9CFC0C042C478B/"},
-        {name = "WW1Turn", url = "https://steamusercontent-a.akamaihd.net/ugc/1862809798758602160/9AAC237742D5737D3BE4B82B05EA1068F5D48BA3/"},
-        {name = "WW2Turn", url = "https://steamusercontent-a.akamaihd.net/ugc/1862809798758604829/DEE763FEACB81AA6A9B985EB633F1C08E55A51D7/"},
-        {name = "WW3Turn", url = "https://steamusercontent-a.akamaihd.net/ugc/1862809798758605739/B59B238873159994857BB1B76264F05A5EA8F752/"},
-        {name = "WW4Turn", url = "https://steamusercontent-a.akamaihd.net/ugc/1862809798758606547/AAF86B0FCA4C757CC8AACDE731C1708ADA40BA77/"},
-        {name = "WW5Turn", url = "https://steamusercontent-a.akamaihd.net/ugc/1862809798758607233/A1B8CBA9BC61EFFF8FAA38FB9D519205E2C1CB7F/"},
-        {name = "WW6Turn", url = "https://steamusercontent-a.akamaihd.net/ugc/1862809798758607829/2975F869B1C9244D5B81BF05ED14466D65738C5F/"},
 
-        {name = "WWExit", url = "https://steamusercontent-a.akamaihd.net/ugc/1760320391476521209/314B380DED440A1EA71186A6E99FB3C59402C3C4/"},
-        {name = "WWAreYouSure", url = "https://steamusercontent-a.akamaihd.net/ugc/1862809948805514871/4912582E0454C46654010394CDE4437FC873BB7B/"},
-        {name = "WWForReal", url = "https://steamusercontent-a.akamaihd.net/ugc/1862809948805515438/3D111DD6A136933815806FBAA641A241F6852B11/"},
-        {name = "WWReally", url = "https://steamusercontent-a.akamaihd.net/ugc/1862809948805515962/8A00A6741876FB854953900056B68F69953CEC43/"},
-        {name = "WWYaChicken", url = "https://steamusercontent-a.akamaihd.net/ugc/1862809948805516454/B21AFB4D0FEF08B2B2E95DD1BE244BF7174007C5/"},
 
-        {name = "WWSelectFaction", url = "https://steamusercontent-a.akamaihd.net/ugc/1862809798758740795/3FB9174F6DAEDA6A39FA754A8158379865001AF7/"},
-        {name = "WWSetupFaction", url = "https://steamusercontent-a.akamaihd.net/ugc/1862809798758847572/52A3F4A7974F05A7A7696D4D0AED8F1545AA1834/"},
-        {name = "WWDraftHands", url = "https://steamusercontent-a.akamaihd.net/ugc/1862809798762823019/8F1F0B8448A78CEEB9D825F3680DFAE7F27A8172/"},
 
-        {name = "WWBanner", url = "https://steamusercontent-a.akamaihd.net/ugc/1857179401538180590/45D17C1F9442D6215F3BB6C548CD07164E72991A/"},
-        {name = "WWWarning",url = "https://steamusercontent-a.akamaihd.net/ugc/1857179401538181099/B8139CFC01F8293E948DD07EDB9A86A7167E8AF8/"},
-        {name = "WWWarning2",url = "https://steamusercontent-a.akamaihd.net/ugc/1862809798758614860/CFB938DF75CE98ADBD04EAEA77262474339F9829/"},
-        {name = "WWWarning3",url = "https://steamusercontent-a.akamaihd.net/ugc/1862809948809580211/1B23ADFB88AC5B28B87EAC9CEE094DE165CD9F2F/"},
-        {name = "WWLeftMenu1", url="https://steamusercontent-a.akamaihd.net/ugc/1861696999739467549/E173D7232282E89F95CD5BD5212191AE2006434E/"},
-        {name = "WWJoin", url="https://steamusercontent-a.akamaihd.net/ugc/1857179401538293879/330B576B2DD6F0795FC4CC02BD206FBA46F3697C/"},
-        {name = "WWLeave", url="https://steamusercontent-a.akamaihd.net/ugc/1857179401538295235/5939B90F793DDBA86097052BE14FFFCDE58A32EE/"},
-        {name = "WWCheckRoster", url="https://steamusercontent-a.akamaihd.net/ugc/1857179401538296267/EB0B3938A6F213DA0C18B0023478C1F8B95E2665/"},
-        {name = "WWDone", url = "https://steamusercontent-a.akamaihd.net/ugc/1857179401538297317/C5B575BB0049489877DE5C13E071B5C95EA321C4/"},
-        {name = "WW5050Ticket", url = "https://steamusercontent-a.akamaihd.net/ugc/1857179401541152150/F7AF1F3347F9DC8A055AA6E3F1BEA24E1BA5F709/"},
-        {name = "WWHomebrewTicket", url = "https://steamusercontent-a.akamaihd.net/ugc/1857179401541897237/C2FB1A75D08974B34BB847F093C653B807CAB601/"},
-        {name = "WWOfficialTicket", url = "https://steamusercontent-a.akamaihd.net/ugc/1857179401541899191/538766C95C53DF455C08AC20B80E9F10E9A9123A/"},
 
-        {name = "WWLeftMenuSit", url = "https://steamusercontent-a.akamaihd.net/ugc/1861696999739462797/DD836A4FFCD21D0B8721B3C68437AAD79D5901FA/"},
-        {name = "WWLeftMenuDot1", url = "https://steamusercontent-a.akamaihd.net/ugc/1859433104053138769/0234EA080C02276650E4C047777DE044DD7AE3F8/"},
-        {name = "WWLeftMenuDot2", url = "https://steamusercontent-a.akamaihd.net/ugc/1861696999739471432/6B0D0B26362825EE9846EA4F29CB72D4967CD662/"},
-        {name = "WWLeftMenuDot3", url = "https://steamusercontent-a.akamaihd.net/ugc/1859433104053140385/36A0512FAE850FE6CAF048CA3EF3F9282454E83F/"},
-        {name = "WWLeftMenuFaction", url = "https://steamusercontent-a.akamaihd.net/ugc/1861696999739480088/5D023427404A0E3F7E81C7C1BCE1CF0A23691BBF/"},
-        {name = "WWLeftMenuCards", url = "https://steamusercontent-a.akamaihd.net/ugc/1861696999739486161/9618E6DE2DA9392A6BFF61479302CE313B18A5A8/"},
 
-        {name = "Marquise de Cat Icon", url = "https://steamusercontent-a.akamaihd.net/ugc/1857179401550009864/6E9B0A804DA5A91ECC0535F0392F4A34F24E06AE/"},
-        {name = "Eyrie Dynasties Icon", url = "https://steamusercontent-a.akamaihd.net/ugc/1857179401550009319/049E94CDBFA5B150C865E01EA320220A326F331F/"},
-        {name = "Woodland Alliance Icon", url = "https://steamusercontent-a.akamaihd.net/ugc/1857179401550001585/23C5DBFF72D7A03DA456759B0A36EB8CEF02A788/"},
-        --{name = "VagabondIcon", url = ""},
-        {name = "Adventurer Icon", url = "https://steamusercontent-a.akamaihd.net/ugc/1857179401550015803/48DC9EF391BC6B006E69BBCA8CEAFD4E67EAA4AC/"},
-        {name = "Arbiter Icon", url = "https://steamusercontent-a.akamaihd.net/ugc/1857179401550016508/A471B257858AC918D854ABB36F5034AB1D195E0A/"},
-        {name = "Harrier Icon", url = "https://steamusercontent-a.akamaihd.net/ugc/1857179401550017049/C332A30388CBC4A7E4C2AC2AF2EE54F6547AB756/"},
-        {name = "Ranger Icon", url = "https://steamusercontent-a.akamaihd.net/ugc/1857179401550017564/2B6C5175DE1339B4449F57C906601B3EFA2E51B6/"},
-        {name = "Ronin Icon", url = "https://steamusercontent-a.akamaihd.net/ugc/1857179401550018161/1D55A3293DB2F65D81FE227F901DA843130FA1CC/"},
-        {name = "Scoundrel Icon", url = "https://steamusercontent-a.akamaihd.net/ugc/1857179401550018814/71CD81FEFBC311429C2C20616A7F62ADF68B02F6/"},
-        {name = "Thief Icon", url = "https://steamusercontent-a.akamaihd.net/ugc/1857179401550019508/60F0E1E2F722EA3F26D3AE6CAB442C967C0F6DD7/"},
-        {name = "Tinker Icon", url = "https://steamusercontent-a.akamaihd.net/ugc/1857179401550020017/C77584E4A6B380FD43840689FAA10C220E239156/"},
-        {name = "Vagrant Icon", url = "https://steamusercontent-a.akamaihd.net/ugc/1857179401550020620/6BA52746C00824954AB919C156DC5EBC9B95CA7B/"},
 
-        {name = "The Lizard Cult Icon", url = "https://steamusercontent-a.akamaihd.net/ugc/1857179401550007094/FAEE39697FC835E29610B861A4808C369FD06F85/"},
-        {name = "Riverfolk Company Icon", url = "https://steamusercontent-a.akamaihd.net/ugc/1857179401550007733/624734933939460FB93EDC1E87661B7B0FD8BC17/"},
-        {name = "Underground Duchy Icon", url = "https://steamusercontent-a.akamaihd.net/ugc/1857179401550010408/691D89719FEBDFBEF34B6D587EEDD591158B5BD9/"},
-        {name = "Corvid Conspiracy Icon", url = "https://steamusercontent-a.akamaihd.net/ugc/1857179401550005663/F564BBDB4F798CF275D2C2AB4CE6456C869E8B5B/"},
-        {name = "Lord of the Hundreds Icon", url = "https://steamusercontent-a.akamaihd.net/ugc/1857179401550011183/3723DA81DFFA11C6491D382E8101C9876BF352BF/"},
-        {name = "Keepers in Iron Icon", url = "https://steamusercontent-a.akamaihd.net/ugc/1857179401550008429/895B9C8C8EB927DD1E515CB857F48A7C6730E036/"},
 
-        {name = "Eyrie's End Icon", url = "https://steamusercontent-a.akamaihd.net/ugc/1861696999739457258/1A2351BCC8618DD1A9DF4C188A41C69A810E5BBF/"},
-        {name = "Old Man Tinker Icon", url = "https://steamusercontent-a.akamaihd.net/ugc/1857179401550088526/8CA3A5C47E9B31A7F0B047846FCB65DB819B372F/"},
-        {name = "Necropossums Cabal Icon", url = "https://steamusercontent-a.akamaihd.net/ugc/1857179401550087005/F56AE22AE7DB057892B518722DB8B3B2C819BD15/"},
-        {name = "Dawn of the Marquistadors Icon", url = "https://steamusercontent-a.akamaihd.net/ugc/1857179401550072133/90B6CE3FB04284BA319B10ED3E8D85C604B60051/"},
-        {name = "Workshop Marquise Icon", url = "https://steamusercontent-a.akamaihd.net/ugc/1857179401550080643/E5C63D11769B438FE155D49FE049C84E53925B0C/"},
-        {name = "Arachnid Association II Icon", url = "https://steamusercontent-a.akamaihd.net/ugc/1857179401550081315/2EEEBE26BC6809490E0D8E54B2D4450A979BBC33/"},
-        {name = "Croakers Coven Icon", url = "https://steamusercontent-a.akamaihd.net/ugc/1857179401550083528/27DD958986D8E0F977F784BC350BD18938C08A9C/"},
-        {name = "The Noxious Battery Icon", url = "https://steamusercontent-a.akamaihd.net/ugc/1857179401550087819/FEE54AD3C8FD8501A24DCC61B672E21B612EE068/"},
-        {name = "Bone Patrol Icon", url = "https://steamusercontent-a.akamaihd.net/ugc/1857179401550082699/9C394B84046A2A70F5D37CA5D8179274600224F7/"},
-        {name = "Warriors Wake Icon", url = "https://steamusercontent-a.akamaihd.net/ugc/1857179401550076797/6E3E7DF36FBB1051DC6EA677C258E759576A6C03/"},
 
-        {name = "Black Creek Pirates II Icon", url = "https://steamusercontent-a.akamaihd.net/ugc/1857179401550081971/FABC194CCAA0668987844114BC008A601704C4E3/"},
-        {name = "Spinners of Mercy Icon", url = "https://steamusercontent-a.akamaihd.net/ugc/1920249469919849760/D2CF1773DD8589DCD09911AF0EA349324847B62F/"},
-        {name = "The Winged Menace Icon", url = "https://steamusercontent-a.akamaihd.net/ugc/1857179401550085845/8C04BDDA697D7A2DE10F3D9E51FDADA7E081A21E/"},
-        {name = "Woodland Revolution Icon", url = "https://steamusercontent-a.akamaihd.net/ugc/1857179401550089807/1EE10AF49AAD3962E9AAFB9B1E8813D2778CD079/"},
-        {name = "United Dove Corps II Icon", url = "https://steamusercontent-a.akamaihd.net/ugc/1857179401550084912/1A39068A8FC659E440E87A32CFDA34A756CF9C29/"},
-        {name = "Doomed Swindler Icon", url = "https://steamusercontent-a.akamaihd.net/ugc/1857179401550094665/F0363557F7D207986118F40C67D8E15B8D35A258/"},
-        {name = "Grouch Icon", url = "https://steamusercontent-a.akamaihd.net/ugc/1857179401550094063/5B82F97B82D8C5532BABB7BEE9E53FA4A2E01375/"},
-        {name = "Doomed Berserker Icon", url = "https://steamusercontent-a.akamaihd.net/ugc/1857179401550092503/A52FA339323BD25DE4B44AA03B861CA2EB6E9A9D/"},
-        {name = "Doomed Bard Icon", url = "https://steamusercontent-a.akamaihd.net/ugc/1920249469919844619/ADF458CBDE9BE820DDEA64E2BB95B44B15205A2E/"},
-        {name = "Doomed Blacksmith Icon", url = "https://steamusercontent-a.akamaihd.net/ugc/1857179401550093176/D9423ADE626A5038B11B9774EEEC23F4CD0A2826/"},
-        {name = "Doomed Zealot Icon", url = "https://steamusercontent-a.akamaihd.net/ugc/1857179401550095449/3C52155CEE9AD2DA8D5B9E92B59A347ECCDB1C40/"},
-        {name = "Doomed Barkeep Icon", url = "https://steamusercontent-a.akamaihd.net/ugc/1857179401550091785/51839FE6ACD4BB803CF8B6F2CF82F35BE5C078BA/"},
 
-        {name = "AutumnMapIcon", url = "https://steamusercontent-a.akamaihd.net/ugc/1857179401545559145/2195AD666798BBCB915DA39317949235295E82A7/"},
-        {name = "WinterMapIcon", url = "https://steamusercontent-a.akamaihd.net/ugc/1857179401545566679/C3EB10215C5917643F5A98406D83EF3FF8EC974A/"},
-        {name = "LakeMapIcon", url = "https://steamusercontent-a.akamaihd.net/ugc/1857179401545567379/E6023DB1078C0853ECC52AF6B2B290CE0E0F143E/"},
-        {name = "MountainMapIcon", url = "https://steamusercontent-a.akamaihd.net/ugc/1857179401545562698/D662D39270730E70041FBD5F625258858AF18B67/"},
 
-        {name = "The WastelandsMapIcon", url = "https://steamusercontent-a.akamaihd.net/ugc/1857179401545573259/8A8E4C8418B82E176D4607359D147FCDB49EE32A/"},
-        {name = "Treasure IslandMapIcon", url = "https://steamusercontent-a.akamaihd.net/ugc/1857179401545574508/7DD827948F2AA06F03010B84CBEB29A242184D28/"},
-        {name = "SummerMapIcon", url = "https://steamusercontent-a.akamaihd.net/ugc/1857179401545571231/D22D076DC9147535B9C9F31AD072C9108D3ABD47/"},
-        {name = "LegendsMapIcon", url = "https://steamusercontent-a.akamaihd.net/ugc/1857179401545577556/F7AF1ED713481A3AE0DFBA1DBDE4DD8BD87E5950/"},
-        {name = "GorgeMapIcon", url = "https://steamusercontent-a.akamaihd.net/ugc/1857179401545578515/DB4342B9BAA27D31ECC43EDFD348D547E4E51DAF/"},
-        {name = "The Deep WoodsMapIcon", url = "https://steamusercontent-a.akamaihd.net/ugc/1857179401545579387/6B0D4B1D705223FE94DD9CF0D81870BF00575DC0/"},
-        {name = "AustraliaMapIcon", url = "https://steamusercontent-a.akamaihd.net/ugc/1857179401545580292/DBEF949234DAF2857DE18B172ED45B8FC6307242/"},
 
-        {name = "StandardDeckIcon", url = "https://steamusercontent-a.akamaihd.net/ugc/1857179401545826011/4080587C766BB40FE5FDA3A4421A2382D9C07C79/"},
-        {name = "Exiles and PartisansDeckIcon", url = "https://steamusercontent-a.akamaihd.net/ugc/1857179401545826716/4E6FCAC53A99A571397113355569F01B28C33AD6/"},
 
-        {name = "Action! Deck BoosterDeckIcon", url = "https://steamusercontent-a.akamaihd.net/ugc/1857179401545831943/88FEA9D84DBD567A598C157CF753C14C5A61299C/"},
-        {name = "DarkDeckIcon", url = "https://steamusercontent-a.akamaihd.net/ugc/1857179401545831177/067E483842521EE487CEB01133DE9CE161B5F92E/"},
-        {name = "60 Card MasterDeckIcon", url = "https://steamusercontent-a.akamaihd.net/ugc/1857179401545830431/51A86BB9F8461512C24296C373DB53020214B414/"},
-        {name = "Sorcery of the Enchanted WoodsDeckIcon", url = "https://steamusercontent-a.akamaihd.net/ugc/1857179401545829283/25349508CF3204557D862AE7D016D39512B16877/"},
-        {name = "Upstarts and RenegadesDeckIcon", url = "https://steamusercontent-a.akamaihd.net/ugc/1857179401545827523/4F032CC45504B87FBB2B64C9AF5E4E6CDFBE2FCD/"},
 
         {name = "Marquise de Cat",url  = "https://steamusercontent-a.akamaihd.net/ugc/1861696999739429295/F6CF523AAA7DCC91AF3812339EBB3354F6D9891A/"},
         {name = "Eyrie Dynasties",url  = "https://steamusercontent-a.akamaihd.net/ugc/1728793291755958213/960DFA43E52D99A3250863FC63F3BA3AE5104325/"},
@@ -191,128 +96,54 @@ function onLoad(state)
         {name = "Jailor", url = "https://steamusercontent-a.akamaihd.net/ugc/10906121492486022753/B8147FE9BB8652380D0027EB4AF0C7FF8C7C66AE/"},
         {name = "Cheat", url = "https://steamusercontent-a.akamaihd.net/ugc/14685838847886183596/2F910C564507478E736E783C2B01011BF710E3D0/"},
 
-        {name = "Mechanical Marquise",url = "https://steamusercontent-a.akamaihd.net/ugc/1725416402721131861/8DFCF422BF000F0D33F310771EC480209A1B2FB9/"},
-        {name = "Electric Eyrie",url = "https://steamusercontent-a.akamaihd.net/ugc/1725416402721129634/D808C0E7B301109F6DD575FF1490D6D87F6B8BC2/"},
-        {name = "Automated Alliance",url = "https://steamusercontent-a.akamaihd.net/ugc/1861696999739432560/60BCFCAE3B311E5E8F1D5CB3501DE3866A7078EC/"},
-        {name = "Vagabot",url = "https://steamusercontent-a.akamaihd.net/ugc/1725416468779735395/C04D04E37CA20214E51DE0D29F25D9BEF5313301/"},
-        {name = "Logical Lizards",url = "https://steamusercontent-a.akamaihd.net/ugc/1862805096112811713/49271C38EF97345F1771945C9889135873EAC47A/"},
-        {name = "Riverfolk Robots",url = "https://steamusercontent-a.akamaihd.net/ugc/1862805096112812454/BD1ED64CA5FF7AB5A14CE0930BD8E18BEFE0305D/"},
-        {name = "Drillbit Duchy",url = "https://steamusercontent-a.akamaihd.net/ugc/1862805096112813105/3DE8DFDA735083A2204632BB173EC4A9EF6F9ED9/"},
-        {name = "Cogwheel Corvids",url = "https://steamusercontent-a.akamaihd.net/ugc/1862805096112813648/AAA583B6C664FBC673DFC00288CEE08C4D0CC465/"},
 
-        {name = "Orange Meeple",url = "https://steamusercontent-a.akamaihd.net/ugc/1725416402721123069/559A9AE0710087A6BBCC7222757960C83086EFA2/"},
-        {name = "Blue Meeple",url = "https://steamusercontent-a.akamaihd.net/ugc/1725416402721133627/ECD52C5CD057AB195970E9C4A65A3F32D48B436C/"},
-        {name = "Green Meeple",url = "https://steamusercontent-a.akamaihd.net/ugc/1725416402721121814/F441AAAA2A5048397E1685E324C87A4BB946B5B7/"},
-        {name = "Gray Meeple",url = "https://steamusercontent-a.akamaihd.net/ugc/1725416468779734881/4BCBD5DF5F7927EB2374776760DF37AF8F19A712/"},
-        {name = "Yellow Meeple",url = "https://steamusercontent-a.akamaihd.net/ugc/1725416402721123899/6AF30E9F551002970DB6F4FB5EEB7BCD65B31F17/"},
-        {name = "Teal Meeple",url = "https://steamusercontent-a.akamaihd.net/ugc/1725416402721125696/027507215C8F16B4E56BAAF7217012CFDB9DAB78/"},
-        {name = "Brown Meeple",url = "https://steamusercontent-a.akamaihd.net/ugc/1725416468779643667/7F9A4BA198E699336EDB20FCB3BB859716ACF2BC/"},
-        {name = "Purple Meeple",url = "https://steamusercontent-a.akamaihd.net/ugc/1725416402721146053/AB0C714CC7C938FF7B195A912D00D1149C4816F7/"},
 
-        {name = "Corvid Interaction",url = "https://steamusercontent-a.akamaihd.net/ugc/1760320391475639768/27AE75B717985F9076DA10B9EE1BB03C4D9C2110/"},
-        {name = "Riverfolk Interaction", url = "https://steamusercontent-a.akamaihd.net/ugc/1862805096113038687/C70605DF61D6855C6D8F350B0881D1C8CC284A36/"},
 
-        {name = "Law of Robotics",url = "https://steamusercontent-a.akamaihd.net/ugc/1725416402719829914/4AF4CF62BEB439F9C672F2AAFA8C69EF53F8D83F/"},
-        {name = "Better Bot Project Manual",url = "https://steamusercontent-a.akamaihd.net/ugc/1725416402719831731/6BF906A19B74952DC184CCBD35698E64F2070250/"},
 
-        {name = "Bristling Brigade",url = "https://steamusercontent-a.akamaihd.net/ugc/1728793291752819250/E32A3794A37003D5533A598DDAA273F1DE4B1F1B/"},
-        {name = "Farmlands Cooperative",url = "https://steamusercontent-a.akamaihd.net/ugc/1728793291755371057/D571CBDEFED60B1BF42D7D065CC648F91F40468A/"},
-        {name = "Fangus Khan",url = "https://steamusercontent-a.akamaihd.net/ugc/1728793269130803332/E81932701AFF7E192093ECB0C0BA5646591C54B5/"},
 
-        {name = "The Voracious Wyrm",url = "https://steamusercontent-a.akamaihd.net/ugc/16419302166140473/D542A3C6EC16C45F11E4DB7B4E89B8E35F864167/"},
         {name = "The Noxious Battery",url = "https://steamusercontent-a.akamaihd.net/ugc/16419302166144247/F28FED589189A2A0EFFF6586F9A83E34840FC439/"},
-        {name = "Rockin' Robin",url = "https://steamusercontent-a.akamaihd.net/ugc/1728793269130941006/435DD0C59C2EE2B396113A8D70E2998DC3A70FC7/"},
-        {name = "Red Guard",url = "https://steamusercontent-a.akamaihd.net/ugc/1728793291754385033/4889F99696960F1E40307210CE157C8F92B6162B/"},
 
         {name = "Black Creek Pirates",url = "https://steamusercontent-a.akamaihd.net/ugc/1728793291754407173/8AE59004E86A18683681D2677C685D8C84B00E78/"},
         {name = "Workshop Marquise",url = "https://steamusercontent-a.akamaihd.net/ugc/1728793291754408441/8EB77D6898CC9B9787C1C07870405CFAE0101509/"},
-        {name = "Boarish Hoards",url = "https://steamusercontent-a.akamaihd.net/ugc/1728793291754413659/E3E248FEC484C98C1180875D58D581D796C4AC8B/"},
-        {name = "The Weekly Croak",url = "https://steamusercontent-a.akamaihd.net/ugc/1920249469919853693/93C5E539E5A02195D6C53032364390E20D6FA0F8/"},
         {name = "Spinners of Mercy",url = "https://steamusercontent-a.akamaihd.net/ugc/1728793291754416260/AE57D54645432C8981422F9051666710651D0A7B/"},
         {name = "Arachnid Association",url = "https://steamusercontent-a.akamaihd.net/ugc/1728793291754417443/B754FCCED4E254960BE764B064689FC9A5DC63BA/"},
         {name = "Arachnid Association II",url = "https://steamusercontent-a.akamaihd.net/ugc/1728793635526446511/9AE39070D94704577D502A7272E2C2BBA280EEB0/"},
-        {name = "Frosty Theocracy",url = "https://steamusercontent-a.akamaihd.net/ugc/1728793291754418318/D0DC3EE0EE36563ABDCB26304AD2007CB5614995/"},
-        {name = "Nocturnal Battalion",url = "https://steamusercontent-a.akamaihd.net/ugc/1728793291754420021/99C8DA982CACE2CFD5C89B4FBEF9F2BB6B2E3EE1/"},
         {name = "Necropossums Cabal",url = "https://steamusercontent-a.akamaihd.net/ugc/1728793291754421552/0ECC6133A89142CFD3BB9C8DCE77DD80B42DAEFF/"},
-        {name = "Nomads of the Great Shell",url = "https://steamusercontent-a.akamaihd.net/ugc/1782839567653161783/2C982EB15D1B4E75247D015A9FC62BD106D356D8/"},
 
-        {name = "The Shoreline Consortium",url = "https://steamusercontent-a.akamaihd.net/ugc/1725416468780453986/961367964158C9E70428C8D060426B4E737689DD/"},
-        {name = "The Great Aviators",url = "https://steamusercontent-a.akamaihd.net/ugc/1728793291754424723/4EE841E28962FE10FFA399E2A8A2EAC0AAD693B4/"},
-        {name = "The Wolf Pack",url = "https://steamusercontent-a.akamaihd.net/ugc/1728793291754425599/73ED0E6AB92CD8D66E64047416AF703A6E7D8F8C/"},
-        {name = "The Dark Forest",url = "https://steamusercontent-a.akamaihd.net/ugc/1728793291754426330/C47ACE492461CB59DBF070B623911FCC159C273A/"},
-        {name = "Temple Guard",url = "https://steamusercontent-a.akamaihd.net/ugc/1728793291755375118/FE7BA21B53190482411E070D3585006DB1867FEE/"},
-        {name = "Bad Skunk-pany",url = "https://steamusercontent-a.akamaihd.net/ugc/1728793291754427899/5B13ACC3AB84A674FED340194EB0DD674D1B739D/"},
         {name = "United Dove Corps",url = "https://steamusercontent-a.akamaihd.net/ugc/1728793291754429271/C57C13B0F3F728DD0D45B09F7FB280173116DEDD/"},
         {name = "United Dove Corps II",url = "https://steamusercontent-a.akamaihd.net/ugc/1760320725210985400/313DDA3DC787AD1250E67BEB6D15C9CC521F0CA2/"},
-        {name = "Ragoon",url = "https://steamusercontent-a.akamaihd.net/ugc/1728793291754430392/DB23332FE6CE88B19C00FCCAB81CD46C979092DB/"},
-        {name = "The Canine Republic",url = "https://steamusercontent-a.akamaihd.net/ugc/1728793269130971425/0DA397272C3C474980982593BDD684D935E7058D/"},
-        {name = "The Shrewd Tribe",url = "https://steamusercontent-a.akamaihd.net/ugc/1728793291752822407/199392757C63C1535CE284B78CE28A75333C6578/"},
 
         {name = "The Law of Slug",url = "https://steamusercontent-a.akamaihd.net/ugc/1728793269130778170/778A62D63760B4120D313DC353057CA33D462093/"},
         {name = "Grouch",url = "https://steamusercontent-a.akamaihd.net/ugc/1728793269130982247/6DA4C7DB07CDE7A8816778BC17EB204D82525DBD/"},
         {name = "Bone Patrol",url = "https://steamusercontent-a.akamaihd.net/ugc/1728793269130783070/891450842D245D61990A8B72A20DE9845CE8BF28/"},
         {name = "The Winged Menace",url = "https://steamusercontent-a.akamaihd.net/ugc/1728793269130772512/5224E0C4368F481102D897EEBF414FA3C2D45028/"},
-        {name = "Order of the Forest",url = "https://steamusercontent-a.akamaihd.net/ugc/1728793269130780575/3571EAA5DD49A1F6180B2ECFC363A8DE0826E757/"},
         {name = "Croakers Coven",url = "https://steamusercontent-a.akamaihd.net/ugc/1728793269130781664/CFA0D3E4F26C6801C757C3353FE5DC5A41DC3464/"},
-        {name = "The Twelve Colonies",url = "https://steamusercontent-a.akamaihd.net/ugc/1728793269130775406/36C0A03A168EF8AA32A4B75F9A8231364ADE93D9/"},
         {name = "Old Man Tinker",url = "https://steamusercontent-a.akamaihd.net/ugc/1728793269130777020/80BF4930BB27FA1E2A7A239C0A7974063F5C2525/"},
 
-        {name = "Woodland Guard",url = "https://steamusercontent-a.akamaihd.net/ugc/1728793291755376126/8E5CFE7BBE1D87B21224375BBB9B9C7DD52ED034/"},
-        {name = "Plague Doctors",url = "https://steamusercontent-a.akamaihd.net/ugc/1728793291755374026/19E1D6C35762F91D9A66134E1F0CE671C2B8031C/"},
-        {name = "The Eagle King's Court",url = "https://steamusercontent-a.akamaihd.net/ugc/1728793291755372779/BE97463BFFB9D4C56EB0968A185E21D4D2F74E3D/"},
 
-        {name = "Free Leaders of the Nest",url = "https://steamusercontent-a.akamaihd.net/ugc/1699529949888466739/66D17CAC9116C759D2FE588D6963989D6E785563/"},
-        {name = "Pig Troupe",url = "https://steamusercontent-a.akamaihd.net/ugc/1699529949888467800/0FCE7164746B7954293848C89BEC70E398BD26FB/"},
-        {name = "Invasion of the Tinklones",url = "https://steamusercontent-a.akamaihd.net/ugc/1699529949888468626/B6D0B7FA8F8A64A176591B1834C6DC3781F28B6D/"},
-        {name = "Upstart Packaging Service",url = "https://steamusercontent-a.akamaihd.net/ugc/1699529762863976318/137CC24C34978AB167383775ECC1547865D9C983/"},
-        {name = "Rootjam 21", url = "https://steamusercontent-a.akamaihd.net/ugc/1699529949886637620/D529CBE526DFF8D09732A90DC3B0F7D3AAC49D40/"},
 
         {name = "Dawn of the Marquistadors",url = "https://steamusercontent-a.akamaihd.net/ugc/1696154224422718057/A8AAC9571CC9982B09392B55E9E751BE319BEA8B/"},
         {name = "Eyrie's End",url = "https://steamusercontent-a.akamaihd.net/ugc/1696154224422738170/CF032C0C50839D92BE2F0A4A2FFACB24C5C3F005/"},
-        {name = "Sagacious Scholars", url = "https://steamusercontent-a.akamaihd.net/ugc/1696154224422828679/61E18C178357D1182081FEC391C7F401C5A71905/"},
-        {name = "The Pond Confederation", url = "https://steamusercontent-a.akamaihd.net/ugc/1696154635652941741/8FAA95E49E7654066B0F168D831426E73393B3B6/"},
-        {name = "The North Clan", url = "https://steamusercontent-a.akamaihd.net/ugc/1696154635652943373/704AEA3C771A3F43A61653C49450D7D745E55805/"},
 
         {name = "Advanced Setup",url = "https://steamusercontent-a.akamaihd.net/ugc/1833522185814719458/237945A7E3C9DE1967AE096BD09BE1F7829476C0/"},
-        {name = "Draft Tool",url = "https://steamusercontent-a.akamaihd.net/ugc/1859434258001794538/FC3DA4C98C6DC090A9D3890825B1BA17B39F06FA/"},
         {name = "Law of Root",url = "https://steamusercontent-a.akamaihd.net/ugc/1725416402719828856/442D99DF43D27564672F46E7B94389838E77EBB7/"},
-        {name = "Learning to Play",url = "https://steamusercontent-a.akamaihd.net/ugc/1725416402719826329/7AC0B80B54F7A8AE83E6C1A1F0014EB83926DAB0/"},
         {name = "Hirelings",url = "https://steamusercontent-a.akamaihd.net/ugc/1862809948809300312/E3C3019162AAD66652E8C4AB388D47FE777E5A9E/"},
-        {name = "New Landmarks",url = "https://steamusercontent-a.akamaihd.net/ugc/2452866064852475557/7281F83E30CAB4C8A6355289C2CE6E8785B5FEF3/"},
         {name = "Landmarks",url = "https://steamusercontent-a.akamaihd.net/ugc/12936154875885790386/85439BAAE5C809A82FAF83A96E5232DFF4152DD0/"},
-        {name = "Fandmarks",url = "https://steamusercontent-a.akamaihd.net/ugc/1725416402718265355/D40F5A9F58E29970DD02DE3B668CD35920F4A4C0/"},
         {name = "Faction Select",url = "https://steamusercontent-a.akamaihd.net/ugc/1858304668138699983/C44EA2A82303E48DE0BF8014D328132B2254D498/"},
 
-        {name = "Alliance Multi-State Warriors",url="https://steamusercontent-a.akamaihd.net/ugc/16420027239828392/D9A788A1356580F7B60B7D3D8507A50CA8A88A39/"},
         {name = "Battle Mat",url = "https://steamusercontent-a.akamaihd.net/ugc/1728793367872326632/BBBD16CCB2233145C130F362BD4772B701C7DF2D/"},
         {name = "Koffin Keeper",url = "https://steamusercontent-a.akamaihd.net/ugc/1728793367872328873/9643C19226CC90278C43552680153DDF15418A5A/"},
         {name = "Lizard Wizard",url = "https://steamusercontent-a.akamaihd.net/ugc/1728793367872331088/3CE6C8D9633EBD9DF25142BA43A97E9B35F01AE4/"},
-        {name = "Mighty Multi-State Warriors",url="https://steamusercontent-a.akamaihd.net/ugc/1728793367872333367/F2534D89EE4AF2F499B16CBF80B8F265A0119C80/"},
         {name = "Mole Monger",url="https://steamusercontent-a.akamaihd.net/ugc/1728793367872336052/05940C3730A58F0B71A020D512486BB890F45550/"},
-        {name = "Swol Birbs",url="https://steamusercontent-a.akamaihd.net/ugc/1725416289813279001/63A7B0C8DC0B3592F93D530B90451CBEC07547F2/"},
-        {name = "Battle Dice",url="https://steamusercontent-a.akamaihd.net/ugc/1728793367872340896/F217E92D8189385816ACC9A9EA44603D49B19865/"},
-        {name = "Mighty Multi-State Ruins",url = "https://steamusercontent-a.akamaihd.net/ugc/1728793635526481079/46982BC98D7F8D610F4F2CEAE92D987F20485862/"},
-        {name = "Clearing Priorities Big",url = "https://steamusercontent-a.akamaihd.net/ugc/17343862070314210598/A5AFE2885F4656D394532C9DA4E260DAEBB5D271/"},
-        {name = "Clearing Priorities Small",url = "https://steamusercontent-a.akamaihd.net/ugc/1692779977932694143/EE512EC6064B68F082466AEBEA087CA38B461B28/"},
         {name = "Faction Selector Tool",url="https://steamusercontent-a.akamaihd.net/ugc/16420027251539310/A450741E43546370C6509D413D2CA3F1DABCBFAC/"},
         {name = "Mini-Mood Manager",url="https://steamusercontent-a.akamaihd.net/ugc/1782839567653163566/583C3FE604C4B4E943BD914071325274C515E9D8/"},
         {name = "Bat Bungler",url="https://steamusercontent-a.akamaihd.net/ugc/14651271115865573647/F4976C56FFA40862183EC055ED9F908FA96DC2B3/"},
 
-        {name = "Clearing Markers",url="https://steamusercontent-a.akamaihd.net/ugc/18105714333446016542/1C77868231CEA4360B4404A43211931D57921DC0/"},
         {name = "Items",url="https://steamusercontent-a.akamaihd.net/ugc/12996382395453116197/45486599501A1D46FA13087CA986ED5521F7835C/"},
 
-        {name = "TournamentSetup",url="https://steamusercontent-a.akamaihd.net/ugc/1692779977932700444/9D69FB04BB032F7C266BF3F561BECED1E8A28247/"},
 
-        {name = "Trick or Treat!",url = "https://steamusercontent-a.akamaihd.net/ugc/1728793291756336066/1281B7F98C739BF9989F056FD6A632D3B47C20BB/"},
-        {name = "The Tavern",url = "https://steamusercontent-a.akamaihd.net/ugc/1728793291756347083/0C3EA962F017F73CCAB786B6DF8ED267CFBE4F98/"},
-        {name = "The Chaos Contraptions",url = "https://steamusercontent-a.akamaihd.net/ugc/1728793291756375251/8649076A0F2345DFD5FD686FFA17B40516465A8C/"},
-        {name = "Haunted Woodland",url = "https://steamusercontent-a.akamaihd.net/ugc/1728793367872320860/04630EB9DF042364C651FF659CEA9C2A5BF68614/"},
-        {name = "Eyrie Leaders",url = "https://steamusercontent-a.akamaihd.net/ugc/1704036262314927549/1634051CED6CB2268AAA54AB089F9E9CA9613FCA/"},
 
-        {name = "Magenta Marquise",url = "https://steamusercontent-a.akamaihd.net/ugc/1871805410096211175/57E337F2E78C96BEA1B4ABD61D37CCBFC01A044F/"},
-        {name = "Brown Birds",url="https://steamusercontent-a.akamaihd.net/ugc/1871805410096212710/E0B54F274CC0D03F687825059F5CAE06D0A0AA54/"},
 
-        {name = "Riverfolk Markers", url = "https://steamusercontent-a.akamaihd.net/ugc/1704036262312748289/AB402F0842EE5E2CF9A2A4C591DB55A5EA03BA60/"},
 
         {name = "Autumn Map",url = "https://steamusercontent-a.akamaihd.net/ugc/9338841708247799860/688C6CB9F5A34B2A2B067C6DA493AD653B7D9C6A/"},
         {name = "Winter Map",url = "https://steamusercontent-a.akamaihd.net/ugc/12863190738702993416/F9C676622A48D6E15BB3AE235E26CE7BC8D11283/"},
@@ -321,394 +152,118 @@ function onLoad(state)
         {name = "Marsh Map",url = "https://steamusercontent-a.akamaihd.net/ugc/12189840401890527004/1A5500DF801E01874A28C059E04D049043948426/"},
 
         {name = "Summer Map",url = "https://steamusercontent-a.akamaihd.net/ugc/1696154224423110603/C3BC80DD5A0F72966665CAC14BECEEED1B02A692/"},
-        {name = "Legends Map",url = "https://steamusercontent-a.akamaihd.net/ugc/1871805410099132277/153EB97C3CCEC3B2AC8076C8DDC724F8E1165163/"},
 
         {name = "Gorge Map",url = "https://steamusercontent-a.akamaihd.net/ugc/17163206417596942920/65DEC204EF54C27F6BAFE8202D3AE63F73D28DD3/"},
-        {name = "Gorge Original Map",url = "https://steamusercontent-a.akamaihd.net/ugc/16433884666653740/C1766FAF41F0433D369D2181F92C7941B5D6C929/"},
         
-        {name = "Treasure Island Map",url = "https://steamusercontent-a.akamaihd.net/ugc/1728793291755436567/7A21720DB922FA3A0B05F0FF0E9FB0A4619D7D0A/"},
         {name = "Deep Woods Map",url = "https://steamusercontent-a.akamaihd.net/ugc/1728793291755429411/8C1C77B62B18F620F24053812DC4B32DAE8FD86D/"},
         {name = "Wastelands Map",url = "https://steamusercontent-a.akamaihd.net/ugc/1728793291755559172/F8B13B88C817D4BC1C4262DB09E109F84484148A/"},
-        {name = "Australia Map",url = "https://steamusercontent-a.akamaihd.net/ugc/1728793291755441446/16318E30B063A6E439E08728EAFF4963E7A17277/"},
         {name = "Narrows and Islets Map", url = "https://steamusercontent-a.akamaihd.net/ugc/1728793291755465538/44001F9D0FA1F134FE63DE2720B367CF00F17D24/"},
         {name = "Tropics Map", url = "https://steamusercontent-a.akamaihd.net/ugc/1782840088903024368/D45A2DD6DA43C27CAA47C56305C8E1B0A053F881/"},
-        {name = "Tunnel Unraveled Map",url = "https://steamusercontent-a.akamaihd.net/ugc/1782840088903031238/69C85739BFF03016086DEBE20D49D6DE60314E20/"},
 
-        {name = "River Town Map",url = "https://steamusercontent-a.akamaihd.net/ugc/16419302161232742/A4D7217C4526E93BB851080B0804F1C22BDC6A34/"},
-        {name = "Mountainside Map",url = "https://steamusercontent-a.akamaihd.net/ugc/16419302161240148/A070DD5DCA35CA4A0C712934079FA5F0996A1044/"},
-        {name = "Tidal Flats Map",url = "https://steamusercontent-a.akamaihd.net/ugc/16419302161036555/CC02B14ADD3A4C25950B866B0931551D334541FC/"},
-        {name = "Blighted City Map",url = "https://steamusercontent-a.akamaihd.net/ugc/16419302161005481/0D14C349BE0ECF10D83DD948ECC46FF2A8E89CB7/"},
-        {name = "Taiga Map",url = "https://steamusercontent-a.akamaihd.net/ugc/16419302161030312/C82A0C235A5FCD839E5242FD40FFB2654CBE1032/"},
-        {name = "Gloom Map",url = "https://steamusercontent-a.akamaihd.net/ugc/16419302161032587/58BC5A336F1A3149766B9538B409D089BA172FBC/"},
-        {name = "Klacar's Volcano Island Map",url = "https://steamusercontent-a.akamaihd.net/ugc/16423272750590320/FA1BF0F9298AA3E23156A5F1B47153D81324B3F3/"},
-        {name = "Spaceballs Map",url = "https://steamusercontent-a.akamaihd.net/ugc/16429450331909207/2A1EBD3531ED5024A04E88ACF39A579FE5879EAC/"},
-        {name = "Inferno Map",url = "https://steamusercontent-a.akamaihd.net/ugc/16429450331983247/B0CB31F2A58C84985465986BE4ACD4073F310538/"},
         {name = "Blighted Grove Map",url = "https://steamusercontent-a.akamaihd.net/ugc/16430283484922818/2C537178499FF02869872FC4CEE2493C089026E8/"},
 
         {name = "Standard Deck",url = "https://steamusercontent-a.akamaihd.net/ugc/1791848789393178780/9438FC204F346D081D3E66A95BBEAC918288004A/"},
         {name = "Exiles and Partisans Deck",url = "https://steamusercontent-a.akamaihd.net/ugc/1791848789393180099/504416827060BE54A0038F2C9BCF5D5A9475367F/"},
         {name = "Squires and Disciples Deck",url = "https://steamusercontent-a.akamaihd.net/ugc/16423108253239612/4B2CC3EBFD87C25AD92E61110CF80A5C0E461BD6/"},
-        {name = "Sorcery of the Enchanted Woods Deck",url = "https://steamusercontent-a.akamaihd.net/ugc/1728793291755382878/F583CD37323A8CB18FAA1769158A70D09FA07102/"},
-        {name = "Upstarts and Renegades Deck",url = "https://steamusercontent-a.akamaihd.net/ugc/1728793291755379437/7B5FD13E65EB5EEC2C15749E88A68748E1418E2A/"},
-        {name = "60 Card Master Deck",url = "https://steamusercontent-a.akamaihd.net/ugc/1728793291755389308/494037551CA49B9B4BDE834ECBAD477A852C0EFB/"},
         {name = "Dark Deck",url = "https://steamusercontent-a.akamaihd.net/ugc/1759199733286355061/7CC669574FB8C2836047540B51419475D35EA270/"},
-        {name = "Dawn and Dusk Deck",url = "https://steamusercontent-a.akamaihd.net/ugc/16419302161441770/32A810A7CE14B231C3D16A55CB4DE221BAC33AB8/"},
 
-        {name = "Doomed Vagabonds",url = "https://steamusercontent-a.akamaihd.net/ugc/1696154224422742579/AFE057743980A271EE1B308F1B2E44D23AB9E555/"},
-        {name = "Hirelings Noir",url = "https://steamusercontent-a.akamaihd.net/ugc/1759199733284824390/0C20FDD76FB7E0E77833A6948C12DC931F9A0C30/"},
-        {name = "Slug's Magic Bag", url = "https://steamusercontent-a.akamaihd.net/ugc/1699529762863980476/785BA878C983A54AC086E7A56D06BEC6037E6157/"},
 
-        {name = "The Bumblebee Dominion",url = "https://steamusercontent-a.akamaihd.net/ugc/1696154342833386558/5FD16D49B18B5465AB6B76DE94B44C5859BCE5DF/"},
-        {name = "The Auspicious Augury",url = "https://steamusercontent-a.akamaihd.net/ugc/1696154342833400459/C150BAEDD652C9DFFA64BEFB0F7AA588707997FD/"},
-        {name = "Unearthed Duchy",url = "https://steamusercontent-a.akamaihd.net/ugc/1704036353781365999/9A0588E9306AB8EAA05F5E944DDD33749E10EEB9/"},
 
-        {name = "Bots", url = "https://steamusercontent-a.akamaihd.net/ugc/1725416402721084869/964BF0F573EDFD0380AD036C520F95955B27A811/"},
-        {name = "Core Factions", url = "https://steamusercontent-a.akamaihd.net/ugc/1725416402721086214/91112CA7A5B080B4E98EC71B0261A2687E09062E/"},
-        {name = "Fan Factions", url = "https://steamusercontent-a.akamaihd.net/ugc/1725416402721087204/95423490207D628D10A530AACF52998F9CC067B5/"},
-        {name = "Maps and Decks", url = "https://steamusercontent-a.akamaihd.net/ugc/1725416402721063731/939DF2074A31CAD355D03105EA90530671E275DE/"},
         {name = "Tools", url = "https://steamusercontent-a.akamaihd.net/ugc/1725416402721070945/3B57F7CCBEDB396CEB70481769051D7CD491CAFB/"},
-        {name = "Setups", url = "https://steamusercontent-a.akamaihd.net/ugc/1725416402721072522/F96D33B2DA2FEC9AA603AFC14D63B34311F34915/"},
-        {name = "Back Button",url="https://steamusercontent-a.akamaihd.net/ugc/1725416402721079676/65CDF0BE142456D54B25285390B4CCF0163B5903/"},
-        {name = "More Button",url="https://steamusercontent-a.akamaihd.net/ugc/1725416402721081167/3E8A5E5A5806EE37F0C95F73AF9FC24D9F9E0AED/"},
-        {name = "NextButton",url= "https://steamusercontent-a.akamaihd.net/ugc/1809859799003111170/04391B14EF07FBD13352AD45AA63DAE5EDDFD4DC/"},
 
-        {name = "Big Back Button",url = "https://steamusercontent-a.akamaihd.net/ugc/1809859303953108083/DE8E54E2AAA576DBCFF1942FE96D79BAEF9FEF00/"},
-        {name = "Big Exit Button",url = "https://steamusercontent-a.akamaihd.net/ugc/1809859303953109854/0E8E4F07F53C124137BD58D4211953DF6E3514DD/"},
-        {name = "Big Random Button",url= "https://steamusercontent-a.akamaihd.net/ugc/1809859303953125137/85AEEA8FEA3B3E1E9E9695AAF5555FEAFD7A77D1/"},
 
-        {name = "Tourn1PlayerButton", url = "https://steamusercontent-a.akamaihd.net/ugc/1692779977932741607/D22A52DC8CED484B8BBDF2E985FABDFA3CA2A645/"},
-        {name = "Tourn2PlayerButton", url = "https://steamusercontent-a.akamaihd.net/ugc/1692779977932763041/FC23FE63411E212BA0E936B31690B9132BA58C35/"},
-        {name = "Tourn3PlayerButton", url = "https://steamusercontent-a.akamaihd.net/ugc/1692779977932763644/31EB4F30002DC7ABFD555BFDB9D9F6205FE8D2A7/"},
-        {name = "Tourn4PlayerButton", url = "https://steamusercontent-a.akamaihd.net/ugc/1692779977932764273/68CAA0AF3BC786725A575E4C6844CF1D3DFB1EAF/"},
-        {name = "Tourn5PlayerButton", url = "https://steamusercontent-a.akamaihd.net/ugc/1692779977932764728/032295901D0D70CCFF454ED48FFD0CB4BC14F95B/"},
-        {name = "Tourn6PlayerButton", url = "https://steamusercontent-a.akamaihd.net/ugc/1692779977932765525/04EFA5DB9E5D73EA1574D5739AB3EE712EAD5E5D/"},
 
-        {name = "TournBackButton", url = "https://steamusercontent-a.akamaihd.net/ugc/1692779977932766268/21F629C7094262B23084D723A4AA062732A0CDC1/"},
-        {name = "TournCheckRosterButton", url = "https://steamusercontent-a.akamaihd.net/ugc/1692779977932766857/A16731FA8B53847EFB65384E78C981B660FDA500/"},
-        {name = "TournExitButton", url = "https://steamusercontent-a.akamaihd.net/ugc/1692779977932767575/492ED6F9726FF88905AF6AF9DC9221A9DF39E345/"},
-        {name = "TournJoinButton", url = "https://steamusercontent-a.akamaihd.net/ugc/1692779977932768104/6738B469EA8D7AF916044D87212B8DAE9D4600B4/"},
-        {name = "TournLeaveButton", url = "https://steamusercontent-a.akamaihd.net/ugc/1692779977932768742/8602F7D800D7CD9621AB317E7EF75B1CBA609866/"},
-        {name = "TournStartDraftButton", url = "https://steamusercontent-a.akamaihd.net/ugc/1692779977932769529/E294E3BDCA6D8E5AA6BD2543191DA5CA81E25D0F/"},
-        {name = "TournDraftPoolButton", url = "https://steamusercontent-a.akamaihd.net/ugc/1692779977932770674/C3977F03EF0D5A472E49D4FF498C61E0117E0805/"},
-        {name = "TournMountainButton", url = "https://steamusercontent-a.akamaihd.net/ugc/1629731306410841935/F2DC34AF88DE208A2B895FAC8D1DAF22BA62741A/"},
 
-        {name = "TournMapButton", url = "https://steamusercontent-a.akamaihd.net/ugc/1692779977932771947/B3FF124D969ABD3F60EEF662615C3A438A2F6517/"},
 
-        {name = "TournSideMenu1Button", url = "https://steamusercontent-a.akamaihd.net/ugc/1629731306411064977/B7FD7E2F4BF5D07CB6DE80910A61CEB346F078A4/"},
-        {name = "TournSideMenu2Button", url = "https://steamusercontent-a.akamaihd.net/ugc/1629731306411066694/E86E658BA6796A012EE04D01B3C0DF7438F88D93/"},
-        {name = "TournSideMenu3Button", url = "https://steamusercontent-a.akamaihd.net/ugc/1629731306411067611/7AF64BEDD57C087E06BD1A8579A931381492FD78/"},
-        {name = "TournSideMenu4Button", url = "https://steamusercontent-a.akamaihd.net/ugc/1629731306411068885/5DD0AC1F3A2BFD9823720EFB1E2A27A82BFDDB25/"},
-        {name = "TournTitleButton", url = "https://steamusercontent-a.akamaihd.net/ugc/1692779977932776686/62CADED8D0C8A4F22CA85EFF72C625286A8D61D0/"},
 
-        {name = "TournMapSelectMessage", url = "https://steamusercontent-a.akamaihd.net/ugc/1629731543197726351/F3041972D3BB1E74F31912F30251F6B328F65898/"},
-        {name = "TournFacSelectMessage", url = "https://steamusercontent-a.akamaihd.net/ugc/1692779977932773239/EF1B5CD14A27B687AF58DCCCF528742193BD79E2/"},
-        {name = "TournOnceAllButton", url = "https://steamusercontent-a.akamaihd.net/ugc/1629731624852901524/8BCA7C09432EA76145F3231F632997B8D8E25073/"},
-        {name = "TournCompleteSetup", url = "https://steamusercontent-a.akamaihd.net/ugc/1629731624852894764/78AE061E5F01B984433BD4606E958F97EBE4D161/"},
 
-        {name = "TournDoneButton",url="https://steamusercontent-a.akamaihd.net/ugc/1629731624852318441/26B77D1F7FD7F4EA25BA5E307D67AAF752AA5D43/"},
-        {name = "TournDoneButtonWhite",url="https://steamusercontent-a.akamaihd.net/ugc/1629731624852319793/8E6D942B695A71A615BF1C0DE9AAF808052BA284/"},
 
-        {name = "X Icon",url = "https://steamusercontent-a.akamaihd.net/ugc/1859433104053132366/2704A9C9AB1B047A1DC28B1B19E612B08F905940/"},
 
         {name = "Root Logo", url="https://steamusercontent-a.akamaihd.net/ugc/1859433104053130905/247FAE492208FF3BEFACE423A31B8D7644BA7B19/"},
         {name = "Credits",url="https://steamusercontent-a.akamaihd.net/ugc/1728793367872500988/79BC1C2E8411DCAFADF7C9B7D094F2273CC38E87/"},
 
         
-        {name = "Ehss Info",url = "https://steamusercontent-a.akamaihd.net/ugc/1696154342833457824/C8378F41BA886E94FBCD6CDC32DBEA32FE6796E8/"},
-        {name = "slugfacekillah Info",url = "https://steamusercontent-a.akamaihd.net/ugc/1728793635526371464/0DB00E235E0DA0EA7201674331D0AE7B8BCD47D1/"},
         {name = "Ehss and Slug Info",url = "https://steamusercontent-a.akamaihd.net/ugc/1782839103935392102/0927F44D64B56538A6E2A028FF30126D6652702C/"},
-        {name = "Ehss and Endgamer Info",url = "https://steamusercontent-a.akamaihd.net/ugc/1692779977932665342/9AC806656AAED471C30FA206D84CD2E5C5E22F5F/"},
         {name = "JustinInExile Info",url = "https://steamusercontent-a.akamaihd.net/ugc/1728793635528179522/0F18B9473BA94C17D367FD9D79F35A0EC4D9C32E/"},
-        {name = "Le Codex Info",url = "https://steamusercontent-a.akamaihd.net/ugc/1728793635528183632/1F52657746CCA823152BED2D9EDE275D074E6A6E/"},
-        {name = "Milda Matilda Info",url = "https://steamusercontent-a.akamaihd.net/ugc/1728793635528228433/36B3365AA4ADDC92DD860358DC7A99F570C3C1DD/"},
-        {name = "MarcustheCat Info", url = "https://steamusercontent-a.akamaihd.net/ugc/1760320301172364599/8F6F0A03E0C90E33FE11AB9CC86ECBEF85CA9647/"},
-        {name = "MarcustheCat and Supacatone Info", url = "https://steamusercontent-a.akamaihd.net/ugc/1728793727830262661/CC0DE39F8778AC1DEBEFBE051A51D7A7AFE51EC1/"},
-        {name = "Chemical Info",url = "https://steamusercontent-a.akamaihd.net/ugc/1728793727830263065/CD4865518547492100E452A023BD05F802A784D8/"},
-        {name = "Oranos.3408 Info",url = "https://steamusercontent-a.akamaihd.net/ugc/1728793727830286619/49D8A8CE4B78D19686DB4E3B0436F35DEE11B9BB/"},
-        {name = "Vuorienpeikko Info",url = "https://steamusercontent-a.akamaihd.net/ugc/1728793727832869945/431423264320113A03A34D78D26E923E1782F306/"},
-        {name = "S.P.Shaman Info",url = "https://steamusercontent-a.akamaihd.net/ugc/1728793727832880296/CFD0A34E8AAC66EE2E406C5F2652DA7E3699AA7E/"},
-        {name = "Totgeboren Info",url = "https://steamusercontent-a.akamaihd.net/ugc/1728793727832881462/03A7FD1F96384B3B123C4AF7C67AB9D4506AD9DE/"},
-        {name = "Esau Info",url = "https://steamusercontent-a.akamaihd.net/ugc/1728793727832883476/6C3171B5D089EFA3602745BC2708B93B0AF99B50/"},
-        {name = "J444 Info",url = "https://steamusercontent-a.akamaihd.net/ugc/1728793799439301238/42584E05230B726880E018640DDB1D6D8BA52B9A/"},
         {name = "Nevakanezah Info",url="https://steamusercontent-a.akamaihd.net/ugc/1728793799439302485/F46D00FF0354D5F24AFCFB7FFFAC2EA4DDA28A11/"},
-        {name = "Matchstick Info",url="https://steamusercontent-a.akamaihd.net/ugc/1728793799439303700/EB8E0B76EE3A6475B2033B7DC69597D9821FC6EA/"},
-        {name = "MarcustheCat and Trashpanda8 Info",url="https://steamusercontent-a.akamaihd.net/ugc/1728793799439305020/FA757DED2F3A8B71389D6A295130BDC05F1ABCA4/"},
-        {name = "LordOfTheBoard Info",url="https://steamusercontent-a.akamaihd.net/ugc/1728793799439331955/33C92E129FA9EB9D30B773021738391A736B120C/"},
-        {name = "Creslin9 Info",url="https://steamusercontent-a.akamaihd.net/ugc/1728793822430780649/9808291C794CB564FFBCD1CDBCCA6CD4831667AF/"},
-        {name = "GaborBoth and RedCheshireKate Info",url = "https://steamusercontent-a.akamaihd.net/ugc/1728793822430800456/57A7EB3183970920332901DCF6BBA9144044AE3E/"},
-        {name = "snowjedi6 Info",url="https://steamusercontent-a.akamaihd.net/ugc/1725416136412298173/FF2AD403F14FF46680CBF079A0A5B6ECCBA9010D/"},
-        {name = "Velensk and Sid3run Info",url="https://steamusercontent-a.akamaihd.net/ugc/1725416136412299340/90CA325A0BB24342F4881C733D7A1A294E2842A8/"},
-        {name = "Dewhurst Info", url ="https://steamusercontent-a.akamaihd.net/ugc/1725416136413184582/B8383703DD33F641106984A529949A781C1C15EE/"},
-        {name = "kpackard Info", url = "https://steamusercontent-a.akamaihd.net/ugc/1725416195554265462/D69A93D9FB6C499681F11642EE88F20373336304/"},
-        {name = "Milda Matilda and Ehss Info", url = "https://steamusercontent-a.akamaihd.net/ugc/1760320644483451110/1611C87B972B512E9EB0B5E882696ACCD07D32D2/"},
-        {name = "Print and Play Info", url = "https://steamusercontent-a.akamaihd.net/ugc/1782839633458571009/CBF6363D467FF60D4713CAD182E36A9DB0727B5A/"},
         {name = "Nevakanezah and Slug Info", url= "https://steamusercontent-a.akamaihd.net/ugc/1704036430908662468/83E53F32BC1C2149747AF4C5B35EDF2B1F5F4717/"},
-        {name = "Original Supacatone Info", url="https://steamusercontent-a.akamaihd.net/ugc/1871809398613363241/B5FF21266CA2BCA4EDB0CAFB3419BAD7C7C73B8B/"},
-        {name = "fkolouch Info", url="https://steamusercontent-a.akamaihd.net/ugc/16419302161271568/9750F9E81C3C339B7A108297BF9EA36D39051F01/"};
-        {name = "Klacar Info",url = "https://steamusercontent-a.akamaihd.net/ugc/16423272750658596/A8D3FEB3736DB4D9900D34166E73FBF7110EE85D/"},
 
-        {name = "Le Codex and Lijosu Info", url = "https://steamusercontent-a.akamaihd.net/ugc/1699529949886920161/1D02FAFD4A8C43AC9EC164F2AA7CDCB0380BAA50/"},
-        {name = "GeneralMasterJake Info", url = "https://steamusercontent-a.akamaihd.net/ugc/1699529949886923998/AFAC8B0A8C50B71BA1E227434D0B198C103695A7/"},
 
-        {name = "Norsehound Info",url = "https://steamusercontent-a.akamaihd.net/ugc/1760320391475275637/371429CC54867CA7064F05C5258C0E5503C9D00E/"},
-        {name = "vatechman3 Info",url = "https://steamusercontent-a.akamaihd.net/ugc/1699528634399457079/46FFE28F8E63C2B75B6CD1EE261D9DBA0FDEE069/"},
-        {name = "Hierotitan and Leonatus Info",url = "https://steamusercontent-a.akamaihd.net/ugc/1782839856362038803/D1A1331E2B11F6B9218D74DC7D7A0E7F4FE17F1E/"},
-        {name = "Brooklyn Game Lab Info",url = "https://steamusercontent-a.akamaihd.net/ugc/1760320391475284598/BC4D2CE436CA4A24CE209DC52C6FFB31ED358B86/"},
-        {name = "mine12king Info",url="https://steamusercontent-a.akamaihd.net/ugc/1760320391475287888/242DB7A4ED993A83D5FF278EE88B8BB18259E035/"},
-        {name = "adorablerocket Info",url = "https://steamusercontent-a.akamaihd.net/ugc/1758072369107353185/7911CE2914C6DA96F3B28E141231372DE0CAA303/"},
 
-        {name = "Azhdar and Supacatone Info",url="https://steamusercontent-a.akamaihd.net/ugc/1809859303950628984/979820A68EC7BB7CB0812856DAB8455966C21A10/"},
-        {name = "Supacatone Info",url="https://steamusercontent-a.akamaihd.net/ugc/1809859303950632835/A47AA2904B4AFFE19648A9583C1AB5F872E84189/"},
-        {name = "Magh and Supacatone Info",url="https://steamusercontent-a.akamaihd.net/ugc/1809859303950635072/B71340F7B3B6B8E30B491868B93CE13539463C4E/"},
-        {name = "Luhnaire and Supacatone Info",url = "https://steamusercontent-a.akamaihd.net/ugc/1809859303950636966/DD89D4857C4DB810D71F1ED80DD1ABE3548C5ED5/"},
-        {name = "Tikette and Supacatone Info",url="https://steamusercontent-a.akamaihd.net/ugc/1809859303950638542/BD3C9002B06FA848A16378C5E168236F2755775A/"},
-        {name = "Max Masque and Alex L'Arbe and Supacatone Info",url = "https://steamusercontent-a.akamaihd.net/ugc/1809859303950641909/BD0B83895573607C967FA637052B486F9EDC37D8/"},
-        {name = "Evan Lindeman and Magh and Supacatone Info",url = "https://steamusercontent-a.akamaihd.net/ugc/1809859303950643011/84B0F5F2FC4ABE02610EC9DB069F0C87D123DA3D/"},
-        {name = "OrigamiGoblin and Arkane Info",url = "https://steamusercontent-a.akamaihd.net/ugc/1696154342833425148/BE33B9B499CCB8FB7444071B0493CCFE0808D4EE/"},
-        {name = "McDougishole Info",url = "https://steamusercontent-a.akamaihd.net/ugc/1696154342833429281/9378E5A5884B77B0C5FF3B4FA536C60979014ECA/"},
-        {name = "Endgamer Info",url="https://steamusercontent-a.akamaihd.net/ugc/1833522185819287693/7774219B8D50A4D4F2C9E616D14308F104490F68/"},
-        {name = "RemiPipi Info",url="https://steamusercontent-a.akamaihd.net/ugc/1874056202036047917/8A54F1181C19277BFF5F99C61B33584AEA183A51/"},
-        {name = "Marcus Tweak Info",url="https://steamusercontent-a.akamaihd.net/ugc/1874056202036053425/64A0BB73D3D79E9CB37C0FD70E0F8969CD10D3DA/"},
 
-        {name = "Bdeink Info",url = "https://steamusercontent-a.akamaihd.net/ugc/1696154635652923227/3213508DBB1889BE43B1B1B2B1AD36D6DC319257/"},
-        {name = "Moloman Info",url = "https://steamusercontent-a.akamaihd.net/ugc/1696154635652929772/891E44AC4C7A2CA025AAEB0F4E645171BEE4E23B/"},
-        {name = "Ginso Info",url = "https://steamusercontent-a.akamaihd.net/ugc/1862810258468082738/334D246CA9969A15F1C7A06FB6C54C65ECF316CD/"},
 
-        {name = "Laterbot Info",url = "https://steamusercontent-a.akamaihd.net/ugc/18259687869223016796/FADAB2AEE28641D5E449CFD97C25D255214BCD69/"},
 
-        --{name = "Inconmon Info",url="https://steamusercontent-a.akamaihd.net/ugc/1782838933582071523/D4EFF55361F7693F215FDF30E29BCB03E63FF20C/"},
-        {name = "Inconmon Info",url = "https://steamusercontent-a.akamaihd.net/ugc/1782839633458582396/169BD7654EE5AE1D88B8C8C2D6C17B31D90927F0/"},
 
-        {name = "Tunnel Map Info",url = "https://steamusercontent-a.akamaihd.net/ugc/1728793635528454412/2D849386C6945557146B340A7A2E2EA9EB769D3C/"},
 
         {name = "Official Content Info",url = "https://steamusercontent-a.akamaihd.net/ugc/1725416136412842797/8C16959C043FF934C5D88C583AD957EE85D4B7FE/"},
         {name = "Blank Info",url = "https://steamusercontent-a.akamaihd.net/ugc/1728793635526111266/638962CD65D3760A1FD61D0AA78EE4C496C5487E/"},
 
-        {name = "Clockwork Expansion Tag", url="https://steamusercontent-a.akamaihd.net/ugc/1782838933579301205/7363CC92AB61C7B0BF4D93BFBC9892605BC20B80/"},
-        {name = "Better Bot Project Tag",url = "https://steamusercontent-a.akamaihd.net/ugc/1782838933579299065/1BEF3249CB6CE2995650CD7B5B8B8807AEF6D0C2/"},
 
-        {name = "Fan Tools Label", url = "https://steamusercontent-a.akamaihd.net/ugc/1782839685992682079/CCEED2B6B487D6964A435437F633C3AF3EE871F7/"},
 
-        {name = "Scenarios Tag",url = "https://steamusercontent-a.akamaihd.net/ugc/1782838933579302036/CE6374FE0E23C9CF5497E9B67F5E6595A262FFA3/"},
 
-        {name = "Player 0 Tile",url="https://steamusercontent-a.akamaihd.net/ugc/1760320391476180248/5994F1680B98F561C4297AF0DD69C492A979EB2C/"},
-        {name = "Player 1 Tile",url="https://steamusercontent-a.akamaihd.net/ugc/1809859799003156760/E68BD984348439054963132BE9D1E9E708FFB08A/"},
-        {name = "Player 2 Tile",url="https://steamusercontent-a.akamaihd.net/ugc/1809859799002798151/522376C833A9089E37B6E190423341DB948709AA/"},
-        {name = "Player 3 Tile",url="https://steamusercontent-a.akamaihd.net/ugc/1809859799002799429/55AEE70FBD094EA29A99C1C4D1B1D12B3C43ED3A/"},
-        {name = "Player 4 Tile",url="https://steamusercontent-a.akamaihd.net/ugc/1809859799002800397/C361CBE503FDE27C2CA0B277BB0B1A8B5B45E9D4/"},
-        {name = "Player 5 Tile",url="https://steamusercontent-a.akamaihd.net/ugc/1809859799002801228/E66FF018000CC7B4CDA93A658193475F9112D996/"},
-        {name = "Player 6 Tile",url="https://steamusercontent-a.akamaihd.net/ugc/1809859799002802180/6CE35596C7C0354E7D5868C4B8DC286A2A0EEA36/"},
 
-        {name = "TheHirelings",url="https://steamusercontent-a.akamaihd.net/ugc/12940714382263073688/392257681D14FA34B4848585A35811CEF23D685E/"},
-        {name = "TheLandmarks",url="https://steamusercontent-a.akamaihd.net/ugc/1859433396458782841/B0C3F1F30DCCF711DA0EC2E5B48F5D410701B958/"},
-        {name = "TheClockworkBots", url="https://steamusercontent-a.akamaihd.net/ugc/1859433396458784883/C7C6C929AAEFC026633CCB3888A72F0F279DD8A1/"},
-        {name = "TheClockworkBotsSetup", url = "https://steamusercontent-a.akamaihd.net/ugc/1859434388164944196/474B48652298983416B1ACAC5253182B4B537D43/"},
-        {name = "LandmarkSetup", url="https://steamusercontent-a.akamaihd.net/ugc/1859434388165714553/500BF78AFBB93A233F7101EF1F2EE117180170F5/"},
-        {name = "HirelingsSetup", url="https://steamusercontent-a.akamaihd.net/ugc/1859434101951585009/F33362E64934EFD20410F353BE64A5451FD4FB73/"},
-        {name = "Black Market", url="https://steamusercontent-a.akamaihd.net/ugc/1859433736239170486/C20D52F3CC0751DAB42D2F4C6E86974B88447E31/"},
-        {name = "The Ferry", url="https://steamusercontent-a.akamaihd.net/ugc/1859433736239171107/7A6B085D8EBE56E413B96F3591E6E9C46FD16B93/"},
-        {name = "Legendary Forge", url="https://steamusercontent-a.akamaihd.net/ugc/1859433736239171843/7391D4BC9FEC71BBF02DDD3A36C434AC281D9232/"},
         {name = "Lost City", url="https://steamusercontent-a.akamaihd.net/ugc/1859433736239172517/D920C1D6AF1EB2D20AC4C645BA54FA5603ACB0C6/"},
-        {name = "The Tower", url="https://steamusercontent-a.akamaihd.net/ugc/1859433736239172988/6B96F789BFD1EE4C781965012D42D82B8062E50C/"},
-        {name = "Elder Treetop", url="https://steamusercontent-a.akamaihd.net/ugc/1859433736239173480/9836372381D050FC979324F569C82E4698B33A44/"},
         {name = "Mousehold", url="https://steamusercontent-a.akamaihd.net/ugc/11208216119893423521/6899825B194B4AE1C272FD70C8A67292943B3E06/"},
         {name = "Foxburrow", url="https://steamusercontent-a.akamaihd.net/ugc/14325117635732818978/AB011F3096FD8FDCD48FC9589DCDE8EF30A76560/"},
         {name = "Rabbit-Town", url = "https://steamusercontent-a.akamaihd.net/ugc/13209270657155809146/E83807902465C87971D45F55BE9FEF59ABA98312/"},
 
-        {name = "Sure Label", url="https://steamusercontent-a.akamaihd.net/ugc/1859434101951610005/FF4F77B450D2F32501E70CAF352DE257BDADCC05/"},
-        {name = "No Thanks Label", url = "https://steamusercontent-a.akamaihd.net/ugc/1859434101951611900/514A5003AE63A6AC1FAEB5F68BE741226F779009/"},
 
 
-        {name = "ContinueLabel", url="https://steamusercontent-a.akamaihd.net/ugc/1859433396459135062/253FCE248E26587FB9E4CE4F46FDADF821F9F1C4/"},
-        {name = "SetupLabel", url="https://steamusercontent-a.akamaihd.net/ugc/1859433396459136343/34E362A154266CD60CAD440C7CA8CA8E36D7BC9C/"},
-        {name = "SkipLabel", url="https://steamusercontent-a.akamaihd.net/ugc/1859434258003723744/420718C7006B759F3C04D418311F841412F8F81E/"},
 
-        {name = "DraftClockworkLeft1", url = "https://steamusercontent-a.akamaihd.net/ugc/1859433396458940483/7AAD94536429D22306C090309845DF953CC34532/"},
-        {name = "DraftClockworkLeft2", url = "https://steamusercontent-a.akamaihd.net/ugc/1859433736239233535/1E6EAAD16C69A68CFD5BDFB84411FA65FBD7F2C7/"},
-        {name = "DraftLandmarksLeft1", url = "https://steamusercontent-a.akamaihd.net/ugc/1859433736239338361/43B9B1D5FA66BC4A8DCA9BD72EC9BBD24F7DB2BF/"},
-        {name = "DraftLandmarksLeft2", url = "https://steamusercontent-a.akamaihd.net/ugc/1859433736241079554/3E62827E84C53494BD3F30580E30EA0ABC4AB689/"},
 
-        {name = "TheWarlord",url="https://steamusercontent-a.akamaihd.net/ugc/1809859799002976789/D911472850E01877B9C4D64578A98C8943430DAB/"},
-        {name = "TheBadgers",url="https://steamusercontent-a.akamaihd.net/ugc/1809859799002978285/E82A012E48C4D8C29E06225C63E5DF056C1CD281/"},
-        {name = "WouldYouLikeTo",url="https://steamusercontent-a.akamaihd.net/ugc/1809859799002995320/62E29F39304BB917BC7D6B2279023815C567E78B/"},
 
-        {name = "Autumn Map Tile",url = "https://steamusercontent-a.akamaihd.net/ugc/1760320391479011021/9E725254A1E8A5C7F52AC45587D20FE0D013B7BE/"},
-        {name = "Winter Map Tile",url = "https://steamusercontent-a.akamaihd.net/ugc/1760320391479013315/D70BD5B6EF8801AB463571F52CC69F3A450BF5E2/"},
-        {name = "Lake Map Tile",url = "https://steamusercontent-a.akamaihd.net/ugc/1760320391479014412/C558A70F5F54251C81131D10EFD090DEE6B421D7/"},
-        {name = "Mountain Map Tile",url = "https://steamusercontent-a.akamaihd.net/ugc/1760320391479015401/461D8051E173952BB8AA8516F1C97086973F791F/"},
 
-        {name = "Gorge Map Tile",url="https://steamusercontent-a.akamaihd.net/ugc/14465139803514895819/7CE3CD6DD27F6313548E8E79111612058BEB0F01/"},
-        {name = "Gorge Original Map Tile",url="https://steamusercontent-a.akamaihd.net/ugc/16433884666649838/177A27B5110AACB3297427BED28BFA8B5C9B990D/"},
         
         
-        {name = "Marsh Map Tile",url="https://steamusercontent-a.akamaihd.net/ugc/9462082978453409298/2BC10CFF84D5ACFC833CF5DBF81D5A4246CE9396/"},
-        {name = "Treasure Island Map Tile",url="https://steamusercontent-a.akamaihd.net/ugc/1760320391479017185/177A27B5110AACB3297427BED28BFA8B5C9B990D/"},
-        {name = "The Deep Woods Map Tile",url="https://steamusercontent-a.akamaihd.net/ugc/1760320391479018075/177A27B5110AACB3297427BED28BFA8B5C9B990D/"},
-        {name = "The Wastelands Map Tile",url="https://steamusercontent-a.akamaihd.net/ugc/1760320391479018823/177A27B5110AACB3297427BED28BFA8B5C9B990D/"},
-        {name = "Australia Map Tile",url="https://steamusercontent-a.akamaihd.net/ugc/1760320391479019656/177A27B5110AACB3297427BED28BFA8B5C9B990D/"},
-        {name = "Narrows and Islets Map Tile",url="https://steamusercontent-a.akamaihd.net/ugc/1760320391479020655/177A27B5110AACB3297427BED28BFA8B5C9B990D/"},
-        {name = "Tunnel Unraveled Map Tile",url="https://steamusercontent-a.akamaihd.net/ugc/1760320391479021477/177A27B5110AACB3297427BED28BFA8B5C9B990D/"},
-        {name = "Tropics Map Tile",url="https://steamusercontent-a.akamaihd.net/ugc/1760320391479022298/177A27B5110AACB3297427BED28BFA8B5C9B990D/"},
-        {name = "Summer Map Tile",url="https://steamusercontent-a.akamaihd.net/ugc/1696154342827738629/177A27B5110AACB3297427BED28BFA8B5C9B990D/"},
-        {name = "Lost Woodland Map Tile",url="https://steamusercontent-a.akamaihd.net/ugc/1871805410096554660/177A27B5110AACB3297427BED28BFA8B5C9B990D/"},
-        {name = "Legends Map Tile",url="https://steamusercontent-a.akamaihd.net/ugc/1871805410096540515/177A27B5110AACB3297427BED28BFA8B5C9B990D/"},
-        {name = "Urban Map Tile",url="https://steamusercontent-a.akamaihd.net/ugc/1856049403360993432/177A27B5110AACB3297427BED28BFA8B5C9B990D/"},
-        {name = "River Town Map Tile",url="https://steamusercontent-a.akamaihd.net/ugc/16419302161430757/177A27B5110AACB3297427BED28BFA8B5C9B990D/"},
-        {name = "Mountainside Map Tile",url="https://steamusercontent-a.akamaihd.net/ugc/16419302161431106/177A27B5110AACB3297427BED28BFA8B5C9B990D/"},
-        {name = "Tidal Flats Map Tile",url="https://steamusercontent-a.akamaihd.net/ugc/16419302161431190/177A27B5110AACB3297427BED28BFA8B5C9B990D/"},
-        {name = "Blighted City Map Tile",url="https://steamusercontent-a.akamaihd.net/ugc/16419302161431768/177A27B5110AACB3297427BED28BFA8B5C9B990D/"},
-        {name = "Taiga Map Tile",url="https://steamusercontent-a.akamaihd.net/ugc/16419302161431735/177A27B5110AACB3297427BED28BFA8B5C9B990D/"},
-        {name = "Gloom Map Tile",url="https://steamusercontent-a.akamaihd.net/ugc/16419302161432264/177A27B5110AACB3297427BED28BFA8B5C9B990D/"},
-        {name = "Klacar's Volcano Island Map Tile",url="https://steamusercontent-a.akamaihd.net/ugc/16423272750663634/177A27B5110AACB3297427BED28BFA8B5C9B990D/"},
-        {name = "Spaceballs Map Tile",url="https://steamusercontent-a.akamaihd.net/ugc/16429450331905367/177A27B5110AACB3297427BED28BFA8B5C9B990D/"},
-        {name = "Inferno Map Tile",url="https://steamusercontent-a.akamaihd.net/ugc/16429450331978383/177A27B5110AACB3297427BED28BFA8B5C9B990D/"},
-        {name = "Blighted Grove Map Tile",url = "https://steamusercontent-a.akamaihd.net/ugc/16430283484958415/177A27B5110AACB3297427BED28BFA8B5C9B990D/"},
-
-        {name = "Standard Deck Tile",url="https://steamusercontent-a.akamaihd.net/ugc/1760320391479023162/017FC34EB2A5461BA9907A6655C19031F88CBF46/"},
-        {name = "Exiles and Partisans Deck Tile",url="https://steamusercontent-a.akamaihd.net/ugc/1760320391479024026/F0F9819595316F0C4002C81902F616579B413F2C/"},
-        {name = "Squires and Disciples Deck Tile",url="https://steamusercontent-a.akamaihd.net/ugc/16423272747872045/D2F069B918E0EFBC461DEA2920B5FFE3282BB053/"},
-
-        {name = "Sorcery of the Enchanted Woods Deck Tile",url="https://steamusercontent-a.akamaihd.net/ugc/1760320391479024813/177A27B5110AACB3297427BED28BFA8B5C9B990D/"},
-        {name = "Upstarts and Renegades Deck Tile",url="https://steamusercontent-a.akamaihd.net/ugc/1760320391479025626/177A27B5110AACB3297427BED28BFA8B5C9B990D/"},
-        {name = "Dawn and Dusk Deck Tile",url = "https://steamusercontent-a.akamaihd.net/ugc/16419302161430663/177A27B5110AACB3297427BED28BFA8B5C9B990D/"},
-        {name = "Offensive Deck Tile",url = "https://steamusercontent-a.akamaihd.net/ugc/16423272747851258/177A27B5110AACB3297427BED28BFA8B5C9B990D/"},
-        {name = "Crafty Tactics Deck Tile",url = "https://steamusercontent-a.akamaihd.net/ugc/16423272747855386/177A27B5110AACB3297427BED28BFA8B5C9B990D/"},
 
 
-        {name = "60 Card Master Deck Tile",url = "https://steamusercontent-a.akamaihd.net/ugc/1760320391479026649/177A27B5110AACB3297427BED28BFA8B5C9B990D/"},
-        {name = "Dark Deck Tile",url = "https://steamusercontent-a.akamaihd.net/ugc/1759199733284882024/177A27B5110AACB3297427BED28BFA8B5C9B990D/"},
 
 
-        {name = "draftBackButton",url="https://steamusercontent-a.akamaihd.net/ugc/1809859531500249680/07F53AB05F97BFCD0B372B60ECCAC2534D03C9C0/"},
-        {name = "draftJoinButton",url="https://steamusercontent-a.akamaihd.net/ugc/1809859531500252810/618CF62B03AC113700F5F3C82C6CC143BD7980CB/"},
-        {name = "draftLeaveButton",url="https://steamusercontent-a.akamaihd.net/ugc/1809859531500254831/DCCA54261EE8176EA4D4A367CD6D510669EE36C7/"},
-        {name = "draftOkayButton",url="https://steamusercontent-a.akamaihd.net/ugc/1809859531500256036/0B98A2667B87E1D56069A516C7467A2F3251C00E/"},
-        {name = "draftCheckRosterButton",url="https://steamusercontent-a.akamaihd.net/ugc/1809859531500256753/7BE44363B3AB5E9B20DFFF21F9A8D1E8D157656D/"},
-        {name = "Checkmark",url="https://steamusercontent-a.akamaihd.net/ugc/1809859531500339787/BCB16EAAD444C96B77E2DC230473C89086269CBF/"},
+
+
         {name = "Xmark",url="https://steamusercontent-a.akamaihd.net/ugc/1809859531500279761/E8108BE85DEBE1F569D9FDF951FA0D2DEA769CB8/"},
 
-        {name = "Birdsong0",url="https://steamusercontent-a.akamaihd.net/ugc/1859434101951710722/B363F2041887AB57F90C594D7036F7FD1745086C/"},
-        {name = "Birdsong1",url="https://steamusercontent-a.akamaihd.net/ugc/1859434101951712863/B1CD398C494BE01C9D4E4753E9F915D7EB54E460/"},
-        {name = "Birdsong2",url="https://steamusercontent-a.akamaihd.net/ugc/1859434101951713498/B99906D69F79A91FFEEE4444152EA31E923FDA42/"},
-        {name = "Birdsong3",url="https://steamusercontent-a.akamaihd.net/ugc/1859434101951714181/CAAC38556E5D2111DA5D75EB136635CA9645C52A/"},
 
-        {name = "Birdsong5",url="https://steamusercontent-a.akamaihd.net/ugc/1859434101951715139/8ECE46813DCB1D48B3D36A419B88C24C80FAAD93/"},
-        {name = "Birdsong6",url="https://steamusercontent-a.akamaihd.net/ugc/1859434101951715881/7927CA35AB21A6D5BCD9D1249027B258D82A2648/"},
 
-        {name = "Birdsong8",url="https://steamusercontent-a.akamaihd.net/ugc/9782098988954605361/BA62008C2AF294CD69A76E2AACE1DB88923C85CF/"},
-        {name = "Birdsong9",url="https://steamusercontent-a.akamaihd.net/ugc/1859434101951718461/65E9006F827C7FC2D5180838E6C4A49F8040D8F5/"},
 
-        {name = "Daylight00",url="https://steamusercontent-a.akamaihd.net/ugc/1809859799002351912/627D5210E8BCE36A77E184822010EF2C61F7DEDC/"},
-        {name = "Daylight0",url="https://steamusercontent-a.akamaihd.net/ugc/1809859799002352594/072F0CCC9D517E9FADC65F7BDE8256398266B047/"},
-        {name = "Daylight1",url="https://steamusercontent-a.akamaihd.net/ugc/1809859799002353118/D1293E1872A2FF7B6CAF0B439AC7D4EE55D90224/"},
-        {name = "Daylight2",url="https://steamusercontent-a.akamaihd.net/ugc/1809859799002353766/6F439F94DE0CB726A10D42931F22CF32D2A4D1CA/"},
-        {name = "Daylight3",url="https://steamusercontent-a.akamaihd.net/ugc/1809859799002354394/01E665731D3A10966A85E4059731CBAAC99F661A/"},
-        {name = "Daylight4",url="https://steamusercontent-a.akamaihd.net/ugc/1809859799002354943/AD7A3863BC48FE4CB38148457B42AC00D8BC8EBE/"},
-        {name = "Daylight5",url="https://steamusercontent-a.akamaihd.net/ugc/1809859799002355565/BEA908D461229491144DC3CEE3047769C645D30E/"},
-        {name = "Daylight6",url="https://steamusercontent-a.akamaihd.net/ugc/1809859799002356204/0253E139941420EA32CBF63EEB066962A30EE1E3/"},
-        {name = "Evening1",url="https://steamusercontent-a.akamaihd.net/ugc/1809859799002356838/C3AF19CCCD1E81E2422E82E60EA512AC12CE5C0C/"},
 
-        {name = "DraftBanner",url="https://steamusercontent-a.akamaihd.net/ugc/1859434258001698297/806BC83B3E94AC2454A3E285AC67B90424959125/"},
 
-        {name = "Random White",url = "https://steamusercontent-a.akamaihd.net/ugc/1760320391476513193/BC24B78DB0EB7F04B03D162BD7C9C4DC56F6BA30/"},
-        {name = "Exit White",url = "https://steamusercontent-a.akamaihd.net/ugc/1760320391476521209/314B380DED440A1EA71186A6E99FB3C59402C3C4/"},
-        {name = "StartDraftButton",url="https://steamusercontent-a.akamaihd.net/ugc/1760320391476562674/F7F1CF96513DDEA45A8F3676A265A88E63C676A1/"},
-        {name = "WhiteNext",url="https://steamusercontent-a.akamaihd.net/ugc/1809859799003114048/CF48A3023C92C86A4A3D145367AFD84F23681D07/"},
 
-        {name = "HirelingSetupMessage", url = "https://steamusercontent-a.akamaihd.net/ugc/1782839166827486343/6117E1938803CFB27B9B5E11AE5211EA1D586847/"},
 
-        {name = "StartGameButton",url="https://steamusercontent-a.akamaihd.net/ugc/1760320391483979109/439A3ED93AA7CCEA361EE156603836D8D1AC6213/"},
-        {name = "DoneButton",url="https://steamusercontent-a.akamaihd.net/ugc/1760320391477467005/7C3F17A8356F03ED9959F45D9B75D4806753293D/"},
 
-        {name = "RedOnlyText", url="https://steamusercontent-a.akamaihd.net/ugc/1859433104053128068/C897405AA4A79F6BB6BB1FCB437A7DCCE4816E5D/"},
-        {name = "StayRed",url="https://steamusercontent-a.akamaihd.net/ugc/1760320391478913266/D2EB4AB85F5F10C192BB144B002A32DCF92B3265/"},
-        {name = "BringItOn",url="https://steamusercontent-a.akamaihd.net/ugc/1760320391478914056/E3198ED7968E6049D0C66D8FB999C5CACC59DBCC/"},
-        {name = "RootLogo",url="https://steamusercontent-a.akamaihd.net/ugc/1760320391484168782/6AB3B3D66178AF6937DE96321EB5E9898C6B088B/"},
 
-        {name = "SixPack",url="https://steamusercontent-a.akamaihd.net/ugc/16420027251539438/5ACED6C71A4D2C7292355986C1279349C00BA49E/"},
 
         -- Tournament Assets
-        {name = "GSGBanner",url="https://steamusercontent-a.akamaihd.net/ugc/1695030024164477202/952098BA4C12862A95CE19110B12227B85D86086/"},
-        {name = "TournamentJoin",url = "https://steamusercontent-a.akamaihd.net/ugc/1695030024164509942/2152ADCBD171129717DE63FDA374C83BAF8FE11D/"},
-        {name = "TournamentLeave",url = "https://steamusercontent-a.akamaihd.net/ugc/1695030024164511274/1E4D84852505A07139E4D43B2CF485CEBB7D206B/"},
-        {name = "TournamentStartDraft",url = "https://steamusercontent-a.akamaihd.net/ugc/1695030024164512460/F7E49A635F4B70694FDAC469A384D12BE67DD16B/"},
-        {name = "TournamentSide1",url = "https://steamusercontent-a.akamaihd.net/ugc/1695030024164513547/295D37261C5874179FFCE36C5433EC81C0B20EDD/"},
 
-        {name = "TournamentSide2",url = "https://steamusercontent-a.akamaihd.net/ugc/1695030024165938810/12D932C8F3B369CF5DADB6716C431DF02EF0BDA6/"},
-        {name = "TournamentMapLabel",url = "https://steamusercontent-a.akamaihd.net/ugc/1695030024165950555/18567DBC2FAF017705789C5493F5DB8E34F3AF09/"},
 
-        {name = "ExtraChairsWhite",url = "https://steamusercontent-a.akamaihd.net/ugc/1786233211071686717/6EC913639AC72B7CE6D04A9BB36D715A218B1793/"},
 
-        {name = "DoubleEntente",url="https://steamusercontent-a.akamaihd.net/ugc/1786233211086829774/D34DED7CBC4DDF71B6E3BD78C2DEBC90F3176531/"},
-        {name = "ActionDeck",url="https://steamusercontent-a.akamaihd.net/ugc/1786233211086847220/627C599441E86F86731BEDF96B23634C36882F78/"},
-        {name = "Lost Woodland Map",url="https://steamusercontent-a.akamaihd.net/ugc/1786233211086883130/5B96E0370A42D4CC2C97569EDFF7624621471EDF/"},
         {name = "Warriors Wake",url="https://steamusercontent-a.akamaihd.net/ugc/1786233211086912182/563B6D9C9AFC31863D36B443728319131A2B4E03/"},
         {name = "Woodland Revolution", url="https://steamusercontent-a.akamaihd.net/ugc/1833522185818215151/BD81EFECC6902E60CAFE69E4D0097FDE9B1C86EB/"},
 
-        {name = "DoomedBerzeker",url="https://steamusercontent-a.akamaihd.net/ugc/1833522185818575000/34288530419DF2000AB07BE9C6F76F4F390810E9/"},
-        {name = "DoomedBarkeep",url="https://steamusercontent-a.akamaihd.net/ugc/1833522185818575539/E85CCE19EC8F6CDFAE22F78B30128A529EAE7BAD/"},
-        {name = "DoomedBlacksmith",url="https://steamusercontent-a.akamaihd.net/ugc/1833522185818574236/99EEEF30B3667FB22F243008BCA1368EE3E05338/"},
-        {name = "DoomedSwindler",url="https://steamusercontent-a.akamaihd.net/ugc/1833522185818573545/FC3E6F9A6C7EC90D212555F80BAB19A44BE34782/"},
-        {name = "DoomedBard",url="https://steamusercontent-a.akamaihd.net/ugc/1833522185818576295/160397A5A0DC4B0CA28B90CFB07C0C005A153B44/"},
-        {name = "DoomedZealot",url="https://steamusercontent-a.akamaihd.net/ugc/1833522185818570837/5AD9E0C3A070B225F367DA2D8B2FF19B45DE01AE/"},
-        {name = "DoomedFate",url="https://steamusercontent-a.akamaihd.net/ugc/1833522185818445287/72392A96AED1472DDC31D3867B7742B316703314/"},
 
         {name = "Black Creek Pirates II",url="https://steamusercontent-a.akamaihd.net/ugc/1874056202036022996/426F024995C896F8DFB53D5F51BA8100A213AB64/"},
 
         {name = "Mob Lobber",url="https://steamusercontent-a.akamaihd.net/ugc/1871806044359108580/ED91771BFC667788679555DC9F9E7E175E5A2346/"},
-        {name = "Quest Freshener",url="https://steamusercontent-a.akamaihd.net/ugc/1871806044359176221/007B74BEF5F41C8CF1E3BC6371B8746F85149C5B/"},
 
         {name = "Ginso's Gizmo",url="https://steamusercontent-a.akamaihd.net/ugc/1871808701913894000/9E9D2A27ADC818413936D98C3194E03E87A8726A/"},
         {name = "Supply Knight",url="https://steamusercontent-a.akamaihd.net/ugc/16420027239829921/595B9928F56465239300E6A54C4A27E53F6E04F5/"},
-        {name = "Snow Kingdom ii",url="https://steamusercontent-a.akamaihd.net/ugc/1871808701913905742/C512B939A77659A639B338D3D7100B46D3B80078/"},
-        {name = "Black Paw Bandits",url="https://steamusercontent-a.akamaihd.net/ugc/1871808701913909385/F2E9E01AA0ACFB1783D550FBC0578AD57B21E84F/"},
 
         {name = "Urban Map", url="https://steamusercontent-a.akamaihd.net/ugc/1856049403360886234/7DACC2ADA249351AA203BD55EEABE021F13D7AB5/"},
-        {name = "MashUp", url="https://steamusercontent-a.akamaihd.net/ugc/1856049403372487506/800F1C1E00650FB92603080C3A95FD42E58BFD56/"},
-
-        {name = "Robot Die", url="https://steamusercontent-a.akamaihd.net/ugc/1862805937564898964/DBFF836F27862D7E04DD45FE1D4FAEABDC02DDD5/"},
-
-        {name = "Reach Cell", url="https://steamusercontent-a.akamaihd.net/ugc/1859434225080798164/0D2C17759DEFDC174D12198136404A7ECE05FC5F/"},
-        {name = "Reach Cell 10", url="https://steamusercontent-a.akamaihd.net/ugc/1859434225080859685/DBC14BF55B906F73925CB99D2A48D8653A6E8655/"},
-        {name = "Reach Cell 20", url="https://steamusercontent-a.akamaihd.net/ugc/1859434225080861783/D301E68CB89DCDF96782CDCCBFE22C1D0E2526C1/"},
-        {name = "Reach Cell 30", url="https://steamusercontent-a.akamaihd.net/ugc/1859434225080862473/E48961307C71CBA6CA9189BDD625E8B84ED2C7F1/"},
-        {name = "Reach Cell 40", url="https://steamusercontent-a.akamaihd.net/ugc/1859434225080863963/4EA3989FC5CAFDC6E584E2B1A0E7FCB232DE02D8/"},
-        {name = "Reach Cell Dot", url="https://steamusercontent-a.akamaihd.net/ugc/1859434225080904939/F4D3FC049DECCCE5EF930CCDC003EA22C207459E/"},
-        {name = "Reach Cell Dots", url="https://steamusercontent-a.akamaihd.net/ugc/1859434225080905685/C05EF88D19BEF812487A9429502BD9071769B44E/"},
 
 
-        {name = "DraftFactionPick", url="https://steamusercontent-a.akamaihd.net/ugc/1859434225081613222/2464BDE6BF73D6522AA8BBDB37CB6B5EBD6A4B99/"},
-        {name = "DraftFactionSetup", url="https://steamusercontent-a.akamaihd.net/ugc/1859434225081615866/317E175EE2E15A84723CA8510B3B0D74D0B19332/"},
 
-        {name = "standardSelection", url="https://steamusercontent-a.akamaihd.net/ugc/1859434388160724128/3ACB262AA7620A4108D09D1437F9DFA3EE95A62F/"},
-        {name = "adsetSelection", url="https://steamusercontent-a.akamaihd.net/ugc/1859434388160745758/EF66E3413945D78D73E0D27E4AD1F3038C687ACA/"},
+
+
 
         -- New Fan Factions // 11/11/2024
-        {name = "Chameleander",url = "https://steamusercontent-a.akamaihd.net/ugc/14792217880038068722/443149AE6BAF4858C2C37624115DBB25B4CCD119/ "},
-        {name = "Cirque du Goat",url = "https://steamusercontent-a.akamaihd.net/ugc/16419302165190285/136D31C871008C148D5C51EF9EA5462567AA8E2D/"},
-        {name = "Thewy Info", url = "https://steamusercontent-a.akamaihd.net/ugc/16419302164246797/5919C074E0FD61B002BCF188F139EF40F5417A51/"},
 
-        {name = "United Colonies", url = "https://steamusercontent-a.akamaihd.net/ugc/16419302165168501/BC91D59F9BB0F7A614600570FCCCF8C6ADA91C42/"},
-        {name = "Disasterman52 and Mysteryboxx Info", url = "https://steamusercontent-a.akamaihd.net/ugc/16419302165171019/8CA7FDD0DAD03982F916C9CEB627921B7645D883/"},
-        {name = "SP Shaman and Disasterman Info", url = "https://steamusercontent-a.akamaihd.net/ugc/16419302166075461/3AF848F2E28286CF03A65CAFEA159F312B1A3363/"},
 
-        {name = "KnightMiner Info",url = "https://steamusercontent-a.akamaihd.net/ugc/16420027239835212/17EF891649EAC732AD14DB5F4BF5EEF86A8B40F0/"},
-        {name = "Crafty Tactics Deck",url ="https://steamusercontent-a.akamaihd.net/ugc/16420027239845541/86839DB8FD22242FE6C266B180CBC112571E6D33/"},
-        {name = "Phoenix1147 Info",url = "https://steamusercontent-a.akamaihd.net/ugc/16420027239840004/BE2E5831BF0712A048CE2DA1AF1034F44FD6F002/"},
 
-        {name = "Borough Kings",url = "https://steamusercontent-a.akamaihd.net/ugc/16420027245499554/5D1F4D0E5757E0954CBA8DAD5A974770C0240A49/"},
         {name = "Host of Light",url = "https://steamusercontent-a.akamaihd.net/ugc/16420027245496603/0CEAE160AA06FE2B5EBF9C9586CDD385368F0A21/"},
 
-        {name = "Nuanced Quest Deck",url = "https://steamusercontent-a.akamaihd.net/ugc/16421205162192184/0EB23DE14DEEB692BC718D1995877FFEE0F308E6/"},
-        {name = "Offensive Deck",url = "https://steamusercontent-a.akamaihd.net/ugc/16421205162192117/FE3156709F13ED9B46C72C676C938853FB60878D/"},
 
-        {name = "Whisperers Guild", url = "https://steamusercontent-a.akamaihd.net/ugc/16423272747455615/99B53E84E6D62963A9E68ACBA0DA23B7827BF9A0/"},
-        {name = "Doomsayers Union", url = "https://steamusercontent-a.akamaihd.net/ugc/16423272747453068/B48EB4FDFB2F15F821BB790DEFDA664305667245/"},
 
-        {name = "New Hirelings", url = "https://steamusercontent-a.akamaihd.net/ugc/16427546922849855/F1FF06471CC23933E6353A97282366553F710C5A/"},
 
-        {name = "The Ooze", url = "https://steamusercontent-a.akamaihd.net/ugc/16430083180899816/2B561DA929D17784EFA2AB394FC94DB30E865ABB/"},
-        {name = "Bot Upgrade Button", url = "https://steamusercontent-a.akamaihd.net/ugc/9686778829007578801/50A4993C8E7C2A0F10AAFA38FD3C762EE6B672AE/"},
 
     }
 
@@ -780,26 +335,12 @@ _G['BotRoster'] = {}
 
 
 
-function kickPlayersFromSeats()
-  for _, p in pairs(Player.getPlayers()) do
-    if p.color != "White" and p.color != "Black" then
-      p.changeColor("Grey")
-    end
-  end
-end
 
 local handScale = {20,6,4}
 local handRotations = {{0,0,0},{0,180,0}}
 local handPositions = {{52.00,14.62,-64.00},{0.00,14.62,-64.00},{-52.00,14.62,-64.00},{-52.00,14.62,64.00},{0.00,14.62,64.00},{52.00,14.62,64.00}}
 
 
-function placePlayer(player,color,pos,rot)
-
-  player.changeColor(color)
- 
-  Player[color].setHandTransform({position = handPositions[pos],rotation = handRotations[rot],scale = handScale})
-
-end
 
 
 local setupColors = {"Red","Yellow","Orange","Teal","Green","Brown"}
@@ -982,7 +523,6 @@ local allowedFactions = {false, false, false, false, false, false, false, false,
 
 
 function infoEhssAndSlug() setInfo("Ehss and Slug Info") end
-function infoJustin() setInfo("JustinInExile Info") end
 
 
 
@@ -1628,54 +1168,6 @@ function makeVagabondLayout(i,faction,color)
 end
 
 
-function spawnTournamentDraftFaction(i,faction,color)
-
-  local pos = getPosition(color,#_G["Roster"])
-
-  -- makes vagabond basics board
-
-  if isVagabond(faction) then
-    makeVagabondLayout(i,"Vagabond Layout",color)
-  end
-
-  local objects = {}
-
-  objects = EVERYTHING['Standard'][faction]['data']
-  local scale = self.getScale()
-  scale.x = 1/scale.x
-  scale.z = 1/scale.z
-  function callback(o)
-
-    if flipSide(color,#_G['Roster']) then
-      o.setRotation({o.getRotation().x, o.getRotation().y + 180, o.getRotation().z})
-    else
-      o.setRotation({o.getRotation().x, o.getRotation().y, o.getRotation().z})
-    end
-
-    if _G['vagabondAlreadySpawned'] then
-      if o.hasTag("Quest") then o.destroy() end
-    else
-      if o.hasTag("Ruin Set") then o.destroy() end
-    end
-
-      if o.hasTag("Shuffleable") then o.shuffle() o.shuffle() end
-  end
-  for _,v in ipairs(objects) do
-      local vec = Vector(v.move_to) * scale
-      if flipSide(color,#_G['Roster']) then
-        vec = vec * Vector(-15.5 , 1, -15.5)
-      else
-          vec = vec * Vector(15.5, 1, 15.5)
-      end
-      local new_pos = pos + vec
-      new_pos.y = new_pos.y - 0.1
-      spawnObjectJSON({
-          json              = v.json,
-          position          = new_pos,
-          callback_function = callback
-      })
-  end
-end
 
 
 
@@ -1755,10 +1247,6 @@ function allButtonsOff()
   self.UI.setAttribute("setupButtons", "active", "False")
 end
 
-function standard()
-  allButtonsOff()
-  self.UI.setAttribute("standardButtons","active","True")
-end
 
 -- ---- Credits ---------------------------------------------------------------------------------
 -- The board used to carry a baked credit in its top-right corner. It is gone from the wood, and the
@@ -1867,9 +1355,6 @@ end
 
 
 
-function tools1()
-  self.UI.setAttribute("tools1","active","True")
-end
 
 
 
@@ -2934,24 +2419,6 @@ end
 
 
 
-function toggleTool(player,value,id)
-  local guid = ""
-
-  if id == "Supply Knight" then guid = "740edf" end
-  -- Ginso's Gizmo deliberately has NO branch here: the gizmo is no longer an OBJECT at all. Its script
-  -- is ported into this board (see the gizmo section at the end of this file), so its NUMPAD hotkeys
-  -- work with nothing on the table.
-
-  for i, object in pairs(getObjects()) do
-    if (object.getGUID() == guid) then
-      object.destruct()
-      return
-    end
-  end
-
-  makeTool(player,value,id)
-
-end
 
 
 
@@ -3002,21 +2469,11 @@ end
 
 
 
-function makeBattleMat(player,value,id)
-  -- tagged "Map Object" so it is cleared by removeMapItems on the next map placement, exactly
-  -- like the mat rttPlaceMap spawns. Without the tag the tool-spawned mat survived the clear and
-  -- a second mat spawned on top of it. toggleSpecial (inside makeSpecial) keeps the click-to-remove.
-  makeSpecial("Tools","Battle Mat",33.17,1.55,9.21,nil,"Map Object")
-end
 
 
 
 
 
-function makeLizardWizard(player,value,id)
-  makeSpecial("Tools","Lizard Wizard",-29.79-0.73,1.55,10.03,180)
-  summonLizardBlocker()
-end
 
 function makeDarkDeckSpecials()
   makeSpecialWithTag("Tools","Dark Side Card",31.6,1.55,22.57,"Deck Object")
@@ -3732,7 +3189,7 @@ end
 -- their card's number and handed the matching "Player N" card, so it lands in their own hand.
 --
 -- NOBODY IS RECOLOURED (maintainer, 2026-09-05: "players join the game, they can pick their color,
--- this should never be forced"). This used to copy the base mod's placePlayer: kick the whole table
+-- this should never be forced"). This used to copy the base mod's own seating: kick the whole table
 -- to Grey, then changeColor everyone into RTT_SETUP_COLORS[seat]. In TTS the HAND -- and the cards in
 -- it, and the slot in Turns.order -- belongs to the COLOUR, so forcing a colour takes a player's hand
 -- away from them and hands it to whoever gets that colour next. What the draft actually needs to
@@ -3788,7 +3245,7 @@ function rttSeatPlayers()
   end
   -- TWO PHASES, because a straight swap cannot work: when Red must become Yellow while Yellow becomes
   -- Red, each changeColor is refused for a colour somebody still holds. Park everyone who is standing
-  -- on a colour that is not theirs in Grey first -- the base mod's own kickPlayersFromSeats trick --
+  -- on a colour that is not theirs in Grey first -- the base mod's own kick-everyone-to-Grey trick --
   -- and then every target is free. Grey is this mod's spectator seat and holds any number of players.
   local target = {}
   for _, w in ipairs(want) do if w.c ~= nil then target[w.c] = true end end
