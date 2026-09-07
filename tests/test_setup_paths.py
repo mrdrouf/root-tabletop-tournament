@@ -1138,14 +1138,11 @@ def t_camera_states_are_the_hosts(src):
 
 
 def t_the_turn_panel_is_an_option_not_the_default(src):
-    """The clock and counter still ship; the turn panel is a button that swaps them.
+    """The turn panel is what SHIPS; its button swaps back to the old clock and counter.
 
-    Maintainer, 2026-09-07, on the first draft: "looks like shit at the moment ... at the moment make
-    this an option to replace the clock and counter. make an option button for that so while we work on
-    it the rest can keep being functional."
-
-    So rttSpawnMapExtras spawns the clock and counter as before, and rttToggleTurnPanel swaps either
-    way. The panel is still a FIXTURE while it is out, so a map change does not restart its clock.
+    Maintainer, 2026-09-07: "make this clock qnd counter the one by default". It was the other way round
+    for a day while the panel was being shaped -- the roles are reversed now, and the old pair is kept
+    so the button has something to swap to.
     """
     rt = fresh(src)
     # the clock and counter are back, and they are what a map places
@@ -1153,11 +1150,11 @@ def t_the_turn_panel_is_an_option_not_the_default(src):
         assert key in src, "%s is missing; the panel was meant to be optional, not a replacement" % key
     rt.execute("pcall(function() makeMap('', '', 'Summer Map') end) FLUSH(60)")
     spawned = [str(x) for x in (rt.eval("REC.spawned") or {}).values()]
+    assert any(l.startswith("Turn Panel@") for l in spawned), \
+        "the turn panel did not come with the map (spawned: %s)" % spawned[:8]
     for name in ("Digital_Clock", "Counter"):
-        assert any(l.startswith(name + "@") for l in spawned), \
-            "%s did not come with the map (spawned: %s)" % (name, spawned[:8])
-    assert not any(l.startswith("Turn Panel@") for l in spawned), \
-        "the turn panel spawned with the map; it should only appear when its button is pressed"
+        assert not any(l.startswith(name + "@") for l in spawned), \
+            "%s spawned with the map; the panel is the default now" % name
 
     # the toggle exists and is wired to a button
     assert "function rttToggleTurnPanel" in src, "no rttToggleTurnPanel"
@@ -2473,11 +2470,11 @@ def t_table_fixtures_survive_a_map_change(src):
     rttNewGame drops it and the map refresh spawns a new one. The other three persist even then --
     nothing about them belongs to a particular game.
     """
-    NAMES = ("Battle Mat", "Digital_Clock", "Counter", "Root Box Score")
+    NAMES = ("Battle Mat", "Turn Panel", "Root Box Score")
     Q = ("function()\n  local t = {}\n"
          "  for _, o in ipairs(getAllObjects()) do\n"
          "    local n = o.getName() or ''\n"
-         "    for _, w in ipairs({'Battle Mat','Digital_Clock','Counter','Root Box Score'}) do\n"
+         "    for _, w in ipairs({'Battle Mat','Turn Panel','Root Box Score'}) do\n"
          "      if n == w then t[#t+1] = n .. '|' .. o.getGUID() end\n"
          "    end\n  end\n  table.sort(t)\n  return table.concat(t, ';')\nend")
 
@@ -2513,7 +2510,7 @@ def t_table_fixtures_survive_a_map_change(src):
         "a new game left %s box score sheets" % len(after.get("Root Box Score", []))
     assert after["Root Box Score"] != first["Root Box Score"], \
         "a new game kept the OLD box score; it would still hold the previous game"
-    for n in ("Battle Mat", "Digital_Clock", "Counter"):
+    for n in ("Battle Mat", "Turn Panel"):
         assert after[n] == first[n], "%s was rebuilt by a new game; nothing about it is per-game" % n
 
 
@@ -2565,45 +2562,38 @@ def t_send_home_fills_from_the_players_own_right(src):
 
 
 def t_the_turn_panel_button_really_swaps_them(src):
-    """Pressing Turn Panel must REMOVE the clock and counter, and pressing it again bring them back.
+    """The button swaps the panel for the old clock and counter, and back.
 
-    Maintainer, 2026-09-07, with a screenshot of both sitting on top of each other: "not replacing
-    properly clock and counter when chosen".
+    Maintainer, 2026-09-07, when they were stacked on top of each other: "not replacing properly clock
+    and counter when chosen". The cause was a name lookup -- both ship with a BLANK Nickname and TTS's
+    getName() returns the nickname, so matching on "Digital_Clock" found nothing. The harness could not
+    see it either: the stub falls back to an object's Name when the nickname is empty, which TTS does
+    not do. So this counts BY TAG, which the stub cannot fake.
 
-    The cause was a name lookup. The clock and counter ship with a BLANK Nickname, and TTS's getName()
-    returns the nickname -- so rttFixture("Digital_Clock") matched nothing in the game and the toggle
-    had nothing to destroy. The harness could not see it, because the stub falls back to an object's
-    Name when its nickname is empty, which TTS does not do.
-
-    So this checks by TAG, which is what the code now uses and what the stub cannot fake.
+    The panel is the default now, so the swap runs the other way round.
     """
-    COUNT = ("function(t) return #getObjectsWithTag(t) end")
+    COUNT = "function(t) return #getObjectsWithTag(t) end"
     rt = fresh(src)
     rt.execute("SEAT('Purple','H1')")
     rt.execute("pcall(function() makeMap(Player['Purple'],'','Summer Map') end) FLUSH(200)")
     n = rt.eval(COUNT)
-    assert n("RTT Clock") == 1 and n("RTT Counter") == 1, \
-        "the map should place one clock and one counter, got %d/%d" % (n("RTT Clock"), n("RTT Counter"))
-    assert n("RTT Panel") == 0, "the panel is out before anyone pressed its button"
+    assert n("RTT Panel") == 1, "the map should place the panel, got %d" % n("RTT Panel")
+    assert n("RTT Clock") == 0 and n("RTT Counter") == 0, \
+        "the old clock/counter came with the map (%d/%d)" % (n("RTT Clock"), n("RTT Counter"))
 
     rt.execute("pcall(function() rttToggleTurnPanel() end) FLUSH(60)")
-    assert n("RTT Panel") == 1, "the button did not put the panel out"
-    assert n("RTT Clock") == 0 and n("RTT Counter") == 0, \
-        "the clock/counter survived the swap (%d/%d) -- they would sit on top of the panel" % (
-            n("RTT Clock"), n("RTT Counter"))
+    assert n("RTT Panel") == 0, "the button did not take the panel away"
+    assert n("RTT Clock") == 1 and n("RTT Counter") == 1, \
+        "the button did not bring back the clock and counter (%d/%d)" % (n("RTT Clock"), n("RTT Counter"))
 
-    # a map change must not bring them back while the panel is out
     rt.execute("pcall(function() makeMap(Player['Purple'],'','Marsh Map') end) FLUSH(200)")
-    assert n("RTT Clock") == 0 and n("RTT Counter") == 0, \
-        "a map change re-spawned the clock/counter under the panel"
-    assert n("RTT Panel") == 1, "the panel did not survive a map change"
+    assert n("RTT Panel") == 0, "a map change re-spawned the panel on top of the clock"
+    assert n("RTT Clock") == 1 and n("RTT Counter") == 1, "the clock/counter did not survive a map change"
 
-    # and pressing again puts them back
     rt.execute("pcall(function() rttToggleTurnPanel() end) FLUSH(60)")
-    assert n("RTT Panel") == 0, "the second press left the panel out"
-    assert n("RTT Clock") == 1 and n("RTT Counter") == 1, \
-        "the second press did not restore the clock and counter (%d/%d)" % (
-            n("RTT Clock"), n("RTT Counter"))
+    assert n("RTT Panel") == 1, "the second press did not restore the panel"
+    assert n("RTT Clock") == 0 and n("RTT Counter") == 0, \
+        "the old pair survived the swap back (%d/%d)" % (n("RTT Clock"), n("RTT Counter"))
 
 
 CASES = [
@@ -2619,7 +2609,7 @@ CASES = [
     ("order cards cleared by a new game",    t_order_cards_do_not_survive_a_new_game),
     ("duchy burrow spawns locked",           t_the_duchy_burrow_spawns_locked),
     ("camera states are the host's",         t_camera_states_are_the_hosts),
-    ("turn panel is an option",            t_the_turn_panel_is_an_option_not_the_default),
+    ("turn panel is the default",         t_the_turn_panel_is_an_option_not_the_default),
     ("turn panel button swaps them",       t_the_turn_panel_button_really_swaps_them),
     ("crow plots inside the hidden zone",    t_crow_plots_spawn_inside_the_hidden_zone),
     ("crafted board same side for all",      t_crafted_board_sits_the_same_side_for_every_faction),
