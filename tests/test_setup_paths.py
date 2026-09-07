@@ -2858,62 +2858,68 @@ def t_send_home_asks_no_permission(src):
 
 
 def t_numpad_two_lays_a_warrior_down_and_back_up(src):
-    """Down: flat, cream, locked. Up: exactly as it stood, whatever colour that was.
+    """Down: flat on the board, locked, with a disc under it in the presser's colour. Up: as it was.
 
-    Maintainer, 2026-09-07: "pressing numpad 2 should put a warrior laying down; change the color of
-    the warrior cream white ... and lock it. repressing numpad 2 undoes all of that." ANY warrior --
-    he was asked, and said opponents' too, unlike numpad 0.
+    Maintainer, 2026-09-07: "pressing numpad 2 should put a warrior laying down ... and lock it.
+    repressing numpad 2 undoes all of that", then "instead of changing the color of the piece have a
+    small circly be drawn under the piece, a little bit transparent, and of the color of the player
+    doing it". The piece keeps its own paint -- repainting it lost the faction's colour and read as
+    damage -- and the marker says WHO put it down, which a tint never could.
 
-    Undo has to hand back the piece's OWN tint. Every faction's warrior carries a different one and
-    three of them are plain white because the colour is in the texture, so a blanket "set it white"
-    would repaint half the mod. Warriors only: a building is not the key's business.
+    ANY warrior, his call when asked, not only your own.
     """
     rt = fresh(src)
     rt.execute("""
-      MINE   = MKOBJ("Eyrie Warrior", {1,1,1}, {})
-      MINE.setColorTint({r=0.145, g=0.457, b=0.810})
+      LASTJSON = nil
+      local real = spawnObjectJSON
+      spawnObjectJSON = function(p) LASTJSON = p.json return real(p) end
+      MINE = MKOBJ("Eyrie Warrior", {1,1,1}, {})
       MINE.setRotation({0, 137, 0})
-      THEIRS = MKOBJ("Marquise Warrior", {2,1,2}, {})
-      ROOST  = MKOBJ("Eyrie Roost", {3,1,3}, {})
-      Global.setVar("RTT_SEAT_COLOR", JSON.encode({ ["Eyrie Dynasties"] = "Red" }))
+      MINE.__bounds = {size = Vector({1, 3, 1}), center = Vector({1, 2.5, 1})}
+      THEIRS = MKOBJ("Cat Warrior", {2,1,2}, {})
+      ROOST  = MKOBJ("Roost", {3,1,3}, {})
     """)
 
     def state(obj):
-        rt.execute("local o = %s T = o.getColorTint() R = o.getRotation() L = o.getLock()" % obj)
-        t, r = rt.eval("T"), rt.eval("R")
-        return (round(t.r, 3), round(t.g, 3), round(t.b, 3)), (round(r.x, 1), round(r.y, 1)), rt.eval("L")
+        rt.execute("local o = %s R = o.getRotation() L = o.getLock() P = o.getPosition()" % obj)
+        r, p = rt.eval("R"), rt.eval("P")
+        return (round(r.x, 1), round(r.y, 1)), rt.eval("L"), (round(p.x, 3), round(p.y, 3), round(p.z, 3))
 
     before = state("MINE")
-    assert before == ((0.145, 0.457, 0.81), (0.0, 137.0), False), before
+    assert before == ((0.0, 137.0), False, (1.0, 1.0, 1.0)), before
 
-    # a standing warrior is 3 tall with its foot on the board; flat it is 1 thick, so TTS reports a
-    # different box and the piece has to come DOWN by the difference or it locks in mid-air.
-    rt.execute("MINE.__bounds = {size = Vector({1, 3, 1}), center = Vector({1, 2.5, 1})}")
+    # rotating shortens the box without moving it, so the foot rises and the piece must come down
     rt.execute('HOVER["Red"] = MINE rttGizmoLay("Red") '
                'MINE.__bounds = {size = Vector({1, 1, 3}), center = Vector({1, 2.5, 1})} FLUSH(3)')
-    tint, rot, locked = state("MINE")
+    rot, locked, pos = state("MINE")
     assert locked is True, "a laid warrior was not locked"
-    rt.execute("P = MINE.getPosition()")
-    assert abs(rt.eval("P").y - 0.0) < 0.001, (
-        "the laid warrior did not come down onto the board: y %s" % rt.eval("P").y)
-    assert rot[0] == 90.0, "a laid warrior is not lying down: rotX %s" % rot[0]
-    assert rot[1] == 137.0, "laying it down turned it: rotY %s" % rot[1]
-    assert tint == (0.977, 0.902, 0.733), "not the mod's cream: %s" % (tint,)
+    assert rot == (90.0, 137.0), "it is not lying flat, or laying it down turned it: %s" % (rot,)
+    assert pos[1] == 0.03, "it did not settle onto the board, a hair above its foot: y %s" % pos[1]
 
+    # the piece keeps its own colour; the marker carries the presser's
+    rt.execute("T = MINE.getColorTint()")
+    t = rt.eval("T")
+    assert (round(t.r, 2), round(t.g, 2), round(t.b, 2)) == (1.0, 1.0, 1.0), \
+        "the warrior was repainted; the disc is what carries the colour now: %s" % (t,)
+    disc = rt.eval("LASTJSON") or ""
+    red = rt.eval("RTT_PLAYER_RGB['Red']")
+    assert '"r":%s' % round(red[1], 3) in disc.replace(" ", ""), \
+        "the disc is not in the presser's colour: %s" % disc[:200]
+    assert '"a":0.55' in disc.replace(" ", ""), "the disc is not translucent: %s" % disc[:200]
+    assert rt.eval("#getObjectsWithTag('RTT Laid Disc')") == 1, "no disc was drawn under the piece"
+
+    # and it all comes back
     rt.execute('HOVER["Red"] = MINE rttGizmoLay("Red") FLUSH(3)')
     assert state("MINE") == before, "standing it back up did not restore it: %s" % (state("MINE"),)
-    rt.execute("P = MINE.getPosition()")
-    p = rt.eval("P")
-    assert (round(p.x, 3), round(p.y, 3), round(p.z, 3)) == (1.0, 1.0, 1.0), (
-        "standing it up did not put it back where it stood: %s,%s,%s" % (p.x, p.y, p.z))
+    assert rt.eval("#getObjectsWithTag('RTT Laid Disc')") == 0, "the disc outlived the piece being up"
 
     # any warrior, not only your own
     rt.execute('HOVER["Red"] = THEIRS rttGizmoLay("Red") FLUSH(3)')
-    assert state("THEIRS")[2] is True, "numpad 2 refused an opponent's warrior"
+    assert state("THEIRS")[1] is True, "numpad 2 refused an opponent's warrior"
 
     # and nothing that is not a warrior
     rt.execute('HOVER["Red"] = ROOST rttGizmoLay("Red") FLUSH(3)')
-    assert state("ROOST")[2] is False, "numpad 2 laid a building down"
+    assert state("ROOST")[1] is False, "numpad 2 laid a building down"
 
 
 def t_the_board_shows_the_build_number(src):
@@ -3000,6 +3006,20 @@ def t_the_panel_pauses_the_clock(src):
         return rt.eval("PANEL_TTXT")
 
     assert label() == "DEAL 5 CARDS", "before START the button is not the deal: %s" % label()
+
+    # START shuffles the shared deck, once. "pushing start on the clock should shuffle the deck once
+    # as a well" -- starting the game is the moment the deck should be random, and nobody should have
+    # to remember to do it. A table with no deck out must not make START fail.
+    rt.execute("""
+      SHUFFLED = 0
+      DECK = MKOBJ('Deck', {0,1,0}, {'Deck Object'})
+      DECK.getQuantity = function() return 54 end
+      DECK.shuffle = function() SHUFFLED = SHUFFLED + 1 end
+      Turns = Turns or {}
+    """)
+    rt.execute("pcall(panelStart) FLUSH(10)")
+    assert rt.eval("SHUFFLED") == 1, "START did not shuffle the deck: %s" % rt.eval("SHUFFLED")
+    rt.execute("DECK.destruct() pcall(panelStart) FLUSH(10)")   # no deck on the table
 
     rt.execute("PANEL_START = CLOCK")                 # the game is running
     assert label() == "PAUSE", "after START the button did not become PAUSE: %s" % label()

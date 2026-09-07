@@ -102,9 +102,11 @@ with no home — a hireling, a card — does nothing, and says nothing.
 happens to be over. Yours is the faction you last PICKED, not the seat you started in, so switching
 faction moves the supply with you. An empty supply does nothing.
 
-**NUMPAD 2 — lay a warrior down.** Hovering ANY warrior, yours or an opponent's, tips it over, turns
-it the mod's cream and locks it. Pressing it again on the same warrior stands it up, gives back its
-own colour and unlocks it. It survives a reload. Only warriors: buildings and tokens are ignored.
+**NUMPAD 2 — lay a warrior down.** Hovering ANY warrior, yours or an opponent's, tips it flat onto the
+board, locks it, and draws a small translucent disc underneath in YOUR player colour — so the piece
+keeps its own paint and the marker says who put it down. Pressing it again on the same warrior stands
+it up exactly where it stood, unlocks it and removes the disc. It survives a reload. Only warriors:
+buildings and tokens are ignored.
 
 Those are TTS *scripting buttons*, which are numpad-bound, so **on a laptop with no numpad** (a
 MacBook, where the top-row 0 is a different key and needs Shift on a French layout) bind the named
