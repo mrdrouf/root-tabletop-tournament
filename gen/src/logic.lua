@@ -1443,11 +1443,11 @@ end
 --   RankedArt     -> "4-Player Draft"     FourBoardsArt -> "4-Player Setup"
 --   FivePlayerArt -> "5-Player Draft"     FivePlayerSetupArt -> "5-Player Setup"
 RTT_WIPE_BTN = {
-  rttRankedBtn     = { fn = "rttSetup",              color = "#030411", icon = "RankedArt",          warn = "WipeConfirmArt", warnMap = "WipeConfirmMapArt" },
-  rttThemeBtn      = { fn = "rttTheme",              color = "#49514b", icon = "ThemeArt",           warn = "WipeConfirmArt", warnMap = "WipeConfirmMapArt" },
-  rttFourBoardsBtn = { fn = "setupFactionBoards",    color = "#3a2f22", icon = "FourBoardsArt",      warn = "WipeConfirmArt", warnMap = "WipeConfirmMapArt" },
-  Marsh5P          = { fn = "rttFivePStart",         color = "#463221", icon = "FivePlayerArt",      warn = "WipeConfirmArtWide", warnMap = "WipeConfirmMapArtWide" },
-  Marsh5PSetup     = { fn = "setupFivePlayerBoards", color = "#463221", icon = "FivePlayerSetupArt", warn = "WipeConfirmArtWide", warnMap = "WipeConfirmMapArtWide" },
+  rttRankedBtn     = { fn = "rttSetup",              color = "#030411", icon = "RankedArt",          warn = "WipeConfirmArt" },
+  rttThemeBtn      = { fn = "rttTheme",              color = "#49514b", icon = "ThemeArt",           warn = "WipeConfirmArt" },
+  rttFourBoardsBtn = { fn = "setupFactionBoards",    color = "#3a2f22", icon = "FourBoardsArt",      warn = "WipeConfirmArt" },
+  Marsh5P          = { fn = "rttFivePStart",         color = "#463221", icon = "FivePlayerArt",      warn = "WipeConfirmArtWide" },
+  Marsh5PSetup     = { fn = "setupFivePlayerBoards", color = "#463221", icon = "FivePlayerSetupArt", warn = "WipeConfirmArtWide" },
   -- 5-Players Marsh places the Marsh map and nothing else, so it can only ever cost you the map.
   -- BUTTONS.md used to say it "is not destructive, so it does not prompt"; it goes through
   -- rttPlaceMap -> makeMap -> removeMapItems like any other map placement, so that was simply wrong.
@@ -1790,13 +1790,17 @@ function rttFactionsOnTable()
   return false
 end
 
--- WHICH WARNING TO SHOW. A button that clears factions AND the map should not promise to "reset all
--- factions" when there is not a faction in sight -- at that point the only thing it costs you is the
--- map, so it says so. Buttons with no warnMap (the map row) always meant the map anyway.
+-- WHICH WARNING TO SHOW: the one that belongs to the BUTTON, always. This used to switch wording by
+-- what happened to be on the table -- a setup button said "reset the map" when no faction was down
+-- yet -- and in practice that read as the faction warning having been deleted. Maintainer,
+-- 2026-09-07: "you changed all warnings on the buttons to This will reset the map. and erased the
+-- previous warning This will reset all factions. Put back the appropriate warning to the appropriate
+-- buttons! since some buttons reset the map others the factions."
+--
+-- So: the setup buttons say factions, because clearing the factions is what they are for; the map row
+-- and 5-Players Marsh say map. A button's warning no longer depends on the state of the table.
 function rttWarnArt(d)
-  if d.warnMap == nil then return d.warn end
-  if rttFactionsOnTable() then return d.warn end
-  return d.warnMap
+  return d.warn
 end
 
 function rttDisarm()

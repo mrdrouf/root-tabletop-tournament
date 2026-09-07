@@ -2393,31 +2393,28 @@ def t_the_five_player_buttons_warn_before_wiping(src):
     assert armed(rt) == "nil", "5-Players Marsh prompted on a clean table"
     assert rt.eval("RTT_5P_MARSH") is True, "5-Players Marsh did not run on a clean table"
 
-    # a map down: all three arm, and say MAP because no faction is at stake
-    for fn, bid in (("rttArmMarsh5PMap", "Marsh5PMap"),
-                    ("rttArmMarsh5P",    "Marsh5P"),
-                    ("rttArmFiveSetup",  "Marsh5PSetup"),
-                    ("rttArmFour",       "rttFourBoardsBtn"),
-                    ("rttArmRanked",     "rttRankedBtn")):
-        rt = fresh_seated()
-        rt.execute("pcall(function() makeMap(Player['Purple'],'','Summer Map') end) FLUSH(200)")
-        click(rt, fn, bid)
-        assert armed(rt) == bid, "%s did not warn with a map on the table" % bid
-        assert icon(rt, bid).startswith("WipeConfirmMap"), \
-            "%s warned about factions when only the map was at stake: %s" % (bid, icon(rt, bid))
-
-    # factions down: the faction wording comes back
-    for fn, bid in (("rttArmMarsh5P",   "Marsh5P"),
-                    ("rttArmFiveSetup", "Marsh5PSetup"),
-                    ("rttArmRanked",    "rttRankedBtn")):
-        rt = fresh_seated()
-        rt.execute("pcall(function() makeMap(Player['Purple'],'','Summer Map') end) FLUSH(200)")
-        rt.execute("pcall(function() setupFactionBoards(nil,nil,nil) end) FLUSH(200)")
-        click(rt, fn, bid)
-        assert armed(rt) == bid, "%s did not warn with factions on the table" % bid
-        got = icon(rt, bid)
-        assert got.startswith("WipeConfirmArt"), \
-            "%s should warn about factions when factions are on the table, showed %s" % (bid, got)
+    # EACH BUTTON KEEPS ITS OWN WORDING, whatever is on the table. Maintainer, 2026-09-07: "Put back
+    # the appropriate warning to the appropriate buttons! since some buttons reset the map others the
+    # factions." It used to switch by table state, which meant a setup button said "reset the map" on a
+    # table with no faction down yet -- and that read as the faction warning having been deleted.
+    WORDING = (("rttArmMarsh5PMap", "Marsh5PMap",       "WipeConfirmMapArt"),   # places a map
+               ("rttArmMap",        "Summer Map",       "WipeConfirmMapArt"),   # ditto
+               ("rttArmMarsh5P",    "Marsh5P",          "WipeConfirmArt"),      # starts a game
+               ("rttArmFiveSetup",  "Marsh5PSetup",     "WipeConfirmArt"),
+               ("rttArmFour",       "rttFourBoardsBtn", "WipeConfirmArt"),
+               ("rttArmRanked",     "rttRankedBtn",     "WipeConfirmArt"))
+    for withFactions in (False, True):
+        for fn, bid, want in WORDING:
+            rt = fresh_seated()
+            rt.execute("pcall(function() makeMap(Player['Purple'],'','Summer Map') end) FLUSH(200)")
+            if withFactions:
+                rt.execute("pcall(function() setupFactionBoards(nil,nil,nil) end) FLUSH(200)")
+            click(rt, fn, bid)
+            assert armed(rt) == bid, "%s did not warn (factions on table: %s)" % (bid, withFactions)
+            got = icon(rt, bid)
+            assert got.startswith(want), (
+                "%s shows %s with factions=%s; it should always show %s"
+                % (bid, got, withFactions, want))
 
     # and the second click actually commits
     rt = fresh_seated()

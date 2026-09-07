@@ -39,10 +39,11 @@ no draft, no seating. It IS destructive: it goes through `rttPlaceMap` → `make
 like any other map placement, so it prompts when a map is already down. This page used to claim the
 opposite, which is how it stayed the one destructive button with no warning.
 
-**What the prompt says depends on what is at stake.** A setup button clears the factions *and*, since
-a new game re-places the map (`rttRefreshMap`), the map. With factions on the table it reads *"This
-will reset all factions."*; with only a map down it reads *"This will reset the map."* instead,
-rather than promising to reset factions that are not there.
+**Each button keeps its own wording.** The setup buttons (4-Player Draft, Theme, 4-Player Setup,
+5-Player Draft, 5P Setup) read *"This will reset all factions."*; the six map buttons and 5-Players
+Marsh read *"This will reset the map."* It briefly switched wording by what was on the table, which
+meant a setup button said "reset the map" before any faction was down -- and that read as the faction
+warning having been deleted.
 
 ## Maps
 
