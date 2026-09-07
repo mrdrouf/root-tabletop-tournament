@@ -2905,8 +2905,23 @@ def t_numpad_two_lays_a_warrior_down_and_back_up(src):
     red = rt.eval("RTT_PLAYER_RGB['Red']")
     assert '"r":%s' % round(red[1], 3) in disc.replace(" ", ""), \
         "the disc is not in the presser's colour: %s" % disc[:200]
-    assert '"a":0.55' in disc.replace(" ", ""), "the disc is not translucent: %s" % disc[:200]
+    a = float(re.search(r'"a":([\d.]+)', disc).group(1))
+    assert 0 < a <= 0.45, "the disc is not translucent enough: alpha %s" % a
+    sc = float(re.search(r'"scaleX":([\d.]+)', disc).group(1))
+    assert abs(sc - 1.275) < 0.001, "the disc is not 1.275x the piece's footprint: %s" % sc
     assert rt.eval("#getObjectsWithTag('RTT Laid Disc')") == 1, "no disc was drawn under the piece"
+
+    # THE DISC BELONGS TO A PERSON. Change seat and it comes with you -- "I changed color and it did
+    # not change the color of the circle". Matched on the player, not the colour, because a colour can
+    # be handed to somebody else.
+    rt.execute("LASTJSON = nil SEAT('Yellow', Player['Red'].steam_name) "
+               "onPlayerChangeColor('Yellow') FLUSH(5)")
+    moved = rt.eval("LASTJSON") or ""
+    yellow = rt.eval("RTT_PLAYER_RGB['Yellow']")
+    assert '"g":%s' % round(yellow[2], 3) in moved.replace(" ", ""), \
+        "the disc did not follow its owner to the new colour: %s" % moved[:200]
+    assert rt.eval("#getObjectsWithTag('RTT Laid Disc')") == 1, \
+        "recolouring left a second disc behind"
 
     # and it all comes back
     rt.execute('HOVER["Red"] = MINE rttGizmoLay("Red") FLUSH(3)')
@@ -3124,6 +3139,41 @@ def t_the_gizmo_follows_the_faction_you_last_picked(src):
     assert not rt.eval("RTT_LAST_PICK['Red']"), "a new game kept last game's pick"
 
 
+def t_numpad_three_lights_the_piece_instead(src):
+    """Numpad 3 is numpad 2 with a glow instead of a disc.
+
+    Maintainer, 2026-09-07: "a gizmo numpad 3 that does the same but instead of the circle it does a
+    highlight. its an option that should exists. another way to emphasiwe the piece on the map." Same
+    action either way -- down, locked, press again to undo -- so the two share one path and the record
+    remembers WHICH mark was used. A piece marked one way must never be left with the other's leftovers.
+    """
+    rt = fresh(src)
+    rt.execute("""
+      W = MKOBJ("Eyrie Warrior", {1,1,1}, {})
+      W.__bounds = {size = Vector({1, 3, 1}), center = Vector({1, 2.5, 1})}
+    """)
+
+    rt.execute('HOVER["Red"] = W rttGizmoGlow("Red") FLUSH(3)')
+    glow = rt.eval("W.__glow")
+    assert glow is not None, "numpad 3 did not light the piece"
+    red = rt.eval("RTT_PLAYER_RGB['Red']")
+    assert round(glow.r, 3) == round(red[1], 3), "the glow is not the presser's colour: %s" % glow.r
+    assert rt.eval("W.getLock()") is True, "numpad 3 did not lock the piece"
+    assert rt.eval("#getObjectsWithTag('RTT Laid Disc')") == 0, \
+        "numpad 3 drew a disc as well; it is the alternative to one, not an addition"
+
+    # the glow follows its owner, exactly as the disc does
+    rt.execute("SEAT('Yellow', Player['Red'].steam_name) onPlayerChangeColor('Yellow') FLUSH(5)")
+    yellow = rt.eval("RTT_PLAYER_RGB['Yellow']")
+    assert round(rt.eval("W.__glow").g, 3) == round(yellow[2], 3), \
+        "the glow did not follow its owner to the new colour"
+
+    # and pressing again puts everything back
+    rt.execute('HOVER["Red"] = W rttGizmoGlow("Red") FLUSH(3)')
+    assert rt.eval("W.__glow") is None, "the glow outlived the piece being stood up"
+    assert rt.eval("W.getLock()") is False, "the piece stayed locked"
+
+
 CASES = [
     ("manual path drives the turn system",   t_manual_turn_order),
     ("manual path spawns 4 / 5 boards",      t_boards_spawn),
@@ -3198,6 +3248,7 @@ CASES = [
     ("placement ignores board size",       t_placement_never_asks_the_board_how_big_it_is),
     ("send home asks no permission",      t_send_home_asks_no_permission),
     ("numpad 2 lays a warrior down",      t_numpad_two_lays_a_warrior_down_and_back_up),
+    ("numpad 3 lights the piece",         t_numpad_three_lights_the_piece_instead),
     ("board shows the build number",      t_the_board_shows_the_build_number),
     ("panel pauses the clock",            t_the_panel_pauses_the_clock),
 ]

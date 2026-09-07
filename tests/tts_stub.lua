@@ -94,6 +94,9 @@ function MKOBJ(name, pos, tags)
     o.__pos = vec(p); o.__smoothFast = (fast == true)
     note(REC.hands, string.format("move:%s->%.2f,%.2f%s", o.__name, o.__pos.x, o.__pos.z, fast and " fast" or ""))
   end
+  -- the numpad 3 mark: TTS lights the object itself instead of drawing anything under it
+  function o.highlightOn(c) o.__glow = c and {r=c.r, g=c.g, b=c.b} or {r=1,g=1,b=1} end
+  function o.highlightOff() o.__glow = nil end
   function o.setLock(v) o.__locked = (v == true) end function o.setColorTint(c) o.__tint = {r=(c.r or c[1] or 1), g=(c.g or c[2] or 1), b=(c.b or c[3] or 1)} end
   function o.getColorTint() return {r=o.__tint.r, g=o.__tint.g, b=o.__tint.b} end function o.shuffle() end
   function o.randomize() end function o.reload() return o end function o.clone(p) return MKOBJ(o.__name, (p or {}).position, o.__tags) end

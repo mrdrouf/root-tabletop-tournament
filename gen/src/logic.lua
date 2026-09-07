@@ -52,6 +52,7 @@ function onLoad(state)
     addHotkey("Gizmo: send the hovered piece home", function(color) rttGizmoHome(color) end)
     addHotkey("Gizmo: take a warrior from your supply", function(color) rttGizmoTake(color) end)
     addHotkey("Gizmo: lay the hovered warrior down", function(color) rttGizmoLay(color) end)
+    addHotkey("Gizmo: lay it down and light it up", function(color) rttGizmoGlow(color) end)
   end)
   assets = {}
   if self.getName() != "Faction Board" then
@@ -1700,7 +1701,42 @@ end
 -- what makes a disconnect/reconnect work with no special handling.
 -- All this does is re-assert the order (a colour freed or taken can change what TTS will step
 -- through) and re-publish, so the box score sees the same truth the board holds.
+-- A DISC BELONGS TO A PERSON, NOT TO A COLOUR. It is drawn in the colour of whoever laid the warrior
+-- down, so when that person changes seat the marker has to come with them -- the maintainer,
+-- 2026-09-07: "I changed color and it did not change the color of the circle." Matched on the player
+-- rather than the colour, because a colour can be handed to somebody else.
+--
+-- Redrawn rather than re-tinted: the transparency lives in the tile's ColorDiffuse alpha, and
+-- setColorTint is not a reliable way to keep it.
+function rttRecolourLaidDiscs(newColor)
+  local me = nil
+  pcall(function() me = Player[newColor].steam_name end)
+  if me == nil or me == "" then return end
+  for guid, rec in pairs(RTT_LAID or {}) do
+    if rec ~= nil and rec.owner == me and rec.who ~= newColor and rec.mark == "glow" then
+      rec.who = newColor
+      pcall(function()
+        local o = getObjectFromGUID(guid)
+        if o ~= nil then o.highlightOn(rttMarkColor(newColor)) end
+      end)
+    end
+    if rec ~= nil and rec.owner == me and rec.who ~= newColor and rec.disc ~= nil then
+      local old = getObjectFromGUID(rec.disc)
+      if old ~= nil then
+        local pos, sc = old.getPosition(), old.getScale()
+        pcall(function() old.destruct() end)
+        rec.disc = nil
+        rec.who  = newColor
+        rttSpawnLaidDisc(newColor, pos.x, pos.y, pos.z, sc.x, function(o)
+          if RTT_LAID[guid] ~= nil then RTT_LAID[guid].disc = o.getGUID() end
+        end)
+      end
+    end
+  end
+end
+
 function onPlayerChangeColor(player_color)
+  pcall(function() rttRecolourLaidDiscs(player_color) end)
   if RTT_TURN_SEATS == nil then return end          -- no game set up yet: nothing to re-apply
   local keep = nil
   pcall(function() keep = Turns.turn_color end)
@@ -6688,7 +6724,7 @@ end
 -- marker says WHO laid it down, which the tint never could.
 RTT_DISC_URL = "https://cdn.jsdelivr.net/gh/mrdrouf/root-tabletop-tournament@main/assets/labels/disc_89666e66.png"
 RTT_DISC_TAG = "RTT Laid Disc"
-RTT_DISC_A   = 0.55            -- "a little bit transparent"
+RTT_DISC_A   = 0.42            -- "a little bit more transparent" (was 0.55)
 -- TTS's own player colours. Read from a table rather than Color.fromString so the answer is the same
 -- in the harness as at the table, and so a colour TTS does not know cannot throw mid-press.
 RTT_PLAYER_RGB = {
@@ -6708,6 +6744,12 @@ function rttIsLaid(o)
   local guid = nil
   pcall(function() guid = o.getGUID() end)
   return guid ~= nil and RTT_LAID[guid] ~= nil
+end
+
+-- The presser's colour as an r,g,b table, for whichever mark they used.
+function rttMarkColor(color)
+  local rgb = RTT_PLAYER_RGB[color] or { 1, 1, 1 }
+  return { r = rgb[1], g = rgb[2], b = rgb[3] }
 end
 
 -- the disc: a thin circle on the board under the piece, in the presser's colour
@@ -6739,7 +6781,16 @@ function rttSpawnLaidDisc(color, x, y, z, d, onSpawned)
   })
 end
 
-function rttGizmoLay(color)
+-- NUMPAD 2 draws a disc under the piece; NUMPAD 3 lights the piece itself. Same action otherwise --
+-- down, locked, press again to undo -- because they are two ways of saying the same thing, and the
+-- maintainer asked for the second as an option: "instead of the circle it does a highlight. its an
+-- option that should exists. another way to emphasiwe the piece on the map" (2026-09-07).
+-- The record remembers WHICH mark was used, so standing a piece up removes the right one however you
+-- put it down, and a piece marked one way is never left with the other's leftovers.
+function rttGizmoLay(color) rttGizmoMark(color, "disc") end
+function rttGizmoGlow(color) rttGizmoMark(color, "glow") end
+
+function rttGizmoMark(color, mark)
   local hovered = nil
   pcall(function() hovered = Player[color].getHoverObject() end)
   if hovered == nil then return end
@@ -6767,6 +6818,7 @@ function rttGizmoLay(color)
         if o ~= nil then o.destruct() end
       end)
     end
+    if was.mark == "glow" then pcall(function() hovered.highlightOff() end) end
     return
   end
 
@@ -6782,9 +6834,12 @@ function rttGizmoLay(color)
   local foot, wide = nil, 1.2
   if b ~= nil and b.center ~= nil and b.size ~= nil then
     foot = b.center.y - b.size.y / 2
-    wide = math.max(b.size.x, b.size.z) * 1.5
+    wide = math.max(b.size.x, b.size.z) * 1.275   -- 15% smaller than the 1.5 it shipped at
   end
-  RTT_LAID[guid] = { rot = { r.x, r.y, r.z }, pos = { p.x, p.y, p.z }, disc = nil }
+  local owner = nil
+  pcall(function() owner = Player[color].steam_name end)
+  RTT_LAID[guid] = { rot = { r.x, r.y, r.z }, pos = { p.x, p.y, p.z }, disc = nil,
+                     who = color, owner = owner, mark = mark or "disc" }
   pcall(function() hovered.setRotation({ 90, r.y, r.z }) end)   -- tips forward, away from the player
   -- The bounds only report the new shape once TTS has applied the rotation, so the drop and the lock
   -- wait a frame. Locking before that is what pinned it mid-air.
@@ -6801,7 +6856,10 @@ function rttGizmoLay(color)
       end
     end)
     pcall(function() hovered.setLock(true) end)
-    if foot ~= nil then
+    if mark == "glow" then
+      -- no duration: it stays lit until the piece is stood back up, which is the whole point
+      pcall(function() hovered.highlightOn(rttMarkColor(color)) end)
+    elseif foot ~= nil then
       pcall(function()
         local np = hovered.getPosition()
         rttSpawnLaidDisc(color, np.x, foot + 0.01, np.z, wide, function(o)
@@ -6818,7 +6876,8 @@ function rttGizmoWarrior(color) rttGizmoTake(color) end
 function onScriptingButtonDown(idx, color)
   if     idx == 10 then pcall(function() rttGizmoHome(color) end)   -- numpad 0: send home
   elseif idx == 1  then pcall(function() rttGizmoTake(color) end)   -- numpad 1: take a warrior
-  elseif idx == 2  then pcall(function() rttGizmoLay(color) end)    -- numpad 2: lay a warrior down
+  elseif idx == 2  then pcall(function() rttGizmoLay(color) end)    -- numpad 2: lay it down, disc
+  elseif idx == 3  then pcall(function() rttGizmoGlow(color) end)   -- numpad 3: lay it down, glow
   end
 end
 
