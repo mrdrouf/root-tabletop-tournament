@@ -1178,14 +1178,31 @@ def t_the_turn_panel_is_an_option_not_the_default(src):
     blob = json.loads(src[i + len(head):j])
     assert blob["Nickname"] == "Turn Panel"
     assert blob["Locked"] is True
-    # BLACK sides, like the crafted board's own -- maintainer, 2026-09-07: "knaves captain board on the
-    # side is not black as the crafted improvememnt". On a Custom_Tile ColorDiffuse tints the 3D edge.
-    assert blob["ColorDiffuse"] == {"r": 0.0, "g": 0.0, "b": 0.0}, \
-        "the panel's sides are not black: %s" % blob["ColorDiffuse"]
-    assert blob["CustomImage"]["WidthScale"] == 0.0, \
-        "WidthScale must be 0 so the tile takes the art's aspect"
     for fn in ("panelStart", "panelDeal", "rttStartTurnOne", "rttRound"):
         assert fn in blob["LuaScript"], "the panel script never mentions %s" % fn
+
+    # IT IS RENDERED THE WAY THE BOX SCORE IS: a plain slab carrying an object XmlUI, sized to the UI.
+    # Maintainer, 2026-09-07, on the createButton version: "position of numbers inside box, position of
+    # buttons inside the swuares, all is still off, needs more precision". Hand-placed widgets over a
+    # baked picture cannot be aligned from outside the game -- a layout engine needs no measuring.
+    lua = blob["LuaScript"]
+    assert blob["Name"] == "BlockSquare", "the panel should be a slab, not a tile: %s" % blob["Name"]
+    assert "self.UI.setXml" in lua, "the panel does not render an XmlUI"
+    assert "self.createButton(" not in lua, \
+        "the panel is back to createButton; that is what could never be aligned"
+    assert "VerticalLayout" in lua and "HorizontalLayout" in lua, "no layout elements"
+    assert "self.setScale" in lua, "the slab is not sized to its UI (the box score's PX_PER_UNIT rule)"
+    assert "setCustomAssets" in lua, "the crafted-border frame is not registered as a UI image"
+    # the palette is the box score's, so the two objects look like one product
+    for hexc in ("#F1E5C8", "#E7D8B4", "#C9A05C", "#E4C88E", "#26170B", "#7E4A1E"):
+        assert hexc in lua, "the panel does not use the box score palette entry %s" % hexc
+
+    # the captains board's 3D sides are black like the crafted board's own
+    ch = "RTT_CAPTAIN_BOARD_JSON = [==["
+    ci = src.index(ch); cj = src.index("]==]", ci)
+    cap = json.loads(src[ci + len(ch):cj])
+    assert cap["ColorDiffuse"] == {"r": 0.0, "g": 0.0, "b": 0.0}, \
+        "the captains board's sides are not black: %s" % cap["ColorDiffuse"]
 
 
 def t_crow_plots_spawn_inside_the_hidden_zone(src):
