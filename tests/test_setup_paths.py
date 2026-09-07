@@ -12,7 +12,7 @@ drive BOTH paths against a stubbed TTS and assert they agree.
 
 Needs lupa (pip install lupa). The stub is tests/tts_stub.lua.
 """
-import json, os, subprocess, sys
+import json, os, re, subprocess, sys
 import lupa
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -2619,7 +2619,9 @@ def t_the_panel_flashes_after_twenty_minutes(src):
       JSON = { encode = function() return "" end, decode = function() return {} end }
       Turns = { turn_color = "Red", order = {"Red"} }
       UIW = {}
-      self = { UI = { setXml=function() end, setValue=function() end, setCustomAssets=function() end,
+      LASTXML = ""
+      self = { UI = { setXml=function(x) LASTXML = x end, setValue=function() end,
+                      setCustomAssets=function() end,
                       setAttribute=function(id,k,v) UIW[id.."."..k]=v end },
                setScale=function() end, clearButtons=function() end }
       function getObjectsWithTag() return {} end
@@ -2631,9 +2633,13 @@ def t_the_panel_flashes_after_twenty_minutes(src):
     g = rt.globals()
 
     def at(t):
+        # the tint is EMITTED INTO THE XML, not poked in with setAttribute -- an Image's colour is not
+        # an attribute TTS re-reads once the UI is up, which is why the first version showed nothing.
         rt.execute("T = %d" % t)
         g.panelTick()
-        return g.UIW["pnlbg.color"]
+        xml = g.LASTXML or ""
+        m = re.search(r'id="pnlbg"[^>]*color="([^"]+)"', xml)
+        return m.group(1) if m else "(no pnlbg in the XML)"
 
     NORMAL, ALARM = "#FFFFFF", "#E86B5A"
     assert at(1000) == NORMAL, "the panel is tinted before any turn has started"
