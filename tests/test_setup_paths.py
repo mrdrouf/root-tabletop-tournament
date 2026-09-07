@@ -3464,6 +3464,97 @@ def t_a_real_turn_cycle_runs_in_seat_order(src):
     assert rt.eval("Turns.enable") is True, "a player leaving switched the turn system off"
 
 
+def t_the_turn_system_survives_what_players_actually_do(src):
+    """The recurrence list, driven for real against the turn engine.
+
+    Every case here is something this project fixed and then broke again, taken from the history
+    audit: the turn system switching itself off, the order being rebuilt from a static list, the turn
+    rewinding to seat 1, and a stale seat count outliving its seats. Nothing exercised any of it
+    before, because the harness had no turn engine.
+    """
+    def seated_table():
+        rt = fresh(src)
+        for i, c in enumerate(("Red", "Yellow", "Orange", "Teal")):
+            rt.execute("SEAT(%r,'H%d')" % (c, i + 1))
+        rt.execute("pcall(function() setupFactionBoards(nil,nil,nil) end) FLUSH(60)")
+        rt.execute("onPlayerChangeColor('Red') FLUSH(20)")
+        return rt
+
+    # 1. SOMEBODY STANDS UP MID-GAME. It used to drop Turns.enable and hand the turn back to seat 1,
+    #    and switching it on again re-fired TTS's notification.
+    rt = seated_table()
+    rt.execute("TURN_ROUND(1) FLUSH(20)")
+    at = rt.eval("Turns.turn_color")
+    rt.execute("ROSTER = {} onPlayerChangeColor('Grey') FLUSH(20)")
+    assert rt.eval("Turns.enable") is True, "a player standing up switched the turn system off"
+    assert rt.eval("Turns.turn_color") == at, \
+        "a player standing up rewound the turn: %s -> %s" % (at, rt.eval("Turns.turn_color"))
+
+    # 2. A LATE JOINER must not rewind the turn either.
+    rt = seated_table()
+    rt.execute("TURN_SET('Orange') FLUSH(10)")
+    rt.execute("SEAT('Green','H5') onPlayerChangeColor('Green') FLUSH(20)")
+    assert rt.eval("Turns.turn_color") == "Orange", \
+        "somebody joining handed the turn back to seat 1: %s" % rt.eval("Turns.turn_color")
+
+    # 3. EMPTY SEATS STILL TAKE TURNS. skip_empty_hands must stay off, or a solo table stops on the
+    #    first unoccupied colour and never comes round.
+    assert rt.eval("Turns.skip_empty_hands") is False, \
+        "empty seats are being skipped; a solo table would never come round"
+    rt2 = fresh(src)
+    rt2.execute("SEAT('Red','solo')")
+    rt2.execute("pcall(function() setupFactionBoards(nil,nil,nil) end) FLUSH(60)")
+    rt2.execute("onPlayerChangeColor('Red') FLUSH(20) TURN_EVENTS = {} TURN_ROUND(1) FLUSH(20)")
+    assert len(rt2.eval("TURN_EVENTS")) == 4, \
+        "one seated player could not drive a four-seat round: %s" \
+        % [str(v) for v in rt2.eval("TURN_EVENTS").values()]
+
+    # 4. THE ORDER IS THE SEATS, never a static list. Move a board and the order must follow it.
+    rt3 = seated_table()
+    before = list(rt3.eval("Turns.order").values())
+    for fac, x, z in (("Marquise de Cat", 52, -46), ("Eyrie Dynasties", -52, -46)):
+        rt3.execute("pcall(function() rttPlaceFaction(%r, %f, %f, false, nil, false, 'Standard', 0, nil) end) "
+                    "FLUSH(120)" % (fac, x, z))
+    assert rt3.eval("#RTT_SEATS") >= 2, "the picks did not create seats"
+    rt3.execute("RTT_SEATS[1].color = 'Pink' pcall(rttPublishSeats) "
+                "pcall(function() rttEnableTurns(#RTT_SEATS, Turns.turn_color) end) FLUSH(20)")
+    after = list(rt3.eval("Turns.order").values())
+    assert "Pink" in after, "the order did not follow the seat record: %s -> %s" % (before, after)
+    assert len(set(after)) == len(after), "the order repeated a colour: %s" % after
+
+
+def t_a_duplicate_or_late_pass_cannot_invent_a_round(src):
+    """TTS delivers a pass twice, and late. Neither may add a round to the sheet.
+
+    A re-delivered pass does not merely lock twice -- it INVENTS A ROUND, because lockRow reads "this
+    row already locked this round" as proof the table came round. The guard for it shipped on
+    2026-09-07 and has never been seen at a table; nothing could drive it, because the harness could
+    not deliver a duplicate.
+    """
+    panel = json.loads(re.search(r"RTT_TURN_PANEL_JSON = \[====\[(.*?)\]====\]", src, re.S).group(1))
+    rt = lupa.LuaRuntime(unpack_returned_tuples=True)
+    rt.execute(open(os.path.join(HERE, "tts_stub.lua"), encoding="utf-8").read())
+    rt.execute("CLOCK = 1000 os.time = function() return CLOCK end")
+    rt.execute(panel["LuaScript"].replace("!=", "~="))
+    rt.execute("""
+      self.UI.setXml = function() end
+      SHEET = MKOBJ("Root Box Score", {0,1,0}, {"RTT Box Score"})
+      SHEET.call = function(fn) if fn == "rttRound" then return ROUND end return true end
+      sheet = function() return SHEET end
+      ROUND = 1
+      Turns.enable = true
+      Turns.order = {"Red","Yellow","Orange","Teal"}
+    """)
+
+    # the panel's clock restarts on a turn CHANGE, and must not restart on a repeat of the same one
+    rt.execute("TURN_SET('Red') FLUSH(5) panelTick() PANEL_START = CLOCK")
+    rt.execute("CLOCK = 1030 TURN_SET('Yellow') FLUSH(5) panelTick()")
+    assert rt.eval("PANEL_TTXT") == "0:00", "the clock did not restart on a real turn change"
+    rt.execute("CLOCK = 1045 TURN_REDELIVER() FLUSH(5) panelTick()")
+    assert rt.eval("PANEL_TTXT") == "0:15", \
+        "a re-delivered pass restarted the turn clock: %s" % rt.eval("PANEL_TTXT")
+
+
 CASES = [
     ("manual path drives the turn system",   t_manual_turn_order),
     ("manual path spawns 4 / 5 boards",      t_boards_spawn),
@@ -3502,6 +3593,8 @@ CASES = [
     ("enclave aims at the suit circle",       t_enclave_targets_the_suit_marker),
     ("turn order re-applies on seating",      t_turn_order_reapplies_on_seating),
     ("a real turn cycle runs",            t_a_real_turn_cycle_runs_in_seat_order),
+    ("turn system survives players",     t_the_turn_system_survives_what_players_actually_do),
+    ("a duplicate pass invents nothing",  t_a_duplicate_or_late_pass_cannot_invent_a_round),
     ("vagabond published as a faction",       t_vagabond_is_published_as_a_faction),
     ("mountain deals a legal board",          t_mountain_deals_a_legal_board),
     ("maps shuffle once, uniformly",         t_maps_shuffle_once_and_uniformly),
