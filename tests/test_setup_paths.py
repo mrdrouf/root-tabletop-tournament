@@ -2654,9 +2654,10 @@ def t_the_panel_flashes_after_twenty_minutes(src):
         # that can actually appear on screen.
         rt.execute("T = %d" % t)
         g.panelTick()
-        # the wash is always in the markup; what changes is its "active" attribute, which is the one
-        # show/hide mechanism this mod already proves works (the board's credits page uses it).
-        return ALARM if g.UIW["pnlwash.active"] == "True" else NORMAL
+        # The alarm is a SOLID red panel emitted under the content, so what proves it is the ground
+        # colour being in the markup at all. A translucent wash over the top read pink and tinted the
+        # type; this replaces the ground instead.
+        return ALARM if "#B3140A" in (g.LASTXML or "") else NORMAL
 
     NORMAL, ALARM = "quiet", "washed"
     rt.execute('UIW["pnlwash.active"] = "False"')   # buildUI emits it hidden
@@ -2664,10 +2665,13 @@ def t_the_panel_flashes_after_twenty_minutes(src):
     g.PANEL_START = 1000
     assert at(1060) == NORMAL, "a one-minute turn is already warning"
     assert at(1000 + 19 * 60 + 59) == NORMAL, "it warns at 19:59, before the twenty minutes are up"
-    seq = [at(1000 + 20 * 60 + k) for k in range(4)]
-    assert ALARM in seq and NORMAL in seq, "past twenty minutes the tint does not alternate: %s" % seq
-    assert seq[0] != seq[1] and seq[1] != seq[2], \
-        "the flash is not once a second: %s" % seq
+    # The beat is counted in TICKS now (two 0.25s ticks = half a second), not off os.time's parity, so
+    # sampling once per call shows on-on-off-off rather than strict alternation. What matters is that
+    # it changes state repeatedly, and roughly twice as often as the old one-second version.
+    seq = [at(1000 + 20 * 60 + k) for k in range(8)]
+    assert ALARM in seq and NORMAL in seq, "past twenty minutes it does not flash at all: %s" % seq
+    flips = sum(1 for a, b in zip(seq, seq[1:]) if a != b)
+    assert flips >= 3, "the flash is too slow: %s (%d changes in 8 samples)" % (seq, flips)
 
     # the demo: three DEAL presses inside three seconds, with no turn running at all
     g.PANEL_START = None
@@ -2679,14 +2683,19 @@ def t_the_panel_flashes_after_twenty_minutes(src):
     assert ALARM in demo and NORMAL in demo, "the preview does not flash: %s" % demo
     assert at(2020) == NORMAL, "the preview never ends"
 
-    # THE WASH MUST BE THE LAST CHILD, or the readouts and buttons draw over it and the only red that
-    # can show is the 30px margin -- which is what "Message appears but no red" was.
-    # buildUI has to be called for there to be markup at all: the tick stopped rebuilding when the
-    # flash moved to toggling "active", so nothing emits XML unless we ask.
+    # THE RED GROUND GOES UNDER THE CONTENT, and the type turns white on it. Emitted over the top it
+    # was a film that tinted the dark type pink -- maintainer: "make it more red, now it s pinkish ...
+    # and have the text appear in white to contrast."
+    rt.execute("PANEL_ALARM = true")
     g.buildUI()
     xml = g.LASTXML or ""
-    assert xml.index('id="pnlwash"') > xml.index("</VerticalLayout>"), \
-        "the wash is emitted before the content; it will be hidden behind it"
+    assert "#B3140A" in xml, "no red ground in the alarm markup"
+    assert xml.index("#B3140A") < xml.index("<VerticalLayout"), \
+        "the red ground is emitted after the content; it would sit on top of the type"
+    assert "#FFFFFF" in xml, "the type does not go white while it warns"
+    rt.execute("PANEL_ALARM = false")
+    g.buildUI()
+    assert "#B3140A" not in (g.LASTXML or ""), "the red ground is drawn when nothing is wrong"
 
     # and the preview drives its own timer, so it survives the periodic tick stopping
     assert "panelFlashStep" in lua, "the preview has no timer of its own"
