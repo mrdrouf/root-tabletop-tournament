@@ -1777,7 +1777,6 @@ function rttResetRunState()
   -- The seat record itself, not just its publication. The ranked path happened to clear RTT_SEATS in
   -- rttSpawnSelectors, but the manual path never did, so seats piled up across games in one session.
   RTT_SEATS      = {}
-  RTT_BOARD_SEAT = {}
   RTT_PICK_N     = 0           -- pick ordering belongs to this game only
   RTT_TURN_SEATS = nil         -- the seat COUNT outlived the seats and rebuilt orders out of nothing
   for _, k in ipairs({ "RTT_SEAT_POS", "RTT_SEAT_COLOR", "RTT_SEAT_PLAYER", "RTT_SEAT_RECORD" }) do
@@ -2993,7 +2992,6 @@ end
 -- ===== RTT lightweight per-player selectors + P1/P2 map/deck pick =====
 RTT_SELECTOR_TAG = "RTT Selector"
 RTT_ORDER = RTT_ORDER or {}
-RTT_CLONES = {}
 RTT_PICKED = { map = nil, deck = nil }
 RTT_PICK_STAGE = 0
 RTT_SOLO = false
@@ -3064,7 +3062,56 @@ RTT_SEATS = {}          -- [seat] = { board=obj, color=<colour|nil>, pos={x,z}, 
 -- It lives on the seat now rather than beside it. One record answering every question about a seat is
 -- the point: it persists with the seats, it is cleared with the seats, and it cannot drift from them.
 RTT_PICK_N = 0
-RTT_BOARD_SEAT = {}     -- [board guid] = seat index
+-- WHICH SEAT A SELECTOR BOARD BELONGS TO, and which board a seat has. These were two tables beside
+-- the seats, each indexing by a different key a fact the seat already holds in s.board. Neither
+-- survived a save, and s.board is deliberately not restored (TTS re-creates the objects with new
+-- guids), so a reload in the middle of the faction pick left BOTH empty: the pick handler found no
+-- seat and returned, rttShowFactions skipped every seat and never re-lit the menus, and the draft
+-- could not be finished while the record still said the game was live.
+--
+-- Derived from the seats now, and re-attached from the table when the record has lost the handle: a
+-- selector board standing at a seat's position IS that seat's board. That makes the pick survive a
+-- reload, which it never has.
+function rttSeatOfBoard(guid)
+  if guid == nil or guid == "" then return nil end
+  for i, s in ipairs(RTT_SEATS or {}) do
+    local g = nil
+    if s ~= nil and s.board ~= nil then pcall(function() g = s.board.getGUID() end) end
+    if g == guid then return i end
+  end
+  local obj = getObjectFromGUID(guid)
+  if obj == nil then return nil end
+  local p = nil
+  pcall(function() p = obj.getPosition() end)
+  if p == nil then return nil end
+  for i, s in ipairs(RTT_SEATS or {}) do
+    if s ~= nil and s.pos ~= nil then
+      local dx, dz = p.x - s.pos[1], p.z - s.pos[2]
+      if dx * dx + dz * dz <= 144 then s.board = obj return i end
+    end
+  end
+  return nil
+end
+
+-- The selector board at the seat wearing this colour, re-found from the table if the handle is gone.
+function rttCloneFor(color)
+  if color == nil or color == "" then return nil end
+  for _, s in ipairs(RTT_SEATS or {}) do
+    if s ~= nil and s.color == color then
+      if s.board ~= nil then return s.board end
+      for _, o in ipairs(getObjectsWithTag(RTT_SELECTOR_TAG)) do
+        local p = nil
+        pcall(function() p = o.getPosition() end)
+        if p ~= nil and s.pos ~= nil then
+          local dx, dz = p.x - s.pos[1], p.z - s.pos[2]
+          if dx * dx + dz * dz <= 144 then s.board = o return o end
+        end
+      end
+      return nil
+    end
+  end
+  return nil
+end
 
 -- ==== seat-by-turn-order-card tables (RTT seating restore) ==================
 RTT_SETUP_COLORS   = { "Red", "Yellow", "Orange", "Teal", "Green", "Brown" }   -- base setupColors: seat N -> colour N
@@ -3295,9 +3342,7 @@ end
 
 function rttSpawnSelectors()
   for _, o in ipairs(getObjectsWithTag(RTT_SELECTOR_TAG)) do rttDestroyUI(o) end
-  RTT_CLONES = {}
   RTT_SEATS = {}
-  RTT_BOARD_SEAT = {}
   local n = #RTT_ORDER                          -- the FIXED N seats (built in rttDealOrder)
   local layout = RTT_LAYOUT[n] or RTT_LAYOUT[4]
   for i = 1, n do
@@ -3309,7 +3354,6 @@ function rttSpawnSelectors()
       rotation = { 0, (p[2] > 0) and 180 or 0, 0 },
       callback_function = function(o) o.setLock(true) o.addTag(RTT_SELECTOR_TAG) end
     })
-    RTT_BOARD_SEAT[board.getGUID()] = i
     -- pos is a COPY: `p` is RTT_POS[pi] itself, and a seat that aliased the spot table would
     -- corrupt it for every later game the moment anything wrote through s.pos.
     RTT_SEATS[i] = { board = board, color = nil, pos = { p[1], p[2] }, hand = RTT_SEAT_HAND[pi],
@@ -3404,7 +3448,6 @@ function rttSeatPlayers()
       Player[color].setHandTransform(
         { position = seat.hand.pos, rotation = seat.hand.rot, scale = RTT_HAND_SCALE }, 1)
     end)
-    RTT_CLONES[color] = seat.board
     seated[w.n] = color
   end
   -- A seat nobody is sitting in takes its own turn number's colour as well, so the scheme reads the
@@ -3495,7 +3538,7 @@ end
 
 function rttShowPick(stage)
   local seat = (stage == 1) and RTT_ORDER[1] or (RTT_ORDER[2] or RTT_ORDER[1])
-  local clone = RTT_CLONES[seat.color]
+  local clone = rttCloneFor(seat.color)
   if clone == nil then return end
   clone.UI.setAttribute("rttPickMapDeck", "active", "true")
   for _, b in ipairs(RTT_MAP_BTNS)  do clone.UI.setAttribute(b, "active", (RTT_PICKED.map  == nil) and "true" or "false") end
@@ -3594,7 +3637,7 @@ function rttCoordPick(args)
   if def == nil or RTT_PICK_STAGE == 0 then return end
   local seat = (RTT_PICK_STAGE == 1) and RTT_ORDER[1] or (RTT_ORDER[2] or RTT_ORDER[1])
   if (not RTT_SOLO) and args.color ~= seat.color then return end
-  local clone = RTT_CLONES[seat.color]
+  local clone = rttCloneFor(seat.color)
 
   if RTT_PICK_STAGE == 1 then
     if def.kind == "map" then RTT_PICKED.map = def.id rttPlaceMap(def.id)
@@ -4035,7 +4078,7 @@ end
 -- the faction spawns at that seat; the other boards refresh so the taken faction disappears.
 function rttCoordFaction(args)
   if args.color == "Grey" or args.color == "Black" then return end   -- spectators can't pick (match makeFaction)
-  local seat = RTT_BOARD_SEAT[args.board or ""]
+  local seat = rttSeatOfBoard(args.board or "")
   if seat == nil then return end
   local s = RTT_SEATS[seat]
   if s == nil or s.board == nil then return end        -- board already drafted
@@ -4048,8 +4091,6 @@ function rttCoordFaction(args)
   local clone = s.board
   local bp = clone.getPosition()
   s.board = nil
-  RTT_BOARD_SEAT[clone.getGUID()] = nil
-  if s.color ~= nil then RTT_CLONES[s.color] = nil end
   clone.destruct()                                     -- board gone first, then the faction spawns there
   -- s.hand is this seat's RTT_SEAT_HAND entry -- exactly what rttSeatPlayers put on hand 1.
   local seatHand = s.hand and { position = s.hand.pos, rotation = s.hand.rot } or nil

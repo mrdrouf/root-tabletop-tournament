@@ -3667,6 +3667,59 @@ def t_one_writer_owns_a_seats_colour(src):
         assert len(set(cols)) == len(cols), "%d seats: two seats share a colour: %s" % (n, cols)
 
 
+def t_the_faction_pick_survives_a_reload(src):
+    """A save in the middle of the draft must not leave the pick unfinishable.
+
+    Which seat a selector board belongs to lived in two tables beside the seats -- one keyed by board
+    guid, one by colour -- each indexing a fact the seat already held in s.board. Neither survived a
+    save, and s.board is deliberately not restored because TTS re-creates the objects with new guids.
+    So a reload during the faction pick left BOTH empty: the pick handler found no seat and returned,
+    the menus were never re-lit, and the draft could not be finished while the record still said the
+    game was live.
+
+    A selector board standing at a seat's position IS that seat's board, so the handle is re-attached
+    from the table instead of being remembered.
+    """
+    rt = fresh(src)
+    rt.execute("""
+      RTT_SEATS = {
+        { pos = {  52, -46 }, color = "Red",    hand = { pos = {52,12,-64}, rot = {0,0,0} } },
+        { pos = { -52, -46 }, color = "Yellow", hand = { pos = {-52,12,-64}, rot = {0,0,0} } },
+      }
+      RTT_DRAFT_FACTIONS = { "Marquise de Cat", "Eyrie Dynasties" }
+      RTT_FAC_TAKEN = {}
+    """)
+    saved = rt.eval("onSave()")
+
+    # RELOAD: a fresh board script, the seats restored, the boards back on the table as new objects
+    rt2 = fresh(src)
+    rt2.execute("pcall(function() onLoad(%s) end) FLUSH(6)" % json.dumps(saved))
+    assert rt2.eval("RTT_SEATS[1].board") is None, "the fixture did not reproduce a lost handle"
+    rt2.execute("""
+      B1 = MKOBJ("", { 52, 11.56, -46 }, { RTT_SELECTOR_TAG })
+      B2 = MKOBJ("", { -52, 11.56, -46 }, { RTT_SELECTOR_TAG })
+      RTT_DRAFT_FACTIONS = { "Marquise de Cat", "Eyrie Dynasties" }
+      RTT_FAC_TAKEN = {}
+    """)
+
+    # the board can be matched back to its seat...
+    assert rt2.eval("rttSeatOfBoard(B1.getGUID())") == 1, \
+        "a selector standing at seat 1 was not recognised as seat 1's board"
+    assert rt2.eval("rttSeatOfBoard(B2.getGUID())") == 2
+
+    # ...and the colour lookup finds it again too, which is what re-lights the menus
+    rt2.execute("C = rttCloneFor('Yellow')")
+    assert rt2.eval("C") is not None, "the seat's board could not be found from its colour"
+    assert str(rt2.eval("C.getGUID()")) == str(rt2.eval("B2.getGUID()")), \
+        "the wrong board was matched to that seat"
+
+    # and a pick on it now goes through, where before the reload it silently did nothing
+    rt2.execute("pcall(function() rttCoordFaction({ color = 'Red', id = 'rttFac1', "
+                "board = B1.getGUID() }) end) FLUSH(120)")
+    assert rt2.eval("RTT_SEATS[1].faction") == "Marquise de Cat", \
+        "the pick did not reach the seat after a reload: %r" % rt2.eval("RTT_SEATS[1].faction")
+
+
 CASES = [
     ("manual path drives the turn system",   t_manual_turn_order),
     ("manual path spawns 4 / 5 boards",      t_boards_spawn),
@@ -3742,6 +3795,7 @@ CASES = [
     ("extra slots face like the rest",       t_extra_return_slots_face_the_same_way),
     ("one seat holds one faction",           t_one_seat_holds_one_faction),
     ("one writer owns seat colour",       t_one_writer_owns_a_seats_colour),
+    ("the pick survives a reload",        t_the_faction_pick_survives_a_reload),
     ("vagabond published under faction",     t_a_vagabond_is_published_under_its_faction_name),
     ("two vagabonds, one marker each",       t_two_vagabonds_get_one_marker_each),
     ("selector icons load with table",     t_every_selector_icon_is_downloaded_with_the_table),
