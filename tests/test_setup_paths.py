@@ -62,12 +62,24 @@ def t_manual_turn_order(src):
 
 
 def t_boards_spawn(src):
-    """Four and five boards, at the seat coordinates."""
+    """Four and five boards, AT THE SEAT COORDINATES.
+
+    The count was the only thing asserted; the stub records each spawn as "name@x,z" and the test
+    parsed the coordinates out and threw them away, so it passed with every board at the origin or
+    all five stacked on one seat. The positions are the point -- a board's position IS its seat.
+    """
     for arg, n in (("nil", 4), ("'fivePlayerSetup'", 5)):
         rt = fresh(src)
         rt.execute("REC.spawned={} pcall(function() setupFactionBoards(nil,nil,%s) end) FLUSH(10)" % arg)
-        got = [rt.eval("REC.spawned")[i] for i in range(1, len(rt.eval("REC.spawned")) + 1)]
+        got = [str(rt.eval("REC.spawned")[i]) for i in range(1, len(rt.eval("REC.spawned")) + 1)]
         assert len(got) == n, "%d seats: spawned %d boards (%s)" % (n, len(got), got)
+
+        at = sorted(tuple(round(float(v)) for v in e.split("@")[1].split(",")) for e in got)
+        want = sorted((round(float(rt.eval("RTT_POS[%d][1]" % p))),
+                       round(float(rt.eval("RTT_POS[%d][2]" % p))))
+                      for p in (int(rt.eval("RTT_LAYOUT[%d]" % n)[i]) for i in range(1, n + 1)))
+        assert at == want, "%d seats: boards at %s, the seats are at %s" % (n, at, want)
+        assert len(set(at)) == n, "%d seats: two boards landed on one spot: %s" % (n, at)
 
 
 def t_new_game_resets_state(src):
@@ -674,13 +686,27 @@ def t_published_colour_matches_the_seated_player(src):
                           end) FLUSH(4)""" % (i + 1, facs[i]))
 
         pub = json.loads(rt.eval('GVGET("RTT_SEAT_COLOR")') or "{}")
+        owners = json.loads(rt.eval('GVGET("RTT_SEAT_PLAYER")') or "{}")
         for i in range(n):
             seat_color = rt.eval("RTT_SEATS[%d].color" % (i + 1))
             assert seat_color is not None, "%d seats: seat %d has no colour at all" % (n, i + 1)
             got = pub.get(facs[i])
             assert got == seat_color, (
-                "%d seats: seat %d's faction %s published %r but that seat's player is %r"
+                "%d seats: seat %d's faction %s published %r but that seat's colour is %r"
                 % (n, i + 1, facs[i], got, seat_color))
+
+            # AND THE HUMAN. Everything above compares the published mirror against the mod's OWN seat
+            # record -- two outputs of the same code, so a mapping that is merely self-consistent
+            # passes. This is the check the docstring promised and did not make: the colour a faction
+            # is published under must be held by the person the record says owns that seat.
+            person = rt.eval("Player[%r].steam_name" % seat_color)
+            seated = rt.eval("Player[%r].seated" % seat_color)
+            assert seated is True, (
+                "%d seats: %s is published under %s, which nobody is sitting in"
+                % (n, facs[i], seat_color))
+            assert owners.get(facs[i]) == person, (
+                "%d seats: %s is published under %s (held by %r) but owned by %r"
+                % (n, facs[i], seat_color, person, owners.get(facs[i])))
         # and no two factions may claim the same colour -- rttSeatFaction resolves a duplicate with an
         # arbitrary pairs() winner, so a collision is a silently wrong gizmo.
         vals = [pub.get(f) for f in facs]
@@ -759,8 +785,18 @@ def t_turn_order_is_clockwise_from_bottom_right(src):
     RTT_LAYOUT[6] is not even clockwise ({1,2,5,6,4,3} where clockwise is {1,5,2,4,6,3}).
     """
     import math
-    POS = {1: (52, -46), 2: (-52, -46), 3: (52, 46), 4: (-52, 46), 5: (0, -46), 6: (0, 46)}
-    LAYOUT = {2: [1, 3], 3: [1, 2, 3], 4: [1, 2, 4, 3], 5: [1, 5, 2, 4, 3]}
+    # READ FROM THE MOD, NOT FROM A COPY. These used to be Python literals inside the test, so the
+    # expected order and the actual order were both computed from the test's own idea of the layout:
+    # a change that made the mod's seat geometry non-clockwise would have passed unchanged.
+    def lua_pos(rt):
+        return {i: (rt.eval("RTT_POS[%d][1]" % i), rt.eval("RTT_POS[%d][2]" % i)) for i in range(1, 7)}
+    def lua_layout(rt, n):
+        m = rt.eval("RTT_LAYOUT[%d]" % n)
+        return [int(m[i]) for i in range(1, n + 1)]
+    probe = fresh(src)
+    POS = lua_pos(probe)
+    LAYOUT = {n: lua_layout(probe, n) for n in (2, 3, 4, 5)}
+    assert POS[1] == (52, -46), "RTT_POS[1] is no longer the bottom-right corner: %s" % (POS[1],)
     a0 = math.atan2(POS[1][1], POS[1][0])
     for n in (2, 3, 4, 5):
         joined = ["Purple", "Blue", "White", "Pink", "Green"][:n]
