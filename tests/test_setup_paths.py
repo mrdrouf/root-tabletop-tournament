@@ -2681,6 +2681,9 @@ def t_the_panel_flashes_after_twenty_minutes(src):
 
     # THE WASH MUST BE THE LAST CHILD, or the readouts and buttons draw over it and the only red that
     # can show is the 30px margin -- which is what "Message appears but no red" was.
+    # buildUI has to be called for there to be markup at all: the tick stopped rebuilding when the
+    # flash moved to toggling "active", so nothing emits XML unless we ask.
+    g.buildUI()
     xml = g.LASTXML or ""
     assert xml.index('id="pnlwash"') > xml.index("</VerticalLayout>"), \
         "the wash is emitted before the content; it will be hidden behind it"
