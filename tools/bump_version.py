@@ -27,8 +27,10 @@ BOARD = "bab7e1"
 CREAM = "#F9E6BB"          # the mod's one cream
 ANCHOR = '<Image id="rootLogo"'
 
-# Top right, opposite the logo. The board's UI runs x -95..117 and y -88..80, so this sits in the
-# corner without touching the (inactive) close button at 117.
+# Hard into the top right, opposite the logo -- the maintainer, 2026-09-07: "version more to the
+# upper right corner". The board's UI reaches about x 124 and y 93 (the close button spans to 124.5,
+# the Root logo tops out at 92.5), and the panel scales about its CENTRE, so at 104/87 with a
+# 160x70 box its right edge lands at 120 and its top at 94.
 #
 # WHY THE PANEL. Object XmlUI is rendered once and then magnified onto the object, and this board is
 # scale 15.5, so type set at its final size comes out soft -- the maintainer, 2026-09-07: "the version
@@ -38,7 +40,7 @@ ANCHOR = '<Image id="rootLogo"'
 # a sharper line, change FONT alone to resize it.
 SHRINK = 0.2
 FONT = 34                      # 34 * 0.2 = 6.8 on the board, against the 12 it replaced
-ELEMENT = ('<Panel id="rttVersion" position="94 80 -20" width="220" height="70" '
+ELEMENT = ('<Panel id="rttVersion" position="104 87 -20" width="160" height="70" '
            'scale="%s %s 1" color="#00000000" raycastTarget="false">'
            '<Text text="v%%d" fontSize="%d" color="%s" alignment="MiddleRight"/>'
            '</Panel>') % (SHRINK, SHRINK, FONT, CREAM)

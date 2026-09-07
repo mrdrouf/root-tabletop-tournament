@@ -2980,7 +2980,17 @@ def t_the_board_shows_the_build_number(src):
 
     assert 'color="#F9E6BB"' in el, "the build number is not in the mod's cream: %s" % el
     x, y = (float(v) for v in re.search(r'position="([-\d.]+) ([-\d.]+)', el).groups())
-    assert x > 60 and y > 60, "the build number is not in the top right corner: %s,%s" % (x, y)
+    assert x > 95 and y > 82, "the build number is not hard in the top right corner: %s,%s" % (x, y)
+
+    # ONE version, and it belongs to the mod. The sheet used to sign itself "made by MrDrouf . <BUILD>"
+    # from a build string of its own; the box score ships inside the mod now, so that is gone --
+    # the maintainer, 2026-09-07: "remove the boxscore version ... now they are the same".
+    sheet = re.search(r'RTT_BOXSCORE_JSON = \[====\[(.*?)\]====\]', src, re.S)
+    assert sheet, "the box score blueprint is not in the build"
+    lua = json.loads(sheet.group(1))["LuaScript"]
+    code = [ln for ln in lua.split("\n") if not ln.strip().startswith("--")]
+    assert not [ln for ln in code if "BUILD" in ln], \
+        "the box score has a version of its own again: %s" % [ln for ln in code if "BUILD" in ln][:1]
 
 
 CASES = [
