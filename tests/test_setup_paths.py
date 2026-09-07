@@ -2771,10 +2771,16 @@ def t_every_selector_icon_is_downloaded_with_the_table(src):
         assert m is not None, "%s: blueprint not found" % var
         blueprint = json.loads(m.group(1))
         by_name = {a["Name"]: a["URL"] for a in (blueprint.get("CustomUIAssets") or [])}
+        assert by_name, "%s: declares no UI assets -- did the blueprint change shape?" % var
+
+        # EVERY DECLARED ASSET, not only the ones named in the XmlUI. TTS composites an object's UI
+        # once at instantiation, and the ranked selector's faction buttons get their icons at RUNTIME
+        # through setAttribute -- so its XmlUI names none of them and checking only icon= refs would
+        # have covered nothing at all on that board.
         used = set(re.findall(r'(?:icon|image)="([^"]+)"', blueprint.get("XmlUI") or ""))
-        assert used, "%s: no icons found -- did the XmlUI change shape?" % var
         for name in sorted(used):
             assert name in by_name, "%s: button icon %r has no asset entry" % (var, name)
+        for name in sorted(by_name):
             assert by_name[name] in at_load, (
                 "%s: icon %r is only ever requested when the board is SPAWNED, so it is missing on a "
                 "cold load and the board comes up with no buttons. List it on the table surface "
