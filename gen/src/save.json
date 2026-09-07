@@ -2128,15 +2128,15 @@
         },
         {
           "Name": "WipeConfirmArt",
-          "URL": "https://cdn.jsdelivr.net/gh/mrdrouf/root-tabletop-tournament@main/assets/buttons/wipe_confirm_sq_v3_1688f70a.png"
+          "URL": "https://cdn.jsdelivr.net/gh/mrdrouf/root-tabletop-tournament@main/assets/buttons/wipe_confirm_sq_7a28ecfb.png"
         },
         {
           "Name": "WipeConfirmArtWide",
-          "URL": "https://cdn.jsdelivr.net/gh/mrdrouf/root-tabletop-tournament@main/assets/buttons/wipe_confirm_wide_v3_b41de210.png"
+          "URL": "https://cdn.jsdelivr.net/gh/mrdrouf/root-tabletop-tournament@main/assets/buttons/wipe_confirm_wide_8020706a.png"
         },
         {
           "Name": "WipeConfirmMapArt",
-          "URL": "https://cdn.jsdelivr.net/gh/mrdrouf/root-tabletop-tournament@main/assets/buttons/wipe_confirm_map_79250013.png"
+          "URL": "https://cdn.jsdelivr.net/gh/mrdrouf/root-tabletop-tournament@main/assets/buttons/wipe_confirm_map_2f127760.png"
         },
         {
           "Type": 0,
@@ -2345,7 +2345,7 @@
         },
         {
           "Name": "WipeConfirmMapArtWide",
-          "URL": "https://cdn.jsdelivr.net/gh/mrdrouf/root-tabletop-tournament@main/assets/buttons/wipe_confirm_map_wide_1226e1a5.png",
+          "URL": "https://cdn.jsdelivr.net/gh/mrdrouf/root-tabletop-tournament@main/assets/buttons/wipe_confirm_map_wide_af48ed31.png",
           "Type": 0
         }
       ]
