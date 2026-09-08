@@ -477,11 +477,23 @@ def t_enclave_targets_the_suit_marker(src):
         assert er.eval("self.getPosition()").y > rest_y + 0.2, \
             "the token crossed at %.3f, level with the board it is sitting on" \
             % er.eval("self.getPosition()").y
+        # BOTH ANIMATIONS RUN FAST. `fast` is TTS's only speed control for a scripted move -- there is
+        # no duration to set -- and both take it, so the glide and the turn stay in step.
+        # Maintainer, 2026-09-07: "makes the flip animation 30% faster".
+        assert er.eval("self.__smoothFast") is True, "the glide is not using TTS's fast setting"
+        assert er.eval("self.__rotFast") is True, "the turn is not using TTS's fast setting"
+
+        # ...AND THE LANDING HEIGHT IS PHYSICS', NOT OURS. The first version put the token back at the
+        # height it lifted from, which is wrong for the same reason the lift is needed: the two spots
+        # are at DIFFERENT heights, the lobe being raised. A token carrying its side-spot height to the
+        # centre lands inside the marker -- "on militant it lands too low on some markers". Here TTS
+        # settles it higher than it started, and the placement must leave that alone.
+        er.execute("self.__pos = Vector({ self.getPosition().x, %.3f, self.getPosition().z })"
+                   % (rest_y + 0.17))
         er.execute("self.is_face_down = true self.resting = true FLUSH_UNTIL(8.0, 4)")
-        # ...and comes back down to exactly the height it left from, not to a guessed table level
-        assert abs(er.eval("self.getPosition()").y - rest_y) < 1e-6, \
-            "the token landed at %.3f, not the %.3f it lifted from" \
-            % (er.eval("self.getPosition()").y, rest_y)
+        assert abs(er.eval("self.getPosition()").y - (rest_y + 0.17)) < 1e-6, \
+            "the placement forced the height to %.3f; it should keep the %.3f the token settled at" \
+            % (er.eval("self.getPosition()").y, rest_y + 0.17)
         back = er.eval("self.getPosition()")
         assert abs(back.x - want.x) < 0.05 and abs(back.z - want.z) < 0.05, (
             "flipping to militant left the token at %.3f,%.3f instead of the lobe centre"

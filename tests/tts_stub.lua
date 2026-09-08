@@ -77,7 +77,7 @@ function MKOBJ(name, pos, tags)
   function o.setPosition(p) o.__pos = vec(p) end
   function o.getRotation() return vec(o.__rot) end
   function o.setRotation(r) o.__rot = vec(r) end
-  function o.setRotationSmooth(r) o.__rot = vec(r) end
+  function o.setRotationSmooth(r, collide, fast) o.__rot = vec(r); o.__rotFast = (fast == true) end
   -- RELATIVE rotation. TTS composes this with whatever else is turning the object, which is the whole
   -- reason anything would use it over setRotation: it can be applied mid-flip without cancelling the
   -- flip. Y only here, which is all this mod asks of it.
