@@ -52,6 +52,8 @@ BOX = (1225, 700, 1655, 1300)   # generous bounds round the printed Lost Souls b
 BG_THRESH = 22                  # L1 distance to the background palette that still counts as green
 MASK_THRESH = 14                # ...and the tighter one used to find the artwork
 LIZARD_DROP = 70                # "just put him a little bit below"
+PITCH = 140                     # column spacing that matches the board's own scatter of trees
+TOP = 686                       # the ground starts just under the Outcast panel
 SEED = 4
 
 
@@ -273,56 +275,88 @@ def smooth_ground(front, need, pal, rng, step=12, w=44, passes=200, G=48):
     return out
 
 
-def _fill_axis(img, hole, axis):
-    """Nearest valid value on each side along `axis`, and how far away each one is."""
-    if axis == 1:
-        img, hole = img.transpose(1, 0, 2), hole.T
-    n = hole.shape[0]
-    idx = np.arange(n)[:, None] * np.ones((1, hole.shape[1]), int)
-    prev = np.where(~hole, idx, -1)
-    np.maximum.accumulate(prev, axis=0, out=prev)
-    nxt = np.where(~hole, idx, n)
-    nxt = np.minimum.accumulate(nxt[::-1], axis=0)[::-1]
-    p = np.clip(prev, 0, n - 1)
-    q = np.clip(nxt, 0, n - 1)
-    cols = np.arange(hole.shape[1])[None, :]
-    lo, hi = img[p, cols], img[q, cols]
-    dlo = np.where(prev < 0, 1e9, idx - prev).astype(np.float32)
-    dhi = np.where(nxt >= n, 1e9, nxt - idx).astype(np.float32)
-    span = dlo + dhi
-    w = (dlo / np.maximum(span, 1))[..., None]
-    out = lo * (1 - w) + hi * w
-    if axis == 1:
-        out, span = out.transpose(1, 0, 2), span.T
-    return out, span
+def map_back(front, back):
+    """The board's OTHER FACE, rescaled to this one and recoloured onto its palette.
 
+    Maintainer: "the back fo the faction has the trees you can find just the wrong color." Exactly
+    so, and it is the thing that makes this possible. The play side has almost no bare background --
+    every tree on it is cropped by a panel or covered by the box -- so anything cut from it is a
+    piece of a tree. The manifest side is the same board at 4/3 the size, drawn by the same hand, and
+    it is 86% bare: its trees stand alone, whole, unoccluded, ready to lift.
 
-def mend(front, hole, ground=None, near=60, far=110):
-    """Carry the drawing across the gap, along whichever axis the gap is NARROWER.
-
-    This is the whole repair, and it is the one thing that keeps the art connected. A stem crossing
-    a horizontal band is continued downward; the border's vertical bars are continued sideways; and
-    plain ground stays plain ground, because both sides of it are plain ground. Nothing is invented,
-    so nothing can arrive as a fragment -- which is what pasting pieces of trees into hole-shaped
-    masks kept producing.
-
-    Choosing the narrower axis matters: the border's left bar is 13px wide and 555px tall, and read
-    vertically it would smear over half the panel.
+    The two faces' backgrounds are NOT the same layout (correlation 0.14 where both are bare), so it
+    is a source of trees, not of the missing pixels. Matched on each background's own mean and
+    spread, it lands within 5 of this face's palette.
     """
-    f = front.astype(np.float32)
-    v, sv = _fill_axis(f, hole, 0)
-    h, sh = _fill_axis(f, hole, 1)
-    span = np.minimum(sv, sh)
-    use_v = (sv <= sh)[..., None]
-    out = np.where(use_v, v, h)
-    if ground is not None:
-        # CONTINUATION ONLY CARRIES SO FAR. Across the border or a line of text it is exact; across
-        # the 341px the lizard used to cover it is a long smear of nothing. Past `near` the fill
-        # hands over to the flat ground, which is what that depth should be anyway -- and the part
-        # of it that stays visible after he is moved down is well inside the honest range.
-        t = np.clip((span - near) / float(far - near), 0, 1)[..., None]
-        out = out * (1 - t) + ground.astype(np.float32) * t
-    return np.where(hole[..., None], np.clip(out, 0, 255), f).astype(np.uint8)
+    back = np.asarray(Image.fromarray(back).resize((front.shape[1], front.shape[0]), Image.LANCZOS))
+    px = back[60:1270, 30:110].reshape(-1, 3)
+    cols, cnt = np.unique(px, axis=0, return_counts=True)
+    bpal = cols[cnt >= len(px) * 0.0004]
+    bclean = bg_dist(back, bpal) < BG_THRESH
+    fpal = palette_of(front, [(300, 1240, 8, 52), (1274, 1308, 60, 1620)])
+    A = back[bclean].astype(np.float64)
+    B = front[bg_dist(front, fpal) < BG_THRESH].astype(np.float64)
+    scale = B.std(0) / A.std(0)
+    return np.clip(back * scale + (B.mean(0) - A.mean(0) * scale), 0, 255).astype(np.uint8), bclean
+
+
+def harvest(mapped, bclean):
+    """Whole trees off the other face: a stem with its paired branches, entire.
+
+    Size bounds keep out the header flourishes and the odd pair of trees that touch; the purity test
+    keeps out anything carrying a neighbour's ink, which planted in open ground reads as a speck of a
+    different drawing.
+    """
+    lab, info = components(erode(dilate(is_vine(mapped) & bclean, 2), 1))
+    out = []
+    for c, (n, a, b, cc, e) in info.items():
+        h, w = e - cc + 1, b - a + 1
+        if n < 500 or h < 90 or h > 420 or w > 170:
+            continue
+        m = lab[cc:e + 1, a:b + 1] == c
+        px = mapped[cc:e + 1, a:b + 1][dilate(m, 2)].astype(int)
+        if (px[:, 0] > px[:, 1] + 15).mean() > 0.003:
+            continue
+        if ((px[:, 0] < 120) & (px[:, 1] < 130)).mean() > 0.003:
+            continue
+        out.append(((a, b, cc, e), m))
+    return out
+
+
+def plant(canvas, mapped, trees, region, rng, pitch=PITCH, gap=26, jitter=16):
+    """Plant whole trees in columns, the way they stand everywhere else on the board.
+
+    Every tree goes down entire. That is the whole point: three earlier versions cut them to fit the
+    hole -- quilted, sown at a matching density, bridged with pieces -- and every one came back as
+    litter, because a cut tree is not a tree. The only clipping here is at the region's own edge,
+    which runs from under the panel above to the board's bottom, where the board's trees end too.
+    """
+    ys, xs = np.where(region)
+    X0, X1, Y0, Y1 = xs.min(), xs.max() + 1, ys.min(), ys.max() + 1
+    n = 0
+    x = X0 + int(rng.integers(10, 40))
+    while x < X1 - 30:
+        y = Y0 - int(rng.integers(20, 90))
+        while y < Y1 - 20:
+            bb, m = trees[rng.integers(len(trees))]
+            a, b, c, e = bb
+            h, w = e - c + 1, b - a + 1
+            dx, dy = int(x + rng.integers(-jitter, jitter + 1) - w // 2), int(y)
+            ys0, ys1 = max(0, dy), min(canvas.shape[0], dy + h)
+            xs0, xs1 = max(0, dx), min(canvas.shape[1], dx + w)
+            if ys1 - ys0 > 30 and xs1 - xs0 > 10:
+                sy0, sx0 = ys0 - dy, xs0 - dx
+                src = mapped[c + sy0:c + sy0 + (ys1 - ys0), a + sx0:a + sx0 + (xs1 - xs0)].astype(np.float32)
+                al = soft(m[sy0:sy0 + (ys1 - ys0), sx0:sx0 + (xs1 - xs0)])
+                if rng.random() < 0.5:
+                    src, al = src[:, ::-1], al[:, ::-1]
+                al = (al * region[ys0:ys1, xs0:xs1])[..., None]
+                reg = canvas[ys0:ys1, xs0:xs1].astype(np.float32)
+                canvas[ys0:ys1, xs0:xs1] = np.clip(reg * (1 - al) + src * al, 0, 255).astype(np.uint8)
+                n += 1
+            y = dy + h + int(rng.integers(0, gap))
+        x += pitch + int(rng.integers(-14, 15))
+    return n
 
 
 def main():
@@ -352,8 +386,20 @@ def main():
     # ONLY WHAT THE BOX COVERED IS REBUILT. Replacing the whole panel meant re-inventing vines that
     # were never damaged, and they then had to be lined up with the board by luck. Everything the
     # box did not cover is left exactly as printed.
-    ground = smooth_ground(front, art, pal, rng)
-    out = mend(front, art, ground=ground)
+    # THE GROUND UNDER THE BOX IS REBUILT AND REPLANTED. It runs from just below the Outcast panel
+    # to the board's bottom edge, so the trees planted in it start and finish where the board's own
+    # trees do and nothing is left cut at a join.
+    back = np.asarray(Image.open(os.path.join(SRC, "lizard_board_back.png")).convert("RGB"))
+    mapped, bclean = map_back(front, back)
+    trees = harvest(mapped, bclean)
+    clean = bg_dist(front, pal) < BG_THRESH
+    region = np.zeros(front.shape[:2], bool)
+    region[TOP:front.shape[0], X0 - 2:X1 + 2] = True
+    region &= (clean | art)
+    out = smooth_ground(front, region, pal, rng)
+    planted = plant(out, mapped, trees, region, rng)
+    print("   %d whole trees off the manifest side, planted in %d px of rebuilt ground"
+          % (planted, int(region.sum())))
 
     h, w = le - lc + 1, lb - la + 1
     nc = lc + LIZARD_DROP
@@ -362,19 +408,18 @@ def main():
     out[nc:nc + h, la:la + w] = np.clip(
         reg * (1 - al) + front[lc:le + 1, la:lb + 1].astype(np.float32) * al, 0, 255).astype(np.uint8)
 
-    clean = bg_dist(front, pal) < BG_THRESH
     ring = np.zeros(front.shape[:2], bool)
     ring[Y0 - 80:Y1 + 80, X0 - 80:X1 + 80] = True
-    td = is_vine(front)[clean & ring & ~dilate(rect, 4)].mean()
+    td = is_vine(front)[clean & ring & ~dilate(region, 4)].mean()
     # measured on the GROUND ONLY -- the lizard's own pale greens answer to the same test as a vine
     lizfoot = np.zeros(front.shape[:2], bool)
     lizfoot[nc - 12:nc + h + 12, la - 12:la + w + 12] = True
-    ground_only = rect & ~lizfoot
-    print("   panel mended; vine %.2f%% against %.2f%% around it"
+    ground_only = region & ~lizfoot
+    print("   vine %.2f%% against %.2f%% on the board around it"
           % (100 * is_vine(out)[ground_only].mean(), 100 * td))
 
     changed = (out != front).any(axis=-1)
-    assert not (changed & ~rect).any(), "the rebuild touched pixels outside the Lost Souls panel"
+    assert not (changed & ~region).any(), "the rebuild touched ground it was not given"
 
     if not os.path.isdir(OUT):
         os.makedirs(OUT)
