@@ -145,4 +145,4 @@ setup board's top right corner, and goes up on every commit.
 - The outcast symbol is printed onto the lizard board's own slot, matching the Wizard, with its own Hated art.
 - The lizards spawn one Outcast Marker, not two.
 - Its Lost Souls counts read the Wizard and sit under their own suit, not mirrored across the board.
-- The outcast symbol on the lizard board has its yellow tile ground keyed out, so only the mark lands on the parchment.
+- The outcast symbol is drawn in the lizard board's own UI, with the token's yellow tile keyed out.

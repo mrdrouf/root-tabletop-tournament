@@ -360,12 +360,16 @@ def t_the_lizard_board_follows_the_wizard(src):
         for i, dsc in ipairs(descs) do objs[i] = { description = dsc } end
         dk.getObjects = function() return objs end
       end
+      LASTXML = ""
+      self.UI.setXml = function(x) LASTXML = tostring(x or "") end
+      self.UI.setCustomAssets = function() end
       function decalAt()
-        local ds = self.getDecals()
-        if ds == nil or #ds == 0 then return "none" end
-        local d = ds[1]
-        return string.format("%.4f|%.4f|%s", d.position[1], d.position[3],
-          (d.url == HATED_IMG) and "hated" or "outcast")
+        if LASTXML == "" then return "none" end
+        -- %- , not -: a bare - is Lua's lazy quantifier, not a literal minus
+        local px = tonumber(string.match(LASTXML, 'position="(%-?[%d.]+)'))
+        local py = tonumber(string.match(LASTXML, 'position="%-?[%d.]+ (%-?[%d.]+)'))
+        local face = string.find(LASTXML, "hatedImg", 1, true) and "hated" or "outcast"
+        return string.format("%.4f|%.4f|%s", px / PX_PER_UNIT * UI_MIRROR, -py / PX_PER_UNIT, face)
       end
       function tokensOnTable()
         local n = 0
@@ -405,7 +409,7 @@ def t_the_lizard_board_follows_the_wizard(src):
     # guess that happens to be right is still worth replacing with the measurement.)
     SLOT = slots_from_the_lizard_save()
     assert decal() != "none", \
-        "nothing is painted on the board for a fox outcast; the symbol should be a decal on its slot"
+        "nothing is drawn on the board for a fox outcast; the symbol should be UI on its slot"
     x, z, face = decal().split("|")
     assert abs(float(x) - SLOT["fox"]) < 0.01 and abs(float(z) + 0.0575) < 0.01, \
         "the fox outcast painted the symbol at %s,%s instead of the fox slot" % (x, z)
