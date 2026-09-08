@@ -438,10 +438,11 @@ def t_the_lizard_board_follows_the_wizard(src):
     # able to find the snap points for reference." It was 0.22 local across -- half again wider than
     # the 0.1399 frame it was supposed to sit inside -- and a whole panel low, so it hung off the
     # bottom of the Outcast box and into the Lost Souls title beneath. Both halves are pinned here.
-    assert 0.095 <= w <= 0.107, \
-        "the symbol is %.4f local across; it should read as a token in a 0.1399 frame, not cover it" % w
-    assert w < FRAME_SIDE, \
-        "the symbol (%.4f) is wider than the printed frame (%.4f) and cannot sit inside it" % (w, FRAME_SIDE)
+    assert 0.132 <= w <= 0.140, \
+        "the symbol is %.4f local across; it should land ON the printed 0.1388 frame, being the same " \
+        "drawing in grey -- 0.0974 made it a second, smaller thorn square nested inside the first" % w
+    assert w <= FRAME_SIDE, \
+        "the symbol (%.4f) overhangs the printed frame (%.4f) onto the parchment" % (w, FRAME_SIDE)
     assert z - w / 2 > ICON_BOTTOM, \
         "the symbol's top edge (%.4f) reaches up into the suit icons (%.4f)" % (z - w / 2, ICON_BOTTOM)
     assert z + w / 2 < PANEL_BOTTOM, \
