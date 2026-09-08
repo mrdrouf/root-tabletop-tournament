@@ -172,3 +172,23 @@ rather than be completed, because with 3.1 the colour is only written on an even
 
 No `*Auto` flags, no arbitration, no "who owns this cell". The fragility being removed is not the
 conflict itself — it is the *state kept to remember the conflict*.
+
+---
+
+## 8. Built, 2026-09-07
+
+All of it, in two passes. Two things the tests caught that the design had wrong:
+
+- **A duplicate of a WRAPPING pass would have advanced the round twice.** The wrap needed to be
+  idempotent as well as the lock. The incoming seat settles it: the table has come round only if the
+  row about to play has already played this round.
+- **A row appearing is not new information about the OTHER rows.** Only a pushed record or a change
+  in the seated roster re-fills a name. And a player joining or swapping IS an event -- TTS does not
+  announce it, but the sheet can see it, and two adversarial cases were right to insist on it.
+
+The old-save migration also had to learn the round is EAGER now: a save whose every row has locked the
+top column is sitting at the START of the next one.
+
+`rttSuppressNextLock` survives as a NO-OP on purpose. A panel already on somebody's table keeps its
+spawn-time script for ever and calls it through `obj.call`, which fails silently -- which is how a
+whole release cycle of START fixes went missing once already.
