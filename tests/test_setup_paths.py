@@ -3128,6 +3128,57 @@ def t_numpad_two_lays_a_warrior_down_and_lights_it(src):
     assert state("ROOST")[1] is False, "numpad 2 laid a building down"
 
 
+def t_the_cats_are_dropped_clear_of_the_clearing(src):
+    """A cat appears in free air above its clearing and falls, standing upright.
+
+    Maintainer, 2026-09-07: "when spawned on the map at the setup of the faction, cats should drop
+    from a bit abov so they don t push away things already there but fall on them; but they should
+    still stand up straight if there is no obstacles."
+
+    The board's surface is 11.56 and what is already standing in a clearing at setup -- ruins, relics,
+    clearing and priority markers -- sits between 11.63 and 11.70. A cat appeared at 12.6, which puts
+    the bottom of its collider right about there, and TTS answers an overlap by shoving the two apart.
+
+    Two clear units of air, no more: the rotation stands the cat up, and a piece let go from much
+    higher bounces and can land on its side. Physics is not modelled here, so this pins the two things
+    that decide the outcome -- the height it starts from and the attitude it starts in.
+    """
+    BOARD, FURNITURE = 11.56, 11.70          # the surface, and the tallest thing already on it
+    rt = fresh(src)
+    rt.execute("""
+      DROPS = {}
+      RTT_CURRENT_MAP = "Summer Map"
+      MAP = MKOBJ("Autumn", {0, 11.5, 0}, {"Map Object"})
+      MAP.__snaps = {}
+      for i = 1, 40 do MAP.__snaps[i] = { position = {0,0,0} } end
+      BAG = MKOBJ("Marquise Supply", {-36, 11.4, 44}, {})
+      BAG.name = "Bag"
+      BAG.takeObject = function(p)
+        DROPS[#DROPS + 1] = string.format("%.3f|%s", p.position[2],
+          table.concat({p.rotation[1], p.rotation[2], p.rotation[3]}, ","))
+        return MKOBJ("Cat Warrior", p.position, {})
+      end
+      rttMarquiseCats(0, 0, false) FLUSH(20)
+    """)
+    drops = [str(v) for v in (rt.eval("DROPS") or {}).values()]
+    assert len(drops) == 12, "Autumn has 12 clearings; %d cats were placed" % len(drops)
+
+    heights = {float(d.split("|")[0]) for d in drops}
+    assert len(heights) == 1, "the cats are dropped from different heights: %s" % sorted(heights)
+    y = heights.pop()
+    assert y - FURNITURE >= 1.5, \
+        ("a cat starts %.2f above the tallest thing in a clearing; that is close enough for TTS to "
+         "resolve the overlap by shoving the ruin away" % (y - FURNITURE))
+    assert y - BOARD <= 3.0, \
+        "a cat is dropped %.2f above the board; from that height it bounces and lands on its side" \
+        % (y - BOARD)
+
+    # UPRIGHT ON THE WAY DOWN. It is the attitude it starts in that decides how it lands when the
+    # clearing is empty, and nothing rights it afterwards.
+    attitudes = {d.split("|")[1] for d in drops}
+    assert attitudes == {"0,180,0"}, "the cats are not dropped standing up: %s" % attitudes
+
+
 def t_the_badger_relics_are_drawn_uniformly(src):
     """Which relic lands on which forest is a real draw, and it does not depend on the bag being shuffled.
 
@@ -4377,6 +4428,7 @@ CASES = [
     ("every map locks its ruins",         t_every_map_locks_its_ruins),
     ("keepers spawn where he put them",   t_the_keepers_spawn_where_the_maintainer_put_them),
     ("badger relics draw uniformly",      t_the_badger_relics_are_drawn_uniformly),
+    ("cats drop clear of the clearing",   t_the_cats_are_dropped_clear_of_the_clearing),
     ("board shows the build number",      t_the_board_shows_the_build_number),
     ("panel pauses the clock",            t_the_panel_pauses_the_clock),
     ("start names the pass it causes",    t_start_names_the_pass_it_causes),

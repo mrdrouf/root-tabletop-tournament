@@ -4950,6 +4950,20 @@ function rttRatsMoodManager(cx, cz, flip)
   end
 end
 
+-- HOW HIGH A CAT IS DROPPED INTO ITS CLEARING.
+--
+-- The board's surface is 11.56 and the things already standing in a clearing at setup -- ruins,
+-- relics, clearing and priority markers -- sit between 11.63 and 11.70. A cat used to appear at 12.6,
+-- about one unit up, which puts the bottom of its collider right about there: TTS answers an overlap
+-- by shoving the two apart, so placing the Marquise scattered whatever was in the clearing.
+-- Maintainer, 2026-09-07: "cats should drop from a bit abov so they don t push away things already
+-- there but fall on them; but they should still stand up straight if there is no obstacles."
+--
+-- Two units clears every one of those pieces with the whole model to spare, so a cat starts in free
+-- air and lands ON what is there. It stays a SHORT drop on purpose: the rotation below stands the cat
+-- up, and a piece let go from much higher bounces and can come down on its side.
+RTT_CAT_DROP = 13.6
+
 function rttMarquiseCats(cx, cz, flip)
   -- resolve the current map (same fallback chain as rttBadgerRelics: clone -> main board bab7e1)
   local mapId = RTT_CURRENT_MAP or (RTT_PICKED or {}).map
@@ -4998,7 +5012,8 @@ function rttMarquiseCats(cx, cz, flip)
       if dx * dx + dz * dz < 20.0 then skip = true break end   -- ~4.5u = same clearing
     end
     if not skip then
-      pcall(function() bag.takeObject({ position = { c[1], 12.6, c[2] }, rotation = { 0, 180, 0 }, smooth = false,
+      pcall(function() bag.takeObject({ position = { c[1], RTT_CAT_DROP, c[2] }, rotation = { 0, 180, 0 },
+        smooth = false,   -- appear at height and FALL: a slide would push through whatever is there
         callback_function = function(o) pcall(function() o.addTag("RTT Faction") end) end }) end)  -- upright (standing)
     end
   end
