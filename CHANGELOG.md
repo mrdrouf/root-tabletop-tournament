@@ -138,5 +138,5 @@ setup board's top right corner, and goes up on every commit.
 - DOM WIN is written into the score box on two lines; the button itself is one line again.
 - The live score tracker shows the dash during dominance, or the running score under Brazen Demagogue.
 - An enclave lands on the suit symbol when militant and beside it, tilted, when not.
-- Flipping an enclave in place moves it between the two spots; the catch area is 3 units, not 4.
+- Flipping an enclave moves it between the two spots, once it has landed; the catch area is 3 units.
 - Enclaves are 10% smaller.

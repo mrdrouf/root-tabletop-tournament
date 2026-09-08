@@ -330,8 +330,14 @@ def t_enclave_targets_the_suit_marker(src):
     AND WHICH SIDE IS UP DECIDES WHERE. Maintainer, 2026-09-07: "when it s militant in the center of
     the suit marker, but when not militant the snap should be on the side of the suit marker at the
     edge of it so it does not hide the suit symbol ... the position of the snap would change when one
-    flips the enclave." The blueprint's front face is Diaspora_TokenPeaceful and the back is the
-    militant art, so is_face_down is true exactly when the militant side shows.
+    flips the enclave."
+
+    is_face_down FALSE IS THE MILITANT SIDE, which is the opposite of what the blueprint's file names
+    suggest: its ImageURL is called "Diaspora_TokenPeaceful" and its ImageSecondaryURL
+    "EnclaveTokens-06". Going by the names put the peaceful art on the symbol -- "the center snap still
+    flips it to peaceful while it should be militant" -- so the encoding is pinned here deliberately,
+    rather than read from the script's own constant, because reading it from the script is exactly how
+    an inversion would pass unnoticed.
     """
     rt = fresh(src)
     d = rt.eval('EVERYTHING["Standard"]["Lilypad Diaspora"]["data"]')
@@ -362,8 +368,8 @@ def t_enclave_targets_the_suit_marker(src):
         """)
         want = er.eval("MARKER.positionToWorld(Vector({ 0.0056, 0.0174, 0.3599 }))")
 
-        # MILITANT: dead on the lobe centre, covering the symbol, exactly as before.
-        er.execute("self.__pos = Vector({ 10.6, 12, -4.5 }) self.is_face_down = true")
+        # MILITANT: dead on the lobe centre, covering the symbol. All twelve spawn this way up.
+        er.execute("self.__pos = Vector({ 10.6, 12, -4.5 }) self.is_face_down = false")
         er.execute("pcall(function() onDrop('Red') end) FLUSH(20)")
         p = er.eval("self.getPosition()")
         r = er.eval("self.getRotation()")
@@ -376,7 +382,7 @@ def t_enclave_targets_the_suit_marker(src):
             "a dropped enclave faces %.1f; the marker faces 137 and the offset is %s" % (r.y, off))
 
         # PEACEFUL: off to the side, clear of the symbol -- and still on the same marker.
-        er.execute("self.__pos = Vector({ 10.6, 12, -4.5 }) self.is_face_down = false")
+        er.execute("self.__pos = Vector({ 10.6, 12, -4.5 }) self.is_face_down = true")
         er.execute("pcall(function() onDrop('Red') end) FLUSH(20)")
         q = er.eval("self.getPosition()")
         off_lobe = ((q.x - want.x) ** 2 + (q.z - want.z) ** 2) ** 0.5
@@ -403,14 +409,25 @@ def t_enclave_targets_the_suit_marker(src):
         # 2026-09-07: "most importantly flipping the enclave when it is on one of the two snaps needs
         # to change its position." onRotate fires as the animation starts, while is_face_down still
         # reads the old face, so the token re-places itself once the flip has landed.
-        er.execute("self.is_face_down = true")
+        # ...BUT ONLY ONCE IT HAS LANDED. Maintainer, 2026-09-07: "the move from both snaps happens
+        # only when it lands on the marker not during the flip." onRotate fires as the animation
+        # STARTS -- moving the token then drags a spinning piece sideways, and is_face_down still
+        # reads the old face at that moment.
+        er.execute("self.resting = false self.is_face_down = false")
         er.execute("pcall(function() onRotate(0, 0, 'Red', 0, 180) end) FLUSH_UNTIL(1.0, 4)")
+        turning = er.eval("self.getPosition()")
+        assert ((turning.x - want.x) ** 2 + (turning.z - want.z) ** 2) ** 0.5 > 0.5, \
+            "the token moved while it was still turning; it should wait until it lands"
+        er.execute("self.resting = true FLUSH_UNTIL(8.0, 4)")
         back = er.eval("self.getPosition()")
         assert abs(back.x - want.x) < 0.05 and abs(back.z - want.z) < 0.05, (
             "flipping to militant left the token at %.3f,%.3f instead of the lobe centre"
             % (back.x, back.z))
-        er.execute("self.is_face_down = false")
+        er.execute("self.resting = false self.is_face_down = true")
         er.execute("pcall(function() onRotate(0, 180, 'Red', 0, 0) end) FLUSH_UNTIL(1.0, 4)")
+        assert abs(er.eval("self.getPosition()").x - back.x) < 1e-6, \
+            "the token moved off the centre while it was still turning"
+        er.execute("self.resting = true FLUSH_UNTIL(8.0, 4)")
         side = er.eval("self.getPosition()")
         assert ((side.x - want.x) ** 2 + (side.z - want.z) ** 2) ** 0.5 > 0.5, \
             "flipping to peaceful left the token on the symbol"
@@ -428,7 +445,7 @@ def t_enclave_targets_the_suit_marker(src):
         # area a bit too much"; 3.0 is the maintainer's own number. Dropped well clear of that, the
         # enclave must stay where it was let go. HOME_GUID is cleared first: a token remembers the
         # marker it was on, and this is a fresh token dropped in open ground.
-        er.execute("HOME_GUID = nil self.__pos = Vector({ 14.3, 12, -4.5 }) self.is_face_down = true")
+        er.execute("HOME_GUID = nil self.__pos = Vector({ 14.3, 12, -4.5 }) self.is_face_down = false")
         er.execute("pcall(function() onDrop('Red') end) FLUSH(20)")
         far = er.eval("self.getPosition()")
         assert abs(far.x - 14.3) < 1e-6, (

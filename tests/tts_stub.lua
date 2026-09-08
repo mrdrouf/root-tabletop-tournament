@@ -83,6 +83,11 @@ function MKOBJ(name, pos, tags)
   function o.hasTag(t) for _,x in ipairs(o.__tags) do if x == t then return true end end return false end
   function o.getTags() return o.__tags end
   function o.setTags(t) o.__tags = t or {} end
+  -- AT REST. TTS reports these while a piece is still falling or animating, and anything that waits
+  -- for a drop or a flip to LAND reads them. Default to settled, so nothing that never sets them
+  -- changes behaviour; a test that wants the in-flight case sets o.resting = false.
+  o.resting = true
+  function o.isSmoothMoving() return o.__moving == true end
   function o.getLock() return o.__locked == true end
   function o.destruct() if not o.__dead then o.__dead = true; note(REC.destroyed, o.__name.."|"..table.concat(o.__tags,",")) end end
   o.__tint = {r=1, g=1, b=1}
