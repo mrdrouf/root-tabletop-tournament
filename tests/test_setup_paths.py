@@ -308,17 +308,17 @@ def slots_from_the_lizard_save():
 
 
 def t_the_lost_souls_box_is_gone_from_the_board(src):
-    """The Lizard board's printed Lost Souls box is removed, and the green runs on behind it.
+    """The printed Lost Souls box is off the Lizard board; the lizard stays, lower down.
 
     Maintainer, 2026-09-08: "remove the lost souls art on the faction board for the lost soul cards
-    since they all go on the lizard wizard make sure its top notch craft and impossible to see
-    something has been removed." Every spent card goes on the Lizard Wizard -- which is why this
-    board's own readout reads the wizard and not this box -- so the printed box was dead space.
+    since they all go on the lizard wizard", and then, seeing the first attempt: "you also can keep
+    the lizard he looks nice and can stay. just put him a little bit below". Every spent card goes
+    on the Lizard Wizard -- which is why this board's own readout reads the wizard and not this box
+    -- so the box was an invitation to pile cards on a space the mod never uses.
 
-    The board therefore has to point at the repaired texture in this repo rather than the original
-    on Steam, and that texture has to actually have the box taken out of it: this walks the panel's
-    own pixels and fails if the white border, the title's ink, or the flat parchment of the box are
-    still in there. A URL check alone would pass on a texture that still had the box in it.
+    This walks the shipped texture's own pixels. A URL check would pass on a texture that still had
+    the box printed on it, and an "is anything dark in the panel" check would fail on the lizard we
+    deliberately kept, so each of the three claims is asserted where it actually lives.
     """
     rt = fresh(src)
     d = rt.eval('EVERYTHING["Standard"]["The Lizard Cult"]["data"]')
@@ -337,23 +337,38 @@ def t_the_lost_souls_box_is_gone_from_the_board(src):
     try:
         from PIL import Image
     except ImportError:
-        return                      # the pixel check needs Pillow; the wiring above is still checked
+        return                      # the pixel checks need Pillow; the wiring above still ran
 
     im = Image.open(art).convert("RGB")
     assert im.size == (1689, 1312), "the board texture is %dx%d, not the board's own size" % im.size
-    # The box occupied px 1233..1644 x 709..1264. Its border was near-white and its title dark red
-    # on parchment -- none of which occurs anywhere in the green background that should be there now.
-    panel = im.crop((1233, 709, 1645, 1265)).load()
-    white = dark = 0
-    for y in range(0, 556, 2):
-        for x in range(0, 412, 2):
-            r, g, b = panel[x, y]
-            if r > 235 and g > 235 and b > 225:
-                white += 1
-            if r < 105 and g < 105:
-                dark += 1
-    assert white == 0, "%d near-white pixels remain where the Lost Souls box's border was" % white
-    assert dark == 0, "%d dark pixels remain where the Lost Souls title and lizard were" % dark
+    px = im.load()
+
+    def count(x0, x1, y0, y1, test):
+        n = 0
+        for y in range(y0, y1, 2):
+            for x in range(x0, x1, 2):
+                if test(*px[x, y]):
+                    n += 1
+        return n
+
+    white = lambda r, g, b: r > 235 and g > 235 and b > 225
+    dark = lambda r, g, b: r < 105 and g < 105
+
+    # 1. THE BORDER IS GONE. It ran as a white rounded rectangle at x 1233..1644, y 709..1264.
+    assert count(1250, 1620, 706, 726, white) == 0, "the box's top border is still printed"
+    assert count(1250, 1620, 1248, 1268, white) == 0, "the box's bottom border is still printed"
+    assert count(1229, 1249, 760, 1200, white) == 0, "the box's left border is still printed"
+    assert count(1630, 1650, 760, 1200, white) == 0, "the box's right border is still printed"
+
+    # 2. THE TITLE AND ITS SUBTITLE ARE GONE -- dark red ink that sat above the lizard.
+    assert count(1280, 1600, 715, 815, dark) == 0, "'Lost Souls' or its subtitle is still printed"
+
+    # 3. THE LIZARD STAYED, AND MOVED DOWN. He was drawn at y 854..1194 and is dropped 70px, so the
+    #    band he used to occupy at the top is now open ground and he is present lower instead.
+    assert count(1300, 1580, 860, 916, dark) == 0, \
+        "the lizard is still up at his old height; he should have moved down"
+    assert count(1300, 1580, 1000, 1250, dark) > 200, \
+        "the lizard is missing from the board; he was meant to stay"
 
 
 def t_the_lizard_board_follows_the_wizard(src):
