@@ -301,8 +301,15 @@ def clean_motifs(front, motifs, max_foreign=0.01):
     out = []
     for bb, m in motifs:
         a, b, c, e = bb
-        px = front[c:e + 1, a:b + 1][m].astype(int)
-        if (px[:, 0] > px[:, 1] + 15).mean() <= max_foreign:
+        # TEST THE DILATED FOOTPRINT, not just the stroke. The paste is alpha-blended through a
+        # BLURRED mask, so it reaches a pixel or two beyond the vine -- and a motif drawn beside the
+        # board's dark outline drags a speck of it along. That is not theoretical: one such speck
+        # landed in the middle of where the title had been.
+        foot = dilate(m, 2)
+        px = front[c:e + 1, a:b + 1][foot].astype(int)
+        reddish = (px[:, 0] > px[:, 1] + 15).mean()
+        darkish = ((px[:, 0] < 120) & (px[:, 1] < 130)).mean()
+        if reddish <= max_foreign and darkish <= max_foreign:
             out.append((bb, m))
     return out
 
@@ -333,50 +340,90 @@ def crossings(front, panel, edge, depth=16, min_run=3):
     return out
 
 
-def stems(front, panel, tol=8):
-    """The columns where the board's own vines run STRAIGHT THROUGH the panel.
+def panel_stems(front, removed, panel, min_run=3):
+    """The columns where a vine runs down the panel, read off the board's OWN surviving background.
 
-    Each vine entering the top of the panel leaves the bottom at the same x -- measured at 1262,
-    1394, 1515 and 1644, matching to within 3px. They are one stem each, passing behind the box,
-    about 128px apart. So the panel is not a place to scatter vines into: it is four stems with
-    known positions, and rebuilding them there is what makes the drawing run through both joins.
+    Not guessed and not sown: whatever the box did not cover is still there and still in the right
+    place, so the stems are simply counted out of it.
     """
-    top = crossings(front, panel, "top")
-    bot = crossings(front, panel, "bottom")
-    out = []
-    for t in top:
-        near = [b for b in bot if abs(b - t) <= tol]
-        if near:
-            out.append(int(round((t + near[0]) / 2)))
+    X0, X1, Y0, Y1 = panel
+    v = (is_vine(front) & ~removed)[Y0:Y1, X0:X1]
+    n = v.sum(axis=0)
+    # 90th percentile: at 80 the leaf clusters between stems answer too, and each one then gets a
+    # stem bridged through it that the board never had.
+    thr = max(18, np.percentile(n, 90))
+    out, run = [], []
+    for i, hit in enumerate(list(n > thr) + [False]):
+        if hit:
+            run.append(i)
+        elif run:
+            if len(run) >= min_run:
+                out.append(X0 + int(np.mean(run)))
+            run = []
     return out
 
 
-def grow(canvas, front, motifs, panel, rng, cols, overlap=18):
-    """Grow a stem down each of those columns, motif after motif, from above the top edge to below
-    the bottom one -- so it arrives already joined to the board at both ends."""
+def gaps_in(removed, cx, Y0, Y1, half=4, min_gap=6):
+    """Where the box interrupts the stem at column cx."""
+    col = removed[Y0:Y1, max(0, cx - half):cx + half + 1].any(axis=1)
+    out, s = [], None
+    for i, v in enumerate(list(col) + [False]):
+        if v and s is None:
+            s = i
+        elif not v and s is not None:
+            if i - s >= min_gap:
+                out.append((Y0 + s, Y0 + i))
+            s = None
+    return out
+
+
+def bridge(canvas, front, motifs, removed, panel, rng, overlap=16, band=11):
+    """Carry each stem across each break, painting ONLY where the box used to be.
+
+    This is the maintainer's own instruction -- "take what was there before and just connect the art
+    where you removed the lost souls with copy past of the same motif taken somewhere else". It is
+    also simply better than rebuilding the panel's vines: every stem the box did not cover is still
+    in its original place, so bridging leaves the drawing continuous by construction, where anything
+    re-sown has to be lined up with the board by luck.
+
+    Motifs are stacked down the gap and masked to the removed pixels, so the bridge meets the real
+    stem exactly at the edge of the hole and touches nothing else.
+    """
     X0, X1, Y0, Y1 = panel
     n = 0
-    for cx in cols:
-        y = Y0 - int(rng.integers(24, 70))
-        while y < Y1:
-            bb, m = motifs[rng.integers(len(motifs))]
-            a, b, c, e = bb
-            h, w = e - c + 1, b - a + 1
-            flip = rng.random() < 0.5
-            sx = (w - 1 - stem_x(m)) if flip else stem_x(m)
-            dx = int(cx - sx + rng.integers(-4, 5))
-            ys0, ys1 = max(Y0, y), min(Y1, y + h)
-            xs0, xs1 = max(X0, dx), min(X1, dx + w)
-            if ys1 - ys0 > 20 and xs1 - xs0 > 6:
-                sy0, sx0 = ys0 - y, xs0 - dx
-                src = front[c + sy0:c + sy0 + (ys1 - ys0), a + sx0:a + sx0 + (xs1 - xs0)].astype(np.float32)
-                al = soft(m[sy0:sy0 + (ys1 - ys0), sx0:sx0 + (xs1 - xs0)])[..., None]
-                if flip:
-                    src, al = src[:, ::-1], al[:, ::-1]
-                reg = canvas[ys0:ys1, xs0:xs1].astype(np.float32)
-                canvas[ys0:ys1, xs0:xs1] = np.clip(reg * (1 - al) + src * al, 0, 255).astype(np.uint8)
-                n += 1
-            y = y + h - int(rng.integers(0, overlap))
+    for cx in panel_stems(front, removed, panel):
+        for (ga, gb) in gaps_in(removed, cx, Y0, Y1):
+            y = ga - int(rng.integers(6, 26))
+            while y < gb:
+                bb, m = motifs[rng.integers(len(motifs))]
+                a, b, c, e = bb
+                h, w = e - c + 1, b - a + 1
+                flip = rng.random() < 0.5
+                sx = (w - 1 - stem_x(m)) if flip else stem_x(m)
+                dx = int(cx - sx + rng.integers(-3, 4))
+                ys0, ys1 = max(Y0, y), min(Y1, y + h)
+                xs0, xs1 = max(X0, dx), min(X1, dx + w)
+                if ys1 - ys0 > 8 and xs1 - xs0 > 4:
+                    sy0, sx0 = ys0 - y, xs0 - dx
+                    src = front[c + sy0:c + sy0 + (ys1 - ys0),
+                                a + sx0:a + sx0 + (xs1 - xs0)].astype(np.float32)
+                    al = soft(m[sy0:sy0 + (ys1 - ys0), sx0:sx0 + (xs1 - xs0)])
+                    if flip:
+                        src, al = src[:, ::-1], al[:, ::-1]
+                    # only into the hole, and only near the stem: a motif is as wide as its
+                    # leaves, and masked to a hole that is 55% of the panel it would paint vine
+                    # into every corner of it rather than mending one broken line
+                    keep = np.zeros((ys1 - ys0, xs1 - xs0), np.float32)
+                    lo, hi = max(xs0, cx - band) - xs0, min(xs1, cx + band + 1) - xs0
+                    if hi <= lo:
+                        y = y + h - int(rng.integers(0, overlap))
+                        continue
+                    keep[:, lo:hi] = 1.0
+                    al = (al * removed[ys0:ys1, xs0:xs1] * keep)[..., None]
+                    reg = canvas[ys0:ys1, xs0:xs1].astype(np.float32)
+                    canvas[ys0:ys1, xs0:xs1] = np.clip(reg * (1 - al) + src * al, 0, 255).astype(np.uint8)
+                    n += 1
+                y = y + h - int(rng.integers(0, overlap))
     return n
 
 
@@ -439,11 +486,12 @@ def main():
     rect = np.zeros(front.shape[:2], bool)
     rect[Y0:Y1, X0:X1] = True
 
-    out = smooth_ground(front, rect, pal, rng)
+    # ONLY WHAT THE BOX COVERED IS REBUILT. Replacing the whole panel meant re-inventing vines that
+    # were never damaged, and they then had to be lined up with the board by luck -- which is what
+    # "the art is not connected" was. Everything the box did not cover is left exactly as printed.
+    out = smooth_ground(front, art, pal, rng)
     motifs = clean_motifs(front, motif_library(front, pal))
-    cols = stems(front, (X0, X1, Y0, Y1))
-    s = grow(out, front, motifs, (X0, X1, Y0, Y1), rng, cols)
-    n = 0
+    s = bridge(out, front, motifs, art, (X0, X1, Y0, Y1), rng)
 
     h, w = le - lc + 1, lb - la + 1
     nc = lc + LIZARD_DROP
@@ -460,8 +508,8 @@ def main():
     lizfoot = np.zeros(front.shape[:2], bool)
     lizfoot[nc - 12:nc + h + 12, la - 12:la + w + 12] = True
     ground_only = rect & ~lizfoot
-    print("   stems at %s rebuilt from %d motifs; ground %.2f%% against %.2f%% around it"
-          % (cols, s, 100 * is_vine(out)[ground_only].mean(), 100 * td))
+    print("   %d motif pastes bridging the stems; ground %.2f%% against %.2f%% around it"
+          % (s, 100 * is_vine(out)[ground_only].mean(), 100 * td))
 
     changed = (out != front).any(axis=-1)
     assert not (changed & ~rect).any(), "the rebuild touched pixels outside the Lost Souls panel"
