@@ -77,6 +77,13 @@ function MKOBJ(name, pos, tags)
   function o.setPosition(p) o.__pos = vec(p) end
   function o.getRotation() return vec(o.__rot) end
   function o.setRotation(r) o.__rot = vec(r) end
+  -- RELATIVE rotation. TTS composes this with whatever else is turning the object, which is the whole
+  -- reason anything would use it over setRotation: it can be applied mid-flip without cancelling the
+  -- flip. Y only here, which is all this mod asks of it.
+  function o.rotate(r)
+    local v = vec(r)
+    o.__rot = vec{ o.__rot.x + (v.x or 0), (o.__rot.y + (v.y or 0)) % 360, o.__rot.z + (v.z or 0) }
+  end
   function o.getScale() return vec(o.__scale) end
   function o.setScale(s) o.__scale = vec(s) end
   function o.addTag(t) o.__tags[#o.__tags+1] = t end

@@ -491,12 +491,23 @@ def t_enclave_targets_the_suit_marker(src):
             % ((14.3 - want.x) ** 2 + (-4.5 - want.z) ** 2) ** 0.5)
 
         # ...but inside it, it is taken. Without this the check above would pass on a reach of zero.
-        er.execute("HOME_GUID = nil self.__pos = Vector({ 12.8, 12, -4.5 })")
+        er.execute("HOME_GUID = nil self.__pos = Vector({ 12.4, 12, -4.5 })")
         er.execute("pcall(function() onDrop('Red') end) FLUSH(20)")
         near = er.eval("self.getPosition()")
         assert abs(near.x - want.x) < 0.05, (
             "an enclave dropped %.2f from the lobe was not taken by it"
-            % ((12.8 - want.x) ** 2 + (-4.5 - want.z) ** 2) ** 0.5)
+            % ((12.4 - want.x) ** 2 + (-4.5 - want.z) ** 2) ** 0.5)
+
+        # AND THE SIDE SPOT IS STILL INSIDE IT. This is the floor under REACH: a peaceful token sits
+        # 1.67 world units out, and it has to find its own marker from there when it is flipped back.
+        # Shrink the catch area past that and a flip strands the token where it stands.
+        er.execute("HOME_GUID = nil self.__pos = Vector({ %.4f, 12, %.4f }) self.is_face_down = true"
+                   % (side.x, side.z))
+        er.execute("pcall(function() onDrop('Red') end) FLUSH(20)")
+        from_side = er.eval("self.getPosition()")
+        assert abs(from_side.x - want.x) < 0.05 and abs(from_side.z - want.z) < 0.05, (
+            "a token at the side spot could not find its marker; REACH is under the %.2f it sits out"
+            % ((side.x - want.x) ** 2 + (side.z - want.z) ** 2) ** 0.5)
 
         # PLACING A TOKEN MUST NOT UN-FLIP IT. Z is the flip axis, and the placement used to set
         # rotation to { 0, y, 0 }: a token flipped to militant went to the centre and was turned
