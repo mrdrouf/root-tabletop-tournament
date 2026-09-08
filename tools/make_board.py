@@ -1,41 +1,37 @@
 #!/usr/bin/env python3
-"""Take the Lost Souls box off the Lizard Cult board, keep the lizard, and put the ground back.
+"""Take the Lost Souls box off the Lizard Cult board, keep the lizard, and mend the art behind it.
 
 Maintainer, 2026-09-08: "remove the lost souls art on the faction board for the lost soul cards
-since they all go on the lizard wizard make sure its top notch craft and impossible to see something
-has been removed", and then, on seeing the first attempt: "good but we can see your fixes. you could
-just copy paste some of the motifs on the rest of the board. you also can keep the lizard he looks
-nice and can stay. just put him a little bit below".
+since they all go on the lizard wizard"; then "you also can keep the lizard he looks nice and can
+stay. just put him a little bit below"; then, on two attempts that rebuilt the background,
+"we can perceive a seam and the art does not connect", and finally the one that settled it:
 
-So what comes off is the white box, its title and its subtitle -- the invitation to pile cards on a
-space this mod never uses, because the Lizard Wizard is the tracker and every spent card goes there.
-The lizard himself stays, moved down into the space the box used to take.
+    "you drew random stuff, these are supposed to be like small trees as you can see all over the
+     board art. what you did is just scrambled mess"
 
     python3 tools/make_board.py
 
 Writes assets/labels/lizard_board_v<N>_<md5>.png and prints the URL for gen/src/content.lua.
 
-HOW THE GROUND IS REBUILT, and why it is done this way.
+WHAT THE BACKGROUND ACTUALLY IS, and why that settles the method.
 
-The box sits on the board's green vine background, so removing it means putting that background back.
-The first version tried to SYNTHESISE the vine -- quilting strips of it out of the board, and out of
-the manifest side of the board, matched on tone and on vine density. It was close and it was still
-visible, because a vine is a drawing, not a texture: cut it into blocks and the stems come back as
-loose leaf tips, and every block carries its source's tone, which redraws the shape you removed.
+It is not a texture. It is a scatter of small drawn trees -- a stem with paired curling branches --
+and a tree is a thing, not a pattern. Three versions were built that treated it as texture: quilting
+strips of it, sowing whole motifs at a matching density, and bridging stems with motif pieces masked
+to the shape of the hole. All three failed the same way and for the same reason. Once you cut a tree
+to fit a hole you are no longer drawing a tree, you are scattering pieces of one, and no amount of
+matching the tone or the density makes litter read as woodland.
 
-The maintainer's suggestion is better and is what this does. Ground and vine are separated:
+So nothing here invents background. The box is lifted off and the drawing UNDERNEATH IT IS CARRIED
+ACROSS THE GAP, along whichever axis the gap is narrower: a stem crossing the border is continued
+downward, the border's own vertical bars are continued sideways, and plain ground stays plain
+ground because both sides of it are plain ground. Every tree the box interrupted is finished in its
+own hand, in its own place, because it is its own pixels that finish it.
 
-  THE GROUND is flat colour and grain, with no structure to reproduce. Its colour is interpolated
-  across the panel from the background around it, which needs no source material at all; its grain
-  is the high-frequency residual of clean patches, tiled -- invisible because grain is zero-mean and
-  has no large-scale shape. Nothing is quilted, so there are no blocks to see.
-
-  THE VINES go back on as WHOLE MOTIFS lifted from elsewhere on the board -- complete stems with
-  their leaves, never cut -- sown in columns at the pitch that reproduces the surrounding density.
-
-The whole panel rectangle is rebuilt, not just the box's own pixels: patching around the surviving
-background leaves a seam exactly where the border was, and that seam is the one thing guaranteed to
-read as a repair.
+Continuation only carries so far -- across a border or a line of text it is exact, across the 341px
+the lizard used to cover it is a smear of nothing -- so past `near` it hands over to a flat ground
+field interpolated from the surrounding board. The part of that region which stays visible once the
+lizard moves down is well inside the honest range.
 """
 import hashlib
 import json
@@ -56,8 +52,6 @@ BOX = (1225, 700, 1655, 1300)   # generous bounds round the printed Lost Souls b
 BG_THRESH = 22                  # L1 distance to the background palette that still counts as green
 MASK_THRESH = 14                # ...and the tighter one used to find the artwork
 LIZARD_DROP = 70                # "just put him a little bit below"
-PITCH = 250                     # column spacing that reproduces the surrounding vine density
-GAP = 85
 SEED = 4
 
 
@@ -279,187 +273,56 @@ def smooth_ground(front, need, pal, rng, step=12, w=44, passes=200, G=48):
     return out
 
 
-def motif_library(front, pal):
-    """Whole vines, cut from the board itself, never a fragment of one."""
-    clean = bg_dist(front, pal) < BG_THRESH
-    lab, info = components(erode(dilate(is_vine(front) & clean, 2), 1))
-    out = []
-    for c, (n, a, b, cc, e) in info.items():
-        if n < 400 or (e - cc) < 90 or (b - a) > 150 or (b - a) * (e - cc) > 90000:
-            continue
-        out.append(((a, b, cc, e), lab[cc:e + 1, a:b + 1] == c))
-    return out
+def _fill_axis(img, hole, axis):
+    """Nearest valid value on each side along `axis`, and how far away each one is."""
+    if axis == 1:
+        img, hole = img.transpose(1, 0, 2), hole.T
+    n = hole.shape[0]
+    idx = np.arange(n)[:, None] * np.ones((1, hole.shape[1]), int)
+    prev = np.where(~hole, idx, -1)
+    np.maximum.accumulate(prev, axis=0, out=prev)
+    nxt = np.where(~hole, idx, n)
+    nxt = np.minimum.accumulate(nxt[::-1], axis=0)[::-1]
+    p = np.clip(prev, 0, n - 1)
+    q = np.clip(nxt, 0, n - 1)
+    cols = np.arange(hole.shape[1])[None, :]
+    lo, hi = img[p, cols], img[q, cols]
+    dlo = np.where(prev < 0, 1e9, idx - prev).astype(np.float32)
+    dhi = np.where(nxt >= n, 1e9, nxt - idx).astype(np.float32)
+    span = dlo + dhi
+    w = (dlo / np.maximum(span, 1))[..., None]
+    out = lo * (1 - w) + hi * w
+    if axis == 1:
+        out, span = out.transpose(1, 0, 2), span.T
+    return out, span
 
 
-def clean_motifs(front, motifs, max_foreign=0.01):
-    """Keep only motifs that are pure vine.
+def mend(front, hole, ground=None, near=60, far=110):
+    """Carry the drawing across the gap, along whichever axis the gap is NARROWER.
 
-    Some components pick up a neighbour's ink -- a berry off the header band, a fleck of red -- and
-    sown into open ground those read as specks of a different drawing. The vine is yellow-green, so
-    green at least matches red in nearly all of its pixels; the foreign ink is what does not.
+    This is the whole repair, and it is the one thing that keeps the art connected. A stem crossing
+    a horizontal band is continued downward; the border's vertical bars are continued sideways; and
+    plain ground stays plain ground, because both sides of it are plain ground. Nothing is invented,
+    so nothing can arrive as a fragment -- which is what pasting pieces of trees into hole-shaped
+    masks kept producing.
+
+    Choosing the narrower axis matters: the border's left bar is 13px wide and 555px tall, and read
+    vertically it would smear over half the panel.
     """
-    out = []
-    for bb, m in motifs:
-        a, b, c, e = bb
-        # TEST THE DILATED FOOTPRINT, not just the stroke. The paste is alpha-blended through a
-        # BLURRED mask, so it reaches a pixel or two beyond the vine -- and a motif drawn beside the
-        # board's dark outline drags a speck of it along. That is not theoretical: one such speck
-        # landed in the middle of where the title had been.
-        foot = dilate(m, 2)
-        px = front[c:e + 1, a:b + 1][foot].astype(int)
-        reddish = (px[:, 0] > px[:, 1] + 15).mean()
-        darkish = ((px[:, 0] < 120) & (px[:, 1] < 130)).mean()
-        if reddish <= max_foreign and darkish <= max_foreign:
-            out.append((bb, m))
-    return out
-
-
-def stem_x(m):
-    """Where the stem runs inside a motif -- its densest column."""
-    return int(np.argmax(m.sum(axis=0)))
-
-
-def crossings(front, panel, edge, depth=16, min_run=3):
-    """Columns where one of the board's own vines runs into the panel from outside.
-
-    The vines are vertical, so they cross the panel's TOP and BOTTOM edges and run parallel to its
-    sides. Left unstitched, every one of them stops dead at the edge -- "the art does not connect".
-    """
-    X0, X1, Y0, Y1 = panel
-    v = is_vine(front)
-    band = v[Y0 - depth:Y0, X0:X1] if edge == "top" else v[Y1:Y1 + depth, X0:X1]
-    hits = band.sum(axis=0) > 0
-    out, run = [], []
-    for i, h in enumerate(list(hits) + [False]):
-        if h:
-            run.append(i)
-        elif run:
-            if len(run) >= min_run:
-                out.append(X0 + int(np.mean(run)))
-            run = []
-    return out
-
-
-def panel_stems(front, removed, panel, min_run=3):
-    """The columns where a vine runs down the panel, read off the board's OWN surviving background.
-
-    Not guessed and not sown: whatever the box did not cover is still there and still in the right
-    place, so the stems are simply counted out of it.
-    """
-    X0, X1, Y0, Y1 = panel
-    v = (is_vine(front) & ~removed)[Y0:Y1, X0:X1]
-    n = v.sum(axis=0)
-    # 90th percentile: at 80 the leaf clusters between stems answer too, and each one then gets a
-    # stem bridged through it that the board never had.
-    thr = max(18, np.percentile(n, 90))
-    out, run = [], []
-    for i, hit in enumerate(list(n > thr) + [False]):
-        if hit:
-            run.append(i)
-        elif run:
-            if len(run) >= min_run:
-                out.append(X0 + int(np.mean(run)))
-            run = []
-    return out
-
-
-def gaps_in(removed, cx, Y0, Y1, half=4, min_gap=6):
-    """Where the box interrupts the stem at column cx."""
-    col = removed[Y0:Y1, max(0, cx - half):cx + half + 1].any(axis=1)
-    out, s = [], None
-    for i, v in enumerate(list(col) + [False]):
-        if v and s is None:
-            s = i
-        elif not v and s is not None:
-            if i - s >= min_gap:
-                out.append((Y0 + s, Y0 + i))
-            s = None
-    return out
-
-
-def bridge(canvas, front, motifs, removed, panel, rng, overlap=16, band=11):
-    """Carry each stem across each break, painting ONLY where the box used to be.
-
-    This is the maintainer's own instruction -- "take what was there before and just connect the art
-    where you removed the lost souls with copy past of the same motif taken somewhere else". It is
-    also simply better than rebuilding the panel's vines: every stem the box did not cover is still
-    in its original place, so bridging leaves the drawing continuous by construction, where anything
-    re-sown has to be lined up with the board by luck.
-
-    Motifs are stacked down the gap and masked to the removed pixels, so the bridge meets the real
-    stem exactly at the edge of the hole and touches nothing else.
-    """
-    X0, X1, Y0, Y1 = panel
-    n = 0
-    for cx in panel_stems(front, removed, panel):
-        for (ga, gb) in gaps_in(removed, cx, Y0, Y1):
-            y = ga - int(rng.integers(6, 26))
-            while y < gb:
-                bb, m = motifs[rng.integers(len(motifs))]
-                a, b, c, e = bb
-                h, w = e - c + 1, b - a + 1
-                flip = rng.random() < 0.5
-                sx = (w - 1 - stem_x(m)) if flip else stem_x(m)
-                dx = int(cx - sx + rng.integers(-3, 4))
-                ys0, ys1 = max(Y0, y), min(Y1, y + h)
-                xs0, xs1 = max(X0, dx), min(X1, dx + w)
-                if ys1 - ys0 > 8 and xs1 - xs0 > 4:
-                    sy0, sx0 = ys0 - y, xs0 - dx
-                    src = front[c + sy0:c + sy0 + (ys1 - ys0),
-                                a + sx0:a + sx0 + (xs1 - xs0)].astype(np.float32)
-                    al = soft(m[sy0:sy0 + (ys1 - ys0), sx0:sx0 + (xs1 - xs0)])
-                    if flip:
-                        src, al = src[:, ::-1], al[:, ::-1]
-                    # only into the hole, and only near the stem: a motif is as wide as its
-                    # leaves, and masked to a hole that is 55% of the panel it would paint vine
-                    # into every corner of it rather than mending one broken line
-                    keep = np.zeros((ys1 - ys0, xs1 - xs0), np.float32)
-                    lo, hi = max(xs0, cx - band) - xs0, min(xs1, cx + band + 1) - xs0
-                    if hi <= lo:
-                        y = y + h - int(rng.integers(0, overlap))
-                        continue
-                    keep[:, lo:hi] = 1.0
-                    al = (al * removed[ys0:ys1, xs0:xs1] * keep)[..., None]
-                    reg = canvas[ys0:ys1, xs0:xs1].astype(np.float32)
-                    canvas[ys0:ys1, xs0:xs1] = np.clip(reg * (1 - al) + src * al, 0, 255).astype(np.uint8)
-                    n += 1
-                y = y + h - int(rng.integers(0, overlap))
-    return n
-
-
-def sow(canvas, front, motifs, panel, rng, pitch=PITCH, jitter=13, gap=GAP):
-    """Sow whole motifs in columns, the way the board's own vines run.
-
-    Dropping each one wherever the ground is emptiest sounds right and clumps -- the first few land
-    together and the rest chase the hole they leave. The printed pattern is columns of stems about a
-    pitch apart running the full height, so that is what gets sown: jittered, mirrored at random.
-    They are sown across the whole panel including where the lizard will stand, because he is
-    composited afterwards and the board's own vines run behind him too.
-    """
-    X0, X1, Y0, Y1 = panel
-    n = 0
-    x = X0 + int(rng.integers(6, 26))
-    while x < X1 - 20:
-        y = Y0 - int(rng.integers(0, 70))
-        while y < Y1 - 10:
-            bb, m = motifs[rng.integers(len(motifs))]
-            a, b, c, e = bb
-            h, w = e - c + 1, b - a + 1
-            dx = int(np.clip(x + rng.integers(-jitter, jitter + 1), X0 - w // 3, X1 - 1))
-            ys0, ys1 = max(Y0, y), min(Y1, y + h)
-            xs0, xs1 = max(X0, dx), min(X1, dx + w)
-            if ys1 - ys0 > 24 and xs1 - xs0 > 10:
-                sy0, sx0 = ys0 - y, xs0 - dx
-                src = front[c + sy0:c + sy0 + (ys1 - ys0), a + sx0:a + sx0 + (xs1 - xs0)].astype(np.float32)
-                al = soft(m[sy0:sy0 + (ys1 - ys0), sx0:sx0 + (xs1 - xs0)])[..., None]
-                if rng.random() < 0.5:
-                    src, al = src[:, ::-1], al[:, ::-1]
-                reg = canvas[ys0:ys1, xs0:xs1].astype(np.float32)
-                canvas[ys0:ys1, xs0:xs1] = np.clip(reg * (1 - al) + src * al, 0, 255).astype(np.uint8)
-                n += 1
-            y = y + h + int(rng.integers(-gap // 2, gap))
-        x += pitch + int(rng.integers(-8, 9))
-    return n
+    f = front.astype(np.float32)
+    v, sv = _fill_axis(f, hole, 0)
+    h, sh = _fill_axis(f, hole, 1)
+    span = np.minimum(sv, sh)
+    use_v = (sv <= sh)[..., None]
+    out = np.where(use_v, v, h)
+    if ground is not None:
+        # CONTINUATION ONLY CARRIES SO FAR. Across the border or a line of text it is exact; across
+        # the 341px the lizard used to cover it is a long smear of nothing. Past `near` the fill
+        # hands over to the flat ground, which is what that depth should be anyway -- and the part
+        # of it that stays visible after he is moved down is well inside the honest range.
+        t = np.clip((span - near) / float(far - near), 0, 1)[..., None]
+        out = out * (1 - t) + ground.astype(np.float32) * t
+    return np.where(hole[..., None], np.clip(out, 0, 255), f).astype(np.uint8)
 
 
 def main():
@@ -487,11 +350,10 @@ def main():
     rect[Y0:Y1, X0:X1] = True
 
     # ONLY WHAT THE BOX COVERED IS REBUILT. Replacing the whole panel meant re-inventing vines that
-    # were never damaged, and they then had to be lined up with the board by luck -- which is what
-    # "the art is not connected" was. Everything the box did not cover is left exactly as printed.
-    out = smooth_ground(front, art, pal, rng)
-    motifs = clean_motifs(front, motif_library(front, pal))
-    s = bridge(out, front, motifs, art, (X0, X1, Y0, Y1), rng)
+    # were never damaged, and they then had to be lined up with the board by luck. Everything the
+    # box did not cover is left exactly as printed.
+    ground = smooth_ground(front, art, pal, rng)
+    out = mend(front, art, ground=ground)
 
     h, w = le - lc + 1, lb - la + 1
     nc = lc + LIZARD_DROP
@@ -508,8 +370,8 @@ def main():
     lizfoot = np.zeros(front.shape[:2], bool)
     lizfoot[nc - 12:nc + h + 12, la - 12:la + w + 12] = True
     ground_only = rect & ~lizfoot
-    print("   %d motif pastes bridging the stems; ground %.2f%% against %.2f%% around it"
-          % (s, 100 * is_vine(out)[ground_only].mean(), 100 * td))
+    print("   panel mended; vine %.2f%% against %.2f%% around it"
+          % (100 * is_vine(out)[ground_only].mean(), 100 * td))
 
     changed = (out != front).any(axis=-1)
     assert not (changed & ~rect).any(), "the rebuild touched pixels outside the Lost Souls panel"
