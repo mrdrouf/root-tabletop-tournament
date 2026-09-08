@@ -438,13 +438,14 @@ def t_the_lizard_board_follows_the_wizard(src):
     # able to find the snap points for reference." It was 0.22 local across -- half again wider than
     # the 0.1399 frame it was supposed to sit inside -- and a whole panel low, so it hung off the
     # bottom of the Outcast box and into the Lost Souls title beneath. Both halves are pinned here.
-    assert 0.139 <= w <= 0.148, \
+    assert 0.139 <= w <= 0.144, \
         "the symbol is %.4f local across; it should land ON the printed 0.1388 frame, being the same " \
         "drawing in grey -- 0.0974 made it a second, smaller thorn square nested inside the first" % w
-    # A SHADE WIDER THAN THE FRAME, ON PURPOSE. The printed white thorns are a heavier stroke than the
-    # token's grey ones, so a symbol exactly 0.1388 wide left white showing all round it. The ink is
-    # fattened in the art and this covers that; what it must NOT do is grow so far that it reaches
-    # the suit icons, which the edge assertions below hold it to.
+    # A SHADE WIDER THAN THE FRAME, ON PURPOSE, AND THE WINDOW IS NARROW. The printed white thorns are
+    # a heavier stroke than the token's grey ones, so a symbol exactly 0.1388 wide left white showing
+    # all round it -- but 0.1426 came straight back as "too fat now pick in between". The band here is
+    # that verdict: the ink is fattened by 2 source px in the art, not 3, and not by scaling the whole
+    # drawing up, which would push its corners at the suit icons the edge assertions below guard.
     assert w >= FRAME_SIDE - 0.001, \
         "the symbol (%.4f) is narrower than the printed frame (%.4f) and will leave white showing" \
         % (w, FRAME_SIDE)

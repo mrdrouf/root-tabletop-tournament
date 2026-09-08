@@ -40,7 +40,7 @@ CDN = "https://cdn.jsdelivr.net/gh/mrdrouf/root-tabletop-tournament@main/assets/
 
 BG = np.array([222, 213, 49], float)      # the token tile's flat yellow
 MIN_BLOB = 200                            # px; the drawing's parts are 6k+, the dust is 1-11
-VERSION = 4                               # bump when the art changes, so the CDN filename changes
+VERSION = 5                               # bump when the art changes, so the CDN filename changes
 
 # THE PRINTED FRAME IS DRAWN FATTER THAN THE TOKEN. Maintainer, 2026-09-08, looking at the symbol in
 # its slot on a real table: "the white is a bit larger maybe make the symbol a tiny bit fater so it
@@ -52,7 +52,7 @@ VERSION = 4                               # bump when the art changes, so the CD
 # corners out onto the parchment and up toward the suit icons, where there are only 9px to spare.
 # Dilating the alpha thickens every stroke while the ring's centreline stays exactly where it was --
 # the crop simply gains DILATE px of margin, which the board divides back out through UI_SIZE.
-DILATE = 3                                # source px of extra stroke on every side
+DILATE = 2                                # source px of extra stroke on every side
 RING_LOCAL = 0.1388                       # the printed frame's own width, in board-local units
 
 FACES = [
