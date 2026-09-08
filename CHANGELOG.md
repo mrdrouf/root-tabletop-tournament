@@ -114,3 +114,11 @@ setup board's top right corner, and goes up on every commit.
 - Numpad 2 lays any warrior down: tipped over, cream, locked; again to undo.
 - One cream everywhere: `#F9E6BB`.
 - Build number added, cream, top right of the setup board; it bumps on every commit.
+- Numpad 3 highlights a piece; numpad 2 draws a disc in the presser's colour under it.
+- Turn panel's DEAL 5 becomes PAUSE, then CONTINUE, once the game has started.
+- START shuffles the deck once.
+- Seat colour, owner and faction now have one writer each, so a reload keeps them.
+- The round advances when the table comes round, not when a turn repeats.
+- A locked score is keyed by seat and round, so a repeated turn event overwrites it.
+- Box score re-reads the seats on a real event, not on a timer, so typed names stay.
+- START names the turn pass it causes, so it never records a turn for the outgoing seat.
