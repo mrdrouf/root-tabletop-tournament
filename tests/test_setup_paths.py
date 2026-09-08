@@ -12,7 +12,7 @@ drive BOTH paths against a stubbed TTS and assert they agree.
 
 Needs lupa (pip install lupa). The stub is tests/tts_stub.lua.
 """
-import json, os, re, subprocess, sys
+import json, math, os, re, subprocess, sys
 import lupa
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -288,7 +288,12 @@ def t_frog_enclaves_match_the_suit_circle(src):
     in the lobe (texture hole-filled first, so the white glyph does not cap it) scaled by the markers'
     own 1.30. The enclave art fills 97.2% of its tile, so the tile wants 1.8938 -> scale 0.8343
     against a 2.27-unit Custom_Tile. That last constant is the one thing not measured from the mod, so
-    if the token reads visibly wrong in TTS this scale is the single number to move.
+    this scale was always going to be the single number to move if the token read wrong on the table.
+
+    IT WAS MOVED. Maintainer, 2026-09-07: "you can also reduce the size of enclaves by 10%" -- 0.8343
+    x 0.90 = 0.75087, a token that sits inside the circle rather than filling it to the rim. The
+    measurement above is kept because it is still what the number is derived FROM; what changed is the
+    deliberate margin against it.
     """
     rt = fresh(src)
     d = rt.eval('EVERYTHING["Standard"]["Lilypad Diaspora"]["data"]')
@@ -299,12 +304,21 @@ def t_frog_enclaves_match_the_suit_circle(src):
             scales.append(round(j["Transform"]["scaleX"], 6))
     assert len(scales) == 12, "expected 12 enclaves, found %d" % len(scales)
     assert len(set(scales)) == 1, "enclaves came out at mixed sizes: %s" % sorted(set(scales))
-    assert abs(scales[0] - 0.8343) < 1e-6, "enclave scale %s is not the measured circle" % scales[0]
+    assert abs(scales[0] - 0.75087) < 1e-6, \
+        "enclave scale %s is not 0.90 of the measured circle (0.8343)" % scales[0]
     assert scales[0] > 0.703911364, "the enclave is back to its original, smaller size"
+    # Y IS THICKNESS, NOT FOOTPRINT, on a Custom_Tile -- a "10% smaller" that scaled it too would
+    # have thinned every token and shown up as z-fighting against the marker underneath.
+    ys = set()
+    for i in range(1, len(d) + 1):
+        j = json.loads(d[i].json)
+        if j.get("Nickname") == "Enclave":
+            ys.add(round(j["Transform"]["scaleY"], 6))
+    assert ys == {1.0}, "an enclave's thickness was rescaled with its footprint: %s" % sorted(ys)
 
 
 def t_enclave_targets_the_suit_marker(src):
-    """A dropped enclave must aim at the suit marker's symbol circle, not the marker's origin.
+    """A dropped enclave aims at the suit marker -- ON the symbol when militant, beside it when not.
 
     The target is the LOBE centre, model-local z 0.3599 -- not the suit glyph at 0.4447, which sits
     off-centre in the lobe and would miss by 0.11 world units. Facing comes from the marker's OWN
@@ -312,6 +326,12 @@ def t_enclave_targets_the_suit_marker(src):
     the six maps the offset is +0.03 deg, concentration 0.9944. Copying it is exact per clearing;
     deriving the bearing from RTT_CLEARING_CENTRES instead carried that table's ~1u error, which is
     what read as tilted.
+
+    AND WHICH SIDE IS UP DECIDES WHERE. Maintainer, 2026-09-07: "when it s militant in the center of
+    the suit marker, but when not militant the snap should be on the side of the suit marker at the
+    edge of it so it does not hide the suit symbol ... the position of the snap would change when one
+    flips the enclave." The blueprint's front face is Diaspora_TokenPeaceful and the back is the
+    militant art, so is_face_down is true exactly when the militant side shows.
     """
     rt = fresh(src)
     d = rt.eval('EVERYTHING["Standard"]["Lilypad Diaspora"]["data"]')
@@ -340,18 +360,46 @@ def t_enclave_targets_the_suit_marker(src):
           self.__pos = Vector({ 10.6, 12, -4.5 })
           self.__rot = Vector({ 0, 0, 0 })
         """)
+        want = er.eval("MARKER.positionToWorld(Vector({ 0.0056, 0.0174, 0.3599 }))")
+
+        # MILITANT: dead on the lobe centre, covering the symbol, exactly as before.
+        er.execute("self.__pos = Vector({ 10.6, 12, -4.5 }) self.is_face_down = true")
         er.execute("pcall(function() onDrop('Red') end) FLUSH(20)")
         p = er.eval("self.getPosition()")
         r = er.eval("self.getRotation()")
-
-        want = er.eval("MARKER.positionToWorld(Vector({ 0.0056, 0.0174, 0.3599 }))")
         assert abs(p.x - want.x) < 0.05 and abs(p.z - want.z) < 0.05, (
-            "a dropped enclave landed at %.3f,%.3f; the marker's lobe centre is %.3f,%.3f"
+            "a militant enclave landed at %.3f,%.3f; the marker's lobe centre is %.3f,%.3f"
             % (p.x, p.z, want.x, want.z))
         # the facing is the MARKER's, plus the blueprint's own offset -- copied, never recomputed
         off = er.eval("FROG_FACING") or 0
         assert abs(((r.y - (137 + off)) + 180) % 360 - 180) < 0.5, (
             "a dropped enclave faces %.1f; the marker faces 137 and the offset is %s" % (r.y, off))
+
+        # PEACEFUL: off to the side, clear of the symbol -- and still on the same marker.
+        er.execute("self.__pos = Vector({ 10.6, 12, -4.5 }) self.is_face_down = false")
+        er.execute("pcall(function() onDrop('Red') end) FLUSH(20)")
+        q = er.eval("self.getPosition()")
+        off_lobe = ((q.x - want.x) ** 2 + (q.z - want.z) ** 2) ** 0.5
+        assert 0.5 < off_lobe < 1.2, (
+            "a peaceful enclave sits %.3f from the lobe centre; it should clear the symbol without "
+            "leaving the marker" % off_lobe)
+        # SIDEWAYS, not along the marker's axis: the token keeps its distance from the clearing
+        # centre and simply stops covering the glyph. The marker's +z points at that centre.
+        rad = math.radians(137)
+        along = (q.x - want.x) * math.sin(rad) + (q.z - want.z) * math.cos(rad)
+        assert abs(along) < 0.15, (
+            "the peaceful enclave moved %.3f along the marker's axis; it should move across it"
+            % along)
+
+        # AND THE CATCH AREA IS NOT THE WHOLE CLEARING. 4.0 pulled a token onto a marker from most of
+        # a clearing away -- "the snaps are too large like it attaches the enclave from such a large
+        # area a bit too much". Dropped well clear, the enclave must stay where it was let go.
+        er.execute("self.__pos = Vector({ 13.5, 12, -4.5 }) self.is_face_down = true")
+        er.execute("pcall(function() onDrop('Red') end) FLUSH(20)")
+        far = er.eval("self.getPosition()")
+        assert abs(far.x - 13.5) < 1e-6, (
+            "an enclave dropped %.2f from the lobe was still pulled onto it"
+            % ((13.5 - want.x) ** 2 + (-4.5 - want.z) ** 2) ** 0.5)
 
     assert got == 12, "expected 12 scripted enclaves, found %d" % got
 
