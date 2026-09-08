@@ -134,3 +134,4 @@ setup board's top right corner, and goes up on every commit.
 - Badger relics are drawn from a Lua shuffle and placed one per frame, so which relic goes where is genuinely random.
 - Marquise cats drop into their clearings from clear air, so they land on ruins and relics instead of shoving them aside.
 - Mountain clearing numbers sit where the "mountain" save puts them; eight of the twelve were misplaced.
+- Frog dominance is recognised: a VP marker on the Frog card now declares dominance like any other suit.
