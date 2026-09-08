@@ -3128,6 +3128,70 @@ def t_numpad_two_lays_a_warrior_down_and_lights_it(src):
     assert state("ROOST")[1] is False, "numpad 2 laid a building down"
 
 
+def t_the_keepers_spawn_where_the_maintainer_put_them(src):
+    """The 8 warriors and the Relics bag land where the "keepers" save has them.
+
+    Maintainer, 2026-09-07: "check the save 'keepers' and use that position for the spawning position
+    of the 8 initial warriors and relics supply." He had laid them out by hand in TS_Save_35 and the
+    blueprint disagreed: four of the eight warriors and the Relics bag sat on the OPPOSITE side of the
+    board, around x +13 instead of x -16.
+
+    THE FRAME. rttSpawnFaction turns a blueprint move_to into a world position as
+    `seat + move_to` -- and, on the far row, `seat - move_to`, because those boards are rotated 180.
+    The save was taken at seat 4, (-52, 46), which is a far-row seat. That reading is not assumed: it
+    was calibrated on four pieces the maintainer did NOT move (the three waystations and the Keeper
+    Supply), and their x and z round-trip to 0.000.
+
+    So this test states the answer in WORLD coordinates, straight out of the save. If the transform is
+    ever changed, or a piece is nudged in the blueprint, the numbers below stop matching the table.
+    """
+    SEAT_X, SEAT_Z, FLIP = -52.0, 46.0, -1        # seat 4, far row
+    BASE_Y = 11.46                                # 11.56 spawn height, less the 0.1 rttSpawnFaction drops
+
+    WARRIORS = {(-34.877, 30.590), (-34.877, 31.330), (-34.877, 33.550), (-34.877, 34.290),
+                (-36.545, 30.590), (-36.545, 31.330), (-36.545, 33.550), (-36.545, 34.290)}
+    RELICS = (-35.937, 43.808)
+    SUPPLY = (-35.880, 40.178)                    # untouched: it already matched, to 0.000
+
+    rt = fresh(src)
+    rt.execute("""
+    function __keepers()
+      local out = {}
+      for _, v in ipairs(EVERYTHING['Standard']['Keepers in Iron'].data) do
+        local nm = string.match(v.json, '"Nickname"%s*:%s*"([^"]*)"') or ""
+        if nm == "Keeper Warrior" or nm == "Relics" or nm == "Keeper Supply" then
+          out[#out+1] = string.format("%s|%.6f|%.6f|%.6f", nm, v.move_to[1], v.move_to[2], v.move_to[3])
+        end
+      end
+      return table.concat(out, ";")
+    end
+    """)
+    got = {"Keeper Warrior": set(), "Relics": [], "Keeper Supply": []}
+    for e in rt.eval("__keepers()").split(";"):
+        nm, mx, my, mz = e.split("|")
+        w = (round(SEAT_X + FLIP * float(mx), 3), round(SEAT_Z + FLIP * float(mz), 3))
+        if nm == "Keeper Warrior":
+            got[nm].add(w)
+        else:
+            got[nm].append(w)
+
+    assert len(got["Keeper Warrior"]) == 8, \
+        "expected 8 warriors on 8 distinct spots, got %d: %s" % (len(got["Keeper Warrior"]),
+                                                                 sorted(got["Keeper Warrior"]))
+    assert got["Keeper Warrior"] == WARRIORS, \
+        "the warriors are not where the save has them: %s" % sorted(got["Keeper Warrior"] ^ WARRIORS)
+    assert got["Relics"] == [RELICS], "the Relics bag is at %s, not %s" % (got["Relics"], RELICS)
+    assert got["Keeper Supply"] == [SUPPLY], \
+        "the Keeper Supply moved; it already matched the save: %s" % got["Keeper Supply"]
+
+    # AND THEY ARE ALL ON ONE SIDE. What was actually wrong was not the exact coordinates -- it was
+    # that half the warriors and the bag were across the board from the supply they belong with.
+    everything = sorted(got["Keeper Warrior"]) + got["Relics"] + got["Keeper Supply"]
+    span = max(x for x, _ in everything) - min(x for x, _ in everything)
+    assert span < 3.0, \
+        "the Keepers' pieces are spread %.1f units across the board; they belong in one column" % span
+
+
 def t_every_map_locks_its_ruins(src):
     """A ruin is locked once it has been placed, on every map -- not only the Marsh.
 
@@ -4231,6 +4295,7 @@ CASES = [
     ("send home asks no permission",      t_send_home_asks_no_permission),
     ("numpad 2 lays and lights a warrior", t_numpad_two_lays_a_warrior_down_and_lights_it),
     ("every map locks its ruins",         t_every_map_locks_its_ruins),
+    ("keepers spawn where he put them",   t_the_keepers_spawn_where_the_maintainer_put_them),
     ("board shows the build number",      t_the_board_shows_the_build_number),
     ("panel pauses the clock",            t_the_panel_pauses_the_clock),
     ("start names the pass it causes",    t_start_names_the_pass_it_causes),

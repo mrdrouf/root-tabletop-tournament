@@ -130,3 +130,4 @@ setup board's top right corner, and goes up on every commit.
 - Numpad 3's highlight is black, so it separates from the warrior and the map instead of matching them.
 - Numpad 2 lays a warrior down and outlines it in black; the disc under the piece is withdrawn, and numpad 3 does nothing.
 - Every map locks its ruins once placed, not just the Marsh.
+- Keepers: the 8 warriors and the Relics bag spawn where the "keepers" save has them, all on one side.
