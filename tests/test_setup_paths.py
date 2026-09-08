@@ -3128,6 +3128,56 @@ def t_numpad_two_lays_a_warrior_down_and_lights_it(src):
     assert state("ROOST")[1] is False, "numpad 2 laid a building down"
 
 
+def t_the_mountain_numbers_sit_where_the_save_puts_them(src):
+    """Every Mountain clearing number is where the "mountain" save has it, to the last decimal.
+
+    Maintainer, 2026-09-07: "Use the file montain.json in the folder to recalibrate the position of
+    the clearing numbers use these ones for mountain map", and then, when I had gone looking in
+    root_engine instead of for his save: "you dingus we don t use the official numbering this is the
+    position of the clearing numbers use the precise position as provided."
+
+    So this is not a renumbering and not a fit. The mod's numbering is its own, and the save says where
+    each of those numbers goes; eight of the twelve were wrong, one of them by 41 units -- on the far
+    side of the board. The tokens are matched to the save by their ARTWORK URL, which is the only
+    thing that identifies which number a blob carries: the blobs have no nickname and are not in
+    numeric order.
+
+    assets/src_art/saves/mountain.json is his save, kept so this can be re-checked rather than trusted.
+    """
+    saved = json.load(open(os.path.join(REPO, "assets", "src_art", "saves", "mountain.json"),
+                           encoding="utf-8"))
+    want = {}
+    for o in saved["ObjectStates"]:
+        if "RTT Priority" in (o.get("Tags") or []):
+            want[(o.get("CustomImage") or {}).get("ImageURL", "")] = o["Transform"]
+    assert len(want) == 12, "the save holds %d priority tokens, expected 12" % len(want)
+
+    i = src.index("RTT_PRIO_MOUNTAINMAP = {")
+    blobs = re.findall(r"\[==\[(.*?)\]==\]", src[i:src.index("\n}", i)], re.S)
+    assert len(blobs) == 12, "the Mountain ships %d number tokens, expected 12" % len(blobs)
+
+    got = {}
+    for b in blobs:
+        u = re.search(r'"ImageURL":"([^"]+)"', b).group(1)
+        m = re.search(r'"posX":([-\d.E]+),"posY":([-\d.E]+),"posZ":([-\d.E]+)', b)
+        got[u] = (float(m.group(1)), float(m.group(2)), float(m.group(3)))
+    assert set(got) == set(want), \
+        "the blueprint and the save disagree about which number tokens exist: %s" \
+        % sorted({u[-14:] for u in set(got) ^ set(want)})
+
+    for u, (x, y, z) in got.items():
+        t = want[u]
+        for axis, mine, theirs in (("x", x, t["posX"]), ("y", y, t["posY"]), ("z", z, t["posZ"])):
+            assert abs(mine - theirs) < 1e-4, \
+                "number ...%s is %.3f off in %s: blueprint %.4f, save %.4f" \
+                % (u[-14:], abs(mine - theirs), axis, mine, theirs)
+
+    # THE TWELVE ARE DISTINCT PLACES. A copy-paste that gave two numbers the same transform would
+    # satisfy every check above and leave a clearing unnumbered.
+    spots = {(round(x, 2), round(z, 2)) for x, _, z in got.values()}
+    assert len(spots) == 12, "two Mountain numbers share a position: %d distinct spots" % len(spots)
+
+
 def t_the_cats_are_dropped_clear_of_the_clearing(src):
     """A cat appears in free air above its clearing and falls, standing upright.
 
@@ -4429,6 +4479,7 @@ CASES = [
     ("keepers spawn where he put them",   t_the_keepers_spawn_where_the_maintainer_put_them),
     ("badger relics draw uniformly",      t_the_badger_relics_are_drawn_uniformly),
     ("cats drop clear of the clearing",   t_the_cats_are_dropped_clear_of_the_clearing),
+    ("mountain numbers match the save",   t_the_mountain_numbers_sit_where_the_save_puts_them),
     ("board shows the build number",      t_the_board_shows_the_build_number),
     ("panel pauses the clock",            t_the_panel_pauses_the_clock),
     ("start names the pass it causes",    t_start_names_the_pass_it_causes),
