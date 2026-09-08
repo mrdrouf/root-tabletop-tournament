@@ -359,8 +359,39 @@ def t_the_credits_page_gives_every_caption_its_own_column(src):
     name = assets["CreditsPanelArt"].split("/")[-1]
     assert os.path.exists(os.path.join(REPO, "assets", "labels", name)), \
         "the board points at %s, which is not in assets/labels" % name
-    assert name.startswith("credits_panel_v8"), \
-        "the board is still loading the old credits page: %s" % name
+    assert name.startswith("credits_panel_v"), \
+        "the board is not loading a credits panel: %s" % name
+
+    # THE PAGE MUST COVER THE BOARD'S BOTTOM BUTTON ROW, and the back button must sit ON it.
+    #
+    # The button was at y -78 -- the SAME row as 5-Player Setup, 5-Player Draft, 5-Players Marsh and
+    # the Credits button -- while the page only reached y -84, so it hung off the page's edge and
+    # landed among them. Maintainer, 2026-09-07: "the back button clashes with things written put it
+    # lower." There is nowhere lower to go while the page ends where it did: below that row the board
+    # has about ten units left. So the page grew downwards to cover the row, which puts those buttons
+    # behind it, and the back button moved down onto the strip the artwork keeps clear.
+    xml = (board(saved["ObjectStates"]) or {})["XmlUI"]
+    def box(el):
+        m = re.search(r'<\w+ id="%s"[^>]*position="(-?[\d.]+) (-?[\d.]+) (-?[\d.]+)"[^>]*height="([\d.]+)"'
+                      % el, xml)
+        assert m, "no %s on the board" % el
+        y, h, z = float(m.group(2)), float(m.group(4)), float(m.group(3))
+        return y - h / 2, y + h / 2, z
+    page_lo, page_hi, page_z = box("creditsPage")
+    btn_lo, btn_hi, btn_z = box("rttCreditsBack")
+    row_lo, row_hi, row_z = box("Marsh5PSetup")
+
+    assert page_lo <= row_lo, \
+        "the page reaches %.0f and the board's bottom row starts at %.0f; the row shows below it" \
+        % (page_lo, row_lo)
+    assert btn_z < page_z, "the back button is behind the page"
+    assert page_z < row_z, "the page does not cover the board's buttons"
+    assert page_lo <= btn_lo and btn_hi <= page_hi, \
+        "the back button (%.0f..%.0f) is not inside the page (%.0f..%.0f)" \
+        % (btn_lo, btn_hi, page_lo, page_hi)
+    assert (btn_lo + btn_hi) / 2 <= -79, \
+        "the back button's centre is at %.0f; it used to be -78 and was asked to go lower" \
+        % ((btn_lo + btn_hi) / 2)
 
 
 def t_frog_enclaves_match_the_suit_circle(src):

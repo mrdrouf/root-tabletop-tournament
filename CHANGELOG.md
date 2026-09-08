@@ -141,3 +141,4 @@ setup board's top right corner, and goes up on every commit.
 - Flipping an enclave slides and turns it between the two spots, lifted clear of the board and settling at each end.
 - Enclaves are 10% smaller.
 - Credits page redrawn: one column per caption so none overlap, "on discord" gone, three small groups share a band.
+- The credits page is taller and its back button sits on a clear strip, not on the board's button row.

@@ -33,12 +33,25 @@ from PIL import Image, ImageDraw, ImageFont, ImageFilter, ImageChops
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SRC = os.path.join(ROOT, "assets", "labels", "credits_panel_v7_883e709b.png")
-OUT = os.path.join(ROOT, "assets", "labels", "credits_panel_v8.png")
+OUT = os.path.join(ROOT, "assets", "labels", "credits_panel_v9.png")
 LUM = "/System/Library/Fonts/Supplemental/Luminari.ttf"
 
 INK = (26, 20, 12)
 SOFT = (92, 70, 44)          # the group headings, a step back from the titles
-FRAME = (100, 130, 2300, 1410)   # the drawable area inside the printed border
+# THE PAGE IS TALLER THAN THE ART IT CAME FROM.
+#
+# The back button sat at y -78 on the board, which is the SAME row as 5-Player Setup, 5-Player Draft,
+# 5-Players Marsh and the Credits button itself -- and the page only reached y -84, so the button hung
+# off its bottom edge and landed among them. Maintainer, 2026-09-07: "the back button clashes with
+# things written put it lower."
+#
+# There is nowhere lower to put it while the page ends where it does: below that row the board has
+# only about ten units before it runs out. So the page grows downwards instead, from 152 units to 168,
+# far enough to cover the row -- the board's buttons are behind it -- and the last 240 rows of the art
+# are left empty for the button to sit on.
+HEIGHT = 1708                    # 2400 x 1708 is 236 x 168 on the board
+BUTTON_STRIP = 380               # rows kept clear at the foot of the page
+FRAME = (100, 130, 2300, HEIGHT - BUTTON_STRIP)
 
 # Where each thumbnail sits in the OLD page. Found by connected components on "not parchment", then
 # widened by PAD so no crop clips its own art; the Lizard Wizard is two cards and reads as two blobs.
@@ -88,7 +101,7 @@ CLEAN_PATCH = (1360, 750, 1960, 1050)
 
 
 def clean_plate(src):
-    """The printed border of the old page, with a fresh parchment ground inside it.
+    """The printed border of the old page, stretched to the new height, with fresh parchment inside.
 
     Inpainting the old page was tried first and is the wrong tool here: masking the ink and filling
     from its surroundings works for a strip a few rows tall (the Root plaque's subtitle band) but not
@@ -98,8 +111,19 @@ def clean_plate(src):
     Tiling real parchment cannot ghost. The patch is mirrored at each step so its edges always meet
     their own reflection and no seam can appear, and a light blur takes the last of the repetition out
     of the grain.
+
+    The border is nine-sliced vertically -- top kept, bottom kept, middle stretched. Its long edges are
+    near-vertical torn lines, so stretching the middle of them is invisible; stretching the CORNERS
+    would not be, which is why they are carried across untouched.
     """
-    x0, y0, x1, y1 = FRAME
+    TOP, BOT = 760, 300
+    frame = Image.new("RGB", (src.width, HEIGHT))
+    frame.paste(src.crop((0, 0, src.width, TOP)), (0, 0))
+    frame.paste(src.crop((0, src.height - BOT, src.width, src.height)), (0, HEIGHT - BOT))
+    middle = src.crop((0, TOP, src.width, src.height - BOT))
+    frame.paste(middle.resize((src.width, HEIGHT - BOT - TOP), Image.LANCZOS), (0, TOP))
+
+    x0, y0, x1, y1 = 100, 130, 2300, HEIGHT - 130
     patch = src.crop(CLEAN_PATCH).convert("RGB")
     pw, ph = patch.size
     tile = Image.new("RGB", (pw * 2, ph * 2))
@@ -113,10 +137,8 @@ def clean_plate(src):
         for gx in range(0, ground.width, tile.width):
             ground.paste(tile, (gx, gy))
     ground = ground.filter(ImageFilter.GaussianBlur(1.1))
-
-    plate = src.copy().convert("RGB")
-    plate.paste(ground, (x0, y0))
-    return plate
+    frame.paste(ground, (x0, y0))
+    return frame
 
 
 def thumbnails(src):
