@@ -39,11 +39,23 @@ no draft, no seating. It IS destructive: it goes through `rttPlaceMap` → `make
 like any other map placement, so it prompts when a map is already down. This page used to claim the
 opposite, which is how it stayed the one destructive button with no warning.
 
-**Each button keeps its own wording.** The setup buttons (4-Player Draft, Theme, 4-Player Setup,
-5-Player Draft, 5P Setup) read *"This will reset all factions."*; the six map buttons and 5-Players
-Marsh read *"This will reset the map."* It briefly switched wording by what was on the table, which
-meant a setup button said "reset the map" before any faction was down -- and that read as the faction
-warning having been deleted.
+**A prompt describes what the click will really do, and appears only when it would do it.**
+
+* Factions on the table -> the setup buttons (4-Player Draft, Theme, 4-Player Setup, 5-Player Draft,
+  5P Setup) read *"This will reset all factions."* A map button never says this: it destroys
+  `Map Object`s only and cannot touch a faction.
+* A different map would end up on the table -> *"This will reset the map."*
+* Neither -> **no prompt at all**, and the click just runs.
+
+A setup button re-places the map it finds (`rttNewGame` -> `rttRefreshMap`, with the current id), so
+for six of the eight maps the very same board comes back and there is nothing to warn about. The
+**Marsh** and the **Mountain** are the exceptions: they re-roll their layout on every build
+(`rttMarshPlan`, `rttMountainPlan`), so on those a setup click really is a map reset and says so.
+Asking a map button for the map that is already down is likewise not a reset.
+
+This has been wrong in both directions. A rule that swapped every button's wording by table state made
+the faction warning look deleted; the rule that replaced it warned about a map that was going straight
+back. Which map is down is now saved with the table, so a reload does not lose the answer.
 
 ## Maps
 

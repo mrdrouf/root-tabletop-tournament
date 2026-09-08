@@ -122,3 +122,5 @@ setup board's top right corner, and goes up on every commit.
 - A locked score is keyed by seat and round, so a repeated turn event overwrites it.
 - Box score re-reads the seats on a real event, not on a timer, so typed names stay.
 - START names the turn pass it causes, so it never records a turn for the outgoing seat.
+- A button warns only about what it will really do; a setup click that puts the same map back says nothing.
+- Which map is on the table is saved, so a reload can still re-place it.

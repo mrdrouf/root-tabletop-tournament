@@ -1849,9 +1849,11 @@ def t_map_buttons_warn_before_wiping(src):
     # every map button is armed, and they all use the map warning art
     rt = fresh(src)
     for m in MAPS:
+        # warnMap, not warn: a map button has no faction wording at all, which is what stops it ever
+        # claiming to reset factions it does not touch.
         d = rt.eval("function(k) local e = RTT_WIPE_BTN[k] if e == nil then return 'missing' end "
-                    "return tostring(e.map) .. '|' .. tostring(e.warn) end")(m)
-        assert d == "%s|WipeConfirmMapArt" % m, "%s has wipe entry %s" % (m, d)
+                    "return tostring(e.map) .. '|' .. tostring(e.warnMap) .. '|' .. tostring(e.warn) end")(m)
+        assert d == "%s|WipeConfirmMapArt|nil" % m, "%s has wipe entry %s" % (m, d)
     assert 'id="Vagabond Cards"' not in src   # unrelated guard kept from the button sweep
 
     # a CLEAN table places at once -- the first map of a session must not need two clicks
@@ -2466,9 +2468,8 @@ def t_the_five_player_buttons_warn_before_wiping(src):
     consulted rttWouldWipe's FACTION tags, which was right until rttNewGame started re-placing the map:
     after that, starting a game on a table with a map but no factions destroyed the map silently.
 
-    The wording follows what is actually at stake. A button that clears factions and the map should not
-    promise to "reset all factions" when there is not a faction in sight, so with only a map down it
-    shows the map warning instead.
+    The wording follows what is actually at stake, and so does whether there is a prompt at all: a
+    setup button puts the same map straight back, so with only a map down it says nothing.
     """
     def icon(rt, bid):
         return rt.eval("function(b) return tostring(UIATTR[b .. '.icon']) end")(bid)
@@ -2487,23 +2488,30 @@ def t_the_five_player_buttons_warn_before_wiping(src):
     assert armed(rt) == "nil", "5-Players Marsh prompted on a clean table"
     assert rt.eval("RTT_5P_MARSH") is True, "5-Players Marsh did not run on a clean table"
 
-    # EVERY BUTTON WARNS ABOUT WHAT IT WILL ACTUALLY DO -- no more, and no less.
+    # EVERY BUTTON WARNS ABOUT WHAT IT WILL ACTUALLY DO -- no more, and no less. `None` means no
+    # prompt at all, because nothing would change and the click just runs.
     #
     # A MAP button only ever places a map, so it says map whatever is on the table and can never claim
-    # to touch a faction. A SETUP button clears the factions AND re-places the map, so which of the two
-    # it costs you depends on what is out: with factions down it says factions, with none it says map.
+    # to touch a faction -- but asking for the map that is ALREADY down changes nothing either.
+    # A SETUP button clears the factions AND re-places the map it finds (rttNewGame -> rttRefreshMap),
+    # and Autumn comes back exactly as it was: with factions down it costs you the factions, with none
+    # it costs you nothing at all. Maintainer, 2026-09-07: "If I spawn a map then click on the 4 player
+    # setup it warns that this will wipe the map. that is not true. revise your warnings!!" -- and the
+    # rule: "if factions would be wiped, warn about faction wipe. if map would be reset, warn about
+    # that. it needs to make sense."
     #
-    # Both halves are the maintainer's, a day apart. "Put back the appropriate warning to the
-    # appropriate buttons! since some buttons reset the map others the factions" killed the old rule,
-    # which swapped EVERY button's wording by table state and read as the faction warning having been
-    # deleted. Then: "still have a warning about wiping factions while the only thing I spawned is a
-    # map", and "This will reset the map BUT ONLY IF IT INDEED DOES!!! some buttons do not".
+    # The Marsh is the counter-case, checked straight after: it re-rolls its layout on every build, so
+    # there a setup click IS a map reset. Earlier readings of this table got it wrong in both
+    # directions -- "Put back the appropriate warning to the appropriate buttons!" killed a rule that
+    # swapped every button's wording by table state, and "This will reset the map BUT ONLY IF IT
+    # INDEED DOES!!!" killed the one that replaced it.
     WORDING = (("rttArmMarsh5PMap", "Marsh5PMap",       "WipeConfirmMapArt", "WipeConfirmMapArt"),
-               ("rttArmMap",        "Summer Map",       "WipeConfirmMapArt", "WipeConfirmMapArt"),
-               ("rttArmMarsh5P",    "Marsh5P",          "WipeConfirmMapArt", "WipeConfirmArt"),
-               ("rttArmFiveSetup",  "Marsh5PSetup",     "WipeConfirmMapArt", "WipeConfirmArt"),
-               ("rttArmFour",       "rttFourBoardsBtn", "WipeConfirmMapArt", "WipeConfirmArt"),
-               ("rttArmRanked",     "rttRankedBtn",     "WipeConfirmMapArt", "WipeConfirmArt"))
+               ("rttArmMap",        "Lake Map",         "WipeConfirmMapArt", "WipeConfirmMapArt"),
+               ("rttArmMap",        "Summer Map",       None,                None),
+               ("rttArmMarsh5P",    "Marsh5P",          None,                "WipeConfirmArt"),
+               ("rttArmFiveSetup",  "Marsh5PSetup",     None,                "WipeConfirmArt"),
+               ("rttArmFour",       "rttFourBoardsBtn", None,                "WipeConfirmArt"),
+               ("rttArmRanked",     "rttRankedBtn",     None,                "WipeConfirmArt"))
     for withFactions in (False, True):
         for fn, bid, mapOnly, withFac in WORDING:
             want = withFac if withFactions else mapOnly
@@ -2512,11 +2520,28 @@ def t_the_five_player_buttons_warn_before_wiping(src):
             if withFactions:
                 rt.execute("pcall(function() setupFactionBoards(nil,nil,nil) end) FLUSH(200)")
             click(rt, fn, bid)
+            if want is None:
+                assert armed(rt) == "nil", (
+                    "%s prompted with factions=%s, but nothing it does would change: Autumn is put "
+                    "back exactly as it was" % (bid, withFactions))
+                continue
             assert armed(rt) == bid, "%s did not warn (factions on table: %s)" % (bid, withFactions)
             got = icon(rt, bid)
             assert got.startswith(want), (
                 "%s shows %s with factions=%s; it should show %s"
                 % (bid, got, withFactions, want))
+
+    # THE MAP THAT REALLY DOES COME BACK DIFFERENT. The Marsh re-rolls its flooding, its suits and its
+    # ruins on every build, so a setup click on a Marsh table is a genuine reset and has to say so.
+    # This is the half that keeps the fix above from becoming "setup buttons never mention the map".
+    rt = fresh_seated()
+    rt.execute("pcall(function() makeMap(Player['Purple'],'','Marsh Map') end) FLUSH(200)")
+    click(rt, "rttArmFour", "rttFourBoardsBtn")
+    assert armed(rt) == "rttFourBoardsBtn", \
+        "a setup click on the Marsh did not warn, though the rebuild re-rolls the whole board"
+    assert icon(rt, "rttFourBoardsBtn").startswith("WipeConfirmMapArt"), \
+        "the Marsh rebuild warned about factions instead of the map: %s" \
+        % icon(rt, "rttFourBoardsBtn")
 
     # and the second click actually commits
     rt = fresh_seated()
@@ -3152,24 +3177,29 @@ def t_the_panel_pauses_the_clock(src):
     assert shown() == "0:45", "the clock did not pick up where it stopped: %s" % shown()
 
 
-def t_no_warning_when_there_is_nothing_to_wipe(src):
-    """The confirm appears when something is going to be taken away, and not otherwise.
+def t_a_warning_describes_what_the_click_really_does(src):
+    """A button warns about the thing it is actually going to take away, and about nothing else.
 
-    Maintainer, 2026-09-07: "a warning of wipe all factions appeared while there was no faction to
-    wipe." The test was "is there a Map Object" -- but the battle mat, the box score and the turn panel
-    all carry that tag and all SURVIVE a rebuild, because removeMapItems keeps anything tagged as a
-    fixture. So a table holding nothing but its own furniture read as a table full of things to lose,
-    and every setup button demanded confirmation for a wipe that would remove nothing.
+    Maintainer, 2026-09-07: "If I spawn a map then click on the 4 player setup it warns that this will
+    wipe the map. that is not true. revise your warnings!!" -- and then the rule: "if factions would be
+    wiped, warn about faction wipe. if map would be reset, warn about that. it needs to make sense."
 
-    It now counts what removeMapItems would actually destroy, which is the same test that does the
-    destroying.
+    A setup click re-places the map it finds (rttNewGame -> rttRefreshMap -> makeMap with the CURRENT
+    id), so for six of the eight maps the very same board comes back and nothing is lost. The Marsh and
+    the Mountain are the exceptions: they re-roll their layout on every build, so there the warning is
+    true. Two earlier versions of this both got it wrong in the other direction -- one counted any
+    "Map Object" including the table's own furniture, the next counted a map that was about to be put
+    straight back.
     """
     rt = fresh(src)
     fixture = rt.eval("RTT_FIXTURE_TAG")
+    setup = rt.eval("RTT_WIPE_BTN['rttFourBoardsBtn']")
+    amap  = rt.eval("RTT_WIPE_BTN['Summer Map']")
+    warn, art = rt.eval("rttWouldWipe"), rt.eval("rttWarnArt")
 
     # a bare table: nothing at all
-    assert rt.eval("rttWouldWipe(false)") is False, "warned on an empty table"
-    assert rt.eval("rttWouldWipe(true)") is False, "warned on an empty table for a map button"
+    assert warn(setup) is False, "warned on an empty table"
+    assert warn(amap) is False, "warned on an empty table for a map button"
 
     # the panel, the box score and the mat -- all tagged Map Object, all survive a rebuild
     rt.execute("""
@@ -3177,32 +3207,48 @@ def t_no_warning_when_there_is_nothing_to_wipe(src):
         MKOBJ(n, {0,1,0}, {'Map Object', %r})
       end
     """ % fixture)
-    assert rt.eval("rttWouldWipe(false)") is False, \
-        "the table's own furniture counted as something to wipe"
-    assert rt.eval("rttWouldWipe(true)") is False, \
-        "the table's own furniture counted as a map to replace"
+    assert warn(setup) is False, "the table's own furniture counted as something to wipe"
+    assert warn(amap) is False, "the table's own furniture counted as a map to replace"
 
-    # a real map piece is a real loss
-    rt.execute("MAPBIT = MKOBJ('Ruin', {1,1,1}, {'Map Object'})")
-    assert rt.eval("rttWouldWipe(false)") is True, "a map on the table did not warn"
-    assert rt.eval("rttWouldWipe(true)") is True, "a map on the table did not warn a map button"
+    # THE REPORT. A map is down and a setup button is pressed: the same map goes straight back, so
+    # there is nothing to warn about and the click must simply run.
+    rt.execute("RTT_CURRENT_MAP = 'Summer Map'")
+    assert warn(setup) is False, \
+        "a setup button warned about a map it is about to put back exactly as it was"
+    # ...and the same map asked for again is not a reset either
+    assert warn(amap) is False, "asking for the map that is already down warned about resetting it"
 
-    # ...and the WORDING follows what that button is really about to take away. A setup button clears
-    # the factions AND re-places the map, so with no factions out the truthful half is the map --
-    # "This will reset the map BUT ONLY IF IT INDEED DOES!!! some buttons do not" (2026-09-07).
-    setup = rt.eval("RTT_WIPE_BTN['rttFourBoardsBtn']")
-    amap  = rt.eval("RTT_WIPE_BTN['Summer Map']")
-    assert rt.eval("rttWarnArt")(setup) == "WipeConfirmMapArt", \
-        "a setup button says factions when there are none: %s" % rt.eval("rttWarnArt")(setup)
-    assert rt.eval("rttWarnArt")(amap) == "WipeConfirmMapArt", "a map button changed its wording"
+    # A DIFFERENT MAP IS a reset, and says so.
+    lake = rt.eval("RTT_WIPE_BTN['Lake Map']")
+    assert warn(lake) is True, "swapping Autumn for Lake did not warn"
+    assert art(lake) == "WipeConfirmMapArt", "a map button changed its wording: %s" % art(lake)
 
-    # and so is a faction, on its own
-    rt.execute("MAPBIT.destruct() MKOBJ('Eyrie Warrior', {2,1,2}, {'RTT Faction'})")
-    assert rt.eval("rttWouldWipe(false)") is True, "a faction on the table did not warn"
-    assert rt.eval("rttWarnArt")(setup) == "WipeConfirmArt", \
-        "with factions out a setup button must warn about the FACTIONS"
-    assert rt.eval("rttWarnArt")(amap) == "WipeConfirmMapArt", \
-        "a map button must never claim to reset factions -- it does not touch them"
+    # AND THE TWO THAT REALLY DO COME BACK DIFFERENT. The Marsh re-rolls its flooding, its suits and
+    # its ruins on every build, so a setup click genuinely resets it -- warning here is not noise.
+    for mid in ("Marsh Map", "Mountain Map"):
+        rt.execute("RTT_CURRENT_MAP = %r" % mid)
+        assert warn(setup) is True, "%s re-rolls on a rebuild and the setup button said nothing" % mid
+        assert art(setup) == "WipeConfirmMapArt", \
+            "%s: a setup button with no factions out must warn about the MAP: %s" % (mid, art(setup))
+
+    # A FACTION OUTRANKS EITHER. It is the bigger loss and it is what a setup button is for.
+    rt.execute("RTT_CURRENT_MAP = 'Summer Map' MKOBJ('Eyrie Warrior', {2,1,2}, {'RTT Faction'})")
+    assert warn(setup) is True, "a faction on the table did not warn"
+    assert art(setup) == "WipeConfirmArt", \
+        "with factions out a setup button must warn about the FACTIONS: %s" % art(setup)
+
+    # ...and a map button STILL must not claim them: it destroys Map Objects only, and a faction
+    # warrior is not one. There is no faction wording on a map button at all.
+    assert amap["warn"] is None, "a map button carries faction wording it can never honour"
+    assert art(lake) == "WipeConfirmMapArt", \
+        "a map button claimed to reset factions: %s" % art(lake)
+
+    # EVERY BUTTON HAS THE WORDING IT NEEDS. A setup button can hit either case, so it needs both; a
+    # map button only ever resets a map. An entry missing one would silently arm with no art at all.
+    for bid, d in dict(rt.eval("RTT_WIPE_BTN")).items():
+        assert d["warnMap"] is not None, "%s can change the map but has no map wording" % bid
+        if d["fn"] is not None and d["places"] is None:
+            assert d["warn"] is not None, "%s clears factions but has no faction wording" % bid
 
 
 def t_the_gizmo_follows_the_faction_you_last_picked(src):
@@ -4017,7 +4063,7 @@ CASES = [
     ("duchy burrow spawns locked",           t_the_duchy_burrow_spawns_locked),
     ("camera states are the host's",         t_camera_states_are_the_hosts),
     ("turn panel is the only clock",      t_the_turn_panel_is_the_only_clock),
-    ("no warning with nothing to wipe",   t_no_warning_when_there_is_nothing_to_wipe),
+    ("a warning says what really happens", t_a_warning_describes_what_the_click_really_does),
     ("gizmo follows your last pick",      t_the_gizmo_follows_the_faction_you_last_picked),
     ("panel flashes past 20 minutes",      t_the_panel_flashes_after_twenty_minutes),
     ("crow plots inside the hidden zone",    t_crow_plots_spawn_inside_the_hidden_zone),

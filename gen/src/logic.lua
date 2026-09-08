@@ -30,6 +30,12 @@ function onSave()
                          -- dealt and the players being seated. Lost on a reload in that window, the
                          -- draft could not be finished: rttBeginPick returns on an empty order and
                          -- rttSeatPlayers has nothing to match a human to a seat with.
+                         -- map: WHICH map is on the table. TTS wipes globals on load, so without
+                         -- this a reloaded table did not know, and rttRefreshMap -- the whole reason
+                         -- a new game does not inherit the last one's layout -- returned immediately
+                         -- on a nil id. It is also what decides whether a click would leave a
+                         -- different map behind, so the warnings went quiet after a reload too.
+                         map = RTT_CURRENT_MAP or "",
                          order = RTT_ORDER or {} })
   end)
   if ok then return enc end
@@ -64,6 +70,7 @@ function onLoad(state)
     if type(d.laid) == "table" then RTT_LAID = d.laid end
     RTT_PICK_N = d.pickN or RTT_PICK_N
     if type(d.order) == "table" then RTT_ORDER = d.order end
+    if type(d.map) == "string" and d.map ~= "" then RTT_CURRENT_MAP = d.map end
     if #RTT_SEATS > 0 then rttPublishSeats() end
   end)
   pcall(function() rttSnapshotHand2() end)  -- parked hand-2 transforms, restored on every new game
@@ -1525,19 +1532,19 @@ RTT_WIPE_BTN = {
   -- 5-Players Marsh places the Marsh map and nothing else, so it can only ever cost you the map.
   -- BUTTONS.md used to say it "is not destructive, so it does not prompt"; it goes through
   -- rttPlaceMap -> makeMap -> removeMapItems like any other map placement, so that was simply wrong.
-  Marsh5PMap       = { fn = "rttPlaceMarsh5P",       color = "#81745b", icon = "Marsh5PLabel",       warn = "WipeConfirmMapArtWide" },
+  Marsh5PMap       = { fn = "rttPlaceMarsh5P",       color = "#81745b", icon = "Marsh5PLabel",       warnMap = "WipeConfirmMapArtWide", places = "Marsh Map" },
   -- THE MAP BUTTONS. Maintainer, 2026-09-06: they should warn like the faction buttons do. They are
   -- destructive -- makeMap clears everything tagged "Map Object" (the map, the battle mat, the
   -- priority markers, the timer, the counter, the box score) and on the Marsh re-rolls the flood and
   -- the suits -- and until now they did it on a single click with no prompt.
   -- `map` instead of `fn`: rttArmOrGo's other entries name a no-argument function, but makeMap needs
   -- the map id, so the dispatch branches on this field.
-  ["Summer Map"]   = { map = "Summer Map",   color = "#4b4d35", icon = "Autumn Map",   warn = "WipeConfirmMapArt" },
-  ["Lake Map"]     = { map = "Lake Map",     color = "#42a0c2", icon = "Lake Map",     warn = "WipeConfirmMapArt" },
-  ["Marsh Map"]    = { map = "Marsh Map",    color = "#9b8551", icon = "Marsh Map",    warn = "WipeConfirmMapArt" },
-  ["Winter Map"]   = { map = "Winter Map",   color = "#6b8a8f", icon = "Winter Map",   warn = "WipeConfirmMapArt" },
-  ["Mountain Map"] = { map = "Mountain Map", color = "#764a52", icon = "Mountain Map", warn = "WipeConfirmMapArt" },
-  ["Gorge Map"]    = { map = "Gorge Map",    color = "#61746b", icon = "Gorge Map",    warn = "WipeConfirmMapArt" },
+  ["Summer Map"]   = { map = "Summer Map",   color = "#4b4d35", icon = "Autumn Map",   warnMap = "WipeConfirmMapArt" },
+  ["Lake Map"]     = { map = "Lake Map",     color = "#42a0c2", icon = "Lake Map",     warnMap = "WipeConfirmMapArt" },
+  ["Marsh Map"]    = { map = "Marsh Map",    color = "#9b8551", icon = "Marsh Map",    warnMap = "WipeConfirmMapArt" },
+  ["Winter Map"]   = { map = "Winter Map",   color = "#6b8a8f", icon = "Winter Map",   warnMap = "WipeConfirmMapArt" },
+  ["Mountain Map"] = { map = "Mountain Map", color = "#764a52", icon = "Mountain Map", warnMap = "WipeConfirmMapArt" },
+  ["Gorge Map"]    = { map = "Gorge Map",    color = "#61746b", icon = "Gorge Map",    warnMap = "WipeConfirmMapArt" },
 }
 RTT_ARM = { id = nil, token = 0 }
 
@@ -1848,15 +1855,25 @@ function rttBusyBegin(sec)
   Wait.time(function() if RTT_BUSY_TOKEN == t then RTT_BUSY = false end end, sec or 15)
 end
 
--- would this click actually destroy anything? A SETUP click tears down the tags rttSetup owns; a MAP
--- click tears down "Map Object" instead, so the first map of a session still places instantly with no
--- prompt -- the same rule the setup buttons already follow.
--- What a rebuild would actually DESTROY. Not simply "a Map Object": the battle mat, the box score and
--- the turn panel all carry that tag and all SURVIVE, because removeMapItems keeps anything tagged as
--- a fixture. Counting them made every setup button demand confirmation on a table holding nothing but
--- its own furniture -- maintainer, 2026-09-07: "a warning of wipe all factions appeared while there
--- was no faction to wipe." This is the same test removeMapItems applies, so the warning appears
--- exactly when something is going to be taken away.
+
+-- THE MAPS THAT COME BACK DIFFERENT. Placing a map again normally respawns exactly the pieces it had,
+-- so the rebuild is invisible -- but the Marsh re-rolls its flooding, its suits and its ruins on every
+-- build (rttMarshPlan) and has two whole boards behind one button, and the Mountain re-rolls its lost
+-- city (rttMountainPlan). Those two are the only ones with a plan; every other map has RTT_OV = nil.
+RTT_MAP_REROLLS = { ["Marsh Map"] = true, ["Mountain Map"] = true }
+
+-- WOULD THIS CLICK LEAVE A DIFFERENT MAP ON THE TABLE? Not "does it touch the map" -- a setup click
+-- destroys and respawns the map it finds, and for six of the eight the very same board comes back, so
+-- calling that a reset is untrue. Maintainer, 2026-09-07: "If I spawn a map then click on the 4 player
+-- setup it warns that this will wipe the map. that is not true. revise your warnings!!"
+--   * nothing down          -> nothing to reset;
+--   * a DIFFERENT map asked for -> yes, the one on the table goes;
+--   * the SAME map asked for, or a setup click re-placing what is there -> only if it re-rolls.
+-- WHAT REMOVEMAPITEMS WOULD ACTUALLY DESTROY. Not simply "a Map Object": the battle mat, the box score
+-- and the turn panel all carry that tag and all SURVIVE, because removeMapItems keeps anything tagged
+-- as a fixture. Counting them made every setup button demand confirmation on a table holding nothing
+-- but its own furniture -- maintainer, 2026-09-07: "a warning of wipe all factions appeared while there
+-- was no faction to wipe."
 function rttLoseableMapItems()
   local n = 0
   for _, o in ipairs(getObjectsWithTag("Map Object")) do
@@ -1867,14 +1884,26 @@ function rttLoseableMapItems()
   return n
 end
 
-function rttWouldWipe(isMap)
-  if isMap then return rttLoseableMapItems() > 0 end
-  if rttFactionsOnTable() then return true end
-  -- A SETUP CLICK NOW TAKES THE MAP TOO. rttNewGame re-places it (rttRefreshMap), so starting a game
-  -- on a table that has a map is destructive even with no faction on it -- and it used to go through
-  -- with no prompt at all. Maintainer, 2026-09-06: "the options buttons should also have the warnings
-  -- when they reset factions or maps."
-  return rttLoseableMapItems() > 0
+function rttMapWouldChange(target)
+  local cur = RTT_CURRENT_MAP
+  -- SOMETHING IS DOWN THAT THIS BOARD DID NOT PLACE -- an old save from before the id was persisted,
+  -- or a board dragged out by hand. The id is unknown, so the honest answer is that it may well go.
+  if cur == nil or cur == "" then
+    if rttLoseableMapItems() > 0 then return true end
+    return false
+  end
+  if target ~= nil and target ~= "" and target ~= cur then return true end
+  return RTT_MAP_REROLLS[cur] == true
+end
+
+-- WARN ABOUT WHAT THE CLICK ACTUALLY DOES. Maintainer, 2026-09-07: "if factions would be wiped, warn
+-- about faction wipe. if map would be reset, warn about that. it needs to make sense."
+-- `warn` is the faction wording and only the setup buttons carry it, because only they clear factions;
+-- `warnMap` is the map wording and is carried by everything that can leave a different map behind.
+function rttWouldWipe(d)
+  if d == nil then return false end
+  if d.warn ~= nil and rttFactionsOnTable() then return true end
+  return rttMapWouldChange(d.map or d.places)
 end
 
 -- Is there anything of a GAME on the table, as opposed to just a map?
@@ -1885,31 +1914,19 @@ function rttFactionsOnTable()
   return false
 end
 
--- WHICH WARNING TO SHOW: the one that belongs to the BUTTON, always. This used to switch wording by
--- what happened to be on the table -- a setup button said "reset the map" when no faction was down
--- yet -- and in practice that read as the faction warning having been deleted. Maintainer,
--- 2026-09-07: "you changed all warnings on the buttons to This will reset the map. and erased the
--- previous warning This will reset all factions. Put back the appropriate warning to the appropriate
--- buttons! since some buttons reset the map others the factions."
+-- WHICH WARNING TO SHOW, from the same two questions rttWouldWipe asks and in the same order: the
+-- factions are the bigger loss and are what a setup button is for, so they speak first; otherwise the
+-- only thing at stake is the map.
 --
--- So: the setup buttons say factions, because clearing the factions is what they are for; the map row
--- and 5-Players Marsh say map. A button's warning no longer depends on the state of the table.
+-- This is not the old adaptive rule that swapped every button's wording by table state. A map button
+-- has no faction wording at all and so can never claim to touch a faction -- maintainer, 2026-09-07:
+-- "you changed all warnings on the buttons to This will reset the map. and erased the previous warning
+-- This will reset all factions." And a setup button no longer claims the map merely because one is on
+-- the table: it says so when the map really would come back different, and stays quiet otherwise.
 function rttWarnArt(d)
-  -- ...BUT NEVER A WARNING FOR SOMETHING IT WILL NOT DO. The setup buttons clear the factions AND
-  -- re-place the map, so which of the two is at stake depends on the table: with factions out they
-  -- cost you the factions, and with none they cost you only the map. Saying "reset all factions" to a
-  -- table that has none is what the maintainer hit twice -- 2026-09-07: "still have a warning about
-  -- wiping factions while the only thing I spawned is a map", and then "This will reset the map BUT
-  -- ONLY IF IT INDEED DOES!!! some buttons do not".
-  --
-  -- Only the buttons that really do both carry warnMap. A map button has one effect and one wording,
-  -- and can never claim to touch a faction. This is not the old adaptive rule that swapped every
-  -- button's wording by table state: the faction warning still appears in every case where a faction
-  -- would actually be lost.
-  if d.warnMap ~= nil and not rttFactionsOnTable() then return d.warnMap end
-  return d.warn
+  if d.warn ~= nil and rttFactionsOnTable() then return d.warn end
+  return d.warnMap or d.warn
 end
-
 function rttDisarm()
   local id = RTT_ARM.id
   RTT_ARM.id = nil
@@ -1950,7 +1967,7 @@ function rttArmOrGo(id, player)
     rttRunBtn(d, player)
     return
   end
-  if not rttWouldWipe(d.map ~= nil) then         -- clean table: nothing to lose, just run
+  if not rttWouldWipe(d) then                    -- nothing would actually change: just run
     rttRunBtn(d, player)
     return
   end
