@@ -281,6 +281,90 @@ def t_rats_moods_wait_for_their_board(src):
     assert mood(after), "the starting mood never spawned at all"
 
 
+def t_the_lizard_board_follows_the_wizard(src):
+    """The board's Outcast readout and its three counts come off the Lizard Wizard.
+
+    Maintainer, 2026-09-07: "could you have the outcast on the faction board follow the information on
+    the lizard wizard? so have the symbol for the outcast suit and then when it s heated and the
+    counter for the number of cards of each suit in the lost souls."
+
+    The wizard is the public tracker: the Outcast Marker sits in one of its three slots and the spent
+    cards pile on it. The board's own Outcast panel and Lost Souls box are printed copies of the same
+    two things -- and the board's script was casting a physics box at ITS OWN Lost Souls area, which
+    is empty in every game the mod sets up, so the three numbers read 0 0 0 for ever. It had no test.
+
+    The wizard is the only source, by the maintainer's choice ("The Wizard, always"): a card on the
+    board's own printed box is not counted, and with no wizard out the readout is blank rather than
+    wrong.
+
+    BIRDS ARE NOT COUNTED, on purpose. The Outcast is the most common suit of Lost Souls IGNORING
+    birds, so a bird count is a number nobody at the table can use -- the fixture below feeds one in
+    to prove it does not land anywhere.
+    """
+    rt = fresh(src)
+    d = rt.eval('EVERYTHING["Standard"]["The Lizard Cult"]["data"]')
+    ls = None
+    for i in range(1, len(d) + 1):
+        j = json.loads(d[i].json)
+        if j.get("Nickname") == "Lizard Board":
+            ls = j["LuaScript"]
+    assert ls is not None, "there is no Lizard Board in the blueprint"
+    assert "Lizard Wizard" in ls, "the board's script no longer looks for the wizard"
+
+    er = lupa.LuaRuntime(unpack_returned_tuples=True)
+    er.execute(open(os.path.join(HERE, "tts_stub.lua"), encoding="utf-8").read())
+    er.execute(ls.replace("!=", "~="))
+    er.execute("""
+      BTN = {}
+      self.createButton = function(p) BTN[#BTN] = p.label; BTN[#BTN + 1] = p.label end
+      self.editButton = function(p) BTN[p.index] = p.label end
+      WIZ = MKOBJ("Lizard Wizard", { 20, 11.6, 5 }, {})
+      WIZ.__scale = Vector({ 3.904, 1, 3.904 })
+      WIZ.setRotation({ 0, 137, 0 })          -- turned, to prove the read is in the wizard's frame
+      MARK = MKOBJ("Outcast Marker", { 0, 0, 0 }, {})
+      function putMarker(x, z, down)
+        MARK.__pos = WIZ.positionToWorld(Vector({ x, 0.2, z })); MARK.is_face_down = down
+      end
+      function pile(descs)
+        for _, o in ipairs(getAllObjects()) do if o.getName() == "souls" then o.destruct() end end
+        local dk = MKOBJ("souls", WIZ.positionToWorld(Vector({ 0.48, 0.2, 0 })), {})
+        dk.name = "Deck"
+        local objs = {}
+        for i, dsc in ipairs(descs) do objs[i] = { description = dsc } end
+        dk.getObjects = function() return objs end
+      end
+      onLoad("")
+    """)
+
+    def readout():
+        er.execute("updateButtons()")
+        b = er.eval("BTN")
+        return [str(b[i]) for i in range(4)]
+
+    er.execute('pile({"Fox","Fox","Mouse","Bird","Rabbit","Fox","Mouse"})')
+    er.execute("putMarker(-0.73, 0.7320, false)")
+    assert readout()[:3] == ["2", "1", "3"], \
+        "mice/rabbits/foxes came out %s from 2 mice, 1 rabbit, 3 foxes and a bird" % readout()[:3]
+    assert readout()[3] == "Fox", "the fox slot did not read as Fox: %r" % readout()[3]
+
+    # THE OTHER FACE IS THE HATED OUTCAST
+    er.execute("putMarker(-0.73, 0.0284, true)")
+    assert readout()[3] == "Mouse - HATED", \
+        "a flipped marker on the mouse slot read %r" % readout()[3]
+
+    # A MARKER THAT IS NOT IN A SLOT NAMES NO SUIT. It gets picked up and put down constantly, and a
+    # readout that guesses the nearest slot from across the board would name a suit nobody chose.
+    er.execute("putMarker(0.4, 0.0, false)")
+    assert readout()[3].strip() == "", \
+        "the marker was off the slots and the board still claimed %r" % readout()[3]
+
+    # ...AND NO WIZARD MEANS NO ANSWER, rather than a stale one.
+    er.execute("for _,o in ipairs(getAllObjects()) do "
+               "if o.getName() == 'Lizard Wizard' then o.destruct() end end")
+    assert readout()[:3] == ["0", "0", "0"], "the counts survived the wizard leaving: %s" % readout()
+    assert readout()[3].strip() == "", "the outcast survived the wizard leaving"
+
+
 def t_the_credits_page_gives_every_caption_its_own_column(src):
     """No two captions can meet, and "on discord" is gone.
 
@@ -4749,6 +4833,7 @@ CASES = [
     ("lizards bring their discard blocker",   t_dragon_god_without_a_deck),
     ("a later deck re-seats the blocker",     t_dragon_god_reseated_by_a_later_deck),
     ("mood cards wait for the rats board",    t_rats_moods_wait_for_their_board),
+    ("lizard board follows the wizard",   t_the_lizard_board_follows_the_wizard),
     ("credits: a column per caption",     t_the_credits_page_gives_every_caption_its_own_column),
     ("enclaves match the suit circle",        t_frog_enclaves_match_the_suit_circle),
     ("enclaves sit where they are dropped",   t_enclaves_do_not_snap),
