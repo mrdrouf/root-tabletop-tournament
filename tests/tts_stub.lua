@@ -98,12 +98,49 @@ function MKOBJ(name, pos, tags)
   function o.highlightOn(c) o.__glow = c and {r=c.r, g=c.g, b=c.b} or {r=1,g=1,b=1} end
   function o.highlightOff() o.__glow = nil end
   function o.setLock(v) o.__locked = (v == true) end function o.setColorTint(c) o.__tint = {r=(c.r or c[1] or 1), g=(c.g or c[2] or 1), b=(c.b or c[3] or 1)} end
-  function o.getColorTint() return {r=o.__tint.r, g=o.__tint.g, b=o.__tint.b} end function o.shuffle() end
+  function o.getColorTint() return {r=o.__tint.r, g=o.__tint.g, b=o.__tint.b} end
   function o.randomize() end function o.reload() return o end function o.clone(p) return MKOBJ(o.__name, (p or {}).position, o.__tags) end
-  function o.takeObject(p) local t = MKOBJ((p or {}).guid or "taken", (p or {}).position, {})
-      if p and p.callback_function then p.callback_function(t) end return t end
+  -- A CONTAINER WITH REAL CONTENTS, when a test gives it any (o.__contents = {{guid=..., nickname=...}}).
+  -- Without this every takeObject returned an anonymous object called "taken", so nothing that draws
+  -- from a bag -- the badger relics above all -- could be checked for WHAT it drew, only that it drew
+  -- something. A bag with no contents behaves exactly as it always did.
+  o.__contents = nil
+  function o.getObjects()
+    if o.__contents == nil then return {} end
+    local out = {}
+    for i, e in ipairs(o.__contents) do out[i] = { guid = e.guid, nickname = e.nickname or e.guid,
+                                                  name = e.name or "Custom_Tile", index = i - 1 } end
+    return out
+  end
+  function o.takeObject(p)
+    p = p or {}
+    if o.__contents == nil then
+      local t = MKOBJ(p.guid or "taken", p.position, {})
+      if p.callback_function then p.callback_function(t) end
+      return t
+    end
+    local idx = 1                                     -- no guid given: the TOP of the bag
+    if p.guid then
+      idx = nil
+      for i, e in ipairs(o.__contents) do if e.guid == p.guid then idx = i break end end
+      if idx == nil then return nil end               -- TTS returns nothing for a guid not inside
+    end
+    local e = table.remove(o.__contents, idx)
+    if e == nil then return nil end
+    local t = MKOBJ(e.nickname or e.guid, p.position, {})
+    t.__guid = e.guid
+    t.getGUID = function() return e.guid end
+    if p.callback_function then p.callback_function(t) end
+    return t
+  end
+  function o.shuffle()
+    if o.__contents == nil then return end
+    for i = #o.__contents, 2, -1 do
+      local j = math.random(i)
+      o.__contents[i], o.__contents[j] = o.__contents[j], o.__contents[i]
+    end
+  end
   function o.putObject(x) return x end
-  function o.getObjects() return {} end
   -- A REAL transform: scale, then rotate about Y, then translate. These returned the local vector
   -- UNCHANGED, so every world position derived from a board -- the crow plots, the crow hidden zone,
   -- the Knaves captains board -- came out as raw board-local numbers and no test could check where

@@ -3128,6 +3128,86 @@ def t_numpad_two_lays_a_warrior_down_and_lights_it(src):
     assert state("ROOST")[1] is False, "numpad 2 laid a building down"
 
 
+def t_the_badger_relics_are_drawn_uniformly(src):
+    """Which relic lands on which forest is a real draw, and it does not depend on the bag being shuffled.
+
+    Maintainer, 2026-09-07: "can you check properly that relics positions are well randomized", and
+    then "do the best most robust for random ... you can also test it."
+
+    The spots are NOT random and must not be -- they are the map's forests, and every one takes a
+    relic. What is random is which of the twelve goes where. That used to be `bag.shuffle()` followed
+    by taking the top twelve times in one frame, which asks the engine to have applied a shuffle by
+    the time the very next line runs and leaves a test nothing to check.
+
+    SO THE BAG'S SHUFFLE IS DISABLED HERE. The draw has to come out uniform anyway, because the order
+    is decided in Lua by rttShuffleList over the bag's contents. On the old code this test collapses to
+    a single arrangement, every game, forever.
+    """
+    N = 200
+    rt = fresh(src)
+    rt.execute("""
+      RTT_CURRENT_MAP = "Summer Map"
+      MAP = MKOBJ("Autumn", {0, 11.5, 0}, {"Map Object"})
+      MAP.__snaps = {}
+      for i = 1, 40 do MAP.__snaps[i] = { position = {0,0,0} } end
+      BAG = MKOBJ("Relics", {-36, 11.4, 44}, {})
+      BAG.name = "Bag"
+      BAG.shuffle = function() end        -- the engine gives us nothing; the draw must not need it
+      function __round()
+        for _, o in ipairs(getObjectsWithTag("RTT Faction")) do
+          if string.sub(o.getGUID(), 1, 5) == "relic" then o.destruct() end
+        end
+        BAG.__contents = {}
+        for i = 1, 12 do BAG.__contents[i] = { guid = string.format("relic%02d", i) } end
+        rttBadgerRelics()
+      end
+      function __drawn()
+        local out = {}
+        for _, o in ipairs(getObjectsWithTag("RTT Faction")) do
+          local g = o.getGUID()
+          if string.sub(g, 1, 5) == "relic" then
+            local p = o.getPosition()
+            out[#out+1] = string.format("%.1f,%.1f=%s", p.x, p.z, g)
+          end
+        end
+        table.sort(out)
+        return table.concat(out, ";")
+      end
+    """)
+
+    per_spot, arrangements = {}, {}
+    for k in range(N):
+        rt.execute("math.randomseed(%d) __round() FLUSH(40)" % (k * 7919 + 13))
+        row = rt.eval("__drawn()")
+        arrangements[row] = arrangements.get(row, 0) + 1
+        placed = row.split(";")
+        assert len(placed) == 7, "Autumn has 7 forest spots; %d relics were placed" % len(placed)
+        spots = [e.split("=")[0] for e in placed]
+        relics = [e.split("=")[1] for e in placed]
+        assert len(set(spots)) == 7, "two relics landed on the same spot: %s" % row
+        assert len(set(relics)) == 7, "the same relic was placed twice: %s" % row
+        for sp, g in zip(spots, relics):
+            per_spot.setdefault(sp, set()).add(g)
+
+    # THE ARRANGEMENT IS NOT FIXED. On the old code, with the engine's shuffle doing nothing, every
+    # game dealt relics 1-7 onto the same seven spots in the same order: ONE arrangement, always.
+    assert len(arrangements) > N * 0.9, \
+        "only %d distinct arrangements in %d games; the draw is barely moving" % (len(arrangements), N)
+
+    # AND EVERY RELIC CAN REACH EVERY SPOT. With 12 relics and 200 games a spot should see all twelve;
+    # 9 leaves room for luck without leaving room for a spot that only ever gets three of them.
+    for sp, seen in sorted(per_spot.items()):
+        assert len(seen) >= 9, \
+            "spot %s only ever received %d of the 12 relics: %s" % (sp, len(seen), sorted(seen))
+
+    # ONE PER FRAME. Taking a dozen objects out of one container in a single frame is the hazard the
+    # card dealer already spaces around ("one at a time = no deck-busy / collapse race"), and a take
+    # that gets dropped leaves a forest with no relic at all.
+    rt.execute("__round() FLUSH(1)")
+    assert len(rt.eval("__drawn()").split(";")) < 7, \
+        "every relic came out in one frame; they are not being spaced"
+
+
 def t_the_keepers_spawn_where_the_maintainer_put_them(src):
     """The 8 warriors and the Relics bag land where the "keepers" save has them.
 
@@ -4296,6 +4376,7 @@ CASES = [
     ("numpad 2 lays and lights a warrior", t_numpad_two_lays_a_warrior_down_and_lights_it),
     ("every map locks its ruins",         t_every_map_locks_its_ruins),
     ("keepers spawn where he put them",   t_the_keepers_spawn_where_the_maintainer_put_them),
+    ("badger relics draw uniformly",      t_the_badger_relics_are_drawn_uniformly),
     ("board shows the build number",      t_the_board_shows_the_build_number),
     ("panel pauses the clock",            t_the_panel_pauses_the_clock),
     ("start names the pass it causes",    t_start_names_the_pass_it_causes),

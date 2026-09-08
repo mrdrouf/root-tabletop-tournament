@@ -5337,7 +5337,6 @@ function rttBadgerRelics()
     if o.name == "Bag" and (o.getName() or "") == "Relics" then bag = o break end
   end
   if bag == nil then return end
-  pcall(function() bag.shuffle() end)              -- placement is ALWAYS random (per the maintainer)
   local targets = {}
   local recorded = RTT_RELIC_POS[mapId]
   if recorded ~= nil then                          -- the maintainer's exact per-map spots (map-local)
@@ -5351,13 +5350,43 @@ function rttBadgerRelics()
     targets = rttForestWorldCenters(mapId)          -- fallback: forest centroids
   end
   if #targets == 0 then return end
-  for _, c in ipairs(targets) do
+
+  -- WHICH RELIC GOES WHERE IS DRAWN HERE, NOT LEFT TO THE BAG'S TOP.
+  --
+  -- The spots are not random and must not be: they are the map's forests, and every one takes a
+  -- relic. What is random is which of the twelve lands on each. That used to be `bag.shuffle()` and
+  -- then take the top, twelve times -- which trusts the engine to have applied a shuffle by the time
+  -- the very next line runs, and gives a test no way to prove it ever did. Reading the contents and
+  -- shuffling THAT list is the same draw with none of the doubt: rttShuffleList is a plain
+  -- Fisher-Yates, so every relic is equally likely on every spot, and the harness can say so.
+  local guids = {}
+  pcall(function()
+    for _, e in ipairs(bag.getObjects() or {}) do
+      if e.guid ~= nil then guids[#guids + 1] = e.guid end
+    end
+  end)
+  rttShuffleList(guids)
+
+  -- ONE PER FRAME. Taking a dozen objects out of one container in a single frame is the hazard this
+  -- mod already respects when it deals cards ("one at a time = no deck-busy / collapse race"), and a
+  -- take that gets dropped here leaves a forest with no relic -- which nobody would notice until the
+  -- Vagabond went looking for one.
+  local i = 0
+  local function place()
+    i = i + 1
+    local c = targets[i]
+    if c == nil then return end
     pcall(function()
-      bag.takeObject({ position = { c[1], 12.0, c[2] }, rotation = { 0, 180, 0 }, smooth = false,
+      -- guid nil (a bag holding fewer relics than the map has forests) falls back to the top, which is
+      -- what the old code always did
+      bag.takeObject({ guid = guids[i], position = { c[1], 12.0, c[2] }, rotation = { 0, 180, 0 },
+        smooth = false,
         -- tag "RTT Faction" so the relics go out WITH the badger faction on re-draft (not orphaned on the map)
         callback_function = function(o) pcall(function() o.addTag("RTT Faction") end) end })
     end)
+    Wait.frames(place, 1)
   end
+  place()
 end
 
 -- ---- Twilight Council (bats) ---------------------------------------------
