@@ -20,8 +20,8 @@ function onSave()
                               picker = s.picker, pickedAt = s.pickedAt }
       end
     end
-    -- laid: which warriors numpad 2 put down, and what they looked like standing. Without this a
-    -- reload leaves them cream and locked with nothing able to undo it.
+    -- laid: which warriors numpad 2 put down, and how they stood before it. Without this a reload
+    -- leaves them flat, lit and locked with nothing able to undo it.
     return JSON.encode({ v = 1, run = RTT_RUN_ID or 0, turnSeats = RTT_TURN_SEATS, seats = seats,
                          laid = RTT_LAID or {}, pickN = RTT_PICK_N or 0,
                          -- order: the draft's single shuffle, person -> seat number. It is not a
@@ -83,8 +83,7 @@ function onLoad(state)
   pcall(function()
     addHotkey("Gizmo: send the hovered piece home", function(color) rttGizmoHome(color) end)
     addHotkey("Gizmo: take a warrior from your supply", function(color) rttGizmoTake(color) end)
-    addHotkey("Gizmo: lay the hovered warrior down", function(color) rttGizmoLay(color) end)
-    addHotkey("Gizmo: lay it down and light it up", function(color) rttGizmoGlow(color) end)
+    addHotkey("Gizmo: lay it down and light it up", function(color) rttGizmoMark(color) end)
   end)
   assets = {}
   if self.getName() != "Faction Board" then
@@ -6867,23 +6866,24 @@ end
 -- because their colour is in the texture -- so "put it back to white" would repaint half the mod. The
 -- pose and tint are recorded on the way down and handed back on the way up, and the record rides in
 -- onSave, so a reload in the middle of a game does not strand a warrior cream and locked.
--- A DISC UNDER THE PIECE, NOT A REPAINT. Laying a warrior down used to turn it cream, which loses the
--- faction's own colour and reads as damage to the piece -- the maintainer, 2026-09-07: "instead of
--- changing the color of the piece have a small circly be drawn under the piece, a little bit
--- transparent, and of the color of the player doing it". So the warrior keeps its own paint and the
--- marker says WHO laid it down, which the tint never could.
-RTT_DISC_URL = "https://cdn.jsdelivr.net/gh/mrdrouf/root-tabletop-tournament@main/assets/labels/disc_89666e66.png"
-RTT_DISC_TAG = "RTT Laid Disc"
-RTT_DISC_A   = 0.42            -- "a little bit more transparent" (was 0.55)
+-- NOT A REPAINT, AND NO LONGER A DISC EITHER. Laying a warrior down first turned it cream, which
+-- loses the faction's own colour and reads as damage to the piece; that was replaced by a translucent
+-- disc drawn under it in the presser's colour. The disc is gone too -- maintainer, 2026-09-07: "make
+-- the highlight numpad 2 and remove current numpad 2 option" -- so there is ONE way to mark a piece
+-- and it is the outline. One key, one meaning, and nothing spawned on the board to clean up.
+--
+-- A disc from a game saved before this still comes UP correctly: standing a piece back up destroys the
+-- disc its record names. That path stays, because a disc is spawned locked and non-interactable and
+-- nobody could remove one by hand.
+RTT_DISC_TAG = "RTT Laid Disc"   -- still recognised, no longer created: see rttStandUp
 -- THE GLOW IS BLACK, NOT THE PRESSER'S COLOUR. Maintainer, 2026-09-07: "increase the highlight on
--- numpad 3? make it much more highlighted? and make it black highlighted."
+-- numpad 2? make it much more highlighted? and make it black highlighted."
 --
 -- Colour is the ONLY lever: TTS fixes the outline's thickness and offers no intensity, so the way to
 -- make the mark carry is to stop it competing with the piece. A player colour outlines a warrior that
 -- is already painted in that colour, on a map printed in the same warm palette -- three greens and a
 -- yellow against green and yellow clearings. Black is the one value none of the seven maps or the
--- twelve factions use, so it separates from all of them at once. The disc (numpad 2) keeps the
--- presser's colour: it says WHO, and it is on the board rather than on the piece.
+-- twelve factions use, so it separates from all of them at once.
 RTT_GLOW_RGB = { r = 0, g = 0, b = 0 }
 -- TTS's own player colours. Read from a table rather than Color.fromString so the answer is the same
 -- in the harness as at the table, and so a colour TTS does not know cannot throw mid-press.
@@ -6895,7 +6895,7 @@ RTT_PLAYER_RGB = {
   Purple = { 0.627, 0.125, 0.941 },  Pink   = { 0.96, 0.439, 0.807 },
   Grey   = { 0.5, 0.5, 0.5 },        Black  = { 0.25, 0.25, 0.25 },
 }
-RTT_LAID = {}      -- [guid] = { rot = {x,y,z}, pos = {x,y,z}, disc = <guid> } as it stood before the key
+RTT_LAID = {}      -- [guid] = { rot = {x,y,z}, pos = {x,y,z}, who = <colour> } as it stood before the key
 
 -- Is this piece down? The RECORD says so, and the record is in onSave, so it survives a reload. The
 -- tint used to be the answer; it cannot be any more, because the piece keeps its own colour now.
@@ -6912,45 +6912,15 @@ function rttMarkColor(color)
   return { r = rgb[1], g = rgb[2], b = rgb[3] }
 end
 
--- the disc: a thin circle on the board under the piece, in the presser's colour
-function rttSpawnLaidDisc(color, x, y, z, d, onSpawned)
-  local rgb = RTT_PLAYER_RGB[color] or { 1, 1, 1 }
-  spawnObjectJSON({
-    json = string.format(
-      '{"Name":"Custom_Tile","Transform":{"posX":0,"posY":0,"posZ":0,"rotX":0,"rotY":0,"rotZ":0,'
-      .. '"scaleX":%f,"scaleY":1.0,"scaleZ":%f},"Nickname":"","Locked":true,"Grid":false,'
-      .. '"Snap":false,"IgnoreFoW":false,"MeasureMovement":false,"DragSelectable":false,'
-      .. '"Autoraise":false,"Sticky":false,"Tooltip":false,"GridProjection":false,'
-      .. '"ColorDiffuse":{"r":%f,"g":%f,"b":%f,"a":%f},'
-      .. '"CustomImage":{"ImageURL":"%s","ImageSecondaryURL":"","ImageScalar":1.0,"WidthScale":1.0,'
-      .. '"CustomTile":{"Type":2,"Thickness":0.02,"Stackable":false,"Stretch":true}}}',
-      d, d, rgb[1], rgb[2], rgb[3], RTT_DISC_A, RTT_DISC_URL),
-    position = { x, y, z },
-    rotation = { 0, 0, 0 },
-    callback_function = function(o)
-      pcall(function()
-        local t = o.getTags()
-        table.insert(t, "RTT Faction")     -- goes out with the game, like the warrior above it
-        table.insert(t, RTT_DISC_TAG)
-        o.setTags(t)
-      end)
-      pcall(function() o.interactable = false end)
-      pcall(function() o.setLock(true) end)
-      if onSpawned ~= nil then pcall(function() onSpawned(o) end) end
-    end
-  })
-end
+-- NUMPAD 2 LAYS A WARRIOR DOWN AND LIGHTS IT: tipped over, locked, pressed again to stand it back up.
+-- It was two keys for a while -- 2 drew a disc under the piece, 3 outlined it -- and the maintainer
+-- kept the outline: "make the highlight numpad 2 and remove current numpad 2 option" (2026-09-07).
+-- Both names kept: a panel or a hotkey binding made before the disc was withdrawn still calls one of
+-- them, and a pcall'd obj.call on a missing function fails SILENTLY.
+function rttGizmoLay(color) rttGizmoMark(color) end
+function rttGizmoGlow(color) rttGizmoMark(color) end
 
--- NUMPAD 2 draws a disc under the piece; NUMPAD 3 lights the piece itself. Same action otherwise --
--- down, locked, press again to undo -- because they are two ways of saying the same thing, and the
--- maintainer asked for the second as an option: "instead of the circle it does a highlight. its an
--- option that should exists. another way to emphasiwe the piece on the map" (2026-09-07).
--- The record remembers WHICH mark was used, so standing a piece up removes the right one however you
--- put it down, and a piece marked one way is never left with the other's leftovers.
-function rttGizmoLay(color) rttGizmoMark(color, "disc") end
-function rttGizmoGlow(color) rttGizmoMark(color, "glow") end
-
-function rttGizmoMark(color, mark)
+function rttGizmoMark(color)
   local hovered = nil
   pcall(function() hovered = Player[color].getHoverObject() end)
   if hovered == nil then return end
@@ -6978,7 +6948,7 @@ function rttGizmoMark(color, mark)
         if o ~= nil then o.destruct() end
       end)
     end
-    if was.mark == "glow" then pcall(function() hovered.highlightOff() end) end
+    pcall(function() hovered.highlightOff() end)
     return
   end
 
@@ -6991,16 +6961,12 @@ function rttGizmoMark(color, mark)
   -- middle of a piece that was upright -- so it ends up lying in the air above the board, which is
   -- what the maintainer saw: "the warrior needs to be laying down and locked on the board now it s
   -- in the air". Record the height its FOOT is at, and put the foot back there once it is flat.
-  local foot, wide = nil, 1.2
-  if b ~= nil and b.center ~= nil and b.size ~= nil then
-    foot = b.center.y - b.size.y / 2
-    wide = math.max(b.size.x, b.size.z) * 1.275   -- 15% smaller than the 1.5 it shipped at
-  end
-  -- THE MARK KEEPS THE COLOUR IT WAS MADE IN. It followed the person for one build, so a colour change
-  -- redrew every disc they had put down -- which in hotseat, where one person holds every colour, moved
-  -- all of them at once. Maintainer, 2026-09-07: pin it "at the moment of the press".
-  RTT_LAID[guid] = { rot = { r.x, r.y, r.z }, pos = { p.x, p.y, p.z }, disc = nil,
-                     who = color, mark = mark or "disc" }
+  local foot = nil
+  if b ~= nil and b.center ~= nil and b.size ~= nil then foot = b.center.y - b.size.y / 2 end
+  -- WHO PUT IT DOWN, pinned at the press. The mark followed the PERSON for one build, so a colour
+  -- change redrew every one they had made -- and in hotseat, where one person holds every colour, that
+  -- moved all of them at once. Maintainer, 2026-09-07: pin it "at the moment of the press".
+  RTT_LAID[guid] = { rot = { r.x, r.y, r.z }, pos = { p.x, p.y, p.z }, who = color }
   pcall(function() hovered.setRotation({ 90, r.y, r.z }) end)   -- tips forward, away from the player
   -- The bounds only report the new shape once TTS has applied the rotation, so the drop and the lock
   -- wait a frame. Locking before that is what pinned it mid-air.
@@ -7011,23 +6977,14 @@ function rttGizmoMark(color, mark)
       rest = np.y
       if foot ~= nil then
         local nb = hovered.getBounds()
-        -- a hair above the foot, so the disc reads as being UNDER the piece rather than fighting it
+        -- a hair above where its foot was, so it rests ON the board rather than sinking into it
         rest = np.y + (foot - (nb.center.y - nb.size.y / 2)) + 0.03
         hovered.setPosition({ np.x, rest, np.z })
       end
     end)
     pcall(function() hovered.setLock(true) end)
-    if mark == "glow" then
-      -- no duration: it stays lit until the piece is stood back up, which is the whole point
-      pcall(function() hovered.highlightOn(RTT_GLOW_RGB) end)
-    elseif foot ~= nil then
-      pcall(function()
-        local np = hovered.getPosition()
-        rttSpawnLaidDisc(color, np.x, foot + 0.01, np.z, wide, function(o)
-          if RTT_LAID[guid] ~= nil then RTT_LAID[guid].disc = o.getGUID() end
-        end)
-      end)
-    end
+    -- no duration: it stays lit until the piece is stood back up, which is the whole point
+    pcall(function() hovered.highlightOn(RTT_GLOW_RGB) end)
   end, 2)
 end
 
@@ -7037,8 +6994,7 @@ function rttGizmoWarrior(color) rttGizmoTake(color) end
 function onScriptingButtonDown(idx, color)
   if     idx == 10 then pcall(function() rttGizmoHome(color) end)   -- numpad 0: send home
   elseif idx == 1  then pcall(function() rttGizmoTake(color) end)   -- numpad 1: take a warrior
-  elseif idx == 2  then pcall(function() rttGizmoLay(color) end)    -- numpad 2: lay it down, disc
-  elseif idx == 3  then pcall(function() rttGizmoGlow(color) end)   -- numpad 3: lay it down, glow
+  elseif idx == 2  then pcall(function() rttGizmoMark(color) end)   -- numpad 2: lay it down and light it
   end
 end
 

@@ -626,16 +626,15 @@ def t_gizmo_default_key_is_numpad_zero(src):
     Ginso's Gizmo used. A PC user configures nothing; the two named hotkeys are registered UNBOUND for
     machines with no numpad, where the top-row 0 is a different key (and needs Shift on a French Mac).
     """
-    KEYS = ((10, "HOME"), (1, "TAKE"), (2, "LAY"), (3, "GLOW"))
-    COUNTERS = "HOME, TAKE, LAY, GLOW"
+    KEYS = ((10, "HOME"), (1, "TAKE"), (2, "MARK"))
+    COUNTERS = "HOME, TAKE, MARK"
 
     def wired():
         rt = fresh(src)
-        rt.execute("%s = 0, 0, 0, 0" % COUNTERS)
+        rt.execute("%s = 0, 0, 0" % COUNTERS)
         rt.execute("rttGizmoHome = function(c) HOME = HOME + 1 end")
         rt.execute("rttGizmoTake = function(c) TAKE = TAKE + 1 end")
-        rt.execute("rttGizmoLay  = function(c) LAY  = LAY  + 1 end")
-        rt.execute("rttGizmoGlow = function(c) GLOW = GLOW + 1 end")
+        rt.execute("rttGizmoMark = function(c) MARK = MARK + 1 end")
         return rt
 
     def counts(rt):
@@ -644,25 +643,29 @@ def t_gizmo_default_key_is_numpad_zero(src):
     # the four bound buttons, and nothing else
     for idx, which in KEYS:
         rt = wired()
-        rt.execute("%s = 0, 0, 0, 0  onScriptingButtonDown(%d, 'Red')" % (COUNTERS, idx))
+        rt.execute("%s = 0, 0, 0  onScriptingButtonDown(%d, 'Red')" % (COUNTERS, idx))
         got = counts(rt)
         assert got[which] == 1 and sum(got.values()) == 1, \
             "scripting button %d fired %s" % (idx, {k: v for k, v in got.items() if v})
-    for idx in (4, 5, 6, 7, 8, 9):
+    # 3 is in this list on purpose: it drew a disc until the maintainer withdrew that option, and a
+    # key that still fires something nobody expects is worse than a key that does nothing.
+    for idx in (3, 4, 5, 6, 7, 8, 9):
         rt = wired()
-        rt.execute("%s = 0, 0, 0, 0  onScriptingButtonDown(%d, 'Red')" % (COUNTERS, idx))
+        rt.execute("%s = 0, 0, 0  onScriptingButtonDown(%d, 'Red')" % (COUNTERS, idx))
         assert sum(counts(rt).values()) == 0, "button %d should do nothing" % idx
 
     # AND THE NAMED HOTKEYS, which are what the maintainer actually uses -- a MacBook has no numpad.
     # These were asserted as SOURCE TEXT, and addHotkey did not even exist in the harness: onLoad
     # calls it inside a pcall, so registration failed silently and nothing reached the handler.
+    # THE SURVIVING LABEL KEEPS ITS NAME. Withdrawing the disc removed one of two marking hotkeys, and
+    # a rename of the other would silently drop whatever key the maintainer had bound to it in Game
+    # Keys -- TTS matches a binding by label, not by handler.
     LABELS = (("Gizmo: send the hovered piece home", "HOME"),
               ("Gizmo: take a warrior from your supply", "TAKE"),
-              ("Gizmo: lay the hovered warrior down", "LAY"),
-              ("Gizmo: lay it down and light it up", "GLOW"))
+              ("Gizmo: lay it down and light it up", "MARK"))
     for label, which in LABELS:
         rt = wired()
-        rt.execute("%s = 0, 0, 0, 0" % COUNTERS)
+        rt.execute("%s = 0, 0, 0" % COUNTERS)
         assert rt.eval("PRESS(%r, 'Red')" % label) is True, "no hotkey registered as %r" % label
         got = counts(rt)
         assert got[which] == 1 and sum(got.values()) == 1, \
@@ -3025,14 +3028,17 @@ def t_send_home_asks_no_permission(src):
         assert gone not in src, "%s is back; numpad 0 asks no permission now" % gone
 
 
-def t_numpad_two_lays_a_warrior_down_and_back_up(src):
-    """Down: flat on the board, locked, with a disc under it in the presser's colour. Up: as it was.
+def t_numpad_two_lays_a_warrior_down_and_lights_it(src):
+    """Down: flat on the board, locked, outlined in black. Up: exactly as it was.
 
     Maintainer, 2026-09-07: "pressing numpad 2 should put a warrior laying down ... and lock it.
-    repressing numpad 2 undoes all of that", then "instead of changing the color of the piece have a
-    small circly be drawn under the piece, a little bit transparent, and of the color of the player
-    doing it". The piece keeps its own paint -- repainting it lost the faction's colour and read as
-    damage -- and the marker says WHO put it down, which a tint never could.
+    repressing numpad 2 undoes all of that." How it is MARKED went three ways in a day -- the piece was
+    tinted cream, then a translucent disc was drawn under it in the presser's colour, then that was
+    withdrawn for the outline: "make the highlight numpad 2 and remove current numpad 2 option".
+
+    So there is one key and one mark. The piece keeps its own paint either way -- repainting it lost
+    the faction's colour and read as damage to the piece -- and nothing is spawned on the board, which
+    is what a disc was: an object, locked and non-interactable, that only this script could remove.
 
     ANY warrior, his call when asked, not only your own.
     """
@@ -3057,47 +3063,68 @@ def t_numpad_two_lays_a_warrior_down_and_back_up(src):
     assert before == ((0.0, 137.0), False, (1.0, 1.0, 1.0)), before
 
     # rotating shortens the box without moving it, so the foot rises and the piece must come down
-    rt.execute('HOVER["Red"] = MINE rttGizmoLay("Red") '
+    rt.execute('HOVER["Red"] = MINE rttGizmoMark("Red") '
                'MINE.__bounds = {size = Vector({1, 1, 3}), center = Vector({1, 2.5, 1})} FLUSH(3)')
     rot, locked, pos = state("MINE")
     assert locked is True, "a laid warrior was not locked"
     assert rot == (90.0, 137.0), "it is not lying flat, or laying it down turned it: %s" % (rot,)
     assert pos[1] == 0.03, "it did not settle onto the board, a hair above its foot: y %s" % pos[1]
 
-    # the piece keeps its own colour; the marker carries the presser's
-    rt.execute("T = MINE.getColorTint()")
-    t = rt.eval("T")
+    # THE PIECE KEEPS ITS OWN PAINT. Every faction's warrior carries its own tint and three of them are
+    # plain white because their colour is in the texture, so "put it back to white" would repaint half
+    # the mod. The outline is what marks it.
+    t = rt.eval("MINE.getColorTint()")
     assert (round(t.r, 2), round(t.g, 2), round(t.b, 2)) == (1.0, 1.0, 1.0), \
-        "the warrior was repainted; the disc is what carries the colour now: %s" % (t,)
-    disc = rt.eval("LASTJSON") or ""
-    red = rt.eval("RTT_PLAYER_RGB['Red']")
-    assert '"r":%s' % round(red[1], 3) in disc.replace(" ", ""), \
-        "the disc is not in the presser's colour: %s" % disc[:200]
-    a = float(re.search(r'"a":([\d.]+)', disc).group(1))
-    assert 0 < a <= 0.45, "the disc is not translucent enough: alpha %s" % a
-    sc = float(re.search(r'"scaleX":([\d.]+)', disc).group(1))
-    assert abs(sc - 1.275) < 0.001, "the disc is not 1.275x the piece's footprint: %s" % sc
-    assert rt.eval("#getObjectsWithTag('RTT Laid Disc')") == 1, "no disc was drawn under the piece"
+        "the warrior was repainted; the outline is what carries the mark now: %s" % (t,)
+    glow = rt.eval("MINE.__glow")
+    assert glow is not None, "numpad 2 did not light the piece"
+    # BLACK. TTS fixes the outline's thickness and gives no intensity, so colour is the only thing that
+    # can make the mark carry -- and a player colour outlines a warrior already painted in it, on a map
+    # printed in the same palette. Maintainer: "make it black highlighted."
+    assert (round(glow.r, 3), round(glow.g, 3), round(glow.b, 3)) == (0.0, 0.0, 0.0), \
+        "the outline is not black: %s %s %s" % (glow.r, glow.g, glow.b)
+    assert round(rt.eval("RTT_PLAYER_RGB['Red']")[1], 3) != 0.0, \
+        "this check proves nothing if Red is already black"
 
-    # PINNED AT THE PRESS. It followed the player for one build; in hotseat, where one person holds
-    # every colour, changing colour then moved every disc they had put down at once. "Pin it at the
-    # moment of the press" (2026-09-07).
-    rt.execute("LASTJSON = nil SEAT('Yellow', Player['Red'].steam_name) "
-               "onPlayerChangeColor('Yellow') FLUSH(5)")
-    assert not rt.eval("LASTJSON"), "changing colour redrew the disc; it is pinned now"
-    assert rt.eval("#getObjectsWithTag('RTT Laid Disc')") == 1, "the disc did not survive a colour change"
+    # NOTHING IS SPAWNED. The disc was an object on the table, and it is gone.
+    assert not rt.eval("LASTJSON"), "numpad 2 spawned something: %s" % (rt.eval("LASTJSON") or "")[:160]
+    assert rt.eval("#getObjectsWithTag('RTT Laid Disc')") == 0, "a disc was drawn under the piece"
+
+    # a colour change leaves it alone. Trivial for a black outline, but WHO laid it is still pinned at
+    # the press, and this is the path that used to follow the person -- in hotseat, where one person
+    # holds every colour, changing colour redrew every mark they had made at once.
+    rt.execute("SEAT('Yellow', Player['Red'].steam_name) onPlayerChangeColor('Yellow') FLUSH(5)")
+    assert rt.eval("MINE.__glow") is not None, "changing colour put the mark out"
+    assert rt.eval("RTT_LAID[MINE.getGUID()].who") == "Red", "who laid it is not pinned at the press"
 
     # and it all comes back
-    rt.execute('HOVER["Red"] = MINE rttGizmoLay("Red") FLUSH(3)')
+    rt.execute('HOVER["Red"] = MINE rttGizmoMark("Red") FLUSH(3)')
     assert state("MINE") == before, "standing it back up did not restore it: %s" % (state("MINE"),)
-    assert rt.eval("#getObjectsWithTag('RTT Laid Disc')") == 0, "the disc outlived the piece being up"
+    assert rt.eval("MINE.__glow") is None, "the outline outlived the piece being stood up"
 
-    # any warrior, not only your own
-    rt.execute('HOVER["Red"] = THEIRS rttGizmoLay("Red") FLUSH(3)')
+    # A DISC FROM AN OLDER GAME STILL COMES UP. It spawned locked and non-interactable, so nothing but
+    # this path can remove one, and a save made before the option was withdrawn still holds records
+    # naming them. Standing the piece up must still destroy the disc its record names.
+    rt.execute("""
+      OLDDISC = MKOBJ("", {1,0.1,1}, {"RTT Laid Disc"})
+      HOVER["Red"] = MINE
+      rttGizmoMark("Red") FLUSH(3)
+      RTT_LAID[MINE.getGUID()].disc = OLDDISC.getGUID()
+      rttGizmoMark("Red") FLUSH(3)
+    """)
+    assert rt.eval("#getObjectsWithTag('RTT Laid Disc')") == 0, \
+        "a disc recorded by an older save was stranded on the table; nobody can pick one up by hand"
+
+    # the old names still answer, because a hotkey bound before the change calls one of them and a
+    # pcall'd call on a missing function fails silently
+    for fn in ("rttGizmoLay", "rttGizmoGlow"):
+        rt.execute('HOVER["Red"] = THEIRS %s("Red") FLUSH(3)' % fn)
+        assert state("THEIRS")[1] is (fn == "rttGizmoLay"), "%s no longer marks a piece" % fn
+
+    # any warrior, not only your own -- and nothing that is not a warrior
+    rt.execute('HOVER["Red"] = THEIRS rttGizmoMark("Red") FLUSH(3)')
     assert state("THEIRS")[1] is True, "numpad 2 refused an opponent's warrior"
-
-    # and nothing that is not a warrior
-    rt.execute('HOVER["Red"] = ROOST rttGizmoLay("Red") FLUSH(3)')
+    rt.execute('HOVER["Red"] = ROOST rttGizmoMark("Red") FLUSH(3)')
     assert state("ROOST")[1] is False, "numpad 2 laid a building down"
 
 
@@ -3387,47 +3414,6 @@ def t_the_gizmo_follows_the_faction_you_last_picked(src):
     rt.execute("rttResetRunState()")
     assert rt.eval("#RTT_SEATS") == 0, "a new game kept last game's seats"
     assert rt.eval("rttMyFaction('Red')") is None, "a new game kept last game's pick"
-
-
-def t_numpad_three_lights_the_piece_instead(src):
-    """Numpad 3 is numpad 2 with a glow instead of a disc.
-
-    Maintainer, 2026-09-07: "a gizmo numpad 3 that does the same but instead of the circle it does a
-    highlight. its an option that should exists. another way to emphasiwe the piece on the map." Same
-    action either way -- down, locked, press again to undo -- so the two share one path and the record
-    remembers WHICH mark was used. A piece marked one way must never be left with the other's leftovers.
-    """
-    rt = fresh(src)
-    rt.execute("""
-      W = MKOBJ("Eyrie Warrior", {1,1,1}, {})
-      W.__bounds = {size = Vector({1, 3, 1}), center = Vector({1, 2.5, 1})}
-    """)
-
-    rt.execute('HOVER["Red"] = W rttGizmoGlow("Red") FLUSH(3)')
-    glow = rt.eval("W.__glow")
-    assert glow is not None, "numpad 3 did not light the piece"
-    # BLACK, NOT THE PRESSER'S COLOUR. Maintainer, 2026-09-07: "make it black highlighted." TTS fixes
-    # the outline's thickness and gives no intensity, so the colour is the only thing that can make the
-    # mark carry -- and a player colour outlines a warrior already painted in it, on a map printed in
-    # the same palette. Black is the one value neither the maps nor the factions use.
-    assert (round(glow.r, 3), round(glow.g, 3), round(glow.b, 3)) == (0.0, 0.0, 0.0), \
-        "the glow is not black: %s %s %s" % (glow.r, glow.g, glow.b)
-    red = rt.eval("RTT_PLAYER_RGB['Red']")
-    assert round(red[1], 3) != 0.0, "this check proves nothing if Red is already black"
-    assert rt.eval("W.getLock()") is True, "numpad 3 did not lock the piece"
-    assert rt.eval("#getObjectsWithTag('RTT Laid Disc')") == 0, \
-        "numpad 3 drew a disc as well; it is the alternative to one, not an addition"
-
-    # a colour change leaves it alone -- trivially now that it is black, but the disc is still pinned
-    # at the press and the two share this path, so a repaint here would mean the path had grown one
-    rt.execute("SEAT('Yellow', Player['Red'].steam_name) onPlayerChangeColor('Yellow') FLUSH(5)")
-    assert round(rt.eval("W.__glow").r, 3) == 0.0, \
-        "changing colour repainted the glow; it is pinned at the press"
-
-    # and pressing again puts everything back
-    rt.execute('HOVER["Red"] = W rttGizmoGlow("Red") FLUSH(3)')
-    assert rt.eval("W.__glow") is None, "the glow outlived the piece being stood up"
-    assert rt.eval("W.getLock()") is False, "the piece stayed locked"
 
 
 def t_start_names_the_pass_it_causes(src):
@@ -4196,8 +4182,7 @@ CASES = [
     ("dragon god goes out with lizards",  t_the_dragon_god_goes_out_with_its_faction),
     ("placement ignores board size",       t_placement_never_asks_the_board_how_big_it_is),
     ("send home asks no permission",      t_send_home_asks_no_permission),
-    ("numpad 2 lays a warrior down",      t_numpad_two_lays_a_warrior_down_and_back_up),
-    ("numpad 3 lights the piece",         t_numpad_three_lights_the_piece_instead),
+    ("numpad 2 lays and lights a warrior", t_numpad_two_lays_a_warrior_down_and_lights_it),
     ("board shows the build number",      t_the_board_shows_the_build_number),
     ("panel pauses the clock",            t_the_panel_pauses_the_clock),
     ("start names the pass it causes",    t_start_names_the_pass_it_causes),

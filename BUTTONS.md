@@ -123,22 +123,27 @@ with no home — a hireling, a card — does nothing, and says nothing.
 happens to be over. Yours is the faction you last PICKED, not the seat you started in, so switching
 faction moves the supply with you. An empty supply does nothing.
 
-**NUMPAD 3 — the same, with a glow instead.** Lays the warrior down and locks it exactly as numpad 2
-does, but lights the piece itself in your colour rather than drawing anything under it. The other way
-to pick a piece out on a crowded map; pick whichever reads better on the board you are on.
+**NUMPAD 2 — lay a warrior down and light it.** Hovering ANY warrior, yours or an opponent's, tips it
+flat onto the board, locks it, and outlines it in **black**. Pressing it again on the same warrior
+stands it up exactly where it stood, unlocks it and puts the outline out. It survives a reload. Only
+warriors: buildings and tokens are ignored.
 
-**NUMPAD 2 — lay a warrior down.** Hovering ANY warrior, yours or an opponent's, tips it flat onto the
-board, locks it, and draws a small translucent disc underneath in YOUR player colour, which follows you if you change seat — so the piece
-keeps its own paint and the marker says who put it down. Pressing it again on the same warrior stands
-it up exactly where it stood, unlocks it and removes the disc. It survives a reload. Only warriors:
-buildings and tokens are ignored.
+The piece keeps its own paint. It was tinted cream for a day, which loses the faction's colour and
+reads as damage; then a translucent disc was drawn under it in the presser's colour; then that was
+withdrawn too ("make the highlight numpad 2 and remove current numpad 2 option", 2026-09-07), so
+there is one key, one mark, and nothing spawned on the board to clean up. The outline is black
+because TTS fixes its thickness and offers no intensity — colour is the only lever, and a player
+colour outlines a warrior already painted in that colour, on a map printed in the same warm palette.
+Black is the one value neither the seven maps nor the twelve factions use.
+
+**Numpad 3 does nothing.** It drew the disc until that option was withdrawn.
 
 Those are TTS *scripting buttons*, which are numpad-bound, so **on a laptop with no numpad** (a
 MacBook, where the top-row 0 is a different key and needs Shift on a French layout) bind the named
 hotkeys in *Options → Game Keys*: **"Gizmo: send the hovered piece home"**, **"Gizmo: take a warrior
-from your supply"**, **"Gizmo: lay the hovered warrior down"** and **"Gizmo: lay it down and light it
-up"**. They are registered unbound, so on
-a machine with a numpad there is nothing to configure.
+from your supply"** and **"Gizmo: lay it down and light it up"**. They are registered unbound, so on a
+machine with a numpad there is nothing to configure. (That last label is unchanged from when it was
+numpad 3's: TTS matches a binding by label, so renaming it would drop whatever key you had bound.)
 
 ---
 
