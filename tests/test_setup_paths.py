@@ -391,15 +391,57 @@ def t_enclave_targets_the_suit_marker(src):
             "the peaceful enclave moved %.3f along the marker's axis; it should move across it"
             % along)
 
+        # ...AND IT SITS AT AN ANGLE THERE. "the enclave needs to be tilted maybe by 10 degrees to fit
+        # with the angle of the suit marker" -- on top of the marker's own facing, and only here.
+        rq = er.eval("self.getRotation()")
+        tilt = ((rq.y - (137 + off)) + 180) % 360 - 180
+        assert abs(tilt - 10) < 0.5, \
+            "the peaceful enclave is tilted %.1f from the marker's facing, not 10" % tilt
+
+        # FLIPPING IT MOVES IT. This is the half that was missing: a flip in place never calls onDrop,
+        # so a token turned peaceful stayed sitting on the symbol it was meant to uncover. Maintainer,
+        # 2026-09-07: "most importantly flipping the enclave when it is on one of the two snaps needs
+        # to change its position." onRotate fires as the animation starts, while is_face_down still
+        # reads the old face, so the token re-places itself once the flip has landed.
+        er.execute("self.is_face_down = true")
+        er.execute("pcall(function() onRotate(0, 0, 'Red', 0, 180) end) FLUSH_UNTIL(1.0, 4)")
+        back = er.eval("self.getPosition()")
+        assert abs(back.x - want.x) < 0.05 and abs(back.z - want.z) < 0.05, (
+            "flipping to militant left the token at %.3f,%.3f instead of the lobe centre"
+            % (back.x, back.z))
+        er.execute("self.is_face_down = false")
+        er.execute("pcall(function() onRotate(0, 180, 'Red', 0, 0) end) FLUSH_UNTIL(1.0, 4)")
+        side = er.eval("self.getPosition()")
+        assert ((side.x - want.x) ** 2 + (side.z - want.z) ** 2) ** 0.5 > 0.5, \
+            "flipping to peaceful left the token on the symbol"
+
+        # A SPIN IS NOT A FLIP. onRotate fires for both, and re-placing on a spin would undo a player
+        # turning the token by hand.
+        er.execute("self.__pos = Vector({ side.x + 0.4, 12, side.z })" .replace("side.x", str(side.x)).replace("side.z", str(side.z)))
+        er.execute("pcall(function() onRotate(90, 180, 'Red', 0, 180) end) FLUSH_UNTIL(1.0, 4)")
+        spun = er.eval("self.getPosition()")
+        assert abs(spun.x - (side.x + 0.4)) < 1e-6, \
+            "a spin re-placed the token; only a change of FLIP should"
+
         # AND THE CATCH AREA IS NOT THE WHOLE CLEARING. 4.0 pulled a token onto a marker from most of
         # a clearing away -- "the snaps are too large like it attaches the enclave from such a large
-        # area a bit too much". Dropped well clear, the enclave must stay where it was let go.
-        er.execute("self.__pos = Vector({ 13.5, 12, -4.5 }) self.is_face_down = true")
+        # area a bit too much"; 3.0 is the maintainer's own number. Dropped well clear of that, the
+        # enclave must stay where it was let go. HOME_GUID is cleared first: a token remembers the
+        # marker it was on, and this is a fresh token dropped in open ground.
+        er.execute("HOME_GUID = nil self.__pos = Vector({ 14.3, 12, -4.5 }) self.is_face_down = true")
         er.execute("pcall(function() onDrop('Red') end) FLUSH(20)")
         far = er.eval("self.getPosition()")
-        assert abs(far.x - 13.5) < 1e-6, (
+        assert abs(far.x - 14.3) < 1e-6, (
             "an enclave dropped %.2f from the lobe was still pulled onto it"
-            % ((13.5 - want.x) ** 2 + (-4.5 - want.z) ** 2) ** 0.5)
+            % ((14.3 - want.x) ** 2 + (-4.5 - want.z) ** 2) ** 0.5)
+
+        # ...but inside it, it is taken. Without this the check above would pass on a reach of zero.
+        er.execute("HOME_GUID = nil self.__pos = Vector({ 12.8, 12, -4.5 })")
+        er.execute("pcall(function() onDrop('Red') end) FLUSH(20)")
+        near = er.eval("self.getPosition()")
+        assert abs(near.x - want.x) < 0.05, (
+            "an enclave dropped %.2f from the lobe was not taken by it"
+            % ((12.8 - want.x) ** 2 + (-4.5 - want.z) ** 2) ** 0.5)
 
     assert got == 12, "expected 12 scripted enclaves, found %d" % got
 
