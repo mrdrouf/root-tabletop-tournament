@@ -470,7 +470,18 @@ def t_enclave_targets_the_suit_marker(src):
         midz = er.eval("self.getRotation()").z % 360
         assert 90 < midz < 270, \
             "the flip did not happen: Z is %.0f, so the token turned but never flipped" % midz
+        # AND IT CROSSES ABOVE THE BOARD, not through it. The glide used to run at resting height,
+        # which is ON the marker, so on its way between the spots it ploughed through the marker's own
+        # relief -- "during the flip it goes a bit under the marker and conflicts with the map".
+        rest_y = 12.0
+        assert er.eval("self.getPosition()").y > rest_y + 0.2, \
+            "the token crossed at %.3f, level with the board it is sitting on" \
+            % er.eval("self.getPosition()").y
         er.execute("self.is_face_down = true self.resting = true FLUSH_UNTIL(8.0, 4)")
+        # ...and comes back down to exactly the height it left from, not to a guessed table level
+        assert abs(er.eval("self.getPosition()").y - rest_y) < 1e-6, \
+            "the token landed at %.3f, not the %.3f it lifted from" \
+            % (er.eval("self.getPosition()").y, rest_y)
         back = er.eval("self.getPosition()")
         assert abs(back.x - want.x) < 0.05 and abs(back.z - want.z) < 0.05, (
             "flipping to militant left the token at %.3f,%.3f instead of the lobe centre"
