@@ -456,6 +456,12 @@ def t_enclave_targets_the_suit_marker(src):
         turning = er.eval("self.getPosition()")
         assert ((turning.x - want.x) ** 2 + (turning.z - want.z) ** 2) ** 0.5 < 0.05, \
             "the token had not started moving when the flip began; it should glide across with it"
+        # AND THE TURN GOES WITH IT. Maintainer, 2026-09-07: "the rotation though happens only after it
+        # lands not during the flip." The angle has to be corrected here, in the same instant as the
+        # move -- a settle pass that fixes it afterwards is a visible second step.
+        mid = ((er.eval("self.getRotation()").y - (137 + off)) + 180) % 360 - 180
+        assert abs(mid) < 0.5, \
+            "the token was still tilted %.1f when the flip began; the turn should ride along" % mid
         er.execute("self.is_face_down = true self.resting = true FLUSH_UNTIL(8.0, 4)")
         back = er.eval("self.getPosition()")
         assert abs(back.x - want.x) < 0.05 and abs(back.z - want.z) < 0.05, (
@@ -465,6 +471,9 @@ def t_enclave_targets_the_suit_marker(src):
         er.execute("pcall(function() onRotate(0, 180, 'Red', 0, 0) end)")
         assert abs(er.eval("self.getPosition()").x - back.x) > 0.5, \
             "the token stayed on the centre when the flip to peaceful began"
+        mid = ((er.eval("self.getRotation()").y - (137 + off)) + 180) % 360 - 180
+        assert abs(mid + 20) < 0.5, \
+            "the token was at %.1f when the flip to peaceful began; it should already be turning" % mid
         er.execute("self.is_face_down = false self.resting = true FLUSH_UNTIL(8.0, 4)")
         side = er.eval("self.getPosition()")
         assert ((side.x - want.x) ** 2 + (side.z - want.z) ** 2) ** 0.5 > 0.5, \
@@ -483,12 +492,14 @@ def t_enclave_targets_the_suit_marker(src):
         # area a bit too much"; 3.0 is the maintainer's own number. Dropped well clear of that, the
         # enclave must stay where it was let go. HOME_GUID is cleared first: a token remembers the
         # marker it was on, and this is a fresh token dropped in open ground.
-        er.execute("HOME_GUID = nil self.__pos = Vector({ 14.3, 12, -4.5 }) self.is_face_down = true")
+        # 12.95 is 2.71 from the lobe: inside the 3.0 this used to be, outside the 2.55 it is now, so
+        # this pins the SIZE of the catch area rather than merely that it has one.
+        er.execute("HOME_GUID = nil self.__pos = Vector({ 12.95, 12, -4.267 }) self.is_face_down = true")
         er.execute("pcall(function() onDrop('Red') end) FLUSH(20)")
         far = er.eval("self.getPosition()")
-        assert abs(far.x - 14.3) < 1e-6, (
+        assert abs(far.x - 12.95) < 1e-6, (
             "an enclave dropped %.2f from the lobe was still pulled onto it"
-            % ((14.3 - want.x) ** 2 + (-4.5 - want.z) ** 2) ** 0.5)
+            % ((12.95 - want.x) ** 2 + (-4.267 - want.z) ** 2) ** 0.5)
 
         # ...but inside it, it is taken. Without this the check above would pass on a reach of zero.
         er.execute("HOME_GUID = nil self.__pos = Vector({ 12.4, 12, -4.5 })")
