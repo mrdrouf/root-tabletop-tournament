@@ -124,6 +124,17 @@ Nothing below is implemented. The maintainer asked to be consulted before each c
 
 ### Bugs
 
+- [ ] **TURN_DESIGN.md — the turn/boxscore design, written and NOT implemented.** The maintainer asked
+      for the design to be thought through rather than patched again: "not fragile and dependent on
+      many things that can break when there is lag", and "the most buggy thing is how TTS turn order
+      interacts with the boxscore". Four changes, each removing a class of failure: bind identity on an
+      EVENT and never re-derive it on a timer; key a lock by (row, round) so a duplicate is a no-op by
+      construction instead of by detection; advance the round on a WRAP through the turn order rather
+      than on a repeat; and let START's phantom turn self-correct instead of being suppressed. It
+      removes five mechanisms, four of them defensive, and cuts the conditions for recording one turn
+      from ten to four. Also: no *Auto sticky flags -- the code writes only on events, a human writes
+      any time, last writer wins. AWAITING HIS DECISION before any of it is built.
+
 - [x] **Faction board spawns with no buttons on a first load** (FIXED 2026-09-07, needs a COLD test).
       Reported with screenshots: "faction board showed no buttons ... it was resolved by reloading the
       mod ... still there for people loading the mod the first time". This is the 2026-08-29 cold-load
@@ -297,8 +308,11 @@ Nothing below is implemented. The maintainer asked to be consulted before each c
       Warrior (9), Arachnid Association (6), Necropossums, Croakers Coven, Spinners of Mercy,
       Woodland Revolution, Old Man Tinker, Order of the Forest, Snow Kingdom, Marquistador, Dove
       Corps, BCPii, Noxious Battery, Klacar's Volcano Island. Mostly remnants of roster lists.
-      CAREFUL: Bat Bungler, Mob Lobber, Koffin Keeper and Salty Old Stan are IN USE -- the
-      maintainer said so explicitly -- so this is a per-name audit, not a sweep.
+      CAREFUL: Bat Bungler, Mob Lobber and Koffin Keeper are protected -- the maintainer named them
+      himself, in the list of buttons he wanted kept. Salty Old Stan is also in use, but that is a
+      fact about the CODE (summonSaltyOldStan replaces the Lizard Blocker), not something he said;
+      it was written into this list attributed to him and it should not have been. So: a per-name
+      audit, not a sweep, and check the code rather than this note before deleting anything.
 - [ ] **Conversational prompts left in code comments.** 16 comments quote the maintainer directly
       ("maintainer: ...", "he asked for ..."). They carry real rationale and should not just be
       deleted, but they should read as technical notes rather than as a transcript.
