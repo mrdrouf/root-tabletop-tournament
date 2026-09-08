@@ -404,6 +404,8 @@ def t_the_lizard_board_follows_the_wizard(src):
     # (They came out on the board's own snap points 5, 6 and 7, which is what I had guessed -- but a
     # guess that happens to be right is still worth replacing with the measurement.)
     SLOT = slots_from_the_lizard_save()
+    assert decal() != "none", \
+        "nothing is painted on the board for a fox outcast; the symbol should be a decal on its slot"
     x, z, face = decal().split("|")
     assert abs(float(x) - SLOT["fox"]) < 0.01 and abs(float(z) + 0.0575) < 0.01, \
         "the fox outcast painted the symbol at %s,%s instead of the fox slot" % (x, z)
