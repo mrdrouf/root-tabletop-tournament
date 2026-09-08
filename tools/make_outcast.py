@@ -40,7 +40,20 @@ CDN = "https://cdn.jsdelivr.net/gh/mrdrouf/root-tabletop-tournament@main/assets/
 
 BG = np.array([222, 213, 49], float)      # the token tile's flat yellow
 MIN_BLOB = 200                            # px; the drawing's parts are 6k+, the dust is 1-11
-VERSION = 3                               # bump when the art changes, so the CDN filename changes
+VERSION = 4                               # bump when the art changes, so the CDN filename changes
+
+# THE PRINTED FRAME IS DRAWN FATTER THAN THE TOKEN. Maintainer, 2026-09-08, looking at the symbol in
+# its slot on a real table: "the white is a bit larger maybe make the symbol a tiny bit fater so it
+# fits over it." The two are the same drawing at the same size -- that is settled -- but the board's
+# white thorns carry a heavier stroke than the token's grey ones, so white kept peeking out around
+# the symbol laid over them.
+#
+# The fix is to fatten the INK, not to scale the whole symbol up: growing the drawing would push its
+# corners out onto the parchment and up toward the suit icons, where there are only 9px to spare.
+# Dilating the alpha thickens every stroke while the ring's centreline stays exactly where it was --
+# the crop simply gains DILATE px of margin, which the board divides back out through UI_SIZE.
+DILATE = 3                                # source px of extra stroke on every side
+RING_LOCAL = 0.1388                       # the printed frame's own width, in board-local units
 
 FACES = [
     # name,               source file,            ink colour
@@ -99,6 +112,12 @@ def build(name, src_file, ink):
         grown = g
     alpha = np.where(grown, alpha, 0.0)
 
+    if DILATE > 0:
+        from PIL import ImageFilter
+        grey = Image.fromarray(np.round(alpha * 255).astype(np.uint8), "L")
+        grey = grey.filter(ImageFilter.MaxFilter(2 * DILATE + 1))
+        alpha = np.asarray(grey).astype(float) / 255.0
+
     ys, xs = np.where(alpha > 0.35)
     x0, x1, y0, y1 = xs.min(), xs.max(), ys.min(), ys.max()
     cx, cy = (x0 + x1) / 2.0, (y0 + y1) / 2.0
@@ -125,8 +144,12 @@ def build(name, src_file, ink):
     final = "%s_v%d_%s.png" % (name, VERSION, digest)
     os.replace(blob, os.path.join(OUT, final))
 
-    print("%-14s %s -> %dx%d  (dropped %d px of dust)" % (name, src_file, side, side, dropped))
+    ring = side - 2 * DILATE              # the drawing's own width, before it was fattened
+    ui = RING_LOCAL * side / ring * 100.0  # ...so the ORIGINAL stroke still lands on the frame
+    print("%-14s %s -> %dx%d  (ring %d + %d dilate; dropped %d px of dust)"
+          % (name, src_file, side, side, ring, DILATE, dropped))
     print("               %s" % (CDN % final))
+    print("               UI_SIZE %.2f" % ui)
     return final, side
 
 
@@ -138,8 +161,8 @@ def main():
             sys.exit("missing source art: assets/src_art/%s" % src_file)
         build(name, src_file, ink)
     print()
-    print("The crop IS the drawing, so the board's UI_SIZE is the ring size it wants, in local")
-    print("units x PX_PER_UNIT -- no margin to divide out.")
+    print("UI_SIZE above is RING_LOCAL grown by the dilation margin, so the ring's own centreline")
+    print("still lands on the printed frame while its strokes overhang it by DILATE.")
 
 
 if __name__ == "__main__":
