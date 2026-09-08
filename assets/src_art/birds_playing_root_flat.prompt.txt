@@ -1,0 +1,38 @@
+Use your image generation tool to create ONE square illustration and save it into the current working
+directory as `birds_playing_root_v2.png`. Generate it with the image model; do not draw or composite
+anything yourself. Print the absolute path when done.
+
+THE SINGLE MOST IMPORTANT REQUIREMENT — THIS ARTWORK WILL BE SHOWN AS A SMALL ICON, ABOUT 128 PIXELS
+WIDE. It must stay readable when shrunk that far. So: BOLD, FLAT, SIMPLE, GRAPHIC. Few large shapes,
+strong silhouettes, high contrast, a limited palette. Think a screen-printed poster or a woodcut, not
+an illustration.
+
+Explicitly avoid: cross-hatching, stippling, fine pen texture, wood grain, dense foliage, engraving
+lines, tiny background objects, rendered shading, gradients, soft focus, photorealism, 3D. The
+previous attempt failed because it was packed with fine detail that turned into grey mush when
+scaled down. Strip the detail out. Leave big clean areas of flat colour.
+
+SUBJECT — four bird leaders from the board game Root, sitting around a round table PLAYING THE BOARD
+GAME ROOT (the attached sheet shows the four characters):
+  * a hunched VULTURE, bare orange head, brown robe, wings folded
+  * a brown HORNED OWL with big yellow eyes and ear tufts, wings folded
+  * a BALD EAGLE, white head, yellow beak, blue-grey robe
+  * a WOODPECKER, black-and-white head, bright orange crest
+All four are birds. All four wear flat, deadpan, completely serious expressions.
+
+THE BOARD MUST READ CLEARLY. It is the centrepiece on the table, drawn large and SIMPLIFIED: a few
+big pale clearing circles joined by thick clear paths, a winding blue river, and forests suggested by
+a handful of large flat green shapes — NOT hundreds of little trees. A viewer should instantly see
+"a board game map" as a graphic shape. Put a few chunky wooden pieces on the clearings in orange and
+blue.
+
+MOOD — a smoky back-room game night, in the spirit of the "Dogs Playing Poker" paintings: one warm
+lamp low over the table, everything beyond it falling to near-black, a couple of simple amber
+tumblers, one lit cigar with a single clean curl of smoke. Keep the background almost empty and very
+dark — a flat dark shape, no furniture, no pictures on the wall, no clutter.
+
+STYLE — Kyle Ferrin's Root character design: charming storybook birds, big simple eyes, chunky
+shapes, warm autumnal palette of orange, cream, teal and deep brown. Bold black outlines of even
+weight. Flat colour fills with no shading inside them.
+
+Square aspect ratio.

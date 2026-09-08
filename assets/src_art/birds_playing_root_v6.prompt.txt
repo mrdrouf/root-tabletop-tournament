@@ -1,0 +1,60 @@
+Use your image generation tool to create ONE square illustration and save it into the current working
+directory as `birds_playing_root_v6.png`. Generate it with the image model; do not draw or composite
+anything yourself. Print the absolute path when done.
+
+The THIRD attached image is the picture we are refining. Keep its style, its palette, its lighting and
+its four characters almost exactly as they are. Three things change, listed at the end.
+
+STYLE — a rich, HAND-PAINTED STORYBOOK ILLUSTRATION in the manner of Kyle Ferrin's artwork for the
+board game Root: springy hand-inked contour lines of varying weight, textured gouache and ink-wash
+colour with visible brush and pen marks, a warm autumnal palette of burnt orange, cream, teal, ochre
+and deep brown, characters full of dry comic personality. Hand-made and warm, like a page from an
+illustrated folk tale. NOT flat vector art, NOT a simple cartoon with uniform outlines.
+
+KEEP THE DETAIL UNDER CONTROL — this will be shrunk to a 128-pixel icon. Texture INSIDE a few big
+shapes, rather than many small competing objects. No dense cross-hatching over everything, no wall
+crowded with clutter, no forest made of hundreds of separate tiny trees. Big confident shapes and
+strong silhouettes.
+
+LAYOUT — follow exactly:
+  * TOP: a hanging lamp, COMPLETE and fully inside the frame, throwing a warm pool of light. Near
+    black around it.
+  * MIDDLE: the four birds and the board. THE BIRDS ARE LARGE AND CLEARLY VISIBLE — big expressive
+    heads, well lit, each distinct and unobstructed. They are the main subject.
+  * BOTTOM THIRD: essentially EMPTY, and this is the hardest constraint in the brief. A plain dark
+    foreground band running the full width -- just the near edge of the table and shadow. NOTHING may
+    enter it. In particular THE GAME BOARD MUST STOP WELL ABOVE IT: the board's near edge, including
+    its numbered score track, has to sit clear of the bottom third with dark table visible below it.
+    Draw the board a little smaller and further back to make that true. A title will be printed over
+    this band, and anything you put there will be hidden.
+
+SUBJECT — the four Eyrie leaders from Root, round a table PLAYING THE BOARD GAME ROOT (first attached
+image shows the characters):
+  * a hunched VULTURE, bare orange head, heavy brown robe, deeply unimpressed
+  * a brown HORNED OWL, big yellow eyes, ear tufts, wings folded, glaring
+  * a BALD EAGLE, white head, yellow beak, blue-grey robe, chin up and above it all
+  * a WOODPECKER, black-and-white head, bright orange crest, beady and suspicious
+All four deadpan and completely serious, as if the game has run six hours and nobody is enjoying it.
+
+THE THREE CHANGES:
+
+1. THE BOARD MUST LOOK LIKE THE REAL ROOT MAP. The SECOND attached image is the actual game board —
+   follow it closely. It is a hand-painted woodland map seen from above: roughly TWELVE pale ROUND
+   CLEARINGS scattered across it, joined by narrow winding dirt PATHS drawn as dotted or dashed
+   tracks; the space between them is dense autumn FOREST painted as textured masses of deep green
+   pine with patches of orange and yellow autumn canopy; a pale blue RIVER winds through it; and a
+   NUMBERED SCORE TRACK runs along the bottom edge as a row of small numbered boxes. Each clearing
+   holds a few tiny game pieces: small square wooden BUILDINGS and little wooden WARRIOR meeples in
+   orange and blue. It should be unmistakably THIS board — an irregular, organic, painted woodland
+   map, not a neat geometric diagram of circles and straight lines. Draw it large enough to read --
+   but sitting in the middle of the picture, clear of the empty bottom third.
+
+2. PUT ONE POSTER ON THE WALL, high on the dark wall behind the birds: a small worn hand-lettered
+   sign on aged paper reading exactly, on three lines, "NO ALLIANCES" / "NO" / "MERCY". Slightly
+   crooked, warmly lit at its edge. Exactly ONE sign — the rest of the wall stays empty and dark.
+
+3. THE VULTURE IS SMOKING THE CIGAR. He grips a fat lit cigar in his beak, its tip glowing orange,
+   with a single clean curl of smoke rising from it into the lamplight. Take the cigar out of the
+   ashtray; the ashtray may stay, empty. Keep the amber tumblers on the table near the far side.
+
+Square aspect ratio.

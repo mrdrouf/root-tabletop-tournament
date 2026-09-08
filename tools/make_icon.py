@@ -23,6 +23,12 @@ which a rectangular erase took the bottom serifs off. Maintainer: "preserve the 
 chopping it with your text below." The new line is set in Luminari, the font the mod itself uses, at
 the cap height and on the baseline the old one had.
 
+THIS IS NO LONGER THE MOD'S ICON. 2026-09-08: the icon became the four Eyrie leaders round a table,
+and tools/make_logo.py builds it. What survives here, and what make_logo.py imports, is build_plaque()
+-- the re-lettered Root sign both designs stand on, kept in one place so they cannot drift apart.
+Running this script now writes assets/icon/old_board_icon.png, not mod_icon_*.png; it would otherwise
+quietly undo the mod's art every time anyone ran it.
+
 Run from the repo root:  python3 tools/make_icon.py
 """
 import os, sys
@@ -132,17 +138,53 @@ def draw_tracked(d, cx, baseline, text, font, fill, target):
         x += d.textlength(ch, font=font) + extra
 
 
-def build_plaque(width):
-    """The plaque with its subtitle replaced and its wood surround swapped for a clean edge."""
+def taller(inner, extra, at=630, grain=34):
+    """Splice `extra` rows of parchment into the plaque, so the subtitle can be set bigger.
+
+    Tracking the line out to the width and giving it every row between the logo and the rule still
+    caps it at the height of that band, and the band is only 169 rows. Past that the plaque itself
+    has to grow. Maintainer, 2026-09-08: "make tabletop tournament size font much bigger but making
+    the box I guess longer vertically."
+
+    WHERE THE CUT GOES IS THE WHOLE TRICK. Row 630 is the one place a full-width slice of this plaque
+    is nothing but border rule, parchment, border rule: the illuminated letters stop at 574, the
+    bottom rule starts at 751, and the corner flourishes -- measurably -- begin at 658, so anything
+    spliced below that would stretch a flourish into a smear. The inserted rows are the 34 above the
+    cut, mirrored and stacked, which keeps the grain at its own scale instead of blurring it the way
+    resizing a block would.
+    """
+    block = inner.crop((0, at - grain, inner.width, at))
+    flip = block.transpose(Image.FLIP_TOP_BOTTOM)
+    filler = Image.new("RGB", (inner.width, extra))
+    y = 0
+    while y < extra:
+        filler.paste(flip if (y // grain) % 2 == 0 else block, (0, y))
+        y += grain
+    out = Image.new("RGB", (inner.width, inner.height + extra))
+    out.paste(inner.crop((0, 0, inner.width, at)), (0, 0))
+    out.paste(filler, (0, at))
+    out.paste(inner.crop((0, at, inner.width, inner.height)), (0, at + extra))
+    return out
+
+
+def build_plaque(width, extra_band=0, type_width=TYPE_WIDTH):
+    """The plaque with its subtitle replaced and its wood surround swapped for a clean edge.
+
+    `extra_band` grows the parchment under the logo by that many of the plaque's own rows and gives
+    every one of them to the type; the default of 0 leaves the plaque exactly as the mod icon has it.
+    """
     src = Image.open(PLAQUE_SRC).convert("RGB")
     inner = src.crop(PLAQUE)
     inner = rebuild_band(inner)
+    if extra_band:
+        inner = taller(inner, extra_band)
 
     # SET THE TYPE AT FULL SIZE, THEN SHRINK EVERYTHING TOGETHER. Drawing after the downscale would
     # give the one new element a different kind of edge from the art around it.
     d = ImageDraw.Draw(inner)
-    room = TYPE_BAND[1] - TYPE_BAND[0]
-    target = (FIELD[1] - FIELD[0]) * TYPE_WIDTH
+    band = (TYPE_BAND[0], TYPE_BAND[1] + extra_band)
+    room = band[1] - band[0]
+    target = (FIELD[1] - FIELD[0]) * type_width
     size = room * 2
     while size > 8:
         f = ImageFont.truetype(FONT, size)
@@ -153,7 +195,7 @@ def build_plaque(width):
     # centred on its own ink, not on the font's line box -- the descender of the p is the only one in
     # the string, so a line-box centring would push the whole thing visibly high
     b = d.textbbox((0, 0), SUBTITLE, font=f, anchor="ls")
-    baseline = (TYPE_BAND[0] + TYPE_BAND[1]) / 2 - (b[1] + b[3]) / 2
+    baseline = (band[0] + band[1]) / 2 - (b[1] + b[3]) / 2
     draw_tracked(d, (FIELD[0] + FIELD[1]) / 2, baseline, SUBTITLE, f, INK, target)
 
     border = max(1, round(FRAME_PX * width / (inner.width + FRAME_PX * 2)))
@@ -221,11 +263,11 @@ def main():
     canvas.paste(b_img, ((SIZE - b_img.width) // 2, plaque_top - GAP - board.height - b_pad), b_img)
     canvas.paste(p_img, ((SIZE - p_img.width) // 2, plaque_top - p_pad), p_img)
 
-    big = os.path.join(OUTDIR, "mod_icon_512.png")
-    small = os.path.join(OUTDIR, "mod_icon_256.png")
-    canvas.save(big)
-    canvas.resize((256, 256), Image.LANCZOS).save(small)
-    print("wrote %s and %s" % (big, small))
+    # NOT mod_icon_*.png ANY MORE -- see the note at the top of this file. Writing them here would
+    # silently undo the mod's art the next time anyone ran this script.
+    out = os.path.join(OUTDIR, "old_board_icon.png")
+    canvas.save(out)
+    print("wrote %s (the superseded design; the live icon comes from tools/make_logo.py)" % out)
 
 
 if __name__ == "__main__":

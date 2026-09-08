@@ -11,25 +11,6 @@ any sync script still aimed at it keeps working, but it is no longer where work 
 push on main; the public README download link points at main, so a build is only really shipped once
 main has it.
 
-## Standing rule: TWO version numbers, and the minor never skips
-
-`VERSION` holds `<major>.<minor>`, shown as "by MrDrouf v<major>.<minor>" in the setup board's top
-right corner. There is ONE version and it belongs to the mod: the box score ships inside it and has
-none of its own.
-
-- **minor** — everything else: a fix, a colour, a nudge. The pre-commit hook bumps it on EVERY commit.
-- **major** — a real change in what the mod DOES. Never automatic. Arm it with
-  `python3 tools/bump_version.py --major` and the NEXT commit lands on `<major+1>.0`.
-
-The minor must never skip. The maintainer, 2026-09-07: "this number cannot be skipped its very
-important to keep track of versions to keep track of buggs" — a version has to name exactly one
-build, or a bug report cannot be tied to one. The pre-push hook walks the commits being pushed and
-refuses the push if the sequence has a hole.
-
-Both hooks live in `tools/hooks/` as well, because `.git/hooks` is not versioned:
-
-    cp tools/hooks/pre-commit tools/hooks/pre-push .git/hooks/ && chmod +x .git/hooks/pre-*
-
 ## Standing rule: update the maintainer's SAVES, not just the build
 
 A TTS save carries a COPY of every object's script. Dropping a fresh build into the Saves folder only
@@ -124,78 +105,7 @@ Nothing below is implemented. The maintainer asked to be consulted before each c
 
 ### Bugs
 
-- [ ] **TURN_DESIGN.md — the turn/boxscore design, written and NOT implemented.** The maintainer asked
-      for the design to be thought through rather than patched again: "not fragile and dependent on
-      many things that can break when there is lag", and "the most buggy thing is how TTS turn order
-      interacts with the boxscore". Four changes, each removing a class of failure: bind identity on an
-      EVENT and never re-derive it on a timer; key a lock by (row, round) so a duplicate is a no-op by
-      construction instead of by detection; advance the round on a WRAP through the turn order rather
-      than on a repeat; and let START's phantom turn self-correct instead of being suppressed. It
-      removes five mechanisms, four of them defensive, and cuts the conditions for recording one turn
-      from ten to four. Also: no *Auto sticky flags -- the code writes only on events, a human writes
-      any time, last writer wins. AWAITING HIS DECISION before any of it is built.
-
-- [x] **Faction board spawns with no buttons on a first load** (FIXED 2026-09-07, needs a COLD test).
-      Reported with screenshots: "faction board showed no buttons ... it was resolved by reloading the
-      mod ... still there for people loading the mod the first time". This is the 2026-08-29 cold-load
-      bug in a place that fix never reached. The selector boards are spawned mid-game from a Lua
-      blueprint, so their 35 icons are not in the save and TTS only learns about them at the instant it
-      draws the board -- too late, and it never re-composites. They were safe by accident until every
-      setup label was re-rendered in Luminari (74cefe8), which moved the setup board onto new art and
-      left these boards on the old Steam URLs that nothing else fetches. FIX: those 35 URLs are now
-      listed on the table surface 4ee1f2 in gen/src/save.json, so they download with the table.
-      VERIFY: someone loading the mod for the FIRST time (a warm cache cannot show this) gets a faction
-      board with buttons without reloading.
-
-- [x] **Map and items load "all over the place" on a first load** (FIXED 2026-09-07, needs a COLD
-      test). Also healed by a reload, exactly like the blank faction board. CAUSE: every move_to in
-      content.lua was recorded against a board of scale 15.5, and TEN spawn paths turned one into a
-      world position with `move_to / self.getScale() * 15.5` -- makeMap, makeDeck, makeTool,
-      makeMapTool, makeSpecial, makeSpecialWithTag, rttSpawnFaction, rttAddHomeExtras,
-      spawnDraftFaction, rttDragonGodSpot. So every placement asked the board how big it was, and all
-      three boards that run this code are Custom_Tiles with `WidthScale: 0`, which means TTS derives
-      their shape FROM THEIR PICTURE. On a cold load the picture has not arrived, so the mod was asking
-      a board how big it is while the thing that decides that was still downloading. The maintainer sees
-      the tail of it every load: "we see the full sized one then the resized one and it looks clunky".
-      Anything placed in that window is scaled about the world ORIGIN -- and because the map board's own
-      move_to is ~(0,0) it barely moves while pieces 20 units out fly, which is precisely "the board
-      looks fine, the items are everywhere". FIX: the scale is a constant (RTT_BOARD_SCALE = 15.5) and
-      the term is 1 by definition; nothing resizes these boards, so behaviour on a normal load is
-      identical. t_placement_never_asks_the_board_how_big_it_is drives a map at three board sizes and
-      demands one answer; it FAILS on the pre-fix build (30 of 44 pieces move).
-      VERIFY: someone loading the mod for the FIRST time places a map and gets it laid out correctly.
-      STILL EXPOSED, not changed: rttFindSeatBoard identifies a selector by `getScale().x >= 7.5`. If a
-      cold board really does report a smaller size, that lookup can miss. Left alone -- it is a
-      tolerant threshold and nothing has been reported against it.
-
-- [ ] **Objects visibly resize as the table loads** (COSMETIC, open). All 557 image-backed objects in
-      the mod carry `WidthScale: 0`, the base mod's own included: TTS works each one's shape out from
-      its picture, so everything appears at a placeholder shape and then re-aspects when the download
-      lands. The only lever is a non-zero WidthScale per object, which means measuring 557 images
-      (most on Steam UGC, so they would all have to be downloaded) and getting every one right or
-      permanently distorting a piece. It would also not remove the separate placeholder-then-real-mesh
-      swap. Not worth it for a cosmetic gain now that nothing computes positions from the scale.
-
 ### Setup and placement
-
-- [ ] **Faction boards spawn at different offsets from their seat (maintainer, 2026-09-05).** Real,
-      and inherited from the base mod: every faction's rules board carries its own hand-placed
-      move_to, and nobody ever normalised them. Measured from the blueprint (dx from the seat centre,
-      board widths 8.82-9.11):
-
-          Twilight Council  -4.57   Marquise      -3.29   Keepers in Iron  -1.69
-          The Lizard Cult   -4.16   Riverfolk     -2.99   Underground Duchy -0.69
-          Knaves            -4.14   Lord of Hund. -2.98   Woodland Alliance +0.22
-          Corvid            -3.73   Lilypad Diasp -2.95   Eyrie Dynasties   +2.07
-
-      Spread 6.64 units, median -2.98. KNAVES DONE 2026-09-05: the maintainer asked for it 1.16 right,
-      so the whole assembly (52 pieces) shifted +1.16 in move_to x and the board now sits at -2.98 on
-      the main cluster. Everything moved together, so the internal layout is untouched; the captains
-      board follows automatically because it is placed relative to the rules board, not the seat.
-      THE OTHER ELEVEN ARE UNTOUCHED and still spread 6.64. Doing them the same way is mechanical --
-      shift each board to a common x and shift that faction's own pieces by the same delta, then check
-      each seat for overlaps -- but Eyrie would move 5.05 and Alliance 3.20, which pushes their crafted
-      boards further out, so it wants the maintainer's eye before it happens.
 
 ### Buttons and real estate
 
@@ -206,168 +116,13 @@ Nothing below is implemented. The maintainer asked to be consulted before each c
       printed each score change to the console, which doubles as a game log.
 - [ ] **A one-shot DEAL FIVE button beside the deck when it spawns.** Temporary, removes itself.
 
-### Gizmo (the maintainer will iterate; ask before changing behaviour)
 
-- [x] **Numpad 2 marks with a disc, not a repaint** (DONE 2026-09-07). "instead of changing the color
-      of the piece have a small circly be drawn under the piece, a little bit transparent, and of the
-      color of the player doing it." The warrior keeps its faction paint; a thin translucent circle in
-      the presser's own colour is spawned under it, sized from the piece's own bounds, tagged
-      `RTT Faction` so a new game takes it and `RTT Laid Disc` so undo finds ITS OWN disc by GUID
-      rather than by proximity. The piece rests a hair above its foot so the disc reads as underneath
-      rather than fighting it for the same plane. Art: `assets/labels/disc_89666e66.png`, generated by
-      `tools/make_disc.py` -- white and untextured, because the tile is tinted per player.
-      "Is it laid?" is now the RECORD, not the tint, and the record is in onSave.
 
-- [ ] **Numpad 0 goes dead on buildings after a reload (and maybe after an undo).** AWAITING HIS TEST.
-      Reported 2026-09-07: "it seems that gizmo options breaks after doing an undo". Cause found, not
-      yet fixed at his request. `RTT_HOME` -- name, position and facing for every piece a faction set
-      out -- is a bare top-level table, written ONLY inside rttSpawnFaction's spawn callback, and it is
-      NOT in onSave. Anything that re-runs the board's script empties it and nothing rebuilds it, so
-      `rttHomeSlots` returns nothing and rttGizmoHome falls through to its silent last case. Warriors
-      and the Marquise's wood are unaffected: they go home by NAME through rttBagOfMap, which is built
-      from blueprint data and cannot be lost.
-      THE TEST THAT SETTLES IT: after an undo, hover your own WARRIOR and press numpad 0. Warrior goes
-      home but a building does not -> it is RTT_HOME, and the fix is to persist it beside RTT_LAID.
-      Nothing happens at all -> it is the key registration, and the hotkeys/onScriptingButtonDown are
-      where to look instead. The RELOAD half of this is certain regardless of what undo does.
+## NOTES DO NOT TOUCH
 
-- [x] **Numpad 1 keeps handing you your FIRST faction after you pick another** (FIXED 2026-09-07).
-      He chose: the gizmo follows the faction that COLOUR last picked, recorded separately from the
-      seats so turn order, the box score and the seat record are untouched. Numpad 0's ownership gate
-      reads the same answer, or you could not put your new faction's pieces away. Survives a reload,
-      cleared by a new game. He ruled out the alternative outright -- pointing at a board -- "2. is
-      completely nonsensical since pieces go all over the board". Original diagnosis: Reported 2026-09-07:
-      "I am changing seats by selecting new factions but the gizmo numpad 1 does not seem to understand
-      that." Deliberate, and the comment says why: on the manual paths nobody is seated, so the picker's
-      colour is what a seat is worth "unless that colour is already another seat's, which is what
-      happens when one person sets out several boards: those later seats take a free colour instead of
-      stealing one". So your first pick takes your colour and every later pick is given a free one --
-      rttSeatFaction(yourColour) therefore returns the first faction for ever. Fixing it means choosing
-      between "one person switching faction" and "one person setting boards out for other people";
-      those two want opposite behaviour and it is his call, not mine.
+the lizard has the lizard wizard to keep track publicly of the outcase. it also has an outcast on its faction board. could you have the outcast on the faction board follow the information on the lizard wizard? so have the symbol for the outcast suit and then when it s heated and the counter for the number of cards of each suit in the lost souls
 
-- [x] **Numpad 0 asks no permission** (REVERSED the same day, 2026-09-07). The ownership check below
-      shipped in the morning and came out in the evening: "remove the player permission with numpad 0
-      so it s not broken when it s wrong about who is who". Deciding whose piece it is means deciding
-      who YOU are, and when that answer is wrong the key silently does nothing -- worse than the thing
-      the check prevented. Its worst case was an UNSEATED player, who could not send anything home at
-      all; the test for the new rule fails on the build that had the check, on exactly that. Gone with
-      it: rttPieceFaction and rttFactionOfMap, which nothing else used. Superseded entry: "gizmo 0 should not work on other
-      player's warriors and token buildings." This REVERSES the earlier rule, which was recorded in
-      the code as "the piece decides the destination, not whoever pressed the key" -- he was shown
-      that note and confirmed the reversal. Ownership is exact, not guessed: RTT_HOME already records
-      the faction each piece was set out for, and a loose piece is identified by the blueprint that
-      ships its nickname (rttFactionOfMap, ambiguous names never answer). Somebody else's piece:
-      nothing, silently. A piece no faction owns is not blocked -- it just has no home, as before.
-      If nobody is seated in your colour it says so, the way numpad 1 already does.
+add enclave snap when militant or not
 
-- [x] **Numpad 2 lays a warrior down** (DONE 2026-09-07). "pressing numpad 2 should put a warrior
-      laying down; change the color of the warrior cream white ... and lock it. repressing numpad 2
-      undoes all of that." ANY warrior, his call when asked -- not only your own, unlike numpad 0.
-      Warriors only. Undo restores the piece's OWN tint, because every faction's warrior carries a
-      different one and three are plain white with the colour in the texture; the pose and tint ride
-      in onSave so a reload cannot strand one cream and locked. Rebindable as "Gizmo: lay the hovered
-      warrior down" like the other two. TO CHECK AT THE TABLE: that it falls the way he wants -- it
-      tips forward, away from the player, and flipping that is one number.
-
-- [ ] **Extend the gizmo to mobs, strongholds and the rest of the tokens/buildings.** Zaandaa asked
-      for it; both agreed the mechanism is an assigned return location per object, and the
-      maintainer's proposal is to use each piece's own spawn position from the faction setup. That
-      is already known per faction, so it is a table of piece-name -> seat-local spawn offset.
-- [ ] **Separate buttons for the gizmo's actions.** Zaandaa thinks distinct buttons beat one key;
-      the maintainer said it is early. Open.
-
-### Housekeeping the maintainer flagged
-
-- [x] **The old digital clock and counter are unreachable** (DONE 2026-09-07). Blueprints and their
-      POS/ROT constants removed. Their TAGS stay on purpose: rttSpawnMapExtras still refuses to spawn
-      a panel onto a table that already carries the old pair, so a save from before the panel does not
-      end up with both stacked on one spot. Original entry: The turn panel is the only clock now, so
-      the button that swapped them, `rttToggleTurnPanel` and `rttSpawnOldClock` are gone -- but
-      `RTT_TIMER_JSON`, `RTT_COUNTER_JSON` and their POS/ROT constants are still in the file with
-      nothing calling them. Drop them in the next cleanup pass, along with `RTT_TAG_CLOCK` /
-      `RTT_TAG_COUNTER` if nothing else reads those.
-
-- [ ] **Row two of the option buttons has a hole.** Removing the turn-panel button freed x=19, so the
-      row now reads: three buttons, a gap at 19, a gap at 57, Credits anchored at 95. Nothing was
-      rearranged to close it -- that is a layout call for the maintainer, not something to do quietly.
-
-- [ ] **The BAKED label art still uses its own cream.** The runtime UI is all #F9E6BB now, but the
-      button labels are rendered PNGs and `tools/make_labels.py`, `tools/relabel.py` and
-      `tools/render_assets.py` draw their type in #EDE0C0 (237,224,192), with one secondary at
-      #E9DDBE. Bringing those in line means RE-RENDERING the label set -- and `publish()` names every
-      file by a hash of its contents (jsDelivr caches by URL, which is why the hash exists), so every
-      regenerated label lands on a NEW filename and every asset URL that points at it has to be
-      re-pointed. Two things to settle before starting: whether the tools still cover the whole
-      current label set -- a label they miss would keep the old cream and leave the mod LESS
-      consistent than it is now -- and `assets/labels/turn_panel_frame_*.png`, which no tool
-      regenerates at all. Not attempted; it wants a plan, not a sweep.
-
-- [ ] **Fan-made content still referenced in the built save.** 22 distinct fan names survive,
-      including live asset links: Infected (42 references), Roamer (10), Advocate (9), Farmer
-      Warrior (9), Arachnid Association (6), Necropossums, Croakers Coven, Spinners of Mercy,
-      Woodland Revolution, Old Man Tinker, Order of the Forest, Snow Kingdom, Marquistador, Dove
-      Corps, BCPii, Noxious Battery, Klacar's Volcano Island. Mostly remnants of roster lists.
-      CAREFUL: Bat Bungler, Mob Lobber and Koffin Keeper are protected -- the maintainer named them
-      himself, in the list of buttons he wanted kept. Salty Old Stan is also in use, but that is a
-      fact about the CODE (summonSaltyOldStan replaces the Lizard Blocker), not something he said;
-      it was written into this list attributed to him and it should not have been. So: a per-name
-      audit, not a sweep, and check the code rather than this note before deleting anything.
-- [ ] **Conversational prompts left in code comments.** 16 comments quote the maintainer directly
-      ("maintainer: ...", "he asked for ..."). They carry real rationale and should not just be
-      deleted, but they should read as technical notes rather than as a transcript.
-
-### From this session, still unverified
-
-- [ ] **Rules audit against root_engine.** The Mountain bug was game-breaking and was found only
-      because the maintainer asked. root_engine/rules + maps_data is an authoritative corpus
-      (maps_appendix.md, HOUSE_RULES.md with the group's own variants, maps_data/*.json with per-map
-      clearing data). Everything this mod places automatically should be checked against it: faction
-      piece counts and starting positions, the Marsh flood and its number tokens, clearing priority
-      markers per map, the Marquise's 12-vs-15 cats, Winter relics, Corvid plots, Eyrie viziers,
-      Knaves captains, deck composition. Note HOUSE_RULES holds the group's OWN variants -- the
-      Mountain centre is one -- so the engine's defaults are not automatically what this group plays.
-
-## AWAITING A TEST AT THE TABLE
-
-- [ ] **Box score: two adversarial findings fixed 2026-09-07, need a look at the table.** Found by
-      the new `root_boxscore/tests/test_adversarial.py` battery (19 cases: player churn, lag, seat
-      changes, object churn, reload, endgame).
-      1. **A VP marker put in a bag wiped that faction's whole record.** Dropping a marker into a bag
-         DESTROYS the object in TTS, and the prune had `guidGone` as an independent trigger, which
-         short-circuited both the faction-presence test and the two-poll grace the comment promises.
-         The faction's supply was still on the table and the row went anyway, coming back empty --
-         the export showed that faction with `turns: []`. Now prunes only on the faction being
-         absent, as the comment always said.
-      2. **A duplicate or late-delivered turn event invented a round.** lockRow reads "this row
-         already locked this round" as proof the table came round, so a re-delivered pass gave one
-         faction an extra cell and ran the round counter ahead. onPlayerTurn now refuses a pass whose
-         `previous` is not the colour holding the turn AND would invent a round.
-      TO CHECK: put a VP marker in a bag mid-game and take it back out -- the row keeps its rounds;
-      and a normal game still counts its rounds correctly.
-
-- [ ] **Dragon God cleared with the lizards (fixed 2026-09-07, needs a look at the table).** Reported:
-      "the lizard god called dragon god is not cleared with its faction". All three spawns of the
-      discard blocker went through `makeSpecial(category,name,x,y,z,rotation,tag)` without passing the
-      SEVENTH argument, the teardown tag, so the object reached the table with no tags at all and
-      `RTT_TEARDOWN_TAGS` never matched it. Salty Old Stan, which replaces it, leaked the same way.
-      All three now spawn tagged `RTT Faction`, and `rttPlaceDragonGod` adopts an untagged blocker
-      that is already out (an old save, or the Lizard Wizard button) so it does not leak one more
-      game. Guarded by `dragon god goes out with lizards` in tests/test_setup_paths.py, which fails
-      on the old build. TO CHECK: draft the lizards, start a new game, confirm the blocker is gone
-      from the discard and that a Stan game clears too.
-
-- [ ] **Seat colour cannot be re-taken after leaving it.** Reported 2026-09-05: "I was in that
-      color, then I changed color to another seat, and then I'm not able to go back". Nothing in
-      this mod destroys or reassigns a hand zone -- it only ever MOVES them -- so the cause is not
-      ours. It matches a community-reported TTS bug: deleting an object that still has XML UI
-      attached leaves the server unable to hand out colours, arrivals get only Grey, and a colour
-      that has been left cannot be retaken, while the hand zones still look fine. This mod deletes
-      XmlUI objects constantly (every manual selector board on a pick, every ranked selector, the box
-      score on each respawn, everything cleared by tag at a new game), so it would trigger it far
-      more than most.
-      MITIGATION SHIPPED, NOT VERIFIED: rttDestroyUI clears an object's XML and destroys it a frame
-      later, applied at every such site including the selector's own X button. Nothing available here
-      can inspect TTS's colour state, so this needs the maintainer: pick factions, change seats a few
-      times, and see whether the colour he left becomes available again. If it still happens, the
-      next suspect is the box score, which rebuilds its XML every 1.2s.
+ 
+can you increase the highlight on numpad 3? make it much more highlighted? and make it black highlighted.

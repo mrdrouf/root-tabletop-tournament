@@ -1,0 +1,62 @@
+Use your image generation tool to create ONE square illustration and save it into the current working
+directory as `birds_playing_root_v10.png`. Generate it with the image model; do not draw or composite
+anything yourself. Print the absolute path when done.
+
+The THIRD attached image is the reference. Keep its smooth painted style, its palette, its lighting,
+its four birds and its even seating. Four things change: the table and board get smaller, the birds
+each get something to DO, the rulebook stops being a display prop, and one sign becomes graffiti.
+
+STYLE — unchanged and SMOOTH: even gouache washes, broad calm areas of flat colour, clean ink
+outlines of gently varying weight, warm autumnal palette of burnt orange, cream, teal, ochre and deep
+brown. NO stippling, speckling, scale patterns, dense cross-hatching, engraved lines, noisy grain or
+individually drawn feathers. It must read shrunk to a 128-pixel icon.
+
+1. SMALLER TABLE, SMALLER BOARD. Pull back a little: the round table takes up noticeably less of the
+   picture than before, and the Root board on it is smaller again -- present and recognisable, but
+   clearly no longer the subject. The BIRDS are the subject. More dark room and shadow around
+   everything. The board still shows pale clearings with square building slots, dashed paths, green
+   forest, a river, a numbered score track and a few chunky wooden meeples and building cubes in blue
+   and orange -- just smaller.
+
+2. GIVE EACH BIRD SOMETHING TO DO. They stay evenly spaced in a balanced row along the far side of
+   the table, two left of centre and two right, all at the same distance from the viewer, all facing
+   forward, NONE overlapping or hiding any part of another, each whole and unobstructed from the
+   chest up, with clear dark space between each pair. All four remain deadpan and completely serious.
+   * the VULTURE (bare orange head, brown fur-collared robe) SMOKES: a fat lit cigar gripped in his
+     beak, tip glowing, one clean curl of smoke rising
+   * the HORNED OWL is the RULES LAWYER: he holds the thick open rulebook upright in his wings,
+     one talon planted accusingly on a line of it, glaring flatly over the top of small round
+     spectacles. The book is turned at a natural angle in his grip -- he is reading it, not showing
+     it to us
+   * the BALD EAGLE wears a battered MILITARY PEAKED CAP with a tarnished badge, sitting slightly
+     askew, chin up, wings folded, thoroughly above all this
+   * the WOODPECKER (bright orange crest) idly PLAYS WITH A COIN, rolling it across his knuckles or
+     standing it on edge with one claw, watching the others sideways
+
+3. THE RULEBOOK IS IN THE OWL'S WINGS, not lying flat on the table facing the viewer. Nothing on the
+   table should be squared up and presented to the camera -- everything lies where it was dropped, at
+   natural angles.
+
+4. GRAFFITI INSTEAD OF THE SECOND SIGN. Remove the small "NO TAKEBACKS" placard. Instead, scrawled
+   crookedly straight onto the dark wall in rough chalk, in a hasty hand: "NO TAKEBACKS", underlined
+   twice. Near it, scratched smaller into the wall, a row of tally marks counting the losses. High on
+   the wall the one proper worn sign stays, reading exactly, on three lines, "NO ALLIANCES" / "NO" /
+   "MERCY". Nothing else on the wall.
+
+STILL ON THE TABLE, scattered and lived-in at natural angles: the whisky bottle two-thirds empty, a
+second bottle tipped over and empty, four or five amber tumblers at different levels with one knocked
+over in a small spill, wet rings on the wood, an ashtray heaped with stubbed-out cigar butts and
+spent matches with one still smouldering, a tally notepad and pencil stub, an hourglass half run out,
+a chipped mug, and a spilled bag of wooden pieces. Big simple readable objects, no fine clutter.
+
+LAYOUT:
+  * TOP: a hanging lamp, COMPLETE and inside the frame, throwing a warm pool of light; near black
+    around it; the sign and the chalk graffiti on the wall.
+  * MIDDLE: the four birds, the smaller table and board, the clutter.
+  * BOTTOM THIRD: essentially EMPTY -- a plain dark foreground band, full width, NOTHING in it at
+    all. A title will be printed over it.
+
+MOOD — a smoky back-room game night in the spirit of the "Dogs Playing Poker" paintings: one warm
+lamp, deep shadow beyond, comic solemnity.
+
+Square aspect ratio.

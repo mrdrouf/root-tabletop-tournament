@@ -1,0 +1,63 @@
+Use your image generation tool to create ONE square illustration and save it into the current working
+directory as `birds_playing_root_v8.png`. Generate it with the image model; do not draw or composite
+anything yourself. Print the absolute path when done.
+
+The THIRD attached image is the STYLE AND CHARACTER REFERENCE. Keep its smoothness, palette, lighting
+and its four birds. Change the seating, shrink the board, and add a few funny props.
+
+STYLE — a hand-painted storybook illustration, SMOOTH AND CLEAN:
+  * smooth even gouache washes, broad calm areas of flat colour, soft simple shading
+  * clean confident ink outlines of gently varying weight
+  * feathers and cloth described by a FEW well-chosen strokes, never by texture covering a surface
+  * warm autumnal palette: burnt orange, cream, teal, ochre, deep brown
+  * DO NOT USE stippling, speckling, scale patterns, dense cross-hatching, engraved lines, noisy
+    grain or individually drawn feathers. When in doubt leave it smooth and plain. It must read when
+    shrunk to a 128-pixel icon.
+
+SEATING — this is the main change, so get it right. The four birds sit EVENLY SPACED IN A BALANCED
+ROW along the far side of the round table, two left of centre and two right of centre, all at the
+SAME distance from the viewer, all facing the viewer. NONE of them leans in closer than the others,
+none is turned at an odd angle, and NO BIRD OVERLAPS OR HIDES ANY PART OF ANOTHER. There is clear
+dark space between each pair. All four are seen from the chest up, each one whole and unobstructed
+and equally readable. Allow small natural differences of posture and head tilt so the row does not
+look like a line-up, but keep the spacing and the scale even.
+
+SUBJECT — the four Eyrie leaders from the board game Root, playing it:
+  * a hunched VULTURE, bare orange head, heavy brown robe, SMOKING A FAT LIT CIGAR gripped in his
+    beak, tip glowing, one clean curl of smoke rising
+  * a brown HORNED OWL, big yellow eyes, ear tufts, wings folded, glaring, wearing small round
+    reading spectacles perched on his beak
+  * a BALD EAGLE, white head, yellow beak, blue-grey robe, chin up and above it all
+  * a WOODPECKER, black-and-white head, bright orange crest, beady and suspicious
+All four deadpan and completely serious, as if the game has run six hours and nobody is enjoying it.
+
+THE BOARD — SMALLER AND FURTHER BACK than before, taking only the middle of the table and no longer
+dominating the picture. It is still recognisably the Root board (second attached image): pale sandy
+clearings with small square building slots, joined by trails of white dashes, dark green forest
+between them with a few orange autumn trees, a pale blue river, a numbered score track along its
+near edge, and chunky wooden pieces standing on it -- bird-shaped blue meeples, blue and orange
+square building cubes, orange warrior meeples.
+
+FUNNY PROPS — add a HANDFUL of large, clearly readable objects around the board. Not a crowded table:
+six or seven big simple things, each one legible on its own.
+  * a fat dog-eared RULEBOOK, propped open, with a scrap of paper marking a page
+  * a small NOTEPAD covered in tally marks and crossings-out, with a stub of pencil
+  * an EGG TIMER or small hourglass, half run out
+  * a chipped MUG OF TEA sitting incongruously among the whisky tumblers
+  * two amber TUMBLERS and an ashtray
+  * a small spilled pile of wooden pieces at the table edge
+  * a SECOND small hand-lettered sign leaning against something, reading "NO TAKEBACKS"
+
+LAYOUT:
+  * TOP: a hanging lamp, COMPLETE and inside the frame, throwing a warm pool of light. Near black
+    around it. High on the wall, one worn hand-lettered sign reading exactly, on three lines,
+    "NO ALLIANCES" / "NO" / "MERCY". Nothing else on the wall.
+  * MIDDLE: the four birds, the board and the props.
+  * BOTTOM THIRD: essentially EMPTY -- a plain dark foreground band, full width, just the near edge
+    of the table and shadow. NOTHING may enter it; the board and every prop must stop well above it.
+    A title will be printed over this band.
+
+MOOD — a smoky back-room game night in the spirit of the "Dogs Playing Poker" paintings: one warm
+lamp, deep shadow beyond, comic solemnity.
+
+Square aspect ratio.

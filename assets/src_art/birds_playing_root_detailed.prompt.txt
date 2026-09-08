@@ -1,0 +1,33 @@
+Use your image generation tool to create ONE square illustration, and save the resulting PNG into the
+current working directory as `birds_playing_root.png`. Do not write any code to draw it yourself and do
+not composite anything by hand — generate it with the image model. When you are done, print the
+absolute path of the file you saved.
+
+SUBJECT — the four Eyrie Dynasties leaders from the board game Root, all of them birds (see the
+attached leader-card sheet for exactly how they look):
+  * a hunched VULTURE in a brown robe, wings folded, deeply unimpressed
+  * a brown HORNED OWL, wings folded, glaring straight ahead
+  * a white-headed BALD EAGLE in a blue-grey robe, chin up, above it all
+  * a WOODPECKER with a white-and-black head and an orange crest
+
+They are sitting around a round wooden table PLAYING THE BOARD GAME ROOT. This is the single most
+important thing: the second attached image is the Root map board, and it must be open on the table
+between them as the centrepiece — the autumn woodland map with its clearings, paths and forests —
+with little wooden playing pieces and a few cards on and around it. They are playing a BOARD GAME.
+They are NOT playing cards and NOT playing poker.
+
+All four wear flat, deadpan, utterly serious expressions, as if the game has been going for six hours
+and nobody is enjoying it.
+
+MOOD AND COMPOSITION — borrowed from C. M. Coolidge's "Dogs Playing Poker" paintings: a single low
+warm lamp hanging over the table, a dark smoky room falling away into shadow around it, tumblers of
+amber drink, lit cigars with curls of smoke, one bird leaning back, one leaning in over the board.
+Take the lighting, the framing and the comic solemnity from those paintings — but the game on the
+table is Root, not poker.
+
+STYLE — match the attached reference art exactly. This is Kyle Ferrin's Root artwork: heavy black ink
+contour lines, flat muted gouache colour, visible pen hatching, warm autumnal palette, charming
+storybook animal characters with large simple eyes. Absolutely no photorealism, no 3D rendering, no
+airbrushed gradients, no digital painting gloss.
+
+Square aspect ratio, high detail.

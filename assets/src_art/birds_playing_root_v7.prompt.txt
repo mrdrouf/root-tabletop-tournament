@@ -1,0 +1,56 @@
+Use your image generation tool to create ONE square illustration and save it into the current working
+directory as `birds_playing_root_v7.png`. Generate it with the image model; do not draw or composite
+anything yourself. Print the absolute path when done.
+
+The THIRD attached image is the STYLE REFERENCE. Match its smoothness, palette, lighting, framing and
+characters closely. Recent attempts drifted into a heavy speckled, scaly, stippled surface -- every
+feather picked out, every robe crawling with marks -- and that is exactly what to avoid.
+
+STYLE — a hand-painted storybook illustration, but SMOOTH AND CLEAN:
+  * smooth, even gouache washes; broad calm areas of flat colour; soft simple shading
+  * clean confident ink outlines of gently varying weight
+  * feathers and cloth described by a FEW well-chosen strokes and shapes, not by texture covering the
+    whole surface
+  * warm autumnal palette: burnt orange, cream, teal, ochre, deep brown
+  * dry comic personality in the faces
+  * DO NOT USE: stippling, speckling, scale patterns, dense cross-hatching, engraved lines, noisy
+    grain, individually drawn feathers, busy repeating marks of any kind. If in doubt, leave it
+    smooth and plain. It must stay readable shrunk to a 128-pixel icon.
+
+LAYOUT — follow exactly:
+  * TOP: a hanging lamp, COMPLETE and inside the frame, throwing a warm pool of light. Near black
+    around it. One small worn hand-lettered sign high on the wall reading exactly, on three lines,
+    "NO ALLIANCES" / "NO" / "MERCY". Exactly one sign; the rest of the wall stays empty and dark.
+  * MIDDLE: the four birds and the board. The birds are large, clearly visible and unobstructed.
+  * BOTTOM THIRD: essentially EMPTY -- a plain dark foreground band, full width, just the near edge
+    of the table and shadow. NOTHING may enter it; the board must stop well above it. A title will be
+    printed over this band.
+
+SUBJECT — the four Eyrie leaders from the board game Root, round a table playing it:
+  * a hunched VULTURE, bare orange head, heavy brown robe, SMOKING A FAT LIT CIGAR gripped in his
+    beak, tip glowing, one clean curl of smoke rising
+  * a brown HORNED OWL, big yellow eyes, ear tufts, wings folded, glaring
+  * a BALD EAGLE, white head, yellow beak, blue-grey robe, chin up and above it all
+  * a WOODPECKER, black-and-white head, bright orange crest, beady and suspicious
+All four deadpan and completely serious. Two amber tumblers and an empty ashtray on the far side.
+
+THE BOARD — the SECOND attached image is the real Root game board. Reproduce it faithfully, as an
+actual printed board game sitting on the table, seen at an angle:
+  * a squarish board with a pale parchment border
+  * TWELVE CLEARINGS: distinct, generous, pale sandy-tan open patches of irregular rounded shape,
+    clearly separated from one another. They are the most visible feature of the board. Inside each
+    clearing sit two or three small empty square BUILDING SLOTS drawn as thin outlined squares
+  * the clearings are joined by narrow PATHS drawn as trails of small white dashes
+  * between the clearings, DENSE DARK-GREEN PINE FOREST, with scattered orange and yellow autumn
+    trees -- painted as soft masses, not as thousands of separate trees
+  * a pale blue RIVER winding across it
+  * along the bottom edge, a SCORE TRACK: a single row of small squares numbered 0 to 30
+  * ACTUAL WOODEN GAME PIECES standing on the clearings, and these must look like real components:
+    small BIRD-SHAPED wooden meeples in blue, little square wooden ROOST buildings in blue, and
+    orange wooden warrior meeples and square orange buildings. Chunky, solid, wooden -- not painted
+    dots or blobs. Only a handful of them, spread across a few clearings.
+
+MOOD — a smoky back-room game night in the spirit of the "Dogs Playing Poker" paintings: one warm
+lamp, deep shadow beyond, comic solemnity.
+
+Square aspect ratio.

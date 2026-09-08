@@ -1,0 +1,46 @@
+Use your image generation tool to create ONE square illustration and save it into the current working
+directory as `birds_playing_root_v4.png`. Generate it with the image model; do not draw or composite
+anything yourself. Print the absolute path when done.
+
+STYLE — this is the important part. A RICH, HAND-PAINTED STORYBOOK ILLUSTRATION in the manner of Kyle
+Ferrin's artwork for the board game Root: springy hand-inked contour lines of varying weight, textured
+gouache and ink-wash colour with visible brush and pen marks, a warm autumnal palette of burnt orange,
+cream, teal, ochre and deep brown, and characters full of dry comic personality. It must feel
+hand-made, warm and quirky — like a page from an illustrated folk tale.
+
+It must NOT look like flat vector art, clip art, or a simple cartoon with uniform outlines. Keep the
+painterly texture and the wobble of a real drawn line.
+
+BUT KEEP THE DETAIL UNDER CONTROL, because this will be shrunk to a 128-pixel icon. The rule is:
+texture INSIDE a few big shapes, rather than many small competing objects. So — no dense
+cross-hatching covering everything, no wall crowded with pictures and shelves and bric-a-brac, no
+forest built from hundreds of tiny trees, no clutter of little props. Big confident shapes, strong
+silhouettes, generous areas of quiet colour, and the texture living within them.
+
+LAYOUT — follow exactly:
+  * TOP: a hanging lamp COMPLETE and fully inside the frame, throwing a warm pool of light. Almost
+    black around it. One or two curls of cigar smoke.
+  * MIDDLE: the four birds and the board. THE BIRDS MUST BE LARGE AND CLEARLY VISIBLE — big
+    expressive heads, faces well lit, each one distinct and unobstructed. They are the main subject.
+  * BOTTOM QUARTER: keep essentially EMPTY — a plain dark foreground band, full width, just the near
+    edge of the table and shadow. No objects there; a title will be printed over it.
+
+SUBJECT — the four Eyrie leaders from Root, sitting around a round table PLAYING THE BOARD GAME ROOT
+(the attached card sheet shows them):
+  * a hunched VULTURE, bare orange head, heavy brown robe, wings folded, deeply unimpressed
+  * a brown HORNED OWL, big yellow eyes, ear tufts, wings folded, glaring
+  * a BALD EAGLE, white head, yellow beak, blue-grey robe, chin up and above it all
+  * a WOODPECKER, black-and-white head, bright orange crest, beady and suspicious
+All four are birds, all four completely deadpan and serious, as if the game has run six hours and
+nobody is enjoying it.
+
+THE BOARD sits in the middle of the table, large and clearly readable: a handful of big pale clearing
+circles joined by thick paths, a winding blue river, and forest suggested by a few large soft green
+masses — painted and textured, but NOT hundreds of little trees. Chunky orange and blue wooden pieces
+on the clearings.
+
+MOOD — a smoky back-room game night, in the spirit of the "Dogs Playing Poker" paintings: warm lamp
+light, deep shadow, a couple of amber tumblers and a lit cigar near the far side of the table. Comic
+solemnity.
+
+Square aspect ratio.

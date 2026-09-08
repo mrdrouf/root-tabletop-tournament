@@ -1,0 +1,44 @@
+Use your image generation tool to create ONE square illustration and save it into the current working
+directory as `birds_playing_root_v9.png`. Generate it with the image model; do not draw or composite
+anything yourself. Print the absolute path when done.
+
+The THIRD attached image is the reference. KEEP IT ALMOST EXACTLY AS IT IS -- the same four birds,
+the same even seating, the same smooth painted style, the same lamp, the same signs, the same board
+and props. ONE THING CHANGES: the table becomes the wreckage of a very long night's drinking.
+
+WHAT TO ADD — plenty of drink, and a used ashtray. Big, simple, clearly readable objects:
+  * a tall WHISKY BOTTLE, two-thirds empty, cork off and lying beside it
+  * a SECOND bottle, completely empty, tipped over on its side near the table edge
+  * FOUR OR FIVE amber TUMBLERS scattered about at different levels -- one full, some half drunk,
+    one drained to the dregs, one knocked over with a small dark spill and a wet ring on the wood
+  * a couple more pale rings on the wood where glasses have stood all night
+  * the ASHTRAY OVERFLOWING: a heap of grey ash, four or five stubbed-out cigar butts, one still
+    smouldering with a thin thread of smoke, and a spent match or two beside it
+  * a few loose cigars and a torn paper band on the table
+Spread them around the board and the other props. The table should look thoroughly lived in, but keep
+every object big enough to read on its own -- no fine clutter, no tiny fiddly bits.
+
+KEEP UNCHANGED:
+  * THE SEATING. The four birds evenly spaced in a balanced row along the far side of the round
+    table, two left of centre and two right, all at the same distance from the viewer, all facing
+    forward, NONE overlapping or hiding any part of another, each whole and unobstructed from the
+    chest up, clear dark space between each pair.
+  * THE BIRDS. A hunched VULTURE in a brown fur-collared robe smoking a fat lit cigar in his beak; a
+    brown HORNED OWL with big yellow eyes and ear tufts, wings folded, glaring; a BALD EAGLE in a
+    blue-grey robe, chin up; a WOODPECKER with a bright orange crest, beady and suspicious. All four
+    deadpan and completely serious.
+  * THE PROPS already there: the propped-open rulebook, the tally notepad and pencil, the hourglass,
+    the mug, the spilled bag of wooden pieces, the "NO TAKEBACKS" sign.
+  * THE BOARD, same size and position: the Root map, pale clearings with square building slots,
+    dashed paths, green forest, river, numbered score track, chunky wooden meeples and building cubes
+    in blue and orange.
+  * THE WALL: the hanging lamp complete inside the frame, and one worn sign reading exactly, on three
+    lines, "NO ALLIANCES" / "NO" / "MERCY". Nothing else on the wall.
+  * THE BOTTOM THIRD STAYS EMPTY: a plain dark foreground band, full width, nothing in it at all --
+    no bottles, no glasses, no spills. A title will be printed over it.
+
+STYLE — unchanged and SMOOTH: even gouache washes, broad calm areas of flat colour, clean ink
+outlines, warm autumnal palette. NO stippling, speckling, scale patterns, dense cross-hatching or
+noisy grain. It must read shrunk to a 128-pixel icon.
+
+Square aspect ratio.

@@ -1,0 +1,45 @@
+Use your image generation tool to create ONE square illustration and save it into the current working
+directory as `birds_playing_root_v11.png`. Generate it with the image model; do not draw or composite
+anything yourself. Print the absolute path when done.
+
+The THIRD attached image is the reference. REPRODUCE IT AS CLOSELY AS YOU CAN. Exactly ONE thing
+changes: the bald eagle is now holding a drink.
+
+THE ONE CHANGE — the BALD EAGLE, third from the left in his blue-grey military coat and battered
+peaked cap, now HOLDS A CUT-GLASS TUMBLER OF SCOTCH in one wing, raised a little off the table at
+about chest height, the amber whisky catching the lamplight. He cradles it casually, as though he has
+been holding it a while and has no intention of putting it down. His other wing rests on the table.
+His expression does not change: chin still up, still flatly unimpressed, still above all this. Take
+one of the loose tumblers off the table so the count stays right.
+
+EVERYTHING ELSE STAYS EXACTLY AS IT IS:
+  * THE SEATING. Four birds evenly spaced in a balanced row along the far side of the round table,
+    two left of centre and two right, all at the same distance from the viewer, all facing forward,
+    NONE overlapping or hiding any part of another, each whole and unobstructed from the chest up,
+    clear dark space between each pair. All four deadpan and completely serious.
+  * THE OTHER THREE AND WHAT THEY ARE DOING. The hunched VULTURE at the left in his brown fur-collared
+    robe, smoking a fat lit cigar gripped in his beak with a curl of smoke rising. The HORNED OWL
+    holding the thick open rulebook upright in his wings, small round spectacles on, one talon planted
+    on a line, glaring over the top of it; the book reads "ROOT / Laws of Woodland Might". The
+    WOODPECKER at the right with his bright orange crest, holding a coin up in one claw, watching
+    sideways.
+  * THE WALL: the hanging lamp complete inside the frame; the worn sign reading exactly, on three
+    lines, "NO ALLIANCES" / "NO" / "MERCY"; and, chalked crookedly straight onto the dark wall,
+    "NO TAKEBACKS" underlined twice with a row of tally marks scratched beneath it.
+  * THE TABLE, same smaller size, with the same small Root board -- pale clearings with square
+    building slots, dashed paths, green forest, river, numbered score track, chunky blue and orange
+    wooden meeples and building cubes -- and the same lived-in clutter at natural angles: the whisky
+    bottle two-thirds empty, a second bottle tipped over, amber tumblers at different levels with one
+    knocked over in a spill, wet rings on the wood, an ashtray heaped with stubbed-out cigar butts and
+    spent matches, a tally notepad and pencil, an hourglass half run out, a chipped mug, a spilled bag
+    of wooden pieces.
+  * THE BOTTOM THIRD STAYS EMPTY: a plain dark foreground band, full width, nothing in it at all.
+
+STYLE — unchanged and SMOOTH: even gouache washes, broad calm areas of flat colour, clean ink outlines,
+warm autumnal palette. NO stippling, speckling, scale patterns, cross-hatching or noisy grain.
+
+ONE MORE THING: lift the lamplight on the four birds a little. Keep the room dark and the mood smoky,
+but let the light fall more clearly on their heads and shoulders so all four read easily when the
+picture is shrunk to a 128-pixel icon.
+
+Square aspect ratio.
