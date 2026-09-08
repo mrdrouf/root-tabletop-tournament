@@ -77,6 +77,12 @@ function MKOBJ(name, pos, tags)
   function o.setPosition(p) o.__pos = vec(p) end
   function o.getRotation() return vec(o.__rot) end
   function o.setRotation(r) o.__rot = vec(r) end
+  -- DECALS: images painted ONTO the object, in its own local frame. Recorded rather than ignored so a
+  -- test can see what was painted where -- which is the whole of how the lizard board shows its
+  -- outcast, and it would otherwise be invisible to the harness.
+  o.__decals = {}
+  function o.setDecals(list) o.__decals = list or {} end
+  function o.getDecals() return o.__decals end
   function o.setRotationSmooth(r, collide, fast) o.__rot = vec(r); o.__rotFast = (fast == true) end
   -- RELATIVE rotation. TTS composes this with whatever else is turning the object, which is the whole
   -- reason anything would use it over setRotation: it can be applied mid-flip without cancelling the

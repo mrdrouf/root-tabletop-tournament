@@ -349,7 +349,6 @@ def t_the_lizard_board_follows_the_wizard(src):
       WIZ.__scale = Vector({ 3.904, 1, 3.904 })
       WIZ.setRotation({ 0, 137, 0 })          -- turned, to prove the read is in the wizard's frame
       MARK = MKOBJ("Outcast Marker", { 0, 0, 0 }, {})
-      MARK.clone = function(p) return MKOBJ("Outcast Marker", p.position, {}) end
       function putMarker(x, z, down)
         MARK.__pos = WIZ.positionToWorld(Vector({ x, 0.2, z })); MARK.is_face_down = down
       end
@@ -361,12 +360,19 @@ def t_the_lizard_board_follows_the_wizard(src):
         for i, dsc in ipairs(descs) do objs[i] = { description = dsc } end
         dk.getObjects = function() return objs end
       end
-      function mirrorAt()
-        if MIRROR == nil then return "none" end
-        local o = getObjectFromGUID(MIRROR)
-        if o == nil then return "gone" end
-        local l = self.positionToLocal(o.getPosition())
-        return string.format("%.3f|%.3f|%.0f", l.x, l.z, o.getRotation().z)
+      function decalAt()
+        local ds = self.getDecals()
+        if ds == nil or #ds == 0 then return "none" end
+        local d = ds[1]
+        return string.format("%.4f|%.4f|%s", d.position[1], d.position[3],
+          (d.url == HATED_IMG) and "hated" or "outcast")
+      end
+      function tokensOnTable()
+        local n = 0
+        for _, o in ipairs(getAllObjects()) do
+          if o.getName() == "Outcast Marker" then n = n + 1 end
+        end
+        return n
       end
       onLoad("")
     """)
@@ -376,9 +382,9 @@ def t_the_lizard_board_follows_the_wizard(src):
         b = er.eval("BTN")
         return [str(b[i]) for i in range(3)]
 
-    def mirror():
+    def decal():
         er.execute("updateButtons()")
-        return str(er.eval("mirrorAt()"))
+        return str(er.eval("decalAt()"))
 
     er.execute('pile({"Fox","Fox","Mouse","Bird","Rabbit","Fox","Mouse"})')
     er.execute("putMarker(-0.73, 0.7320, false)")
@@ -398,33 +404,40 @@ def t_the_lizard_board_follows_the_wizard(src):
     # (They came out on the board's own snap points 5, 6 and 7, which is what I had guessed -- but a
     # guess that happens to be right is still worth replacing with the measurement.)
     SLOT = slots_from_the_lizard_save()
-    x, z, rz = mirror().split("|")
+    x, z, face = decal().split("|")
     assert abs(float(x) - SLOT["fox"]) < 0.01 and abs(float(z) + 0.0575) < 0.01, \
-        "the fox outcast put the token at %s,%s instead of the fox slot" % (x, z)
-    assert abs(float(rz)) < 1, "the token was flipped for an outcast that is not hated"
+        "the fox outcast painted the symbol at %s,%s instead of the fox slot" % (x, z)
+    assert face == "outcast", "the hated picture was used for an outcast that is not hated"
+
+    # IT IS PAINTED ON, NOT PUT ON. Maintainer, 2026-09-07: "can you make the symbol be inside the
+    # faction board, not another token on token. like it s literally the faction board art." An
+    # earlier version cloned the real token onto the slot; setDecals prints the image onto the board
+    # itself, so nothing can be picked up off it and there is nothing to clean up.
+    assert int(er.eval("tokensOnTable()")) == 1, \
+        "showing the outcast added %s Outcast Markers to the table; it should add none" \
+        % er.eval("tokensOnTable()")
 
     er.execute("putMarker(-0.73, 0.0284, true)")
-    x, _, rz = mirror().split("|")
+    x, _, face = decal().split("|")
     assert abs(float(x) - SLOT["mouse"]) < 0.01, "a mouse outcast landed at x %s" % x
-    assert abs(abs(float(rz)) - 180) < 1, \
-        "the Hated Outcast was not shown: the copy is at rotZ %s, not flipped" % rz
+    assert face == "hated", "the Hated Outcast is not showing its own picture"
 
     er.execute("putMarker(-0.73, 0.3749, false)")
-    x, _, _ = mirror().split("|")
+    x, _, _ = decal().split("|")
     assert abs(float(x) - SLOT["rabbit"]) < 0.01, "a rabbit outcast landed at x %s" % x
 
     # A MARKER THAT IS NOT IN A SLOT NAMES NO SUIT. It gets picked up and put down constantly, and a
     # board that guessed the nearest slot from across the table would show a suit nobody chose.
     er.execute("putMarker(0.4, 0.0, false)")
-    assert mirror() == "none", "the marker was off the slots and the board still showed %s" % mirror()
+    assert decal() == "none", "the marker was off the slots and the board still showed %s" % decal()
 
     # ...AND NO WIZARD MEANS NO ANSWER, rather than a stale one.
     er.execute("putMarker(-0.73, 0.7320, false)")
-    assert mirror() != "none", "the fixture is not showing a token to begin with"
+    assert decal() != "none", "the fixture is not showing a symbol to begin with"
     er.execute("for _,o in ipairs(getAllObjects()) do "
                "if o.getName() == 'Lizard Wizard' then o.destruct() end end")
     assert counts() == ["0", "0", "0"], "the counts survived the wizard leaving: %s" % counts()
-    assert mirror() == "none", "the outcast token survived the wizard leaving"
+    assert decal() == "none", "the outcast symbol survived the wizard leaving"
 
     # THE COUNTS SIT UNDER THEIR OWN SUIT. They were at x +0.70 / +0.90 / +1.09 -- the MIRROR of the
     # slots, which on this board is the far side, over the Birdsong/Daylight/Evening column.
