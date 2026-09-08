@@ -5981,6 +5981,23 @@ function makeMap(player,value,id,keepBoard)
     if rtt_ov and ob ~= nil and RTT_MARSH_PIECES ~= nil then RTT_MARSH_PIECES[#RTT_MARSH_PIECES + 1] = ob end
   end
   if id ~= "Marsh Map" then shuffleMaps(id) end
+  rttLockRuins()
+end
+
+-- EVERY MAP'S RUINS, LOCKED, however they were placed. Maintainer, 2026-09-07: "looks like Marsh is
+-- the only map that locks the ruins; the ruins in general after being randomize must be locked."
+--
+-- It was never a per-map rule: it is the BLUEPRINTS that disagree. Of the 24 ruin entries the seven
+-- maps ship, 17 carry Locked:true and 7 do not, so whether a game got loose ruins depended on which
+-- entries that map happened to use. A ruin stands in its clearing for the whole game and is only ever
+-- moved by accident -- a warrior dragged across it takes it along -- so locking them all is the rule
+-- the data was already trying to express, unevenly.
+--
+-- HERE RATHER THAN IN shuffleMaps, because the Marsh does not go through it: its ruins are placed by
+-- rttMarshPlan's overlay instead. This runs after both paths, so it is the one place that sees them
+-- all. Nothing else in the mod touches a Ruin, so the lock is never fought over.
+function rttLockRuins()
+  for _, o in ipairs(getObjectsWithTag("Ruin")) do pcall(function() o.setLock(true) end) end
 end
 
 function shuffleMaps(id)

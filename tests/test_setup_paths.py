@@ -3128,6 +3128,53 @@ def t_numpad_two_lays_a_warrior_down_and_lights_it(src):
     assert state("ROOST")[1] is False, "numpad 2 laid a building down"
 
 
+def t_every_map_locks_its_ruins(src):
+    """A ruin is locked once it has been placed, on every map -- not only the Marsh.
+
+    Maintainer, 2026-09-07: "looks like Marsh is the only map that locks the ruins; the ruins in
+    general after being randomize must be locked." He was exactly right, and it was never a per-map
+    rule: it is the BLUEPRINTS that disagree. The Marsh's four ruin entries carry Locked:true and the
+    other five maps' do not, so whether a game got loose ruins depended on which map you picked. A
+    ruin stands in its clearing for the whole game and is only ever moved by accident -- a warrior
+    dragged across it takes it along.
+
+    rttLockRuins runs at the end of makeMap rather than inside shuffleMaps, because the Marsh does not
+    go through shuffleMaps at all: its ruins are placed by rttMarshPlan's overlay. That makes the end
+    of makeMap the one point that sees every map's ruins however they got there.
+
+    NOTE ON THE HARNESS. This could not have been written before: the stub spawned every blueprint
+    object untagged and unlocked, so getObjectsWithTag("Ruin") came back empty and shuffleMaps -- the
+    function that randomises every map but the Marsh -- had never once been executed by a test.
+    """
+    PROBE = """
+    function __ruins()
+      local n, loose = 0, 0
+      for _, o in ipairs(getObjectsWithTag("Ruin")) do
+        n = n + 1
+        if o.getLock() ~= true then loose = loose + 1 end
+      end
+      return n .. "," .. loose
+    end
+    """
+    for mid in ("Summer Map", "Lake Map", "Marsh Map", "Winter Map", "Mountain Map", "Gorge Map"):
+        rt = fresh(src)
+        rt.execute(PROBE)
+        rt.execute("SEAT('Purple','H1')")
+        rt.execute("pcall(function() makeMap(Player['Purple'],'','%s') end) FLUSH(300)" % mid)
+        n, loose = (int(v) for v in rt.eval("__ruins()").split(","))
+        assert n == 4, "%s placed %d ruins, expected 4" % (mid, n)
+        assert loose == 0, "%s left %d of its %d ruins unlocked" % (mid, loose, n)
+
+    # AND THE 5-PLAYER MARSH, which places its ruins through a different plan again (four central
+    # clearings only, never the rim) and so could drift from the other seven without anyone noticing.
+    rt = fresh(src)
+    rt.execute(PROBE)
+    rt.execute("SEAT('Purple','H1')")
+    rt.execute("pcall(function() rttPlaceMarsh5P(Player['Purple'],'','Marsh5PMap') end) FLUSH(300)")
+    n, loose = (int(v) for v in rt.eval("__ruins()").split(","))
+    assert n == 4 and loose == 0, "the 5-player Marsh left %d of %d ruins unlocked" % (loose, n)
+
+
 def t_the_board_shows_the_build_number(src):
     """One version, on the board, in the mod's cream.
 
@@ -4183,6 +4230,7 @@ CASES = [
     ("placement ignores board size",       t_placement_never_asks_the_board_how_big_it_is),
     ("send home asks no permission",      t_send_home_asks_no_permission),
     ("numpad 2 lays and lights a warrior", t_numpad_two_lays_a_warrior_down_and_lights_it),
+    ("every map locks its ruins",         t_every_map_locks_its_ruins),
     ("board shows the build number",      t_the_board_shows_the_build_number),
     ("panel pauses the clock",            t_the_panel_pauses_the_clock),
     ("start names the pass it causes",    t_start_names_the_pass_it_causes),

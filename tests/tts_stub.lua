@@ -183,6 +183,22 @@ function spawnObjectJSON(p)
     for _ in snapBlock:gmatch('"Position"') do sn[#sn + 1] = { position = { 0, 0, 0 } } end
     o.__snaps = sn
   end
+  -- THE BLUEPRINT'S TAGS. Without these the stub spawned every map object untagged, so
+  -- getObjectsWithTag("Ruin") / ("Clearing Marker") / ("Map Object") all came back EMPTY and
+  -- shuffleMaps -- the function that randomises every map but the Marsh -- had never once been
+  -- exercised by a test. The first "Tags" in the blob is the outer object's; ContainedObjects come
+  -- after it in a TTS save.
+  -- AND WHETHER IT SPAWNS LOCKED. Every spawned object used to start loose in the harness whatever
+  -- its blueprint said, so a test could not tell a piece the mod locked from one that shipped locked.
+  -- ONLY THE OUTER OBJECT'S FIELDS. A blueprint carries ContainedObjects with Locked and Tags of
+  -- their own, and a bag whose first contents happen to be locked is not itself locked -- so read the
+  -- head of the blob, up to where the contents begin.
+  local head = j:match('^(.-)"ContainedObjects"') or j
+  if head:match('"Locked"%s*:%s*true') ~= nil then o.__locked = true end
+  local tagBlock = head:match('"Tags"%s*:%s*%[(.-)%]')
+  if tagBlock ~= nil then
+    for t in tagBlock:gmatch('"([^"]+)"') do o.addTag(t) end
+  end
   local ry = tonumber(j:match('"rotY":%s*([-%d.eE]+)'))
   if ry then o.__rot = vec{0, ry, 0} end
   if p and p.rotation then o.__rot = vec(p.rotation) end
