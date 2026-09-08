@@ -52,7 +52,7 @@ BOX = (1225, 700, 1655, 1300)   # generous bounds round the printed Lost Souls b
 BG_THRESH = 22                  # L1 distance to the background palette that still counts as green
 MASK_THRESH = 14                # ...and the tighter one used to find the artwork
 LIZARD_DROP = 70                # "just put him a little bit below"
-PITCH = 140                     # column spacing that matches the board's own scatter of trees
+PITCH = 90                     # column spacing that matches the board's own scatter of trees
 TOP = 686                       # the ground starts just under the Outcast panel
 SEED = 4
 
@@ -323,7 +323,7 @@ def harvest(mapped, bclean):
     return out
 
 
-def plant(canvas, mapped, trees, region, rng, pitch=PITCH, gap=26, jitter=16):
+def plant(canvas, mapped, trees, region, clean, rng, pitch=PITCH, gap=26, jitter=16, tries=14):
     """Plant whole trees in columns, the way they stand everywhere else on the board.
 
     Every tree goes down entire. That is the whole point: three earlier versions cut them to fit the
@@ -341,10 +341,25 @@ def plant(canvas, mapped, trees, region, rng, pitch=PITCH, gap=26, jitter=16):
             bb, m = trees[rng.integers(len(trees))]
             a, b, c, e = bb
             h, w = e - c + 1, b - a + 1
-            dx, dy = int(x + rng.integers(-jitter, jitter + 1) - w // 2), int(y)
-            ys0, ys1 = max(0, dy), min(canvas.shape[0], dy + h)
-            xs0, xs1 = max(0, dx), min(canvas.shape[1], dx + w)
-            if ys1 - ys0 > 30 and xs1 - xs0 > 10:
+            # A TREE MAY ONLY BE CUT BY SOMETHING THAT REALLY CUTS TREES -- the parchment of a panel,
+            # or the edge of the board. Everywhere else on this board a tree either stands whole or
+            # runs under a panel, and a tree that simply stops in open green is the "cut trees and
+            # uncomplete designs" the maintainer kept seeing: the region's own rectangular edge was
+            # doing the cutting.
+            dy = int(y)
+            placed = False
+            for _ in range(tries):
+                dx = int(x + rng.integers(-jitter, jitter + 1) - w // 2)
+                ys0, ys1 = max(0, dy), min(canvas.shape[0], dy + h)
+                xs0, xs1 = max(0, dx), min(canvas.shape[1], dx + w)
+                if ys1 - ys0 <= 30 or xs1 - xs0 <= 10:
+                    break
+                sub = m[ys0 - dy:ys1 - dy, xs0 - dx:xs1 - dx]
+                spill = sub & ~region[ys0:ys1, xs0:xs1]
+                if not (spill & clean[ys0:ys1, xs0:xs1]).any():
+                    placed = True
+                    break
+            if placed:
                 sy0, sx0 = ys0 - dy, xs0 - dx
                 src = mapped[c + sy0:c + sy0 + (ys1 - ys0), a + sx0:a + sx0 + (xs1 - xs0)].astype(np.float32)
                 al = soft(m[sy0:sy0 + (ys1 - ys0), sx0:sx0 + (xs1 - xs0)])
@@ -394,10 +409,10 @@ def main():
     trees = harvest(mapped, bclean)
     clean = bg_dist(front, pal) < BG_THRESH
     region = np.zeros(front.shape[:2], bool)
-    region[TOP:front.shape[0], X0 - 2:X1 + 2] = True
+    region[TOP:front.shape[0], X0 - 2:front.shape[1]] = True
     region &= (clean | art)
     out = smooth_ground(front, region, pal, rng)
-    planted = plant(out, mapped, trees, region, rng)
+    planted = plant(out, mapped, trees, region, clean, rng)
     print("   %d whole trees off the manifest side, planted in %d px of rebuilt ground"
           % (planted, int(region.sum())))
 
