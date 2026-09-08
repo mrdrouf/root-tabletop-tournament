@@ -109,6 +109,21 @@ Nothing below is implemented. The maintainer asked to be consulted before each c
 
 ### Buttons and real estate
 
+- [ ] **The Lizard Board's three Lost Souls counters print on top of the printed suit icons.**
+      Deferred by the maintainer on 2026-09-08 ("we are going to fix that after") -- the outcast
+      symbol beside them is done and shipped in 1.84. The buttons pass z = -COUNT_Z and land at
+      local z -0.17, which is the middle of the icon band (-0.2171..-0.1380). A button's x IS
+      mirrored against the model frame but its z is NOT -- a reflection, not a turn -- so to sit at
+      local z Z the button must be given +Z, not -Z. That is the mechanical half.
+      The design half is that THERE IS NOWHERE OBVIOUS TO PUT THEM: measured on the board texture,
+      the Outcast panel's ink-free horizontal bands are only 8, 15, 12, 9 and 9 px tall, none of
+      them enough for a numeral. Three candidates were rendered against the real art and shown to
+      the maintainer: (E) a row at the top of the Lost Souls box at local z ~+0.243, each number in
+      its own suit's column -- all three counts visible, clear background, and it sits in the box it
+      counts; (F) inside the three printed slots, tidiest but the outcast suit's slot is taken by
+      the symbol so that count is lost; (G) just under the slots at z ~+0.060, closest to the suit
+      icons but cutting across the panel's torn border and the Lost Souls frame. E was recommended.
+
 - [ ] **Per-faction DRAW ONE buttons, and DRAW POND when the frogs are in.** Zaandaa: old Woodland
       Tournament mods had a draw button beside each faction board. It avoids high-ping draws from
       hands and stops accidental overdraws (pressing 11). The maintainer has this on his own list.
