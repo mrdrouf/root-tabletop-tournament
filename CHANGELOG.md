@@ -127,3 +127,4 @@ setup board's top right corner, and goes up on every commit.
 - A button warns only about what it will really do.
 - Which map is on the table is saved, so a reload can still re-place it.
 - New mod icon: the Root sign re-lettered "Tabletop Tournament" in Luminari, a real board screenshot, black ground.
+- Numpad 3's highlight is black, so it separates from the warrior and the map instead of matching them.

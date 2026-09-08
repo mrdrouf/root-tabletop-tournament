@@ -6875,6 +6875,16 @@ end
 RTT_DISC_URL = "https://cdn.jsdelivr.net/gh/mrdrouf/root-tabletop-tournament@main/assets/labels/disc_89666e66.png"
 RTT_DISC_TAG = "RTT Laid Disc"
 RTT_DISC_A   = 0.42            -- "a little bit more transparent" (was 0.55)
+-- THE GLOW IS BLACK, NOT THE PRESSER'S COLOUR. Maintainer, 2026-09-07: "increase the highlight on
+-- numpad 3? make it much more highlighted? and make it black highlighted."
+--
+-- Colour is the ONLY lever: TTS fixes the outline's thickness and offers no intensity, so the way to
+-- make the mark carry is to stop it competing with the piece. A player colour outlines a warrior that
+-- is already painted in that colour, on a map printed in the same warm palette -- three greens and a
+-- yellow against green and yellow clearings. Black is the one value none of the seven maps or the
+-- twelve factions use, so it separates from all of them at once. The disc (numpad 2) keeps the
+-- presser's colour: it says WHO, and it is on the board rather than on the piece.
+RTT_GLOW_RGB = { r = 0, g = 0, b = 0 }
 -- TTS's own player colours. Read from a table rather than Color.fromString so the answer is the same
 -- in the harness as at the table, and so a colour TTS does not know cannot throw mid-press.
 RTT_PLAYER_RGB = {
@@ -7009,7 +7019,7 @@ function rttGizmoMark(color, mark)
     pcall(function() hovered.setLock(true) end)
     if mark == "glow" then
       -- no duration: it stays lit until the piece is stood back up, which is the whole point
-      pcall(function() hovered.highlightOn(rttMarkColor(color)) end)
+      pcall(function() hovered.highlightOn(RTT_GLOW_RGB) end)
     elseif foot ~= nil then
       pcall(function()
         local np = hovered.getPosition()

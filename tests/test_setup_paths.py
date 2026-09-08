@@ -3406,15 +3406,22 @@ def t_numpad_three_lights_the_piece_instead(src):
     rt.execute('HOVER["Red"] = W rttGizmoGlow("Red") FLUSH(3)')
     glow = rt.eval("W.__glow")
     assert glow is not None, "numpad 3 did not light the piece"
+    # BLACK, NOT THE PRESSER'S COLOUR. Maintainer, 2026-09-07: "make it black highlighted." TTS fixes
+    # the outline's thickness and gives no intensity, so the colour is the only thing that can make the
+    # mark carry -- and a player colour outlines a warrior already painted in it, on a map printed in
+    # the same palette. Black is the one value neither the maps nor the factions use.
+    assert (round(glow.r, 3), round(glow.g, 3), round(glow.b, 3)) == (0.0, 0.0, 0.0), \
+        "the glow is not black: %s %s %s" % (glow.r, glow.g, glow.b)
     red = rt.eval("RTT_PLAYER_RGB['Red']")
-    assert round(glow.r, 3) == round(red[1], 3), "the glow is not the presser's colour: %s" % glow.r
+    assert round(red[1], 3) != 0.0, "this check proves nothing if Red is already black"
     assert rt.eval("W.getLock()") is True, "numpad 3 did not lock the piece"
     assert rt.eval("#getObjectsWithTag('RTT Laid Disc')") == 0, \
         "numpad 3 drew a disc as well; it is the alternative to one, not an addition"
 
-    # pinned at the press, exactly as the disc is
+    # a colour change leaves it alone -- trivially now that it is black, but the disc is still pinned
+    # at the press and the two share this path, so a repaint here would mean the path had grown one
     rt.execute("SEAT('Yellow', Player['Red'].steam_name) onPlayerChangeColor('Yellow') FLUSH(5)")
-    assert round(rt.eval("W.__glow").r, 3) == round(red[1], 3), \
+    assert round(rt.eval("W.__glow").r, 3) == 0.0, \
         "changing colour repainted the glow; it is pinned at the press"
 
     # and pressing again puts everything back
