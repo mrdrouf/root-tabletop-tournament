@@ -56,7 +56,7 @@ BOX = (1225, 700, 1655, 1300)   # generous bounds round the printed Lost Souls b
 BG_THRESH = 22                  # L1 distance to the background palette that still counts as green
 MASK_THRESH = 14                # ...and the tighter one used to find the artwork
 LIZARD_DROP = 70                # "just put him a little bit below"
-PITCH = 122                     # column spacing that reproduces the surrounding vine density
+PITCH = 250                     # column spacing that reproduces the surrounding vine density
 GAP = 85
 SEED = 4
 
@@ -117,9 +117,20 @@ def blur(x, r, passes=3):
 
 
 def palette_of(img, regions, share=0.0004):
+    """The green background's own colours, sampled from margins the box never touched.
+
+    KEEP ONLY THE GREENS. The margins run up to the board's printed edge, so the raw sample picks up
+    its dark outline -- (23,19,10), (33,36,6) and friends -- and once those are in the palette, every
+    dark pixel on the board counts as background. That is not academic: the Outcast panel's dark
+    lower border then passed as "clean ground" and dragged the interpolated ground colour ten levels
+    darker than the board it had to meet, which is exactly the seam the maintainer could see along
+    the top edge.
+    """
     px = np.concatenate([img[a:b, c:d].reshape(-1, 3) for a, b, c, d in regions])
     cols, cnt = np.unique(px, axis=0, return_counts=True)
-    return cols[cnt >= len(px) * share]
+    keep = cnt >= len(px) * share
+    green = (cols[:, 1].astype(int) - cols[:, 2].astype(int) >= 45) & (cols[:, 1] >= 110)
+    return cols[keep & green]
 
 
 def components(m):
@@ -172,6 +183,22 @@ def artwork_mask(front, pal):
     return dilate(~(np.asarray(im) == 128), 5)
 
 
+def sample(F, gy, gx, step, H, W):
+    """Bilinear lookup of a coarse field at its OWN coordinates.
+
+    Not PIL's resize with a box: that stretches the whole grid across the whole image, which put the
+    panel's ground colour where the field held some other part of the board. It is a quiet failure --
+    the result is still a smooth plausible field, just the wrong one -- and it is what actually made
+    the rebuilt ground meet the board ten levels too dark along the top edge.
+    """
+    gi = np.clip((np.arange(H) - gy[0]) / step, 0, len(gy) - 1)
+    gj = np.clip((np.arange(W) - gx[0]) / step, 0, len(gx) - 1)
+    i0 = np.floor(gi).astype(int); i1 = np.minimum(i0 + 1, len(gy) - 1); wy = (gi - i0)[:, None, None]
+    j0 = np.floor(gj).astype(int); j1 = np.minimum(j0 + 1, len(gx) - 1); wx = (gj - j0)[None, :, None]
+    return ((F[np.ix_(i0, j0)] * (1 - wy) + F[np.ix_(i1, j0)] * wy) * (1 - wx)
+            + (F[np.ix_(i0, j1)] * (1 - wy) + F[np.ix_(i1, j1)] * wy) * wx)
+
+
 def smooth_ground(front, need, pal, rng, step=12, w=44, passes=200, G=48):
     """Lay the ground as a smooth colour field plus real grain -- no blocks anywhere.
 
@@ -184,7 +211,15 @@ def smooth_ground(front, need, pal, rng, step=12, w=44, passes=200, G=48):
     large-scale shape, so tiles of it join with nothing to see. All the tone lives in the field.
     """
     clean = bg_dist(front, pal) < BG_THRESH
-    ground = clean & ~dilate(is_vine(front), 6) & ~dilate(need, 10)
+    # MEASURE THE GROUND THE WAY IT WILL BE JUDGED. Excluding a margin round every vine biases the
+    # anchors dark -- the pixels beside a stroke are its lighter antialiasing -- so the field came
+    # out about 10 levels below the board it had to meet, and that step WAS the seam the maintainer
+    # could see along the top edge. The vine strokes themselves still come out; nothing beside them
+    # does.
+    # 5, not 10: the board ends only 12 rows below the panel, and a 10px exclusion eats that strip
+    # entirely -- leaving the bottom edge with no anchor at all and its ground extrapolated from the
+    # top, which the board's own vertical gradient then makes too bright.
+    ground = clean & ~is_vine(front) & ~dilate(need, 5)
     H, W = front.shape[:2]
     ys, xs = np.where(need)
     Y0, Y1, X0, X1 = ys.min(), ys.max() + 1, xs.min(), xs.max() + 1
@@ -215,10 +250,7 @@ def smooth_ground(front, need, pal, rng, step=12, w=44, passes=200, G=48):
         F = np.where(A[..., None], D,
                      np.where(upd[..., None], acc / np.maximum(cnt, 1)[..., None], F))
         M = M | upd
-    fy = np.clip((np.arange(H) - gy[0]) / step, 0, len(gy) - 1)
-    fx = np.clip((np.arange(W) - gx[0]) / step, 0, len(gx) - 1)
-    base = np.stack([np.asarray(Image.fromarray(F[..., c], "F").resize(
-        (W, H), Image.BILINEAR, box=(fx[0], fy[0], fx[-1], fy[-1]))) for c in range(3)], axis=2)
+    base = sample(F, gy, gx, step, H, W)
 
     resid = front.astype(np.float32) - blur(front.astype(np.float32), 5)
     sA = sat(ground)
@@ -230,6 +262,12 @@ def smooth_ground(front, need, pal, rng, step=12, w=44, passes=200, G=48):
             y2, x2 = max(0, min(yy, H - G)), max(0, min(xx, W - G))
             i = rng.integers(len(py))
             t = resid[py[i]:py[i] + G, px[i]:px[i] + G]
+            # TAKE THE DC OUT OF EVERY TILE. The residual is measured against a blur that neighbouring
+            # vines lift, so a tile cut from vine-free ground carries a systematically NEGATIVE mean --
+            # about ten levels of green. Left in, it subtracts that from the field everywhere and the
+            # rebuilt ground meets the board ten levels too dark. Grain is supposed to be the part with
+            # no tone in it; this makes that true.
+            t = t - t.mean(axis=(0, 1))
             if rng.random() < 0.5:
                 t = t[:, ::-1]
             if rng.random() < 0.5:
@@ -267,6 +305,79 @@ def clean_motifs(front, motifs, max_foreign=0.01):
         if (px[:, 0] > px[:, 1] + 15).mean() <= max_foreign:
             out.append((bb, m))
     return out
+
+
+def stem_x(m):
+    """Where the stem runs inside a motif -- its densest column."""
+    return int(np.argmax(m.sum(axis=0)))
+
+
+def crossings(front, panel, edge, depth=16, min_run=3):
+    """Columns where one of the board's own vines runs into the panel from outside.
+
+    The vines are vertical, so they cross the panel's TOP and BOTTOM edges and run parallel to its
+    sides. Left unstitched, every one of them stops dead at the edge -- "the art does not connect".
+    """
+    X0, X1, Y0, Y1 = panel
+    v = is_vine(front)
+    band = v[Y0 - depth:Y0, X0:X1] if edge == "top" else v[Y1:Y1 + depth, X0:X1]
+    hits = band.sum(axis=0) > 0
+    out, run = [], []
+    for i, h in enumerate(list(hits) + [False]):
+        if h:
+            run.append(i)
+        elif run:
+            if len(run) >= min_run:
+                out.append(X0 + int(np.mean(run)))
+            run = []
+    return out
+
+
+def stems(front, panel, tol=8):
+    """The columns where the board's own vines run STRAIGHT THROUGH the panel.
+
+    Each vine entering the top of the panel leaves the bottom at the same x -- measured at 1262,
+    1394, 1515 and 1644, matching to within 3px. They are one stem each, passing behind the box,
+    about 128px apart. So the panel is not a place to scatter vines into: it is four stems with
+    known positions, and rebuilding them there is what makes the drawing run through both joins.
+    """
+    top = crossings(front, panel, "top")
+    bot = crossings(front, panel, "bottom")
+    out = []
+    for t in top:
+        near = [b for b in bot if abs(b - t) <= tol]
+        if near:
+            out.append(int(round((t + near[0]) / 2)))
+    return out
+
+
+def grow(canvas, front, motifs, panel, rng, cols, overlap=18):
+    """Grow a stem down each of those columns, motif after motif, from above the top edge to below
+    the bottom one -- so it arrives already joined to the board at both ends."""
+    X0, X1, Y0, Y1 = panel
+    n = 0
+    for cx in cols:
+        y = Y0 - int(rng.integers(24, 70))
+        while y < Y1:
+            bb, m = motifs[rng.integers(len(motifs))]
+            a, b, c, e = bb
+            h, w = e - c + 1, b - a + 1
+            flip = rng.random() < 0.5
+            sx = (w - 1 - stem_x(m)) if flip else stem_x(m)
+            dx = int(cx - sx + rng.integers(-4, 5))
+            ys0, ys1 = max(Y0, y), min(Y1, y + h)
+            xs0, xs1 = max(X0, dx), min(X1, dx + w)
+            if ys1 - ys0 > 20 and xs1 - xs0 > 6:
+                sy0, sx0 = ys0 - y, xs0 - dx
+                src = front[c + sy0:c + sy0 + (ys1 - ys0), a + sx0:a + sx0 + (xs1 - xs0)].astype(np.float32)
+                al = soft(m[sy0:sy0 + (ys1 - ys0), sx0:sx0 + (xs1 - xs0)])[..., None]
+                if flip:
+                    src, al = src[:, ::-1], al[:, ::-1]
+                reg = canvas[ys0:ys1, xs0:xs1].astype(np.float32)
+                canvas[ys0:ys1, xs0:xs1] = np.clip(reg * (1 - al) + src * al, 0, 255).astype(np.uint8)
+                n += 1
+            y = y + h - int(rng.integers(0, overlap))
+    return n
 
 
 def sow(canvas, front, motifs, panel, rng, pitch=PITCH, jitter=13, gap=GAP):
@@ -330,7 +441,9 @@ def main():
 
     out = smooth_ground(front, rect, pal, rng)
     motifs = clean_motifs(front, motif_library(front, pal))
-    n = sow(out, front, motifs, (X0, X1, Y0, Y1), rng)
+    cols = stems(front, (X0, X1, Y0, Y1))
+    s = grow(out, front, motifs, (X0, X1, Y0, Y1), rng, cols)
+    n = 0
 
     h, w = le - lc + 1, lb - la + 1
     nc = lc + LIZARD_DROP
@@ -343,8 +456,12 @@ def main():
     ring = np.zeros(front.shape[:2], bool)
     ring[Y0 - 80:Y1 + 80, X0 - 80:X1 + 80] = True
     td = is_vine(front)[clean & ring & ~dilate(rect, 4)].mean()
-    print("   %d motifs sown; vine density %.2f%% against %.2f%% around it"
-          % (n, 100 * is_vine(out)[rect].mean(), 100 * td))
+    # measured on the GROUND ONLY -- the lizard's own pale greens answer to the same test as a vine
+    lizfoot = np.zeros(front.shape[:2], bool)
+    lizfoot[nc - 12:nc + h + 12, la - 12:la + w + 12] = True
+    ground_only = rect & ~lizfoot
+    print("   stems at %s rebuilt from %d motifs; ground %.2f%% against %.2f%% around it"
+          % (cols, s, 100 * is_vine(out)[ground_only].mean(), 100 * td))
 
     changed = (out != front).any(axis=-1)
     assert not (changed & ~rect).any(), "the rebuild touched pixels outside the Lost Souls panel"

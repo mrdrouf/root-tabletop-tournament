@@ -370,6 +370,22 @@ def t_the_lost_souls_box_is_gone_from_the_board(src):
     assert count(1300, 1580, 1000, 1250, dark) > 200, \
         "the lizard is missing from the board; he was meant to stay"
 
+    # 4. NO SEAM WHERE THE REBUILT GROUND MEETS THE BOARD. Reported twice -- "we can perceive a
+    #    seam" -- and it was real: the ground field was being sampled at the wrong coordinates, so
+    #    the panel met the board ten levels of green too dark along its top edge. The panel spans
+    #    y 703..1300; comparing a band just inside each horizontal edge with one just outside it
+    #    catches any step, and the board's own variation across the same lines is about 2.
+    def median(x0, x1, y0, y1):
+        vals = sorted(px[x, y][1] for y in range(y0, y1) for x in range(x0, x1, 2))
+        return vals[len(vals) // 2]
+
+    above, in_top = median(1330, 1560, 685, 699), median(1330, 1560, 721, 735)
+    in_bot, below = median(1330, 1560, 1268, 1282), median(1330, 1560, 1301, 1311)
+    assert abs(in_top - above) <= 6, \
+        "the rebuilt ground meets the board %d levels off at the panel's top edge" % (in_top - above)
+    assert abs(in_bot - below) <= 6, \
+        "the rebuilt ground meets the board %d levels off at the panel's bottom edge" % (in_bot - below)
+
 
 def t_the_lizard_board_follows_the_wizard(src):
     """The board's Outcast readout and its three counts come off the Lizard Wizard.
