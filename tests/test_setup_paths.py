@@ -443,10 +443,13 @@ def t_the_lizard_board_follows_the_wizard(src):
 
     # THE COUNTS SIT UNDER THEIR OWN SUIT. They were at x +0.70 / +0.90 / +1.09 -- the MIRROR of the
     # slots, which on this board is the far side, over the Birdsong/Daylight/Evening column.
-    seen = re.findall(r'position = \{ BOARD_SLOT\[suit\]', ls)
-    assert seen, "the counters are no longer placed against the suit slots"
-    assert "0.7 + (i - 1) * 0.195" not in ls, \
-        "the counters are back on the mirrored positions, across the board from the suits they count"
+    # A BUTTON'S X IS MIRRORED AGAINST THE MODEL'S. The board's snap points and its decals put the
+    # Outcast panel at NEGATIVE local x; the buttons on that same panel sit at POSITIVE, because
+    # createButton lays out on the face looking down at it and setDecals does not. I "fixed" the
+    # counters onto the slot coordinates and put all three over Daylight on the far side of the board.
+    # They are derived from the slots by negation now, so the two cannot drift apart again.
+    assert "position = { -BOARD_SLOT[suit], 0.1, -COUNT_Z }" in ls, \
+        "the counters are not the mirror of the slot positions; check createButton's handedness"
 
     # ONE OUTCAST MARKER IS SPAWNED, NOT TWO. Maintainer, 2026-09-07: "it looks like the lizard wizard
     # is spawning two outcast token instead of only 1." There were two blueprints carrying one: the
