@@ -3930,6 +3930,55 @@ def t_both_setup_paths_leave_the_same_kind_of_record(src):
             "%s: turn order %s is not the seat colours %s" % (name, order, cols)
 
 
+def t_a_seat_fact_has_one_writer(src):
+    """Each fact about a seat is written in one place, and the setters enforce their own rules.
+
+    This is deliberately a SOURCE-SHAPE test, which the rest of this file avoids -- you cannot execute
+    "nobody else assigns this field". The invariant is the point: a seat's colour was assigned in four
+    places, each carrying its own copy of the same two rules, and at four players P3 and P4 held each
+    other's colour in every game. The owner was written in two, one of which only filled a gap, so a
+    seat kept the first name it ever saw and the sheet credited the game to whoever had left.
+
+    The behaviour of each setter is pinned by its own test; this pins that they are the only way in.
+    """
+    import re as _re
+    code = [l for l in src.split("\n")
+            if not l.strip().startswith("--") and len(l) < 500]
+
+    LIMITS = {
+        "color":   (1, "rttSetSeatColor"),
+        "owner":   (1, "rttSetSeatOwner"),
+        "faction": (1, "rttPlaceFaction"),
+        # key and vagN are two branches of one if/else, in one function -- a vagabond seat and a
+        # normal one, decided together at the pick
+        "key":     (2, "rttPlaceFaction"),
+        "vagN":    (2, "rttPlaceFaction"),
+        # one setter, plus the clear when a board is drafted away
+        "board":   (2, "rttAttachBoard"),
+    }
+    for field, (limit, owner_fn) in LIMITS.items():
+        hits = [l.strip() for l in code
+                if _re.search(r"\b(seat|s)\.%s\s*=\s*[^=]" % field, l)]
+        assert len(hits) <= limit, (
+            "%s is assigned in %d places, expected at most %d -- it should go through %s:\n  %s"
+            % (field, len(hits), limit, owner_fn, "\n  ".join(hits[:4])))
+
+    for fn in ("rttSetSeatColor", "rttSetSeatOwner", "rttPersonIn", "rttAttachBoard"):
+        assert ("function %s" % fn) in src, "%s is gone; a fact has lost its one writer" % fn
+
+    # NOT asserted: the number of loops over the player list. Nine exist across the board script and
+    # they ask genuinely different questions -- which colours are taken, how many are seated, deal one
+    # card to each. Only "who is sitting in THIS colour" was duplicated, and rttPersonIn is now the
+    # single answer to it; counting the rest would be a number invented to be met.
+
+    # and the setters really do refuse what they are there to refuse
+    rt = fresh(src)
+    rt.execute("RTT_SEATS = { { pos = {52,-46}, color = 'Red', owner = 'Alice' }, { pos = {-52,-46} } }")
+    assert rt.eval("rttSetSeatColor(RTT_SEATS[2], 'Red')") is None, "a duplicate colour got through"
+    assert rt.eval("rttSetSeatOwner(RTT_SEATS[1], '')") == "Alice", "an empty name overwrote a real one"
+    assert rt.eval("rttSetSeatOwner(RTT_SEATS[1], 'Bob')") == "Bob", "the owner is not refreshed"
+
+
 CASES = [
     ("manual path drives the turn system",   t_manual_turn_order),
     ("manual path spawns 4 / 5 boards",      t_boards_spawn),
@@ -4006,6 +4055,7 @@ CASES = [
     ("extra slots face like the rest",       t_extra_return_slots_face_the_same_way),
     ("one seat holds one faction",           t_one_seat_holds_one_faction),
     ("one writer owns seat colour",       t_one_writer_owns_a_seats_colour),
+    ("a seat fact has one writer",        t_a_seat_fact_has_one_writer),
     ("both paths agree on the record",    t_both_setup_paths_leave_the_same_kind_of_record),
     ("the pick survives a reload",        t_the_faction_pick_survives_a_reload),
     ("the draft shuffle is saved",        t_the_drafts_shuffle_is_saved_and_forgotten),

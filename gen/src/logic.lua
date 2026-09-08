@@ -3072,6 +3072,26 @@ RTT_PICK_N = 0
 -- Derived from the seats now, and re-attached from the table when the record has lost the handle: a
 -- selector board standing at a seat's position IS that seat's board. That makes the pick survive a
 -- reload, which it never has.
+-- Is this object standing at that seat? Twelve units, the same tolerance rttSeatAt matches a board to
+-- a seat with, so "which seat is this board at" has one answer everywhere.
+local function rttAtSeat(obj, seat)
+  if obj == nil or seat == nil or seat.pos == nil then return false end
+  local p = nil
+  pcall(function() p = obj.getPosition() end)
+  if p == nil then return false end
+  local dx, dz = p.x - seat.pos[1], p.z - seat.pos[2]
+  return dx * dx + dz * dz <= 144
+end
+
+-- THE ONE PLACE A SEAT IS GIVEN ITS BOARD. Both lookups below lost the handle in the same way and
+-- re-found it in the same way, and I wrote that search out twice -- which is exactly the drift this
+-- whole pass is about.
+local function rttAttachBoard(seat, obj)
+  if seat == nil or obj == nil then return nil end
+  seat.board = obj
+  return obj
+end
+
 function rttSeatOfBoard(guid)
   if guid == nil or guid == "" then return nil end
   for i, s in ipairs(RTT_SEATS or {}) do
@@ -3081,14 +3101,8 @@ function rttSeatOfBoard(guid)
   end
   local obj = getObjectFromGUID(guid)
   if obj == nil then return nil end
-  local p = nil
-  pcall(function() p = obj.getPosition() end)
-  if p == nil then return nil end
   for i, s in ipairs(RTT_SEATS or {}) do
-    if s ~= nil and s.pos ~= nil then
-      local dx, dz = p.x - s.pos[1], p.z - s.pos[2]
-      if dx * dx + dz * dz <= 144 then s.board = obj return i end
-    end
+    if rttAtSeat(obj, s) then rttAttachBoard(s, obj) return i end
   end
   return nil
 end
@@ -3100,12 +3114,7 @@ function rttCloneFor(color)
     if s ~= nil and s.color == color then
       if s.board ~= nil then return s.board end
       for _, o in ipairs(getObjectsWithTag(RTT_SELECTOR_TAG)) do
-        local p = nil
-        pcall(function() p = o.getPosition() end)
-        if p ~= nil and s.pos ~= nil then
-          local dx, dz = p.x - s.pos[1], p.z - s.pos[2]
-          if dx * dx + dz * dz <= 144 then s.board = o return o end
-        end
+        if rttAtSeat(o, s) then return rttAttachBoard(s, o) end
       end
       return nil
     end
@@ -3257,6 +3266,30 @@ end
 --   * A SEAT THAT HAS ONE KEEPS IT unless the caller says otherwise. Reassigning takes a player's
 --     hand away.
 -- Returns the colour actually set, or nil if it refused.
+-- WHO IS SITTING IN A COLOUR, asked in one place. Four separate loops over Player.getPlayers() were
+-- asking it, each with its own idea of what counts -- seated or not, Grey and Black or not.
+function rttPersonIn(color)
+  if color == nil or color == "" then return nil end
+  local who = nil
+  pcall(function()
+    for _, pl in ipairs(Player.getPlayers()) do
+      if pl.color == color and pl.seated then who = pl.steam_name end
+    end
+  end)
+  return who
+end
+
+-- THE ONE PLACE A SEAT'S OWNER IS WRITTEN. It was two: the draft's seating loop, which knows the name
+-- it just seated, and the faction pick, which reads it off the colour that clicked. Refreshing rather
+-- than filling a gap is the rule -- a seat kept the first name it ever saw, and the sheet PREFERS this
+-- name over the live occupant, so a game finished by one player in another's seat was credited to
+-- whoever had left. An empty name never overwrites a real one.
+function rttSetSeatOwner(seat, name)
+  if seat == nil or name == nil or name == "" then return seat and seat.owner or nil end
+  seat.owner = name
+  return name
+end
+
 function rttSetSeatColor(seat, color, replace)
   if seat == nil or color == nil or color == "" then return nil end
   if seat.color ~= nil and not replace then return seat.color end
@@ -3443,7 +3476,7 @@ function rttSeatPlayers()
     -- replace: the draft DOES reassign, deliberately -- seat N wears turn-card N's colour, and the
     -- players were parked in Grey a moment ago precisely so this can happen without a clash.
     rttSetSeatColor(seat, color, true)
-    seat.owner = w.name
+    rttSetSeatOwner(seat, w.name)
     pcall(function()
       Player[color].setHandTransform(
         { position = seat.hand.pos, rotation = seat.hand.rot, scale = RTT_HAND_SCALE }, 1)
@@ -4259,11 +4292,7 @@ function rttPlaceFaction(faction, cx, cz, flip, color, isDraft, category, rotati
   -- Alice drafts the Marquise, disconnects, Bob takes her colour, and the sheet -- which PREFERS this
   -- name over the live occupant -- credits the whole game to Alice.
   if pickerColor ~= nil and pickerColor ~= "" then
-    pcall(function()
-      for _, pl in ipairs(Player.getPlayers()) do
-        if pl.color == pickerColor and pl.seated then seat.owner = pl.steam_name end
-      end
-    end)
+    rttSetSeatOwner(seat, rttPersonIn(pickerColor))
   end
   rttPublishSeats()
   -- Re-apply the turn order from the seats as they now stand. This is what makes the MANUAL paths
@@ -6615,12 +6644,7 @@ function rttMyFaction(color)
   -- claim with it: Alice picks the Marquise as Red and leaves, Bob takes Red, and Bob's numpad 1 used
   -- to hand him Marquise warriors. Where nobody is seated (hotseat, or a table nobody has joined) the
   -- pressing colour is the only identity there is, so it is used instead.
-  local who = nil
-  pcall(function()
-    for _, pl in ipairs(Player.getPlayers()) do
-      if pl.color == color and pl.seated then who = pl.steam_name end
-    end
-  end)
+  local who = rttPersonIn(color)
   local best, bestN = nil, -1
   for _, s in ipairs(RTT_SEATS or {}) do
     if s ~= nil and s.faction ~= nil and s.faction ~= "" and (s.pickedAt or 0) > bestN then
