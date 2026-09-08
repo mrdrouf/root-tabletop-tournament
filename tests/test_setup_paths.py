@@ -3323,18 +3323,26 @@ def t_numpad_three_lights_the_piece_instead(src):
     assert rt.eval("W.getLock()") is False, "the piece stayed locked"
 
 
-def t_start_does_not_arm_a_suppression_it_never_uses(src):
-    """START arms nothing. There is nothing left to suppress.
+def t_start_names_the_pass_it_causes(src):
+    """START tells the sheet which colour it is handing the turn to, BEFORE it hands it over.
 
-    The panel armed `rttSuppressNextLock` unconditionally and then moved the turn only if the colour
-    differed -- so pressing START on seat 1's own turn fired no pass, nothing consumed the flag, and it
-    sat armed until it swallowed the first REAL turn. That is the missing round reported over and over,
-    and it survived five separate START fixes because the panel's own script had never been executed
-    by a test.
+    Moving the turn pointer IS a pass, so pressing START on anyone but seat 1 makes TTS fire
+    onPlayerTurn and the sheet locks the outgoing row -- a completed turn nobody played, in that seat's
+    own column. Maintainer, 2026-09-07: "starting game by pressing start on the turncounter when its the
+    turn of 4th seat palyer does pass the turn to first seat player and boxcore records that as a turn
+    to print and prints the score in the first column of 4th player."
 
-    The flag is gone entirely now: a lock is keyed by (row, round), so the phantom turn START causes is
-    overwritten by the real one in the same cell. This still runs the panel's own script -- it is the
-    only test that does -- and pins that nothing is armed, whoever holds the turn.
+    Two earlier answers both failed. `rttSuppressNextLock` was armed unconditionally and then the turn
+    was moved only if the colour differed, so a press on seat 1's turn fired no pass, nothing consumed
+    the flag, and it sat armed until it swallowed the first REAL turn -- five START fixes, all missed,
+    because the panel's own script had never been executed by a test. Removing the flag and wiping the
+    sheet four frames later replaced it with a bet on how fast TTS delivers an event; under lag the
+    event lands after the wipe, which is the report above.
+
+    So the pass is refused by NAME. This is the only test that runs the panel's real script, and it
+    pins the two things the fix depends on: the announcement happens only when a pass will actually
+    follow, and it happens while the pointer is still on the OUTGOING colour -- announcing afterwards
+    would be too late, because TTS may deliver the pass first.
     """
     panel = json.loads(re.search(r"RTT_TURN_PANEL_JSON = \[====\[(.*?)\]====\]", src, re.S).group(1))
     rt = lupa.LuaRuntime(unpack_returned_tuples=True)
@@ -3342,10 +3350,14 @@ def t_start_does_not_arm_a_suppression_it_never_uses(src):
     rt.execute("CLOCK = 1000 os.time = function() return CLOCK end")
     rt.execute(panel["LuaScript"].replace("!=", "~="))
     rt.execute("""
-      CALLS = {}
+      CALLS, WHEN, ANNOUNCED = {}, {}, {}
       SHEET = MKOBJ("Root Box Score", {0,1,0}, {"RTT Box Score"})
-      SHEET.call = function(fn)
+      SHEET.call = function(fn, arg)
         CALLS[#CALLS+1] = fn
+        -- WHERE THE POINTER WAS AT THE MOMENT OF THE CALL, which is what decides whether the
+        -- announcement can still beat the pass it is describing.
+        WHEN[#WHEN+1] = tostring(Turns.turn_color)
+        if fn == "rttStartingTurn" then ANNOUNCED[#ANNOUNCED+1] = tostring(arg and arg.to) end
         if fn == "rttHasData" then return false end
         return true
       end
@@ -3356,17 +3368,34 @@ def t_start_does_not_arm_a_suppression_it_never_uses(src):
     """)
 
     def press(turn_color):
-        rt.execute("CALLS = {} Turns.turn_color = %r pcall(panelStart) FLUSH(20)" % turn_color)
-        return [str(v) for v in (rt.eval("CALLS") or {}).values()]
+        rt.execute("CALLS, WHEN, ANNOUNCED = {}, {}, {} Turns.turn_color = %r pcall(panelStart) FLUSH(20)"
+                   % turn_color)
+        return ([str(v) for v in (rt.eval("CALLS") or {}).values()],
+                [str(v) for v in (rt.eval("WHEN") or {}).values()],
+                [str(v) for v in (rt.eval("ANNOUNCED") or {}).values()])
 
-    # ALREADY seat 1's turn: no pass will fire, so nothing may be armed
-    for holder in ("Red", "Yellow"):
-        said = press(holder)
-        assert "rttSuppressNextLock" not in said, (
-            "START armed a one-shot; there is nothing to suppress now that a lock is keyed by "
-            "(row, round), and an arming that causes no pass is what swallowed the first real turn "
-            "of the game: %s" % said)
-        assert "rttResetAndStart" in said, "START did not reset the sheet: %s" % said
+    # SEAT 2 HOLDS THE TURN: START will move the pointer, so it must say so first.
+    said, when, to = press("Yellow")
+    assert "rttSuppressNextLock" not in said, \
+        "START armed the old one-shot, which swallowed the first real turn of the game: %s" % said
+    assert "rttStartingTurn" in said, \
+        "START moved the turn without naming the pass; the sheet will record it: %s" % said
+    assert to == ["Red"], "START announced %s instead of the first seat's colour" % to
+    assert when[said.index("rttStartingTurn")] == "Yellow", \
+        ("START announced the pass AFTER moving the pointer (it read %s); TTS may deliver the pass "
+         "before the next line runs, so the sheet would never hear about it in time"
+         % when[said.index("rttStartingTurn")])
+    assert said.index("rttStartingTurn") < said.index("rttResetAndStart"), \
+        "START wiped the sheet before naming the pass: %s" % said
+    assert "rttResetAndStart" in said, "START did not reset the sheet: %s" % said
+
+    # SEAT 1 ALREADY HOLDS IT: no pointer move, so no pass -- and therefore nothing to announce.
+    # Announcing anyway is precisely the shape of the old bug: a guard left standing with nothing to
+    # consume it. The box-score suite proves the sheet survives a stale one; the panel must not make one.
+    said, when, to = press("Red")
+    assert "rttStartingTurn" not in said, \
+        "START announced a pass it never makes, leaving the sheet guarding against nothing: %s" % said
+    assert "rttResetAndStart" in said, "START did not reset the sheet: %s" % said
     assert rt.eval("Turns.turn_color") == "Red", "START did not hand the turn to seat 1"
 
 
@@ -4064,7 +4093,7 @@ CASES = [
     ("numpad 3 lights the piece",         t_numpad_three_lights_the_piece_instead),
     ("board shows the build number",      t_the_board_shows_the_build_number),
     ("panel pauses the clock",            t_the_panel_pauses_the_clock),
-    ("start arms only a real pass",       t_start_does_not_arm_a_suppression_it_never_uses),
+    ("start names the pass it causes",    t_start_names_the_pass_it_causes),
 ]
 
 
