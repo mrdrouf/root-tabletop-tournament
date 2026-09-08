@@ -143,4 +143,5 @@ setup board's top right corner, and goes up on every commit.
 - Credits page redrawn: one column per caption so none overlap, "on discord" gone, three small groups share a band.
 - The credits page is taller and its back button sits on a clear strip, not on the board's button row.
 - The lizard board mirrors the Wizard: the outcast token appears in the matching slot, flipped when Hated.
+- The lizards spawn one Outcast Marker, not two.
 - Its Lost Souls counts read the Wizard and sit under their own suit, not mirrored across the board.

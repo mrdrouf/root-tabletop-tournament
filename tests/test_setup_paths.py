@@ -281,6 +281,32 @@ def t_rats_moods_wait_for_their_board(src):
     assert mood(after), "the starting mood never spawned at all"
 
 
+def slots_from_the_lizard_save():
+    """The three Outcast slots, in the Lizard Board's local frame, out of the maintainer's save."""
+    saved = json.load(open(os.path.join(REPO, "assets", "src_art", "saves", "lizard.json"),
+                           encoding="utf-8"))
+    board, marks = None, []
+    for o in saved["ObjectStates"]:
+        nm = o.get("Nickname") or ""
+        if nm == "Lizard Board":
+            board = o["Transform"]
+        elif nm == "Outcast Marker":
+            marks.append(o["Transform"])
+    assert board is not None, "the lizard save has no Lizard Board"
+    a = math.radians(board["rotY"])
+    ca, sa = math.cos(a), math.sin(a)
+    local = []
+    for m in marks:
+        dx, dz = m["posX"] - board["posX"], m["posZ"] - board["posZ"]
+        lx = (dx * ca - dz * sa) / board["scaleX"]
+        lz = (dx * sa + dz * ca) / board["scaleX"]
+        if -1.3 < lx < -0.5 and abs(lz) < 0.3:        # on the board's Outcast panel, not the wizard's
+            local.append((lx, lz))
+    assert len(local) == 3, "expected 3 tokens on the board's outcast slots, found %d" % len(local)
+    local.sort(reverse=True)                          # local -x is image right: mouse, rabbit, fox
+    return {"mouse": local[0][0], "rabbit": local[1][0], "fox": local[2][0]}
+
+
 def t_the_lizard_board_follows_the_wizard(src):
     """The board's Outcast readout and its three counts come off the Lizard Wizard.
 
@@ -365,7 +391,13 @@ def t_the_lizard_board_follows_the_wizard(src):
     # hated needs nothing drawn: the copy is flipped like the original.
     #
     # The slots are the board's OWN snap points 5, 6 and 7, under the printed mouse, rabbit and fox.
-    SLOT = {"mouse": -0.7052, "rabbit": -0.8914, "fox": -1.0967}
+    # THE SLOTS ARE HIS, NOT MINE. The maintainer put three tokens on the board where the symbol should
+    # appear and saved it: "in the save lizard I spawned the lizard faction and put three token with
+    # the outcast symbol in the position that the symbol should show." They are read back out of that
+    # save here, in the BOARD's own local frame, so the blueprint cannot drift from what he laid out.
+    # (They came out on the board's own snap points 5, 6 and 7, which is what I had guessed -- but a
+    # guess that happens to be right is still worth replacing with the measurement.)
+    SLOT = slots_from_the_lizard_save()
     x, z, rz = mirror().split("|")
     assert abs(float(x) - SLOT["fox"]) < 0.01 and abs(float(z) + 0.0575) < 0.01, \
         "the fox outcast put the token at %s,%s instead of the fox slot" % (x, z)
@@ -400,6 +432,20 @@ def t_the_lizard_board_follows_the_wizard(src):
     assert seen, "the counters are no longer placed against the suit slots"
     assert "0.7 + (i - 1) * 0.195" not in ls, \
         "the counters are back on the mirrored positions, across the board from the suits they count"
+
+    # ONE OUTCAST MARKER IS SPAWNED, NOT TWO. Maintainer, 2026-09-07: "it looks like the lizard wizard
+    # is spawning two outcast token instead of only 1." There were two blueprints carrying one: the
+    # faction's own and the Lizard Wizard's. The wizard's is the one that belongs -- rttLizardSetup
+    # nudges it onto the wizard's slot column -- so the faction's copy went, and with two of them that
+    # nudge had been stacking both on the same spot.
+    def markers_in(bucket, name):
+        entry = rt.eval('EVERYTHING["%s"]["%s"]["data"]' % (bucket, name))
+        return sum(1 for i in range(1, len(entry) + 1)
+                   if json.loads(entry[i].json).get("Nickname") == "Outcast Marker")
+    assert markers_in("Standard", "The Lizard Cult") == 0, \
+        "the lizard faction still brings its own Outcast Marker as well as the wizard's"
+    assert markers_in("Tools", "Lizard Wizard") == 1, \
+        "the wizard should carry exactly one Outcast Marker"
 
 
 def t_the_credits_page_gives_every_caption_its_own_column(src):
