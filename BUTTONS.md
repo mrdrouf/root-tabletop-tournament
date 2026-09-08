@@ -47,15 +47,24 @@ opposite, which is how it stayed the one destructive button with no warning.
 * A different map would end up on the table -> *"This will reset the map."*
 * Neither -> **no prompt at all**, and the click just runs.
 
-A setup button re-places the map it finds (`rttNewGame` -> `rttRefreshMap`, with the current id), so
-for six of the eight maps the very same board comes back and there is nothing to warn about. The
-**Marsh** and the **Mountain** are the exceptions: they re-roll their layout on every build
-(`rttMarshPlan`, `rttMountainPlan`), so on those a setup click really is a map reset and says so.
-Asking a map button for the map that is already down is likewise not a reset.
+**A setup button does not touch the map.** It spawns selector boards; placing a map is what the map
+buttons are for. A new game used to re-place whatever map it found, which on six of the eight put the
+identical board straight back and on the Marsh and the Mountain quietly re-rolled a board the table
+had already set up.
 
-This has been wrong in both directions. A rule that swapped every button's wording by table state made
+The **one exception is the Marsh**, which has two boards behind a single button: the four-player one
+is flooded, the five-player one has three town landmarks and no flooding. A game cannot be played on
+the wrong one, so when the variant no longer fits the number of players the board is rebuilt -- and
+that is the only case a setup button warns about the map. `RTT_MARSH_5P_BUILT` records which board is
+standing, and it is saved with the table alongside the map id.
+
+**The box score and the turn panel are furniture.** They are never destroyed and never respawned --
+not by a map change, not by a new game. Clearing the sheet is START's job on the turn panel, which
+asks first when there is a game to lose.
+
+This has been wrong in every direction. A rule that swapped every button's wording by table state made
 the faction warning look deleted; the rule that replaced it warned about a map that was going straight
-back. Which map is down is now saved with the table, so a reload does not lose the answer.
+back; and underneath both, a new game was resetting a map nobody had asked it to touch.
 
 ## Maps
 

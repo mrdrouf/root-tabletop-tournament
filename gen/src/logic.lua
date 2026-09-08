@@ -36,6 +36,7 @@ function onSave()
                          -- on a nil id. It is also what decides whether a click would leave a
                          -- different map behind, so the warnings went quiet after a reload too.
                          map = RTT_CURRENT_MAP or "",
+                         marsh5p = (RTT_MARSH_5P_BUILT == true),
                          order = RTT_ORDER or {} })
   end)
   if ok then return enc end
@@ -71,6 +72,7 @@ function onLoad(state)
     RTT_PICK_N = d.pickN or RTT_PICK_N
     if type(d.order) == "table" then RTT_ORDER = d.order end
     if type(d.map) == "string" and d.map ~= "" then RTT_CURRENT_MAP = d.map end
+    if d.marsh5p ~= nil then RTT_MARSH_5P_BUILT = (d.marsh5p == true) end
     if #RTT_SEATS > 0 then rttPublishSeats() end
   end)
   pcall(function() rttSnapshotHand2() end)  -- parked hand-2 transforms, restored on every new game
@@ -1524,15 +1526,15 @@ end
 --   RankedArt     -> "4-Player Draft"     FourBoardsArt -> "4-Player Setup"
 --   FivePlayerArt -> "5-Player Draft"     FivePlayerSetupArt -> "5-Player Setup"
 RTT_WIPE_BTN = {
-  rttRankedBtn     = { fn = "rttSetup",              color = "#030411", icon = "RankedArt",          warn = "WipeConfirmArt", warnMap = "WipeConfirmMapArt" },
-  rttThemeBtn      = { fn = "rttTheme",              color = "#49514b", icon = "ThemeArt",           warn = "WipeConfirmArt", warnMap = "WipeConfirmMapArt" },
-  rttFourBoardsBtn = { fn = "setupFactionBoards",    color = "#3a2f22", icon = "FourBoardsArt",      warn = "WipeConfirmArt", warnMap = "WipeConfirmMapArt" },
-  Marsh5P          = { fn = "rttFivePStart",         color = "#463221", icon = "FivePlayerArt",      warn = "WipeConfirmArtWide", warnMap = "WipeConfirmMapArtWide" },
+  rttRankedBtn     = { fn = "rttSetup",              color = "#030411", icon = "RankedArt",          warn = "WipeConfirmArt", warnMap = "WipeConfirmMapArt", wants5p = false },
+  rttThemeBtn      = { fn = "rttTheme",              color = "#49514b", icon = "ThemeArt",           warn = "WipeConfirmArt", warnMap = "WipeConfirmMapArt", wants5p = true },
+  rttFourBoardsBtn = { fn = "setupFactionBoards",    color = "#3a2f22", icon = "FourBoardsArt",      warn = "WipeConfirmArt", warnMap = "WipeConfirmMapArt", wants5p = false },
+  Marsh5P          = { fn = "rttFivePStart",         color = "#463221", icon = "FivePlayerArt",      warn = "WipeConfirmArtWide", warnMap = "WipeConfirmMapArtWide", wants5p = true },
   Marsh5PSetup     = { fn = "setupFivePlayerBoards", color = "#463221", icon = "FivePlayerSetupArt", warn = "WipeConfirmArtWide", warnMap = "WipeConfirmMapArtWide" },
   -- 5-Players Marsh places the Marsh map and nothing else, so it can only ever cost you the map.
   -- BUTTONS.md used to say it "is not destructive, so it does not prompt"; it goes through
   -- rttPlaceMap -> makeMap -> removeMapItems like any other map placement, so that was simply wrong.
-  Marsh5PMap       = { fn = "rttPlaceMarsh5P",       color = "#81745b", icon = "Marsh5PLabel",       warnMap = "WipeConfirmMapArtWide", places = "Marsh Map" },
+  Marsh5PMap       = { fn = "rttPlaceMarsh5P",       color = "#81745b", icon = "Marsh5PLabel",       warnMap = "WipeConfirmMapArtWide", places = "Marsh Map", wants5p = true },
   -- THE MAP BUTTONS. Maintainer, 2026-09-06: they should warn like the faction buttons do. They are
   -- destructive -- makeMap clears everything tagged "Map Object" (the map, the battle mat, the
   -- priority markers, the timer, the counter, the box score) and on the Marsh re-rolls the flood and
@@ -1820,31 +1822,66 @@ end
 -- towns still standing, no flooding -- because the map id had not changed so nothing rebuilt.
 -- Maintainer, twice: "spawning marsh 4 players after marsh 5 players still does not span the flooded
 -- clearings properly and keep the landmarks."
-function rttRefreshMap()
-  local id = RTT_CURRENT_MAP
-  if id == nil or id == "" then return end        -- no map down yet: nothing to refresh
-  if EVERYTHING["Maps"] == nil or EVERYTHING["Maps"][id] == nil then return end
-  makeMap("", "", id, true)                       -- "" = internal path, so it never clears RTT_5P_MARSH
+-- THE MAP IS THE TABLE'S, NOT THE SETUP BUTTON'S.
+--
+-- A new game used to re-place whatever map it found, so it never inherited the last game's layout.
+-- On six of the eight maps that put the very same board straight back -- pure churn -- and on the
+-- Marsh and the Mountain it silently re-rolled a board the table had already agreed on. Maintainer,
+-- 2026-09-07: "nothing should be reset when clicking on 4 player setup". Placing a map is what the
+-- map buttons are for; a setup button spawns selector boards.
+--
+-- ONE EXCEPTION, and it is not a preference: the Marsh has TWO boards behind one button, and a
+-- four-player game cannot be played on the five-player one (no flooding, three town landmarks) or the
+-- other way round. When the game about to start needs the other board, it is rebuilt. Read the LIVE
+-- flag, not the button: rttFivePStart sets it after rttSetup returns, which is why this runs a frame
+-- late.
+function rttFixMarshVariant()
+  if RTT_CURRENT_MAP ~= "Marsh Map" then return end
+  if (RTT_5P_MARSH == true) == (RTT_MARSH_5P_BUILT == true) then return end
+  if EVERYTHING["Maps"] == nil or EVERYTHING["Maps"]["Marsh Map"] == nil then return end
+  makeMap("", "", "Marsh Map", true)              -- "" = internal path, so it never clears RTT_5P_MARSH
 end
 
 function rttNewGame(seats)
-  -- A NEW GAME gets a NEW SHEET. The fixtures survive a map change (see RTT_FIXTURE_TAG), and the box
-  -- score is one of them -- but its whole point is to hold THIS game, so starting one drops it and the
-  -- map refresh below spawns a fresh one.
-  pcall(function() for _, o in ipairs(getObjectsWithTag(RTT_BOXSCORE_TAG)) do rttDestroyUI(o) end end)
   rttClearGameObjects()                            -- objects, hand zones, run-id bump
   rttResetRunState()                               -- everything teardown cannot see
-  -- ONE FRAME LATER, because the 5-player Marsh flag is set by rttFivePStart immediately AFTER
-  -- rttSetup returns -- and rttSetup is what called us. Refreshing here and now would read the flag
-  -- as false and build the four-player Marsh for a five-player game.
-  Wait.frames(function() pcall(function() rttRefreshMap() end) end, 1)
   -- HOW MANY SEATS THIS GAME HAS. RTT_DN was written in exactly one place -- rttSetup, the ranked
   -- path -- so a manual game inherited whatever the last draft left: 5P Draft then 4-Player Setup
   -- gave a box score pre-formatted for FIVE rows in a four-player game, and 5P Setup from a cold
   -- table gave four rows for five players. It means "cards this draft dealt" = seats + 1, which is
-  -- what rttSpawnBoxScore reads back as RTT_BOXSCORE_MIN. The ranked path still overwrites it moments
-  -- later with its own draft size; this only fills the gap the manual path left.
+  -- what the sheet reads back as RTT_BOXSCORE_MIN. The ranked path still overwrites it moments later
+  -- with its own draft size; this only fills the gap the manual path left.
+  --
+  -- ONE FRAME LATER, because the 5-player Marsh flag is set by rttFivePStart immediately AFTER
+  -- rttSetup returns -- and rttSetup is what called us. Reading it here and now would see false and
+  -- build the four-player Marsh for a five-player game.
+  --
+  -- AND THE SHEET AND THE PANEL SPAWN HERE, not as a side effect of placing a map. They belong to the
+  -- GAME -- the line above destroys the old sheet precisely because it holds the last one -- and
+  -- hanging them off makeMap is the whole reason a setup click had to touch the map at all. Both
+  -- calls are safe twice over: rttSpawnBoxScore keeps a sheet that already exists and rttSpawnPanel
+  -- returns early on a panel that does, so a Marsh rebuild running alongside changes nothing.
+  --
+  -- THE SHEET AND THE PANEL ARE FURNITURE. Maintainer, 2026-09-07: "box score and turn panel never
+  -- need to respawn especially when spawning factions or new maps", and then "unclear they even need
+  -- a reset". So a setup click does neither. Starting a game used to DESTROY the sheet and spawn a
+  -- fresh one -- which is the only reason any of this hung off placing the map, and the reason a map
+  -- change could silently carry the recorded game away with it.
+  --
+  -- CLEARING THE SHEET IS ITS OWN ACT, and it already has a button: START on the turn panel wipes the
+  -- scores and begins at round 1, and asks first when there is a game to lose. Nothing else should be
+  -- deciding on the table's behalf that the last game is finished with.
+  --
+  -- Both spawns below only ever fill an absence: rttSpawnBoxScore returns on a sheet that exists and
+  -- rttSpawnPanel on a panel that does.
   if seats ~= nil then RTT_DN = seats + 1 end
+  Wait.frames(function()
+    pcall(function() rttFixMarshVariant() end)
+    -- how many rows to pre-format for, read by the sheet on every rebuild -- so it has to be set for
+    -- a game that reuses the sheet, not only for one that spawns it
+    pcall(function() Global.setVar("RTT_BOXSCORE_MIN", (RTT_DN or 5) - 1) end)
+    pcall(function() rttSpawnMapExtras() end)
+  end, 1)
   rttRemoveFrogsFromDeck()                         -- the deck survives teardown; its frog cards must not
   if seats ~= nil then rttEnableTurns(seats) end
 end
@@ -1856,9 +1893,9 @@ function rttBusyBegin(sec)
 end
 
 
--- THE MAPS THAT COME BACK DIFFERENT. Placing a map again normally respawns exactly the pieces it had,
--- so the rebuild is invisible -- but the Marsh re-rolls its flooding, its suits and its ruins on every
--- build (rttMarshPlan) and has two whole boards behind one button, and the Mountain re-rolls its lost
+-- THE MAPS THAT COME BACK DIFFERENT when the SAME map button is pressed again. Placing a map normally
+-- respawns exactly the pieces it had, so the rebuild is invisible -- but the Marsh re-rolls its
+-- flooding, its suits and its ruins on every build (rttMarshPlan) and the Mountain re-rolls its lost
 -- city (rttMountainPlan). Those two are the only ones with a plan; every other map has RTT_OV = nil.
 RTT_MAP_REROLLS = { ["Marsh Map"] = true, ["Mountain Map"] = true }
 
@@ -1884,16 +1921,23 @@ function rttLoseableMapItems()
   return n
 end
 
-function rttMapWouldChange(target)
+function rttMapWouldChange(d)
   local cur = RTT_CURRENT_MAP
-  -- SOMETHING IS DOWN THAT THIS BOARD DID NOT PLACE -- an old save from before the id was persisted,
-  -- or a board dragged out by hand. The id is unknown, so the honest answer is that it may well go.
-  if cur == nil or cur == "" then
-    if rttLoseableMapItems() > 0 then return true end
-    return false
+  local target = d.map or d.places
+  if target ~= nil and target ~= "" then
+    -- A MAP BUTTON. Placing a map is its whole job, so the question is only whether the board that
+    -- comes back differs from the one standing.
+    -- SOMETHING IS DOWN THAT THIS BOARD DID NOT PLACE -- an old save from before the id was
+    -- persisted, or a board dragged out by hand. The id is unknown, so it may well go.
+    if cur == nil or cur == "" then return rttLoseableMapItems() > 0 end
+    if target ~= cur then return true end
+    return RTT_MAP_REROLLS[target] == true
   end
-  if target ~= nil and target ~= "" and target ~= cur then return true end
-  return RTT_MAP_REROLLS[cur] == true
+  -- A SETUP BUTTON leaves the map exactly where it is, so there is nothing to say about it -- unless
+  -- the Marsh has to swap boards for the number of players about to sit down, which is the one case
+  -- where a setup click really does change the map.
+  if cur ~= "Marsh Map" or d.wants5p == nil then return false end
+  return (d.wants5p == true) ~= (RTT_MARSH_5P_BUILT == true)
 end
 
 -- WARN ABOUT WHAT THE CLICK ACTUALLY DOES. Maintainer, 2026-09-07: "if factions would be wiped, warn
@@ -1903,7 +1947,7 @@ end
 function rttWouldWipe(d)
   if d == nil then return false end
   if d.warn ~= nil and rttFactionsOnTable() then return true end
-  return rttMapWouldChange(d.map or d.places)
+  return rttMapWouldChange(d)
 end
 
 -- Is there anything of a GAME on the table, as opposed to just a map?
@@ -3666,12 +3710,13 @@ RTT_FAC_CURRENT = {}
 -- spawn the Root Box Score sheet at the maintainer's placed spot (read from his TTS save),
 -- rotated 270 to face the camera, sized to fill the board-design rectangle (scale up
 -- ~1.3x wide / ~1.1x tall baked into _boxscore.json), locked to the table.
-function rttSpawnBoxScore(force)
-  -- A sheet already on the table is KEPT unless this is a new game: it is the same object whatever map
-  -- is down, and it carries the recorded game in its own state. Replacing it on a map change silently
-  -- lost that.
-  if not force and #getObjectsWithTag(RTT_BOXSCORE_TAG) > 0 then return end
-  for _, o in ipairs(getObjectsWithTag(RTT_BOXSCORE_TAG)) do rttDestroyUI(o) end
+function rttSpawnBoxScore()
+  -- A SHEET ON THE TABLE IS ALWAYS KEPT. It is the same object whatever map is down and whatever game
+  -- is being played, it carries the recorded game in its own state, and it is the one object on the
+  -- table people type into. Maintainer, 2026-09-07: "box score and turn panel never need to respawn
+  -- especially when spawning factions or new maps." A new game empties it through uiReset instead;
+  -- this function only ever fills an absence.
+  if #getObjectsWithTag(RTT_BOXSCORE_TAG) > 0 then return end
   -- tell the box score how many player rows to pre-format for (4 ranked / 5 for 5p Marsh); it reads
   -- this Global each rebuild and grows past it only if more players are added.
   Global.setVar("RTT_BOXSCORE_MIN", (RTT_DN or 5) - 1)
@@ -5829,6 +5874,11 @@ function makeMap(player,value,id,keepBoard)
     rttWhenMapReady(function() if RTT_MAP_GEN == gen then rttMarshLandmarks() end end)
   end
   RTT_CURRENT_MAP = id
+  -- WHICH of the Marsh's two boards is standing. RTT_5P_MARSH is the mode the table is IN; this is
+  -- what was actually built, and the two are not the same thing -- the mode is set before the board
+  -- is placed, and 5P Setup deliberately leaves it alone. Only by comparing them can anything know
+  -- whether the board on the table still fits the game about to be played.
+  if id == "Marsh Map" then RTT_MARSH_5P_BUILT = (RTT_5P_MARSH == true) end
   if id == "Mountain Map" then Wait.frames(function() rttMountainLandmark() end, 2) end
   if id == "Summer Map" then Wait.frames(function() rttSpawnPriority("Summer Map", RTT_PRIO_SUMMERMAP) end, 2) end
   if id == "Lake Map" then Wait.frames(function() rttSpawnPriority("Lake Map", RTT_PRIO_LAKEMAP) end, 2) end

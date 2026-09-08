@@ -71,8 +71,16 @@ def t_boards_spawn(src):
     for arg, n in (("nil", 4), ("'fivePlayerSetup'", 5)):
         rt = fresh(src)
         rt.execute("REC.spawned={} pcall(function() setupFactionBoards(nil,nil,%s) end) FLUSH(10)" % arg)
-        got = [str(rt.eval("REC.spawned")[i]) for i in range(1, len(rt.eval("REC.spawned")) + 1)]
-        assert len(got) == n, "%d seats: spawned %d boards (%s)" % (n, len(got), got)
+        all_spawned = [str(rt.eval("REC.spawned")[i])
+                       for i in range(1, len(rt.eval("REC.spawned")) + 1)]
+        # THE SHEET AND THE PANEL COME WITH THE GAME NOW, not with the map -- rttNewGame spawns them
+        # directly since a setup click stopped re-placing the map. They are not faction boards, and
+        # this test is about where the faction boards land.
+        got = [e for e in all_spawned if e.startswith("Faction Board@")]
+        assert len(got) == n, "%d seats: spawned %d boards (%s)" % (n, len(got), all_spawned)
+        for want_one in ("Root Box Score", "Turn Panel"):
+            assert any(e.startswith(want_one + "@") for e in all_spawned), \
+                "%d seats: a new game did not spawn the %s: %s" % (n, want_one, all_spawned)
 
         at = sorted(tuple(round(float(v)) for v in e.split("@")[1].split(",")) for e in got)
         want = sorted((round(float(rt.eval("RTT_POS[%d][1]" % p))),
@@ -596,10 +604,16 @@ def t_ui_objects_clear_their_xml_before_being_destroyed(src):
     assert rt.eval("KILLED") == 1, "it was never actually destroyed"
 
     # and every destroy of a UI-bearing object goes through it
-    for site in ('getObjectsWithTag(t)', 'getObjectsWithTag(RTT_SELECTOR_TAG)',
-                 'getObjectsWithTag(RTT_BOXSCORE_TAG)'):
+    for site in ('getObjectsWithTag(t)', 'getObjectsWithTag(RTT_SELECTOR_TAG)'):
         line = [l for l in src.splitlines() if site in l and "destr" in l.lower()]
         assert line and "rttDestroyUI" in line[0], "%s still calls destruct directly: %s" % (site, line)
+
+    # THE BOX SCORE IS NOT TORN DOWN AT ALL any more, which is stronger than tearing it down politely.
+    # It is the one object on the table people type into, and it carries the recorded game in its own
+    # state -- so a colour that cannot be retaken is not even the worst thing a stray destroy costs.
+    torn = [l.strip() for l in src.splitlines()
+            if "RTT_BOXSCORE_TAG" in l and ("destruct" in l or "rttDestroyUI" in l)]
+    assert not torn, "something still tears down the box score: %s" % torn
 
 
 def t_gizmo_default_key_is_numpad_zero(src):
@@ -2248,19 +2262,19 @@ def t_marsh_after_5p_marsh_rebuilds_the_4p_board(src):
             "%s: flood tiles still under the table at %s -- the 5-player board was built" % (how, vals)
 
 
-def t_a_new_game_refreshes_the_map_but_keeps_the_board(src):
-    """A new game re-rolls what sits ON the map; the board itself stays.
+def t_a_new_game_leaves_the_map_alone_but_fixes_the_marsh_variant(src):
+    """A new game does not touch the map -- except when the Marsh has to swap boards.
 
-    Maintainer, 2026-09-06: "reset the clearing makers the landmarks everything that goes on the board
-    because anyway they are reshuffled, reset the board itself and the clearing numbers only if it is
-    another map." Choosing a different map is a map-button click, which is a full rebuild anyway, so
-    the only case here is the SAME map and the board always stays.
+    Maintainer, 2026-09-07: "nothing should be reset when clicking on 4 player setup". A new game used
+    to re-place whatever map it found; on six of the eight that put the identical board straight back,
+    and on the Marsh and the Mountain it quietly re-rolled a board the table had already set up.
 
-    The bug that forced this, reported twice: "spawning marsh 4 players after marsh 5 players still
-    does not span the flooded clearings properly and keep the landmarks." Starting a 4-player game
-    after a 5-player Marsh game left the FIVE-player board on the table -- towns standing, no flooding
-    -- because rttSetup cleared the flag but nothing rebuilt the map, the id being unchanged. The
-    earlier fix corrected the flag, which in this flow was never the thing that was wrong.
+    THE ONE EXCEPTION IS NOT A PREFERENCE. The Marsh has two different boards behind one button -- the
+    four-player one is flooded, the five-player one has three town landmarks and no flooding -- and a
+    game cannot be played on the wrong one. This is the bug that was reported twice: "spawning marsh 4
+    players after marsh 5 players still does not span the flooded clearings properly and keep the
+    landmarks." So the board is rebuilt when, and only when, the variant no longer fits the game about
+    to start, which is what RTT_MARSH_5P_BUILT records.
     """
     TOWNS = ("function()\n  local n = 0\n"
              "  for _, o in ipairs(getAllObjects()) do\n"
@@ -2307,16 +2321,31 @@ def t_a_new_game_refreshes_the_map_but_keeps_the_board(src):
     assert rt2.eval(TOWNS)() > 0, "a second 5-player game lost its town landmarks"
     assert rt2.eval("RTT_5P_MARSH") is True, "a second 5-player game left 5-player mode"
 
-    # and the flood is genuinely re-rolled, not inherited: 8 games, more than one layout
+    # AND OTHERWISE THE MAP IS LEFT COMPLETELY ALONE. Eight four-player games in a row on the same
+    # Marsh: one flood layout, because none of them has any business re-rolling it. Maintainer,
+    # 2026-09-07: "nothing should be reset when clicking on 4 player setup". This assertion used to
+    # read the other way round -- a new game deliberately re-rolled the board -- which is what made a
+    # setup click destructive enough to need a warning in the first place.
     rt3 = fresh(src)
     for c, n in zip(["Purple", "Blue", "White", "Pink", "Green"], ["H1", "H2", "H3", "H4", "H5"]):
         rt3.execute("SEAT('%s','%s')" % (c, n))
     rt3.execute("pcall(function() makeMap(Player['Purple'],'','Marsh Map') end) FLUSH(200)")
-    seen = {rt3.eval(FLOOD)()}
+    first = rt3.eval(FLOOD)()
+    board0 = rt3.eval(BOARD)()
+    seen = {first}
     for _ in range(8):
         two_clicks(rt3, "rttArmRanked", "rttRankedBtn")
         seen.add(rt3.eval(FLOOD)())
-    assert len(seen) > 1, "every new game got the same flood layout: %s" % seen
+    assert seen == {first}, \
+        "a new game re-rolled the flooding it was given; the table set that board up: %s" % seen
+    assert rt3.eval(BOARD)() == board0, "a new game respawned the board it was told to leave alone"
+
+    # ...and a MAP button is still how you ask for a fresh roll.
+    rolls = {first}
+    for _ in range(8):
+        rt3.execute("pcall(function() makeMap(Player['Purple'],'','Marsh Map') end) FLUSH(200)")
+        rolls.add(rt3.eval(FLOOD)())
+    assert len(rolls) > 1, "the Marsh button stopped re-rolling the flooding: %s" % rolls
 
 
 class TTSPlayer(object):
@@ -2531,17 +2560,27 @@ def t_the_five_player_buttons_warn_before_wiping(src):
                 "%s shows %s with factions=%s; it should show %s"
                 % (bid, got, withFactions, want))
 
-    # THE MAP THAT REALLY DOES COME BACK DIFFERENT. The Marsh re-rolls its flooding, its suits and its
-    # ruins on every build, so a setup click on a Marsh table is a genuine reset and has to say so.
-    # This is the half that keeps the fix above from becoming "setup buttons never mention the map".
+    # THE ONE CASE A SETUP BUTTON REALLY DOES CHANGE THE MAP. The Marsh has two boards behind one
+    # button and a four-player game cannot be played on the five-player one, so 4-Player Setup after a
+    # 5-Players Marsh rebuilds it -- and has to say so. This is the half that keeps the rule above
+    # from collapsing into "setup buttons never mention the map".
     rt = fresh_seated()
-    rt.execute("pcall(function() makeMap(Player['Purple'],'','Marsh Map') end) FLUSH(200)")
+    rt.execute("pcall(function() rttPlaceMarsh5P(Player['Purple'],'','Marsh5PMap') end) FLUSH(300)")
+    assert rt.eval("RTT_MARSH_5P_BUILT") is True, "the 5-player Marsh board was not recorded as built"
     click(rt, "rttArmFour", "rttFourBoardsBtn")
     assert armed(rt) == "rttFourBoardsBtn", \
-        "a setup click on the Marsh did not warn, though the rebuild re-rolls the whole board"
+        "4-Player Setup on the five-player Marsh did not warn, though it must swap the board"
     assert icon(rt, "rttFourBoardsBtn").startswith("WipeConfirmMapArt"), \
-        "the Marsh rebuild warned about factions instead of the map: %s" \
+        "the Marsh variant swap warned about factions instead of the map: %s" \
         % icon(rt, "rttFourBoardsBtn")
+
+    # ...and on the FOUR-player Marsh the very same button is silent, because nothing would change.
+    rt = fresh_seated()
+    rt.execute("pcall(function() makeMap(Player['Purple'],'','Marsh Map') end) FLUSH(300)")
+    assert rt.eval("RTT_MARSH_5P_BUILT") is False, "a plain Marsh click recorded a five-player board"
+    click(rt, "rttArmFour", "rttFourBoardsBtn")
+    assert armed(rt) == "nil", \
+        "4-Player Setup warned on a four-player Marsh, which it leaves exactly as it is"
 
     # and the second click actually commits
     rt = fresh_seated()
@@ -2641,16 +2680,19 @@ def t_table_fixtures_survive_a_map_change(src):
             assert now[n] == first[n], \
                 "%s was destroyed and rebuilt by the %s change (%s -> %s)" % (n, m, first[n], now[n])
 
-    # a new game replaces ONLY the sheet
+    # AND A NEW GAME REPLACES NOTHING AT ALL. Maintainer, 2026-09-07: "box score and turn panel never
+    # need to respawn especially when spawning factions or new maps", then "unclear they even need a
+    # reset". A new game used to destroy the sheet and build a fresh one; clearing it is START's job
+    # on the turn panel, which asks first, and nothing else decides the last game is finished with.
     rt.execute("pcall(function() rttArmRanked(Player['Purple'],'','rttRankedBtn') end) FLUSH_UNTIL(0.5,4)")
     rt.execute("pcall(function() rttArmRanked(Player['Purple'],'','rttRankedBtn') end) FLUSH(200)")
     after = fixtures(rt)
-    assert len(after.get("Root Box Score", [])) == 1, \
-        "a new game left %s box score sheets" % len(after.get("Root Box Score", []))
-    assert after["Root Box Score"] != first["Root Box Score"], \
-        "a new game kept the OLD box score; it would still hold the previous game"
-    for n in ("Battle Mat", "Turn Panel"):
-        assert after[n] == first[n], "%s was rebuilt by a new game; nothing about it is per-game" % n
+    for n in NAMES:
+        assert len(after.get(n, [])) == 1, \
+            "a new game left %s copies of the %s" % (len(after.get(n, [])), n)
+        assert after[n] == first[n], \
+            "%s was rebuilt by a new game; it is furniture, not a game piece (%s -> %s)" \
+            % (n, first[n], after[n])
 
 
 def t_send_home_fills_from_the_players_own_right(src):
@@ -3223,16 +3265,30 @@ def t_a_warning_describes_what_the_click_really_does(src):
     assert warn(lake) is True, "swapping Autumn for Lake did not warn"
     assert art(lake) == "WipeConfirmMapArt", "a map button changed its wording: %s" % art(lake)
 
-    # AND THE TWO THAT REALLY DO COME BACK DIFFERENT. The Marsh re-rolls its flooding, its suits and
-    # its ruins on every build, so a setup click genuinely resets it -- warning here is not noise.
+    # NOT EVEN ON THE MAPS THAT RE-ROLL. A setup click no longer re-places the map at all, so the
+    # Marsh keeps the flooding the table set up and the Mountain keeps its lost city.
     for mid in ("Marsh Map", "Mountain Map"):
-        rt.execute("RTT_CURRENT_MAP = %r" % mid)
-        assert warn(setup) is True, "%s re-rolls on a rebuild and the setup button said nothing" % mid
-        assert art(setup) == "WipeConfirmMapArt", \
-            "%s: a setup button with no factions out must warn about the MAP: %s" % (mid, art(setup))
+        rt.execute("RTT_CURRENT_MAP = %r RTT_MARSH_5P_BUILT = false" % mid)
+        assert warn(setup) is False, \
+            "4-Player Setup warned about the %s, which it no longer touches" % mid
+
+    # THE ONE CASE A SETUP BUTTON DOES CHANGE THE MAP: the Marsh's two boards. A four-player game
+    # cannot be played on the five-player board, so starting one rebuilds it -- and says so.
+    rt.execute("RTT_CURRENT_MAP = 'Marsh Map' RTT_MARSH_5P_BUILT = true")
+    assert warn(setup) is True, \
+        "4-Player Setup on the FIVE-player Marsh must rebuild the board and warn that it will"
+    assert art(setup) == "WipeConfirmMapArt", \
+        "the Marsh variant swap warned about factions instead of the map: %s" % art(setup)
+    # ...and the five-player buttons are the mirror image
+    five = rt.eval("RTT_WIPE_BTN['Marsh5P']")
+    assert warn(five) is False, "5-Player Draft warned about a five-player board it is happy with"
+    rt.execute("RTT_MARSH_5P_BUILT = false")
+    assert warn(five) is True, "5-Player Draft on the FOUR-player Marsh did not warn"
+    assert warn(setup) is False, "4-Player Setup warned about the board it already wants"
+    rt.execute("RTT_CURRENT_MAP = 'Summer Map'")
 
     # A FACTION OUTRANKS EITHER. It is the bigger loss and it is what a setup button is for.
-    rt.execute("RTT_CURRENT_MAP = 'Summer Map' MKOBJ('Eyrie Warrior', {2,1,2}, {'RTT Faction'})")
+    rt.execute("MKOBJ('Eyrie Warrior', {2,1,2}, {'RTT Faction'})")
     assert warn(setup) is True, "a faction on the table did not warn"
     assert art(setup) == "WipeConfirmArt", \
         "with factions out a setup button must warn about the FACTIONS: %s" % art(setup)
@@ -4096,7 +4152,7 @@ CASES = [
     ("a map click leaves 5P mode",           t_a_map_click_leaves_five_player_mode),
     ("marsh 4P rebuilds after 5P",          t_marsh_after_5p_marsh_rebuilds_the_4p_board),
     ("a click is userdata, not a table",    t_a_button_click_is_recognised_when_the_player_is_userdata),
-    ("new game refreshes the map",          t_a_new_game_refreshes_the_map_but_keeps_the_board),
+    ("new game leaves the map alone",       t_a_new_game_leaves_the_map_alone_but_fixes_the_marsh_variant),
     ("fixtures survive a map change",       t_table_fixtures_survive_a_map_change),
     ("every new-game button leaves 5P",     t_every_new_game_button_leaves_the_five_player_marsh),
     ("5-player buttons warn first",         t_the_five_player_buttons_warn_before_wiping),
