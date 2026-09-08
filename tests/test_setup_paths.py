@@ -2522,9 +2522,8 @@ def t_the_five_player_buttons_warn_before_wiping(src):
     #
     # A MAP button only ever places a map, so it says map whatever is on the table and can never claim
     # to touch a faction -- but asking for the map that is ALREADY down changes nothing either.
-    # A SETUP button clears the factions AND re-places the map it finds (rttNewGame -> rttRefreshMap),
-    # and Autumn comes back exactly as it was: with factions down it costs you the factions, with none
-    # it costs you nothing at all. Maintainer, 2026-09-07: "If I spawn a map then click on the 4 player
+    # A SETUP button clears the factions and leaves the map exactly where it is: with factions down
+    # it costs you the factions, with none it costs you nothing at all. Maintainer, 2026-09-07: "If I spawn a map then click on the 4 player
     # setup it warns that this will wipe the map. that is not true. revise your warnings!!" -- and the
     # rule: "if factions would be wiped, warn about faction wipe. if map would be reset, warn about
     # that. it needs to make sense."
@@ -3226,12 +3225,11 @@ def t_a_warning_describes_what_the_click_really_does(src):
     wipe the map. that is not true. revise your warnings!!" -- and then the rule: "if factions would be
     wiped, warn about faction wipe. if map would be reset, warn about that. it needs to make sense."
 
-    A setup click re-places the map it finds (rttNewGame -> rttRefreshMap -> makeMap with the CURRENT
-    id), so for six of the eight maps the very same board comes back and nothing is lost. The Marsh and
-    the Mountain are the exceptions: they re-roll their layout on every build, so there the warning is
-    true. Two earlier versions of this both got it wrong in the other direction -- one counted any
+    A setup click does not touch the map at all, so there is nothing to say about it -- except on the
+    Marsh, whose two boards are not interchangeable and which is rebuilt when a four-player game
+    inherits the five-player one. Three earlier versions of this got it wrong in turn: one counted any
     "Map Object" including the table's own furniture, the next counted a map that was about to be put
-    straight back.
+    straight back, and the third kept re-rolling a board the table had already set up.
     """
     rt = fresh(src)
     fixture = rt.eval("RTT_FIXTURE_TAG")

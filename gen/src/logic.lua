@@ -31,10 +31,11 @@ function onSave()
                          -- draft could not be finished: rttBeginPick returns on an empty order and
                          -- rttSeatPlayers has nothing to match a human to a seat with.
                          -- map: WHICH map is on the table. TTS wipes globals on load, so without
-                         -- this a reloaded table did not know, and rttRefreshMap -- the whole reason
-                         -- a new game does not inherit the last one's layout -- returned immediately
-                         -- on a nil id. It is also what decides whether a click would leave a
-                         -- different map behind, so the warnings went quiet after a reload too.
+                         -- this a reloaded table did not know which map it was looking at, and
+                         -- rttFixMarshVariant -- the one thing that still rebuilds a board, when a
+                         -- four-player game inherits the five-player Marsh -- returned immediately on
+                         -- a nil id. It also decides whether a click would leave a different map
+                         -- behind, so the warnings went quiet after a reload too.
                          map = RTT_CURRENT_MAP or "",
                          marsh5p = (RTT_MARSH_5P_BUILT == true),
                          order = RTT_ORDER or {} })
