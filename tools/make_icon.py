@@ -54,8 +54,14 @@ FLOUR = (130, 2320)                   # inside the corner flourishes: they reach
 # Might and Right" is thirty-four characters and "Tabletop Tournament" is nineteen, so the same cap
 # height leaves a third of the plaque empty. Maintainer: "the tabletop tournament text now is too
 # small." It is sized to the width now and centred in the band instead.
-TYPE_WIDTH = 0.92                     # of the cream field
-TYPE_BAND = (584, 738)                # the room it has: below the letters, above the rule
+# HEIGHT IS WHAT CAPS IT, NOT WIDTH. Nineteen characters of Luminari reach the width limit at about
+# size 205, but the band between the logo and the rule stops them at 165 -- so sizing to the width
+# alone silently leaves the line at two-thirds of the plaque. It takes every row the art leaves free
+# (the letters end at 574, the rule starts at 751) and then TRACKS OUT to fill the width, which makes
+# the line long without distorting a single glyph. Maintainer, 2026-09-07: "can you work on making
+# tabletop tournament larger?"
+TYPE_WIDTH = 0.90                     # of the cream field, reached with tracking
+TYPE_BAND = (578, 747)                # every row between the logo and the bottom rule
 FRAME = (46, 33, 20)                  # a clean dark edge in place of the board's wood
 FRAME_PX = 14                         # its width, in the plaque's own pixels
 
@@ -110,6 +116,22 @@ def rebuild_band(img):
     return out
 
 
+def draw_tracked(d, cx, baseline, text, font, fill, target):
+    """Draw `text` centred on `cx`, letter-spaced so it spans `target` -- never stretched.
+
+    Widening glyphs to fill a plaque is the obvious move and the wrong one: it makes a face that was
+    drawn look like a face that was scaled. Tracking is what a sign painter would do, and it is what
+    the Root plaque's own subtitle does.
+    """
+    natural = d.textlength(text, font=font)
+    gaps = max(1, len(text) - 1)
+    extra = max(0.0, (target - natural) / gaps)
+    x = cx - (natural + extra * gaps) / 2
+    for ch in text:
+        d.text((x, baseline), ch, font=font, fill=fill, anchor="ls")
+        x += d.textlength(ch, font=font) + extra
+
+
 def build_plaque(width):
     """The plaque with its subtitle replaced and its wood surround swapped for a clean edge."""
     src = Image.open(PLAQUE_SRC).convert("RGB")
@@ -120,16 +142,19 @@ def build_plaque(width):
     # give the one new element a different kind of edge from the art around it.
     d = ImageDraw.Draw(inner)
     room = TYPE_BAND[1] - TYPE_BAND[0]
+    target = (FIELD[1] - FIELD[0]) * TYPE_WIDTH
     size = room * 2
     while size > 8:
         f = ImageFont.truetype(FONT, size)
         b = d.textbbox((0, 0), SUBTITLE, font=f, anchor="lt")
-        if (d.textlength(SUBTITLE, font=f) <= (FIELD[1] - FIELD[0]) * TYPE_WIDTH
-                and (b[3] - b[1]) <= room):
+        if (b[3] - b[1]) <= room and d.textlength(SUBTITLE, font=f) <= target:
             break
-        size -= 2
-    d.text(((FIELD[0] + FIELD[1]) / 2, (TYPE_BAND[0] + TYPE_BAND[1]) / 2),
-           SUBTITLE, font=f, fill=INK, anchor="mm")
+        size -= 1
+    # centred on its own ink, not on the font's line box -- the descender of the p is the only one in
+    # the string, so a line-box centring would push the whole thing visibly high
+    b = d.textbbox((0, 0), SUBTITLE, font=f, anchor="ls")
+    baseline = (TYPE_BAND[0] + TYPE_BAND[1]) / 2 - (b[1] + b[3]) / 2
+    draw_tracked(d, (FIELD[0] + FIELD[1]) / 2, baseline, SUBTITLE, f, INK, target)
 
     border = max(1, round(FRAME_PX * width / (inner.width + FRAME_PX * 2)))
     iw = width - border * 2
