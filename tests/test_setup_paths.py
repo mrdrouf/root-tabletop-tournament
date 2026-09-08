@@ -365,11 +365,15 @@ def t_the_lizard_board_follows_the_wizard(src):
       self.UI.setCustomAssets = function() end
       function decalAt()
         if LASTXML == "" then return "none" end
+        -- RAW UI PIXELS, converted on the python side. Decoding here with the board's own
+        -- PX_PER_UNIT / UI_MIRROR / UI_Z_SIGN would agree with whatever those happened to say,
+        -- which is how a symbol drawn twice its size and a panel's width low went out green.
         -- %- , not -: a bare - is Lua's lazy quantifier, not a literal minus
         local px = tonumber(string.match(LASTXML, 'position="(%-?[%d.]+)'))
         local py = tonumber(string.match(LASTXML, 'position="%-?[%d.]+ (%-?[%d.]+)'))
+        local w  = tonumber(string.match(LASTXML, 'width="(%-?[%d.]+)"'))
         local face = string.find(LASTXML, "hatedImg", 1, true) and "hated" or "outcast"
-        return string.format("%.4f|%.4f|%s", px / PX_PER_UNIT * UI_MIRROR, -py / PX_PER_UNIT, face)
+        return string.format("%.4f|%.4f|%.4f|%s", px, py, w, face)
       end
       function tokensOnTable()
         local n = 0
@@ -389,6 +393,20 @@ def t_the_lizard_board_follows_the_wizard(src):
     def decal():
         er.execute("updateButtons()")
         return str(er.eval("decalAt()"))
+
+    # THE BOARD TEXTURE IS THE RULER, not the board script. The printed thorn frames were flood
+    # filled on the 1689px art: centres at px 1305.5 / 1431.0 / 1563.5, all at py 619, each 92px
+    # across, on a map of 657.4 px per local unit about px (842.2, 655.2). 100 UI px make one local
+    # unit, and UI y runs WITH local z -- the canvas is turned 180 degrees against the artwork, so
+    # UI y+ is image DOWN. Every number below comes from the picture, not from the script.
+    FRAME_Z      = -0.0551        # (619 - 655.2) / 657.4
+    FRAME_SIDE   =  0.1399        # 92 / 657.4 -- the printed frame's outer ink
+    ICON_BOTTOM  = -0.1372        # the suit icons stop here; the symbol must stay clear of them
+    PANEL_BOTTOM =  0.0408        # ...and the Outcast panel's parchment ends here
+
+    def drawn():
+        px, py, w, face = decal().split("|")
+        return float(px) / 100.0, float(py) / 100.0, float(w) / 100.0, face
 
     er.execute('pile({"Fox","Fox","Mouse","Bird","Rabbit","Fox","Mouse"})')
     er.execute("putMarker(-0.73, 0.7320, false)")
@@ -410,10 +428,25 @@ def t_the_lizard_board_follows_the_wizard(src):
     SLOT = slots_from_the_lizard_save()
     assert decal() != "none", \
         "nothing is drawn on the board for a fox outcast; the symbol should be UI on its slot"
-    x, z, face = decal().split("|")
-    assert abs(float(x) - SLOT["fox"]) < 0.01 and abs(float(z) + 0.0575) < 0.01, \
-        "the fox outcast painted the symbol at %s,%s instead of the fox slot" % (x, z)
+    x, z, w, face = drawn()
+    assert abs(x - SLOT["fox"]) < 0.01 and abs(z - FRAME_Z) < 0.01, \
+        "the fox outcast painted the symbol at %.4f,%.4f instead of the fox slot" % (x, z)
     assert face == "outcast", "the hated picture was used for an outcast that is not hated"
+
+    # IT GOES IN THE SLOT, NOT OVER IT. Maintainer, 2026-09-08, on the first version that drew at
+    # all: "good but does not fit well not righ size and position adjust this hard you should be
+    # able to find the snap points for reference." It was 0.22 local across -- half again wider than
+    # the 0.1399 frame it was supposed to sit inside -- and a whole panel low, so it hung off the
+    # bottom of the Outcast box and into the Lost Souls title beneath. Both halves are pinned here.
+    assert 0.095 <= w <= 0.107, \
+        "the symbol is %.4f local across; it should read as a token in a 0.1399 frame, not cover it" % w
+    assert w < FRAME_SIDE, \
+        "the symbol (%.4f) is wider than the printed frame (%.4f) and cannot sit inside it" % (w, FRAME_SIDE)
+    assert z - w / 2 > ICON_BOTTOM, \
+        "the symbol's top edge (%.4f) reaches up into the suit icons (%.4f)" % (z - w / 2, ICON_BOTTOM)
+    assert z + w / 2 < PANEL_BOTTOM, \
+        "the symbol's bottom edge (%.4f) hangs out of the Outcast panel (%.4f) toward Lost Souls" \
+        % (z + w / 2, PANEL_BOTTOM)
 
     # IT IS PAINTED ON, NOT PUT ON. Maintainer, 2026-09-07: "can you make the symbol be inside the
     # faction board, not another token on token. like it s literally the faction board art." An
@@ -424,13 +457,16 @@ def t_the_lizard_board_follows_the_wizard(src):
         % er.eval("tokensOnTable()")
 
     er.execute("putMarker(-0.73, 0.0284, true)")
-    x, _, face = decal().split("|")
-    assert abs(float(x) - SLOT["mouse"]) < 0.01, "a mouse outcast landed at x %s" % x
+    x, z, w2, face = drawn()
+    assert abs(x - SLOT["mouse"]) < 0.01, "a mouse outcast landed at x %.4f" % x
     assert face == "hated", "the Hated Outcast is not showing its own picture"
+    # ONE SIZE SERVES BOTH FACES -- the two token arts are drawn slightly differently, and
+    # make_outcast.py crops each square about its own drawing so the board needs only one number.
+    assert abs(w2 - w) < 1e-6, "the hated face is drawn at %.4f but the outcast at %.4f" % (w2, w)
 
     er.execute("putMarker(-0.73, 0.3749, false)")
-    x, _, _ = decal().split("|")
-    assert abs(float(x) - SLOT["rabbit"]) < 0.01, "a rabbit outcast landed at x %s" % x
+    x, _, _, _ = drawn()
+    assert abs(x - SLOT["rabbit"]) < 0.01, "a rabbit outcast landed at x %.4f" % x
 
     # A MARKER THAT IS NOT IN A SLOT NAMES NO SUIT. It gets picked up and put down constantly, and a
     # board that guessed the nearest slot from across the table would show a suit nobody chose.
