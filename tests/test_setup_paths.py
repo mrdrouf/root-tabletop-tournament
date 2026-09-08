@@ -462,6 +462,14 @@ def t_enclave_targets_the_suit_marker(src):
         mid = ((er.eval("self.getRotation()").y - (137 + off)) + 180) % 360 - 180
         assert abs(mid) < 0.5, \
             "the token was still tilted %.1f when the flip began; the turn should ride along" % mid
+        # AND THE FLIP ITSELF STILL HAPPENS. Any rotation issued now races TTS's own flip animation,
+        # so the target has to be the orientation the token should END in -- turned AND flipped. A
+        # RELATIVE turn was tried here and replaced the flip with a Y-only move, so the token stopped
+        # flipping at all: "it does not flip anymore when we flip it you broke something".
+        # is_face_down is NOT set before this: the script has to drive the flip, not be told about it.
+        midz = er.eval("self.getRotation()").z % 360
+        assert 90 < midz < 270, \
+            "the flip did not happen: Z is %.0f, so the token turned but never flipped" % midz
         er.execute("self.is_face_down = true self.resting = true FLUSH_UNTIL(8.0, 4)")
         back = er.eval("self.getPosition()")
         assert abs(back.x - want.x) < 0.05 and abs(back.z - want.z) < 0.05, (
@@ -474,6 +482,9 @@ def t_enclave_targets_the_suit_marker(src):
         mid = ((er.eval("self.getRotation()").y - (137 + off)) + 180) % 360 - 180
         assert abs(mid + 20) < 0.5, \
             "the token was at %.1f when the flip to peaceful began; it should already be turning" % mid
+        midz = er.eval("self.getRotation()").z % 360
+        assert midz < 90 or midz > 270, \
+            "the flip back did not happen: Z is %.0f" % midz
         er.execute("self.is_face_down = false self.resting = true FLUSH_UNTIL(8.0, 4)")
         side = er.eval("self.getPosition()")
         assert ((side.x - want.x) ** 2 + (side.z - want.z) ** 2) ** 0.5 > 0.5, \
