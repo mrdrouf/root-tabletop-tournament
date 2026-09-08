@@ -126,3 +126,4 @@ setup board's top right corner, and goes up on every commit.
 - The box score and turn panel are never destroyed or respawned by a map change or a new game.
 - A button warns only about what it will really do.
 - Which map is on the table is saved, so a reload can still re-place it.
+- New mod icon: the original ROOT plaque re-lettered "Tabletop Tournament", the real setup board, black ground.
