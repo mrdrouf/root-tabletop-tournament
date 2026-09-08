@@ -431,37 +431,41 @@ def t_enclave_targets_the_suit_marker(src):
         assert 1.0 < off_lobe < 2.5, \
             "the side spot is %.3f from the lobe centre, which is not beside it" % off_lobe
 
-        # ...AND IT SITS AT AN ANGLE THERE. "the enclave needs to be tilted maybe by 10 degrees to fit
-        # with the angle of the suit marker" -- on top of the marker's own facing, and only here.
+        # ...AND IT SITS AT AN ANGLE THERE, on top of the marker's own facing and only here.
+        # Maintainer, 2026-09-07: "the side snap rotate the enclave counterclockwise by 20 degrees."
+        # TTS turns clockwise on a rising Y, so counterclockwise is negative.
         rq = er.eval("self.getRotation()")
         tilt = ((rq.y - (137 + off)) + 180) % 360 - 180
-        assert abs(tilt - 10) < 0.5, \
-            "the peaceful enclave is tilted %.1f from the marker's facing, not 10" % tilt
+        assert abs(tilt + 20) < 0.5, \
+            "the peaceful enclave is tilted %.1f from the marker's facing, not -20" % tilt
 
         # FLIPPING IT MOVES IT. This is the half that was missing: a flip in place never calls onDrop,
         # so a token turned peaceful stayed sitting on the symbol it was meant to uncover. Maintainer,
         # 2026-09-07: "most importantly flipping the enclave when it is on one of the two snaps needs
         # to change its position." onRotate fires as the animation starts, while is_face_down still
         # reads the old face, so the token re-places itself once the flip has landed.
-        # ...BUT ONLY ONCE IT HAS LANDED. Maintainer, 2026-09-07: "the move from both snaps happens
-        # only when it lands on the marker not during the flip." onRotate fires as the animation
-        # STARTS -- moving the token then drags a spinning piece sideways, and is_face_down still
-        # reads the old face at that moment.
-        er.execute("self.resting = false self.is_face_down = true")
-        er.execute("pcall(function() onRotate(0, 0, 'Red', 0, 180) end) FLUSH_UNTIL(1.0, 4)")
+        # ...AND IT MOVES WITH THE TURN, not after it. Maintainer, 2026-09-07: "is it possible that
+        # the enclave move from 1 snap to the other during the flip not after landing?" onRotate fires
+        # as the animation STARTS, and the token glides across from there, so the move reads as part of
+        # the flip rather than a jump once it has settled.
+        #
+        # At that moment is_face_down still reads the OLD face -- so the glide works out the new one as
+        # its opposite, which is why it is left alone here rather than set before the call.
+        er.execute("self.resting = false")
+        er.execute("pcall(function() onRotate(0, 0, 'Red', 0, 180) end)")
         turning = er.eval("self.getPosition()")
-        assert ((turning.x - want.x) ** 2 + (turning.z - want.z) ** 2) ** 0.5 > 0.5, \
-            "the token moved while it was still turning; it should wait until it lands"
-        er.execute("self.resting = true FLUSH_UNTIL(8.0, 4)")
+        assert ((turning.x - want.x) ** 2 + (turning.z - want.z) ** 2) ** 0.5 < 0.05, \
+            "the token had not started moving when the flip began; it should glide across with it"
+        er.execute("self.is_face_down = true self.resting = true FLUSH_UNTIL(8.0, 4)")
         back = er.eval("self.getPosition()")
         assert abs(back.x - want.x) < 0.05 and abs(back.z - want.z) < 0.05, (
             "flipping to militant left the token at %.3f,%.3f instead of the lobe centre"
             % (back.x, back.z))
-        er.execute("self.resting = false self.is_face_down = false")
-        er.execute("pcall(function() onRotate(0, 180, 'Red', 0, 0) end) FLUSH_UNTIL(1.0, 4)")
-        assert abs(er.eval("self.getPosition()").x - back.x) < 1e-6, \
-            "the token moved off the centre while it was still turning"
-        er.execute("self.resting = true FLUSH_UNTIL(8.0, 4)")
+        er.execute("self.resting = false")
+        er.execute("pcall(function() onRotate(0, 180, 'Red', 0, 0) end)")
+        assert abs(er.eval("self.getPosition()").x - back.x) > 0.5, \
+            "the token stayed on the centre when the flip to peaceful began"
+        er.execute("self.is_face_down = false self.resting = true FLUSH_UNTIL(8.0, 4)")
         side = er.eval("self.getPosition()")
         assert ((side.x - want.x) ** 2 + (side.z - want.z) ** 2) ** 0.5 > 0.5, \
             "flipping to peaceful left the token on the symbol"
