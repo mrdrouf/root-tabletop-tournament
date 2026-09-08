@@ -1,112 +1,163 @@
 #!/usr/bin/env python3
-"""Render the mod's icon: the Root Ultimate Collection plaque, re-lettered, over the real setup board.
+"""Render the mod's icon: the Root plaque, re-lettered, over the real setup board, on black.
 
 The maintainer's brief, 2026-09-07: "start from the art of the original root ultimate mod. replace the
 writing of ultimate collection by tabletop tournament. replace the old version of the setup board on
 the image by the new setup board. replace the background with just black instead."
 
-THREE SOURCES, ALL REAL:
-  * the plaque comes out of the original Workshop thumbnail at 1:1, so the illuminated R-O-O-T tiles
-    (fox, rabbit, mouse, bird -- the four base factions, in their four colours) are the actual art and
-    not a redrawing. Only the subtitle band is repainted;
-  * the board is tools/preview_menu.py's render of THIS build's setup board -- the real button art at
-    its real XmlUI coordinates -- so the icon cannot drift from what the mod looks like;
-  * the type is New Rocker, the closest face in the repo to the original's subtitle (matched against
-    every font in tools/preview/fonts: same weight, same angular wedge serifs).
+BOTH SOURCES ARE REAL, AND BOTH ARE BIGGER THAN THE OUTPUT, which is the whole reason this looks like
+artwork instead of a blow-up:
 
-Run from the repo root:  python3 tools/preview_menu.py && python3 tools/make_icon.py
+  * assets/src_art/root_plaque.png -- the Root sign at 2488px, so the illuminated R-O-O-T tiles (fox,
+    rabbit, mouse, bird, in the four base faction colours) are DOWNscaled into the icon. The first
+    version cropped them out of a 256px Workshop thumbnail and upscaled, and no amount of sharpening
+    hides that;
+  * assets/src_art/board_screenshot.png -- a real screenshot of the table. tools/preview_menu.py
+    composites button art at its XmlUI coordinates, which is right for checking a layout and much too
+    coarse for artwork. Maintainer: "here is a real screenshot of the board instead of your ugly made
+    up thing."
+
+The subtitle is replaced, not overpainted: its ink is masked and filled from the parchment around it,
+so the corner flourishes and the salmon rule survive untouched -- and so do the R-O-O-T letterforms,
+which a rectangular erase took the bottom serifs off. Maintainer: "preserve the Root sign you are
+chopping it with your text below." The new line is set in Luminari, the font the mod itself uses, at
+the cap height and on the baseline the old one had.
+
+Run from the repo root:  python3 tools/make_icon.py
 """
 import os, sys
-from PIL import Image, ImageDraw, ImageFont, ImageFilter, ImageChops, ImageEnhance
+import numpy as np
+from PIL import Image, ImageDraw, ImageFont, ImageFilter, ImageChops
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-ORIGINAL = os.path.expanduser("~/Library/Tabletop Simulator/Mods/Workshop/2516434159.png")
-BOARD = os.path.join(ROOT, "tools", "menu_preview.png")
-FONT = os.path.join(ROOT, "tools", "preview", "fonts", "newrocker.ttf")
+PLAQUE_SRC = os.path.join(ROOT, "assets", "src_art", "root_plaque.png")
+BOARD_SRC = os.path.join(ROOT, "assets", "src_art", "board_screenshot.png")
+FONT = "/System/Library/Fonts/Supplemental/Luminari.ttf"
 OUTDIR = os.path.join(ROOT, "assets", "icon")
 
-# THE PLAQUE, MEASURED OFF THE ORIGINAL, in its own 256px pixels so the crop is 1:1.
-#
-# THE CROP STOPS AT THE SALMON RULE. Taking the dark outer frame with it brought the leafy background
-# along at the corners -- the frame is only two or three pixels and the foliage behind it is dark
-# enough to pass for it. The frame is redrawn below instead, in its own sampled colour, which also
-# makes it crisp at any size rather than an upscaled smudge.
-PLAQUE = (22, 158, 233, 232)          # the field, salmon rule included: 211 x 74
-FIELD_X = (3, 207)                    # cream inside that rule, relative to the crop
-SUBTITLE_Y = (46, 70)                 # the band "Ultimate Collection" sits in
-CLEAN_Y = (3, 7)                      # clean cream rows, used to mix the fill that replaces it
-BASELINE = 69                         # where the subtitle sits, relative to the crop
-CAP = 21                              # its cap height
-FRAME = (41, 35, 13)                  # the plaque's own dark border, sampled
-FRAME_PX = 3                          # its width, in the original's pixels
+# THE PLAQUE, MEASURED OFF ITS OWN PIXELS. The crop stops at the outside of the salmon rule: beyond it
+# is the board's wood, which is uneven and reads as dirt against black. Maintainer: "you should
+# probably clean up the background on the sides though for a clean one." The border below replaces it.
+PLAQUE = (22, 21, 2466, 780)          # 2444 x 759
+FIELD = (60, 2384)                    # cream between the rules, relative to the crop
+# THE OLD LINE IS NOT ERASED, THE BAND IS REBUILT. Masking its ink left a ghost -- the maintainer,
+# 2026-09-07: "the background of your text tabletop tournament is too different than the background of
+# the root symbol" -- because the antialiased halo of a letter reaches almost to the parchment and no
+# threshold catches all of it. So the whole band between the corner flourishes is replaced with real
+# parchment, interpolated from the clean rows directly above and below it. That keeps the horizontal
+# grain and the vignette exactly, and nothing survives to show through.
+BAND = (590, 750)                     # the old subtitle, ascender to descender
+ABOVE = (578, 589)                    # clean parchment under the letters, which end at 574
+BELOW = (722, 745)                    # clean parchment over the bottom rule, which starts at 751
+FLOUR = (130, 2320)                   # inside the corner flourishes: they reach 106 and 2338
+# THE TYPE FILLS THE PLAQUE. Set to the old line's cap height it looked lost -- "A Game of Woodland
+# Might and Right" is thirty-four characters and "Tabletop Tournament" is nineteen, so the same cap
+# height leaves a third of the plaque empty. Maintainer: "the tabletop tournament text now is too
+# small." It is sized to the width now and centred in the band instead.
+TYPE_WIDTH = 0.92                     # of the cream field
+TYPE_BAND = (584, 738)                # the room it has: below the letters, above the rule
+FRAME = (46, 33, 20)                  # a clean dark edge in place of the board's wood
+FRAME_PX = 14                         # its width, in the plaque's own pixels
 
-INK = (26, 20, 12)
+INK = (24, 18, 11)
 SUBTITLE = "Tabletop Tournament"
 
-# THE COMPOSITION. Board and plaque share one width so the two read as a single stack rather than two
-# pictures that happen to be above each other.
-# BIG. Next to the original the first attempt read timid: its plaque runs almost the full width of the
-# frame and the board fills what is left, and a polite margin all round loses exactly the presence
-# that makes the thing recognisable at the size a mod icon is actually seen at.
+# THE COMPOSITION. Next to the original the first attempt read timid: its plaque runs almost the full
+# width of the frame, and a polite margin all round loses the presence that makes a mod icon legible
+# at the size it is actually seen.
 SIZE = 512
 MARGIN = 24
 GAP = 14
 BOTTOM = 20
 
 
-def field_fill(plaque):
-    """The cream to paint over the old subtitle, mixed from the plaque's own clean rows."""
-    px = plaque.load()
-    xs = range(FIELD_X[0], FIELD_X[1] + 1)
-    n, r, g, b = 0, 0, 0, 0
-    for y in range(*CLEAN_Y):
-        for x in xs:
-            c = px[x, y]; r += c[0]; g += c[1]; b += c[2]; n += 1
-    return (r // n, g // n, b // n)
+def rebuild_band(img):
+    """Replace the old subtitle's band with parchment interpolated from the rows around it.
+
+    Not a flat rectangle of cream: the field is not flat. It has a vignette that darkens towards the
+    rule and a tone that drifts along its length, and a flat patch reads instantly as a patch. So the
+    fill is a cross-fade between the clean strip above and the clean strip below.
+
+    PER-COLUMN MEDIAN, NOT A STRETCH. Stretching those strips dragged whatever ink they still held --
+    the tails of the R-O-O-T tiles -- down through the whole band as a row of specks. A median over
+    each strip's rows throws a stray dark pixel away and keeps the tone, which is all that is wanted
+    from it.
+    """
+    x0, x1 = FLOUR
+    a = np.asarray(img).astype(float)
+    top = np.median(a[ABOVE[0]:ABOVE[1], x0:x1], axis=0)      # one RGB per column
+    bot = np.median(a[BELOW[0]:BELOW[1], x0:x1], axis=0)
+    h = BAND[1] - BAND[0]
+    t = np.linspace(0.0, 1.0, h)[:, None, None]
+    fill = Image.fromarray((top[None] * (1 - t) + bot[None] * t).round().astype("uint8"))
+    fill = fill.filter(ImageFilter.GaussianBlur(1.0))
+
+    # FEATHER THE SIDES ONLY. Feathering all four edges let the top of the band show through at half
+    # opacity -- and the top of the band is exactly where the old line's ascenders are, so they came
+    # back as a row of specks above the new text. Top and bottom need no feather at all: the fill's
+    # profiles are taken from the rows immediately beyond them, so it meets the parchment in its own
+    # tone. Only the left and right run into the corner flourishes and have to fade.
+    mask = Image.new("L", fill.size, 255)
+    ramp = 14
+    mpx = mask.load()
+    for x in range(ramp):
+        v = round(255 * x / ramp)
+        for y in range(fill.height):
+            mpx[x, y] = v
+            mpx[fill.width - 1 - x, y] = v
+    out = img.copy()
+    out.paste(Image.composite(fill, img.crop((x0, BAND[0], x1, BAND[1])), mask), (x0, BAND[0]))
+    return out
 
 
 def build_plaque(width):
-    """The original plaque with its subtitle band repainted and its frame redrawn, scaled to `width`."""
-    src = Image.open(ORIGINAL).convert("RGB")
+    """The plaque with its subtitle replaced and its wood surround swapped for a clean edge."""
+    src = Image.open(PLAQUE_SRC).convert("RGB")
     inner = src.crop(PLAQUE)
-    # ERASE AT 1:1, LETTER AT FULL SIZE. The fill has to be upscaled with everything around it or the
-    # patch reads as a flat rectangle in a field that has grain; the type does not, so it goes on after.
-    fill = field_fill(inner)
-    ImageDraw.Draw(inner).rectangle([FIELD_X[0], SUBTITLE_Y[0], FIELD_X[1], SUBTITLE_Y[1]], fill=fill)
+    inner = rebuild_band(inner)
 
-    border = round(FRAME_PX * width / (inner.width + FRAME_PX * 2))
-    iw = width - border * 2
-    k = iw / inner.width
-    inner = inner.resize((iw, round(inner.height * k)), Image.LANCZOS)
-    # THE LETTERS GET THEIR BITE BACK. Any upscale softens ink edges, and the R-O-O-T tiles are the one
-    # thing in the icon that has to stay crisp -- they are the logo. Applied before the type is drawn,
-    # so the new line is not sharpened twice.
-    inner = inner.filter(ImageFilter.UnsharpMask(radius=1.6, percent=115, threshold=2))
-    # ...AND THEIR COLOUR. The four tiles are the four base factions in their four colours, and the
-    # upscale flattens them towards the parchment; a touch of contrast and saturation puts them back
-    # where the original has them. Measured against a side-by-side, not guessed.
-    inner = ImageEnhance.Contrast(inner).enhance(1.10)
-    inner = ImageEnhance.Color(inner).enhance(1.12)
-
+    # SET THE TYPE AT FULL SIZE, THEN SHRINK EVERYTHING TOGETHER. Drawing after the downscale would
+    # give the one new element a different kind of edge from the art around it.
     d = ImageDraw.Draw(inner)
-    x0, x1 = round(FIELD_X[0] * k), round(FIELD_X[1] * k)
-    # SIZED TO THE CAP HEIGHT THE ORIGINAL USED, then pulled in if the longer word runs wide, so the
-    # new line sits in the band exactly as the old one did rather than merely fitting inside it.
-    size = max(8, round(CAP * k * 1.35))
+    room = TYPE_BAND[1] - TYPE_BAND[0]
+    size = room * 2
     while size > 8:
         f = ImageFont.truetype(FONT, size)
-        b = f.getbbox("T")
-        if (b[3] - b[1]) <= round(CAP * k) and d.textlength(SUBTITLE, font=f) <= (x1 - x0) * 0.94:
+        b = d.textbbox((0, 0), SUBTITLE, font=f, anchor="lt")
+        if (d.textlength(SUBTITLE, font=f) <= (FIELD[1] - FIELD[0]) * TYPE_WIDTH
+                and (b[3] - b[1]) <= room):
             break
-        size -= 1
-    d.text(((x0 + x1) / 2, round(BASELINE * k)), SUBTITLE, font=f, fill=INK, anchor="ms")
+        size -= 2
+    d.text(((FIELD[0] + FIELD[1]) / 2, (TYPE_BAND[0] + TYPE_BAND[1]) / 2),
+           SUBTITLE, font=f, fill=INK, anchor="mm")
 
+    border = max(1, round(FRAME_PX * width / (inner.width + FRAME_PX * 2)))
+    iw = width - border * 2
+    inner = inner.resize((iw, round(inner.height * iw / inner.width)), Image.LANCZOS)
     plaque = Image.new("RGB", (inner.width + border * 2, inner.height + border * 2), FRAME)
     plaque.paste(inner, (border, border))
     return plaque
 
 
-def lift(img, radius=10, spread=6, alpha=110):
+def content_box(img, floor=170):
+    """Trim the dark surround a screen capture leaves around the board, keeping the board's own frame."""
+    px = img.convert("RGB").load()
+    def lit(line):
+        return sum(1 for x, y in line if sum(px[x, y]) > floor) > len(line) * 0.6
+    top, bot = 0, img.height - 1
+    while top < bot and not lit([(x, top) for x in range(0, img.width, 5)]):
+        top += 1
+    while bot > top and not lit([(x, bot) for x in range(0, img.width, 5)]):
+        bot -= 1
+    left, right = 0, img.width - 1
+    while left < right and not lit([(left, y) for y in range(top, bot, 5)]):
+        left += 1
+    while right > left and not lit([(right, y) for y in range(top, bot, 5)]):
+        right -= 1
+    return (left, top, right + 1, bot + 1)
+
+
+def lift(img, radius=12, spread=8, alpha=130):
     """A soft shadow and a warm hairline, so a picture does not bleed into the black ground."""
     pad = radius + spread + 4
     out = Image.new("RGBA", (img.width + pad * 2, img.height + pad * 2), (0, 0, 0, 0))
@@ -121,52 +172,28 @@ def lift(img, radius=10, spread=6, alpha=110):
     return out, pad
 
 
-def content_box(img):
-    """Trim the empty table around the board render, so the board itself fills its share of the icon."""
-    px = img.convert("RGB").load()
-    ground = px[2, 2]
-    def blank(line):
-        return all(all(abs(px[x, y][i] - ground[i]) < 14 for i in range(3)) for x, y in line)
-    top, bot = 0, img.height - 1
-    while top < bot and blank([(x, top) for x in range(0, img.width, 5)]):
-        top += 1
-    while bot > top and blank([(x, bot) for x in range(0, img.width, 5)]):
-        bot -= 1
-    left, right = 0, img.width - 1
-    while left < right and blank([(left, y) for y in range(top, bot, 5)]):
-        left += 1
-    while right > left and blank([(right, y) for y in range(top, bot, 5)]):
-        right -= 1
-    pad = 5
-    return (max(0, left - pad), max(0, top - pad),
-            min(img.width, right + pad + 1), min(img.height, bot + pad + 1))
-
-
 def main():
-    for p in (ORIGINAL, BOARD, FONT):
+    for p in (PLAQUE_SRC, BOARD_SRC, FONT):
         if not os.path.exists(p):
-            sys.exit("missing source: %s\n(run tools/preview_menu.py first for the board render)" % p)
+            sys.exit("missing source: %s" % p)
     os.makedirs(OUTDIR, exist_ok=True)
 
     width = SIZE - MARGIN * 2
     plaque = build_plaque(width)
 
-    board = Image.open(BOARD).convert("RGB")
+    board = Image.open(BOARD_SRC).convert("RGB")
     board = board.crop(content_box(board))
     board = board.resize((width, round(board.height * width / board.width)), Image.LANCZOS)
 
-    canvas = Image.new("RGB", (SIZE, SIZE), (0, 0, 0))
-    p_img, p_pad = lift(plaque, radius=12, spread=8, alpha=130)
-    b_img, b_pad = lift(board, radius=14, spread=10, alpha=140)
-
     plaque_top = SIZE - BOTTOM - plaque.height
-    board_h = plaque_top - GAP - MARGIN // 2
-    if board.height > board_h:                     # keep the board inside its share, width follows
-        board = board.resize((round(board.width * board_h / board.height), board_h), Image.LANCZOS)
-        b_img, b_pad = lift(board, radius=14, spread=10, alpha=140)
-    board_top = plaque_top - GAP - board.height
+    room = plaque_top - GAP - MARGIN // 2
+    if board.height > room:                        # keep the board inside its share, width follows
+        board = board.resize((round(board.width * room / board.height), room), Image.LANCZOS)
 
-    canvas.paste(b_img, ((SIZE - b_img.width) // 2, board_top - b_pad), b_img)
+    canvas = Image.new("RGB", (SIZE, SIZE), (0, 0, 0))
+    p_img, p_pad = lift(plaque)
+    b_img, b_pad = lift(board, radius=14, spread=10, alpha=140)
+    canvas.paste(b_img, ((SIZE - b_img.width) // 2, plaque_top - GAP - board.height - b_pad), b_img)
     canvas.paste(p_img, ((SIZE - p_img.width) // 2, plaque_top - p_pad), p_img)
 
     big = os.path.join(OUTDIR, "mod_icon_512.png")
