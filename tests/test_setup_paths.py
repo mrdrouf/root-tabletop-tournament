@@ -307,6 +307,55 @@ def slots_from_the_lizard_save():
     return {"mouse": local[0][0], "rabbit": local[1][0], "fox": local[2][0]}
 
 
+def t_the_lost_souls_box_is_gone_from_the_board(src):
+    """The Lizard board's printed Lost Souls box is removed, and the green runs on behind it.
+
+    Maintainer, 2026-09-08: "remove the lost souls art on the faction board for the lost soul cards
+    since they all go on the lizard wizard make sure its top notch craft and impossible to see
+    something has been removed." Every spent card goes on the Lizard Wizard -- which is why this
+    board's own readout reads the wizard and not this box -- so the printed box was dead space.
+
+    The board therefore has to point at the repaired texture in this repo rather than the original
+    on Steam, and that texture has to actually have the box taken out of it: this walks the panel's
+    own pixels and fails if the white border, the title's ink, or the flat parchment of the box are
+    still in there. A URL check alone would pass on a texture that still had the box in it.
+    """
+    rt = fresh(src)
+    d = rt.eval('EVERYTHING["Standard"]["The Lizard Cult"]["data"]')
+    url = None
+    for i in range(1, len(d) + 1):
+        j = json.loads(d[i].json)
+        if j.get("Nickname") == "Lizard Board":
+            url = j["CustomImage"]["ImageURL"]
+    assert url is not None, "there is no Lizard Board in the blueprint"
+    assert "steamusercontent" not in url, \
+        "the board still points at the original Steam texture, which has the Lost Souls box on it"
+    name = url.rsplit("/", 1)[-1]
+    art = os.path.join(REPO, "assets", "labels", name)
+    assert os.path.exists(art), "the board points at %s, which is not in assets/labels" % name
+
+    try:
+        from PIL import Image
+    except ImportError:
+        return                      # the pixel check needs Pillow; the wiring above is still checked
+
+    im = Image.open(art).convert("RGB")
+    assert im.size == (1689, 1312), "the board texture is %dx%d, not the board's own size" % im.size
+    # The box occupied px 1233..1644 x 709..1264. Its border was near-white and its title dark red
+    # on parchment -- none of which occurs anywhere in the green background that should be there now.
+    panel = im.crop((1233, 709, 1645, 1265)).load()
+    white = dark = 0
+    for y in range(0, 556, 2):
+        for x in range(0, 412, 2):
+            r, g, b = panel[x, y]
+            if r > 235 and g > 235 and b > 225:
+                white += 1
+            if r < 105 and g < 105:
+                dark += 1
+    assert white == 0, "%d near-white pixels remain where the Lost Souls box's border was" % white
+    assert dark == 0, "%d dark pixels remain where the Lost Souls title and lizard were" % dark
+
+
 def t_the_lizard_board_follows_the_wizard(src):
     """The board's Outcast readout and its three counts come off the Lizard Wizard.
 
@@ -4982,6 +5031,7 @@ CASES = [
     ("a later deck re-seats the blocker",     t_dragon_god_reseated_by_a_later_deck),
     ("mood cards wait for the rats board",    t_rats_moods_wait_for_their_board),
     ("lizard board follows the wizard",   t_the_lizard_board_follows_the_wizard),
+    ("lost souls box is gone",           t_the_lost_souls_box_is_gone_from_the_board),
     ("credits: a column per caption",     t_the_credits_page_gives_every_caption_its_own_column),
     ("enclaves match the suit circle",        t_frog_enclaves_match_the_suit_circle),
     ("enclaves sit where they are dropped",   t_enclaves_do_not_snap),
