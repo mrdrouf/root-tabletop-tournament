@@ -135,3 +135,4 @@ setup board's top right corner, and goes up on every commit.
 - Marquise cats drop into their clearings from clear air, so they land on ruins and relics instead of shoving them aside.
 - Mountain clearing numbers sit where the "mountain" save puts them; eight of the twelve were misplaced.
 - Frog dominance is recognised: a VP marker on the Frog card now declares dominance like any other suit.
+- DOM WIN is written into the score box on two lines; the button itself is one line again.
