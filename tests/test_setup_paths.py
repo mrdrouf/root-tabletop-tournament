@@ -281,6 +281,88 @@ def t_rats_moods_wait_for_their_board(src):
     assert mood(after), "the starting mood never spawned at all"
 
 
+def t_the_credits_page_gives_every_caption_its_own_column(src):
+    """No two captions can meet, and "on discord" is gone.
+
+    Maintainer, 2026-09-07: "do a torough design study of the credit page to make it look nicer;
+    remove the on discord thingy to save space, space out the images horizontally more so they don t
+    crop on each others etc."
+
+    The old page drew each caption under its thumbnail at a fixed size with no idea how wide the next
+    one was, so "The Bat Bungler | Koffin Keeper | Lizard Wizard" touched and "Faction Selector" ran
+    straight into "Mini-Mood Manager". The fix is structural rather than a nudge: every item owns a
+    column of fixed width and its caption is shrunk to fit that column, so overlap is not something
+    that can happen and then be tuned out.
+
+    This checks the mechanism rather than the picture -- it re-runs the generator's own measurements
+    against its own layout table, so adding a name that is too long fails here rather than on the
+    table. The rendered page is checked separately, by eye, which is the part a test cannot do.
+    """
+    sys.path.insert(0, os.path.join(REPO, "tools"))
+    import make_credits as C
+    from PIL import Image, ImageDraw
+
+    d = ImageDraw.Draw(Image.new("RGB", (10, 10)))
+    x0, _, x1, _ = C.FRAME
+    W = x1 - x0
+
+    def check(items, width, where):
+        cell = width / len(items)
+        for name in items:
+            f = C.fit(d, name, C.CAP if hasattr(C, "CAP") else 42, cell * 0.88)
+            w = d.textlength(name, font=f)
+            assert w <= cell * 0.88 + 1, \
+                "%s: %r is %.0f wide in a %.0f column; it would run into its neighbour" \
+                % (where, name, w, cell)
+            assert f.size >= 20, \
+                "%s: %r had to shrink to %dpt to fit its column, which will not read on the table" \
+                % (where, name, f.size)
+
+    check(C.BAND_A[1], W, "band A")
+    total = sum(len(i) for _, i in C.BAND_B)
+    for heading, items in C.BAND_B:
+        share = W * (len(items) + 0.9) / (total + 0.9 * len(C.BAND_B))
+        check(items, share, heading)
+
+    # EVERY THUMBNAIL IS CREDITED EXACTLY ONCE. A name dropped from a band still has a crop box, so it
+    # would vanish from the page silently rather than fail.
+    laid = C.BAND_A[1] + [n for _, items in C.BAND_B for n in items]
+    assert sorted(laid) == sorted(C.THUMBS), \
+        "the layout and the thumbnails disagree: %s" % sorted(set(laid) ^ set(C.THUMBS))
+    assert len(laid) == len(set(laid)), "a thumbnail is credited twice: %s" % laid
+
+    # "ON DISCORD" IS GONE. It was on the page three times.
+    lines = [C.TITLE, C.SUBTITLE] + C.BASED + [C.BAND_A[0]] + [h for h, _ in C.BAND_B]
+    assert not any("discord" in l.lower() for l in lines), \
+        "the credits page still says 'on discord': %s" % [l for l in lines if "discord" in l.lower()]
+
+    # AND NO LINE IS PRINTED TWICE. Ehss and slugfacekillah are credited twice on purpose -- once for
+    # the mod this is built on and once for two of the tools -- but the old page said it with the SAME
+    # sentence in both places, which read as a mistake rather than as two credits.
+    assert len(lines) == len(set(lines)), \
+        "the same line appears twice on the page: %s" % [l for l in lines if lines.count(l) > 1]
+
+    # AND THE PAGE THE BOARD LOADS IS THE ONE IN THE REPO. This reads the save rather than `src`:
+    # CustomUIAssets is a field of the OBJECT, not of the Lua that board_lua() hands these tests.
+    saved = json.load(open(os.path.join(REPO, "dist", "Root_Tabletop_Tournament.json"),
+                           encoding="utf-8"))
+    def board(objs):
+        for o in objs:
+            if o.get("GUID") == "bab7e1":
+                return o
+            got = board(o.get("ContainedObjects") or [])
+            if got:
+                return got
+        return None
+    assets = {a["Name"]: a["URL"] for a in (board(saved["ObjectStates"]) or {}).get("CustomUIAssets", [])}
+    assert "CreditsPanelArt" in assets, "the board no longer references a credits panel"
+    name = assets["CreditsPanelArt"].split("/")[-1]
+    assert os.path.exists(os.path.join(REPO, "assets", "labels", name)), \
+        "the board points at %s, which is not in assets/labels" % name
+    assert name.startswith("credits_panel_v8"), \
+        "the board is still loading the old credits page: %s" % name
+
+
 def t_frog_enclaves_match_the_suit_circle(src):
     """Every enclave is sized to the suit marker's circle, and all twelve move together.
 
@@ -4636,6 +4718,7 @@ CASES = [
     ("lizards bring their discard blocker",   t_dragon_god_without_a_deck),
     ("a later deck re-seats the blocker",     t_dragon_god_reseated_by_a_later_deck),
     ("mood cards wait for the rats board",    t_rats_moods_wait_for_their_board),
+    ("credits: a column per caption",     t_the_credits_page_gives_every_caption_its_own_column),
     ("enclaves match the suit circle",        t_frog_enclaves_match_the_suit_circle),
     ("enclaves sit where they are dropped",   t_enclaves_do_not_snap),
     ("enclave aims at the suit circle",       t_enclave_targets_the_suit_marker),

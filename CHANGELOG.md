@@ -140,3 +140,4 @@ setup board's top right corner, and goes up on every commit.
 - An enclave lands on the suit symbol when militant, and beside it when peaceful, keeping its face up or down.
 - Flipping an enclave slides and turns it between the two spots, lifted clear of the board and settling at each end.
 - Enclaves are 10% smaller.
+- Credits page redrawn: one column per caption so none overlap, "on discord" gone, three small groups share a band.
