@@ -268,7 +268,10 @@ Nothing below is implemented. The maintainer asked to be consulted before each c
 
 ### Housekeeping the maintainer flagged
 
-- [ ] **The old digital clock and counter are unreachable.** The turn panel is the only clock now, so
+- [x] **The old digital clock and counter are unreachable** (DONE 2026-09-07). Blueprints and their
+      POS/ROT constants removed. Their TAGS stay on purpose: rttSpawnMapExtras still refuses to spawn
+      a panel onto a table that already carries the old pair, so a save from before the panel does not
+      end up with both stacked on one spot. Original entry: The turn panel is the only clock now, so
       the button that swapped them, `rttToggleTurnPanel` and `rttSpawnOldClock` are gone -- but
       `RTT_TIMER_JSON`, `RTT_COUNTER_JSON` and their POS/ROT constants are still in the file with
       nothing calling them. Drop them in the next cleanup pass, along with `RTT_TAG_CLOCK` /
