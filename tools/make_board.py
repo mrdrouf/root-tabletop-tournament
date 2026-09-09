@@ -57,6 +57,7 @@ CLEARANCE = 10                  # how far a tree stays off a panel's border, as 
 ROWSTEP = 170                   # ...and its rows
                                 # nine substantial trees at 6.6% vine, not a mesh of stubs. The
                                 # template was under the box all along.
+FOOT_WIDTH = 26                 # a stem's width; wider than this at the bottom is a cut, not an end
 MIN_TREE = 550                  # INK, not height: the board's own trees here are 600px+ of
                                 # stroke. A tall thin sprig passes a height test and looks like one.               # ground between one tree and the next down a column. The back's own
                                 # passed from one to the next.                     # column spacing that matches the board's own scatter of trees
@@ -379,7 +380,14 @@ def harvest(mapped, bclean):
         if len(top) and cc - 12 >= 0:
             lo, hi = a + top.min() - 7, a + top.max() + 8
             tip = bclean[cc - 12:cc, max(0, lo):hi].all()
-        out.append(((a, b, cc, e), m, tip))
+        # AND THE FOOT HAS TO BE A FOOT. "a stem that simply ends is what the art draws" is only
+        # true when what ends IS the stem. One tree in this library finishes 120px wide -- a flat
+        # slice straight through its branches, where the source image ran out -- and being second
+        # largest by ink it was chosen constantly, which is the tree the maintainer kept finding
+        # "abruptly cut off", top right and again bottom right.
+        bot = np.where(m[-5:].any(axis=0))[0]
+        foot = len(bot) > 0 and (bot.max() - bot.min() + 1) <= FOOT_WIDTH
+        out.append(((a, b, cc, e), m, tip, foot))
     return out
 
 
@@ -404,6 +412,7 @@ def plant(canvas, mapped, trees, region, keepoff, rng,
     """
     ys, xs = np.where(region)
     X0, X1, Y0, Y1 = xs.min(), xs.max() + 1, ys.min(), ys.max() + 1
+    trees = [t for t in trees if t[3]] or trees        # never plant one with a chopped foot
     trees = sorted([t for t in trees if t[1].sum() >= MIN_TREE] or trees,
                    key=lambda t: -t[1].sum())
     trees = trees[:max(5, len(trees) // 3)]           # the big end of the library, not the sprigs
@@ -416,7 +425,7 @@ def plant(canvas, mapped, trees, region, keepoff, rng,
         while x < X1 - 30:
             pool = trees if row == 0 else tips            # row 0 hides its tops under the panel
             for _ in range(tries):
-                bb, m, tip = pool[rng.integers(len(pool))]
+                bb, m, tip, _ = pool[rng.integers(len(pool))]
                 a, b, c, e = bb
                 h, w = e - c + 1, b - a + 1
                 flip = rng.random() < 0.5
