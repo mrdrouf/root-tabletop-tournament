@@ -52,8 +52,11 @@ BOX = (1225, 700, 1655, 1300)   # generous bounds round the printed Lost Souls b
 BG_THRESH = 22                  # L1 distance to the background palette that still counts as green
 MASK_THRESH = 14                # ...and the tighter one used to find the artwork
 LIZARD_DROP = 70                # "just put him a little bit below"
-PITCH = 95
-CLEARANCE = 10                  # how far a tree stays off a panel's border, as the artist does                     # column spacing that matches the board's own scatter of trees
+PITCH = 36
+CLEARANCE = 10                  # how far a tree stays off a panel's border, as the artist does
+VGAP = (95, 215)               # ground between one tree and the next down a column. The back's own
+                                # median is 252 at this scale; they are separate trees, not a stem
+                                # passed from one to the next.                     # column spacing that matches the board's own scatter of trees
 TOP = 686                       # the ground starts just under the Outcast panel
 
 # GROWING THE OUTCAST PANEL. Maintainer: "increase the size of the parchment box with the decals so
@@ -343,7 +346,11 @@ def harvest(mapped, bclean):
     height, because that is the edge a planted tree shows. Its top and bottom may be cropped; the
     planting is what has to put those cuts somewhere a cut belongs.
     """
-    lab, info = components(erode(dilate(is_vine(mapped) & bclean, 2), 1))
+    # CLOSE BY 1, NOT 2. At radius 2 neighbouring trees touch and merge into blobs up to 1438px
+    # wide, which the size filter then throws away -- the library came out at nine trees because
+    # most of the board's trees had been glued to their neighbours. At radius 1 a tree's own
+    # antialiased breaks still close and its neighbours stay separate.
+    lab, info = components(erode(dilate(is_vine(mapped) & bclean, 1), 1))
     H, W = bclean.shape
     out = []
     for c, (n, a, b, cc, e) in info.items():
@@ -360,7 +367,15 @@ def harvest(mapped, bclean):
             continue
         if ((px[:, 0] < 120) & (px[:, 1] < 130)).mean() > 0.003:
             continue
-        tip = cc - 14 >= 0 and bclean[cc - 14:cc, max(0, a - 6):b + 7].all()
+        # A TIP IS ABOUT THE TIP, not the whole width. Asking for clear ground across the tree's
+        # full span rejected every tall one -- some other tree's branch is always somewhere up
+        # there -- and left a library of stubs. What has to be clear is the ground directly above
+        # where the stem actually ends.
+        top = np.where(m[:5].any(axis=0))[0]
+        tip = False
+        if len(top) and cc - 12 >= 0:
+            lo, hi = a + top.min() - 7, a + top.max() + 8
+            tip = bclean[cc - 12:cc, max(0, lo):hi].all()
         out.append(((a, b, cc, e), m, tip))
     return out
 
@@ -370,17 +385,19 @@ def stem_x(m):
     return int(np.argmax(m.sum(axis=0)))
 
 
-def plant(canvas, mapped, trees, region, keepoff, rng, pitch=PITCH, jitter=14, overlap=34, tries=16):
-    """Grow a stem down each column, tree on tree, with their stems lined up.
+def plant(canvas, mapped, trees, region, keepoff, rng, pitch=PITCH, jitter=14, vgap=VGAP, tries=16):
+    """Set trees down each column WITH GROUND BETWEEN THEM.
 
-    In a tall stretch of open board the pattern is not a scatter of little trees -- look at either
-    margin -- it is long stems running the whole height, branch pairs all the way up, cropped only
-    where the board itself ends. So that is what gets built: trees stacked with their stems aligned
-    and overlapped, which puts every join inside a continuous line and leaves only two cut ends per
-    column, one under the panel above and one off the bottom edge of the board.
+    Maintainer: "you stack the three on top of each others very closely but the original art never
+    does this it gives space. inspect the back fo the faction board to understand." Measured on the
+    back, at this board's scale: a tree is about 100 tall and the next one down the same column
+    starts a median of 252px later. They are separate things standing in open ground, not one stem
+    handed from tree to tree -- which is what the overlap of 34 was building.
 
-    A tree with a tapering tip may finish a column in the open; one cropped at the top may not, so it
-    is only used where its top will be covered.
+    Which also settles which trees may be used where. A stem that simply ENDS is what the art draws,
+    so a tree cropped at its foot reads correctly with ground below it. A stem that abruptly BEGINS
+    does not -- that is the "cut on the top" -- so once there is a gap above a tree, it has to be one
+    with a real tapering tip. The exception is a column's first tree, whose top goes under the panel.
     """
     ys, xs = np.where(region)
     X0, X1, Y0, Y1 = xs.min(), xs.max() + 1, ys.min(), ys.max() + 1
@@ -391,7 +408,7 @@ def plant(canvas, mapped, trees, region, keepoff, rng, pitch=PITCH, jitter=14, o
         y = Y0 - int(rng.integers(10, 60))
         first = True
         while y < Y1:
-            pool = trees if first else (tips if rng.random() < 0.45 else trees)
+            pool = trees if first else tips      # only a real tip may show above open ground
             placed = False
             for _ in range(tries):
                 bb, m, tip = pool[rng.integers(len(pool))]
@@ -424,7 +441,7 @@ def plant(canvas, mapped, trees, region, keepoff, rng, pitch=PITCH, jitter=14, o
                 y += 60                    # this spot is fenced off; try further down the column
                 first = False
                 continue
-            y = dy + h - int(rng.integers(overlap // 2, overlap))
+            y = dy + h + int(rng.integers(vgap[0], vgap[1]))
             first = False
         x += pitch + int(rng.integers(-12, 13))
     return n
