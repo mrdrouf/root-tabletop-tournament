@@ -40,7 +40,7 @@ CDN = "https://cdn.jsdelivr.net/gh/mrdrouf/root-tabletop-tournament@main/assets/
 
 BG = np.array([222, 213, 49], float)      # the token tile's flat yellow
 MIN_BLOB = 200                            # px; the drawing's parts are 6k+, the dust is 1-11
-VERSION = 6                               # bump when the art changes, so the CDN filename changes
+VERSION = 7                               # bump when the art changes, so the CDN filename changes
 
 # THE SYMBOL IS DRAWN AT ITS OWN WEIGHT. It used to be fattened by 2px, because the board's printed
 # thorn frame is a heavier stroke than the token's and white kept peeking out from under it --
@@ -54,6 +54,7 @@ VERSION = 6                               # bump when the art changes, so the CD
 # frames out and stamps THIS DRAWING back in white, at the size the board will draw it. The symbol
 # covers its own outline exactly, so there is nothing left to thicken it against.
 DILATE = 0                                # none: the board no longer has anything to cover up
+SLOT_WHITE = (254, 254, 253)              # the white the board's own slots were drawn in
 RING_LOCAL = 0.1388                       # the printed frame's own width, in board-local units
 
 FACES = [
@@ -93,6 +94,41 @@ def keep_real_ink(alpha):
                 for y, x in blob:
                     keep[y, x] = True
     return keep
+
+
+def frame_only(alpha):
+    """The thorn square without the barred circle inside it -- the empty slot's shape.
+
+    The token is two drawings and only the square is the slot; the circle is what says Outcast.
+    """
+    solid = alpha > 0.35
+    h, w = solid.shape
+    seen = np.zeros((h, w), bool)
+    best, bestn = None, 0
+    for sy in range(h):
+        for sx in range(w):
+            if not solid[sy, sx] or seen[sy, sx]:
+                continue
+            stack, blob = [(sy, sx)], []
+            seen[sy, sx] = True
+            while stack:
+                y, x = stack.pop()
+                blob.append((y, x))
+                for ny, nx in ((y + 1, x), (y - 1, x), (y, x + 1), (y, x - 1)):
+                    if 0 <= ny < h and 0 <= nx < w and solid[ny, nx] and not seen[ny, nx]:
+                        seen[ny, nx] = True
+                        stack.append((ny, nx))
+            if len(blob) > bestn:
+                best, bestn = blob, len(blob)
+    keep = np.zeros((h, w), bool)
+    for y, x in best:
+        keep[y, x] = True
+    for _ in range(2):                       # take the stroke's own antialiasing with it
+        g = keep.copy()
+        g[1:, :] |= keep[:-1, :]; g[:-1, :] |= keep[1:, :]
+        g[:, 1:] |= keep[:, :-1]; g[:, :-1] |= keep[:, 1:]
+        keep = g
+    return np.where(keep, alpha, 0.0)
 
 
 def build(name, src_file, ink):
@@ -137,6 +173,23 @@ def build(name, src_file, ink):
             if 0 <= sy < alpha.shape[0] and 0 <= sx < alpha.shape[1]:
                 sub[yy, xx] = alpha[sy, sx]
     canvas[..., 3] = np.round(sub * 255).astype(np.uint8)
+
+    if name == "outcast":
+        # THE EMPTY SLOT IS DRAWN BY THE SAME UI, from the same crop. It used to be stamped into the
+        # board's texture, and then no amount of care made the symbol cover it: the stamp is placed
+        # by this tool's fitted texture map and the symbol by TTS's own, and the two agree only to
+        # about a pixel. Drawn as a UI image at the same position and size as the symbol, they are
+        # the same coordinates in the same system, and cannot disagree at all.
+        wf = np.zeros((side, side, 4), np.uint8)
+        wf[..., 0], wf[..., 1], wf[..., 2] = SLOT_WHITE
+        wf[..., 3] = np.round(frame_only(sub) * 255).astype(np.uint8)
+        slot = os.path.join(OUT, "_tmp_slot.png")
+        Image.fromarray(wf, "RGBA").save(slot)
+        dg = hashlib.md5(open(slot, "rb").read()).hexdigest()[:8]
+        sf = "slot_v%d_%s.png" % (VERSION, dg)
+        os.replace(slot, os.path.join(OUT, sf))
+        print("%-14s (the empty slot, same crop) -> %dx%d" % ("slot", side, side))
+        print("               %s" % (CDN % sf))
 
     im = Image.fromarray(canvas, "RGBA")
     blob = os.path.join(OUT, "_tmp_%s.png" % name)

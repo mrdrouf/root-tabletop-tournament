@@ -72,6 +72,7 @@ ORIGIN_PX = (842.2, 655.2)
 RING_LOCAL = 0.1388             # the symbol's width; the board draws it at this, so the white
                                 # outline is stamped at this, and the two cannot disagree
 PARCH_WHITE = (254, 254, 253)   # the white the board's own slots were drawn in
+ALPHA_SOLID = 0.95              # the stamp lives only where the symbol paints solid
 SYMBOL_ART = ("outcast_v6_085c27c8.png", "outcast_hated_v6_d9c16b63.png")
 
 # GROWING THE OUTCAST PANEL. Maintainer: "increase the size of the parchment box with the decals so
@@ -468,7 +469,7 @@ def plant(canvas, mapped, trees, region, keepoff, rng,
 
 
 def redraw_slots(front, rng):
-    """Paint the three printed thorn frames out, and stamp the TOKEN'S OWN RING back in white.
+    """Paint the three printed thorn frames out. The slot itself is drawn by the board's UI.
 
     Maintainer, 2026-09-09: "instead of trying to fill the white space with the decal you could redo
     the white shape on the board so you fill it perfectly and so erase the white drawing by painting
@@ -482,43 +483,22 @@ def redraw_slots(front, rng):
     place the board will draw the symbol. The symbol then covers its own outline and needs no weight
     added to it at all.
 
-    The white is the INTERSECTION of the two faces' rings, eroded by 2px. The Outcast and the Hated
-    Outcast are drawn 1.8% apart, so an outline either one alone would cover is one the other would
-    not; and the erosion is the margin that absorbs the pixel or two between where this stamps a
-    thing and where TTS's own UI draws it.
+    NOTHING IS STAMPED BACK. Stamping the outline here and drawing the symbol over it was the
+    obvious thing and it cannot be made exact, which is what the maintainer saw: "it does not
+    perfectly covers the white still some white appear but you should be able to control perfectly
+    both not sure why". The stamp is placed by THIS tool's fitted texture map and the symbol by
+    TTS's own UI, and those agree only to about a pixel -- and a hard-edged stamp cannot hide under
+    a drawing whose whole rim is part-transparent anyway. So the empty slot is now a UI image too,
+    drawn at the same position and size as the symbol, in the same system: they cannot disagree.
+    All this does is take the printed frames off the parchment.
     """
     out = front.copy()
     par = np.concatenate([np.arange(p, q + 1) for p, q in PARCH_ROWS])
-    marker = np.asarray(Image.open(os.path.join(OUT, SYMBOL_ART[0])).convert("RGBA"))[..., 3] > 90
-    hated = np.asarray(Image.open(os.path.join(OUT, SYMBOL_ART[1])).convert("RGBA"))[..., 3] > 90
-    side = int(round(RING_LOCAL * PX_PER_LOCAL))
-    rings = []
-    for m in (marker, hated):
-        im = Image.fromarray((m * 255).astype(np.uint8)).resize((side, side), Image.LANCZOS)
-        rings.append(np.asarray(im) > 128)
-    # THE FRAME ONLY, NOT THE WHOLE TOKEN. The token is two drawings -- a thorn square and, inside
-    # it, the barred circle that says Outcast. The board's slot was only ever the square: stamp the
-    # whole token and every empty slot announces an outcast that is not there.
-    both = rings[0] & rings[1]
-    lab, info = components(both)
-    frame = max(info.items(), key=lambda kv: kv[1][0])[0]
-    # NOT ERODED. The white has to stay inside the symbol's own shape or the symbol cannot cover it,
-    # and the intersection of the two faces is already the thinnest of the three drawings -- taking
-    # another pixel off breaks the thorns into dashes and the slot stops reading as the board's.
-    white = lab == frame
-
     for cx_local in SLOT_X_LOCAL:
         cx = int(round(ORIGIN_PX[0] - PX_PER_LOCAL * cx_local))
         cy = int(round(ORIGIN_PX[1] + PX_PER_LOCAL * SLOT_Z_LOCAL))
-        # 1. the printed frame goes, under clean parchment off the panel's own empty rows
-        x0, x1 = cx - 56, cx + 57
-        y0, y1 = cy - 56, cy + 57
-        for y in range(y0, y1):
-            out[y, x0:x1] = front[par[rng.integers(len(par))], x0:x1]
-        # 2. the token's ring goes back, in white, centred on the same spot
-        sy, sx = cy - side // 2, cx - side // 2
-        reg = out[sy:sy + side, sx:sx + side]
-        reg[white] = PARCH_WHITE
+        for y in range(cy - 56, cy + 57):
+            out[y, cx - 56:cx + 57] = front[par[rng.integers(len(par))], cx - 56:cx + 57]
     return out
 
 

@@ -452,15 +452,24 @@ def t_the_lizard_board_follows_the_wizard(src):
       self.UI.setCustomAssets = function() end
       function decalAt()
         if LASTXML == "" then return "none" end
-        -- RAW UI PIXELS, converted on the python side. Decoding here with the board's own
-        -- PX_PER_UNIT / UI_MIRROR / UI_Z_SIGN would agree with whatever those happened to say,
-        -- which is how a symbol drawn twice its size and a panel's width low went out green.
-        -- %- , not -: a bare - is Lua's lazy quantifier, not a literal minus
-        local px = tonumber(string.match(LASTXML, 'position="(%-?[%d.]+)'))
-        local py = tonumber(string.match(LASTXML, 'position="%-?[%d.]+ (%-?[%d.]+)'))
-        local w  = tonumber(string.match(LASTXML, 'width="(%-?[%d.]+)"'))
-        local face = string.find(LASTXML, "hatedImg", 1, true) and "hated" or "outcast"
-        return string.format("%.4f|%.4f|%.4f|%s", px, py, w, face)
+        -- ALL THREE SLOTS ARE DRAWN NOW, so find the one showing a symbol rather than the white
+        -- thorn square. Reading the first Image in the XML would just report the mouse slot.
+        for tag in string.gmatch(LASTXML, "<Image.-/>") do
+          local img = string.match(tag, 'image="(%a+)"')
+          if img == "outcastImg" or img == "hatedImg" then
+            local px = tonumber(string.match(tag, 'position="(%-?[%d.]+)'))
+            local py = tonumber(string.match(tag, 'position="%-?[%d.]+ (%-?[%d.]+)'))
+            local w  = tonumber(string.match(tag, 'width="(%-?[%d.]+)"'))
+            return string.format("%.4f|%.4f|%.4f|%s", px, py, w,
+                                 img == "hatedImg" and "hated" or "outcast")
+          end
+        end
+        return "none"
+      end
+      function slotsDrawn()
+        local n = 0
+        for _ in string.gmatch(LASTXML, "<Image.-/>") do n = n + 1 end
+        return n
       end
       function tokensOnTable()
         local n = 0
@@ -519,6 +528,15 @@ def t_the_lizard_board_follows_the_wizard(src):
     assert abs(x - SLOT["fox"]) < 0.01 and abs(z - FRAME_Z) < 0.01, \
         "the fox outcast painted the symbol at %.4f,%.4f instead of the fox slot" % (x, z)
     assert face == "outcast", "the hated picture was used for an outcast that is not hated"
+
+    # THE SLOT ITSELF IS UI NOW, not paint on the board. Its white thorn square used to be printed
+    # into the texture and the symbol drawn over it, which cannot be made to line up: the texture is
+    # placed by a fitted map and the symbol by the UI, and they agree only to about a pixel. All
+    # three slots are drawn, always -- the two that are not the Outcast in white -- so the symbol
+    # REPLACES the white instead of having to hide it.
+    assert int(er.eval("slotsDrawn()")) == 3, \
+        "the board drew %s slot images; it should draw all three, every time" % er.eval("slotsDrawn()")
+    assert "slotImg" in ls, "the board no longer has a white slot image to draw an empty slot with"
 
     # IT GOES IN THE SLOT, NOT OVER IT. Maintainer, 2026-09-08, on the first version that drew at
     # all: "good but does not fit well not righ size and position adjust this hard you should be
