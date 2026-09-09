@@ -384,6 +384,21 @@ def t_the_lost_souls_box_is_gone_from_the_board(src):
     assert count(1290, 1570, 776, 800, parch) == 0, \
         "there is still parchment well below the panel's new floor; it grew too far"
 
+    # 5. THE ICONS ARE WHOLE AND THE PARCHMENT IS CLEAN. The patch that lifts the printed frames off
+    #    ran cy +/-56, which starts at row 563 where the suit icons end at 565 -- it was shaving
+    #    three rows off the mouse, rabbit and fox. And the panel's corner flourish reaches x 1249
+    #    where the strip that carries it down stopped at 1246, so its tip stayed behind and sat on
+    #    bare parchment as a black dot. Both are measured here rather than eyeballed.
+    src = Image.open(os.path.join(REPO, "assets", "src_art", "lizard_board_front.png")).convert("RGB")
+    sp = src.load()
+    for y in range(500, 569):
+        for x in range(1240, 1620, 2):
+            assert px[x, y] == sp[x, y], \
+                "the suit icon band has been altered at %d,%d; the patch that clears the slots is " \
+                "reaching up into the mouse, rabbit and fox" % (x, y)
+    assert count(1240, 1620, 640, 700, dark) == 0, \
+        "there is stray dark ink on the parchment round the slots"
+
     # ...and the counts are placed inside that band: below the slots' floor at local z +0.0134 and
     # above the panel's new one at +0.163. The z is NOT negated -- see the board script.
     m = re.search(r"COUNT_Z = ([0-9.]+)", ls)

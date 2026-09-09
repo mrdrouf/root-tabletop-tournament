@@ -91,6 +91,11 @@ PANEL_STRIP_INNER = 666         # ...but the INTERIOR of that strip starts lower
 PANEL_GROW = 80                 # rows added; puts the panel's floor at 762, ~90 clear below the slots
 PARCH_ROWS = ((443, 457), (501, 512), (666, 674), (370, 377))   # clean parchment, no text or slots
 BORDER_ROWS = (590, 654)        # where the side borders are a plain line, above the flourish
+SPLIT = 1256                    # where the moving border strip ends and the interior begins. It was
+                                # 1246, which cuts the panel's corner flourish in half: its tip
+                                # reaches x 1249, so those pixels stayed behind when the edge moved
+                                # down and were left sitting on bare parchment as a black dot. The
+                                # first printed frame starts at 1260, so there is room for both.
 SEED = 4
 
 
@@ -497,8 +502,13 @@ def redraw_slots(front, rng):
     for cx_local in SLOT_X_LOCAL:
         cx = int(round(ORIGIN_PX[0] - PX_PER_LOCAL * cx_local))
         cy = int(round(ORIGIN_PX[1] + PX_PER_LOCAL * SLOT_Z_LOCAL))
-        for y in range(cy - 56, cy + 57):
-            out[y, cx - 56:cx + 57] = front[par[rng.integers(len(par))], cx - 56:cx + 57]
+        # BOUNDED BY WHAT IS AROUND IT, not by a square about the centre. A box of cy +/-56 starts at
+        # row 563 and the suit icons above end at 565, so it was shaving three rows off the mouse,
+        # the rabbit and the fox. The printed frames are y 574..664 and x 1260..1351 (and their two
+        # neighbours), so this clears them with a few pixels to spare and touches nothing else --
+        # in particular it stops short of the panel's corner flourish, whose tip reaches x 1249.
+        for y in range(569, 672):
+            out[y, cx - 52:cx + 53] = front[par[rng.integers(len(par))], cx - 52:cx + 53]
     return out
 
 
@@ -515,17 +525,17 @@ def grow_panel(front, rng):
     n = PANEL_GROW
     ai = PANEL_STRIP_INNER
     out = front.copy()
-    out[a + n:b + n, x0:1246] = front[a:b, x0:1246]          # left border, with its flourish
+    out[a + n:b + n, x0:SPLIT] = front[a:b, x0:SPLIT]        # left border, with its flourish
     out[a + n:b + n, 1618:x1] = front[a:b, 1618:x1]          # right border
-    out[ai + n:b + n, 1246:1618] = front[ai:b, 1246:1618]    # interior, from below the slots
+    out[ai + n:b + n, SPLIT:1618] = front[ai:b, SPLIT:1618]  # interior, from below the slots
     par = np.concatenate([np.arange(p, q + 1) for p, q in PARCH_ROWS])
     bor = np.arange(*BORDER_ROWS)
     for i, y in enumerate(range(a, a + n)):
         yb = bor[i % len(bor)]
-        out[y, x0:1246] = front[yb, x0:1246]
+        out[y, x0:SPLIT] = front[yb, x0:SPLIT]
         out[y, 1618:x1] = front[yb, 1618:x1]
     for i, y in enumerate(range(ai, ai + n)):
-        out[y, 1246:1618] = front[par[rng.integers(len(par))], 1246:1618]
+        out[y, SPLIT:1618] = front[par[rng.integers(len(par))], SPLIT:1618]
     return out
 
 
