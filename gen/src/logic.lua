@@ -7088,9 +7088,15 @@ RTT_DISC_TAG = "RTT Laid Disc"   -- still recognised, no longer created: see rtt
 -- is already painted in that colour, on a map printed in the same warm palette -- three greens and a
 -- yellow against green and yellow clearings. Black is the one value none of the seven maps or the
 -- twelve factions use, so it separates from all of them at once.
--- WHITE, on trial. It was black from the start; maintainer, 2026-09-09: "can you do a white
--- highlight now to test instead of the black". One line either way.
-RTT_GLOW_RGB = { r = 1, g = 1, b = 1 }
+-- BLACK, and settled. TTS fixes the outline's thickness and gives no intensity, so its colour is the
+-- only thing that can make the mark carry -- and a player colour would outline a warrior already
+-- painted in it, on a map printed in the same palette. It was tried in white beside the new fade
+-- ("can you do a white highlight now to test instead of the black") and the answer came back the same
+-- day: "ok keep black highlight for all not white."
+--
+-- It also reads on every piece, which white does not: four factions' warriors are flat white already
+-- and the fade lifts them further, so a white outline on those would have had nothing to sit against.
+RTT_GLOW_RGB = { r = 0, g = 0, b = 0 }
 -- A PRISONER GOES PALE. The black outline above says "this piece is marked"; on a board of thirty
 -- warriors it is a thin line and easy to lose. Maintainer, 2026-09-09: "can you make the color of the
 -- piece brighter. so each piece keeps its color but becomes much brighter; still with the black

@@ -4021,17 +4021,14 @@ def t_numpad_two_lays_a_warrior_down_and_lights_it(src):
                'MINE.__bounds = {size = Vector({1, 1, 3}), center = Vector({1, 2.5, 1})} FLUSH(3)')
     glow = rt.eval("MINE.__glow")
     assert glow is not None, "numpad 2 did not light the piece"
-    # NOT A PLAYER COLOUR. TTS fixes the outline's thickness and gives no intensity, so colour is the
-    # only thing that can make the mark carry -- and a player colour outlines a warrior already painted
-    # in it, on a map printed in the same palette. It was black on that reasoning ("make it black
-    # highlighted."); it is white while the maintainer looks at both ("can you do a white highlight now
-    # to test instead of the black", 2026-09-09). Either end of the greyscale is the point, so this
-    # pins what it must NOT be rather than which of the two is up.
-    assert round(glow.r, 3) == round(glow.g, 3) == round(glow.b, 3), \
-        "the outline is a colour, not black or white: %s %s %s" % (glow.r, glow.g, glow.b)
-    assert round(glow.r, 3) in (0.0, 1.0), \
-        "the outline is a grey, which reads as neither: %s" % glow.r
-    assert rt.eval("RTT_GLOW_RGB") is not None, "the outline colour is not one named constant"
+    # BLACK. TTS fixes the outline's thickness and gives no intensity, so colour is the only thing that
+    # can make the mark carry -- and a player colour outlines a warrior already painted in it, on a map
+    # printed in the same palette. Maintainer: "make it black highlighted." It was tried in white
+    # beside the new fade ("can you do a white highlight now to test instead of the black") and settled
+    # the same day: "ok keep black highlight for all not white." Four factions' warriors are flat white
+    # already and the fade lifts them further, so a white outline would have had nothing to sit on.
+    assert (round(glow.r, 3), round(glow.g, 3), round(glow.b, 3)) == (0.0, 0.0, 0.0), \
+        "the outline is not black: %s %s %s" % (glow.r, glow.g, glow.b)
     assert round(rt.eval("RTT_PLAYER_RGB['Red']")[1], 3) != 0.0, \
         "this check proves nothing if Red is already black"
 
