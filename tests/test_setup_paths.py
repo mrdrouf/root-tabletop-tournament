@@ -1386,15 +1386,16 @@ def t_gizmo_default_key_is_numpad_zero(src):
         "releasing the token hotkey fired %s" % {k: v for k, v in got.items() if v}
 
 
-def t_numpad_zero_frees_a_prisoner_and_sends_it_home(src):
-    """Numpad 0 on a knave's prisoner frees it -- and then does what numpad 0 is for.
+def t_numpad_zero_leaves_locked_pieces_alone(src):
+    """Numpad 0 does nothing to a piece that is locked -- a prisoner included.
 
-    Maintainer, 2026-09-09: "using 0 on a prisoner (numpad 3 option) should remove the prisoner
-    status (locked highlighted and laying down)."
+    Maintainer, 2026-09-09: "ok let s change the rule; numpad 0 does nothing on anything that is
+    locked." That replaced the rule of an hour before, that numpad 0 should free a prisoner and carry
+    it home; a prisoner is locked, so it falls under this and numpad 0 no longer touches one. Freeing
+    it stays numpad 3's job, the key that made it.
 
-    A prisoner is laid flat, lit and LOCKED, and a locked piece does not move -- so numpad 0 on one
-    did nothing whatever and looked broken. It frees it first and carries on home, which keeps the
-    key's one meaning for a prisoner too: a released warrior goes back to its supply.
+    A lock is a player saying this piece stays put, and one key that respects that everywhere beats a
+    key with an exception in it.
     """
     rt = fresh(src)
     rt.execute("""
@@ -1407,27 +1408,39 @@ def t_numpad_zero_frees_a_prisoner_and_sends_it_home(src):
       FLUSH()
     """)
     assert rt.eval("W.__locked") is True, "numpad 3 did not lock the prisoner"
-    assert rt.eval("W.__glow") is not None, "numpad 3 did not light the prisoner"
-    assert rt.eval("RTT_LAID[W.getGUID()]") is not None, "numpad 3 kept no record of the prisoner"
 
     rt.execute("onScriptingButtonDown(10, 'Red') FLUSH()")
-    assert rt.eval("W.__locked") is False, "numpad 0 left the freed prisoner locked"
-    assert rt.eval("W.__glow") is None, "numpad 0 left the freed prisoner lit"
-    assert rt.eval("RTT_LAID[W.getGUID()]") is None, \
-        "numpad 0 left the prisoner on the record, so numpad 3 now thinks it is still down"
-    at = float(rt.eval("W.__pos.x"))
-    assert abs(at - 7.0) < 0.01, \
-        "the freed warrior went to x %.2f; numpad 0 should carry it home to its supply at 7.0" % at
+    assert rt.eval("W.__locked") is True, "numpad 0 unlocked a prisoner; locked pieces are its no"
+    assert rt.eval("W.__glow") is not None, "numpad 0 put a prisoner's light out"
+    assert rt.eval("RTT_LAID[W.getGUID()]") is not None, "numpad 0 took a prisoner off the record"
+    assert abs(float(rt.eval("W.__pos.x")) - 30.0) < 0.01, \
+        "numpad 0 moved a prisoner to %.2f; it should not have moved at all" % rt.eval("W.__pos.x")
 
-    # ...and it is still a plain send-home for a piece that was never a prisoner.
+    # ...and numpad 3, the key that made it, still frees it.
+    rt.execute("onScriptingButtonDown(3, 'Red') FLUSH()")
+    assert rt.eval("W.__locked") is False, "numpad 3 no longer frees the prisoner it made"
+    assert rt.eval("RTT_LAID[W.getGUID()]") is None, "numpad 3 left the freed prisoner on the record"
+
+    # ANY lock, not only a prisoner's: a piece the player locked by hand is equally untouchable.
     rt.execute("""
-      V = MKOBJ('Marquise Warrior', { 30, 1, 30 }, {})
+      L = MKOBJ('Marquise Warrior', { 31, 1, 31 }, {})
+      L.setLock(true)
+      HOVER['Red'] = L
+      onScriptingButtonDown(10, 'Red')
+      FLUSH()
+    """)
+    assert abs(float(rt.eval("L.__pos.x")) - 31.0) < 0.01, \
+        "numpad 0 sent a hand-locked warrior home; a lock is a lock"
+
+    # ...while an unlocked one still goes home, which is the whole point of the key.
+    rt.execute("""
+      V = MKOBJ('Marquise Warrior', { 32, 1, 32 }, {})
       HOVER['Red'] = V
       onScriptingButtonDown(10, 'Red')
       FLUSH()
     """)
-    # (a piece nothing has locked has no flag at all, so nil counts as unlocked here)
-    assert rt.eval("V.__locked") is not True, "an ordinary warrior came back locked"
+    assert abs(float(rt.eval("V.__pos.x")) - 7.0) < 0.01, \
+        "an ordinary warrior no longer goes home; it went to %.2f" % rt.eval("V.__pos.x")
 
 
 def t_numpad_two_hands_you_the_token_you_chose(src):
@@ -5326,7 +5339,7 @@ CASES = [
     ("5-player buttons warn first",         t_the_five_player_buttons_warn_before_wiping),
     ("a dead handle cannot crash us",       t_a_destroyed_object_cannot_crash_the_map_scan),
     ("map buttons warn before wiping",       t_map_buttons_warn_before_wiping),
-    ("numpad 0 frees a prisoner",     t_numpad_zero_frees_a_prisoner_and_sends_it_home),
+    ("numpad 0 leaves locked alone",  t_numpad_zero_leaves_locked_pieces_alone),
     ("numpad 2 hands you your token",  t_numpad_two_hands_you_the_token_you_chose),
     ("gizmo default key is numpad 0",         t_gizmo_default_key_is_numpad_zero),
     ("gizmo: warrior to/from supply",         t_gizmo_warrior_to_and_from_supply),

@@ -6866,16 +6866,16 @@ function rttGizmoHome(color)
   local name = hovered.getName() or ""
   if name == "" then return end
 
-  -- A PRISONER IS FREED FIRST. Maintainer, 2026-09-09: "using 0 on a prisoner (numpad 3 option)
-  -- should remove the prisoner status (locked highlighted and laying down)."
+  -- LOCKED MEANS LEAVE IT ALONE. Maintainer, 2026-09-09: "ok let s change the rule; numpad 0 does
+  -- nothing on anything that is locked."
   --
-  -- It is not only that the status should go: a prisoner is LOCKED, and a locked piece does not move,
-  -- so numpad 0 on one did nothing at all and looked broken. Freeing it here keeps this key's one
-  -- meaning -- this piece goes home -- and lets it mean that for a prisoner too. Released warriors go
-  -- back to their supply, so the two halves are the same gesture.
-  local lguid = nil
-  pcall(function() lguid = hovered.getGUID() end)
-  if lguid ~= nil and RTT_LAID[lguid] ~= nil then rttFreePrisoner(hovered, lguid) end
+  -- This replaces the rule of an hour before, that numpad 0 should free a prisoner and carry it home.
+  -- A prisoner IS locked, so it is covered by this and numpad 0 no longer touches one: freeing a
+  -- prisoner is numpad 3's job, the key that made it. A lock is a player saying this piece stays put,
+  -- and one key that respects that everywhere is worth more than a key with an exception in it.
+  local locked = false
+  pcall(function() locked = (hovered.getLock() == true) end)
+  if locked then return end
 
   -- NO PERMISSION CHECK. There was one for a few hours -- "gizmo 0 should not work on other player's
   -- warriors and token buildings" -- and it was removed the same day: "remove the player permission
