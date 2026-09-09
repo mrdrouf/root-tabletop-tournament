@@ -216,7 +216,68 @@ def wider(inner, extra, grain=12):
     return out
 
 
-def build_plaque(width, extra_band=0, extra_width=0, type_width=TYPE_WIDTH):
+def frame_and_scale(inner, width):
+    """Shrink the plaque to `width` and give it the clean dark edge that replaces the board's wood."""
+    border = max(1, round(FRAME_PX * width / (inner.width + FRAME_PX * 2)))
+    iw = width - border * 2
+    inner = inner.resize((iw, round(inner.height * iw / inner.width)), Image.LANCZOS)
+    plaque = Image.new("RGB", (inner.width + border * 2, inner.height + border * 2), FRAME)
+    plaque.paste(inner, (border, border))
+    return plaque
+
+
+SUBTITLE_LINES = ("Tabletop", "Tournament")
+TWO_LINE_TRACK = 1.04      # a letterspace, not a justification: see set_two_line
+
+
+def set_two_line(d, band, field, type_width, lead=0.12):
+    """Size and place the subtitle on TWO lines, both at one point size and one width.
+
+    ONE LINE CANNOT BE MADE BIGGER, whatever is done to the sign, and that is worth stating plainly
+    because two obvious levers were tried and neither works. The line already spans the whole cream
+    field, so its size in the finished picture is (field / plaque) * output width. Splice the plaque
+    WIDER and the field and the plaque grow together, which cancels -- 650 columns moved it 2%. Splice
+    it TALLER and nothing happens at all: the binding constraint is width, so extra rows are simply
+    empty parchment. The only way past the ceiling is fewer characters per line: nineteen of them fill
+    the field at 219pt, but "Tournament" alone fills it at 383pt, so two lines are worth +147% before
+    any compromise. Maintainer, 2026-09-09: "Tabletop Tournament still too small. increase the height
+    of the root sign if needs be" -- which is precisely the room two lines need.
+
+    Both lines take the SAME point size and only a HAIR of tracking. Justifying them both to the
+    field's full width -- the way the single line is justified -- stretched "Tabletop" into
+    "T a b l e t o p": eight characters cannot reach a width nineteen were sized for without absurd
+    gaps. So the size is chosen so the LONGER line fills the field naturally, and each line is then
+    tracked only 4% past its own width, which is a letterspace rather than a justification.
+    """
+    room = band[1] - band[0]
+    target = (field[1] - field[0]) * type_width
+    lead_of = lambda sz: sz * lead
+
+    size = int(room)
+    while size > 8:
+        f = ImageFont.truetype(FONT, size)
+        inks = [d.textbbox((0, 0), t, font=f, anchor="ls") for t in SUBTITLE_LINES]
+        widest = max(d.textlength(t, font=f) for t in SUBTITLE_LINES) * TWO_LINE_TRACK
+        stack = sum(b[3] - b[1] for b in inks) + lead_of(size)
+        if widest <= target and stack <= room:
+            break
+        size -= 1
+
+    f = ImageFont.truetype(FONT, size)
+    inks = [d.textbbox((0, 0), t, font=f, anchor="ls") for t in SUBTITLE_LINES]
+    heights = [b[3] - b[1] for b in inks]
+    stack = sum(heights) + lead_of(size)
+    y = (band[0] + band[1]) / 2 - stack / 2          # ink top of the first line
+    cx = (field[0] + field[1]) / 2
+    for t, b, h in zip(SUBTITLE_LINES, inks, heights):
+        baseline = y - b[1]                          # b[1] is the ink top, relative to the baseline
+        own = d.textlength(t, font=f) * TWO_LINE_TRACK
+        draw_tracked(d, cx, baseline, t, f, INK, min(own, target))
+        y += h + lead_of(size)
+    return size
+
+
+def build_plaque(width, extra_band=0, extra_width=0, type_width=TYPE_WIDTH, two_line=False):
     """The plaque with its subtitle replaced and its wood surround swapped for a clean edge.
 
     `extra_band` grows the parchment under the logo by that many of the plaque's own rows and gives
@@ -239,6 +300,9 @@ def build_plaque(width, extra_band=0, extra_width=0, type_width=TYPE_WIDTH):
     # the cream field grew by exactly the columns spliced in, so the type's room grows with it
     field = (FIELD[0], FIELD[1] + extra_width)
     target = (field[1] - field[0]) * type_width
+    if two_line:
+        set_two_line(d, band, field, type_width)
+        return frame_and_scale(inner, width)
     size = room * 2
     while size > 8:
         f = ImageFont.truetype(FONT, size)
@@ -252,12 +316,7 @@ def build_plaque(width, extra_band=0, extra_width=0, type_width=TYPE_WIDTH):
     baseline = (band[0] + band[1]) / 2 - (b[1] + b[3]) / 2
     draw_tracked(d, (field[0] + field[1]) / 2, baseline, SUBTITLE, f, INK, target)
 
-    border = max(1, round(FRAME_PX * width / (inner.width + FRAME_PX * 2)))
-    iw = width - border * 2
-    inner = inner.resize((iw, round(inner.height * iw / inner.width)), Image.LANCZOS)
-    plaque = Image.new("RGB", (inner.width + border * 2, inner.height + border * 2), FRAME)
-    plaque.paste(inner, (border, border))
-    return plaque
+    return frame_and_scale(inner, width)
 
 
 def content_box(img, floor=170):
