@@ -322,11 +322,11 @@ def t_the_lost_souls_box_is_gone_from_the_board(src):
     """
     rt = fresh(src)
     d = rt.eval('EVERYTHING["Standard"]["The Lizard Cult"]["data"]')
-    url = None
+    url = ls = None
     for i in range(1, len(d) + 1):
         j = json.loads(d[i].json)
         if j.get("Nickname") == "Lizard Board":
-            url = j["CustomImage"]["ImageURL"]
+            url, ls = j["CustomImage"]["ImageURL"], j["LuaScript"]
     assert url is not None, "there is no Lizard Board in the blueprint"
     assert "steamusercontent" not in url, \
         "the board still points at the original Steam texture, which has the Lost Souls box on it"
@@ -354,14 +354,15 @@ def t_the_lost_souls_box_is_gone_from_the_board(src):
     white = lambda r, g, b: r > 235 and g > 235 and b > 225
     dark = lambda r, g, b: r < 105 and g < 105
 
-    # 1. THE BORDER IS GONE. It ran as a white rounded rectangle at x 1233..1644, y 709..1264.
-    assert count(1250, 1620, 706, 726, white) == 0, "the box's top border is still printed"
+    # 1. THE BORDER IS GONE. It ran as a white rounded rectangle at x 1233..1644, y 709..1264. Its
+    #    top now lies UNDER the grown Outcast panel, so the sides and floor are where to look.
+    assert count(1229, 1249, 800, 1200, white) == 0, "the box's left border is still printed"
+    assert count(1630, 1650, 800, 1200, white) == 0, "the box's right border is still printed"
     assert count(1250, 1620, 1248, 1268, white) == 0, "the box's bottom border is still printed"
-    assert count(1229, 1249, 760, 1200, white) == 0, "the box's left border is still printed"
-    assert count(1630, 1650, 760, 1200, white) == 0, "the box's right border is still printed"
 
-    # 2. THE TITLE AND ITS SUBTITLE ARE GONE -- dark red ink that sat above the lizard.
-    assert count(1280, 1600, 715, 815, dark) == 0, "'Lost Souls' or its subtitle is still printed"
+    # 2. THE TITLE AND SUBTITLE ARE GONE. They sat at y 715..815; the panel now covers down to 762,
+    #    so what has to be clear of their dark red ink is the band below it.
+    assert count(1280, 1600, 770, 815, dark) == 0, "'Lost Souls' or its subtitle is still printed"
 
     # 3. THE LIZARD STAYED, AND MOVED DOWN. He was drawn at y 854..1194 and is dropped 70px, so the
     #    band he used to occupy at the top is now open ground and he is present lower instead.
@@ -370,21 +371,27 @@ def t_the_lost_souls_box_is_gone_from_the_board(src):
     assert count(1300, 1580, 1000, 1250, dark) > 200, \
         "the lizard is missing from the board; he was meant to stay"
 
-    # 4. NO SEAM WHERE THE REBUILT GROUND MEETS THE BOARD. Reported twice -- "we can perceive a
-    #    seam" -- and it was real: the ground field was being sampled at the wrong coordinates, so
-    #    the panel met the board ten levels of green too dark along its top edge. The panel spans
-    #    y 703..1300; comparing a band just inside each horizontal edge with one just outside it
-    #    catches any step, and the board's own variation across the same lines is about 2.
-    def median(x0, x1, y0, y1):
-        vals = sorted(px[x, y][1] for y in range(y0, y1) for x in range(x0, x1, 2))
-        return vals[len(vals) // 2]
+    # 4. THE OUTCAST PANEL GREW, so the Lost Souls counts have somewhere to sit. Maintainer:
+    #    "increase the size of the parchment box with the decals so you create space to put the
+    #    numbers below the boxes with the outcase." The printed slots end at y 664 and the panel
+    #    used to end at 682 -- eighteen rows. Its floor is now 762.
+    parch = lambda r, g, b: abs(r - 248) < 26 and abs(g - 228) < 26 and abs(b - 165) < 26
+    band = count(1290, 1570, 676, 752, parch)
+    total = len(range(676, 752, 2)) * len(range(1290, 1570, 2))
+    assert band > 0.97 * total, \
+        "the band below the slots is not clean parchment (%d of %d); the panel did not grow" \
+        % (band, total)
+    assert count(1290, 1570, 776, 800, parch) == 0, \
+        "there is still parchment well below the panel's new floor; it grew too far"
 
-    above, in_top = median(1330, 1560, 685, 699), median(1330, 1560, 721, 735)
-    in_bot, below = median(1330, 1560, 1268, 1282), median(1330, 1560, 1301, 1311)
-    assert abs(in_top - above) <= 6, \
-        "the rebuilt ground meets the board %d levels off at the panel's top edge" % (in_top - above)
-    assert abs(in_bot - below) <= 6, \
-        "the rebuilt ground meets the board %d levels off at the panel's bottom edge" % (in_bot - below)
+    # ...and the counts are placed inside that band: below the slots' floor at local z +0.0134 and
+    # above the panel's new one at +0.163. The z is NOT negated -- see the board script.
+    m = re.search(r"COUNT_Z = ([0-9.]+)", ls)
+    assert m, "COUNT_Z is gone from the board script"
+    cz = float(m.group(1))
+    assert 0.02 < cz < 0.15, "the counts sit at local z %.4f, outside the panel's new clear band" % cz
+    assert "position = { -BOARD_SLOT[suit], 0.1, COUNT_Z }" in ls, \
+        "the counts are no longer the mirror of the slots in x, or their z got negated again"
 
 
 def t_the_lizard_board_follows_the_wizard(src):
@@ -575,7 +582,7 @@ def t_the_lizard_board_follows_the_wizard(src):
     # createButton lays out on the face looking down at it and setDecals does not. I "fixed" the
     # counters onto the slot coordinates and put all three over Daylight on the far side of the board.
     # They are derived from the slots by negation now, so the two cannot drift apart again.
-    assert "position = { -BOARD_SLOT[suit], 0.1, -COUNT_Z }" in ls, \
+    assert "position = { -BOARD_SLOT[suit], 0.1, COUNT_Z }" in ls, \
         "the counters are not the mirror of the slot positions; check createButton's handedness"
 
     # ONE OUTCAST MARKER IS SPAWNED, NOT TWO. Maintainer, 2026-09-07: "it looks like the lizard wizard

@@ -54,6 +54,23 @@ MASK_THRESH = 14                # ...and the tighter one used to find the artwor
 LIZARD_DROP = 70                # "just put him a little bit below"
 PITCH = 90                     # column spacing that matches the board's own scatter of trees
 TOP = 686                       # the ground starts just under the Outcast panel
+
+# GROWING THE OUTCAST PANEL. Maintainer: "increase the size of the parchment box with the decals so
+# you create space to put the numbers below the boxes with the outcase. make sure you do it right and
+# respect the art." The three printed slots end at y 664 and the panel ends at 682 -- eighteen rows,
+# nowhere near enough for a numeral -- which is why the Lost Souls counts had no home and were
+# printing over the suit icons.
+PANEL_X = (1218, 1646)          # the panel plus its inked border, with a margin
+PANEL_STRIP = (650, 689)        # the torn bottom edge: the left corner's zigzag flourish, the ink
+                                # line, and a couple of rows past it. Moved down whole rather than
+                                # redrawn -- it is hand-drawn and has a notch in the middle.
+PANEL_STRIP_INNER = 666         # ...but the INTERIOR of that strip starts lower. The flourish sits
+                                # at rows 656-668 and the three printed slots end at 664, so one
+                                # strip top cannot serve both: taking the interior from 650 carried
+                                # the bottom bar of all three thorn frames down the panel with it.
+PANEL_GROW = 80                 # rows added; puts the panel's floor at 762, ~90 clear below the slots
+PARCH_ROWS = ((443, 457), (501, 512), (666, 674), (370, 377))   # clean parchment, no text or slots
+BORDER_ROWS = (590, 654)        # where the side borders are a plain line, above the flourish
 SEED = 4
 
 
@@ -374,6 +391,33 @@ def plant(canvas, mapped, trees, region, clean, rng, pitch=PITCH, gap=26, jitter
     return n
 
 
+def grow_panel(front, rng):
+    """Make the Outcast panel taller, by moving its bottom edge down and extending its sides.
+
+    The edge is not redrawn. It is lifted whole -- flourish, notch, ink and all -- and set down
+    lower, and the band it vacates is filled with the panel's own plain side border and its own
+    clean parchment. So every stroke in the result is a stroke the artist drew, in the hand they
+    drew it; the panel is simply longer.
+    """
+    x0, x1 = PANEL_X
+    a, b = PANEL_STRIP
+    n = PANEL_GROW
+    ai = PANEL_STRIP_INNER
+    out = front.copy()
+    out[a + n:b + n, x0:1246] = front[a:b, x0:1246]          # left border, with its flourish
+    out[a + n:b + n, 1618:x1] = front[a:b, 1618:x1]          # right border
+    out[ai + n:b + n, 1246:1618] = front[ai:b, 1246:1618]    # interior, from below the slots
+    par = np.concatenate([np.arange(p, q + 1) for p, q in PARCH_ROWS])
+    bor = np.arange(*BORDER_ROWS)
+    for i, y in enumerate(range(a, a + n)):
+        yb = bor[i % len(bor)]
+        out[y, x0:1246] = front[yb, x0:1246]
+        out[y, 1618:x1] = front[yb, 1618:x1]
+    for i, y in enumerate(range(ai, ai + n)):
+        out[y, 1246:1618] = front[par[rng.integers(len(par))], 1246:1618]
+    return out
+
+
 def main():
     art_file = os.path.join(SRC, "lizard_board_front.png")
     if not os.path.exists(art_file):
@@ -435,6 +479,17 @@ def main():
 
     changed = (out != front).any(axis=-1)
     assert not (changed & ~region).any(), "the rebuild touched ground it was not given"
+
+    # ...and finally the panel grows downward over the ground just laid, making room for the counts
+    before = out.copy()
+    out = grow_panel(out, rng)
+    ch = (out != before).any(axis=-1)
+    ys2, xs2 = np.where(ch)
+    assert ys2.min() >= PANEL_STRIP[0] and ys2.max() <= PANEL_STRIP[1] + PANEL_GROW, \
+        "growing the panel touched rows outside its own strip"
+    assert xs2.min() >= PANEL_X[0] and xs2.max() < PANEL_X[1], \
+        "growing the panel touched columns outside the panel"
+    print("   Outcast panel grown %d rows; its floor is now y %d" % (PANEL_GROW, 682 + PANEL_GROW))
 
     if not os.path.isdir(OUT):
         os.makedirs(OUT)
