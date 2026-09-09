@@ -4161,6 +4161,77 @@ def t_the_coffin_spawns_where_he_put_it(src):
         % (ry % 360, want["rotY"] % 360)
 
 
+def t_a_prisoner_goes_pale(src):
+    """Numpad 3 fades the piece toward white and gives its colour back when it stands up.
+
+    Maintainer, 2026-09-09: "for numpad 3, the prisoner option, can you make the color of the piece
+    brighter. so each piece keeps its color but becomes much brighter; still with the black tint",
+    and on how: "its not the tint it s the color of the piece itself you need to change to lighter
+    version of it. if its already white then thats it. maybe add a like fog effect so the color looks
+    like it s fader."
+
+    A LIGHTEN, not a value boost. Moving each channel toward white keeps the piece's own colour,
+    washes it out like fog, and can never clip -- which also answers "if its already white then thats
+    it". Scaling the value up would have brightened the eight factions whose warriors carry a real
+    faction colour and done nothing for the crows, the Keepers and the Knaves, which ship at flat
+    white with no headroom at all.
+
+    The black outline stays: it is what says "marked", and the fade is what makes it findable across
+    a board of thirty warriors.
+    """
+    rt = fresh(src)
+    fade = rt.eval("RTT_PRISONER_FADE")
+    assert fade is not None, "there is no prisoner fade; numpad 3 only outlines the piece"
+    assert 0 < fade < 1, "the fade is not a fraction of the way to white: %s" % fade
+
+    def faded(c):
+        got = rt.eval("function(r,g,b) local f = rttFaded({r=r,g=g,b=b}) "
+                      "return string.format('%.4f/%.4f/%.4f', f[1], f[2], f[3]) end")(*c)
+        return [float(v) for v in got.split("/")]
+
+    for name, c in (("Eyrie blue", (0.145, 0.457, 0.810)),
+                    ("Hundreds red", (0.867, 0.118, 0.212)),
+                    ("Council brown", (0.588, 0.294, 0.176))):
+        got = faded(c)
+        want = [v + (1 - v) * fade for v in c]
+        assert max(abs(a - b) for a, b in zip(got, want)) < 1e-3, \
+            "%s faded to %s, wanted %s" % (name, got, want)
+        assert all(g > v for g, v in zip(got, c)), "%s did not get lighter: %s" % (name, got)
+        assert all(g <= 1.0001 for g in got), "%s clipped past white: %s" % (name, got)
+        # its own colour, still: the channels keep their order, so the hue is recognisable
+        assert sorted(range(3), key=lambda i: got[i]) == sorted(range(3), key=lambda i: c[i]), \
+            "%s came out a different colour: %s -> %s" % (name, c, got)
+
+    # ALREADY WHITE IS ALREADY DONE -- the crows, the Keepers and the Knaves ship at flat white
+    assert faded((1.0, 1.0, 1.0)) == [1.0, 1.0, 1.0], "a white piece was changed"
+
+    # AND ON A REAL PIECE, both halves: pale, and still outlined in black
+    rt.execute("W = MKOBJ('Eyrie Warrior', {3, 1, 3}, {}) "
+               "W.setColorTint({0.145, 0.457, 0.810}) "
+               "HOVER['Red'] = W rttGizmoMark('Red') FLUSH(6)")
+    def tint(v):
+        got = rt.eval("function(o) local c = o.getColorTint() "
+                      "return string.format('%.4f/%.4f/%.4f', c.r, c.g, c.b) end")(rt.eval(v))
+        return [float(x) for x in got.split("/")]
+    assert tint("W") == faded((0.145, 0.457, 0.810)), \
+        "the prisoner was not faded: %s" % tint("W")
+    assert rt.eval("function() return W.__glow ~= nil end")() is True, \
+        "the prisoner lost its black outline"
+    assert rt.eval("function() return W.__locked end")() is True, "the prisoner was not locked"
+
+    # ITS OWN COLOUR COMES BACK, exactly. Un-fading by moving back from white is a division that
+    # loses the colour once a channel reaches 1, so what it was is kept in the record instead.
+    rt.execute("HOVER['Red'] = W rttGizmoMark('Red') FLUSH(6)")
+    assert [round(v, 4) for v in tint("W")] == [0.145, 0.457, 0.810], \
+        "standing the prisoner up did not give its colour back: %s" % tint("W")
+    assert rt.eval("function() return W.__glow == nil end")() is True, "the outline was left on"
+
+    # AND THE RECORD CARRIES IT, so a reload can still undo the fade -- RTT_LAID is in onSave
+    rt.execute("HOVER['Red'] = W rttGizmoMark('Red') FLUSH(6)")
+    saved = rt.eval("function() return onSave() end")()
+    assert '"tint"' in saved, "the saved record does not carry the piece's colour: %s" % saved[:200]
+
+
 def t_clear_all_objects_asks_before_it_clears(src):
     """A red button that empties the table, and asks first.
 
@@ -5704,6 +5775,7 @@ CASES = [
     ("a map cannot be left unlocked",     t_the_map_cannot_be_left_unlocked),
     ("round is 0 until start",            t_the_round_is_zero_until_start_is_pressed),
     ("clear all asks before it clears",   t_clear_all_objects_asks_before_it_clears),
+    ("a prisoner goes pale",              t_a_prisoner_goes_pale),
     ("board shows the build number",      t_the_board_shows_the_build_number),
     ("panel pauses the clock",            t_the_panel_pauses_the_clock),
     ("start names the pass it causes",    t_start_names_the_pass_it_causes),

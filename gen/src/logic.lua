@@ -7089,6 +7089,33 @@ RTT_DISC_TAG = "RTT Laid Disc"   -- still recognised, no longer created: see rtt
 -- yellow against green and yellow clearings. Black is the one value none of the seven maps or the
 -- twelve factions use, so it separates from all of them at once.
 RTT_GLOW_RGB = { r = 0, g = 0, b = 0 }
+-- A PRISONER GOES PALE. The black outline above says "this piece is marked"; on a board of thirty
+-- warriors it is a thin line and easy to lose. Maintainer, 2026-09-09: "can you make the color of the
+-- piece brighter. so each piece keeps its color but becomes much brighter; still with the black
+-- tint", and on how: "its not the tint it s the color of the piece itself you need to change to
+-- lighter version of it. if its already white then thats it. maybe add a like fog effect so the color
+-- looks like it s fader."
+--
+-- So it is a LIGHTEN, not a brightening: each channel moves this far toward white, which keeps the
+-- piece its own colour, washes it out like fog, and can never clip -- a red stays red and a white
+-- stays white, which is the answer to "if its already white then thats it".
+--
+-- Scaling the value up instead was the other option and is wrong for this table: eight factions'
+-- warriors carry a real faction colour and would have brightened, but the crows, the Keepers and the
+-- Knaves ship at flat white, where there is no headroom at all and only a tint above 1 would show --
+-- which TTS may clamp, and which shifts a saturated colour's hue when it does.
+RTT_PRISONER_FADE = 0.55
+
+-- The piece's colour, moved RTT_PRISONER_FADE of the way to white.
+function rttFaded(c)
+  if c == nil then return nil end
+  local k = RTT_PRISONER_FADE
+  local r = (c.r ~= nil) and c.r or c[1]
+  local g = (c.g ~= nil) and c.g or c[2]
+  local b = (c.b ~= nil) and c.b or c[3]
+  if r == nil or g == nil or b == nil then return nil end
+  return { r + (1 - r) * k, g + (1 - g) * k, b + (1 - b) * k }
+end
 -- TTS's own player colours. Read from a table rather than Color.fromString so the answer is the same
 -- in the harness as at the table, and so a colour TTS does not know cannot throw mid-press.
 RTT_PLAYER_RGB = {
@@ -7145,6 +7172,9 @@ function rttFreePrisoner(o, guid)
     end)
   end
   pcall(function() o.highlightOff() end)
+  if was.tint ~= nil then
+    pcall(function() o.setColorTint({ was.tint[1], was.tint[2], was.tint[3] }) end)
+  end
 end
 
 function rttGizmoMark(color)
@@ -7177,7 +7207,13 @@ function rttGizmoMark(color)
   -- WHO PUT IT DOWN, pinned at the press. The mark followed the PERSON for one build, so a colour
   -- change redrew every one they had made -- and in hotseat, where one person holds every colour, that
   -- moved all of them at once. Maintainer, 2026-09-07: pin it "at the moment of the press".
-  RTT_LAID[guid] = { rot = { r.x, r.y, r.z }, pos = { p.x, p.y, p.z }, who = color }
+  -- ITS OWN COLOUR IS REMEMBERED, not recomputed. Un-fading by moving back FROM white is a division
+  -- that loses the piece's colour entirely once a channel reaches 1, so what it was is written into
+  -- the same record the rotation is -- which is in onSave, so a reload still knows how to undo it.
+  local tint = nil
+  pcall(function() tint = hovered.getColorTint() end)
+  RTT_LAID[guid] = { rot = { r.x, r.y, r.z }, pos = { p.x, p.y, p.z }, who = color,
+                     tint = (tint ~= nil) and { tint.r, tint.g, tint.b } or nil }
   pcall(function() hovered.setRotation({ 90, r.y, r.z }) end)   -- tips forward, away from the player
   -- The bounds only report the new shape once TTS has applied the rotation, so the drop and the lock
   -- wait a frame. Locking before that is what pinned it mid-air.
@@ -7196,6 +7232,10 @@ function rttGizmoMark(color)
     pcall(function() hovered.setLock(true) end)
     -- no duration: it stays lit until the piece is stood back up, which is the whole point
     pcall(function() hovered.highlightOn(RTT_GLOW_RGB) end)
+    pcall(function()
+      local faded = rttFaded(hovered.getColorTint())
+      if faded ~= nil then hovered.setColorTint(faded) end
+    end)
   end, 2)
 end
 
