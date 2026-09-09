@@ -525,17 +525,21 @@ def t_the_lizard_board_follows_the_wizard(src):
     # able to find the snap points for reference." It was 0.22 local across -- half again wider than
     # the 0.1399 frame it was supposed to sit inside -- and a whole panel low, so it hung off the
     # bottom of the Outcast box and into the Lost Souls title beneath. Both halves are pinned here.
-    assert 0.139 <= w <= 0.144, \
-        "the symbol is %.4f local across; it should land ON the printed 0.1388 frame, being the same " \
-        "drawing in grey -- 0.0974 made it a second, smaller thorn square nested inside the first" % w
-    # A SHADE WIDER THAN THE FRAME, ON PURPOSE, AND THE WINDOW IS NARROW. The printed white thorns are
-    # a heavier stroke than the token's grey ones, so a symbol exactly 0.1388 wide left white showing
-    # all round it -- but 0.1426 came straight back as "too fat now pick in between". The band here is
-    # that verdict: the ink is fattened by 2 source px in the art, not 3, and not by scaling the whole
-    # drawing up, which would push its corners at the suit icons the edge assertions below guard.
-    assert w >= FRAME_SIDE - 0.001, \
-        "the symbol (%.4f) is narrower than the printed frame (%.4f) and will leave white showing" \
-        % (w, FRAME_SIDE)
+    # THE SYMBOL AND THE BOARD'S STAMPED OUTLINE ARE ONE MEASUREMENT. The slot is no longer the
+    # board's printed thorn frame -- that is painted out -- but this same ring stamped in white at
+    # this same size, so the symbol covers its own outline exactly and is drawn at its own weight.
+    # If these two drift apart the white reappears all round the symbol, which is what the fattening
+    # they replaced was there to hide.
+    ring = None
+    for line in open(os.path.join(REPO, "tools", "make_board.py"), encoding="utf-8"):
+        if line.startswith("RING_LOCAL"):
+            ring = float(line.split("=")[1].split()[0])
+    assert ring is not None, "make_board.py no longer states RING_LOCAL"
+    assert abs(w - ring) < 0.002, \
+        "the board stamps its slot at %.4f but the symbol is drawn at %.4f; the white will show" \
+        % (ring, w)
+    assert w <= FRAME_SIDE, \
+        "the symbol (%.4f) is wider than the slot the art allows for (%.4f)" % (w, FRAME_SIDE)
     assert z - w / 2 > ICON_BOTTOM, \
         "the symbol's top edge (%.4f) reaches up into the suit icons (%.4f)" % (z - w / 2, ICON_BOTTOM)
     assert z + w / 2 < PANEL_BOTTOM, \

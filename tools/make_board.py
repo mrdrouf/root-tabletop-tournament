@@ -63,6 +63,17 @@ MIN_TREE = 550                  # INK, not height: the board's own trees here ar
                                 # passed from one to the next.                     # column spacing that matches the board's own scatter of trees
 TOP = 686                       # the ground starts just under the Outcast panel
 
+# THE THREE OUTCAST SLOTS, in the board's own local space, and the map to its texture. Measured by
+# flood-filling the printed frames: centres px 1305.5 / 1431.0 / 1563.5, all at py 619.
+SLOT_X_LOCAL = (-0.7047, -0.8956, -1.0972)
+SLOT_Z_LOCAL = -0.0551
+PX_PER_LOCAL = 657.4
+ORIGIN_PX = (842.2, 655.2)
+RING_LOCAL = 0.1388             # the symbol's width; the board draws it at this, so the white
+                                # outline is stamped at this, and the two cannot disagree
+PARCH_WHITE = (254, 254, 253)   # the white the board's own slots were drawn in
+SYMBOL_ART = ("outcast_v6_085c27c8.png", "outcast_hated_v6_d9c16b63.png")
+
 # GROWING THE OUTCAST PANEL. Maintainer: "increase the size of the parchment box with the decals so
 # you create space to put the numbers below the boxes with the outcase. make sure you do it right and
 # respect the art." The three printed slots end at y 664 and the panel ends at 682 -- eighteen rows,
@@ -456,6 +467,61 @@ def plant(canvas, mapped, trees, region, keepoff, rng,
     return n
 
 
+def redraw_slots(front, rng):
+    """Paint the three printed thorn frames out, and stamp the TOKEN'S OWN RING back in white.
+
+    Maintainer, 2026-09-09: "instead of trying to fill the white space with the decal you could redo
+    the white shape on the board so you fill it perfectly and so erase the white drawing by painting
+    with the background color ... it also allows you to make the decal not so fat as it is now and
+    its normal thinness."
+
+    The printed frame and the token are the same drawing in two hands, and the board's is the
+    heavier: laying the token over it left white showing all round, which was being beaten by
+    fattening the token's ink by 2px. That is treating the symptom. The slot is the board's own art
+    and can simply be redrawn -- so it is now the token's ring, in white, at exactly the size and
+    place the board will draw the symbol. The symbol then covers its own outline and needs no weight
+    added to it at all.
+
+    The white is the INTERSECTION of the two faces' rings, eroded by 2px. The Outcast and the Hated
+    Outcast are drawn 1.8% apart, so an outline either one alone would cover is one the other would
+    not; and the erosion is the margin that absorbs the pixel or two between where this stamps a
+    thing and where TTS's own UI draws it.
+    """
+    out = front.copy()
+    par = np.concatenate([np.arange(p, q + 1) for p, q in PARCH_ROWS])
+    marker = np.asarray(Image.open(os.path.join(OUT, SYMBOL_ART[0])).convert("RGBA"))[..., 3] > 90
+    hated = np.asarray(Image.open(os.path.join(OUT, SYMBOL_ART[1])).convert("RGBA"))[..., 3] > 90
+    side = int(round(RING_LOCAL * PX_PER_LOCAL))
+    rings = []
+    for m in (marker, hated):
+        im = Image.fromarray((m * 255).astype(np.uint8)).resize((side, side), Image.LANCZOS)
+        rings.append(np.asarray(im) > 128)
+    # THE FRAME ONLY, NOT THE WHOLE TOKEN. The token is two drawings -- a thorn square and, inside
+    # it, the barred circle that says Outcast. The board's slot was only ever the square: stamp the
+    # whole token and every empty slot announces an outcast that is not there.
+    both = rings[0] & rings[1]
+    lab, info = components(both)
+    frame = max(info.items(), key=lambda kv: kv[1][0])[0]
+    # NOT ERODED. The white has to stay inside the symbol's own shape or the symbol cannot cover it,
+    # and the intersection of the two faces is already the thinnest of the three drawings -- taking
+    # another pixel off breaks the thorns into dashes and the slot stops reading as the board's.
+    white = lab == frame
+
+    for cx_local in SLOT_X_LOCAL:
+        cx = int(round(ORIGIN_PX[0] - PX_PER_LOCAL * cx_local))
+        cy = int(round(ORIGIN_PX[1] + PX_PER_LOCAL * SLOT_Z_LOCAL))
+        # 1. the printed frame goes, under clean parchment off the panel's own empty rows
+        x0, x1 = cx - 56, cx + 57
+        y0, y1 = cy - 56, cy + 57
+        for y in range(y0, y1):
+            out[y, x0:x1] = front[par[rng.integers(len(par))], x0:x1]
+        # 2. the token's ring goes back, in white, centred on the same spot
+        sy, sx = cy - side // 2, cx - side // 2
+        reg = out[sy:sy + side, sx:sx + side]
+        reg[white] = PARCH_WHITE
+    return out
+
+
 def grow_panel(front, rng):
     """Make the Outcast panel taller, by moving its bottom edge down and extending its sides.
 
@@ -489,6 +555,7 @@ def main():
         sys.exit("missing source art: assets/src_art/lizard_board_front.png")
     front = np.asarray(Image.open(art_file).convert("RGB"))
     rng = np.random.default_rng(SEED)
+    front = redraw_slots(front, rng)
 
     pal = palette_of(front, [(300, 1240, 8, 52), (1274, 1308, 60, 1620)])
     x0, y0, x1, y1 = BOX
