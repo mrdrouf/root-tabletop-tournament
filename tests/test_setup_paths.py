@@ -1357,7 +1357,6 @@ def t_gizmo_default_key_is_numpad_zero(src):
     # keys -- he asked for it, and it costs a one-time rebind of the three he had set.
     LABELS = (("Gizmo: move back to supply/initial position", "HOME"),
               ("Gizmo: move a warrior from own supply to cursor", "TAKE"),
-              ("Gizmo: move any token to cursor", "TOKEN"),
               ("Gizmo: set warrior as a knave prisoner", "MARK"))
     for label, which in LABELS:
         rt = wired()
@@ -1367,11 +1366,20 @@ def t_gizmo_default_key_is_numpad_zero(src):
         assert got[which] == 1 and sum(got.values()) == 1, \
             "hotkey %r fired %s" % (label, {k: v for k, v in got.items() if v})
 
-    # ...and a fifth, because a named hotkey cannot be HELD the way numpad 2 can. Choosing the kind
-    # needs a gesture of its own on a machine with no numpad.
+    # THE TOKEN HOTKEY IS HELD, exactly like numpad 2. addHotkey takes a triggerOnKeyUp flag and
+    # hands the callback an isKeyUp, so the same press-and-hold works without a numpad -- tap to take
+    # one, hold to choose the kind. There was briefly a SECOND hotkey for choosing, on the belief
+    # that a named key could not be held. It can, and one gesture on both keyboards is the point.
+    TOK = "Gizmo: move any token to cursor"
     rt = wired()
-    assert rt.eval("PRESS('Gizmo: set which token the token key gives you', 'Red')") is True, \
-        "there is no way to choose the token kind without a numpad"
+    assert rt.eval("HOTKEY_HOLDS(%r)" % TOK) is True, \
+        "the token hotkey is not registered to fire on key up, so it cannot be held"
+    assert rt.eval("PRESS(%r, 'Red')" % TOK) is True, "no hotkey registered as %r" % TOK
+    assert sum(counts(rt).values()) == 0, "the token hotkey handed one over on the way down"
+    rt.eval("PRESS(%r, 'Red', true)" % TOK)
+    got = counts(rt)
+    assert got["TOKEN"] == 1 and sum(got.values()) == 1, \
+        "releasing the token hotkey fired %s" % {k: v for k, v in got.items() if v}
 
 
 def t_numpad_two_hands_you_the_token_you_chose(src):

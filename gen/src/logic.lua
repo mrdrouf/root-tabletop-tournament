@@ -88,21 +88,13 @@ function onLoad(state)
   pcall(function()
     addHotkey("Gizmo: move back to supply/initial position", function(color) rttGizmoHome(color) end)
     addHotkey("Gizmo: move a warrior from own supply to cursor", function(color) rttGizmoTake(color) end)
-    addHotkey("Gizmo: move any token to cursor", function(color) rttGizmoToken(color) end)
-    -- A named hotkey cannot be HELD the way numpad 2 can, so choosing the kind gets a key of its own
-    -- here. Same choice, same per-player memory; only the gesture differs.
-    addHotkey("Gizmo: set which token the token key gives you", function(color)
-      local h = nil
-      pcall(function() h = Player[color].getHoverObject() end)
-      local n = ""
-      if h ~= nil then n = h.getName() or "" end
-      if not rttTokenEligible(n) then return end
-      RTT_TOKEN_PICK[color] = n
-      pcall(function()
-        broadcastToColor("Gizmo: the token key now hands you a " .. n .. ".", color,
-                         { r = 0.7, g = 1, b = 0.7 })
-      end)
-    end)
+    -- HELD, exactly like numpad 2. addHotkey takes a triggerOnKeyUp flag and hands the callback an
+    -- isKeyUp, so a named hotkey runs the same press-and-hold this key is built on -- tap to take
+    -- one, hold two seconds on a piece to choose the kind. It briefly had a second hotkey for
+    -- choosing, on the belief that a named key could not be held; it can.
+    addHotkey("Gizmo: move any token to cursor", function(color, _, _, isKeyUp)
+      if isKeyUp then rttKey2Up(color) else rttKey2Down(color) end
+    end, true)
     addHotkey("Gizmo: set warrior as a knave prisoner", function(color) rttGizmoMark(color) end)
   end)
   assets = {}
@@ -7176,6 +7168,11 @@ end
 -- The hold. Two seconds on a piece CHOOSES it; a shorter press takes one. The timer does the
 -- choosing so it happens on the two-second mark rather than on release, and the release then knows
 -- to keep quiet because the press has already been spent.
+--
+-- BOTH KEYBOARDS GET THE SAME GESTURE. This is written as a down/up pair rather than as one action
+-- so the named hotkey can share it: addHotkey takes a triggerOnKeyUp flag and hands its callback an
+-- isKeyUp, so a Mac without a numpad holds the same way. A second hotkey was briefly added for
+-- choosing the kind, on the belief that a named key could not be held -- it can.
 function rttKey2Down(color)
   local hovered = nil
   pcall(function() hovered = Player[color].getHoverObject() end)

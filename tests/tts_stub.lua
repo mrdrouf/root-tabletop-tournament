@@ -494,16 +494,21 @@ Lighting = {} Physics = {cast=function() return {} end} Backgrounds = {} Turns.e
 -- as bound to scripting buttons, and a MacBook has no numpad, so for the maintainer these ARE the
 -- gizmo. HOTKEYS[label] = fn, so a test can press one.
 HOTKEYS = {}
+HOTKEY_UP = {}
 function addHotkey(label, fn, triggerOnKeyUp)
+  HOTKEY_UP[label] = (triggerOnKeyUp == true)
   HOTKEYS[label] = fn
   note(REC.calls, "addHotkey:" .. tostring(label))
 end
-function PRESS(label, color)
+-- PRESS(label, color, isKeyUp): the 4th argument TTS hands a hotkey callback, so a hotkey
+-- registered with triggerOnKeyUp can be exercised down and up the way the real one is.
+function PRESS(label, color, isKeyUp)
   local fn = HOTKEYS[label]
   if fn == nil then return false end
-  fn(color or "Red")
+  fn(color or "Red", nil, nil, isKeyUp)
   return true
 end
+function HOTKEY_HOLDS(label) return HOTKEY_UP[label] == true end
 
 TURN_LAG = 0            -- frames between the assignment and the event; 0 = inline
 TURN_EVENTS = {}
