@@ -6866,6 +6866,17 @@ function rttGizmoHome(color)
   local name = hovered.getName() or ""
   if name == "" then return end
 
+  -- A PRISONER IS FREED FIRST. Maintainer, 2026-09-09: "using 0 on a prisoner (numpad 3 option)
+  -- should remove the prisoner status (locked highlighted and laying down)."
+  --
+  -- It is not only that the status should go: a prisoner is LOCKED, and a locked piece does not move,
+  -- so numpad 0 on one did nothing at all and looked broken. Freeing it here keeps this key's one
+  -- meaning -- this piece goes home -- and lets it mean that for a prisoner too. Released warriors go
+  -- back to their supply, so the two halves are the same gesture.
+  local lguid = nil
+  pcall(function() lguid = hovered.getGUID() end)
+  if lguid ~= nil and RTT_LAID[lguid] ~= nil then rttFreePrisoner(hovered, lguid) end
+
   -- NO PERMISSION CHECK. There was one for a few hours -- "gizmo 0 should not work on other player's
   -- warriors and token buildings" -- and it was removed the same day: "remove the player permission
   -- with numpad 0 so it s not broken when it s wrong about who is who". Deciding whose piece it is
@@ -7016,6 +7027,29 @@ end
 function rttGizmoLay(color) rttGizmoMark(color) end
 function rttGizmoGlow(color) rttGizmoMark(color) end
 
+-- FREE A PRISONER: stand it up, unlock it, put its light out, and forget the record. Lifted out of
+-- rttGizmoMark's second press because numpad 0 needs the same thing -- see rttGizmoHome.
+function rttFreePrisoner(o, guid)
+  local was = RTT_LAID[guid]
+  if was == nil then return end
+  RTT_LAID[guid] = nil
+  pcall(function() o.setLock(false) end)
+  pcall(function()
+    local ry = o.getRotation().y
+    o.setRotation({ was.rot[1], ry, was.rot[3] })
+    if was.pos ~= nil then o.setPosition({ was.pos[1], was.pos[2], was.pos[3] }) end
+  end)
+  -- the disc goes with it, by GUID rather than by proximity, so two laid warriors side by side
+  -- cannot take each other's marker away
+  if was.disc ~= nil then
+    pcall(function()
+      local x = getObjectFromGUID(was.disc)
+      if x ~= nil then x.destruct() end
+    end)
+  end
+  pcall(function() o.highlightOff() end)
+end
+
 function rttGizmoMark(color)
   local hovered = nil
   pcall(function() hovered = Player[color].getHoverObject() end)
@@ -7028,23 +7062,7 @@ function rttGizmoMark(color)
   if guid == nil then return end
 
   if rttIsLaid(hovered) then                            -- second press: stand it back up
-    local was = RTT_LAID[guid]
-    RTT_LAID[guid] = nil
-    pcall(function() hovered.setLock(false) end)
-    pcall(function()
-      local ry = hovered.getRotation().y
-      hovered.setRotation({ was.rot[1], ry, was.rot[3] })
-      if was.pos ~= nil then hovered.setPosition({ was.pos[1], was.pos[2], was.pos[3] }) end
-    end)
-    -- the disc goes with it, by GUID rather than by proximity, so two laid warriors side by side
-    -- cannot take each other's marker away
-    if was.disc ~= nil then
-      pcall(function()
-        local o = getObjectFromGUID(was.disc)
-        if o ~= nil then o.destruct() end
-      end)
-    end
-    pcall(function() hovered.highlightOff() end)
+    rttFreePrisoner(hovered, guid)
     return
   end
 
