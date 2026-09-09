@@ -41,10 +41,14 @@ def fresh(src):
 def t_manual_turn_order(src):
     """The manual path must configure the TTS turn system in seat order.
 
-    It no longer switches it ON by itself. Setting boards out is not the start of a game -- the
-    maintainer, 2026-09-05: "the turn order should get started only when a player is seated, now it
-    also starts when I select 4 player setup". The order is written at setup, and the first player to
-    sit down starts it with that order already in place.
+    It does not switch it ON. Setting boards out is not the start of a game -- the maintainer,
+    2026-09-05: "the turn order should get started only when a player is seated, now it also starts
+    when I select 4 player setup" -- and neither is sitting down, 2026-09-09: "don t enable turns
+    until start is pressed." People take their seats, pick factions and lay their boards out long
+    before anybody plays.
+
+    So the ORDER is written at setup and re-written on every seat change, and it waits there: START on
+    the turn panel is the one thing that turns the system on, and it finds the order already in place.
     """
     for arg, n, want in (("nil", 4, ["Red", "Yellow", "Orange", "Teal"]),
                          ("'fivePlayerSetup'", 5, ["Red", "Yellow", "Orange", "Teal", "Green"])):
@@ -56,8 +60,13 @@ def t_manual_turn_order(src):
         assert rt.eval("Turns.skip_empty_hands") is False, "%d seats: would skip empty seats" % n
 
         rt.execute("SEAT('Red') onPlayerChangeColor('Red')")
-        assert rt.eval("Turns.enable") is True, "%d seats: sitting down did not start turns" % n
+        assert rt.eval("Turns.enable") is False, "%d seats: sitting down started turns" % n
         assert list(rt.eval("Turns.order").values()) == want, "%d seats: order lost on seating" % n
+
+        # and once something has started them -- the panel's START -- the order it finds is that one
+        rt.execute("Turns.enable = true onPlayerChangeColor('Red')")
+        assert rt.eval("Turns.enable") is True, "%d seats: a re-apply switched a running game off" % n
+        assert list(rt.eval("Turns.order").values()) == want, "%d seats: order lost after start" % n
         assert rt.eval("Turns.turn_color") == "Red", "%d seats: seat 1 does not start" % n
 
 
@@ -1076,12 +1085,15 @@ def t_turn_order_reapplies_on_seating(src):
     assert list(rt.eval("Turns.order").values()) == ["Red", "Yellow", "Orange", "Teal"]
     assert rt.eval("Turns.enable") is False, "turns started with nobody seated"
 
-    # the first player to sit down starts it, with the order already in place
+    # NOR DOES SITTING DOWN. Maintainer, 2026-09-09: "don t enable turns until start is pressed."
+    # The order is written and waits; START on the turn panel is the only thing that switches it on.
     rt.execute("SEAT('Red')")
     rt.execute("onPlayerChangeColor('Red')")
-    assert rt.eval("Turns.enable") is True, "sitting down did not start the turn system"
+    assert rt.eval("Turns.enable") is False, "sitting down started the turn system"
     assert list(rt.eval("Turns.order").values()) == ["Red", "Yellow", "Orange", "Teal"]
 
+    # once START has, the re-apply keeps it on and does not steal the turn
+    rt.execute("Turns.enable = true")
     rt.execute("Turns.turn_color = 'Orange'")
     rt.execute("onPlayerChangeColor('Teal')")
     assert rt.eval("Turns.turn_color") == "Orange", "seating someone handed the turn back to seat 1"
@@ -1091,9 +1103,11 @@ def t_turn_order_reapplies_on_seating(src):
     rt.execute("FLUSH(8)")
     assert list(rt.eval("Turns.order").values()) == ["Teal", "Red"], "a manual reorder was overwritten"
 
-    # a seat change that changes nothing is a no-op: TTS chimes every time turns are switched on
+    # a seat change that changes nothing is a no-op: TTS chimes every time turns are switched on.
+    # START stands in for the panel here -- TTS does not let turn_color stick while the system is off,
+    # so there is no turn to disturb until something has begun.
     rt = fresh(src)
-    rt.execute("SEAT('Red') rttEnableTurns(4)")
+    rt.execute("SEAT('Red') rttEnableTurns(4) Turns.enable = true")
     rt.execute("Turns.turn_color = 'Orange'")
     rt.execute("onPlayerChangeColor('Red')")
     assert rt.eval("Turns.turn_color") == "Orange", "a no-op seat change disturbed the turn"
@@ -4144,6 +4158,66 @@ def t_the_coffin_spawns_where_he_put_it(src):
         % (ry % 360, want["rotY"] % 360)
 
 
+def t_the_round_is_zero_until_start_is_pressed(src):
+    """Nothing is round 1 until somebody presses START, and turns do not run before it either.
+
+    Maintainer, 2026-09-09: "the round number should stay at 0 until the game has started; don t
+    enable turns until start is pressed."
+
+    Two halves of one rule. Sitting down used to switch the TTS turn system on -- itself a tightening
+    of an older rule that started it on 4-Player Setup -- and the sheet reported ROUND 1 from the
+    moment it existed. Neither is true of a table people are still laying out: seats get taken,
+    factions picked and boards placed long before anyone plays.
+
+    Only the REPORTED round is held at 0. S.round still counts from 1 inside the sheet, because every
+    lock, column and undo is keyed on it and none of them may be handed a zero.
+    """
+    # THE BOARD. A full setup with every seat taken leaves the order written and the system off.
+    rt = fresh(src)
+    for i, c in enumerate(("Red", "Yellow", "Orange", "Teal")):
+        rt.execute("SEAT(%r,'H%d')" % (c, i + 1))
+    rt.execute("pcall(function() setupFactionBoards(nil,nil,nil) end) FLUSH(60)")
+    rt.execute("onPlayerChangeColor('Red') FLUSH(20)")
+    assert list(rt.eval("Turns.order").values()) == ["Red", "Yellow", "Orange", "Teal"], \
+        "the seat order was not written at setup"
+    assert rt.eval("Turns.enable") is False, \
+        "four players sitting down started the turn system"
+
+    # THE SHEET. Its own script, loaded the way the panel's is.
+    sheet = json.loads(re.search(r"RTT_BOXSCORE_JSON = \[====\[(.*?)\]====\]", src, re.S).group(1))
+    def sheet_rt(state=None):
+        r = lupa.LuaRuntime(unpack_returned_tuples=True)
+        r.execute(open(os.path.join(HERE, "tts_stub.lua"), encoding="utf-8").read())
+        r.execute(sheet["LuaScript"].replace("!=", "~="))
+        if state is not None:
+            # a long-bracket literal: the state is JSON, which can never contain ]==]
+            r.execute("pcall(function() onLoad([==[%s]==]) end)" % state)
+        return r
+
+    r = sheet_rt()
+    assert r.eval("rttRound()") == 0, \
+        "a fresh sheet reports round %s; it should be 0 until START" % r.eval("rttRound()")
+    r.execute("pcall(rttResetAndStart)")
+    assert r.eval("rttRound()") == 1, "START did not begin round 1"
+    # and a wipe puts it back to nothing
+    r.execute("pcall(uiReset)")
+    assert r.eval("rttRound()") == 0, "a wiped sheet still reports a round"
+
+    # A SHEET SAVED BEFORE THE FLAG EXISTED. It comes back with no `started`, which would read as a
+    # game that has not begun and put a running game back to ROUND 0. A locked cell is a played turn.
+    played = json.dumps({"rows": [{"fac": "Marquise", "locks": {"1": 4}, "edits": {}}],
+                         "round": 3, "turns": 5, "active": 1})
+    r = sheet_rt(played)
+    assert r.eval("rttRound()") == 3, \
+        "an older save of a game in progress came back at round %s" % r.eval("rttRound()")
+
+    # ...and one that was only ever set up comes back at 0, like any other unstarted sheet
+    empty = json.dumps({"rows": [{"fac": "Marquise", "locks": {}, "edits": {}}],
+                        "round": 1, "turns": 0, "active": 1})
+    assert sheet_rt(empty).eval("rttRound()") == 0, \
+        "an older save with no turn played came back as a started game"
+
+
 def t_the_map_cannot_be_left_unlocked(src):
     """Unlock the map and it locks itself again, within the second.
 
@@ -4938,7 +5012,11 @@ def t_a_real_turn_cycle_runs_in_seat_order(src):
 
     order = list(rt.eval("Turns.order").values())
     assert order == ["Red", "Yellow", "Orange", "Teal"], "the seat order is wrong: %s" % order
-    assert rt.eval("Turns.enable") is True, "seating did not start the turn system"
+    assert rt.eval("Turns.enable") is False, "seating started the turn system"
+
+    # START, which is the panel's job and the only thing that begins a game
+    rt.execute("Turns.enable = true Turns.turn_color = 'Red' FLUSH(10)")
+    assert rt.eval("Turns.enable") is True, "the turn system did not start"
 
     # TWO WHOLE ROUNDS, colour by colour
     rt.execute("TURN_EVENTS = {} TURN_ROUND(2) FLUSH(30)")
@@ -4983,11 +5061,18 @@ def t_the_turn_system_survives_what_players_actually_do(src):
     before, because the harness had no turn engine.
     """
     def seated_table():
+        """Four seats with the game STARTED -- which since 2026-09-09 is a separate act.
+
+        Sitting down writes the order and stops there ("don t enable turns until start is pressed"),
+        so a table full of players is not yet a table playing. The last line stands in for START on
+        the turn panel, which is what panelStart does.
+        """
         rt = fresh(src)
         for i, c in enumerate(("Red", "Yellow", "Orange", "Teal")):
             rt.execute("SEAT(%r,'H%d')" % (c, i + 1))
         rt.execute("pcall(function() setupFactionBoards(nil,nil,nil) end) FLUSH(60)")
         rt.execute("onPlayerChangeColor('Red') FLUSH(20)")
+        rt.execute("Turns.enable = true Turns.turn_color = 'Red' FLUSH(10)")
         return rt
 
     # 1. SOMEBODY STANDS UP MID-GAME. It used to drop Turns.enable and hand the turn back to seat 1,
@@ -5014,7 +5099,8 @@ def t_the_turn_system_survives_what_players_actually_do(src):
     rt2 = fresh(src)
     rt2.execute("SEAT('Red','solo')")
     rt2.execute("pcall(function() setupFactionBoards(nil,nil,nil) end) FLUSH(60)")
-    rt2.execute("onPlayerChangeColor('Red') FLUSH(20) TURN_EVENTS = {} TURN_ROUND(1) FLUSH(20)")
+    rt2.execute("onPlayerChangeColor('Red') FLUSH(20) Turns.enable = true Turns.turn_color = 'Red'")
+    rt2.execute("FLUSH(10) TURN_EVENTS = {} TURN_ROUND(1) FLUSH(20)")
     assert len(rt2.eval("TURN_EVENTS")) == 4, \
         "one seated player could not drive a four-seat round: %s" \
         % [str(v) for v in rt2.eval("TURN_EVENTS").values()]
@@ -5525,6 +5611,7 @@ CASES = [
     ("clearing numbers match the saves",  t_the_clearing_numbers_sit_where_the_saves_put_them),
     ("the coffin spawns where he put it", t_the_coffin_spawns_where_he_put_it),
     ("a map cannot be left unlocked",     t_the_map_cannot_be_left_unlocked),
+    ("round is 0 until start",            t_the_round_is_zero_until_start_is_pressed),
     ("board shows the build number",      t_the_board_shows_the_build_number),
     ("panel pauses the clock",            t_the_panel_pauses_the_clock),
     ("start names the pass it causes",    t_start_names_the_pass_it_causes),
