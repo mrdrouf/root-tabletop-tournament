@@ -167,24 +167,78 @@ def taller(inner, extra, at=630, grain=34):
     return out
 
 
-def build_plaque(width, extra_band=0, type_width=TYPE_WIDTH):
+LETTER_GAPS = (694, 1241, 1800)       # the clear columns between R-O, O-O and O-T
+
+
+def wider(inner, extra, grain=12):
+    """Splice `extra` columns of parchment into the plaque, so the subtitle can be set wider.
+
+    Maintainer, 2026-09-09: "make 'Tabletop Tournament' 30% bigger by making the sign longer
+    horizontally if need be." The line is width-bound -- it has been ever since the band was made
+    taller -- so past this point the only way to enlarge it is to give it more room sideways.
+
+    THE COLUMNS GO BETWEEN THE LETTERS, split evenly across the three gaps in R-O-O-T, which tracks
+    the illuminated tiles apart the way a sign painter would rather than opening one ugly hole. The
+    two remaining clear runs -- the margins at 21..48 and 2364..2420 -- are deliberately NOT used:
+    they lie inside the corner flourishes, which reach 106 and 2338, so splicing there would stretch a
+    flourish sideways. Leaving them alone also means the plaque's own left and right margins come out
+    unchanged, so the block of letters stays as centred as it started.
+
+    THE INSERTED COLUMN IS SYNTHESISED, NOT COPIED. Mirror-tiling the real columns beside the gap --
+    the trick taller() uses on rows -- put a row of stray dots beside the R: the gaps are clear of the
+    LETTERS, which is the band those positions were measured in, but they are not clear of the small
+    decorative marks that sit below the letterforms, and tiling copied those sideways. Instead each
+    gap contributes ONE column built from the per-row MEDIAN of the columns around it. A median over
+    twenty-odd columns of mostly-parchment throws any decoration away and keeps the tone, so the top
+    and bottom rules continue at their own colour, the vignette continues at its own, and nothing is
+    duplicated. Replicating that single column is right for this art because the parchment's grain
+    runs horizontally: every row keeps its own value.
+    """
+    if extra <= 0:
+        return inner
+    per = [extra // len(LETTER_GAPS)] * len(LETTER_GAPS)
+    for i in range(extra - sum(per)):
+        per[i] += 1
+
+    out = inner
+    shift = 0
+    for gap, n in zip(LETTER_GAPS, per):
+        at = gap + shift
+        sample = np.asarray(out.crop((at - grain, 0, at + grain, out.height))).astype(float)
+        col = np.median(sample, axis=1).round().astype("uint8")        # one RGB per row
+        filler = Image.fromarray(np.repeat(col[:, None, :], n, axis=1))
+        grown = Image.new("RGB", (out.width + n, out.height))
+        grown.paste(out.crop((0, 0, at, out.height)), (0, 0))
+        grown.paste(filler, (at, 0))
+        grown.paste(out.crop((at, 0, out.width, out.height)), (at + n, 0))
+        out = grown
+        shift += n
+    return out
+
+
+def build_plaque(width, extra_band=0, extra_width=0, type_width=TYPE_WIDTH):
     """The plaque with its subtitle replaced and its wood surround swapped for a clean edge.
 
     `extra_band` grows the parchment under the logo by that many of the plaque's own rows and gives
-    every one of them to the type; the default of 0 leaves the plaque exactly as the mod icon has it.
+    every one of them to the type; `extra_width` splices that many columns between the letters and
+    gives the type the width as well. Both default to 0, which leaves the plaque exactly as it was.
     """
     src = Image.open(PLAQUE_SRC).convert("RGB")
     inner = src.crop(PLAQUE)
     inner = rebuild_band(inner)
     if extra_band:
         inner = taller(inner, extra_band)
+    if extra_width:
+        inner = wider(inner, extra_width)
 
     # SET THE TYPE AT FULL SIZE, THEN SHRINK EVERYTHING TOGETHER. Drawing after the downscale would
     # give the one new element a different kind of edge from the art around it.
     d = ImageDraw.Draw(inner)
     band = (TYPE_BAND[0], TYPE_BAND[1] + extra_band)
     room = band[1] - band[0]
-    target = (FIELD[1] - FIELD[0]) * type_width
+    # the cream field grew by exactly the columns spliced in, so the type's room grows with it
+    field = (FIELD[0], FIELD[1] + extra_width)
+    target = (field[1] - field[0]) * type_width
     size = room * 2
     while size > 8:
         f = ImageFont.truetype(FONT, size)
@@ -196,7 +250,7 @@ def build_plaque(width, extra_band=0, type_width=TYPE_WIDTH):
     # the string, so a line-box centring would push the whole thing visibly high
     b = d.textbbox((0, 0), SUBTITLE, font=f, anchor="ls")
     baseline = (band[0] + band[1]) / 2 - (b[1] + b[3]) / 2
-    draw_tracked(d, (FIELD[0] + FIELD[1]) / 2, baseline, SUBTITLE, f, INK, target)
+    draw_tracked(d, (field[0] + field[1]) / 2, baseline, SUBTITLE, f, INK, target)
 
     border = max(1, round(FRAME_PX * width / (inner.width + FRAME_PX * 2)))
     iw = width - border * 2

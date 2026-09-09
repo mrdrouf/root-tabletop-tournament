@@ -1,0 +1,45 @@
+Use your image generation tool to create ONE WIDE image (landscape, roughly 3 wide to 1 tall) and save
+it into the current working directory as `birds_table2.png`. Generate it with the image model; do not
+draw or composite anything yourself. Print the absolute path when done.
+
+The SECOND attached image is the version being corrected. Keep its four birds, its natural anatomy,
+its flat style, its palette, its props, and keep the sense that they are sat AROUND a table. Two
+things are wrong.
+
+FIX 1 — ALL FOUR MUST REST ON THE SAME LINE. In the attached version the two middle birds stop well
+short of the bottom of the image while the outer two run down to it. This artwork gets placed on top
+of a long straight sign, and that sign's top edge is the table they are leaning on -- so a bird whose
+wings stop early appears to float in mid-air above it.
+  * EVERY ONE of the four rests its folded wings ON THE VERY BOTTOM EDGE of the image. The bottom of
+    each bird must reach that edge and be cut off flush by it. No bird stops short. No gap under any
+    of them.
+  * Keep the AROUND-A-TABLE feeling, but carry it entirely with SIZE and ANGLE, not with height:
+      - the two on the ENDS are nearer, so draw them a little LARGER and turned INWARD in
+        three-quarter view, angled toward the centre (the left one turns to its right, the right one
+        turns to its left);
+      - the two in the MIDDLE are further off, so draw them a little SMALLER and facing the viewer;
+      - all four still reach the bottom edge.
+
+FIX 2 — DO NOT DRAW A CHECKERBOARD, and above all do not draw a FINE one. The background must be a
+SINGLE FLAT EMPTY COLOUR or genuinely transparent -- one uniform tone, no pattern, no squares, no
+texture, no speckles, no dots, no grain anywhere. If you cannot make it transparent, fill it with one
+flat mid-grey and nothing else.
+
+EVERYTHING ELSE STAYS:
+  * They LEAN on the table, hunched: shoulders up, heads forward and down, folded wings resting along
+    the bottom edge, only upper bodies showing, nothing below, no feet, no legs.
+  * A CLEAR GAP between neighbours. NO BIRD MAY TOUCH OR OVERLAP ANOTHER. All four heads fully
+    visible and unobstructed.
+  * Left to right: a VULTURE, bald orange-pink head, pale ruff, heavy hooked beak, a lit cigar
+    CLAMPED AT THE BACK CORNER of the beak where the mandibles meet, jutting out and slightly down
+    clear of the beak's outline, lit end away from his face, one curl of smoke; a HORNED OWL with ear
+    tufts, round spectacles and a small open book; a BALD EAGLE with a white head, peaked military cap
+    and a tumbler; a WOODPECKER with a tall orange crest, a LONG SOLID SLATE-GREY BILL clearly
+    readable against the background, turning a bright POLISHED GOLD coin with a crescent highlight.
+  * All four DEADPAN, half-lidded, thoroughly unimpressed.
+  * FLAT COLOUR: every shape one uniform colour, hard clean edges, no gradients, no shading, no
+    texture. Palette: deep near-black brown, warm parchment cream, burnt orange, muted dark teal,
+    warm gold with a pale highlight, slate grey for bills and claws.
+  * NO TEXT, no frame, no table drawn, no ground, no shadow.
+
+Landscape aspect ratio, about three times wider than tall.

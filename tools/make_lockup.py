@@ -52,6 +52,13 @@ SAVE = os.path.join(ROOT, "gen", "src", "save.json")
 # The tag in save.json no longer reads these values -- install() has already rewritten it -- so it is
 # matched by pattern instead. See install().
 OLD_X, OLD_Y, OLD_W, OLD_H = -87.5, 80, 75, 25
+# Each ask has been a further cut, so they are kept as separate factors rather than folded into one
+# number: 5% off, then 10% "so it does not conflict with the buttons", then 10% again. And a nudge,
+# because with the sign smaller there is room to move it back towards the corner it came from --
+# "move it a bit up and left on the board".
+SCALE = 0.95 * 0.90 * 0.90        # 0.7695 of the original 75 wide
+NUDGE_X = -5.0                    # left  (x grows to the right)
+NUDGE_Y = +3.0                    # up    (y grows upward)
 
 # THE COIN NEEDS METAL IN THE PALETTE. make_mark's four colours have no yellow in them, so snapping
 # the woodpecker's polished gold coin to the nearest of them turned it into a flat orange disc --
@@ -66,39 +73,52 @@ GLINT = (250, 232, 168)
 SLATE = (112, 116, 122)                 # the woodpecker's bill, which is grey and not teal
 PALETTE = (INK, CREAM, ORANGE, TEAL, GOLD, GLINT, SLATE)
 
-# The checkerboard the model painted instead of leaving the background empty. Both numbers matter --
-# see dekey: the bill is neutral too, and only its luminance tells it apart from the squares.
-KEY_SAT = 26              # at or below this spread between R,G,B a pixel counts as neutral
-KEY_LUM = 140             # ... and only neutral pixels THIS bright may be flooded as background
+# How near the border's own colour a pixel must be to count as background. Deliberately TIGHT: the
+# woodpecker's slate bill sits only 36 units from this background grey, and widening the tolerance to
+# reach the antialiased fringe destroyed 867 pixels of the bill while keying 0.2% more background --
+# all cost, no gain. At 20 the bill loses nothing, the birds' white (104 away) is never at risk, and
+# the fringe is dealt with by the erosion below, where it belongs.
+KEY_TOL = 20
 
 
 def dekey(img):
     """Cut the painted checkerboard away and return the birds on real transparency.
 
-    A pixel is background when it is NEUTRAL and BRIGHTER than KEY_LUM. Both halves are needed and the
-    luminance floor is the whole trick: the two neutral populations in this art are cleanly bimodal --
-    the checkerboard squares sit at luminance 140-220, and every neutral that belongs to a bird (the
-    dark contours, the woodpecker's slate bill, his claw) at 60-140.
+    THE KEY IS THE BACKGROUND'S OWN COLOUR, sampled off the border, and nothing else. Every earlier
+    version described the background by a PROPERTY instead -- neutral, or neutral and bright -- and
+    every one of them deleted something that shared that property and was not background:
 
-    THE HISTORY IS WORTH KEEPING, because three of the four obvious approaches are wrong:
+      * neutral alone dissolved the birds' ink contours, which are dark and nearly neutral;
+      * neutral plus a brightness floor spared the contours, and then the bill it spared had no grey
+        to snap to in the palette and came out TEAL (fixed where it belonged, in the palette: SLATE);
+      * flooding in from the border instead fixed the teal and ATE THE BILL, because the premise --
+        that a bird's greys are enclosed inside it, so connectivity separates them -- is false for
+        anything on the silhouette: the bill is neutral and touches the neutral background;
+      * flood plus floor kept the bill, then the model drew a finer checkerboard whose blended edges
+        fall below the floor, stranding 48,062 unreachable specks;
+      * and the floor alone -- the version that survived longest -- quietly deleted 113,109 pixels of
+        the birds' own CREAM AND WHITE. The eagle's head, the ruffs, the book pages and the coin's
+        glint are all bright and nearly neutral, so they matched "neutral and bright" perfectly. On
+        the board those holes let the wood through: "the white is transparent, it does not work well".
 
-      * a global neutral key with NO floor dissolved the birds' outlines, which are dark and neutral;
-      * with the floor, the outlines survived but the bill got snapped to the nearest palette entry,
-        and the palette had no grey in it, so the bill came out TEAL. The fix for that belonged in the
-        PALETTE (see SLATE), not here;
-      * flooding in from the border instead of keying fixed the teal and then ATE THE BILL: the
-        premise -- that a bird's own greys are enclosed inside it, so connectivity separates them --
-        is false for anything on the silhouette. The bill is neutral and touches the neutral
-        background, so the flood walked straight down it and the fourth bird lost its beak;
-      * flood plus floor kept the bill, and then the model drew a FINER checkerboard whose blended
-        edges fall below the floor. Those pixels are neutral, dark enough to be untraversable, and not
-        connected to anything -- 48,062 of them survived as specks all over the background.
-
-    The floor alone, with slate in the palette, has none of these failure modes.
+    Sampling the border ends the whole family of bugs. The background is whatever is actually AT the
+    edge -- one flat grey here, two greys when it draws a checkerboard -- so the border's own colour
+    clusters are collected and only pixels near one of them are cut. The birds' white sits 104 units
+    away from this background and no threshold has to be guessed to protect it.
     """
     a = np.asarray(img.convert("RGB")).astype(np.int32)
-    lum = 0.299 * a[:, :, 0] + 0.587 * a[:, :, 1] + 0.114 * a[:, :, 2]
-    bg = ((a.max(axis=2) - a.min(axis=2)) <= KEY_SAT) & (lum >= KEY_LUM)
+    h, w, _ = a.shape
+
+    border = np.concatenate([a[0, :], a[-1, :], a[:, 0], a[:, -1]])
+    q = (border // 16) * 16
+    cols, counts = np.unique(q, axis=0, return_counts=True)
+    keys = cols[counts >= counts.sum() * 0.05]        # every tone that really lines the edge
+    if not len(keys):
+        keys = cols[counts.argmax()][None]
+
+    bg = np.zeros((h, w), bool)
+    for k in keys:
+        bg |= np.abs(a - k).max(axis=2) <= KEY_TOL
 
     out = img.convert("RGBA")
     alpha = Image.fromarray(np.where(bg, 0, 255).astype(np.uint8))
@@ -133,13 +153,11 @@ def install(local):
     import shutil
 
     art = Image.open(local)
-    # 0.95 was the first ask; the second took another 10% off it because the sign's bottom corner was
-    # reaching the 4-Player Setup tile. 0.95 * 0.90 = 0.855 of the original 75 wide.
-    scale = 0.855
-    w = OLD_W * scale
+    w = OLD_W * SCALE
     h = w * art.height / art.width
     top = OLD_Y + OLD_H / 2                       # where the old sign's top edge sat
-    y = top - h / 2
+    y = top - h / 2 + NUDGE_Y
+    x = OLD_X + NUDGE_X
 
     # content-hashed, because jsDelivr caches by URL (the convention in tools/relabel.py)
     digest = hashlib.md5(open(local, "rb").read()).hexdigest()[:8]
@@ -159,7 +177,7 @@ def install(local):
     if len(tags) != 1:
         sys.exit("expected exactly one rootLogo Image tag in save.json, found %d" % len(tags))
     new_tag = ('<Image id=\\"rootLogo\\" position=\\"%s %s -20\\" width=\\"%s\\" height=\\"%s\\" '
-               'image=\\"Root Logo\\"/>' % (OLD_X, round(y, 2), round(w, 2), round(h, 2)))
+               'image=\\"Root Logo\\"/>' % (round(x, 2), round(y, 2), round(w, 2), round(h, 2)))
 
     url_re = re.compile(r'("Name":\s*"Root Logo",\s*\n\s*"URL":\s*")([^"]*)(")')
     m = url_re.search(raw)
@@ -171,7 +189,7 @@ def install(local):
     open(SAVE, "wb").write(raw.encode("utf-8"))
     print("published %s" % os.path.relpath(published, ROOT))
     print("board:   %s x %s at (%s, %s)  [was %s x %s at (%s, %s)]"
-          % (round(w, 2), round(h, 2), OLD_X, round(y, 2), OLD_W, OLD_H, OLD_X, OLD_Y))
+          % (round(w, 2), round(h, 2), round(x, 2), round(y, 2), OLD_W, OLD_H, OLD_X, OLD_Y))
     print("save.json rewritten -- now rebuild dist:  python3 gen/assemble.py")
     print("NOTE: the URL only resolves once assets/labels/ is pushed to main; jsDelivr reads @main.")
 

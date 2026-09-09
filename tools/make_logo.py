@@ -52,8 +52,11 @@ SIZE = 1024
 # lamp off the top or the near edge of the table off the bottom. Both are load-bearing: the lamp is
 # the light source the whole scene is lit by, and the near edge is where the cigars and the glasses
 # are. Overlaying costs only the ashtray.
-PLAQUE_WIDTH = 858
-PLAQUE_BOTTOM = 18                         # from the foot of the canvas
+# EDGE TO EDGE. Maintainer, 2026-09-09: "make sure that for the thumbnail of the whole mod, the root
+# placard uses all the lenght of the square, so increase the size of it in the picture until there is
+# nothing left and right left." So the plaque spans the full canvas and has no side margin at all.
+PLAQUE_WIDTH = SIZE
+PLAQUE_BOTTOM = 12                         # from the foot of the canvas
 SCRIM = 150                                # how far the picture is dimmed behind the plaque
 # NOTHING IS TRIMMED OFF THE TOP ANY MORE. It was, for one version: a taller plaque buys a bigger
 # subtitle and then spends it covering the board, which is the opposite of the point, so the picture
@@ -71,7 +74,15 @@ TRIM_TOP = 0
 # tournament font a bit larger again as well" -- and inside the plaque there was none left to give, so
 # the whole plaque grew instead, 780 wide to 858, which enlarges ROOT and the subtitle together. Past
 # this the only way up is breaking the line in two.
-PLAQUE_EXTRA = 110
+# ASKED FOR 30% MORE ON 2026-09-09, "by making the sign longer horizontally if need be", AND THAT
+# MECHANISM CANNOT WORK. The subtitle already spans the whole cream field, so its size in the finished
+# picture is (field width / plaque width) * output width -- and splicing columns in grows the field and
+# the plaque together, which cancels: 650 extra columns move the line by 2%, while tracking R-O-O-T
+# visibly apart. What DID move it is the placard going edge to edge, 858 -> 1024, worth +19%. That is
+# the ceiling for one line inside this sign; two lines need a 509-row band to reach only +21%. So the
+# widening is set back to 0 and the band is only as tall as the line needs.
+PLAQUE_EXTRA = 130
+PLAQUE_EXTRA_WIDTH = 0
 PLAQUE_TYPE_WIDTH = 1.0
 
 
@@ -102,7 +113,8 @@ def main():
     canvas = art.crop(((art.width - s) // 2, TRIM_TOP, (art.width + s) // 2, TRIM_TOP + s))
     canvas = canvas.resize((SIZE, SIZE), Image.LANCZOS)
 
-    plaque = build_plaque(PLAQUE_WIDTH, extra_band=PLAQUE_EXTRA, type_width=PLAQUE_TYPE_WIDTH)
+    plaque = build_plaque(PLAQUE_WIDTH, extra_band=PLAQUE_EXTRA,
+                          extra_width=PLAQUE_EXTRA_WIDTH, type_width=PLAQUE_TYPE_WIDTH)
     x = (SIZE - plaque.width) // 2
     y = SIZE - PLAQUE_BOTTOM - plaque.height
     canvas = scrim(canvas, (x, y, x + plaque.width, y + plaque.height))
