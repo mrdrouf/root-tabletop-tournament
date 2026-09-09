@@ -82,20 +82,20 @@ function onLoad(state)
     if #RTT_SEATS > 0 then rttPublishSeats() end
   end)
   pcall(function() rttSnapshotHand2() end)  -- parked hand-2 transforms, restored on every new game
-  -- The gizmo answers a TTS SCRIPTING BUTTON, which is numpad-bound by default -- and a MacBook has
+  -- The keys answer a TTS SCRIPTING BUTTON, which is numpad-bound by default -- and a MacBook has
   -- no numpad (maintainer, 2026-09-04: on a French Mac layout the top-row 0 needs Shift and never
   -- reaches it). One named hotkey does the same job and binds to any key in Options - Game Keys.
   pcall(function()
-    addHotkey("Gizmo: move back to supply/initial position", function(color) rttGizmoHome(color) end)
-    addHotkey("Gizmo: move a warrior from own supply to cursor", function(color) rttGizmoTake(color) end)
+    addHotkey("Move back to supply/initial position", function(color) rttGizmoHome(color) end)
+    addHotkey("Move a warrior from own supply to cursor", function(color) rttGizmoTake(color) end)
     -- HELD, exactly like numpad 2. addHotkey takes a triggerOnKeyUp flag and hands the callback an
     -- isKeyUp, so a named hotkey runs the same press-and-hold this key is built on -- tap to take
     -- one, hold two seconds on a piece to choose the kind. It briefly had a second hotkey for
     -- choosing, on the belief that a named key could not be held; it can.
-    addHotkey("Gizmo: move any token to cursor", function(color, _, _, isKeyUp)
+    addHotkey("Move any token to cursor", function(color, _, _, isKeyUp)
       if isKeyUp then rttKey2Up(color) else rttKey2Down(color) end
     end, true)
-    addHotkey("Gizmo: set warrior as a knave prisoner", function(color) rttGizmoMark(color) end)
+    addHotkey("Set warrior as a knave prisoner", function(color) rttGizmoMark(color) end)
   end)
   assets = {}
   if self.getName() != "Faction Board" then
@@ -6914,14 +6914,14 @@ end
 function rttGizmoTake(color)
   local bag, why = rttMySupplyBag(color)
   if bag == nil then
-    broadcastToColor("Gizmo: " .. (why or "could not tell which supply is yours."), color,
+    broadcastToColor((why or "Could not tell which supply is yours."), color,
                      { r = 1, g = 0.6, b = 0.2 })
     return
   end
   local n = 0
   pcall(function() n = bag.getQuantity() end)
   if n <= 0 then
-    broadcastToColor("Gizmo: the supply is empty.", color, { r = 1, g = 0.6, b = 0.2 })
+    broadcastToColor("The supply is empty.", color, { r = 1, g = 0.6, b = 0.2 })
     return
   end
   local pos = nil
@@ -7186,7 +7186,7 @@ function rttKey2Down(color)
       st.set = true
       RTT_TOKEN_PICK[color] = name
       pcall(function()
-        broadcastToColor("Gizmo: numpad 2 now hands you a " .. name .. ".", color,
+        broadcastToColor("Numpad 2 now hands you a " .. name .. ".", color,
                          { r = 0.7, g = 1, b = 0.7 })
       end)
     end, 2)

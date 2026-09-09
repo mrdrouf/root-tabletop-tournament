@@ -1355,9 +1355,9 @@ def t_gizmo_default_key_is_numpad_zero(src):
     # TTS MATCHES A BINDING BY LABEL, not by handler, so renaming one drops whatever key was bound to
     # it in Game Keys. All three were renamed on 2026-09-09 to the maintainer's own wording for the
     # keys -- he asked for it, and it costs a one-time rebind of the three he had set.
-    LABELS = (("Gizmo: move back to supply/initial position", "HOME"),
-              ("Gizmo: move a warrior from own supply to cursor", "TAKE"),
-              ("Gizmo: set warrior as a knave prisoner", "MARK"))
+    LABELS = (("Move back to supply/initial position", "HOME"),
+              ("Move a warrior from own supply to cursor", "TAKE"),
+              ("Set warrior as a knave prisoner", "MARK"))
     for label, which in LABELS:
         rt = wired()
         rt.execute("%s = 0, 0, 0, 0" % COUNTERS)
@@ -1370,7 +1370,7 @@ def t_gizmo_default_key_is_numpad_zero(src):
     # hands the callback an isKeyUp, so the same press-and-hold works without a numpad -- tap to take
     # one, hold to choose the kind. There was briefly a SECOND hotkey for choosing, on the belief
     # that a named key could not be held. It can, and one gesture on both keyboards is the point.
-    TOK = "Gizmo: move any token to cursor"
+    TOK = "Move any token to cursor"
     rt = wired()
     assert rt.eval("HOTKEY_HOLDS(%r)" % TOK) is True, \
         "the token hotkey is not registered to fire on key up, so it cannot be held"
