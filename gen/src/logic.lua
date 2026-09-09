@@ -1098,16 +1098,37 @@ end
 --     answering for a game that no longer exists.
 -- rttResetRunState is the ONE list of everything a new game resets that is not an object, so Clear
 -- All calls exactly that rather than growing its own copy -- the drift that list exists to prevent.
+-- WHAT CLEAR ALL TAKES. Split out of the loop below so the BUTTON can ask the same question before
+-- it acts: the house rule for a destructive button is that it warns when there is something to lose
+-- and simply runs when there is not, and that can only be honest if the warning and the wipe agree
+-- about what "something" is.
+--
+-- `c.name` is the TTS type (Custom_Token, Bag, ...) and `c.getName()` the nickname; the hand triggers
+-- are matched on the first and the furniture on the second, which is how this has always read.
+function rttClearAllTakes(c)
+  if c == nil then return false end
+  local ok, take = pcall(function()
+    return c.name ~= "HandTrigger"
+      and c.hasTag("Table Piece") == false
+      and c.hasTag("Landmark Object") == false
+      and c.getName() ~= "Flex Table Control"
+      and c.getName() ~= "Faction Selection"
+      and c.getName() ~= "Master Instructions"
+  end)
+  return ok and take == true
+end
+
+-- is there anything at all for it to take?
+function rttClearAllHasWork()
+  for _, c in ipairs(getObjects()) do
+    if rttClearAllTakes(c) then return true end
+  end
+  return false
+end
+
 function clearAll()
   for _, c in ipairs(getObjects()) do
-      if c.name != "HandTrigger"
-        and c.hasTag("Table Piece") == false
-        and c.hasTag("Landmark Object") == false
-        and c.getName() != "Flex Table Control"
-        and c.getName() != "Faction Selection"
-        and c.getName() != "Master Instructions"
-        then c.destruct()
-        end
+      if rttClearAllTakes(c) then c.destruct() end
   end
   pcall(function() rttResetRunState() end)
   pcall(function() rttClearPriority() end)   -- the markers are gone; drop the flag and the handles
@@ -1546,6 +1567,17 @@ end
 --   RankedArt     -> "4-Player Draft"     FourBoardsArt -> "4-Player Setup"
 --   FivePlayerArt -> "5-Player Draft"     FivePlayerSetupArt -> "5-Player Setup"
 RTT_WIPE_BTN = {
+  -- CLEAR ALL OBJECTS, the one button that is red before you touch it. Maintainer, 2026-09-09: "add a
+  -- red clear all objects option button; additional button; it can be red; add a warning This clears
+  -- everything." Its resting colour is a darker red than the armed #a83226, so arming it still reads
+  -- as a change rather than as the same red twice.
+  --
+  -- ONE warning either way. Every other button here has two, because what it costs you depends on
+  -- what is out -- the factions, or only the map. This one takes both and everything else besides, so
+  -- "This clears everything." is the true answer in every state and `warn` and `warnMap` are the same
+  -- picture.
+  rttClearAllBtn   = { fn = "clearAll",              color = "#7a2119", icon = "ClearAllArt",
+                       warn = "ClearAllConfirmArt",  warnMap = "ClearAllConfirmArt", clearsAll = true },
   rttRankedBtn     = { fn = "rttSetup",              color = "#030411", icon = "RankedArt",          warn = "WipeConfirmArt", warnMap = "WipeConfirmMapArt", wants5p = false },
   rttThemeBtn      = { fn = "rttTheme",              color = "#49514b", icon = "ThemeArt",           warn = "WipeConfirmArt", warnMap = "WipeConfirmMapArt", wants5p = true },
   rttFourBoardsBtn = { fn = "setupFactionBoards",    color = "#3a2f22", icon = "FourBoardsArt",      warn = "WipeConfirmArt", warnMap = "WipeConfirmMapArt", wants5p = false },
@@ -1975,6 +2007,9 @@ end
 -- `warnMap` is the map wording and is carried by everything that can leave a different map behind.
 function rttWouldWipe(d)
   if d == nil then return false end
+  -- Clear All is not about factions or about the map: it is about the table. It asks whenever it
+  -- would take anything at all, and on a bare table it just runs, like every other button here.
+  if d.clearsAll then return rttClearAllHasWork() end
   if d.warn ~= nil and rttFactionsOnTable() then return true end
   return rttMapWouldChange(d)
 end
@@ -2028,6 +2063,7 @@ function rttRunBtn(d, player)
   elseif d.fn == "rttPlaceMarsh5P"       then rttPlaceMarsh5P()
   elseif d.fn == "setupFactionBoards"    then setupFactionBoards()
   elseif d.fn == "setupFivePlayerBoards" then setupFivePlayerBoards()
+  elseif d.fn == "clearAll"              then clearAll()
   end
 end
 
@@ -2064,6 +2100,7 @@ function rttArmFour(player, value, id)    rttArmOrGo("rttFourBoardsBtn", player)
 function rttArmMarsh5P(player, value, id) rttArmOrGo("Marsh5P", player) end
 function rttArmFiveSetup(player, value, id) rttArmOrGo("Marsh5PSetup", player) end
 function rttArmMarsh5PMap(player, value, id) rttArmOrGo("Marsh5PMap", player) end
+function rttArmClearAll(player, value, id)  rttArmOrGo("rttClearAllBtn", player) end
 
 -- Five manual selector boards and nothing else -- the 5-player counterpart of the 4-Player Setup
 -- button. setupFactionBoards keys the seat count off the BUTTON id, so it is passed explicitly here

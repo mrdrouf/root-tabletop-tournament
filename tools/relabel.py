@@ -253,6 +253,9 @@ WIDES = [
     ("FivePlayerArt",      "five_player_draft_v11",   ["5-Player", "Draft"],   lambda: art_crop_aspect("assets/images/5players.png", 0.853)),
     ("Marsh5PLabel",       "five_players_marsh_v11",  ["5-Players", "Marsh"],  lambda: art_topband("assets/upload/map_marsh.png")),
     ("FactionCardsArt",    "faction_cards_v11",       ["Faction", "Cards"],    lambda: art_from_label("faction_cards_label_v4_34723094.png")),
+    # No artwork, like Credits: the caption IS the button. Maintainer, 2026-09-09: "add a red clear
+    # all objects option button; additional button; it can be red".
+    ("ClearAllArt",        "clear_all_v11",           ["Clear All", "Objects"], lambda: None),
     ("CreditsBtnArt",      "credits_button_v11",      ["Credits"],             lambda: None, 96, 1.0),
     # Credits carries no artwork, so its caption has the whole button to itself: start it far above
     # the shared size and let the width cap settle it, with no condensing on one short word.

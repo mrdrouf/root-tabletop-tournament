@@ -2448,8 +2448,9 @@ def t_the_two_free_button_slots_are_bottom_right(src):
     be second row to the leftmost."
 
     So Credits went to the bottom-right slot and Faction Cards took the spot it left in the FIRST row.
-    The Turn Panel toggle held x=19 of row two until "remove the button turn panel" (2026-09-07); with
-    it gone, row two has TWO spare slots, 19 and 57, with Credits still anchored at 95.
+    The Turn Panel toggle held x=19 of row two until "remove the button turn panel" (2026-09-07), which
+    left two spares; Clear All Objects took x=19 back on 2026-09-09 ("add a red clear all objects
+    option button; additional button"), so one is spare again, with Credits still anchored at 95.
 
     Reads the built save, because this is XmlUI on the board object rather than anything in the Lua.
     """
@@ -2474,7 +2475,9 @@ def t_the_two_free_button_slots_are_bottom_right(src):
     top, bottom = rows.get(-55, {}), rows.get(-78, {})
     assert len(top) == 6, "the first tool row has %d of 6 slots filled: %s" % (len(top), sorted(top))
     free = [s for s in SLOTS if s not in bottom]
-    assert free == [19, 57], "the free slots are at %s; 19 and 57 of row 2 should be spare" % free
+    assert free == [57], "the free slots are at %s; only 57 of row 2 should be spare" % free
+    assert bottom.get(19) == "rttClearAllBtn", \
+        "x=19 of row 2 holds %s, not Clear All" % bottom.get(19)
     assert top.get(57) == "Faction Cards", "x=57 of row 1 holds %r, not Faction Cards" % top.get(57)
     assert bottom.get(95) == "rttCreditsBtn", "the bottom-right slot holds %r, not Credits" % bottom.get(95)
 
@@ -4158,6 +4161,94 @@ def t_the_coffin_spawns_where_he_put_it(src):
         % (ry % 360, want["rotY"] % 360)
 
 
+def t_clear_all_objects_asks_before_it_clears(src):
+    """A red button that empties the table, and asks first.
+
+    Maintainer, 2026-09-09: "add a red clear all objects option button; additional button; it can be
+    red; add a warning This clears everything."
+
+    clearAll has existed all along -- its button was commented out of the XmlUI. Bringing it back as a
+    plain button would have made it the one destructive control on the board with no prompt, so it
+    goes through rttArmOrGo like the rest: first click swaps the art for the warning and turns the
+    button the armed red, second click within three seconds does it.
+
+    ONE warning, not two. Every other button here has a faction wording and a map wording, because
+    what it costs you depends on what is out. This takes both and everything else, so the same
+    picture is the true answer in every state -- and the question it asks itself is not "are there
+    factions" but "is there anything at all", which is the wipe's own predicate.
+    """
+    # THE BUTTON IS ON THE BOARD, in the free slot of the second tool row, red before you touch it.
+    # Read off the XmlUI, which is a field of the board object rather than anything in its Lua.
+    x = json.load(open(os.path.join(REPO, "dist/Root_Tabletop_Tournament.json"),
+                       encoding="utf-8"))["ObjectStates"]
+    def walk(objs):
+        for o in objs:
+            yield o
+            for c in (o.get("ContainedObjects") or []):
+                yield from walk([c])
+    xml = [o for o in walk(x) if o.get("GUID") == "bab7e1"][0]["XmlUI"]
+    board = re.search(r'<Button id="rttClearAllBtn"[^>]*/>', xml)
+    assert board, "the Clear All button is not in the board's XmlUI"
+    el = board.group(0)
+    for want in ('onclick="rttArmClearAll"', 'icon="ClearAllArt"',
+                 'position="19 -78 -20"', 'width="36"', 'height="20"'):
+        assert want in el, "the Clear All button is missing %s: %s" % (want, el)
+    # and both pictures it needs are registered, or TTS draws a white placeholder over it
+    assets = {a["Name"] for a in [o for o in walk(x) if o.get("GUID") == "bab7e1"][0]["CustomUIAssets"]}
+    for a in ("ClearAllArt", "ClearAllConfirmArt"):
+        assert a in assets, "%s is not a registered UI asset" % a
+    colour = re.search(r'color="(#[0-9a-fA-F]{6})"', el).group(1).lower()
+    assert colour != "#a83226", \
+        "the button rests on the ARMED red, so arming it would look like nothing happened"
+    assert int(colour[1:3], 16) > int(colour[3:5], 16) + 40, "the button is not red: %s" % colour
+
+    rt = fresh(src)
+    def click():
+        rt.execute("pcall(function() rttArmClearAll(Player['Purple'],'','rttClearAllBtn') end) "
+                   "FLUSH_UNTIL(0.5,4)")
+    def attr(k):
+        return rt.eval("function(k) return tostring(UIATTR['rttClearAllBtn.' .. k]) end")(k)
+
+    # A BARE TABLE JUST RUNS. Same rule as every other destructive button: nothing to lose, no prompt.
+    rt.execute("REC.destroyed = {}")
+    click()
+    assert rt.eval("function() return tostring(RTT_ARM and RTT_ARM.id) end")() == "nil", \
+        "an empty table armed the button instead of running"
+
+    # WITH SOMETHING ON IT, the first click only asks.
+    rt.execute("JUNK = MKOBJ('Cat Warrior', {3, 1, 3}, {'RTT Faction'}) "
+               "FURNITURE = MKOBJ('Table Surface', {0, 0, 0}, {'Table Piece'}) "
+               "REC.destroyed = {}")
+    click()
+    assert rt.eval("function() return tostring(RTT_ARM and RTT_ARM.id) end")() == "rttClearAllBtn", \
+        "the first click did not arm the button"
+    assert attr("icon") == "ClearAllConfirmArt", "the art did not become the warning: %s" % attr("icon")
+    assert attr("color") == "#a83226", "the button did not go the armed red: %s" % attr("color")
+    assert rt.eval("function() return JUNK.__dead end")() is not True, \
+        "the first click cleared the table without asking"
+
+    # THE SECOND CLICK DOES IT -- and leaves the furniture and the board itself alone.
+    click()
+    assert rt.eval("function() return JUNK.__dead end")() is True, \
+        "the second click did not clear the table"
+    assert rt.eval("function() return FURNITURE.__dead end")() is not True, \
+        "Clear All destroyed a Table Piece"
+    assert attr("icon") == "ClearAllArt", "the button did not revert its art"
+
+    # THE QUESTION AND THE WIPE AGREE. rttWouldWipe asks rttClearAllHasWork, which is the same
+    # predicate the loop uses -- so the button can never warn about something it would not take, or
+    # take something it did not warn about.
+    rt.execute("KEEP = {} "
+               "KEEP[1] = MKOBJ('Flex Table Control', {0,0,0}, {}) "
+               "KEEP[2] = MKOBJ('Faction Selection', {0,0,0}, {}) "
+               "KEEP[3] = MKOBJ('A Landmark', {0,0,0}, {'Landmark Object'}) "
+               "KEEP[4] = MKOBJ('Table Surface', {0,0,0}, {'Table Piece'})")
+    assert rt.eval("rttClearAllHasWork()") is False, \
+        "the button would warn about a table holding nothing but furniture"
+    rt.execute("MORE = MKOBJ('Eyrie Warrior', {4, 1, 4}, {})")
+    assert rt.eval("rttClearAllHasWork()") is True, "the button would clear a piece without warning"
+
+
 def t_the_round_is_zero_until_start_is_pressed(src):
     """Nothing is round 1 until somebody presses START, and turns do not run before it either.
 
@@ -5612,6 +5703,7 @@ CASES = [
     ("the coffin spawns where he put it", t_the_coffin_spawns_where_he_put_it),
     ("a map cannot be left unlocked",     t_the_map_cannot_be_left_unlocked),
     ("round is 0 until start",            t_the_round_is_zero_until_start_is_pressed),
+    ("clear all asks before it clears",   t_clear_all_objects_asks_before_it_clears),
     ("board shows the build number",      t_the_board_shows_the_build_number),
     ("panel pauses the clock",            t_the_panel_pauses_the_clock),
     ("start names the pass it causes",    t_start_names_the_pass_it_causes),
