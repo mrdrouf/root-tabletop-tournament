@@ -1582,6 +1582,9 @@ RTT_WIPE_BTN = {
   rttThemeBtn      = { fn = "rttTheme",              color = "#49514b", icon = "ThemeArt",           warn = "WipeConfirmArt", warnMap = "WipeConfirmMapArt", wants5p = true },
   rttFourBoardsBtn = { fn = "setupFactionBoards",    color = "#3a2f22", icon = "FourBoardsArt",      warn = "WipeConfirmArt", warnMap = "WipeConfirmMapArt", wants5p = false },
   Marsh5P          = { fn = "rttFivePStart",         color = "#463221", icon = "FivePlayerArt",      warn = "WipeConfirmArtWide", warnMap = "WipeConfirmMapArtWide", wants5p = true },
+  -- The Flotilla draft: three players, four militant cards, and the hireling. Its colour is the
+  -- teal its own card is printed on, so the button matches the art it carries.
+  rttFlotillaBtn   = { fn = "rttFlotillaStart",      color = "#2e5a58", icon = "FlotillaArt",        warn = "WipeConfirmArtWide", warnMap = "WipeConfirmMapArtWide" },
   Marsh5PSetup     = { fn = "setupFivePlayerBoards", color = "#463221", icon = "FivePlayerSetupArt", warn = "WipeConfirmArtWide", warnMap = "WipeConfirmMapArtWide" },
   -- 5-Players Marsh places the Marsh map and nothing else, so it can only ever cost you the map.
   -- BUTTONS.md used to say it "is not destructive, so it does not prompt"; it goes through
@@ -2064,6 +2067,7 @@ function rttRunBtn(d, player)
   elseif d.fn == "setupFactionBoards"    then setupFactionBoards()
   elseif d.fn == "setupFivePlayerBoards" then setupFivePlayerBoards()
   elseif d.fn == "clearAll"              then clearAll()
+  elseif d.fn == "rttFlotillaStart"      then rttFlotillaStart()
   end
 end
 
@@ -2100,6 +2104,7 @@ function rttArmFour(player, value, id)    rttArmOrGo("rttFourBoardsBtn", player)
 function rttArmMarsh5P(player, value, id) rttArmOrGo("Marsh5P", player) end
 function rttArmFiveSetup(player, value, id) rttArmOrGo("Marsh5PSetup", player) end
 function rttArmMarsh5PMap(player, value, id) rttArmOrGo("Marsh5PMap", player) end
+function rttArmFlotilla(player, value, id)  rttArmOrGo("rttFlotillaBtn", player) end
 function rttArmClearAll(player, value, id)  rttArmOrGo("rttClearAllBtn", player) end
 
 -- Five manual selector boards and nothing else -- the 5-player counterpart of the 4-Player Setup
@@ -2131,7 +2136,12 @@ function rttSetup(player, value, id)
   local first = mil[1]
   local pool = {}
   if not RTT_THEME then for i=2,#mil do pool[#pool+1]=mil[i] end end RTT_THEME = nil
-  for _,c in ipairs(RTT_INSURGENT) do pool[#pool+1]=c end
+  -- MILITANT ONLY, for the Flotilla draft: "it deals 4 faction cards and only militant factions."
+  -- The flag is one-shot like RTT_DRAFT_N and RTT_THEME beside it, so the next launch is an ordinary
+  -- one whether or not anybody remembers to clear it. Six militants ship, so a four-card deal has one
+  -- taken first and three drawn from the other five.
+  local milOnly = (RTT_MILITANT_ONLY == true) RTT_MILITANT_ONLY = nil
+  if not milOnly then for _,c in ipairs(RTT_INSURGENT) do pool[#pool+1]=c end end
   rttShuffle(pool)
   -- the 5 dealt (Militant first); the rest stay as the deck so EVERY faction card is
   -- on the table. The full random order is fixed here, up front.
@@ -5611,6 +5621,64 @@ function rttFivePStart(player, value, id)
   RTT_5P_MARSH = true
 end
 
+
+-- THE FLOTILLA'S RULES CARD, which stands in the helper row beside the map exactly as the town
+-- landmark cards do. Maintainer, 2026-09-09: "it spawns also the flotilla card rule next to the map
+-- as the landmark helpers (think of how it needs to adjust the arrival of other helper cards)."
+--
+-- TWO FACES, ONE CARD: the rules face is up (the reference you read) and the activation face is the
+-- back, which is how the printed hireling card is laid out. Both are rendered by
+-- tools/make_flotilla_card.py; if that tool re-renders, the two URLs below are the only thing to
+-- change, because the hash is in the filename.
+--
+-- It carries the HIRELING card's geometry, not a landmark's: the landmark cards are portrait and this
+-- is landscape, 1900x1146, like the Riverfolk Flotilla card it belongs to. Hence scale 1.88 and
+-- SidewaysCard, both lifted from that card.
+RTT_FLOTILLA_CARD_JSON = [====[{"GUID":"f10771","Name":"CardCustom","Transform":{"posX":0.0,"posY":11.575,"posZ":0.0,"rotX":0.0,"rotY":180.0,"rotZ":180.0,"scaleX":1.88,"scaleY":1.0,"scaleZ":1.88},"Nickname":"Flotilla","Description":"","GMNotes":"","ColorDiffuse":{"r":1.0,"g":1.0,"b":1.0},"Locked":true,"Grid":true,"Snap":true,"IgnoreFoW":false,"MeasureMovement":false,"DragSelectable":true,"Autoraise":true,"Sticky":true,"Tooltip":true,"GridProjection":false,"HideWhenFaceDown":false,"Hands":false,"CardID":74200,"SidewaysCard":true,"CustomDeck":{"742":{"FaceURL":"https://cdn.jsdelivr.net/gh/mrdrouf/root-tabletop-tournament@main/assets/cards/flotilla_hireling_rules_feea8a8e.png","BackURL":"https://cdn.jsdelivr.net/gh/mrdrouf/root-tabletop-tournament@main/assets/cards/flotilla_hireling_action_041a16a8.png","NumWidth":1,"NumHeight":1,"BackIsHidden":true,"UniqueBack":false,"Type":0}},"LuaScript":"","LuaScriptState":"","XmlUI":""}]====]
+
+-- Where the hireling itself lands: its own card and its one boat, in the same band as the helper row
+-- and one step further out than the rules card.
+--
+-- A FIRST GUESS, and the only thing here that is. Every other position in this file was measured off
+-- a save the maintainer placed by hand, and this one has to wait for the same treatment.
+RTT_FLOTILLA_KIT = { -50.272, 1.55, -19.135 }
+
+-- The rules card, the hireling card and the boat, all at once.
+function rttSpawnFlotillaKit()
+  local spot = rttHelperSpot("Flotilla")
+  spawnObjectJSON({
+    json = RTT_FLOTILLA_CARD_JSON,
+    position = { spot[1], spot[2], spot[3] },
+    rotation = { 0, 180, 180 },
+    callback_function = function(o)
+      o.setLock(true)
+      o.addTag("Map Object")
+    end
+  })
+  makeSpecialWithTag("Hirelings", "Riverfolk Flotilla",
+                     RTT_FLOTILLA_KIT[1], RTT_FLOTILLA_KIT[2], RTT_FLOTILLA_KIT[3], "Map Object", 180)
+end
+
+-- THE FLOTILLA DRAFT. Maintainer, 2026-09-09: "rules of draft is 3 player draft only (carefull to all
+-- the adjustments it might require, just do not spawn the 4th player) it deals 4 faction cards and
+-- only militant factions."
+--
+-- The seat count and the deal are ONE number in this mod and always have been: RTT_DRAFT_N is what
+-- rttSetup deals, RTT_DN is that number, and the seats are RTT_DN - 1. The 4-player draft is 5 and the
+-- 5-player is 6, so three players dealt four cards is 4 -- and the fourth seat is not "skipped", it is
+-- never asked for. Everything downstream reads RTT_DN: the selector boards, the turn order, the box
+-- score's row count, the order deck.
+--
+-- MILITANT ONLY is the one genuinely new rule. The pool is normally the militants after the first plus
+-- every insurgent; this drops the insurgents, which leaves the six militants -- one dealt first and
+-- three drawn from the other five.
+function rttFlotillaStart(player, value, id)
+  RTT_DRAFT_N = 4
+  RTT_MILITANT_ONLY = true
+  rttSetup(player, value, id)
+  rttWhenMapReady(function() rttSpawnFlotillaKit() end)
+end
+
 -- place the 5-player Marsh MAP only (no draft/selectors/seating). Sets the flag that the makeMap
 -- Marsh branch + landmark hook + number-token hook all read, then reuses the base rttPlaceMap path
 -- exactly like a plain map button. RTT_5P_MARSH is left true (the async landmark/number hooks
@@ -5820,14 +5888,27 @@ function rttMarshPlan5P(objects)
   return ov
 end
 
--- each town's rules card has its OWN fixed spot (the maintainer placed + locked them in the save);
--- keyed by town name so a card always lands in the same place regardless of which clearing
--- the town landmark spawns on. All three: y 11.575, z -19.135, rotZ 180, unscaled.
-RTT_MARSH_CARD_POS = {
-  ["Rabbit-Town"] = { -40.156, 11.575, -19.135 },
-  ["Foxburrow"]   = { -35.098, 11.575, -19.135 },
-  ["Mousehold"]   = { -45.214, 11.575, -19.135 },
-}
+-- THE HELPER CARDS STAND IN A ROW BESIDE THE MAP, and the row is one thing rather than three fixed
+-- spots. The maintainer placed and locked the three town cards himself, at y 11.575, z -19.135 and an
+-- even 5.058 apart; adding a fourth helper meant deciding what a row DOES when something joins it.
+--
+-- Maintainer, 2026-09-09, asked where the Flotilla's rules card should go: "Flotilla takes the first
+-- spot, towns shift". So the order below IS the row, the positions are read off it by index, and the
+-- towns keep their order and their spacing while every one of them moves one place along. Adding a
+-- fifth helper later is one more name in the list and one more x.
+RTT_HELPER_ROW_X = { -45.214, -40.156, -35.098, -30.040 }   -- the maintainer's three, plus one more step
+RTT_HELPER_ROW_Y = 11.575
+RTT_HELPER_ROW_Z = -19.135
+RTT_HELPER_ORDER = { "Flotilla", "Mousehold", "Rabbit-Town", "Foxburrow" }
+
+-- where a named helper card stands, or the first spot if it is not in the row at all
+function rttHelperSpot(name)
+  local i = 1
+  for n, who in ipairs(RTT_HELPER_ORDER) do
+    if who == name then i = n end
+  end
+  return { RTT_HELPER_ROW_X[i] or RTT_HELPER_ROW_X[1], RTT_HELPER_ROW_Y, RTT_HELPER_ROW_Z }
+end
 
 -- spawn each town standing on its clearing (model rotY = the clearing's suit rotY) + its
 -- rules card at that town's fixed locked spot, all DIRECTLY at their final transforms
@@ -5835,7 +5916,7 @@ RTT_MARSH_CARD_POS = {
 function rttMarshLandmarks()
   if not RTT_5P_MARSH then return end
   for _, lm in ipairs(RTT_MARSH_LANDMARKS or {}) do
-    local slot = RTT_MARSH_CARD_POS[lm.name] or { -40.156, 11.575, -19.135 }
+    local slot = rttHelperSpot(lm.name)
     rttSpawnLandmarkAt(lm.name, lm.x, 11.66, lm.z, slot[1], slot[2], slot[3],
                        lm.rotY or 165, 180, nil)
   end

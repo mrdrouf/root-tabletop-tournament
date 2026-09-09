@@ -11,7 +11,7 @@ Layout, top to bottom:
 [Summer] [Lake] [Marsh] [Winter] [Mountain] [Gorge]                            y =  16.5
                  [Standard] [Exiles] [Squires]                                 y = -23.5
 [Faction Sel][Bat Bungler][Mob Lobber][Koffin Keeper][Faction Cards][Landmarks] y = -55
-[5P Setup][5P Draft][5-Players Marsh][Clear All][    ][Credits]                y = -78
+[5P Setup][5P Draft][5-Players Marsh][Clear All][Flotilla][Credits]            y = -78
 ```
 
 Every row sits half an option button (8.5) lower than it used to, so the top row clears the ROOT logo.
@@ -32,6 +32,14 @@ just runs. Clicks are ignored while a setup is still loading (they are dropped, 
 | **Theme** | `rttArmTheme` → `rttTheme` | This month's RTM theme, currently the 5-player Marsh ranked draft (delegates to `rttFivePStart`). |
 | **5-Player Draft** | `rttArmMarsh5P` → `rttFivePStart` | 5-player Marsh ranked draft: Marsh map, 6-card draft. |
 | **5-Player Setup** | `rttArmFiveSetup` → `setupFivePlayerBoards` | Five manual selector boards and nothing else -- the 5-player counterpart of 4-Player Setup. |
+
+**Flotilla Draft** (`rttArmFlotilla` → `rttFlotillaStart`) is a **three-player** ranked draft that deals
+**four militant faction cards** and nothing else. Seats and deal are one number — `RTT_DRAFT_N = 4`, so
+`RTT_DN = 4` and the seats are `RTT_DN - 1` — which is why the fourth player is never spawned rather
+than skipped. It also spawns the Riverfolk Flotilla hireling (its card and its one boat, lifted from
+the base collection) and the Flotilla's own two-faced rules card, which stands in the helper row beside
+the map: `RTT_HELPER_ORDER` is that row, the Flotilla takes its first spot and the three town cards
+each shift one place along.
 
 **5-Players Marsh** (`rttArmMarsh5PMap` → `rttPlaceMarsh5P`) places *only* the 5-player Marsh board —
 no draft, no seating. It IS destructive: it goes through `rttPlaceMap` → `makeMap` → `removeMapItems`

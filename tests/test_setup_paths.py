@@ -2449,8 +2449,11 @@ def t_the_two_free_button_slots_are_bottom_right(src):
 
     So Credits went to the bottom-right slot and Faction Cards took the spot it left in the FIRST row.
     The Turn Panel toggle held x=19 of row two until "remove the button turn panel" (2026-09-07), which
-    left two spares; Clear All Objects took x=19 back on 2026-09-09 ("add a red clear all objects
-    option button; additional button"), so one is spare again, with Credits still anchored at 95.
+    left two spares; both went on 2026-09-09 -- Clear All Objects to x=19 and Flotilla Draft to x=57 --
+    so the board is full, with Credits still anchored at 95.
+
+    A FULL BOARD IS THE ASSERTION NOW. There is nowhere left to put a button without moving one, which
+    is the thing worth knowing before the next one is asked for.
 
     Reads the built save, because this is XmlUI on the board object rather than anything in the Lua.
     """
@@ -2475,9 +2478,13 @@ def t_the_two_free_button_slots_are_bottom_right(src):
     top, bottom = rows.get(-55, {}), rows.get(-78, {})
     assert len(top) == 6, "the first tool row has %d of 6 slots filled: %s" % (len(top), sorted(top))
     free = [s for s in SLOTS if s not in bottom]
-    assert free == [57], "the free slots are at %s; only 57 of row 2 should be spare" % free
+    assert free == [], "row 2 has spare slots again: %s" % free
     assert bottom.get(19) == "rttClearAllBtn", \
         "x=19 of row 2 holds %s, not Clear All" % bottom.get(19)
+    assert bottom.get(57) == "rttFlotillaBtn", \
+        "x=57 of row 2 holds %s, not Flotilla Draft" % bottom.get(57)
+    assert bottom.get(95) == "rttCreditsBtn", \
+        "Credits is no longer anchored at 95: %s" % bottom.get(95)
     assert top.get(57) == "Faction Cards", "x=57 of row 1 holds %r, not Faction Cards" % top.get(57)
     assert bottom.get(95) == "rttCreditsBtn", "the bottom-right slot holds %r, not Credits" % bottom.get(95)
 
@@ -4269,6 +4276,77 @@ def t_a_prisoner_goes_pale(src):
     assert '"tint"' in saved, "the saved record does not carry the piece's colour: %s" % saved[:200]
 
 
+def t_the_flotilla_draft_seats_three_and_deals_militants(src):
+    """Three players, four militant cards, the hireling and its rules card beside the map.
+
+    Maintainer, 2026-09-09: "create an additional button option that is Flotilla Draft; add the art of
+    the flotilla for that button; rules of draft is 3 player draft only (carefull to all the
+    adjustments it might require, just do not spawn the 4th player) it deals 4 faction cards and only
+    militant factions. it spawns also the flotilla card rule next to the map as the landmark helpers
+    (think of how it needs to adjust the arrival of other helper cards) and spawns the flotilla
+    hireling (fetch it)."
+
+    THE SEAT COUNT AND THE DEAL ARE ONE NUMBER and always have been -- RTT_DRAFT_N is what rttSetup
+    deals, RTT_DN is that, and the seats are RTT_DN - 1. The 4-player draft is 5 and the 5-player is 6,
+    so "3 player draft, 4 cards" is 4, and the fourth seat is not skipped anywhere: it is never asked
+    for. That is what makes "all the adjustments it might require" come out to nothing -- the selector
+    boards, the turn order, the order deck and the box score's row count all read RTT_DN already.
+    """
+    rt = fresh(src)
+    rt.execute("pcall(function() rttFlotillaStart(nil,nil,nil) end) FLUSH(120)")
+
+    assert rt.eval("RTT_DN") == 4, "the Flotilla draft seats %s players, not 3" % rt.eval("RTT_DN")
+    facs = list((rt.eval("RTT_DRAFT_FACTIONS") or {}).values())
+    assert len(facs) == 4, "it dealt %d faction cards, not 4: %s" % (len(facs), facs)
+    assert len(set(facs)) == 4, "it dealt the same faction twice: %s" % facs
+
+    MILITANT = {"Marquise de Cat", "Eyrie Dynasties", "Underground Duchy",
+                "Lord of the Hundreds", "Keepers in Iron", "Lilypad Diaspora"}
+    assert set(facs) <= MILITANT, "an insurgent was dealt: %s" % sorted(set(facs) - MILITANT)
+
+    # AND THE FLAG IS ONE-SHOT, like RTT_DRAFT_N and RTT_THEME beside it: the next ordinary draft must
+    # not inherit it. This is the failure mode of every "mode" flag in this file.
+    assert rt.eval("RTT_MILITANT_ONLY") is None, "the militant-only flag outlived its draft"
+    rt.execute("pcall(function() rttSetup(nil,nil,nil) end) FLUSH(120)")
+    assert rt.eval("RTT_DN") == 5, "the next draft inherited the Flotilla's seat count"
+    after = list((rt.eval("RTT_DRAFT_FACTIONS") or {}).values())
+    assert len(after) == 5, "the next draft dealt %d cards" % len(after)
+
+    # THE HELPER ROW: the Flotilla takes the first spot and the towns shift, which is what he chose
+    # when asked. The row is read by name so the towns keep their order and their 5.058 spacing.
+    spot = rt.eval("function(n) local p = rttHelperSpot(n) "
+                   "return string.format('%.3f/%.3f/%.3f', p[1], p[2], p[3]) end")
+    row = [spot(n) for n in ("Flotilla", "Mousehold", "Rabbit-Town", "Foxburrow")]
+    xs = [float(v.split("/")[0]) for v in row]
+    assert xs == sorted(xs), "the helper row is not in order: %s" % xs
+    assert abs(xs[0] + 45.214) < 1e-3, "the Flotilla is not in the first spot: %s" % xs[0]
+    gaps = [round(xs[i + 1] - xs[i], 3) for i in range(3)]
+    assert all(abs(g - 5.058) < 1e-3 for g in gaps), "the row is not evenly spaced: %s" % gaps
+    for v in row:
+        z = float(v.split("/")[2])
+        assert abs(z + 19.135) < 1e-3, "a helper card left the row's z: %s" % v
+
+    # THE KIT: the rules card in the row, and the hireling the base collection ships -- its own card
+    # and its one boat.
+    rt = fresh(src)
+    rt.execute("SPAWNED = {} "
+               "local _s = spawnObjectJSON "
+               "spawnObjectJSON = function(p) local o = _s(p) "
+               "  SPAWNED[#SPAWNED+1] = string.format('%s|%.3f|%.3f', o.getName() or '', "
+               "    o.__pos.x, o.__pos.z) "
+               "  return o end")
+    rt.execute("pcall(function() rttSpawnFlotillaKit() end) FLUSH(20)")
+    got = [str(v) for v in rt.eval("SPAWNED").values()]
+    names = [g.split("|")[0] for g in got]
+    assert names.count("Flotilla") >= 1, "no Flotilla piece spawned: %s" % names
+    assert "Riverfolk Flotilla" in names, "the hireling card did not spawn: %s" % names
+    rules = [g for g in got if g.startswith("Flotilla|")]
+    assert rules, "the rules card did not spawn: %s" % names
+    x, z = (float(v) for v in rules[0].split("|")[1:])
+    assert abs(x + 45.214) < 1e-3 and abs(z + 19.135) < 1e-3, \
+        "the rules card is not in the helper row's first spot: %.3f / %.3f" % (x, z)
+
+
 def t_clear_all_objects_asks_before_it_clears(src):
     """A red button that empties the table, and asks first.
 
@@ -5812,6 +5890,7 @@ CASES = [
     ("a map cannot be left unlocked",     t_the_map_cannot_be_left_unlocked),
     ("round is 0 until start",            t_the_round_is_zero_until_start_is_pressed),
     ("clear all asks before it clears",   t_clear_all_objects_asks_before_it_clears),
+    ("flotilla draft seats three",        t_the_flotilla_draft_seats_three_and_deals_militants),
     ("a prisoner goes pale",              t_a_prisoner_goes_pale),
     ("board shows the build number",      t_the_board_shows_the_build_number),
     ("panel pauses the clock",            t_the_panel_pauses_the_clock),
