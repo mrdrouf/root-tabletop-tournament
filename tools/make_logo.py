@@ -81,16 +81,17 @@ ANCHOR = 0.20            # where the letterbox crop sits: 0 is the top, 1 the bo
 # visibly apart. What DID move it is the placard going edge to edge, 858 -> 1024, worth +19%. That is
 # the ceiling for one line inside this sign; two lines need a 509-row band to reach only +21%. So the
 # widening is set back to 0 and the band is only as tall as the line needs.
-# TWO LINES, BECAUSE ONE CANNOT GROW. "Tabletop Tournament still too small. increase the height of the
-# root sign if needs be" (2026-09-09) -- but height does nothing to a line bound by WIDTH, and this one
-# already spans the whole cream field. Nineteen characters fill it at 219pt and that is the ceiling.
-# Split across two lines, "Tournament" alone fills the same width at 383pt, so the type can finally
-# grow; what it costs is band height, roughly linearly. 390 extra rows buy +30% per line and take the
-# plaque to about 47% of the square, which is the height that was authorised. See set_two_line().
-PLAQUE_EXTRA = 390
+# ONE LINE, ELONGATED. The line is width-bound -- nineteen characters fill the cream field at 219pt
+# and neither a taller sign nor a longer one moves that. Two lines did move it, at the cost of half
+# the square. Then: "no on 1 line. characters can be elongated a bit" (2026-09-09), which is the one
+# lever that works without either compromise -- stretch the glyphs on the VERTICAL and the width is
+# untouched while the height goes up by the factor. 1.30 is the +30% asked for, and the plaque comes
+# out 39% of the square rather than the two-line 47%. See set_one_line_tall().
+PLAQUE_EXTRA = 170
 PLAQUE_EXTRA_WIDTH = 0
 PLAQUE_TYPE_WIDTH = 1.0
-PLAQUE_TWO_LINE = True
+PLAQUE_TWO_LINE = False
+PLAQUE_ELONGATE = 1.30
 
 
 def scrim(canvas, box, depth=SCRIM, feather=26):
@@ -116,7 +117,8 @@ def main():
     os.makedirs(OUTDIR, exist_ok=True)
 
     plaque = build_plaque(PLAQUE_WIDTH, extra_band=PLAQUE_EXTRA, extra_width=PLAQUE_EXTRA_WIDTH,
-                          type_width=PLAQUE_TYPE_WIDTH, two_line=PLAQUE_TWO_LINE)
+                          type_width=PLAQUE_TYPE_WIDTH, two_line=PLAQUE_TWO_LINE,
+                          elongate=PLAQUE_ELONGATE)
 
     # THE SIGN NO LONGER SITS ON THE PICTURE, IT SITS BELOW IT. Two lines make the sign nearly half
     # the square, and overlaid that buried the board, the bottles and the ashtray -- the things the

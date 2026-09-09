@@ -216,6 +216,53 @@ def wider(inner, extra, grain=12):
     return out
 
 
+def set_one_line_tall(inner, band, field, type_width, elong):
+    """Set the subtitle on ONE line, ELONGATED, so it can grow without more characters per line.
+
+    Maintainer, 2026-09-09: "no on 1 line. characters can be elongated a bit." That settles what
+    nothing else could. The line is width-bound -- nineteen characters of Luminari fill the cream
+    field at 219pt and no amount of extra height or extra sign length moves it -- so the only way to
+    make it TALLER while keeping it one line is to stop insisting the glyphs keep their drawn
+    proportions. Elongating them vertically buys the height directly: the width is unchanged, the
+    height goes up by `elong`.
+
+    This is a deliberate reversal of the rule in draw_tracked, and worth being clear about. That rule
+    is about WIDENING -- stretching glyphs sideways to fill a plaque, which reads as a scaled face and
+    is what tracking exists to avoid. Elongating is the other axis, it is a condensed face rather than
+    a stretched one, and it is a normal thing for a sign painter to do when a line has to fill a deep
+    band. It is done here on instruction, not by default.
+
+    The type is rendered at elong x the size and then COMPRESSED horizontally back to the target
+    width, rather than drawn small and stretched up: the glyphs are rasterised at the larger size, so
+    the verticals keep their weight instead of being smeared.
+    """
+    room = band[1] - band[0]
+    target = (field[1] - field[0]) * type_width
+
+    probe = ImageDraw.Draw(Image.new("RGB", (8, 8)))
+    size = int(room * 2 * elong)
+    while size > 8:
+        f = ImageFont.truetype(FONT, size)
+        b = probe.textbbox((0, 0), SUBTITLE, font=f, anchor="lt")
+        if probe.textlength(SUBTITLE, font=f) <= target * elong and (b[3] - b[1]) <= room * elong:
+            break
+        size -= 1
+
+    f = ImageFont.truetype(FONT, size)
+    b = probe.textbbox((0, 0), SUBTITLE, font=f, anchor="ls")
+    ink_h = b[3] - b[1]
+    wide = round(target * elong)
+    layer = Image.new("RGBA", (wide + size, ink_h + size), (0, 0, 0, 0))
+    ld = ImageDraw.Draw(layer)
+    draw_tracked(ld, layer.width / 2, size / 2 - b[1], SUBTITLE, f, INK + (255,), target * elong)
+    layer = layer.crop(layer.getbbox())
+    layer = layer.resize((max(1, round(layer.width / elong)), layer.height), Image.LANCZOS)
+
+    inner.paste(layer, (round((field[0] + field[1]) / 2 - layer.width / 2),
+                        round((band[0] + band[1]) / 2 - layer.height / 2)), layer)
+    return size
+
+
 def frame_and_scale(inner, width):
     """Shrink the plaque to `width` and give it the clean dark edge that replaces the board's wood."""
     border = max(1, round(FRAME_PX * width / (inner.width + FRAME_PX * 2)))
@@ -277,7 +324,8 @@ def set_two_line(d, band, field, type_width, lead=0.12):
     return size
 
 
-def build_plaque(width, extra_band=0, extra_width=0, type_width=TYPE_WIDTH, two_line=False):
+def build_plaque(width, extra_band=0, extra_width=0, type_width=TYPE_WIDTH, two_line=False,
+                 elongate=1.0):
     """The plaque with its subtitle replaced and its wood surround swapped for a clean edge.
 
     `extra_band` grows the parchment under the logo by that many of the plaque's own rows and gives
@@ -300,6 +348,9 @@ def build_plaque(width, extra_band=0, extra_width=0, type_width=TYPE_WIDTH, two_
     # the cream field grew by exactly the columns spliced in, so the type's room grows with it
     field = (FIELD[0], FIELD[1] + extra_width)
     target = (field[1] - field[0]) * type_width
+    if elongate and elongate != 1.0:
+        set_one_line_tall(inner, band, field, type_width, elongate)
+        return frame_and_scale(inner, width)
     if two_line:
         set_two_line(d, band, field, type_width)
         return frame_and_scale(inner, width)

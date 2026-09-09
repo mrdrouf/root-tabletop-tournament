@@ -42,10 +42,10 @@ BIRDS = os.path.join(ROOT, "assets", "src_art", "birds_leaning.png")
 OUTDIR = os.path.join(ROOT, "assets", "mark")
 
 PLAQUE_WIDTH = 1600
-# The same two-line sign the thumbnail uses, for the same reason: one line is width-bound and cannot
-# be enlarged. See set_two_line() in make_icon.py.
-PLAQUE_EXTRA = 390
-PLAQUE_TWO_LINE = True
+# The same sign the thumbnail carries: one line, elongated 1.30 on the vertical, which is the only way
+# a width-bound line gets bigger without a second line. See set_one_line_tall() in make_icon.py.
+PLAQUE_EXTRA = 170
+PLAQUE_ELONGATE = 1.30
 BIRDS_WIDTH = 0.86        # of the plaque, so the row sits inside the sign's width
 PERCH = 8                 # px of the folded wings tucked behind the sign's top edge
 SIZES = (1600, 1024, 512, 256)
@@ -206,7 +206,7 @@ def main():
 
     birds = flatten(dekey(Image.open(BIRDS)), PALETTE)
     plaque = build_plaque(PLAQUE_WIDTH, extra_band=PLAQUE_EXTRA, type_width=1.0,
-                          two_line=PLAQUE_TWO_LINE).convert("RGBA")
+                          elongate=PLAQUE_ELONGATE).convert("RGBA")
 
     bw = round(PLAQUE_WIDTH * BIRDS_WIDTH)
     birds = birds.resize((bw, round(birds.height * bw / birds.width)), Image.LANCZOS)
