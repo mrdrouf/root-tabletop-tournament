@@ -236,6 +236,8 @@ SQUARES = [
     ("Squires and Disciples Deck", "deck_squires_v11", ["Squires & Disciples"], lambda: art_topband("assets/src_art/deck_squires.png"), 0.72, 0, 0.76),
 
     ("ThemeArt",      "theme_art_v11",          ["Theme"],          lambda: art_topband("assets/src_art/theme_adventurer.png", 1.0), 0.70, 0),
+    # The Riverfolk Flotilla's own otter, cut off his hireling card by tools/make_flotilla_art.py.
+    ("FlotillaArt",   "flotilla_draft_v11",     ["Flotilla", "Draft"], lambda: art_topband("assets/src_art/flotilla_button.png", 1.0), 0.70, 0),
     ("RankedArt",     "four_player_draft_v11",  ["4-Player Draft"], lambda: art_crop_aspect("assets/images/ranked.png", 1.33, 210),       0.70, 0),
     ("FourBoardsArt", "four_player_setup_v11",  ["4-Player Setup"], lambda: art_rotated("assets/images/4players.png", 90),     0.70, 0),
 ]
