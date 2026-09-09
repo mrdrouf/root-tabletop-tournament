@@ -4144,6 +4144,58 @@ def t_the_coffin_spawns_where_he_put_it(src):
         % (ry % 360, want["rotY"] % 360)
 
 
+def t_the_map_cannot_be_left_unlocked(src):
+    """Unlock the map and it locks itself again, within the second.
+
+    Maintainer, 2026-09-09: "can you also make sure that a map can never but unlocked?"
+
+    Every map board already SPAWNS locked -- all six blueprints carry Locked:true -- so this is about
+    the lock being taken off mid-game, by a right-click or by L over the board. A loose map is dragged
+    along by the next piece let go on top of it, and then the clearings, the priority numbers and the
+    printed score track the box score reads are somewhere else while everything standing on them is
+    not.
+
+    There is no unlock event to answer, so it is a tick. Two things have to hold for a guard that runs
+    for the whole session: it must put the lock back, and it must not go hunting the whole table to
+    find out where to put it.
+    """
+    rt = fresh(src)
+    rt.execute("MAP = MKOBJ('', {0, 11.56, 0}, {'Map Object'}) "
+               "MAP.__snaps = {} for i = 1, 139 do MAP.__snaps[i] = {position = {0,0,0}} end "
+               "MAP.setLock(true) "
+               "RUIN = MKOBJ('Ruin', {5, 11.6, 5}, {'Map Object'}) RUIN.setLock(false)")
+
+    rt.execute("MAP.setLock(false) rttHoldMapLocked()")
+    assert rt.eval("function() return MAP.getLock() end")() is True, \
+        "the map was left unlocked"
+    # and nothing else on the map is touched: a ruin is locked by rttLockRuins, a warrior never is
+    assert rt.eval("function() return RUIN.getLock() end")() is False, \
+        "the guard locked something that is not the map board"
+
+    # A MAP CHANGE HANDS IT A NEW BOARD. The guid is remembered between ticks so the usual tick is one
+    # lookup; if that were never refreshed the guard would go on watching a board that no longer exists.
+    rt.execute("MAP.destruct() "
+               "MAP2 = MKOBJ('', {0, 11.56, 0}, {'Map Object'}) "
+               "MAP2.__snaps = {} for i = 1, 152 do MAP2.__snaps[i] = {position = {0,0,0}} end "
+               "MAP2.setLock(false) rttHoldMapLocked()")
+    assert rt.eval("function() return MAP2.getLock() end")() is True, \
+        "the guard kept watching the old board; the new map was left unlocked"
+
+    # IT IS ACTUALLY RUNNING, and it repeats. A guard nobody arms is a function nobody calls.
+    head = src.index("function onLoad(state)")
+    body = src[head:src.index("local lastSuccess = 10", head)]
+    assert "Wait.time(rttHoldMapLocked, RTT_MAP_LOCK_SECS, -1)" in body, \
+        "onLoad does not arm the map-lock guard as a repeating tick"
+
+    # AND IT NEVER SCANS THE TABLE. rttFindMapObject falls back to every object on the table when no
+    # tagged piece has snap points -- which is exactly the state between games, so a guard that used it
+    # would run that scan once a second forever.
+    fn = src[src.index("function rttHoldMapLocked()"):]
+    fn = fn[:fn.index("\nend")]
+    assert "rttFindMapObject" not in fn and "getAllObjects" not in fn, \
+        "the map-lock guard scans the whole table on every tick"
+
+
 def t_the_cats_are_dropped_clear_of_the_clearing(src):
     """A cat appears in free air above its clearing and falls, standing upright.
 
@@ -5472,6 +5524,7 @@ CASES = [
     ("cats drop clear of the clearing",   t_the_cats_are_dropped_clear_of_the_clearing),
     ("clearing numbers match the saves",  t_the_clearing_numbers_sit_where_the_saves_put_them),
     ("the coffin spawns where he put it", t_the_coffin_spawns_where_he_put_it),
+    ("a map cannot be left unlocked",     t_the_map_cannot_be_left_unlocked),
     ("board shows the build number",      t_the_board_shows_the_build_number),
     ("panel pauses the clock",            t_the_panel_pauses_the_clock),
     ("start names the pass it causes",    t_start_names_the_pass_it_causes),

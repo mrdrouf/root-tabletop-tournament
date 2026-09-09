@@ -341,6 +341,9 @@ function onLoad(state)
 
   end
 
+  -- and from here on the map stays locked, whatever anybody does to it
+  pcall(function() Wait.time(rttHoldMapLocked, RTT_MAP_LOCK_SECS, -1) end)
+
 end
 
 local lastSuccess = 10
@@ -5322,6 +5325,41 @@ function rttFindMapObject()
     end
   end
   return best
+end
+
+-- THE MAP CANNOT BE LEFT UNLOCKED. Maintainer, 2026-09-09: "can you also make sure that a map can
+-- never but unlocked?"
+--
+-- Not about how it arrives: all six map blueprints carry Locked:true, so every board spawns locked.
+-- This is about someone right-clicking Unlock, or pressing L while hovering it, mid-game. A loose map
+-- is dragged by the next piece let go on top of it, and then the clearings, the priority numbers and
+-- the whole printed score track are somewhere else while everything standing on them is not -- and
+-- the box score reads its scores off that track. Nothing in the mod ever wants it unlocked.
+--
+-- A TICK, NOT AN EVENT, because there is no unlock event to answer. TTS offers onObjectPickUp, which
+-- fires once the board is ALREADY MOVING -- after the damage -- and never at all if someone unlocks it
+-- and walks away. A second is fast enough that nothing can be dragged far and slow enough to cost
+-- nothing.
+--
+-- rttMapBoardTagged, not rttFindMapObject: the latter falls back to scanning every object on the
+-- table when no tagged piece has snap points, which is exactly the state between games. A guard that
+-- runs forever must never carry that scan. The board's guid is remembered between ticks, so the usual
+-- tick is one lookup; the tagged search runs again only once the remembered board is gone, which is a
+-- map change.
+RTT_MAP_LOCK_SECS = 1
+RTT_MAP_LOCK_GUID = nil
+
+function rttHoldMapLocked()
+  local m = nil
+  if RTT_MAP_LOCK_GUID ~= nil then pcall(function() m = getObjectFromGUID(RTT_MAP_LOCK_GUID) end) end
+  if m == nil then
+    pcall(function()
+      m = rttMapBoardTagged()
+      RTT_MAP_LOCK_GUID = (m ~= nil) and m.getGUID() or nil
+    end)
+  end
+  if m == nil then return end
+  pcall(function() if m.getLock() ~= true then m.setLock(true) end end)
 end
 
 function rttForestWorldCenters(mapId)   -- fallback for maps with no recorded relic spots
