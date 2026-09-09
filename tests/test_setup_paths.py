@@ -2992,12 +2992,15 @@ def t_return_slots_are_not_spawn_positions(src):
     The RATS were left out of that restore as a "deliberate exception", and were the same mistake:
     2026-09-09, "you moved the stronghold that spawns separately from the others at the spawning of
     the rats faction, but where it is is just the default position where they come back with numpad 0,
-    not the starting position." Their sixth stronghold is parked at -9.42 like any other odd one out,
-    and 1.217 is the row's sixth RETURN slot -- one the whole row shares: "that slot is for all the
-    strongholds and these slots are filled rightmost empty first like for the other carboard."
+    not the starting position." So 1.217 is the row's sixth RETURN slot -- one the whole row shares:
+    "that slot is for all the strongholds and these slots are filled rightmost empty first like for
+    the other carboard" -- and the piece spawns parked, well clear of the row.
 
-    The supply, warlord and four warriors stay shifted 1.4, because the sixth slot still has to be
-    clear when a stronghold comes home to it.
+    WHERE it spawns is his, not the base mod's: "look at the save rats it has the position of the
+    pieces that should be at spawn." He spawned the rats and moved six pieces by hand -- the sixth
+    stronghold to -10.35, the warlord to -6.49, the four warriors 0.42 further left -- and everything
+    else in that save matches the blueprint to four decimals, which is what makes those six readable
+    as deliberate. The supply stayed where it was.
     """
     rt = fresh(src)
     rt.execute("SEAT('Purple','H1') pcall(function() setupFactionBoards(nil,nil,nil) end) FLUSH(10)")
@@ -3026,7 +3029,7 @@ def t_return_slots_are_not_spawn_positions(src):
     assert abs(min(xs) - 2.14) < 0.05, "the extra return slot is not at 2.14: %s" % xs
     assert xs == sorted(xs, reverse=True), "return slots are not ordered rightmost-first: %s" % xs
 
-    # and the rats' sixth stronghold, which was the same mistake: parked at -9.42 in the blueprint,
+    # and the rats' sixth stronghold, which was the same mistake: parked at -10.35 in the blueprint,
     # returning to 1.217 at the left end of the row
     rt = fresh(src)
     rt.execute("SEAT('Purple','H1') pcall(function() setupFactionBoards(nil,nil,nil) end) FLUSH(10)")
@@ -3040,8 +3043,8 @@ def t_return_slots_are_not_spawn_positions(src):
     rt.execute("""pcall(function() rttPlaceFaction('Lord of the Hundreds', 52, -46, false, 'Purple',
                         false, nil, nil, 'Purple', nil) end) FLUSH(40)""")
     spawned = sorted(float(v) for v in rt.eval("SPAWNED")["Stronghold"].values())
-    assert any(abs(v + 9.42) < 0.1 for v in spawned), \
-        "the parked stronghold no longer SPAWNS at -9.42; the blueprint was changed: %s" % spawned
+    assert any(abs(v + 10.35) < 0.1 for v in spawned), \
+        "the parked stronghold no longer SPAWNS at -10.35; the blueprint was changed: %s" % spawned
     assert not any(abs(v - 1.217) < 0.05 for v in spawned), \
         "a stronghold still SPAWNS on the row's sixth slot at 1.217: %s" % spawned
 
@@ -3052,7 +3055,7 @@ def t_return_slots_are_not_spawn_positions(src):
     end""")()
     xs = [float(v) for v in slots.split(",")]
     assert len(xs) == 6, "expected 6 stronghold return slots, got %d: %s" % (len(xs), xs)
-    assert not any(abs(v + 9.42) < 0.1 for v in xs), \
+    assert not any(abs(v + 10.35) < 0.1 for v in xs), \
         "the parked spot is still a RETURN slot; the row's sixth is 1.217 instead: %s" % xs
     assert abs(min(xs) - 1.217) < 0.05, "the extra return slot is not at 1.217: %s" % xs
     assert xs == sorted(xs, reverse=True), "return slots are not ordered rightmost-first: %s" % xs
