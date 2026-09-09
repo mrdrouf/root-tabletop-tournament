@@ -52,10 +52,13 @@ BOX = (1225, 700, 1655, 1300)   # generous bounds round the printed Lost Souls b
 BG_THRESH = 22                  # L1 distance to the background palette that still counts as green
 MASK_THRESH = 14                # ...and the tighter one used to find the artwork
 LIZARD_DROP = 70                # "just put him a little bit below"
-PITCH = 36
+PITCH = 100                     # regular column spacing of the grid the trees stand on
 CLEARANCE = 10                  # how far a tree stays off a panel's border, as the artist does
-VGAP = (95, 215)               # ground between one tree and the next down a column. The back's own
-                                # median is 252 at this scale; they are separate trees, not a stem
+ROWSTEP = 170                   # ...and its rows
+                                # nine substantial trees at 6.6% vine, not a mesh of stubs. The
+                                # template was under the box all along.
+MIN_TREE = 550                  # INK, not height: the board's own trees here are 600px+ of
+                                # stroke. A tall thin sprig passes a height test and looks like one.               # ground between one tree and the next down a column. The back's own
                                 # passed from one to the next.                     # column spacing that matches the board's own scatter of trees
 TOP = 686                       # the ground starts just under the Outcast panel
 
@@ -385,49 +388,51 @@ def stem_x(m):
     return int(np.argmax(m.sum(axis=0)))
 
 
-def plant(canvas, mapped, trees, region, keepoff, rng, pitch=PITCH, jitter=14, vgap=VGAP, tries=16):
-    """Set trees down each column WITH GROUND BETWEEN THEM.
+def plant(canvas, mapped, trees, region, keepoff, rng,
+          pitch=PITCH, rowstep=ROWSTEP, jx=26, jy=44, tries=26):
+    """Set a few full trees down on a REGULAR GRID, as the board does.
 
-    Maintainer: "you stack the three on top of each others very closely but the original art never
-    does this it gives space. inspect the back fo the faction board to understand." Measured on the
-    back, at this board's scale: a tree is about 100 tall and the next one down the same column
-    starts a median of 252px later. They are separate things standing in open ground, not one stem
-    handed from tree to tree -- which is what the overlap of 34 was building.
+    Maintainer: "just a few nice full trees like in the art that are spaced at regular intervals
+    like the original art rather than the mesh of things you are doing you can find the actual
+    template from the original place that you have covered."
 
-    Which also settles which trees may be used where. A stem that simply ENDS is what the art draws,
-    so a tree cropped at its foot reads correctly with ground below it. A stem that abruptly BEGINS
-    does not -- that is the "cut on the top" -- so once there is a gap above a tree, it has to be one
-    with a real tapering tip. The exception is a column's first tree, whose top goes under the panel.
+    The template was under the box the whole time. Measured on the board's own ground here, before
+    anything was touched: NINE trees of 600px of stroke or more, at 6.6% vine -- not the forty
+    sprigs at 8% I had been growing, and not stacked into columns either. So the placement is a grid
+    with a little jitter, one tree to a cell, chosen from the big end of the library; and a cell that
+    cannot take one without cutting it is simply left as open ground, which the board also does.
     """
     ys, xs = np.where(region)
     X0, X1, Y0, Y1 = xs.min(), xs.max() + 1, ys.min(), ys.max() + 1
+    trees = sorted([t for t in trees if t[1].sum() >= MIN_TREE] or trees,
+                   key=lambda t: -t[1].sum())
+    trees = trees[:max(5, len(trees) // 3)]           # the big end of the library, not the sprigs
     tips = [t for t in trees if t[2]] or trees
     n = 0
-    x = X0 + int(rng.integers(12, 44))
-    while x < X1 - 24:
-        y = Y0 - int(rng.integers(10, 60))
-        first = True
-        while y < Y1:
-            pool = trees if first else tips      # only a real tip may show above open ground
-            placed = False
+    row = 0
+    y = Y0 - 40
+    while y < Y1 - 40:
+        x = X0 + 30 + (pitch // 2 if row % 2 else 0)      # offset alternate rows, as a scatter does
+        while x < X1 - 30:
+            pool = trees if row == 0 else tips            # row 0 hides its tops under the panel
             for _ in range(tries):
                 bb, m, tip = pool[rng.integers(len(pool))]
                 a, b, c, e = bb
                 h, w = e - c + 1, b - a + 1
                 flip = rng.random() < 0.5
-                sx = (w - 1 - stem_x(m)) if flip else stem_x(m)
-                dx = int(x + rng.integers(-jitter, jitter + 1) - sx)
-                dy = int(y)
+                dx = int(x + rng.integers(-jx, jx + 1) - w // 2)
+                dy = int(y + rng.integers(-jy, jy + 1))
                 ys0, ys1 = max(0, dy), min(canvas.shape[0], dy + h)
                 xs0, xs1 = max(0, dx), min(canvas.shape[1], dx + w)
-                if ys1 - ys0 <= 24 or xs1 - xs0 <= 8:
-                    break
+                if ys1 - ys0 <= 30 or xs1 - xs0 <= 10:
+                    continue
                 sub = m[ys0 - dy:ys1 - dy, xs0 - dx:xs1 - dx]
                 if flip:
                     sub = sub[:, ::-1]
                 if (sub & keepoff[ys0:ys1, xs0:xs1]).any():
                     continue
-                src = mapped[c + (ys0 - dy):c + (ys1 - dy), a + (xs0 - dx):a + (xs1 - dx)].astype(np.float32)
+                src = mapped[c + (ys0 - dy):c + (ys1 - dy),
+                             a + (xs0 - dx):a + (xs1 - dx)].astype(np.float32)
                 al = soft(m[ys0 - dy:ys1 - dy, xs0 - dx:xs1 - dx])
                 if flip:
                     src, al = src[:, ::-1], al[:, ::-1]
@@ -435,15 +440,10 @@ def plant(canvas, mapped, trees, region, keepoff, rng, pitch=PITCH, jitter=14, v
                 reg = canvas[ys0:ys1, xs0:xs1].astype(np.float32)
                 canvas[ys0:ys1, xs0:xs1] = np.clip(reg * (1 - al) + src * al, 0, 255).astype(np.uint8)
                 n += 1
-                placed = True
                 break
-            if not placed:
-                y += 60                    # this spot is fenced off; try further down the column
-                first = False
-                continue
-            y = dy + h + int(rng.integers(vgap[0], vgap[1]))
-            first = False
-        x += pitch + int(rng.integers(-12, 13))
+            x += pitch
+        y += rowstep
+        row += 1
     return n
 
 
