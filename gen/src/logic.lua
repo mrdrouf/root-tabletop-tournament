@@ -6584,6 +6584,17 @@ RTT_HOME_EXTRA = {
                            { "Rabbit Garden", { -6.733, 0.2, -10.538 } },
                            { "Mouse Garden",  { -6.752, 0.2,  -8.936 } } },
   ["Lilypad Diaspora"] = { { "Enclave",       { -19.615, 0.1,  3.568 } } },
+  -- The moles' THIRD tunnel starts on the map, out to the left of their board at (-8.499, 7.538),
+  -- so it has no slot in the pair that spawns beside the board. Maintainer, 2026-09-09: "the
+  -- spawning point of the tunnel that initially spawns to the left of the moles cardboard should
+  -- have a different returning point with gizmo 0 like the intial gardens etc ... it should be
+  -- above the two other tunnels at the same distance as between the two tunnels."
+  --
+  -- The pair sits at z 5.236 and 6.911, so the step is 1.675 and the third goes one step on at
+  -- 8.586. Their x drifts 0.069 between the two and the same drift is carried on, which also keeps
+  -- all three inside the 0.2 the slot comparator treats as one column -- otherwise x would decide
+  -- the order and the stack would not fill up the way he asked.
+  ["Underground Duchy"] = { { "Tunnel",        {  10.107, 0.1,  8.586 } } },
 }
 
 -- Add a faction's extra return slots -- the spots the maintainer measured that are NOT spawn
@@ -6633,7 +6644,14 @@ end
 RTT_HOME_RIGHT_IS_PLUS_X = true
 
 -- Types that do NOT use a fill order: each piece returns to its own recorded spot.
-RTT_HOME_OWN_SPOT = { ["Tunnel"] = true }
+--
+-- TUNNELS USED TO BE HERE, on the grounds that they had "no row to speak of" -- two spots beside the
+-- board and a third piece that starts on the map with no spot at all. Giving that third one a slot
+-- of its own above the pair makes it a column of three, and the maintainer asked for it to be
+-- filled like one: "fill the stack of tunnels with the lowest first." The ordinary comparator does
+-- that already -- all three share a column within its 0.2 tolerance, so z decides, read in the
+-- seat's own frame so "lowest" means lowest to the player rather than lowest on the table.
+RTT_HOME_OWN_SPOT = {}
 
 -- Acclaim fills stack by stack, in the maintainer's order: bottom-right, bottom-left, top-right,
 -- top-left, two per stack.

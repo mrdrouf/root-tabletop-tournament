@@ -2701,18 +2701,47 @@ def t_send_home_fills_the_rightmost_empty_slot(src):
     assert abs(float(at) - xs[1]) < 0.01, \
         "a returning Roost went to %s; the first free slot is %.2f" % (at, xs[1])
 
-    # a Tunnel goes to its OWN spot -- no row to fill
+    # THE MOLES' TUNNELS FILL A COLUMN OF THREE, one slot each, in order.
+    #
+    # Two spawn beside the board and the third starts out on the map, so it had no slot of its own
+    # and tunnels were excused the fill order entirely -- each went back to where it came from.
+    # Maintainer, 2026-09-09: "the spawning point of the tunnel that initially spawns to the left of
+    # the moles cardboard should have a different returning point ... above the two other tunnels at
+    # the same distance as between the two tunnels. fill the stack of tunnels with the lowest first."
+    #
+    # The extra slot is checked against the pair it continues rather than written out here, so the
+    # spacing cannot drift from the two real spawn positions.
+    extra = rt.eval('RTT_HOME_EXTRA["Underground Duchy"]')
+    assert extra is not None and len(extra) >= 1, "the moles have no extra return slot"
+    ex = extra[1]
+    assert ex[1] == "Tunnel", "the moles' extra slot is for %s, not a Tunnel" % ex[1]
+    ez, ex_x = ex[2][3], ex[2][1]
+    low, high = 5.236, 6.911                      # the two that spawn beside the board
+    assert abs(ez - (high + (high - low))) < 0.02, \
+        "the third tunnel returns to z %.3f; one step above the pair is %.3f" % (ez, high + high - low)
+    assert abs(ex_x - 10.107) < 0.2, \
+        "the third slot is at x %.3f, out of the column the other two share" % ex_x
+
+    # ...and three returning tunnels take three DIFFERENT slots, walking the column in order.
     rt.execute("""
       RTT_HOME = {}
-      T = MKOBJ('Tunnel', {40, 5, 40}, {})
-      RTT_HOME[T.getGUID()] = { n='Tunnel', f='Underground Duchy', p={10.04,0.1,6.91}, r={0,0,0} }
-      RTT_HOME['t2'] = { n='Tunnel', f='Underground Duchy', p={9.97,0.1,5.24}, r={0,0,0} }
+      RTT_HOME['t1'] = { n='Tunnel', f='Underground Duchy', p={ 9.97,0.1,-51.24}, r={0,0,0} }
+      RTT_HOME['t2'] = { n='Tunnel', f='Underground Duchy', p={10.04,0.1,-52.91}, r={0,0,0} }
+      RTT_HOME['t3'] = { n='Tunnel', f='Underground Duchy', p={10.11,0.1,-54.59}, r={0,0,0} }
       Global.setVar("RTT_SEAT_COLOR", JSON.encode({ ["Underground Duchy"] = "Red" }))
-      HOVER['Red'] = T
-      rttGizmoHome('Red')
+      LANDED = {}
+      for i = 1, 3 do
+        local t = MKOBJ('Tunnel', {40, 5, 40}, {})
+        HOVER['Red'] = t
+        rttGizmoHome('Red')
+        LANDED[i] = t.__pos.z
+      end
     """)
-    at = rt.eval("function() return string.format('%.2f,%.2f', T.__pos.x, T.__pos.z) end")()
-    assert at == "10.04,6.91", "a Tunnel should return to its own spot, it went to %s" % at
+    got = [round(float(rt.eval("LANDED[%d]" % i)), 2) for i in (1, 2, 3)]
+    assert len(set(got)) == 3, \
+        "three tunnels went to %s; each should take its own slot" % got
+    assert got == sorted(got), \
+        "the column filled in the order %s; it should walk it end to end, lowest first" % got
 
     # Acclaim fills stack by stack, two per stack, bottom row before top
     rt.execute("""
