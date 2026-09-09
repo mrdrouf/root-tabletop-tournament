@@ -92,7 +92,12 @@ function onLoad(state)
     -- isKeyUp, so a named hotkey runs the same press-and-hold this key is built on -- tap to take
     -- one, hold two seconds on a piece to choose the kind. It briefly had a second hotkey for
     -- choosing, on the belief that a named key could not be held; it can.
-    addHotkey("Move any token to cursor", function(color, _, _, isKeyUp)
+    --
+    -- THE LABEL SAYS HOW TO SET IT, in the maintainer's own words. A key whose whole behaviour
+    -- depends on a two-second hold cannot have that left off the one line a player ever reads:
+    -- nothing else in the game would tell them, and an unset key is silent by design.
+    addHotkey("Move any token to cursor; set type by holding numpad 2 for 2 seconds",
+              function(color, _, _, isKeyUp)
       if isKeyUp then rttKey2Up(color) else rttKey2Down(color) end
     end, true)
     addHotkey("Set warrior as a knave prisoner", function(color) rttGizmoMark(color) end)
