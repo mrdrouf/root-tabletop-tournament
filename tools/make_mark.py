@@ -55,8 +55,13 @@ INNER = 0.86             # of the outer radius: inside the double ring, where ty
 SIZES = (1024, 512, 256, 128, 64)
 
 
-def flatten(img):
-    """Snap to the palette and harden the edge, so the mark is genuinely flat rather than nearly."""
+def flatten(img, palette=PALETTE):
+    """Snap to `palette` and harden the edge, so the art is genuinely flat rather than nearly.
+
+    The palette is an argument because callers do not all want the same one: tools/make_lockup.py adds
+    a gold and a highlight for the coin, and snapping those to the nearest of THIS palette turned a
+    polished coin back into a flat orange disc.
+    """
     # int32, NOT int16: a squared RGB distance reaches 3 * 255**2 = 195075 and int16 stops at 32767,
     # so the sum wrapped negative and argmin below returned the FARTHEST colour instead of the
     # nearest. It inverted the whole emblem -- cream became ink and ink became cream -- and it did it
@@ -65,7 +70,7 @@ def flatten(img):
     rgb, alpha = a[:, :, :3], a[:, :, 3]
 
     solid = alpha >= ALPHA_CUT
-    pal = np.array(PALETTE, np.int32)
+    pal = np.array(palette, np.int32)
     # nearest palette entry per pixel, by squared distance
     d = ((rgb[:, :, None, :] - pal[None, None, :, :]) ** 2).sum(axis=3)
     idx = d.argmin(axis=2)

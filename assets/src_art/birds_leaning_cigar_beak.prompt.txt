@@ -1,0 +1,47 @@
+Use your image generation tool to create ONE WIDE image (landscape, roughly 3 wide to 1 tall) and save
+it into the current working directory as `birds_leaning2.png`. Generate it with the image model; do not
+draw or composite anything yourself. Print the absolute path when done.
+
+The SECOND attached image is the version being improved. Keep its POSTURE, its layout, its flat
+treatment and its palette. Two things change: the birds become more NATURAL, and the coin becomes
+SHINY METAL.
+
+1. MORE NATURAL BIRDS. The current ones are stiff mascots -- each a near-perfect symmetrical oval with
+   a badge-like face planted dead centre. Draw them as real birds instead, observed rather than
+   designed:
+   * TRUE ANATOMY. A proper bird shoulder where the wing joins the body, wings that fold in believable
+     layers with primaries crossing at the back, a real neck, chest and brow. Feathers in natural
+     MASSES -- throat, breast, shoulder, wing coverts -- not decorative stripes.
+   * ASYMMETRY. Nothing mirrored. Each head turned or tilted a little off centre, one shoulder higher
+     than the other, weight settled onto one wing. Bodies are organic and slightly irregular, not
+     ovals.
+   * SPECIES CHARACTER, from life: the VULTURE round-shouldered with a scrawny bare neck and a
+     hunched, heavy-beaked stoop; the HORNED OWL broad and soft-edged with a flat facial disc and its
+     tufts at an angle; the BALD EAGLE lean and hard-eyed with a sharp brow and a smooth white head;
+     the WOODPECKER slim and upright with a long straight bill and a stiff crest.
+   * Keep the expressions DEADPAN and completely serious, but make the gaze natural rather than
+     cartoon-angry -- half-lidded, tired, unimpressed, each looking somewhere slightly different.
+
+2. THE COIN IS SHINY GOLD. The woodpecker turns a bright polished GOLD coin in his claw. It reads as
+   metal: warm yellow gold, with a hard crescent of pale highlight along one edge and a small bright
+   glint, and a darker rim on the shadowed side. Flat shapes, but unmistakably shiny -- not a dull
+   disc. It should be the brightest thing in the picture.
+
+KEEP EXACTLY AS IT IS:
+  * THE POSTURE. All four HUNCHED OVER A BAR whose top runs along the very BOTTOM EDGE of the image:
+    wings folded and resting on it taking their weight, shoulders up, heads forward and down, only
+    upper bodies showing, nothing below the bar, no feet, no legs.
+  * FOUR BIRDS, EVENLY SPACED, roughly the same size, facing the viewer, with a CLEAR GAP between
+    neighbours. NO BIRD MAY TOUCH OR OVERLAP ANOTHER.
+  * THEIR PROPS: the vulture with a lit cigar in his beak; the owl with round spectacles and a small
+    open book on the bar; the eagle in a peaked military cap with a tumbler; the woodpecker with the
+    gold coin.
+  * FLAT COLOUR. Every shape one uniform colour, hard clean edges. No gradients, no rendered shading,
+    no texture, no grain, no speckles, no stray pixels. Bold, strong silhouettes, readable small.
+  * PALETTE: deep near-black brown, warm parchment cream, burnt orange, muted dark teal, and now a
+    warm GOLD plus a pale gold highlight for the coin. Nothing else.
+  * DO NOT DRAW THE BAR and DO NOT DRAW A CHECKERBOARD. The background must be genuinely EMPTY and
+    TRANSPARENT -- no counter, no ledge, no ground, no shadow, no scene, no frame, NO TEXT. Only the
+    four birds, their resting wings ending flush at the bottom edge. Small even margin top and sides.
+
+Landscape aspect ratio, about three times wider than tall.

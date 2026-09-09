@@ -1,0 +1,42 @@
+Use your image generation tool to create ONE WIDE image (landscape, roughly 3 wide to 1 tall) and save
+it into the current working directory as `birds_leaning.png`. Generate it with the image model; do not
+draw or composite anything yourself. Print the absolute path when done.
+
+The SECOND attached image is the previous version: the same four birds STANDING UPRIGHT, perched. The
+THIRD attached image is the flat style and palette to match exactly. Keep the style, the palette, the
+line weight, the characters and their props. CHANGE ONLY THE POSTURE.
+
+THE POSTURE — they are HUNCHED OVER A BAR. Not standing, not perched: LEANING on it, the way four
+regulars lean on a bar counter late at night.
+  * A horizontal BAR TOP runs along the very BOTTOM EDGE of the image. All four are behind it, leaning
+    forward onto it.
+  * Their WINGS ARE FOLDED AND RESTING ON THAT BAR TOP -- forearms laid along it, taking their weight,
+    right at the bottom edge of the image.
+  * SHOULDERS HUNCHED UP around their necks, heads pushed forward and DOWN, chins low, so each bird
+    is a compact rounded hunch rather than an upright figure. Slouched, settled in, elbows out.
+  * Only their upper bodies show; everything below the bar is hidden behind it. No feet, no legs.
+  * They lean at slightly different angles -- one further forward on both elbows, one propped on one
+    wing, one with shoulders squarer -- so the row is not four identical poses.
+
+STILL TRUE:
+  * FOUR BIRDS, EVENLY SPACED across the width, roughly the same size, facing the viewer, with a CLEAR
+    GAP between neighbours. NO BIRD MAY TOUCH OR OVERLAP ANOTHER. Each is a separate solid shape.
+  * Left to right, with their props: a VULTURE, bald orange domed head, heavy hooked beak, pale neck
+    ruff, a lit cigar in his beak; a HORNED OWL with two sharp ear tufts, round spectacles, a small
+    open book on the bar under his wings; a BALD EAGLE, white head, orange hooked beak, peaked
+    military cap, one wing curled round a tumbler on the bar; a WOODPECKER, black and white head,
+    tall spiky orange crest, long dagger beak, turning a coin in one claw on the bar.
+  * All four DEADPAN and completely serious, looking straight out at the viewer.
+
+HOW TO DRAW IT:
+  * ABSOLUTELY FLAT. Every shape one uniform colour, hard clean edges. No gradients, no shading, no
+    highlights, no texture, no grain, no speckles, no stray pixels.
+  * EXACTLY FOUR COLOURS: deep near-black brown, warm parchment cream, burnt orange, muted dark teal.
+  * BOLD AND SIMPLE, low detail, strong silhouettes, thick even weights. Readable very small.
+  * DO NOT DRAW THE BAR ITSELF and do not draw a checkerboard: the background must be genuinely
+    EMPTY AND TRANSPARENT. No counter, no ledge, no ground, no shadow, no scene, no frame, NO TEXT.
+    Only the four birds, with their folded wings ending flush at the bottom edge of the image.
+  * Leave no margin at the bottom -- the resting wings touch the bottom edge. Small even margin at
+    the top and sides.
+
+Landscape aspect ratio, about three times wider than tall.

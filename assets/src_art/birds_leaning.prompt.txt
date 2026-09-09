@@ -1,0 +1,42 @@
+Use your image generation tool to create ONE WIDE image (landscape, roughly 3 wide to 1 tall) and save
+it into the current working directory as `birds_leaning4.png`. Generate it with the image model; do not
+draw or composite anything yourself. Print the absolute path when done.
+
+The SECOND attached image is the version being corrected. Reproduce it as closely as you can -- same
+four birds, same natural anatomy, same hunched-over-the-bar posture, same flat style, same palette,
+same gold coin, same book, same tumbler, same cap. ONE THING CHANGES: the vulture's cigar.
+
+THE FIX — TAKE THE CLAW AWAY AND PUT THE CIGAR BACK IN HIS BEAK.
+  * REMOVE the raised claw/foot/hand that is currently holding the cigar up beside his head. Delete it
+    entirely. He has no hand up. None of the other birds hold anything in a raised claw and it does
+    not match them. His folded wings rest on the bar like everyone else's.
+  * The cigar is CLAMPED IN HIS BEAK, and clamped in the ONE place a beak can actually hold something:
+    right at the BACK CORNER, at the base of the beak where the upper and lower mandibles meet, close
+    to the cheek. NOT across the middle of the beak, NOT crossing the hooked tip, NOT skewered
+    through it, NOT balanced on top of it.
+  * From that corner the cigar juts out SIDEWAYS AND SLIGHTLY DOWNWARD, clear of the beak's outline,
+    so you can see the whole length of it against the empty background with nothing overlapping it.
+    Its far end -- the lit end -- is well away from his face, glowing, with one clean curl of smoke
+    rising from that end only.
+  * Keep it a chunky, simple, readable shape, and keep the beak's own silhouette clean and unbroken.
+
+EVERYTHING ELSE STAYS EXACTLY AS IT IS:
+  * Four birds HUNCHED OVER A BAR whose top runs along the very BOTTOM EDGE of the image: wings folded
+    and resting on it, shoulders up, heads forward and down, only upper bodies showing, no feet or
+    legs, nothing below the bar.
+  * EVENLY SPACED, roughly the same size, facing the viewer, CLEAR GAP between neighbours, NO BIRD
+    TOUCHING OR OVERLAPPING ANOTHER.
+  * NATURAL BIRD ANATOMY -- true shoulders, wings folding in believable layers, feathers in masses,
+    nothing mirrored, heads tilted at different angles, half-lidded tired unimpressed gazes.
+  * Left to right: the VULTURE (bald orange-pink head, pale neck ruff, heavy hooked beak) with the
+    cigar in his beak; the HORNED OWL with round spectacles and a small open book on the bar; the
+    BALD EAGLE in a peaked military cap with a tumbler; the WOODPECKER with a tall orange crest, long
+    slate bill, and a bright POLISHED GOLD coin with a crescent highlight and a glint.
+  * FLAT COLOUR: every shape one uniform colour, hard clean edges. No gradients, no rendered shading,
+    no texture, no grain, no speckles. Palette: deep near-black brown, warm parchment cream, burnt
+    orange, muted dark teal, warm gold with a pale gold highlight, and a slate grey for bills.
+  * DO NOT DRAW THE BAR and DO NOT DRAW A CHECKERBOARD. The background must be genuinely EMPTY and
+    TRANSPARENT -- no counter, no ground, no shadow, no scene, no frame, NO TEXT. Resting wings end
+    flush at the bottom edge; small even margin top and sides.
+
+Landscape aspect ratio, about three times wider than tall.
