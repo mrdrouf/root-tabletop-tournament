@@ -4392,6 +4392,26 @@ def t_the_board_shows_the_build_number(src):
         "the box score signs itself again; the credit belongs on the board: %s" \
         % [ln for ln in code if "MrDrouf" in ln][:1]
 
+    # THE SHEET CALLS THE MAP WHAT THE BUTTON CALLS IT. RTT dropped the base game's fixed-suit Autumn
+    # board and put the Summer one in its place, because that one randomises its clearing suits -- and
+    # then labelled the button Autumn. The sheet names a board by reading its artwork, so it was the
+    # one place in the mod still saying Summer. Maintainer, 2026-09-09: "when Autumn is picked, it
+    # should say Autumn and not Summer (boxscore says summer)."
+    #
+    # The tail is read off the BOARD THE BUTTON ACTUALLY SPAWNS, not typed in, so this cannot drift
+    # apart from the blueprint the way a second copy of a constant does.
+    board = src.index("EVERYTHING['Maps']['Summer Map']")
+    url = re.search(r'"ImageURL": "([^"]+)"', src[board:board + 4000])
+    assert url, "cannot find the Summer Map board's artwork in the build"
+    tail = re.sub(r"[^A-Za-z0-9]", "", url.group(1))[-16:]        # the sheet's own urlTail
+    names = dict(re.findall(r'\["([0-9A-Za-z]{16})"\] = "([^"]+)"', lua))
+    assert names.get(tail) == "Autumn", (
+        "the sheet names the board the Autumn button spawns %r; it must say Autumn" % names.get(tail))
+    pool = re.search(r'local MAPS = \{([^}]*)\}', lua)
+    assert pool and "Summer" not in pool.group(1), \
+        "the sheet's map chips still offer Summer: %s" % (pool and pool.group(1))
+    assert "Autumn" in pool.group(1), "the sheet's map chips do not offer Autumn: %s" % pool.group(1)
+
 
 def t_the_panel_pauses_the_clock(src):
     """After START, DEAL 5 CARDS becomes the clock control.
