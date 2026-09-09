@@ -6601,6 +6601,19 @@ RTT_HOME_EXTRA = {
                            { "Rabbit Garden", { -6.733, 0.2, -10.538 } },
                            { "Mouse Garden",  { -6.752, 0.2,  -8.936 } } },
   ["Lilypad Diaspora"] = { { "Enclave",       { -19.615, 0.1,  3.568 } } },
+  -- The rats' SIXTH stronghold starts parked on its own at x -9.42, and 1.217 is where the
+  -- maintainer measured the row's sixth slot -- "left of the row", continuing the five at their own
+  -- 1.406 spacing. That was baked into the blueprint as a spawn by mistake, which is the very thing
+  -- this table exists to avoid. Maintainer, 2026-09-09: "you moved the stronghold that spawns
+  -- separately from the others at the spawning of the rats faction, but where it is is just the
+  -- default position where they come back with numpad 0, not the starting position."
+  --
+  -- The slot belongs to the ROW, not to that one piece -- "that slot is for all the strongholds and
+  -- these slots are filled rightmost empty first like for the other carboard" -- which is what
+  -- rttHomeSlots does with every slot of a name already: six slots, filled from the player's own
+  -- right. The parked spawn is not one of them; it is 10.6 from its nearest fellow against a row
+  -- spacing of 1.41, so the nearest-neighbour rule drops it exactly as it drops the parked roost.
+  ["Lord of the Hundreds"] = { { "Stronghold",   {   1.217, 0.15, 6.366 } } },
   -- The moles' THIRD tunnel starts on the map, out to the left of their board at (-8.499, 7.538),
   -- so it has no slot in the pair that spawns beside the board. Maintainer, 2026-09-09: "the
   -- spawning point of the tunnel that initially spawns to the left of the moles cardboard should

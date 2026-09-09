@@ -2989,9 +2989,15 @@ def t_return_slots_are_not_spawn_positions(src):
     a row at 3.74..11.72 -- and RTT_HOME_EXTRA carries the row position it should RETURN to. This
     asserts BOTH halves, because passing one and failing the other is exactly what happened.
 
-    The rats are the one deliberate exception: he asked for their sixth stronghold to join the row
-    outright, so that IS a blueprint change, with the supply, warlord and four warriors shifted 1.4 to
-    clear it.
+    The RATS were left out of that restore as a "deliberate exception", and were the same mistake:
+    2026-09-09, "you moved the stronghold that spawns separately from the others at the spawning of
+    the rats faction, but where it is is just the default position where they come back with numpad 0,
+    not the starting position." Their sixth stronghold is parked at -9.42 like any other odd one out,
+    and 1.217 is the row's sixth RETURN slot -- one the whole row shares: "that slot is for all the
+    strongholds and these slots are filled rightmost empty first like for the other carboard."
+
+    The supply, warlord and four warriors stay shifted 1.4, because the sixth slot still has to be
+    clear when a stronghold comes home to it.
     """
     rt = fresh(src)
     rt.execute("SEAT('Purple','H1') pcall(function() setupFactionBoards(nil,nil,nil) end) FLUSH(10)")
@@ -3020,27 +3026,39 @@ def t_return_slots_are_not_spawn_positions(src):
     assert abs(min(xs) - 2.14) < 0.05, "the extra return slot is not at 2.14: %s" % xs
     assert xs == sorted(xs, reverse=True), "return slots are not ordered rightmost-first: %s" % xs
 
-    # the rats ARE changed, deliberately: six strongholds in one evenly spaced row
+    # and the rats' sixth stronghold, which was the same mistake: parked at -9.42 in the blueprint,
+    # returning to 1.217 at the left end of the row
     rt = fresh(src)
     rt.execute("SEAT('Purple','H1') pcall(function() setupFactionBoards(nil,nil,nil) end) FLUSH(10)")
-    rt.execute("RTT_HOME = {}")
+    rt.execute("RTT_HOME = {} SPAWNED = {}")
+    rt.execute("local _s = spawnObjectJSON "
+               "spawnObjectJSON = function(p) local o = _s(p) "
+               "  local n = o.getName() or '' "
+               "  SPAWNED[n] = SPAWNED[n] or {} "
+               "  SPAWNED[n][#SPAWNED[n]+1] = o.__pos.x - 52 "
+               "  return o end")
     rt.execute("""pcall(function() rttPlaceFaction('Lord of the Hundreds', 52, -46, false, 'Purple',
                         false, nil, nil, 'Purple', nil) end) FLUSH(40)""")
-    got = rt.eval("""function()
+    spawned = sorted(float(v) for v in rt.eval("SPAWNED")["Stronghold"].values())
+    assert any(abs(v + 9.42) < 0.1 for v in spawned), \
+        "the parked stronghold no longer SPAWNS at -9.42; the blueprint was changed: %s" % spawned
+    assert not any(abs(v - 1.217) < 0.05 for v in spawned), \
+        "a stronghold still SPAWNS on the row's sixth slot at 1.217: %s" % spawned
+
+    slots = rt.eval("""function()
       local t = {}
-      for _, h in pairs(RTT_HOME) do
-        if h.n == 'Stronghold' then t[#t+1] = h.p[1] - 52 end
-      end
-      table.sort(t)
-      local o = {}
-      for _, v in ipairs(t) do o[#o+1] = string.format('%.3f', v) end
-      return table.concat(o, ',')
+      for _, s in ipairs(rttHomeSlots('Stronghold')) do t[#t+1] = string.format('%.3f', s.p[1] - 52) end
+      return table.concat(t, ',')
     end""")()
-    xs = sorted(float(v) for v in got.split(","))
-    assert len(xs) == 6, "expected 6 strongholds, got %d" % len(xs)
-    gaps = [round(xs[i + 1] - xs[i], 2) for i in range(5)]
+    xs = [float(v) for v in slots.split(",")]
+    assert len(xs) == 6, "expected 6 stronghold return slots, got %d: %s" % (len(xs), xs)
+    assert not any(abs(v + 9.42) < 0.1 for v in xs), \
+        "the parked spot is still a RETURN slot; the row's sixth is 1.217 instead: %s" % xs
+    assert abs(min(xs) - 1.217) < 0.05, "the extra return slot is not at 1.217: %s" % xs
+    assert xs == sorted(xs, reverse=True), "return slots are not ordered rightmost-first: %s" % xs
+    gaps = [round(xs[i] - xs[i + 1], 2) for i in range(5)]
     assert all(abs(g - 1.41) < 0.02 for g in gaps), \
-        "the stronghold row is not evenly spaced after the move: %s" % gaps
+        "the six return slots are not evenly spaced: %s" % gaps
 
 
 def t_extra_return_slots_face_the_same_way(src):
