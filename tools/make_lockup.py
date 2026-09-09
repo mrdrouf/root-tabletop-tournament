@@ -57,45 +57,48 @@ OLD_X, OLD_Y, OLD_W, OLD_H = -87.5, 80, 75, 25
 # the woodpecker's polished gold coin to the nearest of them turned it into a flat orange disc --
 # indistinguishable from his crest. Gold and a pale highlight are added here, and only here; the
 # badge in make_mark.py still uses its own four.
-GOLD = (226, 172, 58)
+# Placed where the model actually DRAWS the coin, not where a nice gold sits. At (226,172,58)
+# the coin -- which comes back around (252,144,0) -- lost to ORANGE by eleven units of
+# distance and merged into the birds' plumage. The plumage is much redder (G~96 against the
+# coin's ~144), so the two separate cleanly once gold is put on the coin's own hue.
+GOLD = (248, 150, 10)
 GLINT = (250, 232, 168)
 SLATE = (112, 116, 122)                 # the woodpecker's bill, which is grey and not teal
 PALETTE = (INK, CREAM, ORANGE, TEAL, GOLD, GLINT, SLATE)
 
-# The checkerboard the model painted instead of leaving the background empty.
+# The checkerboard the model painted instead of leaving the background empty. Both numbers matter --
+# see dekey: the bill is neutral too, and only its luminance tells it apart from the squares.
 KEY_SAT = 26              # at or below this spread between R,G,B a pixel counts as neutral
+KEY_LUM = 140             # ... and only neutral pixels THIS bright may be flooded as background
 
 
 def dekey(img):
     """Cut the painted checkerboard away and return the birds on real transparency.
 
-    THE KEY FLOODS IN FROM THE BORDER; it does not simply delete every grey pixel. Deleting grey
-    globally is what a colour key does and it was wrong twice over: the birds' contours are very dark
-    and nearly neutral, so a plain grey key dissolved their outlines, and once that was guarded
-    against with a brightness floor the greys that DID survive -- the woodpecker's slate bill, the
-    eagle's -- got snapped to the only cool colour in the palette and came out teal. The checkerboard
-    is a single region touching the border and the birds' own greys are enclosed inside them, so
-    connectivity separates the two cleanly and neither problem arises.
+    A pixel is background when it is NEUTRAL and BRIGHTER than KEY_LUM. Both halves are needed and the
+    luminance floor is the whole trick: the two neutral populations in this art are cleanly bimodal --
+    the checkerboard squares sit at luminance 140-220, and every neutral that belongs to a bird (the
+    dark contours, the woodpecker's slate bill, his claw) at 60-140.
+
+    THE HISTORY IS WORTH KEEPING, because three of the four obvious approaches are wrong:
+
+      * a global neutral key with NO floor dissolved the birds' outlines, which are dark and neutral;
+      * with the floor, the outlines survived but the bill got snapped to the nearest palette entry,
+        and the palette had no grey in it, so the bill came out TEAL. The fix for that belonged in the
+        PALETTE (see SLATE), not here;
+      * flooding in from the border instead of keying fixed the teal and then ATE THE BILL: the
+        premise -- that a bird's own greys are enclosed inside it, so connectivity separates them --
+        is false for anything on the silhouette. The bill is neutral and touches the neutral
+        background, so the flood walked straight down it and the fourth bird lost its beak;
+      * flood plus floor kept the bill, and then the model drew a FINER checkerboard whose blended
+        edges fall below the floor. Those pixels are neutral, dark enough to be untraversable, and not
+        connected to anything -- 48,062 of them survived as specks all over the background.
+
+    The floor alone, with slate in the palette, has none of these failure modes.
     """
     a = np.asarray(img.convert("RGB")).astype(np.int32)
-    grey = (a.max(axis=2) - a.min(axis=2)) <= KEY_SAT
-
-    h, w = grey.shape
-    bg = np.zeros((h, w), bool)
-    bg[0, :] = grey[0, :]
-    bg[-1, :] = grey[-1, :]
-    bg[:, 0] = grey[:, 0]
-    bg[:, -1] = grey[:, -1]
-    while True:                                   # grow the border region through grey only
-        prev = bg.sum()
-        g = bg.copy()
-        g[1:, :] |= bg[:-1, :]
-        g[:-1, :] |= bg[1:, :]
-        g[:, 1:] |= bg[:, :-1]
-        g[:, :-1] |= bg[:, 1:]
-        bg = g & grey
-        if bg.sum() == prev:
-            break
+    lum = 0.299 * a[:, :, 0] + 0.587 * a[:, :, 1] + 0.114 * a[:, :, 2]
+    bg = ((a.max(axis=2) - a.min(axis=2)) <= KEY_SAT) & (lum >= KEY_LUM)
 
     out = img.convert("RGBA")
     alpha = Image.fromarray(np.where(bg, 0, 255).astype(np.uint8))
@@ -130,7 +133,9 @@ def install(local):
     import shutil
 
     art = Image.open(local)
-    scale = 0.95
+    # 0.95 was the first ask; the second took another 10% off it because the sign's bottom corner was
+    # reaching the 4-Player Setup tile. 0.95 * 0.90 = 0.855 of the original 75 wide.
+    scale = 0.855
     w = OLD_W * scale
     h = w * art.height / art.width
     top = OLD_Y + OLD_H / 2                       # where the old sign's top edge sat

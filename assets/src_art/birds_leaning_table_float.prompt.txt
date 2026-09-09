@@ -1,0 +1,44 @@
+Use your image generation tool to create ONE WIDE image (landscape, roughly 3 wide to 1 tall) and save
+it into the current working directory as `birds_table.png`. Generate it with the image model; do not
+draw or composite anything yourself. Print the absolute path when done.
+
+The SECOND attached image is the version being changed. Keep its four birds, its natural anatomy, its
+flat style, its palette and its props exactly. CHANGE ONLY HOW THEY ARE ARRANGED.
+
+THE CHANGE — they must read as sitting AROUND A TABLE, not standing in a straight line behind a bar.
+At the moment all four face straight out, evenly spaced, shoulder to shoulder, like a police line-up.
+Instead:
+  * The table's near edge runs along the very BOTTOM EDGE of the image, and it is ROUND -- they are
+    sitting around the far side of a circular table, so their positions curve.
+  * THE TWO IN THE MIDDLE sit furthest away, at the back of the table, facing the viewer. Draw them
+    slightly SMALLER and slightly HIGHER in the frame, because they are further off.
+  * THE TWO ON THE ENDS sit at the near sides of the table, so they are CLOSER to the viewer: draw
+    them slightly LARGER and slightly LOWER, and TURNED INWARD in three-quarter view, angled toward
+    the centre of the table rather than out at us. The left one turns to its right, the right one
+    turns to its left. Their far shoulders come forward.
+  * That difference in size, height and angle is what makes it read as a round table. Keep it subtle
+    and believable, not a fisheye.
+  * They still LEAN ON THE TABLE, hunched: shoulders up, heads forward and down, folded wings resting
+    on its edge, only upper bodies showing, nothing below the table, no feet, no legs.
+  * Still a CLEAR GAP between neighbours -- NO BIRD MAY TOUCH OR OVERLAP ANOTHER, and all four heads
+    stay fully visible and unobstructed.
+
+THE FOUR, unchanged, left to right around the table:
+  * a VULTURE, bald orange-pink head, pale neck ruff, heavy hooked beak, a lit cigar CLAMPED AT THE
+    BACK CORNER of his beak where the mandibles meet, jutting out and slightly down clear of the
+    beak's outline, lit end away from his face, one curl of smoke from that end
+  * a HORNED OWL, ear tufts, round spectacles, a small open book on the table under his wings
+  * a BALD EAGLE, white head, peaked military cap, a tumbler
+  * a WOODPECKER, tall orange crest, LONG SOLID SLATE-GREY BILL clearly visible against the
+    background, turning a bright POLISHED GOLD coin with a crescent highlight and a glint
+All four DEADPAN and completely serious, half-lidded and unimpressed.
+
+HOW TO DRAW IT:
+  * FLAT COLOUR: every shape one uniform colour, hard clean edges. No gradients, no rendered shading,
+    no texture, no grain, no speckles. Palette: deep near-black brown, warm parchment cream, burnt
+    orange, muted dark teal, warm gold with a pale gold highlight, slate grey for bills and claws.
+  * DO NOT DRAW THE TABLE ITSELF and DO NOT DRAW A CHECKERBOARD. The background must be genuinely
+    EMPTY and TRANSPARENT -- no tabletop, no ground, no shadow, no scene, no frame, NO TEXT. Their
+    resting wings end flush at the bottom edge. Small even margin at the top and sides.
+
+Landscape aspect ratio, about three times wider than tall.
