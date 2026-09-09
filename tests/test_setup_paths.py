@@ -1444,6 +1444,42 @@ def t_numpad_two_hands_you_the_token_you_chose(src):
     assert rt.eval("rttTokenEligible('Marquise Warrior')") is False, \
         "a warrior can be chosen as the token key's kind; numpad 1 already takes those"
 
+    # 6. EVERY PLAYER HAS THEIR OWN, and two of them pressing at once do not cross. The choice, the
+    #    press in flight, the broadcast and the pointer are all keyed by colour -- this shows it
+    #    rather than trusting the reading. Maintainer, 2026-09-09: "the gizmo numpad 2 setting works
+    #    well for each player independtly right?"
+    rt.execute("""
+      RTT_HOME = {}
+      RTT_TOKEN_PICK = {}
+      RTT_HOME['s1'] = { n='Sympathy', f='Woodland Alliance', p={ 4.0,0.2,-46.0}, r={0,0,0} }
+      RTT_HOME['r1'] = { n='Roost',    f='Eyrie Dynasties',   p={-4.0,0.2,-46.0}, r={0,0,0} }
+      S = MKOBJ('Sympathy', { 4.0, 0.2, -46.0 }, {})
+      R = MKOBJ('Roost',    {-4.0, 0.2, -46.0 }, {})
+      POINTER['Red']  = { x = 20, y = 1, z = 20 }
+      POINTER['Blue'] = { x = 30, y = 1, z = 30 }
+      -- both hold at once, on different things, and release in the other order
+      HOVER['Red'] = S   onScriptingButtonDown(2, 'Red')
+      HOVER['Blue'] = R  onScriptingButtonDown(2, 'Blue')
+      FLUSH_UNTIL(2)
+      onScriptingButtonUp(2, 'Blue')
+      onScriptingButtonUp(2, 'Red')
+    """)
+    assert str(rt.eval("RTT_TOKEN_PICK['Red']")) == "Sympathy", \
+        "Red chose a Sympathy and got %s" % rt.eval("RTT_TOKEN_PICK['Red']")
+    assert str(rt.eval("RTT_TOKEN_PICK['Blue']")) == "Roost", \
+        "Blue chose a Roost and got %s" % rt.eval("RTT_TOKEN_PICK['Blue']")
+
+    # ...and each press then draws that player's own kind, to that player's own pointer.
+    rt.execute("""
+      HOVER['Red'] = nil  HOVER['Blue'] = nil
+      onScriptingButtonDown(2, 'Red')   onScriptingButtonUp(2, 'Red')
+      onScriptingButtonDown(2, 'Blue')  onScriptingButtonUp(2, 'Blue')
+    """)
+    assert abs(float(rt.eval("S.__pos.x")) - 20.0) < 0.01, \
+        "Red's press did not bring Red a Sympathy to Red's pointer"
+    assert abs(float(rt.eval("R.__pos.x")) - 30.0) < 0.01, \
+        "Blue's press did not bring Blue a Roost to Blue's pointer"
+
 
 def t_mountain_deals_a_legal_board(src):
     """The Mountain prints no suits: it DEALS twelve, and the centre's suit picks what stands there.
