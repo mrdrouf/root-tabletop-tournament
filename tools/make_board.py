@@ -52,7 +52,7 @@ BOX = (1225, 700, 1655, 1300)   # generous bounds round the printed Lost Souls b
 BG_THRESH = 22                  # L1 distance to the background palette that still counts as green
 MASK_THRESH = 14                # ...and the tighter one used to find the artwork
 LIZARD_DROP = 70                # "just put him a little bit below"
-PITCH = 90                     # column spacing that matches the board's own scatter of trees
+PITCH = 95                     # column spacing that matches the board's own scatter of trees
 TOP = 686                       # the ground starts just under the Outcast panel
 
 # GROWING THE OUTCAST PANEL. Maintainer: "increase the size of the parchment box with the decals so
@@ -269,9 +269,16 @@ def smooth_ground(front, need, pal, rng, step=12, w=44, passes=200, G=48):
     sA = sat(ground)
     gy2, gx2 = np.meshgrid(np.arange(H - G), np.arange(W - G), indexing="ij")
     py, px = np.where(win(sA, gy2, gx2, G, G) == G * G)
-    tiled = np.zeros_like(resid)
-    for yy in range(Y0 - G, Y1 + G, G):
-        for xx in range(X0 - G, X1 + G, G):
+    # OVERLAPPING TILES, CROSS-FADED. Butted together they show: neighbouring patches carry
+    # different grain even after each is zero-meaned, and the join draws a faint 48px lattice over
+    # the whole repair -- invisible at board scale, plain the moment you zoom in. Half-overlapped
+    # and weighted by a raised cosine, the lattice has nowhere to form.
+    win1 = np.hanning(G + 2)[1:-1]
+    wsep = np.outer(win1, win1)[..., None] + 1e-6
+    acc = np.zeros_like(resid)
+    wsum = np.zeros(resid.shape[:2], np.float32)[..., None]
+    for yy in range(Y0 - G, Y1 + G, G // 2):
+        for xx in range(X0 - G, X1 + G, G // 2):
             y2, x2 = max(0, min(yy, H - G)), max(0, min(xx, W - G))
             i = rng.integers(len(py))
             t = resid[py[i]:py[i] + G, px[i]:px[i] + G]
@@ -285,7 +292,9 @@ def smooth_ground(front, need, pal, rng, step=12, w=44, passes=200, G=48):
                 t = t[:, ::-1]
             if rng.random() < 0.5:
                 t = t[::-1, :]
-            tiled[y2:y2 + G, x2:x2 + G] = t
+            acc[y2:y2 + G, x2:x2 + G] += t * wsep
+            wsum[y2:y2 + G, x2:x2 + G] += wsep
+    tiled = acc / np.maximum(wsum, 1e-6)
 
     out = front.copy()
     out[need] = np.clip(base + tiled, 0, 255).astype(np.uint8)[need]
@@ -318,76 +327,104 @@ def map_back(front, back):
 
 
 def harvest(mapped, bclean):
-    """Whole trees off the other face: a stem with its paired branches, entire.
+    """Trees off the other face -- and the test for a usable one is not "is it a whole component".
 
-    Size bounds keep out the header flourishes and the odd pair of trees that touch; the purity test
-    keeps out anything carrying a neighbour's ink, which planted in open ground reads as a speck of a
-    different drawing.
+    Maintainer: "the mistake you do is that you have put trees that are cut on the top because they
+    appear on the carboard at the top so they are cropped by design but you think it s a full tree
+    while its actually a cropped one."
+
+    Exactly right, and it is why every earlier library was poison: a tree clipped by the board's edge
+    or running under a panel is still ONE connected component, so it passes every test for
+    completeness while being a cut tree. There is in fact no uncropped tree anywhere on either face --
+    the pattern fills the board, so every instance runs off something.
+
+    What decides a tree here is its SIDES. Those must stand clear in bare background over its whole
+    height, because that is the edge a planted tree shows. Its top and bottom may be cropped; the
+    planting is what has to put those cuts somewhere a cut belongs.
     """
     lab, info = components(erode(dilate(is_vine(mapped) & bclean, 2), 1))
+    H, W = bclean.shape
     out = []
     for c, (n, a, b, cc, e) in info.items():
         h, w = e - cc + 1, b - a + 1
-        if n < 500 or h < 90 or h > 420 or w > 170:
+        if n < 300 or h < 60 or h > 460 or w > 200:
+            continue
+        if a - 10 < 0 or b + 11 > W:
             continue
         m = lab[cc:e + 1, a:b + 1] == c
+        if not bclean[cc:e + 1, a - 9:a].all() or not bclean[cc:e + 1, b + 1:b + 10].all():
+            continue                                   # a neighbour or a panel edge is touching it
         px = mapped[cc:e + 1, a:b + 1][dilate(m, 2)].astype(int)
         if (px[:, 0] > px[:, 1] + 15).mean() > 0.003:
             continue
         if ((px[:, 0] < 120) & (px[:, 1] < 130)).mean() > 0.003:
             continue
-        out.append(((a, b, cc, e), m))
+        tip = cc - 14 >= 0 and bclean[cc - 14:cc, max(0, a - 6):b + 7].all()
+        out.append(((a, b, cc, e), m, tip))
     return out
 
 
-def plant(canvas, mapped, trees, region, clean, rng, pitch=PITCH, gap=26, jitter=16, tries=14):
-    """Plant whole trees in columns, the way they stand everywhere else on the board.
+def stem_x(m):
+    """Where the stem runs inside a tree -- its densest column."""
+    return int(np.argmax(m.sum(axis=0)))
 
-    Every tree goes down entire. That is the whole point: three earlier versions cut them to fit the
-    hole -- quilted, sown at a matching density, bridged with pieces -- and every one came back as
-    litter, because a cut tree is not a tree. The only clipping here is at the region's own edge,
-    which runs from under the panel above to the board's bottom, where the board's trees end too.
+
+def plant(canvas, mapped, trees, region, clean, rng, pitch=PITCH, jitter=14, overlap=34, tries=16):
+    """Grow a stem down each column, tree on tree, with their stems lined up.
+
+    In a tall stretch of open board the pattern is not a scatter of little trees -- look at either
+    margin -- it is long stems running the whole height, branch pairs all the way up, cropped only
+    where the board itself ends. So that is what gets built: trees stacked with their stems aligned
+    and overlapped, which puts every join inside a continuous line and leaves only two cut ends per
+    column, one under the panel above and one off the bottom edge of the board.
+
+    A tree with a tapering tip may finish a column in the open; one cropped at the top may not, so it
+    is only used where its top will be covered.
     """
     ys, xs = np.where(region)
     X0, X1, Y0, Y1 = xs.min(), xs.max() + 1, ys.min(), ys.max() + 1
+    tips = [t for t in trees if t[2]] or trees
     n = 0
-    x = X0 + int(rng.integers(10, 40))
-    while x < X1 - 30:
-        y = Y0 - int(rng.integers(20, 90))
-        while y < Y1 - 20:
-            bb, m = trees[rng.integers(len(trees))]
-            a, b, c, e = bb
-            h, w = e - c + 1, b - a + 1
-            # A TREE MAY ONLY BE CUT BY SOMETHING THAT REALLY CUTS TREES -- the parchment of a panel,
-            # or the edge of the board. Everywhere else on this board a tree either stands whole or
-            # runs under a panel, and a tree that simply stops in open green is the "cut trees and
-            # uncomplete designs" the maintainer kept seeing: the region's own rectangular edge was
-            # doing the cutting.
-            dy = int(y)
+    x = X0 + int(rng.integers(12, 44))
+    while x < X1 - 24:
+        y = Y0 - int(rng.integers(10, 60))
+        first = True
+        while y < Y1:
+            pool = trees if first else (tips if rng.random() < 0.45 else trees)
             placed = False
             for _ in range(tries):
-                dx = int(x + rng.integers(-jitter, jitter + 1) - w // 2)
+                bb, m, tip = pool[rng.integers(len(pool))]
+                a, b, c, e = bb
+                h, w = e - c + 1, b - a + 1
+                flip = rng.random() < 0.5
+                sx = (w - 1 - stem_x(m)) if flip else stem_x(m)
+                dx = int(x + rng.integers(-jitter, jitter + 1) - sx)
+                dy = int(y)
                 ys0, ys1 = max(0, dy), min(canvas.shape[0], dy + h)
                 xs0, xs1 = max(0, dx), min(canvas.shape[1], dx + w)
-                if ys1 - ys0 <= 30 or xs1 - xs0 <= 10:
+                if ys1 - ys0 <= 24 or xs1 - xs0 <= 8:
                     break
                 sub = m[ys0 - dy:ys1 - dy, xs0 - dx:xs1 - dx]
+                if flip:
+                    sub = sub[:, ::-1]
                 spill = sub & ~region[ys0:ys1, xs0:xs1]
-                if not (spill & clean[ys0:ys1, xs0:xs1]).any():
-                    placed = True
-                    break
-            if placed:
-                sy0, sx0 = ys0 - dy, xs0 - dx
-                src = mapped[c + sy0:c + sy0 + (ys1 - ys0), a + sx0:a + sx0 + (xs1 - xs0)].astype(np.float32)
-                al = soft(m[sy0:sy0 + (ys1 - ys0), sx0:sx0 + (xs1 - xs0)])
-                if rng.random() < 0.5:
+                if (spill & clean[ys0:ys1, xs0:xs1]).any():
+                    continue                          # would be cut in open green
+                src = mapped[c + (ys0 - dy):c + (ys1 - dy), a + (xs0 - dx):a + (xs1 - dx)].astype(np.float32)
+                al = soft(m[ys0 - dy:ys1 - dy, xs0 - dx:xs1 - dx])
+                if flip:
                     src, al = src[:, ::-1], al[:, ::-1]
                 al = (al * region[ys0:ys1, xs0:xs1])[..., None]
                 reg = canvas[ys0:ys1, xs0:xs1].astype(np.float32)
                 canvas[ys0:ys1, xs0:xs1] = np.clip(reg * (1 - al) + src * al, 0, 255).astype(np.uint8)
                 n += 1
-            y = dy + h + int(rng.integers(0, gap))
-        x += pitch + int(rng.integers(-14, 15))
+                placed = True
+                break
+            if not placed:
+                break
+            y = dy + h - int(rng.integers(overlap // 2, overlap))
+            first = False
+        x += pitch + int(rng.integers(-12, 13))
     return n
 
 
@@ -453,7 +490,12 @@ def main():
     trees = harvest(mapped, bclean)
     clean = bg_dist(front, pal) < BG_THRESH
     region = np.zeros(front.shape[:2], bool)
-    region[TOP:front.shape[0], X0 - 2:front.shape[1]] = True
+    # LEFT TO THE PANEL'S OWN INK, not to a line two pixels off the box. The green runs on past the
+    # box to x 1211-1221 where the Gardens panel's border stops it, so a region starting at 1223 cut
+    # through open ground: its edge could not be planted across without cutting a tree, which left a
+    # bare gutter along it -- the seam that survived. Masking by (clean | art) means the boundary
+    # becomes the panel's ink wherever the panel is there, which is an edge a tree may sit against.
+    region[TOP:front.shape[0], 1150:front.shape[1]] = True
     region &= (clean | art)
     out = smooth_ground(front, region, pal, rng)
     planted = plant(out, mapped, trees, region, clean, rng)
@@ -467,9 +509,14 @@ def main():
     out[nc:nc + h, la:la + w] = np.clip(
         reg * (1 - al) + front[lc:le + 1, la:lb + 1].astype(np.float32) * al, 0, 255).astype(np.uint8)
 
-    ring = np.zeros(front.shape[:2], bool)
-    ring[Y0 - 80:Y1 + 80, X0 - 80:X1 + 80] = True
-    td = is_vine(front)[clean & ring & ~dilate(region, 4)].mean()
+    # THE REFERENCE IS THE BOARD'S OWN MARGINS, not a ring round the region. Once the region grew to
+    # the board's edges the ring was reduced to slivers between panels, which are vine-dense, and it
+    # read 12.6% where the open board reads 9. Margins are big, open, and never move.
+    ref = np.zeros(front.shape[:2], bool)
+    ref[300:1240, 8:52] = True          # left margin
+    ref[300:1240, 1656:1688] = True     # right margin
+    ref[1274:1308, 60:1620] = True      # bottom margin
+    td = is_vine(front)[clean & ref].mean()
     # measured on the GROUND ONLY -- the lizard's own pale greens answer to the same test as a vine
     lizfoot = np.zeros(front.shape[:2], bool)
     lizfoot[nc - 12:nc + h + 12, la - 12:la + w + 12] = True
