@@ -4044,54 +4044,104 @@ def t_numpad_two_lays_a_warrior_down_and_lights_it(src):
     assert state("ROOST")[1] is False, "numpad 2 laid a building down"
 
 
-def t_the_mountain_numbers_sit_where_the_save_puts_them(src):
-    """Every Mountain clearing number is where the "mountain" save has it, to the last decimal.
+def t_the_clearing_numbers_sit_where_the_saves_put_them(src):
+    """Every clearing number is where the maintainer's own save has it, to the last decimal.
 
-    Maintainer, 2026-09-07: "Use the file montain.json in the folder to recalibrate the position of
-    the clearing numbers use these ones for mountain map", and then, when I had gone looking in
-    root_engine instead of for his save: "you dingus we don t use the official numbering this is the
-    position of the clearing numbers use the precise position as provided."
+    2026-09-07: "Use the file montain.json in the folder to recalibrate the position of the clearing
+    numbers use these ones for mountain map", and then, when I had gone looking in root_engine instead
+    of for his save: "you dingus we don t use the official numbering this is the position of the
+    clearing numbers use the precise position as provided." Then 2026-09-09, the same again for two
+    more maps: "in the drop folder I put two saves for the position of the coffin when it spawns and
+    the position of the clearing number for autumn and lake use these."
 
     So this is not a renumbering and not a fit. The mod's numbering is its own, and the save says where
-    each of those numbers goes; eight of the twelve were wrong, one of them by 41 units -- on the far
-    side of the board. The tokens are matched to the save by their ARTWORK URL, which is the only
-    thing that identifies which number a blob carries: the blobs have no nickname and are not in
-    numeric order.
+    each of those numbers goes; on the Mountain eight of the twelve were wrong, one of them by 41 units
+    -- on the far side of the board. The tokens are matched to the save by their ARTWORK URL, which is
+    the only thing that identifies which number a blob carries: the blobs have no nickname and are not
+    in numeric order.
 
-    assets/src_art/saves/mountain.json is his save, kept so this can be re-checked rather than trusted.
+    His saves are kept under assets/src_art/saves/ so this can be re-checked rather than trusted.
     """
-    saved = json.load(open(os.path.join(REPO, "assets", "src_art", "saves", "mountain.json"),
+    CASES = (("mountain.json",  "RTT_PRIO_MOUNTAINMAP", "Mountain"),
+             ("autumn.json",    "RTT_PRIO_SUMMERMAP",   "Autumn"),
+             ("lakecoffin.json", "RTT_PRIO_LAKEMAP",    "Lake"))
+    for fname, table, mapname in CASES:
+        saved = json.load(open(os.path.join(REPO, "assets", "src_art", "saves", fname),
+                               encoding="utf-8"))
+        want = {}
+        for o in saved["ObjectStates"]:
+            if "RTT Priority" in (o.get("Tags") or []):
+                want[(o.get("CustomImage") or {}).get("ImageURL", "")] = o["Transform"]
+        assert len(want) == 12, \
+            "%s holds %d priority tokens, expected 12" % (fname, len(want))
+
+        i = src.index(table + " = {")
+        blobs = re.findall(r"\[==\[(.*?)\]==\]", src[i:src.index("\n}", i)], re.S)
+        assert len(blobs) == 12, \
+            "the %s ships %d number tokens, expected 12" % (mapname, len(blobs))
+
+        got = {}
+        for b in blobs:
+            u = re.search(r'"ImageURL":"([^"]+)"', b).group(1)
+            m = re.search(r'"posX":([-\d.E]+),"posY":([-\d.E]+),"posZ":([-\d.E]+)', b)
+            got[u] = (float(m.group(1)), float(m.group(2)), float(m.group(3)))
+        assert set(got) == set(want), \
+            "the %s blueprint and the save disagree about which number tokens exist: %s" \
+            % (mapname, sorted({u[-14:] for u in set(got) ^ set(want)}))
+
+        for u, (x, y, z) in got.items():
+            tr = want[u]
+            for axis, mine, theirs in (("x", x, tr["posX"]), ("y", y, tr["posY"]), ("z", z, tr["posZ"])):
+                assert abs(mine - theirs) < 1e-4, \
+                    "%s number ...%s is %.3f off in %s: blueprint %.4f, save %.4f" \
+                    % (mapname, u[-14:], abs(mine - theirs), axis, mine, theirs)
+
+        # THE TWELVE ARE DISTINCT PLACES. A copy-paste that gave two numbers the same transform would
+        # satisfy every check above and leave a clearing unnumbered.
+        spots = {(round(x, 2), round(z, 2)) for x, _, z in got.values()}
+        assert len(spots) == 12, \
+            "two %s numbers share a position: %d distinct spots" % (mapname, len(spots))
+
+
+def t_the_coffin_spawns_where_he_put_it(src):
+    """The Koffin Keeper lands on the spot in the "lakecoffin" save, standing the way he left it.
+
+    Maintainer, 2026-09-09: "in the drop folder I put two saves for the position of the coffin when it
+    spawns and the position of the clearing number for autumn and lake use these."
+
+    makeTool does not spawn a tool where its blueprint transform says. It reads move_to, turns it
+    through a fixed arithmetic -- x becomes z + 53.31, z becomes -x - 1.38, y becomes y + 11.46 -- and
+    then its callback adds 90 degrees to the facing. So neither the position nor the rotation in the
+    blueprint is the one the piece ends up with, and both have to be worked backwards from where he
+    put it. The Keeper is spawned LOCKED, so what the save holds is exactly where it was placed, with
+    no settling in between: this can be checked to the last decimal.
+    """
+    saved = json.load(open(os.path.join(REPO, "assets", "src_art", "saves", "lakecoffin.json"),
                            encoding="utf-8"))
-    want = {}
-    for o in saved["ObjectStates"]:
-        if "RTT Priority" in (o.get("Tags") or []):
-            want[(o.get("CustomImage") or {}).get("ImageURL", "")] = o["Transform"]
-    assert len(want) == 12, "the save holds %d priority tokens, expected 12" % len(want)
+    his = [o for o in saved["ObjectStates"] if (o.get("Nickname") or "") == "Koffin Keeper"]
+    assert len(his) == 1, "the save holds %d Koffin Keepers" % len(his)
+    want = his[0]["Transform"]
 
-    i = src.index("RTT_PRIO_MOUNTAINMAP = {")
-    blobs = re.findall(r"\[==\[(.*?)\]==\]", src[i:src.index("\n}", i)], re.S)
-    assert len(blobs) == 12, "the Mountain ships %d number tokens, expected 12" % len(blobs)
-
-    got = {}
-    for b in blobs:
-        u = re.search(r'"ImageURL":"([^"]+)"', b).group(1)
-        m = re.search(r'"posX":([-\d.E]+),"posY":([-\d.E]+),"posZ":([-\d.E]+)', b)
-        got[u] = (float(m.group(1)), float(m.group(2)), float(m.group(3)))
-    assert set(got) == set(want), \
-        "the blueprint and the save disagree about which number tokens exist: %s" \
-        % sorted({u[-14:] for u in set(got) ^ set(want)})
-
-    for u, (x, y, z) in got.items():
-        t = want[u]
-        for axis, mine, theirs in (("x", x, t["posX"]), ("y", y, t["posY"]), ("z", z, t["posZ"])):
-            assert abs(mine - theirs) < 1e-4, \
-                "number ...%s is %.3f off in %s: blueprint %.4f, save %.4f" \
-                % (u[-14:], abs(mine - theirs), axis, mine, theirs)
-
-    # THE TWELVE ARE DISTINCT PLACES. A copy-paste that gave two numbers the same transform would
-    # satisfy every check above and leave a clearing unnumbered.
-    spots = {(round(x, 2), round(z, 2)) for x, _, z in got.values()}
-    assert len(spots) == 12, "two Mountain numbers share a position: %d distinct spots" % len(spots)
+    rt = fresh(src)
+    rt.execute("SPAWNED = {} "
+               "local _s = spawnObjectJSON "
+               "spawnObjectJSON = function(p) local o = _s(p) "
+               "  local n = o.getName() or '' "
+               "  if n == 'Koffin Keeper' then "
+               "    SPAWNED[#SPAWNED+1] = string.format('%.4f/%.4f/%.4f/%.4f', "
+               "      o.__pos.x, o.__pos.y, o.__pos.z, o.__rot.y) end "
+               "  return o end")
+    rt.execute("pcall(function() makeTool(Player['Red'], '', 'Koffin Keeper') end) FLUSH(10)")
+    got = list(rt.eval("SPAWNED").values())
+    assert len(got) == 1, "the Koffin Keeper button spawned %d pieces" % len(got)
+    x, y, z, ry = (float(v) for v in got[0].split("/"))
+    for axis, mine, theirs in (("x", x, want["posX"]), ("y", y, want["posY"]), ("z", z, want["posZ"])):
+        assert abs(mine - theirs) < 1e-3, \
+            "the coffin lands %.3f off in %s: %.4f, his save says %.4f" \
+            % (abs(mine - theirs), axis, mine, theirs)
+    assert abs(ry % 360 - want["rotY"] % 360) < 0.1, \
+        "the coffin faces %.2f; his save has it at %.2f (makeTool adds 90 to the blueprint)" \
+        % (ry % 360, want["rotY"] % 360)
 
 
 def t_the_cats_are_dropped_clear_of_the_clearing(src):
@@ -5420,7 +5470,8 @@ CASES = [
     ("keepers spawn where he put them",   t_the_keepers_spawn_where_the_maintainer_put_them),
     ("badger relics draw uniformly",      t_the_badger_relics_are_drawn_uniformly),
     ("cats drop clear of the clearing",   t_the_cats_are_dropped_clear_of_the_clearing),
-    ("mountain numbers match the save",   t_the_mountain_numbers_sit_where_the_save_puts_them),
+    ("clearing numbers match the saves",  t_the_clearing_numbers_sit_where_the_saves_put_them),
+    ("the coffin spawns where he put it", t_the_coffin_spawns_where_he_put_it),
     ("board shows the build number",      t_the_board_shows_the_build_number),
     ("panel pauses the clock",            t_the_panel_pauses_the_clock),
     ("start names the pass it causes",    t_start_names_the_pass_it_causes),
