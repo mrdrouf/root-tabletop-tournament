@@ -1,0 +1,34 @@
+Use your image generation tool to create ONE WIDE image (landscape, roughly 3 wide to 1 tall) and save
+it into the current working directory as `birds_perched.png`. Generate it with the image model; do not
+draw or composite anything yourself. Print the absolute path when done.
+
+The SECOND attached image shows the four characters and the exact flat style to match -- copy its
+drawing style, its line weight and its palette precisely. These birds will be placed sitting along the
+TOP EDGE of a wooden sign, so they must be drawn as if perched on a horizontal ledge.
+
+WHAT TO DRAW — FOUR BIRDS PERCHED IN A ROW, and nothing else:
+  * All four stand on the SAME invisible horizontal line at the very BOTTOM of the image, with their
+    FEET VISIBLE and gripping that line, toes curled over a ledge. The bottom of the image is where
+    the ledge is: their feet must sit ON that bottom edge, not float above it.
+  * EVENLY SPACED across the width, all roughly the same height, facing the viewer. A CLEAR GAP
+    between neighbours -- NO BIRD MAY TOUCH OR OVERLAP ANOTHER. Each is a separate solid shape.
+  * Left to right:
+      - a VULTURE: bald orange domed head, heavy hooked beak, pale neck ruff, a lit cigar in his beak
+      - a HORNED OWL: two sharp upright ear tufts, big round spectacles, holding a small open book
+      - a BALD EAGLE: white head, orange hooked beak, a peaked military cap, holding a small tumbler
+      - a WOODPECKER: black and white head, tall spiky orange crest, long dagger beak, holding a coin
+  * All four DEADPAN and completely serious, looking straight out at the viewer.
+  * They are plump, chunky, simplified little birds -- rounded bodies, short legs, big simple eyes.
+
+HOW TO DRAW IT:
+  * ABSOLUTELY FLAT. Every shape one uniform colour with hard clean edges. No gradients, no shading,
+    no highlights, no texture, no grain, no speckles, no stray pixels.
+  * EXACTLY FOUR COLOURS: a deep near-black brown, a warm parchment cream, a burnt orange, and a
+    muted dark teal. Nothing else.
+  * BOLD AND SIMPLE, low detail, strong silhouettes, thick even weights. Readable very small.
+  * The BACKGROUND IS FULLY TRANSPARENT. No sign, no ledge, no perch drawn, no ground, no shadow, no
+    scene, no circle, no frame, NO TEXT OR LETTERING ANYWHERE. Only the four birds on nothing.
+  * Leave no empty margin at the bottom -- the feet touch the bottom edge of the image. Leave a small
+    even margin at the top and the sides.
+
+Landscape aspect ratio, about three times wider than tall.

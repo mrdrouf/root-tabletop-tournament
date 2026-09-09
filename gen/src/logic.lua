@@ -38,6 +38,10 @@ function onSave()
                          -- behind, so the warnings went quiet after a reload too.
                          map = RTT_CURRENT_MAP or "",
                          marsh5p = (RTT_MARSH_5P_BUILT == true),
+                         -- pick: which token each player's numpad 2 hands them. It is set by holding
+                         -- the key on a piece, so losing it to a reload means every player silently
+                         -- discovering their key does nothing and having to set it again.
+                         pick = RTT_TOKEN_PICK or {},
                          order = RTT_ORDER or {} })
   end)
   if ok then return enc end
@@ -74,6 +78,7 @@ function onLoad(state)
     if type(d.order) == "table" then RTT_ORDER = d.order end
     if type(d.map) == "string" and d.map ~= "" then RTT_CURRENT_MAP = d.map end
     if d.marsh5p ~= nil then RTT_MARSH_5P_BUILT = (d.marsh5p == true) end
+    if type(d.pick) == "table" then RTT_TOKEN_PICK = d.pick end
     if #RTT_SEATS > 0 then rttPublishSeats() end
   end)
   pcall(function() rttSnapshotHand2() end)  -- parked hand-2 transforms, restored on every new game
@@ -81,9 +86,24 @@ function onLoad(state)
   -- no numpad (maintainer, 2026-09-04: on a French Mac layout the top-row 0 needs Shift and never
   -- reaches it). One named hotkey does the same job and binds to any key in Options - Game Keys.
   pcall(function()
-    addHotkey("Gizmo: send the hovered piece home", function(color) rttGizmoHome(color) end)
-    addHotkey("Gizmo: take a warrior from your supply", function(color) rttGizmoTake(color) end)
-    addHotkey("Gizmo: lay it down and light it up", function(color) rttGizmoMark(color) end)
+    addHotkey("Gizmo: move back to supply/initial position", function(color) rttGizmoHome(color) end)
+    addHotkey("Gizmo: move a warrior from own supply to cursor", function(color) rttGizmoTake(color) end)
+    addHotkey("Gizmo: move any token to cursor", function(color) rttGizmoToken(color) end)
+    -- A named hotkey cannot be HELD the way numpad 2 can, so choosing the kind gets a key of its own
+    -- here. Same choice, same per-player memory; only the gesture differs.
+    addHotkey("Gizmo: set which token the token key gives you", function(color)
+      local h = nil
+      pcall(function() h = Player[color].getHoverObject() end)
+      local n = ""
+      if h ~= nil then n = h.getName() or "" end
+      if not rttTokenEligible(n) then return end
+      RTT_TOKEN_PICK[color] = n
+      pcall(function()
+        broadcastToColor("Gizmo: the token key now hands you a " .. n .. ".", color,
+                         { r = 0.7, g = 1, b = 0.7 })
+      end)
+    end)
+    addHotkey("Gizmo: set warrior as a knave prisoner", function(color) rttGizmoMark(color) end)
   end)
   assets = {}
   if self.getName() != "Faction Board" then
@@ -7070,11 +7090,131 @@ end
 -- kept as the old name so nothing that calls it breaks; it is the TAKE half.
 function rttGizmoWarrior(color) rttGizmoTake(color) end
 
+-- NUMPAD 2 -- TAKE A TOKEN OR BUILDING to your cursor, of whichever kind you chose. Maintainer,
+-- 2026-09-09: "move current numpad 2 option to numpad 3. then create new numpad 2 option. move any
+-- building/token to cursor position. to set which type of token building, presse numpad 2 for 2 full
+-- seconds on a token or building then it will be set to that one for that player."
+--
+-- The kind is PER PLAYER and sticks until they change it, so the common case -- dropping sympathy
+-- after sympathy, or roost after roost -- is one key with nothing to aim at. It is set by holding the
+-- key on a piece rather than by a menu, so the choice is made with the thing itself.
+--
+-- WITH NOTHING CHOSEN, NOTHING HAPPENS, AND NOTHING IS SAID. Asked what an unset key should do, the
+-- maintainer: "nothing happens and silence". A key that explains itself every time you brush it is
+-- worse than one that waits.
+RTT_TOKEN_PICK = {}              -- player colour -> the piece name their numpad 2 hands them
+RTT_KEY2 = {}                    -- the press in flight: its 2-second timer, and whether it fired
+
+-- Warriors are numpad 1's job, so they are not offered here; anything else that has a supply to come
+-- from -- a bag of its kind, or a row of home slots -- can be chosen.
+function rttTokenEligible(name)
+  if name == nil or name == "" then return false end
+  if string.find(name, "Warrior", 1, true) ~= nil then return false end
+  if rttBagOfMap()[name] ~= nil then return true end
+  return #rttHomeSlots(name) > 0
+end
+
+-- the piece sitting on a given home slot, if there is one
+function rttPieceOnSlot(slot, name, ytol)
+  ytol = ytol or 0.6
+  local found = nil
+  pcall(function()
+    for _, o in ipairs(getAllObjects()) do
+      if (o.getName() or "") == name then
+        local p = o.getPosition()
+        local dx, dy, dz = p.x - slot.p[1], p.y - slot.p[2], p.z - slot.p[3]
+        if dx * dx + dz * dz < 0.36 and math.abs(dy) < ytol then found = o return end
+      end
+    end
+  end)
+  return found
+end
+
+function rttGizmoToken(color)
+  local name = RTT_TOKEN_PICK[color]
+  if name == nil or name == "" then return end       -- nothing chosen: nothing happens, silently
+  local pos = nil
+  pcall(function() pos = Player[color].getPointerPosition() end)
+  if pos == nil then return end
+  local to = { pos.x, pos.y + 1.5, pos.z }
+
+  -- 1. out of a bag, if that is where its kind lives -- the same route numpad 1 takes for a warrior
+  local bag = rttFindByName(rttBagOfMap()[name])
+  if bag ~= nil then
+    local n = 0
+    pcall(function() n = bag.getQuantity() end)
+    if n <= 0 then return end
+    local bp = bag.getPosition()
+    local ry = 0
+    pcall(function() ry = bag.getRotation().y or 0 end)
+    pcall(function()
+      bag.takeObject({
+        position = { bp.x, bp.y + 1.2, bp.z }, rotation = { 0, ry, 0 }, smooth = false,
+        callback_function = function(o)
+          pcall(function() o.addTag("RTT Faction") end)
+          pcall(function() o.setPositionSmooth(to, false, true) end)
+        end
+      })
+    end)
+    return
+  end
+
+  -- 2. otherwise off the END of its row. rttHomeSlots hands back the fill order, so walking it
+  --    backwards empties the row from the far end -- the exact mirror of numpad 0 filling it.
+  local slots = rttHomeSlots(name)
+  local ytol = rttHomeYTol(slots)
+  for i = #slots, 1, -1 do
+    local o = rttPieceOnSlot(slots[i], name, ytol)
+    if o ~= nil then
+      pcall(function() o.setPositionSmooth(to, false, true) end)
+      return
+    end
+  end
+  -- nothing of that kind left in its supply: nothing happens, and nothing is said
+end
+
+-- The hold. Two seconds on a piece CHOOSES it; a shorter press takes one. The timer does the
+-- choosing so it happens on the two-second mark rather than on release, and the release then knows
+-- to keep quiet because the press has already been spent.
+function rttKey2Down(color)
+  local hovered = nil
+  pcall(function() hovered = Player[color].getHoverObject() end)
+  local name = ""
+  if hovered ~= nil then name = hovered.getName() or "" end
+  local st = { set = false }
+  RTT_KEY2[color] = st
+  if rttTokenEligible(name) then
+    st.id = Wait.time(function()
+      if RTT_KEY2[color] ~= st then return end
+      st.set = true
+      RTT_TOKEN_PICK[color] = name
+      pcall(function()
+        broadcastToColor("Gizmo: numpad 2 now hands you a " .. name .. ".", color,
+                         { r = 0.7, g = 1, b = 0.7 })
+      end)
+    end, 2)
+  end
+end
+
+function rttKey2Up(color)
+  local st = RTT_KEY2[color]
+  RTT_KEY2[color] = nil
+  if st == nil then return end
+  if st.id ~= nil then pcall(function() Wait.stop(st.id) end) end
+  if st.set then return end                          -- the hold already chose; the press is spent
+  pcall(function() rttGizmoToken(color) end)
+end
+
 function onScriptingButtonDown(idx, color)
   if     idx == 10 then pcall(function() rttGizmoHome(color) end)   -- numpad 0: send home
   elseif idx == 1  then pcall(function() rttGizmoTake(color) end)   -- numpad 1: take a warrior
-  elseif idx == 2  then pcall(function() rttGizmoMark(color) end)   -- numpad 2: lay it down and light it
+  elseif idx == 2  then pcall(function() rttKey2Down(color) end)    -- numpad 2: take a token / choose
+  elseif idx == 3  then pcall(function() rttGizmoMark(color) end)   -- numpad 3: knave prisoner
   end
+end
+
+function onScriptingButtonUp(idx, color)
+  if idx == 2 then pcall(function() rttKey2Up(color) end) end
 end
 
 

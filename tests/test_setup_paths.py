@@ -1310,50 +1310,127 @@ def t_gizmo_default_key_is_numpad_zero(src):
     Ginso's Gizmo used. A PC user configures nothing; the two named hotkeys are registered UNBOUND for
     machines with no numpad, where the top-row 0 is a different key (and needs Shift on a French Mac).
     """
-    KEYS = ((10, "HOME"), (1, "TAKE"), (2, "MARK"))
-    COUNTERS = "HOME, TAKE, MARK"
+    # Maintainer, 2026-09-09: "move current numpad 2 option to numpad 3. then create new numpad 2
+    # option." So marking a knave's prisoner moved up to 3, and 2 became the token key.
+    KEYS = ((10, "HOME"), (1, "TAKE"), (3, "MARK"))
+    COUNTERS = "HOME, TAKE, MARK, TOKEN"
 
     def wired():
         rt = fresh(src)
-        rt.execute("%s = 0, 0, 0" % COUNTERS)
+        rt.execute("%s = 0, 0, 0, 0" % COUNTERS)
         rt.execute("rttGizmoHome = function(c) HOME = HOME + 1 end")
         rt.execute("rttGizmoTake = function(c) TAKE = TAKE + 1 end")
         rt.execute("rttGizmoMark = function(c) MARK = MARK + 1 end")
+        rt.execute("rttGizmoToken = function(c) TOKEN = TOKEN + 1 end")
         return rt
 
     def counts(rt):
-        return {n: rt.eval(n) for _, n in KEYS}
+        return {n: rt.eval(n) for n in ("HOME", "TAKE", "MARK", "TOKEN")}
 
-    # the four bound buttons, and nothing else
     for idx, which in KEYS:
         rt = wired()
-        rt.execute("%s = 0, 0, 0  onScriptingButtonDown(%d, 'Red')" % (COUNTERS, idx))
+        rt.execute("%s = 0, 0, 0, 0  onScriptingButtonDown(%d, 'Red')" % (COUNTERS, idx))
         got = counts(rt)
         assert got[which] == 1 and sum(got.values()) == 1, \
             "scripting button %d fired %s" % (idx, {k: v for k, v in got.items() if v})
-    # 3 is in this list on purpose: it drew a disc until the maintainer withdrew that option, and a
-    # key that still fires something nobody expects is worse than a key that does nothing.
-    for idx in (3, 4, 5, 6, 7, 8, 9):
+
+    # NUMPAD 2 ACTS ON RELEASE, not on the press: the press starts the two-second hold that chooses
+    # a kind, and only a press SHORTER than that hands one over.
+    rt = wired()
+    rt.execute("%s = 0, 0, 0, 0  onScriptingButtonDown(2, 'Red')" % COUNTERS)
+    assert sum(counts(rt).values()) == 0, "numpad 2 handed a token over on the way down"
+    rt.execute("onScriptingButtonUp(2, 'Red')")
+    got = counts(rt)
+    assert got["TOKEN"] == 1 and sum(got.values()) == 1, \
+        "releasing numpad 2 fired %s" % {k: v for k, v in got.items() if v}
+
+    for idx in (4, 5, 6, 7, 8, 9):
         rt = wired()
-        rt.execute("%s = 0, 0, 0  onScriptingButtonDown(%d, 'Red')" % (COUNTERS, idx))
+        rt.execute("%s = 0, 0, 0, 0  onScriptingButtonDown(%d, 'Red')" % (COUNTERS, idx))
         assert sum(counts(rt).values()) == 0, "button %d should do nothing" % idx
 
     # AND THE NAMED HOTKEYS, which are what the maintainer actually uses -- a MacBook has no numpad.
     # These were asserted as SOURCE TEXT, and addHotkey did not even exist in the harness: onLoad
     # calls it inside a pcall, so registration failed silently and nothing reached the handler.
-    # THE SURVIVING LABEL KEEPS ITS NAME. Withdrawing the disc removed one of two marking hotkeys, and
-    # a rename of the other would silently drop whatever key the maintainer had bound to it in Game
-    # Keys -- TTS matches a binding by label, not by handler.
-    LABELS = (("Gizmo: send the hovered piece home", "HOME"),
-              ("Gizmo: take a warrior from your supply", "TAKE"),
-              ("Gizmo: lay it down and light it up", "MARK"))
+    # TTS MATCHES A BINDING BY LABEL, not by handler, so renaming one drops whatever key was bound to
+    # it in Game Keys. All three were renamed on 2026-09-09 to the maintainer's own wording for the
+    # keys -- he asked for it, and it costs a one-time rebind of the three he had set.
+    LABELS = (("Gizmo: move back to supply/initial position", "HOME"),
+              ("Gizmo: move a warrior from own supply to cursor", "TAKE"),
+              ("Gizmo: move any token to cursor", "TOKEN"),
+              ("Gizmo: set warrior as a knave prisoner", "MARK"))
     for label, which in LABELS:
         rt = wired()
-        rt.execute("%s = 0, 0, 0" % COUNTERS)
+        rt.execute("%s = 0, 0, 0, 0" % COUNTERS)
         assert rt.eval("PRESS(%r, 'Red')" % label) is True, "no hotkey registered as %r" % label
         got = counts(rt)
         assert got[which] == 1 and sum(got.values()) == 1, \
             "hotkey %r fired %s" % (label, {k: v for k, v in got.items() if v})
+
+    # ...and a fifth, because a named hotkey cannot be HELD the way numpad 2 can. Choosing the kind
+    # needs a gesture of its own on a machine with no numpad.
+    rt = wired()
+    assert rt.eval("PRESS('Gizmo: set which token the token key gives you', 'Red')") is True, \
+        "there is no way to choose the token kind without a numpad"
+
+
+def t_numpad_two_hands_you_the_token_you_chose(src):
+    """Numpad 2 takes a token or building to your cursor; holding it on one chooses which.
+
+    Maintainer, 2026-09-09: "move any building/token to cursor position. to set which type of token
+    building, presse numpad 2 for 2 full seconds on a token or building then it will be set to that
+    one for that player." Asked what the key should do before anything is chosen, and where the piece
+    should come from: "nothing happens and silence", and from its supply, the way numpad 1 works.
+    """
+    rt = fresh(src)
+    rt.execute("""
+      rttBagOfMap = function() return {} end       -- this kind lives in a row, not a bag
+      RTT_HOME = {}
+      RTT_HOME['s1'] = { n='Sympathy', f='Woodland Alliance', p={ 4.0,0.2,-46.0}, r={0,0,0} }
+      RTT_HOME['s2'] = { n='Sympathy', f='Woodland Alliance', p={ 6.0,0.2,-46.0}, r={0,0,0} }
+      A = MKOBJ('Sympathy', { 4.0, 0.2, -46.0 }, {})
+      B = MKOBJ('Sympathy', { 6.0, 0.2, -46.0 }, {})
+      POINTER['Red'] = { x = 20, y = 1, z = 20 }
+      SAID = 0
+      broadcastToColor = function() SAID = SAID + 1 end
+    """)
+
+    # 1. NOTHING CHOSEN: a press does nothing at all, and says nothing.
+    rt.execute("onScriptingButtonDown(2, 'Red') onScriptingButtonUp(2, 'Red')")
+    moved = rt.eval("(A.__pos.x ~= 4.0) or (B.__pos.x ~= 6.0)")
+    assert moved is False, "numpad 2 moved a token before anything was chosen"
+    assert int(rt.eval("SAID")) == 0, "numpad 2 said something when it should have kept quiet"
+
+    # 2. A SHORT PRESS ON ONE DOES NOT CHOOSE IT -- it has to be held for the full two seconds.
+    rt.execute("HOVER['Red'] = A  onScriptingButtonDown(2, 'Red')")
+    rt.execute("FLUSH_UNTIL(1)")
+    rt.execute("onScriptingButtonUp(2, 'Red')")
+    assert rt.eval("RTT_TOKEN_PICK['Red']") is None, \
+        "a one-second press chose a kind; it takes two"
+
+    # 3. HELD FOR TWO SECONDS: that kind is now this player's, and the press is spent -- releasing
+    #    afterwards must not also hand one over.
+    rt.execute("onScriptingButtonDown(2, 'Red')")
+    rt.execute("FLUSH_UNTIL(2)")
+    assert str(rt.eval("RTT_TOKEN_PICK['Red']")) == "Sympathy", \
+        "holding numpad 2 on a Sympathy did not choose it"
+    rt.execute("onScriptingButtonUp(2, 'Red')")
+    moved = rt.eval("(A.__pos.x ~= 4.0) or (B.__pos.x ~= 6.0)")
+    assert moved is False, "the press that chose a kind also handed a token over"
+
+    # 4. NOW A SHORT PRESS TAKES ONE, to the pointer, off the END of the row -- the mirror of numpad
+    #    0 filling it from the other end.
+    rt.execute("HOVER['Red'] = nil  onScriptingButtonDown(2, 'Red') onScriptingButtonUp(2, 'Red')")
+    ax = float(rt.eval("A.__pos.x")); bx = float(rt.eval("B.__pos.x"))
+    took = [n for n, x in (("A", ax), ("B", bx)) if abs(x - 20.0) < 0.01]
+    assert len(took) == 1, "numpad 2 took %d tokens; it should take one" % len(took)
+    assert took[0] == "A", \
+        "it took the token at the near end of the row; numpad 0 fills from there, so this empties " \
+        "from the far end"
+
+    # 5. AND WARRIORS ARE NOT OFFERED -- that is numpad 1's key.
+    assert rt.eval("rttTokenEligible('Marquise Warrior')") is False, \
+        "a warrior can be chosen as the token key's kind; numpad 1 already takes those"
 
 
 def t_mountain_deals_a_legal_board(src):
@@ -5157,6 +5234,7 @@ CASES = [
     ("5-player buttons warn first",         t_the_five_player_buttons_warn_before_wiping),
     ("a dead handle cannot crash us",       t_a_destroyed_object_cannot_crash_the_map_scan),
     ("map buttons warn before wiping",       t_map_buttons_warn_before_wiping),
+    ("numpad 2 hands you your token",  t_numpad_two_hands_you_the_token_you_chose),
     ("gizmo default key is numpad 0",         t_gizmo_default_key_is_numpad_zero),
     ("gizmo: warrior to/from supply",         t_gizmo_warrior_to_and_from_supply),
     ("gizmo reads every blueprint",           t_gizmo_reads_every_faction_from_its_blueprint),

@@ -107,24 +107,34 @@ def fit(draw, text, room, cap):
     return ImageFont.truetype(FONT, 8)
 
 
-def table_floor(mark, cx, cy, r):
-    """The y below which the badge is empty, found by looking for the empty part.
+def table_floor(mark, cx, cy, r_in):
+    """The y below which the badge is empty: the lowest row the picture reaches.
 
-    Placing the type at a fraction of the radius put ROOT straight through the table and the board --
-    a ratio cannot know where the drawing stopped. So the blank band is located directly: walking down
-    from the middle, the first row whose centre is nothing but background is where the picture ends
-    and the room for type begins.
+    Placing the type at a fraction of the radius put ROOT straight through the table -- a ratio cannot
+    know where the drawing stopped. Nor can walking DOWN from the middle and taking the first clear
+    row: the table's near edge is a curve, so there are clear rows above its lowest point and the
+    scan stopped in one of them, leaving ROOT sitting on the rim. Scanning UP from just inside the
+    ring finds the last row that still has anything in it, which is the real floor.
+
+    Everything OUTSIDE the inner circle is excluded first, by radius. A rectangular centre band could
+    not do it: the ring's own lower arc cuts through any band wide enough to be useful, so the scan
+    found the ring on its very first row and reported the floor as the bottom of the badge.
     """
-    a = np.asarray(mark.convert("RGBA")).astype(np.int16)
-    bg = np.abs(a[:, :, :3] - np.array(CREAM, np.int16)).max(axis=2) < 40
-    x0, x1 = int(cx - r * 0.55), int(cx + r * 0.55)
-    for y in range(int(cy), int(min(cy + r, a.shape[0] - 1))):
-        if bg[y, x0:x1].mean() > 0.97:
-            return float(y)
-    return cy + r * 0.35
+    a = np.asarray(mark.convert("RGBA")).astype(np.int32)
+    h, w = a.shape[:2]
+    yy, xx = np.mgrid[0:h, 0:w]
+    inside = ((xx - cx) ** 2 + (yy - cy) ** 2) <= (r_in * 0.95) ** 2
+
+    content = np.abs(a[:, :, :3] - np.array(CREAM, np.int32)).max(axis=2) >= 40
+    content &= a[:, :, 3] >= ALPHA_CUT
+    content &= inside
+
+    rows = np.nonzero(content.sum(axis=1) > w * 0.01)[0]
+    rows = rows[rows > cy]
+    return float(rows.max()) if len(rows) else cy + r_in * 0.35
 
 
-def letter(mark, title="ROOT", sub="TABLETOP TOURNAMENT"):
+def letter(mark, title="ROOT", sub=None):
     """Set the wordmark into the empty band the emblem leaves below the table.
 
     The band runs from where the picture stops to the inside of the ring, both MEASURED off the
@@ -139,7 +149,7 @@ def letter(mark, title="ROOT", sub="TABLETOP TOURNAMENT"):
     # through the rings on both sides, because a chord of the outer circle is wider than the room
     # actually available inside the inner one.
     r_in = r * INNER
-    top = table_floor(out, cx, cy, r) + r * 0.045     # clear of the table's near edge
+    top = table_floor(out, cx, cy, r_in) + r * 0.035     # clear of the table's near edge
     bottom = cy + r_in * 0.97
     room = max(bottom - top, r * 0.3)
 
@@ -147,16 +157,25 @@ def letter(mark, title="ROOT", sub="TABLETOP TOURNAMENT"):
         dy = y - cy
         return 2.0 * (max(r_in * r_in - dy * dy, 1.0) ** 0.5) * keep
 
-    y1 = top + room * 0.32                            # ROOT
-    y2 = top + room * 0.82                            # the subtitle, smaller and tracked out
-    f1 = fit(d, title, chord(y1), room * 0.44)
-    f2 = fit(d, sub, chord(y2), room * 0.16)
+    # ONE LINE BY DEFAULT. The picture fills so much of the circle that the band under it is only
+    # about a tenth of the badge, and two lines in there left "TABLETOP TOURNAMENT" at twenty pixels
+    # -- unreadable at full size, gone entirely by 256. A badge carries the name, not the whole
+    # lockup; the subtitle lives on the plaque in tools/make_logo.py, where there is room for it.
+    if sub:
+        y1 = top + room * 0.30
+        y2 = top + room * 0.84
+        f1 = fit(d, title, chord(y1), room * 0.42)
+        f2 = fit(d, sub, chord(y2), room * 0.22)
+    else:
+        y1 = top + room * 0.52
+        f1 = fit(d, title, chord(y1), room * 0.70)
 
     b = d.textbbox((0, 0), title, font=f1, anchor="ls")
     d.text((cx, y1 - (b[1] + b[3]) / 2), title, font=f1, fill=INK + (255,), anchor="ms")
-    target = min(chord(y2), d.textlength(title, font=f1) * 1.42)
-    b = d.textbbox((0, 0), sub, font=f2, anchor="ls")
-    draw_tracked(d, cx, y2 - (b[1] + b[3]) / 2, sub, f2, INK + (255,), target)
+    if sub:
+        target = min(chord(y2), d.textlength(title, font=f1) * 1.45)
+        b = d.textbbox((0, 0), sub, font=f2, anchor="ls")
+        draw_tracked(d, cx, y2 - (b[1] + b[3]) / 2, sub, f2, INK + (255,), target)
     return out
 
 
