@@ -7104,7 +7104,8 @@ RTT_GLOW_RGB = { r = 0, g = 0, b = 0 }
 -- warriors carry a real faction colour and would have brightened, but the crows, the Keepers and the
 -- Knaves ship at flat white, where there is no headroom at all and only a tint above 1 would show --
 -- which TTS may clamp, and which shifts a saturated colour's hue when it does.
-RTT_PRISONER_FADE = 0.55
+-- 0.55 was the first try and read as washed out -- maintainer, 2026-09-09: "a bit less pale".
+RTT_PRISONER_FADE = 0.40
 
 -- The piece's colour, moved RTT_PRISONER_FADE of the way to white.
 function rttFaded(c)
