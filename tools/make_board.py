@@ -52,7 +52,8 @@ BOX = (1225, 700, 1655, 1300)   # generous bounds round the printed Lost Souls b
 BG_THRESH = 22                  # L1 distance to the background palette that still counts as green
 MASK_THRESH = 14                # ...and the tighter one used to find the artwork
 LIZARD_DROP = 70                # "just put him a little bit below"
-PITCH = 95                     # column spacing that matches the board's own scatter of trees
+PITCH = 95
+CLEARANCE = 10                  # how far a tree stays off a panel's border, as the artist does                     # column spacing that matches the board's own scatter of trees
 TOP = 686                       # the ground starts just under the Outcast panel
 
 # GROWING THE OUTCAST PANEL. Maintainer: "increase the size of the parchment box with the decals so
@@ -369,7 +370,7 @@ def stem_x(m):
     return int(np.argmax(m.sum(axis=0)))
 
 
-def plant(canvas, mapped, trees, region, clean, rng, pitch=PITCH, jitter=14, overlap=34, tries=16):
+def plant(canvas, mapped, trees, region, keepoff, rng, pitch=PITCH, jitter=14, overlap=34, tries=16):
     """Grow a stem down each column, tree on tree, with their stems lined up.
 
     In a tall stretch of open board the pattern is not a scatter of little trees -- look at either
@@ -407,9 +408,8 @@ def plant(canvas, mapped, trees, region, clean, rng, pitch=PITCH, jitter=14, ove
                 sub = m[ys0 - dy:ys1 - dy, xs0 - dx:xs1 - dx]
                 if flip:
                     sub = sub[:, ::-1]
-                spill = sub & ~region[ys0:ys1, xs0:xs1]
-                if (spill & clean[ys0:ys1, xs0:xs1]).any():
-                    continue                          # would be cut in open green
+                if (sub & keepoff[ys0:ys1, xs0:xs1]).any():
+                    continue
                 src = mapped[c + (ys0 - dy):c + (ys1 - dy), a + (xs0 - dx):a + (xs1 - dx)].astype(np.float32)
                 al = soft(m[ys0 - dy:ys1 - dy, xs0 - dx:xs1 - dx])
                 if flip:
@@ -421,7 +421,9 @@ def plant(canvas, mapped, trees, region, clean, rng, pitch=PITCH, jitter=14, ove
                 placed = True
                 break
             if not placed:
-                break
+                y += 60                    # this spot is fenced off; try further down the column
+                first = False
+                continue
             y = dy + h - int(rng.integers(overlap // 2, overlap))
             first = False
         x += pitch + int(rng.integers(-12, 13))
@@ -471,7 +473,11 @@ def main():
     liz = max((n, c) for c, (n, a, b, cc, e) in info.items()
               if (b - a) < 400 and (e - cc) < 500)[1]
     _, la, lb, lc, le = info[liz]
-    lizard = lab == liz
+    # HIS OWN OUTLINE, NOT THE MASK'S. artwork_mask dilates by 5 so the box's antialiasing comes off
+    # with it, and pasting the lizard through that dilated silhouette laid a ring of the ORIGINAL
+    # plain green around him -- which cut every tree that reached his outline, worst around his head.
+    # Eroding by the same 5 gives back the shape he is actually drawn as.
+    lizard = erode(lab == liz, 5)
     print("   lizard: x %d..%d y %d..%d, dropping %dpx" % (la, lb, lc, le, LIZARD_DROP))
 
     ys, xs = np.where(art)
@@ -498,13 +504,27 @@ def main():
     region[TOP:front.shape[0], 1150:front.shape[1]] = True
     region &= (clean | art)
     out = smooth_ground(front, region, pal, rng)
-    planted = plant(out, mapped, trees, region, clean, rng)
+    # WHAT A TREE MUST KEEP OFF. Not simply "open green": compare the board's own left margin with a
+    # first attempt at this one and the difference is plain -- the artist keeps his trees a clear
+    # band away from a panel's border, where mine crowded up to the ink and had every branch that
+    # reached it sliced flat. So the panels, their inked edges, and a CLEARANCE round them are out of
+    # bounds, and so is any open green outside the region. What is NOT out of bounds is the top of
+    # the region, where a tree passes under the panel above, or the bottom, where it runs off the
+    # board -- both of those are cuts the board makes itself.
+    parch = np.abs(front.astype(int) - np.array([248, 228, 165])).max(axis=-1) < 34
+    parch = dilate(erode(parch, 3), 3)      # opened first: stray parchment-coloured specks inside
+                                            # the region would otherwise dilate into blocks that
+                                            # fence off ground nothing is actually near
+    band = np.zeros(front.shape[:2], bool)
+    band[TOP:front.shape[0], :] = True
+    keepoff = dilate(parch & band, CLEARANCE) | (band & ~region & clean)
+    planted = plant(out, mapped, trees, region, keepoff, rng)
     print("   %d whole trees off the manifest side, planted in %d px of rebuilt ground"
           % (planted, int(region.sum())))
 
     h, w = le - lc + 1, lb - la + 1
     nc = lc + LIZARD_DROP
-    al = soft(lizard[lc:le + 1, la:lb + 1], 1.2)[..., None]
+    al = soft(lizard[lc:le + 1, la:lb + 1], 0.9)[..., None]
     reg = out[nc:nc + h, la:la + w].astype(np.float32)
     out[nc:nc + h, la:la + w] = np.clip(
         reg * (1 - al) + front[lc:le + 1, la:lb + 1].astype(np.float32) * al, 0, 255).astype(np.uint8)
