@@ -1,0 +1,39 @@
+Use your image generation tool to create ONE square image and save it into the current working
+directory as `logo_mark3.png`. Generate it with the image model; do not draw or composite anything
+yourself. Print the absolute path when done.
+
+The SECOND attached image is the full illustration this is a simplified version OF. Keep its SCENE.
+The THIRD attached image is a previous attempt that went too far -- it reduced the birds to four
+floating heads in a heraldic crest, and you can no longer tell they are playing a game. That is the
+mistake to avoid. THE SCENE MUST SURVIVE THE SIMPLIFICATION.
+
+WHAT TO DRAW — a CIRCULAR EMBLEM containing the whole scene, simplified but unmistakable:
+  * FOUR BIRDS SEATED AROUND A ROUND TABLE, seen from across it, evenly spaced in a balanced row,
+    each with head AND shoulders AND body visible above the table -- not heads alone. They are
+    clearly sitting at a table, together, playing. Tell them apart by shape:
+      - a VULTURE with a bald domed head and heavy hooked beak, a cigar in his beak
+      - a HORNED OWL with two sharp ear tufts
+      - a BALD EAGLE with a peaked military cap
+      - a WOODPECKER with a tall spiky swept-back crest
+  * THE GAME BOARD, large and obvious on the table in front of them: a flat shape holding several
+    pale round CLEARINGS joined by clear PATHS, a simple river line, and a few chunky game PIECES
+    standing on it. Anyone must read "they are playing a board game" instantly.
+  * A hanging LAMP above them, a simple shade with a pool of light.
+  * A couple of simple TUMBLERS on the table.
+  * A clean DOUBLE RING border around it all.
+  * NO LETTERING, NO NUMBERS, NO TEXT ANYWHERE -- type is added separately. Leave a clear empty band
+    across the BOTTOM of the circle, below the table, for it to go.
+
+HOW TO DRAW IT — reduced, but still a picture:
+  * FLAT COLOUR. Solid areas with hard clean edges. No gradients, no rendered shading, no texture, no
+    grain, no cross-hatching, no stippling, no speckles or stray pixels.
+  * A LIMITED PALETTE of four colours only: deep near-black brown, a warm parchment cream, a burnt
+    orange, and a muted teal. Nothing else.
+  * LOW DETAIL, BOLD SHAPES. Each bird is a few confident shapes, one eye each as a simple dot or
+    notch. No feather detail, no folds of cloth, no small props, no background clutter, no room.
+  * Like a screen-printed poster or a woodcut of the scene: simple, graphic, strong silhouettes,
+    readable shrunk to 64 pixels -- but STILL A SCENE OF FOUR BIRDS PLAYING A GAME, not a symbol.
+  * Symmetrical and evenly balanced. Background inside the ring is flat cream; outside the ring,
+    transparent.
+
+Square aspect ratio.

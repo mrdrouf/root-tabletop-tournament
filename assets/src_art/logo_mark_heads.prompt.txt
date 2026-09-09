@@ -1,0 +1,43 @@
+Use your image generation tool to create ONE square image and save it into the current working
+directory as `logo_mark2.png`. Generate it with the image model; do not draw or composite anything
+yourself. Print the absolute path when done.
+
+Design a SCHEMATIC EMBLEM -- a flat, minimal logo mark. NOT an illustration, NOT a scene. Think a
+stamped brass club badge or a woodcut printer's device: it must still work embossed on a coin 32
+pixels across.
+
+The SECOND attached image is a first attempt. Its silhouettes were right and everything else was
+wrong: the heads overlapped into one dark blob, they were unevenly spaced, the table grew legs, and
+the edges were crawling with stray speckled pixels. Fix all four.
+
+THE MARK — a CIRCULAR EMBLEM, PERFECTLY SYMMETRICAL about its vertical centre line:
+  * FOUR BIRD HEADS in flat silhouette, ALL THE SAME SIZE, arranged in a shallow arc across the upper
+    half of the circle -- the outer pair set slightly lower than the inner pair and mirroring each
+    other exactly across the centre line. EVENLY SPACED, with a CLEAR GAP of at least half a head's
+    width between neighbours. NO HEAD MAY TOUCH OR OVERLAP ANOTHER; each is its own separate solid
+    shape with clean empty space around it. They are told apart by OUTLINE ALONE, so exaggerate:
+      - far left, a VULTURE: bald domed head, heavy deeply hooked beak, ruff at the neck
+      - inner left, a HORNED OWL: round head, two sharp upright EAR TUFTS, short curved beak
+      - inner right, a BALD EAGLE: smooth head, long strongly curved beak, heavy brow
+      - far right, a WOODPECKER: long straight dagger beak, tall spiky swept-back CREST
+    Give each head exactly ONE eye, as a single small notch of empty space. No pupils, no catchlights.
+  * BELOW THEM, one SINGLE STRAIGHT HORIZONTAL BAR spanning the circle: the table edge. A plain bar
+    and nothing else -- NO LEGS, no perspective, no table top.
+  * SITTING ON THAT BAR, dead centre, a small ABSTRACTED ROOT MAP: a plain flat hexagon holding five
+    dots joined by straight thin lines, and one simple wavy line for a river. Diagrammatic, like a
+    circuit or a metro map.
+  * A clean concentric DOUBLE RING border, both rings of even weight, perfectly circular.
+  * NO LETTERING, NO NUMBERS, NO TEXT ANYWHERE AT ALL. Type is added separately.
+
+HOW IT MUST BE DRAWN — this is the whole brief:
+  * ABSOLUTELY FLAT. Every shape ONE single uniform colour with hard clean edges. No gradients, no
+    shading, no highlights, no texture, no grain, no distressing, no weathering, no brush marks, no
+    speckles, NO stray or scattered pixels anywhere.
+  * EXACTLY THREE COLOURS, no more: a deep near-black brown for the birds and the table bar, a burnt
+    orange for the rings and the hexagon, and empty TRANSPARENT background everywhere else.
+  * BOLD AND SIMPLE. Thick even weights, generous spacing. If a detail would disappear at 32 pixels,
+    leave it out entirely.
+  * The background is fully TRANSPARENT -- no cream, no colour, no scene, no room, no lamp, no depth.
+    Just the emblem floating on nothing, centred, with an even margin all round.
+
+Square aspect ratio.
