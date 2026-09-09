@@ -4003,19 +4003,35 @@ def t_numpad_two_lays_a_warrior_down_and_lights_it(src):
     assert rot == (90.0, 137.0), "it is not lying flat, or laying it down turned it: %s" % (rot,)
     assert pos[1] == 0.03, "it did not settle onto the board, a hair above its foot: y %s" % pos[1]
 
-    # THE PIECE KEEPS ITS OWN PAINT. Every faction's warrior carries its own tint and three of them are
-    # plain white because their colour is in the texture, so "put it back to white" would repaint half
-    # the mod. The outline is what marks it.
+    # THE PIECE KEEPS ITS OWN COLOUR, faded. It used to keep its paint untouched and be marked by the
+    # outline alone; that outline is a thin line and easy to lose on a board of thirty warriors, so
+    # since 2026-09-09 the piece fades as well ("maybe add a like fog effect so the color looks like
+    # it s fader"). What it must never do is come out a DIFFERENT colour, or forget the one it had --
+    # t_a_prisoner_goes_pale covers the fade itself; this covers the piece it is applied to.
+    t = rt.eval("MINE.getColorTint()")
+    assert (round(t.r, 2), round(t.g, 2), round(t.b, 2)) != (1.0, 1.0, 1.0), \
+        "the warrior was not faded: %s" % (t,)
+    assert round(t.r, 4) == round(t.g, 4) == round(t.b, 4), \
+        "a white warrior came out a colour: %s" % (t,)
+    rt.execute('HOVER["Red"] = MINE rttGizmoMark("Red") FLUSH(3)')
     t = rt.eval("MINE.getColorTint()")
     assert (round(t.r, 2), round(t.g, 2), round(t.b, 2)) == (1.0, 1.0, 1.0), \
-        "the warrior was repainted; the outline is what carries the mark now: %s" % (t,)
+        "standing it up did not give the warrior its own colour back: %s" % (t,)
+    rt.execute('HOVER["Red"] = MINE rttGizmoMark("Red") '
+               'MINE.__bounds = {size = Vector({1, 1, 3}), center = Vector({1, 2.5, 1})} FLUSH(3)')
     glow = rt.eval("MINE.__glow")
     assert glow is not None, "numpad 2 did not light the piece"
-    # BLACK. TTS fixes the outline's thickness and gives no intensity, so colour is the only thing that
-    # can make the mark carry -- and a player colour outlines a warrior already painted in it, on a map
-    # printed in the same palette. Maintainer: "make it black highlighted."
-    assert (round(glow.r, 3), round(glow.g, 3), round(glow.b, 3)) == (0.0, 0.0, 0.0), \
-        "the outline is not black: %s %s %s" % (glow.r, glow.g, glow.b)
+    # NOT A PLAYER COLOUR. TTS fixes the outline's thickness and gives no intensity, so colour is the
+    # only thing that can make the mark carry -- and a player colour outlines a warrior already painted
+    # in it, on a map printed in the same palette. It was black on that reasoning ("make it black
+    # highlighted."); it is white while the maintainer looks at both ("can you do a white highlight now
+    # to test instead of the black", 2026-09-09). Either end of the greyscale is the point, so this
+    # pins what it must NOT be rather than which of the two is up.
+    assert round(glow.r, 3) == round(glow.g, 3) == round(glow.b, 3), \
+        "the outline is a colour, not black or white: %s %s %s" % (glow.r, glow.g, glow.b)
+    assert round(glow.r, 3) in (0.0, 1.0), \
+        "the outline is a grey, which reads as neither: %s" % glow.r
+    assert rt.eval("RTT_GLOW_RGB") is not None, "the outline colour is not one named constant"
     assert round(rt.eval("RTT_PLAYER_RGB['Red']")[1], 3) != 0.0, \
         "this check proves nothing if Red is already black"
 
@@ -4202,8 +4218,32 @@ def t_a_prisoner_goes_pale(src):
         assert sorted(range(3), key=lambda i: got[i]) == sorted(range(3), key=lambda i: c[i]), \
             "%s came out a different colour: %s -> %s" % (name, c, got)
 
-    # ALREADY WHITE IS ALREADY DONE -- the crows, the Keepers and the Knaves ship at flat white
-    assert faded((1.0, 1.0, 1.0)) == [1.0, 1.0, 1.0], "a white piece was changed"
+    # AND THE FOUR THAT SHIP AT FLAT WHITE -- the crows, the Keepers, the Knaves and the Infected.
+    # Maintainer, 2026-09-09: "you need to do all possible warrior pieces right." Their colour is
+    # painted into the model rather than laid over it, so moving white toward white is nothing and
+    # those four went down looking exactly as they stood. A tint is a multiplier, so the only lever
+    # left is past 1, which overbrightens the model's own paint.
+    white = faded((1.0, 1.0, 1.0))
+    assert min(white) > 1.0, "a flat-white warrior is not marked at all: %s" % white
+    assert len(set(round(v, 6) for v in white)) == 1, "the overbright is not neutral: %s" % white
+
+    # ...AND ONLY WHEN THE WHOLE COLOUR IS THERE. The Marquise's orange is already 1.0 in red, and
+    # overbrightening that one channel would turn the piece a different colour.
+    cat = faded((1.0, 0.582, 0.260))
+    assert cat[0] <= 1.0, "a piece with one maxed channel was overbrightened: %s" % cat
+
+    # every warrior kind this mod ships, and not one of them left unchanged
+    WARRIORS = {"Cat": (1.000, 0.582, 0.260), "Eyrie": (0.145, 0.457, 0.810),
+                "Alliance": (0.372, 0.793, 0.355), "Lizard Cult": (0.905, 0.898, 0.172),
+                "Riverfolk": (0.246, 0.777, 0.817), "Duchy": (0.939, 0.817, 0.695),
+                "Corvid": (1.0, 1.0, 1.0), "Hundreds": (0.867, 0.118, 0.212),
+                "Keeper": (1.0, 1.0, 1.0), "Council": (0.588, 0.294, 0.176),
+                "Diaspora": (0.690, 0.596, 0.016), "Knaves": (1.0, 1.0, 1.0),
+                "Infected": (1.0, 1.0, 1.0)}
+    for who, c in sorted(WARRIORS.items()):
+        got = faded(c)
+        assert max(abs(a - b) for a, b in zip(got, c)) > 0.05, \
+            "the %s Warrior is not marked: %s -> %s" % (who, c, got)
 
     # AND ON A REAL PIECE, both halves: pale, and still outlined in black
     rt.execute("W = MKOBJ('Eyrie Warrior', {3, 1, 3}, {}) "

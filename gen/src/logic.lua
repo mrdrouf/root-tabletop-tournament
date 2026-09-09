@@ -7088,7 +7088,9 @@ RTT_DISC_TAG = "RTT Laid Disc"   -- still recognised, no longer created: see rtt
 -- is already painted in that colour, on a map printed in the same warm palette -- three greens and a
 -- yellow against green and yellow clearings. Black is the one value none of the seven maps or the
 -- twelve factions use, so it separates from all of them at once.
-RTT_GLOW_RGB = { r = 0, g = 0, b = 0 }
+-- WHITE, on trial. It was black from the start; maintainer, 2026-09-09: "can you do a white
+-- highlight now to test instead of the black". One line either way.
+RTT_GLOW_RGB = { r = 1, g = 1, b = 1 }
 -- A PRISONER GOES PALE. The black outline above says "this piece is marked"; on a board of thirty
 -- warriors it is a thin line and easy to lose. Maintainer, 2026-09-09: "can you make the color of the
 -- piece brighter. so each piece keeps its color but becomes much brighter; still with the black
@@ -7100,14 +7102,28 @@ RTT_GLOW_RGB = { r = 0, g = 0, b = 0 }
 -- piece its own colour, washes it out like fog, and can never clip -- a red stays red and a white
 -- stays white, which is the answer to "if its already white then thats it".
 --
--- Scaling the value up instead was the other option and is wrong for this table: eight factions'
--- warriors carry a real faction colour and would have brightened, but the crows, the Keepers and the
--- Knaves ship at flat white, where there is no headroom at all and only a tint above 1 would show --
--- which TTS may clamp, and which shifts a saturated colour's hue when it does.
 -- 0.55 was the first try and read as washed out -- maintainer, 2026-09-09: "a bit less pale".
 RTT_PRISONER_FADE = 0.40
 
--- The piece's colour, moved RTT_PRISONER_FADE of the way to white.
+-- AND EVERY WARRIOR, NOT JUST THE TEN THAT HAPPEN TO BE TINTED. Maintainer, 2026-09-09: "you need to
+-- do all possible warrior pieces right."
+--
+-- Fourteen kinds of warrior ship in this mod and four of them -- the crows, the Keepers, the Knaves
+-- and the Infected -- carry a flat white ColorDiffuse: their colour is painted into the model, not
+-- laid over it. Moving white toward white is nothing, so those four went down looking exactly as they
+-- stood, and the rule read as working when it only worked for ten.
+--
+-- A tint is a MULTIPLIER, so the only lever left on a white one is to push it past 1, which
+-- overbrightens the model's own paint -- on a dark model, which is what all four are, that lifts it
+-- toward grey and reads as the same fog. Whether TTS honours a tint above 1 or clamps it is not
+-- something this repo can answer without the table; if it clamps, those four fall back to what they
+-- have always had, which is the highlight.
+--
+-- The test is on the WHOLE colour, never per channel: the Marquise's orange is already 1.0 in red,
+-- and overbrightening that channel alone would turn the piece a different colour.
+RTT_PRISONER_OVER = 1.0 + RTT_PRISONER_FADE
+
+-- The piece's colour, moved RTT_PRISONER_FADE of the way to white -- or past it, if it is there.
 function rttFaded(c)
   if c == nil then return nil end
   local k = RTT_PRISONER_FADE
@@ -7115,6 +7131,10 @@ function rttFaded(c)
   local g = (c.g ~= nil) and c.g or c[2]
   local b = (c.b ~= nil) and c.b or c[3]
   if r == nil or g == nil or b == nil then return nil end
+  if r >= 1 and g >= 1 and b >= 1 then
+    local o = RTT_PRISONER_OVER
+    return { r * o, g * o, b * o }
+  end
   return { r + (1 - r) * k, g + (1 - g) * k, b + (1 - b) * k }
 end
 -- TTS's own player colours. Read from a table rather than Color.fromString so the answer is the same
