@@ -11,9 +11,12 @@ morphology outright rather than keeping a second copy: key the card's ground out
 character stands on, lay it on the button's own colour so no rectangle shows around him.
 
 What differs is the ground. The Adventurer stands on a flat lilac wall; the otter is up to his waist in
-teal water drawn with gold ripples, so the key is WARMTH -- water is far bluer than it is red and every
-part of him (fur, cream chest, bandana, the yellow raft) is far redder than it is blue. The ripples are
-not water by that test, but they float free of him, so the island test drops them.
+teal water, so the key is WARMTH -- water is far bluer than it is red and every part of him (fur, cream
+chest, bandana, the yellow raft) is far redder than it is blue.
+
+The water is also drawn OVER him at the waterline, in blue ripple strokes across his flippers, and
+those cannot be keyed out: their blue is his vest's blue. unripple() paints them out on thickness
+instead, which is the one thing that does separate them.
 
 Reads the card face as Steam serves it and writes assets/src_art/flotilla_button.png, which
 tools/relabel.py turns into the button.
@@ -64,8 +67,8 @@ PARCH_BR = -80                         # ...and warm, but not as warm as his fur
 
 SEAL = 2                               # closes his drawn outline before the ground is flooded
 SEED = (196, 215)                      # his face, in window coordinates
-TRIM = 2                               # the card bleeds into his antialiased edge; against the pale
-                                       # panel one pixel was not enough and left a white rim
+TRIM = 3                               # the card bleeds into his antialiased edge; against the pale
+                                       # panel two pixels still left scraps of it on his ears
 FEATHER = 0.7
 
 # HIS VEST IS BLUE AND THE WATER IS TEAL, which is the whole of how the enclosed pockets are told
@@ -78,6 +81,15 @@ FEATHER = 0.7
 # vest and -7 to -9 on the water, and the scrap of panel caught by his ear is -50. Nothing sits
 # between.
 POCKET_BG = 20                         # blue-over-green: above it the pocket is him, below it is not
+
+RIPPLE = 4                             # a ripple stroke is about this wide; his vest is dozens
+RIPPLE_FRINGE = 2                      # ...plus the antialiasing the colour key does not see
+# AND ONLY BELOW THE WATERLINE. Thinness alone is not enough: his vest has folds and edges that an
+# opening drops too, and the raft in his arms carries a blue card whose outline is a thin blue stroke
+# by any measure -- painting those out washed his chest and blanked the card. Measured on the strokes
+# the opening finds: the ripples that cross him run y 262..298, and the nearest thing above them that
+# is his own runs to y 206. Nothing of his is down there but flippers.
+RIPPLE_TOP = 240                       # the row the water starts crossing him, in window coordinates
 
 
 def figure_mask(win):
@@ -109,6 +121,55 @@ def pockets_of_his(a, pocket):
     return keep
 
 
+def unripple(win, him):
+    """The card's own water ripples, painted out from where they cross him.
+
+    Maintainer, 2026-09-10, on the blue squiggles left across his flippers: "these lines should not be
+    there it s residual from the place you copied."
+
+    They are the river drawn OVER him at the waterline -- part of the card's water, not part of the
+    otter -- and they cannot be keyed out by colour: their median is (79,168,230) and his vest's is
+    (87,170,213), which is the same blue. Nor can they be left as holes: cut out, they would show the
+    button through his feet.
+
+    What separates them is THICKNESS. His vest is a mass several dozen pixels across; a ripple is a
+    stroke about four wide. An opening removes the strokes and leaves the mass, so what the opening
+    drops is exactly what should not be there -- and it is painted over from its own surroundings,
+    which is his yellow, rather than cut away.
+    """
+    a = win.astype(float)
+    blue = ((a[..., 2] - a[..., 0]) > WATER_BR) & (a[..., 1] > WATER_G) & him
+    solid = dilate(erode(blue, RIPPLE), RIPPLE)
+    # GROWN BEFORE IT IS PAINTED OVER. A stroke's own antialiasing is a blue fringe wider than the
+    # stroke, and the colour key misses it -- painting only the core left a grey ghost of each
+    # squiggle. The growth is held out of `solid`, so it can never eat into his vest.
+    strokes = dilate(blue & ~dilate(solid, RIPPLE), RIPPLE_FRINGE) & him & ~solid
+    strokes[:RIPPLE_TOP, :] = False
+    if not strokes.any():
+        return a
+    # nearest-neighbour repaint: each pass gives every stroke pixel the mean of the settled pixels
+    # touching it, so the fill grows in from the edges of the stroke until it closes
+    out = a.copy()
+    todo = strokes.copy()
+    for _ in range(RIPPLE * 6):
+        if not todo.any():
+            break
+        src = him & ~todo
+        tot = np.zeros_like(out)
+        cnt = np.zeros(todo.shape, float)
+        for dy, dx in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+            n = np.roll(np.roll(src, dy, 0), dx, 1)
+            v = np.roll(np.roll(out, dy, 0), dx, 1)
+            tot += np.where(n[..., None], v, 0.0)
+            cnt += n
+        fill = todo & (cnt > 0)
+        if not fill.any():
+            break
+        out = np.where(fill[..., None], tot / np.maximum(cnt, 1)[..., None], out)
+        todo &= ~fill
+    return out
+
+
 def main():
     if not os.path.exists(SRC):
         sys.exit("missing %s" % SRC)
@@ -118,6 +179,7 @@ def main():
 
     alpha = figure_mask(win)
     ys, xs = np.where(alpha > 0.5)
+    win = unripple(win, alpha > 0.5)
 
     ground = np.empty_like(win, dtype=float)
     ground[...] = GROUND
