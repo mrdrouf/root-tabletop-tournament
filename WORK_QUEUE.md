@@ -105,7 +105,15 @@ Nothing below is implemented. The maintainer asked to be consulted before each c
 
 ### Bugs
 
-- [ ] **Objects spawn but some clients never see them (distant connections).** Diagnosed
+- [~] **Objects spawn but some clients never see them (distant connections).** PARTLY BUILT.
+      In as of v1.161: the Resync BUTTON and the sweep behind it (manual only -- `RTT_RESYNC_AUTO` is
+      false, so nothing sweeps in the background), and all four move-while-locked sites. NOT in:
+      spawn staggering (item 1) and the automatic sweeps (part of item 2). The GUID strip (item 4) is
+      permanently out -- it breaks every spawn path, see the brief.
+      STILL OPEN, and only the maintainer can answer it: does TTS replicate a tag change to clients at
+      all? Force the bug, press Resync. If the object does not appear, set `RTT_RESYNC_MODE = "tint"`,
+      then `"lock"`. Write the answer into the brief. Original entry:
+- [ ] Diagnosed
       2026-09-10. Items 1-4 were built that day (v1.154), BROKE THE MOD TWICE and were reverted in
       full in v1.156 -- nothing from the brief is shipped. Read "What went wrong" at the END of the
       brief before re-building any of it: the diagnosis still stands, but the GUID strip is not safe

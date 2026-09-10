@@ -1702,6 +1702,210 @@ function rttAfterFrames(fn, n)
   Wait.frames(function() if RTT_RUN_ID == id then fn() end end, n)
 end
 
+-- ---- Resync: re-send every object to every client ----------------------------------------------
+-- Objects the mod spawns sometimes never appear for SOME players: always on a distant, high-latency
+-- connection, never for the whole table, cured by unlock-then-lock on the missing piece or by that
+-- player rejoining. It happens in the original Root mod and the Ultimate mod too. MULTIPLAYER_SYNC.md
+-- holds the diagnosis, the fixes that were ruled out, and the post-mortem of the first attempt.
+--
+-- A script spawn reaches a client as an INCREMENTAL create message; a distant client drops one;
+-- nothing ever re-sends it. The rejoin cure proves it -- a rejoin pulls a fresh full snapshot, so the
+-- host's own state was right all along and only the incremental apply is lossy. Lock is not the cause,
+-- only why you notice: an unlocked object rejoins the transform sync the first time anyone moves it.
+--
+-- THE HOST CANNOT DETECT IT. It has no idea what any client is missing, so the repair is an
+-- unconditional blind resend of everything, and it runs entirely on the host: one sweep repairs every
+-- broken client at once, with no client-side code.
+--
+-- THE PRIMITIVE IS THE ONE THING STILL UNPROVEN. The lock toggle is empirical -- the maintainer cures
+-- the bug by hand with it. The tag toggle is the same idea with no physics, no render change and no
+-- transform snapshot, but only host-side Lua ever READS a tag, so there is a real chance TTS does not
+-- replicate a tag change at all, in which case the button does nothing. It is one constant with two
+-- written fallbacks, so switching is an edit, not a rewrite:
+--
+--   "tag"   nothing to undo, nothing physical                  -- UNVERIFIED
+--   "tint"  one blue channel nudged by 1/255 and put back      -- inert, and certainly replicated,
+--                                                                 because it is a render property
+--   "lock"  proven, but it touches physics: toggled to the opposite value and back, with position,
+--           rotation and velocity restored exactly
+RTT_RESYNC_MODE      = "tag"          -- "tag" | "tint" | "lock"
+RTT_RESYNC_TAG       = "RTT Resync"
+RTT_RESYNC_PER_FRAME = 15             -- a 350-object table is ~24 frames, about 400 ms
+RTT_RESYNC_HOLD      = 2              -- frames between the touch and putting it back
+RTT_RESYNC_BUSY      = false
+RTT_RESYNC_TOKEN     = 0
+-- Read by rttFreeUnlockedPrisoners, which ticks every second and stands a prisoner back up the moment
+-- it finds one unlocked. In "lock" mode a swept object is unlocked for two frames, so that tick would
+-- silently undo the gizmo. Prisoners are skipped outright as well; this guard is belt and braces so
+-- that changing RTT_RESYNC_MODE can never quietly break them.
+RTT_RESYNCING        = false
+
+-- What a sweep must not touch. Every one of these is load-bearing.
+function rttResyncSkip()
+  local skip = {}
+  -- the coordinator board itself: it carries the live XML UI, and this file already records that
+  -- meddling with a live XML UI has left TTS unable to hand out player colours until a server restart
+  pcall(function() skip[self.getGUID()] = true end)
+  -- a laid prisoner, and the disc that marks it -- see RTT_RESYNCING above
+  for guid, was in pairs(RTT_LAID or {}) do
+    skip[guid] = true
+    if type(was) == "table" and was.disc ~= nil then skip[was.disc] = true end
+  end
+  -- and anything sitting in somebody's hand. A card in a hand belongs to that player's zone; never
+  -- reach into one.
+  pcall(function()
+    for _, c in ipairs(getSeatedPlayers()) do
+      pcall(function()
+        for _, o in ipairs(Player[c].getHandObjects()) do
+          pcall(function() skip[o.getGUID()] = true end)
+        end
+      end)
+    end
+  end)
+  return skip
+end
+
+function rttResyncTouch(o)
+  local mode = RTT_RESYNC_MODE
+  if mode == "tint" then
+    pcall(function()
+      local c = o.getColorTint()
+      local r, g, b = c.r, c.g, c.b
+      local nb = b + ((b > 0.5) and -(1 / 255) or (1 / 255))
+      o.setColorTint({ r = r, g = g, b = nb })
+      Wait.frames(function()
+        pcall(function() o.setColorTint({ r = r, g = g, b = b }) end)
+      end, RTT_RESYNC_HOLD)
+    end)
+  elseif mode == "lock" then
+    pcall(function()
+      local was = (o.getLock() == true)
+      local p, r = o.getPosition(), o.getRotation()
+      o.setLock(not was)
+      Wait.frames(function()
+        pcall(function()
+          -- only a LOCKED object went dynamic; freezing a resting one and unfreezing it disturbs
+          -- nothing, so there is nothing to put back
+          if was then
+            pcall(function() o.setVelocity({ 0, 0, 0 }) end)
+            pcall(function() o.setAngularVelocity({ 0, 0, 0 }) end)
+            o.setPosition({ p.x, p.y, p.z })
+            o.setRotation({ r.x, r.y, r.z })
+          end
+          o.setLock(was)
+        end)
+      end, RTT_RESYNC_HOLD)
+    end)
+  else
+    pcall(function()
+      if o.hasTag(RTT_RESYNC_TAG) then return end     -- a sweep that overlapped: leave its undo alone
+      local guid = o.getGUID()
+      o.addTag(RTT_RESYNC_TAG)
+      -- ...and the undo re-resolves too: two frames is long enough for the object to have been
+      -- destroyed, and taking a tag off a destroyed object is the same null as touching one
+      Wait.frames(function()
+        pcall(function()
+          local x = getObjectFromGUID(guid)
+          if x ~= nil then x.removeTag(RTT_RESYNC_TAG) end
+        end)
+      end, RTT_RESYNC_HOLD)
+    end)
+  end
+end
+
+-- One pass over everything on the table, staggered like the spawns for the same reason: un-staggered
+-- it would be the exact burst it exists to repair.
+--
+-- SCOPE IS getAllObjects() MINUS EXCLUSIONS, not a tag. Tag coverage across the mod's 33 spawn sites
+-- is too uneven to build on -- eleven add no tag in their own callback, some tag through a shared
+-- closure, others take an optional tag the caller may not pass -- so a tag-scoped sweep would silently
+-- miss objects. A full sweep cannot.
+--
+-- The frame waits here are BARE Wait.frames, not rttAfterFrames: a sweep is not part of a setup
+-- chain, and one abandoned half-way would leave RTT_RESYNC_BUSY true for the rest of the session.
+function rttResyncSweep(done, retry)
+  if RTT_RESYNC_BUSY then
+    if retry == true then Wait.time(function() rttResyncSweep(done, false) end, 1.0) end
+    return false
+  end
+  RTT_RESYNC_BUSY = true
+  RTT_RESYNCING = true
+  local skip = rttResyncSkip()
+  local all, list = {}, {}
+  pcall(function() all = getAllObjects() end)
+  -- GUIDS, NOT OBJECT REFERENCES. The sweep runs over about two dozen frames and a draft destroys
+  -- objects the whole time it is running -- every selector board goes as its seat picks. Holding the
+  -- reference means touching a destroyed object, which is a null on TTS's side of the binding, not a
+  -- Lua error, so a pcall around it is not the guarantee it looks like. Re-resolving means a piece
+  -- that has gone since the list was built simply is not there.
+  for _, o in ipairs(all) do
+    local take, guid = false, nil
+    pcall(function()
+      guid = o.getGUID()
+      take = (o.held_by_color == nil) and (skip[guid] ~= true)
+    end)
+    if take and guid ~= nil then list[#list + 1] = guid end
+  end
+  local i = 1
+  local function pump()
+    local n = 0
+    while i <= #list and n < RTT_RESYNC_PER_FRAME do
+      local o = nil
+      pcall(function() o = getObjectFromGUID(list[i]) end)
+      if o ~= nil then rttResyncTouch(o) end
+      i = i + 1
+      n = n + 1
+    end
+    if i <= #list then
+      Wait.frames(pump, 1)
+    else
+      Wait.frames(function()
+        RTT_RESYNCING = false
+        RTT_RESYNC_BUSY = false
+        if done ~= nil then done(#list) end
+      end, RTT_RESYNC_HOLD + 2)
+    end
+  end
+  pump()
+  return true
+end
+
+-- TWO SWEEPS AFTER THE TABLE STOPS CHANGING. Every staggered spawn arms this, and arming again pushes
+-- the pair back, so a whole setup -- five factions, a map, a deck -- resolves to ONE pair of sweeps
+-- two seconds after the last piece is asked for. The second pass at six seconds is not redundant: it
+-- covers a message the FIRST pass itself dropped. The sweep is idempotent by construction, so an
+-- extra pass costs nothing.
+--
+-- NOTHING RUNS ON A HEARTBEAT. These are one-shots, and the button below is the only other way in. A
+-- resync loop would be constant network churn for no benefit.
+-- OFF BY DEFAULT, and nothing calls it. A sweep writes state to every object on the table, and the
+-- first version armed a pair after EVERY spawn -- which on a connection already dropping messages is
+-- more traffic in the same window as a draft where every click has to round-trip. Until the primitive
+-- below is proven to replicate at all, the button is the only way in and an unpressed build costs
+-- exactly nothing. Set RTT_RESYNC_AUTO = true to arm the pair again.
+RTT_RESYNC_AUTO = false
+
+function rttResyncArm()
+  if RTT_RESYNC_AUTO ~= true then return end
+  RTT_RESYNC_TOKEN = RTT_RESYNC_TOKEN + 1
+  local tok = RTT_RESYNC_TOKEN
+  for _, sec in ipairs({ 2.0, 6.0 }) do
+    Wait.time(function() if RTT_RESYNC_TOKEN == tok then rttResyncSweep() end end, sec)
+  end
+end
+
+-- THE RESYNC BUTTON. It will still happen occasionally -- the automatic sweeps cannot cover a message
+-- dropped at a moment nobody spawned anything -- and one person pressing a button beats the whole
+-- table logging out. It destroys nothing, so it carries no warning and is not in RTT_WIPE_BTN; the
+-- debounce is the sweep's own busy flag, so a player mashing it cannot stack sweeps.
+function rttResyncClick(player, value, id)
+  local ran = rttResyncSweep(function(n)
+    pcall(function() broadcastToAll("Resync: " .. tostring(n) .. " objects re-sent.", { 0.66, 0.82, 0.86 }) end)
+  end)
+  if ran then
+    pcall(function() broadcastToAll("Resyncing the table...", { 0.66, 0.82, 0.86 }) end)
+  end
+end
 -- Everything a game puts on the table, in one place. Both setup paths call this, so a new tag can
 -- never again be swept by one path and leaked by the other. Two leaks this fixes: the Pond tagged
 -- itself "RTT Pond" and nothing cleared it, and the Lizard Wizard was tagged plain "Faction" -- one
@@ -5534,6 +5738,11 @@ RTT_MAP_LOCK_GUID = nil
 -- again -- and there is no unlock event to hear, which is why this rides the same tick the map's lock
 -- does. RTT_LAID holds only the pieces that are down, so it is a handful of lookups.
 function rttFreeUnlockedPrisoners()
+  -- NOT WHILE A RESYNC SWEEP IS IN FLIGHT. In "lock" mode the sweep unlocks an object for two frames,
+  -- and this tick stands a prisoner back up the instant it finds one unlocked -- so a tick landing in
+  -- that gap would silently undo the gizmo. Prisoners are skipped by the sweep as well; this keeps
+  -- that true if RTT_RESYNC_MODE is ever changed.
+  if RTT_RESYNCING then return end
   for guid in pairs(RTT_LAID or {}) do
     local o = getObjectFromGUID(guid)
     if o == nil then
@@ -5715,10 +5924,12 @@ function rttSpawnLandmarkAt(name, mx, my, mz, cx, cy, cz, mrotY, crotZ, cscale)
         position = { cx, cy, cz },
         rotation = { 0, 180, crotZ },
         callback_function = function(o)
+          -- SCALED BEFORE IT IS FROZEN. Applying a scale to an already-locked object is the same class
+          -- of write as moving one: the host takes it and clients may not.
+          if cscale ~= nil then pcall(function() o.setScale({ cscale, 1.0, cscale }) end) end
           o.setLock(true)
           o.addTag("Map Object")
           o.addTag(RTT_HELPER_TAG)     -- it stands in the helper row, so the Flotilla makes way for it
-          if cscale ~= nil then pcall(function() o.setScale({ cscale, 1.0, cscale }) end) end
         end
       })
     else
@@ -6207,8 +6418,13 @@ function rttPlaceFlotillaCard()
     pcall(function() helper = (o.hasTag(RTT_HELPER_TAG) == true) end)
     if not helper then
       pcall(function()
+        -- with the lock off, like its sibling card three lines above: a locked object moved in place
+        -- does not replicate, so clients would keep the boat where it first landed
         local p = o.getPosition()
+        local was = (o.getLock() == true)
+        if was then o.setLock(false) end
         o.setPosition({ x, p.y, RTT_HELPER_BOTTOM - RTT_FLOTILLA_BOAT_DROP })
+        if was then o.setLock(true) end
       end)
     end
   end
@@ -6609,9 +6825,21 @@ function shuffleMaps(id)
   end
   -- ONCE. shuffle() is a correct Fisher-Yates, so one pass is already a uniform permutation and
   -- composing thirty of them just gives another uniform permutation -- 29 wasted passes per map build.
+  -- MOVED WITH THE LOCK OFF. Moving a LOCKED object does not replicate: the host puts it in its new
+  -- place and clients keep looking at the old one. On the clearing markers below that is not a missing
+  -- piece but a silently WRONG board -- a client reading the pre-shuffle suit layout all game. 17 of
+  -- the 24 ruin entries and 72 of the 84 marker blobs ship Locked:true. The mod already does this
+  -- correctly in rttLayHelperRow (unlock, move, lock); these two shuffles did not. Whatever lock state
+  -- a piece had is put back, so nothing else changes.
   ruins = shuffle(ruins)
   for x=1, #ruins do
-    ruins[x].setPosition(positions[x])
+    pcall(function()
+      local o = ruins[x]
+      local was = (o.getLock() == true)
+      if was then o.setLock(false) end
+      o.setPosition(positions[x])
+      if was then o.setLock(true) end
+    end)
   end
 
   local clearingMarkers = getObjectsWithTag("Clearing Marker")
@@ -6628,8 +6856,14 @@ function shuffleMaps(id)
   -- an accidentally-correct line into a genuinely wasteful one to match its neighbour above.
   clearingMarkers = shuffle(clearingMarkers)
   for x=1, #clearingMarkers do
-    clearingMarkers[x].setPosition(positions[x])
-    clearingMarkers[x].setRotation(rotations[x])
+    pcall(function()
+      local o = clearingMarkers[x]
+      local was = (o.getLock() == true)
+      if was then o.setLock(false) end
+      o.setPosition(positions[x])
+      o.setRotation(rotations[x])
+      if was then o.setLock(true) end
+    end)
   end
 
   local shuffleableDecks = getObjectsWithTag("Shuffleable")

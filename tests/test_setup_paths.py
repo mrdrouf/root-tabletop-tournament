@@ -2506,14 +2506,15 @@ def t_the_two_free_button_slots_are_bottom_right(src):
     # between the two option rows at the bottom.
     top, bottom = rows.get(-47.4, {}), rows.get(-70.0, {})
     assert len(top) == 6, "the first tool row has %d of 6 slots filled: %s" % (len(top), sorted(top))
-    # x=19 is spare again: the Rowdy Riverboat moved into the More page on 2026-09-10, and Credits
-    # went with it, which is what freed the last slot for More itself.
+    # AND FULL AGAIN. x=19 came free when the Rowdy Riverboat and Credits moved into the More page on
+    # 2026-09-10; Resync took it the same day. There is nowhere left to put a button without moving
+    # one, which is the thing worth knowing before the next one is asked for.
     free = [s for s in SLOTS if s not in bottom]
-    assert free == [19.0], "the last row's spare slots are %s; only 19 should be free" % free
+    assert free == [], "the last row has spare slots %s; the board is full" % free
     # THE LAST ROW, in the order he set it on 2026-09-10: "4 player setup, 5 player setup, 5 players
     # marsh, Rowdy Riverboat, Clear all items, credit."
     ORDER = ((-95.0, "rttFourBoardsBtn"), (-57.0, "Marsh5PSetup"), (-19.0, "Marsh5PMap"),
-             (57.0, "rttClearAllBtn"), (95.0, "rttMoreBtn"))
+             (19.0, "rttResyncBtn"), (57.0, "rttClearAllBtn"), (95.0, "rttMoreBtn"))
     for x0, bid in ORDER:
         assert bottom.get(x0) == bid, "x=%s of the last row holds %s, not %s" % (x0, bottom.get(x0), bid)
     assert top.get(57) == "Faction Cards", "x=57 of row 1 holds %r, not Faction Cards" % top.get(57)
@@ -6391,6 +6392,167 @@ def t_pressing_a_setup_button_twice_touches_nothing_dead(src):
             label, len(nulls), nulls[0][:150])
 
 
+def t_the_resync_sweep_resends_everything_it_may_touch(src):
+    """One blind pass over the table, skipping the four things it must never touch.
+
+    MULTIPLAYER_SYNC.md: the host cannot detect what a client is missing, so the repair is an
+    unconditional blind resend. Unlock-then-lock cures it by hand because setLock is an authoritative
+    object-state write -- a client that applies it and finds it has no such object takes the full
+    object state from that message. Nothing about being locked matters, so the sweep uses the cheapest
+    write there is; the mode is one constant with two proven fallbacks behind it.
+
+    THE EXCLUSIONS ARE THE TEST. A missed object is a cosmetic bug; a freed prisoner or a card yanked
+    out of somebody's hand is a real one.
+    """
+    rt = fresh(src)
+    rt.execute("PLAIN = MKOBJ('Warrior', {1, 11.6, 1}, {}) "
+               "HELD  = MKOBJ('Held', {2, 11.6, 2}, {}) HELD.held_by_color = 'Red' "
+               "JAIL  = MKOBJ('Cat Warrior', {3, 11.6, 3}, {}) JAIL.setLock(true) "
+               "RTT_LAID[JAIL.getGUID()] = { rot = {0,0,0}, pos = {3,11.6,3}, who = 'Red' }")
+    tag = rt.eval("RTT_RESYNC_TAG")
+
+    ran = rt.eval("function() return rttResyncSweep() end")()
+    assert ran is True, "the sweep refused to run on an idle table"
+    marked = lambda o: rt.eval("function() return %s.hasTag('%s') end" % (o, tag))()
+    assert marked("PLAIN") is True, "the sweep skipped an ordinary object"
+    assert marked("HELD") is False, "the sweep reached into a player's hands"
+    assert marked("JAIL") is False, "the sweep touched a laid prisoner"
+    assert rt.eval("function() return self.hasTag('%s') end" % tag)() is False, \
+        "the sweep touched the coordinator board, which carries the live XML UI"
+
+    # AND IT PUTS EVERYTHING BACK. A mark left on is a mark the next sweep will not make.
+    rt.execute("FLUSH(20)")
+    assert marked("PLAIN") is False, "the resync mark was never taken off again"
+    assert rt.eval("RTT_RESYNC_BUSY") is False, "the sweep never released its own busy flag"
+    assert rt.eval("RTT_RESYNCING") is False, "the prisoner guard was left armed"
+
+    # THE PRISONER GUARD. rttFreeUnlockedPrisoners ticks every second and stands a prisoner up the
+    # moment it finds one unlocked -- and the "lock" fallback unlocks a swept object for two frames.
+    rt.execute("RTT_RESYNCING = true JAIL.setLock(false) rttFreeUnlockedPrisoners()")
+    assert rt.eval("function() return RTT_LAID[JAIL.getGUID()] ~= nil end")() is True, \
+        "the prisoner gizmo undid itself during a sweep"
+    rt.execute("RTT_RESYNCING = false rttFreeUnlockedPrisoners()")
+    assert rt.eval("function() return RTT_LAID[JAIL.getGUID()] == nil end")() is True, \
+        "the guard stayed on after the sweep and the gizmo stopped working"
+
+    # DEBOUNCED, so a player mashing the button cannot stack sweeps on each other
+    rt = fresh(src)
+    rt.execute("for i = 1, 40 do MKOBJ('P' .. i, {i, 11.6, 0}, {}) end")
+    assert rt.eval("function() return rttResyncSweep() end")() is True
+    assert rt.eval("function() return rttResyncSweep() end")() is False, \
+        "a second sweep started while the first was still running"
+
+    # ...AND NOTHING RUNS BY ITSELF AT ALL. The first version armed a pair of sweeps after every
+    # spawn; a sweep writes state to every object on the table, which on a connection already dropping
+    # messages is more traffic in the same window as a draft where every click round-trips. Until the
+    # primitive is proven to replicate, the button is the only way in and an unpressed build costs
+    # nothing.
+    assert rt.eval("RTT_RESYNC_AUTO") is not True, \
+        "the automatic sweeps are armed again before the primitive has been proven"
+    body = src[src.index("function rttResyncArm()"):]
+    body = body[:body.index("\nend")]
+    assert "-1" not in body, "the resync arm schedules a repeating tick: %s" % body
+    assert "RTT_RESYNC_AUTO ~= true then return" in body, \
+        "rttResyncArm no longer honours the off switch"
+
+
+
+def t_the_resync_button_asks_nothing_and_destroys_nothing(src):
+    """A Resync button in the second row, wired straight to the sweep.
+
+    Maintainer, 2026-09-10: "build the resych button in the second row for handling persistent bug."
+
+    It is the manual half of the same repair: the automatic sweeps run after a spawn, and a message
+    dropped at a moment nobody spawned anything is only reachable by hand. It destroys nothing, so it
+    is not in RTT_WIPE_BTN and carries no warning -- one click and it runs.
+    """
+    x = json.load(open(os.path.join(REPO, "dist/Root_Tabletop_Tournament.json"), encoding="utf-8"))
+    def walk(objs):
+        for o in objs:
+            yield o
+            for c in (o.get("ContainedObjects") or []):
+                yield from walk([c])
+    board = [o for o in walk(x["ObjectStates"]) if o.get("GUID") == "bab7e1"][0]
+    xml = board["XmlUI"]
+
+    m = re.search(r'<Button id="rttResyncBtn"[^>]*>', xml)
+    assert m, "there is no Resync button on the board"
+    seg = m.group(0)
+    assert 'onclick="rttResyncClick"' in seg, "Resync is not wired to the sweep: %s" % seg
+    assert 'position="19 -70 ' in seg, "Resync is not in the second option row: %s" % seg
+    assert 'icon="ResyncArt"' in seg, "Resync has no label art: %s" % seg
+    assets = {a.get("Name"): a.get("URL") for a in (board.get("CustomUIAssets") or [])}
+    assert "ResyncArt" in assets, "the board declares no ResyncArt asset"
+    assert assets["ResyncArt"].endswith(".png"), assets["ResyncArt"]
+
+    # it sits in the group More swaps out, like every other option button
+    rows = xml[xml.find('<ToggleGroup id="optionRows"'):]
+    rows = rows[:rows.find("</ToggleGroup>")]
+    assert 'id="rttResyncBtn"' in rows, "Resync is outside the option rows"
+
+    # IT NEVER ASKS, because it takes nothing away
+    rt = fresh(src)
+    assert rt.eval("RTT_WIPE_BTN['rttResyncBtn']") is None, \
+        "Resync is registered as a destructive button"
+    rt.execute("PLAIN = MKOBJ('Warrior', {1, 11.6, 1}, {}) "
+               "pcall(function() rttResyncClick(Player['Red'], '', 'rttResyncBtn') end)")
+    assert rt.eval("function() return PLAIN.hasTag(RTT_RESYNC_TAG) end")() is True, \
+        "the button did not run a sweep"
+    rt.execute("FLUSH(20)")
+    assert rt.eval("function() return PLAIN.__dead end")() is False, \
+        "the Resync button destroyed something"
+
+
+def t_a_resync_survives_the_table_changing_under_it(src):
+    """The sweep touches no dead handle, however hard the table is churned while it runs.
+
+    A sweep runs over about two dozen frames and a draft destroys objects the whole time it is going
+    -- every selector board goes as its seat picks, a map change takes everything on the board. The
+    first version held the object handles it collected; this one keeps GUIDS and re-resolves each one
+    at the moment it touches it, undo included, so a piece that has gone since the list was built is
+    simply not there.
+
+    That distinction is the difference between a repair and a second bug: touching a destroyed object
+    is a C# null on TTS's side -- "Object reference not set to an instance of an object" -- which is
+    exactly the error the sweep exists to stop people seeing, and which pcall does not catch.
+
+    It also has to leave nothing behind: a resync mark left on an object is a mark the next sweep will
+    skip, so the repair would quietly stop working for that piece.
+    """
+    WRAP = ("NULLS = {} local _p = pcall "
+            "pcall = function(f, ...) local ok, e = _p(f, ...) "
+            "  if not ok and tostring(e):find('Object reference not set') then "
+            "    NULLS[#NULLS+1] = tostring(e) end "
+            "  return ok, e end ")
+    CASES = (
+        ("a full table",
+         "pcall(function() rttSetup(Player['Red'],'','rttRankedBtn') end) FLUSH(250) NULLS={} "
+         "rttResyncClick(Player['Red'],'','rttResyncBtn') FLUSH(60)"),
+        ("a new game starting under it",
+         "pcall(function() rttSetup(Player['Red'],'','rttRankedBtn') end) FLUSH(250) NULLS={} "
+         "rttResyncClick(Player['Red'],'','rttResyncBtn') "
+         "pcall(function() rttSetup(Player['Red'],'','rttRankedBtn') end) FLUSH(250)"),
+        ("a map rebuilt under it",
+         "pcall(function() makeMap('','','Marsh Map') end) FLUSH(150) NULLS={} "
+         "rttResyncClick(Player['Red'],'','rttResyncBtn') "
+         "pcall(function() makeMap('','','Gorge Map') end) FLUSH(200)"),
+        ("the button mashed ten times",
+         "pcall(function() rttSetup(Player['Red'],'','rttRankedBtn') end) FLUSH(250) NULLS={} "
+         "for i=1,10 do rttResyncClick(Player['Red'],'','rttResyncBtn') end FLUSH(60)"),
+    )
+    for label, body in CASES:
+        rt = fresh(src)
+        rt.execute(WRAP + body)
+        nulls = rt.eval("NULLS")
+        nulls = list(dict(nulls).values()) if nulls else []
+        assert not nulls, "resync with %s touched %d dead handle(s): %s" % (
+            label, len(nulls), nulls[0][:140])
+        left = rt.eval("function() local n = 0 "
+                       "for _, o in ipairs(getAllObjects()) do "
+                       "  if o.hasTag(RTT_RESYNC_TAG) then n = n + 1 end end return n end")()
+        assert left == 0, "resync with %s left its mark on %d object(s)" % (label, left)
+
+
 CASES = [
     ("manual path drives the turn system",   t_manual_turn_order),
     ("manual path spawns 4 / 5 boards",      t_boards_spawn),
@@ -6505,6 +6667,9 @@ CASES = [
     ("every seat's board lights up",      t_every_seat_gets_its_faction_buttons),
     ("an empty seat is pickable",         t_an_empty_seats_board_can_be_picked_by_anyone),
     ("a second click touches nothing dead", t_pressing_a_setup_button_twice_touches_nothing_dead),
+    ("resync resends what it may",        t_the_resync_sweep_resends_everything_it_may_touch),
+    ("resync button asks nothing",        t_the_resync_button_asks_nothing_and_destroys_nothing),
+    ("resync survives churn",             t_a_resync_survives_the_table_changing_under_it),
 ]
 
 

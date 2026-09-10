@@ -11,7 +11,7 @@ Layout, top to bottom:
 [Summer] [Lake] [Marsh] [Winter] [Mountain] [Gorge]                            y = 23.8
                  [Standard] [Exiles] [Squires]                                 y = -15.3
 [Faction Sel][Bat Bungler][Mob Lobber][Koffin Keeper][Faction Cards][Landmarks] y = -47.4
-[4P Setup][5P Setup][5-Players Marsh][        ][Clear All][More]              y = -70
+[4P Setup][5P Setup][5-Players Marsh][Resync  ][Clear All][More]              y = -70
 ```
 
 With **More** open, the last two rows only — everything above is untouched:
@@ -55,6 +55,21 @@ it swaps out are the `optionRows` group, which exists for this; before it they w
 the replacement rows, on the same six columns every option row uses, and **Back** (`rttHideMore`) sits
 in More's own slot — the same square is the way in and the way out. Leaving the **Credits** page, which
 *is* a full page, lands on More rather than the main menu, since that is where its button now is.
+
+**Resync** (`rttResyncClick` → `rttResyncSweep`) re-sends every object on the table to every client.
+It is the manual repair for objects that never arrive for *some* players on a distant connection: a
+script spawn reaches a client as an incremental create message, a distant client drops one, and
+nothing re-sends it. The host cannot tell what is missing, so the sweep is an unconditional blind
+resend of everything except four things — the coordinator board, anything held, anything in a hand,
+and a laid prisoner. It destroys nothing, so it asks nothing and runs on a single click, and its own
+busy flag is the debounce.
+
+**It is the ONLY way a sweep runs.** `RTT_RESYNC_AUTO` is `false`, so nothing sweeps in the
+background: a sweep writes state to every object on the table, and doing that automatically after
+every spawn is more traffic in exactly the window a draft needs. **`RTT_RESYNC_MODE` is unproven** —
+it toggles a tag, and only host-side Lua reads tags, so TTS may not replicate the change at all. If
+the button does not cure a missing object, switch it to `"tint"`, then `"lock"`; both are written.
+`MULTIPLAYER_SYNC.md` has the whole story.
 
 **Rowdy Riverboat** (`rttArmFlotilla` → `rttFlotillaStart`) puts the Riverfolk Flotilla hireling out —
 its rules card and its one boat — and does nothing else. It is the one entry in `RTT_WIPE_BTN` that
