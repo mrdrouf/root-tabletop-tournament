@@ -4091,6 +4091,72 @@ def t_numpad_two_lays_a_warrior_down_and_lights_it(src):
     assert state("ROOST")[1] is False, "numpad 2 laid a building down"
 
 
+def t_the_marsh_numbers_sit_where_his_save_puts_them(src):
+    """Every Marsh clearing whose number he moved is where he left it, and the rest are untouched.
+
+    Maintainer, 2026-09-10: "in drop folder I put a marsh json. use the new clearing number positions
+    used in that file for all the clearings. forget obviously about the numbers this is only to
+    recalibrate slightly the positions used. some clearing have no repositionning clearing markers, for
+    these ones do not change anything. carefull what you do."
+
+    The Marsh cannot be checked the way the other maps are. Its numbers are not a fixed list: the flood
+    re-rolls on every build, so which clearings get one changes, and the save holds 13 of the 15. What
+    is stored is a SPOT PER CLEARING (RTT_MARSH_RANK's last two columns), and the save's tokens have to
+    be matched back to those spots before anything can be said about them.
+
+    Matched by nearest, one to one, globally. That is safe here and the numbers say so: every token's
+    second-nearest stored spot is 5 to 14 units further away than its first, so no pairing is a close
+    call. Six were small corrections of a unit or so; seven were spots that had been plain wrong, up to
+    8 units out, which is the same thing that was found on the Mountain. Two clearings -- B.down and
+    C.down -- have no token in his save and keep the spots they had.
+    """
+    import math
+    saved = json.load(open(os.path.join(REPO, "assets", "src_art", "saves", "marsh.json"),
+                           encoding="utf-8"))
+    toks = []
+    def walk(o):
+        if isinstance(o, dict):
+            if "RTT Priority" in (o.get("Tags") or []):
+                toks.append((o["Transform"]["posX"], o["Transform"]["posZ"]))
+            for k, v in o.items():
+                if k in ("ContainedObjects", "ObjectStates", "States"):
+                    walk(v)
+        elif isinstance(o, list):
+            for v in o:
+                walk(v)
+    walk(saved)
+    assert len(toks) == 13, "his save holds %d number tokens, expected 13" % len(toks)
+
+    rt = fresh(src)
+    got = rt.eval("""function()
+      local t = {}
+      for _, r in ipairs(RTT_MARSH_RANK) do
+        t[#t+1] = string.format('%.3f;%.3f', r[4], r[5])
+      end
+      return table.concat(t, '|')
+    end""")()
+    spots = [tuple(float(v) for v in r.split(";")) for r in got.split("|")]
+    assert len(spots) == 15, "the Marsh has %d clearings, expected 15" % len(spots)
+
+    # every token he placed is now a stored spot, to the last decimal
+    for x, z in toks:
+        near = min(math.hypot(x - sx, z - sz) for sx, sz in spots)
+        assert near < 1e-3, \
+            "the token at (%.3f, %.3f) is %.3f from any stored spot; his save is the source" % (
+                x, z, near)
+
+    # ...and the two clearings he left alone still have theirs
+    UNTOUCHED = ((5.948, -3.427), (-0.883, -13.135))          # B.down and C.down
+    for sx, sz in UNTOUCHED:
+        assert any(abs(a - sx) < 1e-3 and abs(b - sz) < 1e-3 for a, b in spots), \
+            "the spot at (%.3f, %.3f) was changed; his save has no marker there" % (sx, sz)
+
+    # NO TWO CLEARINGS SHARE A SPOT. A mis-pairing would show up here rather than as a wrong number:
+    # two clearings pointing at one token is exactly what a greedy match gets wrong when it is wrong.
+    assert len({(round(x, 2), round(z, 2)) for x, z in spots}) == 15, \
+        "two Marsh clearings put their number in the same place"
+
+
 def t_the_clearing_numbers_sit_where_the_saves_put_them(src):
     """Every clearing number is where the maintainer's own save has it, to the last decimal.
 
@@ -6115,6 +6181,7 @@ CASES = [
     ("badger relics draw uniformly",      t_the_badger_relics_are_drawn_uniformly),
     ("cats drop clear of the clearing",   t_the_cats_are_dropped_clear_of_the_clearing),
     ("clearing numbers match the saves",  t_the_clearing_numbers_sit_where_the_saves_put_them),
+    ("marsh numbers match his save",      t_the_marsh_numbers_sit_where_his_save_puts_them),
     ("the coffin spawns where he put it", t_the_coffin_spawns_where_he_put_it),
     ("a map cannot be left unlocked",     t_the_map_cannot_be_left_unlocked),
     ("unlocking frees a prisoner",        t_unlocking_a_prisoner_stands_it_up),
