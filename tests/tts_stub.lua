@@ -322,7 +322,17 @@ function spawnObjectJSON(p)
   -- head of the blob, up to where the contents begin.
   local head = j:match('^(.-)"ContainedObjects"') or j
   if head:match('"Locked"%s*:%s*true') ~= nil then o.__locked = true end
-  local tagBlock = head:match('"Tags"%s*:%s*%[(.-)%]')
+  -- ...BUT THE OUTER OBJECT'S TAGS ARE THE LAST ONES, NOT THE FIRST. The comment above was written
+  -- from the map blueprints, where there are no contents to confuse it, and it is wrong for anything
+  -- that HAS contents: TTS serialises a top-level "Tags" AFTER "ContainedObjects", so the turn-order
+  -- deck's blob ends `...,"Tags":["RTT Order Card"]}],"Tags":["RTT Order Card"]}` -- outer last.
+  --
+  -- Reading only the head meant the spawned deck came out UNTAGGED here while TTS tags it, and that
+  -- one gap is why the harness could not see a double-destroy that has been throwing on every second
+  -- setup click for days: the deck is on a teardown TAG list and in RTT_SPAWNED, and with no tag the
+  -- harness only ever destroyed it once.
+  local tagBlock = nil
+  for block in j:gmatch('"Tags"%s*:%s*%[(.-)%]') do tagBlock = block end
   if tagBlock ~= nil then
     for t in tagBlock:gmatch('"([^"]+)"') do o.addTag(t) end
   end

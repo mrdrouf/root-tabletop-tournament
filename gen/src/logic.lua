@@ -1720,10 +1720,30 @@ RTT_KEEP_DICE = { ["dc8eb3"] = true, ["81f2b2"] = true }   -- bats: one of two; 
 -- every ranked selector, the box score on each respawn -- so it would trigger this often. Clearing
 -- the UI first and destroying a frame later gives TTS a chance to release it. It is a mitigation for
 -- an engine bug, not a proven cure: nothing here can verify TTS's internal state.
+-- ...AND IT COMES BACK BY GUID, NOT BY THE HANDLE IT WAS GIVEN. Holding the handle across the frame
+-- is what made this the mod's loudest bug: rttClearGameObjects sweeps the teardown TAGS through here,
+-- which defers the destruct by a frame, and then sweeps RTT_SPAWNED by guid and destroys those
+-- SYNCHRONOUSLY. The turn-order deck is on both lists -- its blueprint carries "Tags":["RTT Order
+-- Card"] and rttDealOrder records its guid -- so on every second setup click it was destroyed now and
+-- destroyed again a frame later, and the second one landed on a dead handle.
+--
+-- Touching a destroyed object is a C# null on TTS's side: "Object reference not set to an instance of
+-- an object", attributed to this board. pcall does NOT catch that, which is why the one wrapped round
+-- it never helped. Maintainer, 2026-09-10: "cliking on 4 person draft after 3 person draft spawns
+-- this error though" -- it was every second setup click, by any pair of buttons, for five days.
+--
+-- Re-resolving fixes it for ANY order of destruction, not just this pair: getObjectFromGUID returns
+-- nil for an object that has gone, so a piece somebody else already took is simply not there.
 function rttDestroyUI(o)
   if o == nil then return end
+  local g = nil
+  pcall(function() g = o.getGUID() end)
   pcall(function() o.UI.setXml("") end)
-  Wait.frames(function() pcall(function() o.destruct() end) end, 1)
+  Wait.frames(function()
+    local x = nil
+    if g ~= nil then pcall(function() x = getObjectFromGUID(g) end) end
+    if x ~= nil then pcall(function() x.destruct() end) end
+  end, 1)
 end
 
 -- "RTT Order Card" is baked into the turn-order deck AND into each of its cards. The deck alone was
@@ -6301,7 +6321,11 @@ end
 
 function rttMountainLandmark()
   -- clear the PREVIOUS landmark first, so a fast re-click replaces it (no stacking, no stale piece)
-  for _, o in ipairs(RTT_MTN_LM_PIECES or {}) do
+  -- by GUID, like every other cached teardown list here: these are tagged "Map Object", so a map
+  -- rebuild has often destroyed them already, and destructing a dead handle is a TTS null
+  for _, g in ipairs(RTT_MTN_LM_PIECES or {}) do
+    local o = nil
+    pcall(function() o = getObjectFromGUID(g) end)
     if o ~= nil then pcall(function() o.destruct() end) end
   end
   RTT_MTN_LM_PIECES = {}
@@ -6310,9 +6334,14 @@ function rttMountainLandmark()
   local name = RTT_MTN_TOWN[RTT_MTN_CENTRE_SUIT or ""]
   if RTT_MTN_CENTRE_LOST then name = "Lost City" end
   if name == nil then return end
-  RTT_MTN_LM_PIECES = rttSpawnLandmarkAt(name, RTT_MTN_LM[1], RTT_MTN_LM[2], RTT_MTN_LM[3],
+  -- kept as GUIDS, not handles: the loop above destroys them on the next build, and by then a map
+  -- rebuild has usually taken them already
+  RTT_MTN_LM_PIECES = {}
+  for _, o in ipairs(rttSpawnLandmarkAt(name, RTT_MTN_LM[1], RTT_MTN_LM[2], RTT_MTN_LM[3],
                      RTT_MTN_CARD[1], RTT_MTN_CARD[2], RTT_MTN_CARD[3],
-                     165, 180, RTT_MTN_CARD_SCALE)  -- crotZ 180 = RULES face up (BackURL)
+                     165, 180, RTT_MTN_CARD_SCALE) or {}) do   -- crotZ 180 = RULES face up (BackURL)
+    pcall(function() RTT_MTN_LM_PIECES[#RTT_MTN_LM_PIECES + 1] = o.getGUID() end)
+  end
 end
 
 RTT_POND_JSON = [==[{"GUID": "347917","Name": "Custom_Tile","Transform": {"posX": -20.61854,"posY": 35.8698158,"posZ": -58.718235,"rotX": 0.016451491,"rotY": 179.94725,"rotZ": 0.08010805,"scaleX": 4.238119,"scaleY": 1.0,"scaleZ": 4.238119},"Nickname": "The Pond","Description": "","GMNotes": "","AltLookAngle": {"x": 0.0,"y": 0.0,"z": 0.0},"ColorDiffuse": {"r": 0.6901961,"g": 0.5960784,"b": 0.0156862754},"LayoutGroupSortIndex": 0,"Value": 0,"Locked": false,"Grid": true,"Snap": true,"IgnoreFoW": false,"MeasureMovement": false,"DragSelectable": true,"Autoraise": true,"Sticky": true,"Tooltip": true,"GridProjection": false,"HideWhenFaceDown": false,"Hands": false,"CustomImage": {"ImageURL": "https://steamusercontent-a.akamaihd.net/ugc/12393369561771611633/E59B2DE66EC1B0F68F19F6E7C071F8B8D38718B8/","ImageSecondaryURL": "https://steamusercontent-a.akamaihd.net/ugc/12393369561771611633/E59B2DE66EC1B0F68F19F6E7C071F8B8D38718B8/","ImageScalar": 1.0,"WidthScale": 0.0,"CustomTile": {"Type": 0,"Thickness": 0.2,"Stackable": false,"Stretch": true}},"LuaScript": "","LuaScriptState": "","XmlUI": "","AttachedSnapPoints": [{"Position": {"x": -0.000120528261,"y": 0.200000748,"z": -0.08064375},"Rotation": {"x": 3.824257E-06,"y": 0.00134896243,"z": 180.0}}]
@@ -6459,7 +6488,14 @@ function makeMap(player,value,id,keepBoard)
   objects = EVERYTHING["Maps"][id]['data']
   local RTT_OV = nil
   if id == "Marsh Map" then
-    for _,o in ipairs(RTT_MARSH_PIECES or {}) do if o ~= nil then pcall(function() o.destruct() end) end end
+    -- BY GUID, for the same reason rttDestroyUI is: these pieces are tagged "Map Object", so
+    -- removeMapItems has usually destroyed them already by the time this runs, and destructing a dead
+    -- handle is a TTS null. On a 5-player Marsh rebuild that was nineteen of them in one click.
+    for _, g in ipairs(RTT_MARSH_PIECES or {}) do
+      local o = nil
+      pcall(function() o = getObjectFromGUID(g) end)
+      if o ~= nil then pcall(function() o.destruct() end) end
+    end
     RTT_MARSH_PIECES = {}
     if RTT_5P_MARSH then RTT_OV = rttMarshPlan5P(objects) else RTT_OV = rttMarshPlan(objects) end
   end
@@ -6514,7 +6550,9 @@ function makeMap(player,value,id,keepBoard)
         end
     })
     end
-    if rtt_ov and ob ~= nil and RTT_MARSH_PIECES ~= nil then RTT_MARSH_PIECES[#RTT_MARSH_PIECES + 1] = ob end
+    if rtt_ov and ob ~= nil and RTT_MARSH_PIECES ~= nil then
+      pcall(function() RTT_MARSH_PIECES[#RTT_MARSH_PIECES + 1] = ob.getGUID() end)
+    end
   end
   if id ~= "Marsh Map" then shuffleMaps(id) end
   rttLockRuins()

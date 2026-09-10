@@ -6309,27 +6309,86 @@ def t_an_empty_seats_board_can_be_picked_by_anyone(src):
     assert got == boards, \
         "only %d of %d boards answered the one player at the table" % (got, boards)
 
-    # ...AND A SEAT SOMEBODY IS SITTING IN IS STILL THEIRS ALONE
+    # ...AND A SEAT SOMEBODY IS SITTING IN IS STILL THEIRS ALONE.
+    #
+    # The occupant is seated AFTER the draft, into whatever colour the draft happened to give a seat.
+    # Seating first and hoping does not work: the draft assigns seat colours at random, so which seat
+    # a given human lands in -- or whether they land in the clicker's own seat -- changes run to run.
+    # This test failed about one run in three that way, which is worse than no test at all.
     rt = fresh(src)
-    rt.execute("SEAT('Yellow') pcall(function() rttSetup(Player['Red'], '', 'rttRankedBtn') end) FLUSH(200)")
-    refused = rt.eval("""function()
-        local n, occupied = 0, 0
+    rt.execute("pcall(function() rttSetup(Player['Red'], '', 'rttRankedBtn') end) FLUSH(200)")
+    victim = rt.eval("""function()
         for i, s in ipairs(RTT_SEATS or {}) do
-          if s.board ~= nil and s.color ~= 'Red' and rttPersonIn(s.color) ~= nil then
-            occupied = occupied + 1
-            local before = #getObjectsWithTag('RTT Faction')
-            pcall(function() rttCoordFaction({ color = 'Red', id = 'rttFac' .. i,
-                                               board = s.board.getGUID() }) end)
-            FLUSH(80)
-            if #getObjectsWithTag('RTT Faction') == before then n = n + 1 end
+          if s.board ~= nil and s.color ~= nil and s.color ~= 'Red' then
+            SEAT(s.color)                      -- put a real person in that seat, whatever colour it got
+            return i
           end
         end
-        return { n, occupied }
+        return 0
     end""")()
-    refused = dict(refused)
-    assert refused[2] > 0, "the harness seated nobody to protect"
-    assert refused[1] == refused[2], \
-        "Red picked out of %d seat(s) that somebody else is sitting in" % (refused[2] - refused[1])
+    assert victim > 0, "the draft produced no seat in a colour other than Red"
+    refused = rt.eval("""function()
+        local s = RTT_SEATS[%d]
+        if rttPersonIn(s.color) == nil then return "nobody is actually seated in " .. tostring(s.color) end
+        local before = #getObjectsWithTag('RTT Faction')
+        pcall(function() rttCoordFaction({ color = 'Red', id = 'rttFac1',
+                                           board = s.board.getGUID() }) end)
+        FLUSH(80)
+        if #getObjectsWithTag('RTT Faction') > before then
+          return "Red picked out of " .. tostring(s.color) .. "'s seat"
+        end
+        return ""
+    end""" % victim)()
+    assert refused == "", refused
+
+
+def t_pressing_a_setup_button_twice_touches_nothing_dead(src):
+    """A second setup click destroys nothing twice, on any pair of buttons.
+
+    Maintainer, 2026-09-10: "cliking on 4 person draft after 3 person draft spawns this error though",
+    with "[Faction Selection - bab7e1] Lua Error: Object reference not set to an instance of an
+    object." It was never about the 3-player button: it was EVERY second setup click, by any pair,
+    and it had been happening for five days.
+
+    rttClearGameObjects sweeps the teardown TAGS through rttDestroyUI -- which blanks the object's XML
+    and defers destruct() by a frame, holding the handle -- and then sweeps RTT_SPAWNED by guid and
+    destroys those SYNCHRONOUSLY. The turn-order deck is on both lists: its blueprint carries
+    "Tags":["RTT Order Card"] and rttDealOrder records its guid. So it was destroyed now and destroyed
+    again a frame later, on a handle that was already dead. Two more lists had the same shape --
+    RTT_MARSH_PIECES (nineteen dead handles in one 5-player Marsh rebuild) and RTT_MTN_LM_PIECES.
+
+    Touching a destroyed object is a C# null on TTS's side and pcall does NOT catch it, which is why
+    every one of these sites was already wrapped in one.
+
+    Two things had to change in the harness before this could be seen at all, and both are the point:
+    a destroyed handle now throws the way TTS does, and a blueprint's OUTER "Tags" is now read from the
+    end of the blob rather than the head -- TTS serialises it after "ContainedObjects", so the order
+    deck arrived untagged here and the harness only ever destroyed it once.
+    """
+    SEQUENCES = (
+        ("3P then 4P",   "rtt3PStart(Player['Red'],'','rtt3PBtn')",     "rttSetup(Player['Red'],'','rttRankedBtn')"),
+        ("4P then 4P",   "rttSetup(Player['Red'],'','rttRankedBtn')",   "rttSetup(Player['Red'],'','rttRankedBtn')"),
+        ("5P then 4P",   "rttFivePStart()",                            "rttSetup(Player['Red'],'','rttRankedBtn')"),
+        ("4P then 3P",   "rttSetup(Player['Red'],'','rttRankedBtn')",   "rtt3PStart(Player['Red'],'','rtt3PBtn')"),
+        ("Marsh twice",  "makeMap('','','Marsh Map')",                  "makeMap('','','Marsh Map')"),
+        ("Mountain twice", "makeMap('','','Mountain Map')",             "makeMap('','','Mountain Map')"),
+        ("4P Setup twice", "setupFactionBoards(nil,nil,'four')",        "setupFactionBoards(nil,nil,'four')"),
+    )
+    # pcall is wrapped rather than removed: in TTS this class of error is NOT catchable, so a pcall
+    # that "succeeds" in the harness is exactly the false comfort being tested for.
+    WRAP = ("NULLS = {} local _p = pcall "
+            "pcall = function(f, ...) local ok, e = _p(f, ...) "
+            "  if not ok and tostring(e):find('Object reference not set') then "
+            "    NULLS[#NULLS+1] = tostring(e) end "
+            "  return ok, e end ")
+    for label, first, second in SEQUENCES:
+        rt = fresh(src)
+        rt.execute("%s pcall(function() %s end) FLUSH(250) NULLS = {} "
+                   "pcall(function() %s end) FLUSH(250)" % (WRAP, first, second))
+        nulls = rt.eval("NULLS")
+        nulls = list(dict(nulls).values()) if nulls else []
+        assert not nulls, "%s: %d dead handle(s) touched on the second click, first: %s" % (
+            label, len(nulls), nulls[0][:150])
 
 
 CASES = [
@@ -6445,6 +6504,7 @@ CASES = [
     ("start names the pass it causes",    t_start_names_the_pass_it_causes),
     ("every seat's board lights up",      t_every_seat_gets_its_faction_buttons),
     ("an empty seat is pickable",         t_an_empty_seats_board_can_be_picked_by_anyone),
+    ("a second click touches nothing dead", t_pressing_a_setup_button_twice_touches_nothing_dead),
 ]
 
 
