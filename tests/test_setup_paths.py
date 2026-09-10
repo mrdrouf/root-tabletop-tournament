@@ -4380,37 +4380,37 @@ def t_the_flotilla_draft_seats_three_and_deals_militants(src):
     spot = rt.eval("function() local p = rttFlotillaCardSpot() "
                    "return string.format('%.3f', p[1]) end")
     assert abs(float(spot()) + 30.040) < 1e-3, "an empty row does not put it next to the map"
-    # ...and it steps its OWN width, not a landmark's. One pitch past the last town card still
-    # overlapped it -- the Flotilla card is landscape and about six units across where a landmark card
-    # is a portrait three and a half: "does not move enough with 5player marsh".
-    gap = rt.eval("RTT_FLOTILLA_GAP")
-    assert gap > rt.eval("RTT_HELPER_PITCH"), "the Flotilla steps no wider than a landmark card"
-    rt.execute("T1 = MKOBJ('', {-35.098, 11.575, -19.135}, {'RTT Helper'})")
-    assert abs(float(spot()) + 35.098 + gap) < 1e-3, \
-        "one card out and it sits at %s; it should be its own gap past -35.098" % spot()
-    rt.execute("T2 = MKOBJ('', {-40.156, 11.575, -19.135}, {'RTT Helper'}) "
-               "T3 = MKOBJ('', {-45.214, 11.575, -19.135}, {'RTT Helper'})")
-    assert abs(float(spot()) + 45.214 + gap) < 1e-3, \
-        "three cards out and it sits at %s; it should be its own gap past -45.214" % spot()
+    # ...and it clears the row by EDGES, not by a step between centres. A step cannot work when the
+    # cards are different shapes: the same centre-to-centre distance leaves a gap beside a portrait
+    # landmark card and an overlap beside a wide one -- "the shift is not enought", twice. So the
+    # property is asserted, not the arithmetic: its right edge sits clear of the row's leftmost edge,
+    # whatever shape made that edge.
+    clear = rt.eval("RTT_HELPER_CLEAR")
+    rt.execute("FLOT = rttFlotillaCard() "
+               "FLOT.__bounds = {size = Vector({6.6, 0.2, 4.0}), center = Vector({0,0,0})}")
+    def right_edge():
+        rt.execute("pcall(function() rttPlaceFlotillaCard() end) FLUSH(4)")
+        return rt.eval("function() return FLOT.__pos.x + 6.6 / 2 end")()
+    def row_edge():
+        return rt.eval("function() local e = rttHelperRowEdge() return e or 999 end")()
 
-    # THEY ALL STAND ON ONE LINE. "all the helper cards about landmarks and maps and the flotilla should
-    # have the bottom of the card at exactly the same height." Not their centres, which is what one z
-    # for the row gave: a landmark card is portrait and the Flotilla's is landscape, so centring both
-    # left the short one floating in the middle of the tall one -- "is a bit too high".
-    rt.execute("TALL = MKOBJ('', {-35.098, 11.575, -19.135}, {'RTT Helper'}) "
-               "TALL.__bounds = {size = Vector({5.5, 0.2, 7.8}), center = Vector({0,0,0})} "
-               "WIDE = MKOBJ('', {-50.0, 11.575, -19.135}, {'RTT Helper'}) "
-               "WIDE.__bounds = {size = Vector({6.6, 0.2, 4.0}), center = Vector({0,0,0})} "
-               "rttAlignHelperCards() FLUSH(4)")
-    def zof(name):
-        return rt.eval("function(o) return o.__pos.z end")(rt.eval(name))
-    bottom = rt.eval("RTT_HELPER_BOTTOM")
-    assert abs((zof("TALL") - 7.8 / 2) - bottom) < 1e-3, \
-        "the tall card's bottom is at %.3f, not %.3f" % (zof("TALL") - 3.9, bottom)
-    assert abs((zof("WIDE") - 4.0 / 2) - bottom) < 1e-3, \
-        "the wide card's bottom is at %.3f, not %.3f" % (zof("WIDE") - 2.0, bottom)
-    assert abs(zof("TALL") - zof("WIDE")) > 1.0, \
-        "the two are still centred together; bottom-aligning must separate their centres"
+    for label, x, size in (("a portrait landmark card", -35.098, "5.5, 0.2, 7.8"),
+                           ("a wide map card", -46.0, "9.0, 0.2, 4.0")):
+        rt.execute("local o = MKOBJ('', {%f, 11.575, -19.135}, {'RTT Helper'}) "
+                   "o.__bounds = {size = Vector({%s}), center = Vector({0,0,0})}" % (x, size))
+        gap = row_edge() - right_edge()
+        assert gap >= clear - 1e-3, \
+            "with %s in the row the Flotilla overlaps it: %.3f of clearance, wanted %.2f" % (
+                label, gap, clear)
+
+    # AND THE BOAT GOES WITH IT. "the flotilla object does not move with it" -- it had a spot of its
+    # own, so the card stepped out along the row and left its pawn back beside the map.
+    boat = rt.eval("function() for _, o in ipairs(getObjectsWithTag('RTT Flotilla')) do "
+                   "  if not o.hasTag('RTT Helper') then return o.__pos.x end end return 999 end")
+    assert abs(boat() - rt.eval("function() return FLOT.__pos.x end")()) < 1e-3, \
+        "the boat is at %.3f and its card at %.3f" % (
+            boat(), rt.eval("function() return FLOT.__pos.x end")())
+
     # ...and its own card is not counted as something to make way for
     rt.execute("pcall(function() rttSpawnFlotillaKit() end) FLUSH(20)")
     once = spot()

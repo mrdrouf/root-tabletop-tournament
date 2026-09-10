@@ -5994,10 +5994,12 @@ RTT_HELPER_ROW_Z = -19.135
 RTT_HELPER_ORDER = { "Flotilla", "Foxburrow", "Rabbit-Town", "Mousehold" }
 RTT_HELPER_TAG = "RTT Helper"          -- every rules card that stands in this row
 RTT_HELPER_PITCH = 5.058               -- the step he placed the town cards at
--- ...but the Flotilla's own card is LANDSCAPE and about six units across, where a landmark card is a
--- portrait three and a half, so one pitch past the last of them still overlapped it: "does not move
--- enough with 5player marsh". Its own step is wider.
-RTT_FLOTILLA_GAP = 7.5
+-- ...and the Flotilla clears the row by EDGES, not by a step between centres. A step cannot work here:
+-- the cards are different shapes, so the same centre-to-centre distance leaves a gap beside a portrait
+-- landmark card and an overlap beside a wide one -- "the shift is not enought", twice. Its own right
+-- edge is set this far clear of the leftmost edge already in the row, whatever shape made it.
+RTT_HELPER_CLEAR = 1.2
+RTT_FLOTILLA_GAP = 7.5                 -- the fallback step, for the frame before its bounds are known
 
 -- where a named helper card stands, or the first spot if it is not in the row at all
 function rttHelperSpot(name)
@@ -6017,16 +6019,44 @@ end
 -- outermost card already standing there, or the near slot when there is nothing. The town cards keep
 -- the three spots he placed and locked them on and never move for it -- laying a Marsh down pushes the
 -- Flotilla out past them, and clearing that map brings it back in.
-function rttFlotillaCardSpot()
-  local far = nil
+-- the leftmost EDGE of everything already standing in the row, and how wide the Flotilla's own card is
+function rttHelperRowEdge()
+  local edge = nil
   for _, o in ipairs(getObjectsWithTag(RTT_HELPER_TAG)) do
-    local mine, x = false, nil
+    local mine = false
     pcall(function() mine = o.hasTag(RTT_FLOTILLA_TAG) end)
-    pcall(function() x = o.getPosition().x end)
-    if not mine and x ~= nil and (far == nil or x < far) then far = x end
+    if not mine then
+      pcall(function()
+        local b, p = o.getBounds(), o.getPosition()
+        local e = p.x - ((b ~= nil and b.size ~= nil) and b.size.x / 2 or 0)
+        if edge == nil or e < edge then edge = e end
+      end)
+    end
   end
-  if far == nil then return { RTT_HELPER_ROW_X[1], RTT_HELPER_ROW_Y, RTT_HELPER_ROW_Z } end
-  return { far - RTT_FLOTILLA_GAP, RTT_HELPER_ROW_Y, RTT_HELPER_ROW_Z }
+  return edge
+end
+
+function rttFlotillaCard()
+  for _, o in ipairs(getObjectsWithTag(RTT_FLOTILLA_TAG)) do
+    local helper = false
+    pcall(function() helper = o.hasTag(RTT_HELPER_TAG) end)
+    if helper then return o end
+  end
+  return nil
+end
+
+function rttFlotillaCardSpot()
+  local edge = rttHelperRowEdge()
+  if edge == nil then return { RTT_HELPER_ROW_X[1], RTT_HELPER_ROW_Y, RTT_HELPER_ROW_Z } end
+  local half = RTT_FLOTILLA_GAP / 2
+  local card = rttFlotillaCard()
+  if card ~= nil then
+    pcall(function()
+      local b = card.getBounds()
+      if b ~= nil and b.size ~= nil and b.size.x > 0 then half = b.size.x / 2 end
+    end)
+  end
+  return { edge - RTT_HELPER_CLEAR - half, RTT_HELPER_ROW_Y, RTT_HELPER_ROW_Z }
 end
 
 -- THEY ALL STAND ON ONE LINE. Maintainer, 2026-09-10: "all the helper cards about landmarks and maps
@@ -6056,22 +6086,36 @@ function rttAlignHelperCards()
   end
 end
 
--- move the Flotilla's own card to wherever the row leaves room for it, then line the row up
+-- THE BOAT GOES WHERE THE CARD GOES. Maintainer, 2026-09-10: "the flotilla object does not move with
+-- it." It had a spot of its own, so the card stepped out along the row and left its pawn behind beside
+-- the map. It is set from the card instead now -- under it, on the card's own x -- so the two travel
+-- together however far the row pushes them.
+RTT_FLOTILLA_BOAT_DROP = 2.6           -- how far under the card's bottom edge the boat sits
+
 function rttPlaceFlotillaCard()
   local spot = rttFlotillaCardSpot()
+  local card = rttFlotillaCard()
+  if card ~= nil then
+    pcall(function()
+      card.setLock(false)
+      card.setPosition({ spot[1], spot[2], spot[3] })
+      card.setRotation({ 0, 180, 0 })
+      card.setLock(true)
+    end)
+  end
+  rttAlignHelperCards()
+
+  -- and the pawn follows it
   for _, o in ipairs(getObjectsWithTag(RTT_FLOTILLA_TAG)) do
     local helper = false
     pcall(function() helper = o.hasTag(RTT_HELPER_TAG) end)
-    if helper then
+    if not helper then
       pcall(function()
-        o.setLock(false)
-        o.setPosition({ spot[1], spot[2], spot[3] })
-        o.setRotation({ 0, 180, 0 })
-        o.setLock(true)
+        local p = o.getPosition()
+        o.setPosition({ spot[1], p.y, RTT_HELPER_BOTTOM - RTT_FLOTILLA_BOAT_DROP })
       end)
     end
   end
-  rttAlignHelperCards()
 end
 
 -- spawn each town standing on its clearing (model rotY = the clearing's suit rotY) + its
