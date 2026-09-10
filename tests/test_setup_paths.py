@@ -2388,8 +2388,11 @@ def t_vagabond_cards_come_with_faction_cards(src):
     rt = fresh(src)
     n = rt.eval("#RTT_HOOT")
     assert n == 6, "Faction Cards lays %s entries, expected 6 (five decks + the vagabond card)" % n
-    # its spot is the maintainer's own, from his save 'faction' (TS_Save_30): a SECOND ROW behind the
-    # captains deck, not a fifth along the first row, which is where I had guessed it.
+    # its spot is the maintainer's own, from his save 'faction': a SECOND ROW behind the captains
+    # deck, not a fifth along the first row, which is where I had guessed it. He nudged the whole
+    # group again on 2026-09-10 -- "use the save called faction for the new position of the faction
+    # cards spawned by the option button faction cards" -- and all six moved together, about
+    # (+0.26, -0.99), so the layout is his and only the anchor changed.
     # TWO entries share the vagabond row now -- the 12-card deck and the single faction card -- so
     # match on the card COUNT, not on z alone
     def entry_at(n_cards):
@@ -2397,20 +2400,20 @@ def t_vagabond_cards_come_with_faction_cards(src):
           for _, e in ipairs(RTT_HOOT) do
             local n = 0
             for _ in e.json:gmatch('"CardID":%s*%d+') do n = n + 1 end
-            if n == want and math.abs(e.pos[3] - 28.681) < 0.01 then
+            if n == want and math.abs(e.pos[3] - 27.695) < 0.01 then
               return string.format('%.3f,%.3f', e.pos[1], e.pos[3])
             end
           end
           return 'missing'
         end""")(n_cards)
     at = entry_at(12)
-    assert at == "50.225,28.681", "the vagabond deck is at %s; his save has 50.225,28.681" % at
+    assert at == "50.484,27.696", "the vagabond deck is at %s; his save has 50.484,27.696" % at
 
     # the VAGABOND FACTION card (CardID 303), to the right of the character deck and in line with the
     # first 6-card faction deck below it. It is on the same sheet as the other faction cards but is in
     # neither 6-card deck, so Faction Cards used to lay out every faction EXCEPT the vagabond.
     card = entry_at(1)
-    assert card == "58.220,28.681", "the vagabond faction card is at %s, expected 58.220,28.681" % card
+    assert card == "58.479,27.695", "the vagabond faction card is at %s, expected 58.479,27.695" % card
     has303 = rt.eval("""function()
       for _, e in ipairs(RTT_HOOT) do
         if e.json:find('"CardID": 303', 1, true) or e.json:find('"CardID":303', 1, true) then
@@ -2427,7 +2430,7 @@ def t_vagabond_cards_come_with_faction_cards(src):
       for _, e in ipairs(RTT_HOOT) do
         local n = 0
         for _ in e.json:gmatch('"CardID"') do n = n + 1 end
-        if n == 12 and math.abs(e.pos[3] - 28.681) < 0.01 then return n end
+        if n == 12 and math.abs(e.pos[3] - 27.695) < 0.01 then return n end
       end
       return -1
     end""")()
