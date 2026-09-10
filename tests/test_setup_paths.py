@@ -4370,37 +4370,77 @@ def t_the_flotilla_draft_seats_three_and_deals_militants(src):
         "expected his card and the boat, got %s" % names
     rules = [g for g in got if g.startswith("Flotilla|")]
     assert rules, "the rules card did not spawn: %s" % names
+    # WHERE IT IS DROPPED is not where it ends up -- rttLayHelperRow measures the whole row and sets it
+    # down a few frames later -- so all that matters here is that it lands beside the board rather than
+    # somewhere surprising in between.
     x, z = (float(v) for v in rules[0].split("|")[1:])
-    assert abs(x + 30.040) < 1e-3 and abs(z + 19.135) < 1e-3, \
-        "the rules card is not in the helper row's near spot: %.3f / %.3f" % (x, z)
+    assert -34.0 < x < -26.0, "the rules card is dropped at %.3f, nowhere near the board's edge" % x
+    assert -25.0 < z < -17.0, "the rules card is dropped at z %.3f, off the helper row's band" % z
 
-    # AND IT STEPS OUT WHEN THE ROW FILLS. "the helper card does not move when landmark helper cards
-    # are spawned" -- its spot is computed from what is already standing there, one pitch beyond the
-    # outermost, so the town cards keep the three spots he placed them on and the Flotilla makes way.
-    spot = rt.eval("function() local p = rttFlotillaCardSpot() "
-                   "return string.format('%.3f', p[1]) end")
-    assert abs(float(spot()) + 30.040) < 1e-3, "an empty row does not put it next to the map"
-    # ...and the space it leaves is the ROW'S space, not one of its own. "space between cards not
-    # consistent with space between landmark cards." Two landmark cards sit one pitch apart centre to
-    # centre, so the space between them is that pitch less a card's width -- and the Flotilla leaves
-    # the same space, which means measuring the card it stands next to.
-    pitch = rt.eval("RTT_HELPER_PITCH")
-    rt.execute("FLOT = rttFlotillaCard() "
+    # THE WHOLE ROW IS BUILT, not one card placed against it. "marsh 4p helper overlaps come on check
+    # all maps properly and a be rigorous." Counted off the blueprints, the cards it has to share the
+    # row with are not on one line to begin with: Summer and Gorge ship none, Winter/Lake/Mountain one
+    # at z -11.85, the Marsh one at -17.94, and the five-player Marsh three towns at -19.135. So every
+    # helper card is measured, ordered and set down from a fixed right edge -- nothing can overlap by
+    # construction, whatever the map ships.
+    rt = fresh(src)
+    rt.execute("pcall(function() rttSpawnFlotillaKit() end) FLUSH(20) "
+               "FLOT = rttFlotillaCard() "
                "FLOT.__bounds = {size = Vector({6.6, 0.2, 4.0}), center = Vector({0,0,0})}")
-    def place_and_gap(width):
-        rt.execute("pcall(function() rttPlaceFlotillaCard() end) FLUSH(4)")
-        edge = rt.eval("function() local e = rttHelperRowEdge() return e end")()
-        right = rt.eval("function() return FLOT.__pos.x + 6.6 / 2 end")()
-        return edge - right
+    right, gap = rt.eval("RTT_HELPER_RIGHT"), rt.eval("RTT_HELPER_GAP")
+    bottom = rt.eval("RTT_HELPER_BOTTOM")
 
-    for label, x, w, d in (("a portrait landmark card", -35.098, 5.5, 7.8),
-                           ("a wide map card", -46.0, 9.0, 4.0)):
-        rt.execute("local o = MKOBJ('', {%f, 11.575, -19.135}, {'RTT Helper'}) "
-                   "o.__bounds = {size = Vector({%f, 0.2, %f}), center = Vector({0,0,0})}"
-                   % (x, w, d))
-        gap = place_and_gap(w)
-        assert abs(gap - (pitch - w)) < 1e-3, \
-            "beside %s it leaves %.3f; the row's own space there is %.3f" % (label, gap, pitch - w)
+    def row():
+        rt.execute("pcall(function() rttPlaceFlotillaCard() end) FLUSH(6)")
+        raw = rt.eval("""function()
+          local t = {}
+          for _, o in ipairs(getObjectsWithTag('RTT Helper')) do
+            local b = o.getBounds()
+            t[#t+1] = string.format('%.3f;%.3f;%.3f;%.3f;%s', o.__pos.x, b.size.x,
+                                    o.__pos.z, b.size.z, tostring(o.hasTag('RTT Flotilla')))
+          end
+          return table.concat(t, '|')
+        end""")()
+        out = []
+        for r in raw.split("|"):
+            x, w, z, d, mine = r.split(";")
+            out.append((float(x), float(w), float(z), float(d), mine == "true"))
+        out.sort(key=lambda c: -c[0])
+        return out
+
+    # every map's worth of helper cards, taken from the blueprints
+    CASES = (("Summer / Gorge", []),
+             ("Winter / Lake / Mountain", [(-29.22, 5.0, 7.0)]),
+             ("Marsh, 4 players", [(-29.35, 5.0, 7.0)]),
+             ("Marsh, 5 players", [(-29.35, 5.0, 7.0), (-35.098, 5.5, 7.8),
+                                   (-40.156, 5.5, 7.8), (-45.214, 5.5, 7.8)]))
+    for label, others in CASES:
+        rt.execute("for _, o in ipairs(getObjectsWithTag('RTT Helper')) do "
+                   "  if not o.hasTag('RTT Flotilla') then o.destruct() end end FLUSH(2)")
+        for i, (x, w, d) in enumerate(others):
+            rt.execute("local o = MKOBJ('', {%f, 11.575, -19.135}, {'RTT Helper'}) "
+                       "o.__bounds = {size = Vector({%f, 0.2, %f}), center = Vector({0,0,0})}"
+                       % (x, w, d))
+        cards = row()
+        assert len(cards) == len(others) + 1, \
+            "%s: %d cards in the row, expected %d" % (label, len(cards), len(others) + 1)
+
+        # NOTHING OVERLAPS, and the gaps are the same one all the way along
+        for i in range(len(cards) - 1):
+            a_left = cards[i][0] - cards[i][1] / 2
+            b_right = cards[i + 1][0] + cards[i + 1][1] / 2
+            assert abs((a_left - b_right) - gap) < 1e-3, \
+                "%s: cards %d and %d are %.3f apart, not %.2f" % (label, i, i + 1,
+                                                                  a_left - b_right, gap)
+        # THE ROW STARTS WHERE IT SHOULD, just clear of the board
+        assert abs((cards[0][0] + cards[0][1] / 2) - right) < 1e-3, \
+            "%s: the row's right edge is %.3f, not %.3f" % (label, cards[0][0] + cards[0][1] / 2, right)
+        # EVERY NEAR EDGE ON ONE LINE, whatever shape the card is
+        for x, w, z, d, mine in cards:
+            assert abs((z - d / 2) - bottom) < 1e-3, \
+                "%s: a card's near edge is at %.3f, not %.3f" % (label, z - d / 2, bottom)
+        # AND THE FLOTILLA IS LAST, however many are out
+        assert cards[-1][4] is True, "%s: the Flotilla is not at the far end" % label
 
     # AND THE BOAT GOES WITH IT. "the flotilla object does not move with it" -- it had a spot of its
     # own, so the card stepped out along the row and left its pawn back beside the map.
@@ -4409,25 +4449,6 @@ def t_the_flotilla_draft_seats_three_and_deals_militants(src):
     assert abs(boat() - rt.eval("function() return FLOT.__pos.x end")()) < 1e-3, \
         "the boat is at %.3f and its card at %.3f" % (
             boat(), rt.eval("function() return FLOT.__pos.x end")())
-
-    # AND THE ROW'S RULE IS THE LANDMARK ROW'S: two cards of the same width come out exactly one pitch
-    # apart, which is the spacing he placed the town cards at.
-    rt = fresh(src)
-    rt.execute("pcall(function() rttSpawnFlotillaKit() end) FLUSH(20) "
-               "F2 = rttFlotillaCard() "
-               "F2.__bounds = {size = Vector({5.5, 0.2, 7.8}), center = Vector({0,0,0})} "
-               "N = MKOBJ('', {-35.098, 11.575, -19.135}, {'RTT Helper'}) "
-               "N.__bounds = {size = Vector({5.5, 0.2, 7.8}), center = Vector({0,0,0})} "
-               "pcall(function() rttPlaceFlotillaCard() end) FLUSH(4)")
-    centres = -35.098 - rt.eval("function() return F2.__pos.x end")()
-    assert abs(centres - pitch) < 1e-3, \
-        "two cards of one width come out %.3f apart; the row's pitch is %.3f" % (centres, pitch)
-
-    # ...and its own card is not counted as something to make way for
-    rt.execute("pcall(function() rttSpawnFlotillaKit() end) FLUSH(20)")
-    once = spot()
-    rt.execute("pcall(function() rttPlaceFlotillaCard() end) FLUSH(6)")
-    assert spot() == once, "the Flotilla pushed itself along: %s -> %s" % (once, spot())
 
     # NOT A CARD AT ALL. Three builds running it came out as a landmark -- a Rabbit-Town, then a
     # Foxburrow twice -- through three different deck numbers, because TTS resolved the art off its own

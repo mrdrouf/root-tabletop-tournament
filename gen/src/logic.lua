@@ -5713,7 +5713,9 @@ function rttSpawnFlotillaKit()
   -- never two: a second draft replaces the kit rather than stacking one on it
   for _, o in ipairs(getObjectsWithTag(RTT_FLOTILLA_TAG)) do pcall(function() o.destruct() end) end
 
-  local spot = rttFlotillaCardSpot()
+  -- dropped at the row's right edge; rttLayHelperRow sets it down properly a few frames later, once
+  -- its own bounds and every other helper card's are known
+  local spot = { RTT_HELPER_RIGHT - 3.3, RTT_HELPER_ROW_Y, RTT_HELPER_BOTTOM + 2.0 }
   spawnObjectJSON({
     json = RTT_FLOTILLA_CARD_JSON,
     position = { spot[1], spot[2], spot[3] },
@@ -5742,6 +5744,9 @@ function rttSpawnFlotillaKit()
         end
       })
     end
+  end
+  for _, f in ipairs({ 4, 12, 30 }) do
+    Wait.frames(function() pcall(function() rttPlaceFlotillaCard() end) end, f)
   end
 end
 
@@ -5994,22 +5999,11 @@ RTT_HELPER_ROW_Z = -19.135
 RTT_HELPER_ORDER = { "Flotilla", "Foxburrow", "Rabbit-Town", "Mousehold" }
 RTT_HELPER_TAG = "RTT Helper"          -- every rules card that stands in this row
 RTT_HELPER_PITCH = 5.058               -- the step he placed the town cards at
--- ...and the gap the Flotilla leaves is the row's OWN gap, worked out rather than chosen. Maintainer,
--- 2026-09-10: "space between cards not consistent with space between landmark cards."
---
--- Two landmark cards sit RTT_HELPER_PITCH apart centre to centre, so the space BETWEEN them is that
--- pitch less one card's width. The Flotilla leaves the same space -- which means measuring the card it
--- is standing next to, because that space is a property of the row and not of the Flotilla:
---
---     gap  = pitch - (the neighbour's width)
---     x    = (the neighbour's left edge) - gap - (half the Flotilla's own width)
---
--- Put two identical cards through that and it comes out at exactly one pitch, which is the landmark
--- row's own spacing; put a wide card and a narrow one through it and the SPACE between them is still
--- the same, which is what the eye reads. A flat clearance could not do both.
-RTT_FLOTILLA_GAP = 7.5                 -- the fallback step, for the frame before any bounds are known
 
--- where a named helper card stands, or the first spot if it is not in the row at all
+-- WHERE A HELPER CARD IS DROPPED, which is not where it ends up: rttLayHelperRow measures every card
+-- on the table and sets the whole row down together a few frames later. This only has to be a spot
+-- that is out of the way and on the right side of the board, so the card is never seen anywhere
+-- surprising in between.
 function rttHelperSpot(name)
   local i = 1
   for n, who in ipairs(RTT_HELPER_ORDER) do
@@ -6017,35 +6011,6 @@ function rttHelperSpot(name)
   end
   return { RTT_HELPER_ROW_X[i] or RTT_HELPER_ROW_X[1], RTT_HELPER_ROW_Y, RTT_HELPER_ROW_Z }
 end
-
--- THE FLOTILLA STANDS ONE STEP PAST WHATEVER ELSE IS IN THE ROW. Maintainer, 2026-09-09: "If there is
--- no card needed ... then it should just appear next to the map, as would a normal card for a landmark
--- appear. Otherwise, it's pushed to the left slowly", and again once it did not: "the helper card does
--- not move when landmark helper cards are spawned."
---
--- Its spot is COMPUTED rather than assigned, which is what makes it move: it is one pitch beyond the
--- outermost card already standing there, or the near slot when there is nothing. The town cards keep
--- the three spots he placed and locked them on and never move for it -- laying a Marsh down pushes the
--- Flotilla out past them, and clearing that map brings it back in.
--- The leftmost EDGE already standing in the row, and the WIDTH of the card that made it -- the width
--- matters because the space the row keeps between cards is its pitch less a card's width.
-function rttHelperRowEdge()
-  local edge, width = nil, nil
-  for _, o in ipairs(getObjectsWithTag(RTT_HELPER_TAG)) do
-    local mine = false
-    pcall(function() mine = o.hasTag(RTT_FLOTILLA_TAG) end)
-    if not mine then
-      pcall(function()
-        local b, p = o.getBounds(), o.getPosition()
-        local w = (b ~= nil and b.size ~= nil) and b.size.x or 0
-        local e = p.x - w / 2
-        if edge == nil or e < edge then edge, width = e, w end
-      end)
-    end
-  end
-  return edge, width
-end
-
 function rttFlotillaCard()
   for _, o in ipairs(getObjectsWithTag(RTT_FLOTILLA_TAG)) do
     local helper = false
@@ -6055,75 +6020,76 @@ function rttFlotillaCard()
   return nil
 end
 
-function rttFlotillaCardSpot()
-  local edge, width = rttHelperRowEdge()
-  if edge == nil then return { RTT_HELPER_ROW_X[1], RTT_HELPER_ROW_Y, RTT_HELPER_ROW_Z } end
-  local half = RTT_FLOTILLA_GAP / 2
-  local card = rttFlotillaCard()
-  if card ~= nil then
-    pcall(function()
-      local b = card.getBounds()
-      if b ~= nil and b.size ~= nil and b.size.x > 0 then half = b.size.x / 2 end
-    end)
-  end
-  local gap = RTT_HELPER_PITCH - (width or 0)
-  return { edge - gap - half, RTT_HELPER_ROW_Y, RTT_HELPER_ROW_Z }
-end
 
--- THEY ALL STAND ON ONE LINE. Maintainer, 2026-09-10: "all the helper cards about landmarks and maps
--- and the flotilla should have the bottom of the card at exactly the same height, good oppportunity to
--- adjust the position of the landmark helpers btw."
+-- THE WHOLE ROW IS LAID OUT HERE, every card of it, on every map. Maintainer, 2026-09-10: "marsh 4p
+-- helper overlaps come on check all maps properly and a be rigorous."
 --
--- Not their CENTRES, which is what a single z for the row gave: a landmark card is portrait and the
--- Flotilla's is landscape, so centring both on -19.135 left the small one floating in the middle of
--- the tall one -- "is a bit too high". Bottom-aligning means reading each card's own depth and setting
--- its centre from that, which is the one thing a fixed z cannot do.
+-- Placing ONE card against a row it did not control was the mistake, and it failed differently on
+-- every map, because the cards it had to avoid are not on one line to begin with. Counted off the
+-- blueprints: Summer and Gorge ship no card at all; Winter, Lake and Mountain ship one at z -11.85;
+-- the Marsh ships one at -17.94; and the five-player Marsh adds three town cards at -19.135. Three
+-- different lines and four different counts, none of them the Flotilla's.
 --
--- RTT_HELPER_BOTTOM is the line itself, and it is the one number to move if the row should sit nearer
--- or further from the board.
-RTT_HELPER_BOTTOM = -23.0
+-- So nothing is placed relative to anything else. The row is BUILT: every helper card is measured,
+-- ordered, and set down from a fixed right edge with a fixed gap, near edges on one line. Five is the
+-- most that can ever be out (a Marsh card, three towns and the Flotilla), and cards of any width fit
+-- because each one's own bounds decide how far the next is set down. Nothing can overlap by
+-- construction, which is the only way to be right on all seven maps at once.
+--
+-- He gave leave for this: "good opportunity to adjust the position of the landmark helpers btw".
+RTT_HELPER_RIGHT  = -26.5              -- the row's right edge, just clear of the board
+RTT_HELPER_GAP    = 0.8                -- between one card and the next
+RTT_HELPER_BOTTOM = -23.0              -- the line every card's near edge stands on
 
-function rttAlignHelperCards()
+function rttLayHelperRow()
+  local cards = {}
   for _, o in ipairs(getObjectsWithTag(RTT_HELPER_TAG)) do
-    pcall(function()
-      local b = o.getBounds()
-      local p = o.getPosition()
-      if b ~= nil and b.size ~= nil then
-        o.setLock(false)
-        o.setPosition({ p.x, p.y, RTT_HELPER_BOTTOM + b.size.z / 2 })
-        o.setLock(true)
-      end
+    local e = {}
+    local ok = pcall(function()
+      local b, p = o.getBounds(), o.getPosition()
+      e.o, e.w, e.d, e.x = o, b.size.x, b.size.z, p.x
+      e.last = (o.hasTag(RTT_FLOTILLA_TAG) == true)
     end)
+    if ok and e.w ~= nil and e.w > 0 then cards[#cards + 1] = e end
   end
+  if #cards == 0 then return end
+  -- the Flotilla goes last whatever else is out -- "it's pushed to the left slowly" -- and everything
+  -- else keeps the order it is already standing in
+  table.sort(cards, function(p, q)
+    if p.last ~= q.last then return not p.last end
+    return p.x > q.x
+  end)
+  local right = RTT_HELPER_RIGHT
+  for _, e in ipairs(cards) do
+    pcall(function()
+      local p = e.o.getPosition()
+      e.o.setLock(false)
+      e.o.setPosition({ right - e.w / 2, p.y, RTT_HELPER_BOTTOM + e.d / 2 })
+      e.o.setLock(true)
+    end)
+    right = right - e.w - RTT_HELPER_GAP
+  end
+  return cards
 end
 
--- THE BOAT GOES WHERE THE CARD GOES. Maintainer, 2026-09-10: "the flotilla object does not move with
--- it." It had a spot of its own, so the card stepped out along the row and left its pawn behind beside
--- the map. It is set from the card instead now -- under it, on the card's own x -- so the two travel
--- together however far the row pushes them.
-RTT_FLOTILLA_BOAT_DROP = 2.6           -- how far under the card's bottom edge the boat sits
+-- lay the row out, then bring the Flotilla's pawn along under its own card. Maintainer: "the flotilla
+-- object does not move with it" -- it used to have a spot of its own and got left behind.
+RTT_FLOTILLA_BOAT_DROP = 2.6
 
 function rttPlaceFlotillaCard()
-  local spot = rttFlotillaCardSpot()
+  rttLayHelperRow()
   local card = rttFlotillaCard()
-  if card ~= nil then
-    pcall(function()
-      card.setLock(false)
-      card.setPosition({ spot[1], spot[2], spot[3] })
-      card.setRotation({ 0, 180, 0 })
-      card.setLock(true)
-    end)
-  end
-  rttAlignHelperCards()
-
-  -- and the pawn follows it
+  if card == nil then return end
+  local x = nil
+  pcall(function() x = card.getPosition().x end)
+  if x == nil then return end
   for _, o in ipairs(getObjectsWithTag(RTT_FLOTILLA_TAG)) do
     local helper = false
-    pcall(function() helper = o.hasTag(RTT_HELPER_TAG) end)
+    pcall(function() helper = (o.hasTag(RTT_HELPER_TAG) == true) end)
     if not helper then
       pcall(function()
         local p = o.getPosition()
-        o.setPosition({ spot[1], p.y, RTT_HELPER_BOTTOM - RTT_FLOTILLA_BOAT_DROP })
+        o.setPosition({ x, p.y, RTT_HELPER_BOTTOM - RTT_FLOTILLA_BOAT_DROP })
       end)
     end
   end
