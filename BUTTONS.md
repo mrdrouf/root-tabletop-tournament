@@ -11,7 +11,7 @@ Layout, top to bottom:
 [Summer] [Lake] [Marsh] [Winter] [Mountain] [Gorge]                            y =  16.5
                  [Standard] [Exiles] [Squires]                                 y = -23.5
 [Faction Sel][Bat Bungler][Mob Lobber][Koffin Keeper][Faction Cards][Landmarks] y = -55
-[5P Setup][5P Draft][5-Players Marsh][Clear All][Flotilla][Credits]            y = -78
+[5P Setup][5P Draft][5-Players Marsh][Clear All][Riverboat][Credits]           y = -78
 ```
 
 Every row sits half an option button (8.5) lower than it used to, so the top row clears the ROOT logo.
@@ -33,7 +33,7 @@ just runs. Clicks are ignored while a setup is still loading (they are dropped, 
 | **5-Player Draft** | `rttArmMarsh5P` → `rttFivePStart` | 5-player Marsh ranked draft: Marsh map, 6-card draft. |
 | **5-Player Setup** | `rttArmFiveSetup` → `setupFivePlayerBoards` | Five manual selector boards and nothing else -- the 5-player counterpart of 4-Player Setup. |
 
-**Flotilla Draft** (`rttArmFlotilla` → `rttFlotillaStart`) is a **three-player** ranked draft that deals
+**Riverboat Draft** (`rttArmFlotilla` → `rttFlotillaStart`) is a **three-player** ranked draft that deals
 **four militant faction cards** and nothing else. Seats and deal are one number — `RTT_DRAFT_N = 4`, so
 `RTT_DN = 4` and the seats are `RTT_DN - 1` — which is why the fourth player is never spawned rather
 than skipped. It also spawns the Riverfolk Flotilla hireling (its card and its one boat, lifted from
@@ -180,8 +180,8 @@ numpad 3's: TTS matches a binding by label, so renaming it would drop whatever k
   URL) and rewrite `gen/src/save.json`. A caption too wide is CONDENSED to 0.80 before it is set any
   smaller — that is the only reason long names like "Squires & Disciples" can grow at all.
 - **Button art carries its own caption**, so renaming a button means new art. The asset NAMES are
-  historical: `RankedArt` now reads "4-Player Draft", `FourBoardsArt` reads "4-Player Setup", and
-  `FivePlayerArt` reads "5-Player Draft".
+  historical: `RankedArt` now reads "4-Player Draft", `FourBoardsArt` reads "4-Player Setup",
+  `FivePlayerArt` reads "5-Player Draft", and `FlotillaArt` reads "Riverboat Draft".
 - **Credits** (`rttShowCredits`) replaces the menu with a rendered parchment page listing every
   contributor, and **Back** (`rttHideCredits`) returns. The page is an IMAGE, not UI text: TTS renders
   UI text into a fixed-resolution texture, so small type is blurry -- the same reason the old corner
