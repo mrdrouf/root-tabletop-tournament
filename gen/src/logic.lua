@@ -1525,8 +1525,15 @@ local vagabondChosen = false
 
 
 
+-- The board's own X button. It used to call Global.call('ImGone', {self}) first -- a base-mod hook
+-- that was never ported: the table's Global script here is TTS's default stub, an empty onLoad and an
+-- empty onUpdate, and it has never defined ImGone in this repo's history.
+--
+-- Calling a function the target script does not have is a TTS null ("Object reference not set to an
+-- instance of an object") and it ABORTS THE REST OF THE FUNCTION -- so the line below it never ran and
+-- the X button threw an error instead of deleting the board. gen/assemble.py:check_calls now fails the
+-- build on this class.
 function deleteThis()
-  Global.call('ImGone', {self})
   self.destruct()
 end
 
@@ -2396,8 +2403,12 @@ function makeFaction(player,value,id,source)
                         vpName = rttVPName(rttVagabondKey(n)) })
     end)
   end
-  Global.call("spawned", { character })
-
+  -- Global.call("spawned", { character }) was here: another base-mod hook that was never ported. The
+  -- Global script defines no `spawned`, and `character` is not assigned anywhere in this file either,
+  -- so the argument was an empty table. It threw on every manual faction pick, AFTER the faction had
+  -- spawned -- which is why it looked like nothing was wrong -- and took the rest of this function
+  -- with it: the Winged Menace's extra hand, Salty Old Stan, and the Host of Light's pillar shuffle
+  -- below all stopped being reached the moment a faction that needed them was picked.
   if id == "The Winged Menace" then
     spawnWingedMenaceExtraHand(player.color)
   end

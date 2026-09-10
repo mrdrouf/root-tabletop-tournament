@@ -58,6 +58,7 @@ end
 Vector = vec
 
 -- objects -------------------------------------------------------------------
+DEAD_STRICT = true          -- a destroyed handle throws, the way TTS does
 local NEXT = 0
 local LIVE = {}
 function MKOBJ(name, pos, tags)
@@ -114,7 +115,35 @@ function MKOBJ(name, pos, tags)
   o.interactable = true
   function o.isSmoothMoving() return o.__moving == true end
   function o.getLock() return o.__locked == true end
-  function o.destruct() if not o.__dead then o.__dead = true; note(REC.destroyed, o.__name.."|"..table.concat(o.__tags,",")) end end
+  -- DESTROYED MEANS THE HANDLE GOES BAD. In TTS, touching a destroyed object -- any method, any
+  -- property -- raises a C# NullReferenceException that surfaces as "Object reference not set to an
+  -- instance of an object", and pcall does NOT catch it. The stub used to let a dead handle keep
+  -- answering, which made a whole family of real bugs invisible here: a cached handle used one frame
+  -- after the object it names was cleared reads as perfectly fine in the harness and as a red line in
+  -- his console. So a dead object's methods are replaced with throwers.
+  --
+  -- DEAD_STRICT can be turned off from a test that deliberately wants the old forgiving behaviour.
+  function o.destruct()
+    if o.__dead then
+      if DEAD_STRICT then
+        error("Object reference not set to an instance of an object. (destruct on a destroyed "
+              .. tostring(o.__name) .. ")", 2)
+      end
+      return
+    end
+    o.__dead = true
+    note(REC.destroyed, o.__name.."|"..table.concat(o.__tags,","))
+    if DEAD_STRICT then
+      for k, v in pairs(o) do
+        if type(v) == "function" and string.sub(k, 1, 2) ~= "__" then
+          o[k] = function()
+            error("Object reference not set to an instance of an object. (touched a destroyed "
+                  .. tostring(o.__name) .. "." .. tostring(k) .. ")", 2)
+          end
+        end
+      end
+    end
+  end
   o.__tint = {r=1, g=1, b=1}
   o.__bounds = {size = vec{2.5, 0.3, 3.5}, center = vec{0,0,0}}
   function o.getBounds() return o.__bounds end

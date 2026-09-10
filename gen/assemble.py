@@ -76,6 +76,17 @@ def check_spawn_tagging(logic):
             "      gen/assemble.py with a reason." % ", ".join(sorted(bad)))
 
 
+def _in_comment(src, pos):
+    """True if `pos` sits after a `--` on its own line -- i.e. inside a Lua line comment.
+
+    The checks below scan the board script as text, and this file is heavily commented: a comment
+    that QUOTES the bad call it is warning about would otherwise trip the very check it documents.
+    """
+    line_start = src.rfind("\n", 0, pos) + 1
+    dash = src.find("--", line_start)
+    return dash != -1 and dash < pos
+
+
 # Ids that are built at runtime, or belong to an object whose XML this check cannot see. Keep this
 # list empty if you can: every entry is a place the check has been told to look away.
 UI_ID_OK = set()
@@ -123,7 +134,7 @@ def check_ui_ids(logic, save):
     for m in re.finditer(r'\b(\w+)\.UI\.(?:setAttribute|setAttributes|setValue|show|hide)'
                          r'\s*\(\s*"([^"]+)"\s*,', logic):
         var, name = m.group(1), m.group(2)
-        if name in UI_ID_OK:
+        if name in UI_ID_OK or _in_comment(logic, m.start()):
             continue
         known = own if var == "self" else (own | spawned)
         if name not in known:
@@ -136,11 +147,74 @@ def check_ui_ids(logic, save):
             % ", ".join(sorted(set(bad))))
 
 
+# Functions called across a script boundary that this check cannot resolve. Keep it empty if you can.
+CALL_TARGET_OK = set()
+
+
+def check_calls(logic, save):
+    """Fail the build if the board calls a function the target script does not define.
+
+    `Global.call("fn")` or `obj.call("fn")` where the target has no such function is the same TTS null
+    as a bad UI id -- "Object reference not set to an instance of an object" -- and it aborts the rest
+    of the calling function. Two of them shipped in this repo from the day it was created, both
+    inherited from the base mod and never ported:
+
+        deleteThis()   Global.call('ImGone', {self})     -- so the board's X button threw and then did
+                                                            NOT reach its own self.destruct()
+        makeFaction()  Global.call("spawned", {character}) -- `character` is not even assigned; the
+                                                            faction spawned and everything after this
+                                                            line was skipped
+
+    The table's Global script is TTS's default stub: an empty onLoad and an empty onUpdate. It has
+    never defined either name in this repo's history.
+    """
+    board = None
+    stack = list(save.get("ObjectStates") or [])
+    while stack:
+        o = stack.pop()
+        if not isinstance(o, dict):
+            continue
+        if o.get("LuaScript") == "@@BOARD_LUA@@":
+            board = o
+            break
+        stack.extend([c for c in (o.get("ContainedObjects") or []) if isinstance(c, dict)])
+    glob = save.get("LuaScript") or ""
+
+    def defines(src, fn):
+        return re.search(r"function\s+" + re.escape(fn) + r"\s*\(", src or "") is not None
+
+    # every script this board can be calling into: its own, and each blueprint it carries
+    others = [logic]
+    for m in re.finditer(r'^([A-Z_]+_JSON)\s*=\s*\[=*\[(.*?)\]=*\]', logic, re.S | re.M):
+        try:
+            others.append(json.loads(m.group(2)).get("LuaScript") or "")
+        except ValueError:
+            continue
+    bad = []
+    quoted = re.compile(r"""\b(\w+)\.call\s*\(\s*(['"])([^'"]+)\2""")
+    for m in quoted.finditer(logic):
+        var, fn = m.group(1), m.group(3)
+        if fn in CALL_TARGET_OK or _in_comment(logic, m.start()):
+            continue
+        if var == "Global":
+            if not defines(glob, fn):
+                bad.append("Global.call(%r) -- the table's Global script has no such function" % fn)
+        elif not any(defines(src, fn) for src in others):
+            bad.append("%s.call(%r) -- no script in this mod defines it" % (var, fn))
+    if bad:
+        raise SystemExit(
+            "[gen] CALL TARGET MISSING: %s\n"
+            "      obj.call/Global.call into a function that does not exist is a TTS null and aborts\n"
+            "      the rest of the calling function. Define it, drop the call, or list the name in\n"
+            "      CALL_TARGET_OK with a reason." % "; ".join(sorted(set(bad))))
+
+
 def build():
     save = json.load(open(os.path.join(SRC, "save.json"), encoding="utf-8"))
     logic = open(os.path.join(SRC, "logic.lua"), encoding="utf-8").read()
     check_spawn_tagging(logic)
     check_ui_ids(logic, save)
+    check_calls(logic, save)
     board_lua = _board_lua()
     _set_board_lua(save["ObjectStates"], board_lua)
     os.makedirs(OUT_DIR, exist_ok=True)
