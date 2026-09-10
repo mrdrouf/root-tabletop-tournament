@@ -7,14 +7,15 @@ Layout, top to bottom:
 
 ```
 [ROOT logo]                                                                    y =  76.5 [x]
-        [4-Player Setup] [4-Player Draft] [Theme]                              y =  51.5
-[Summer] [Lake] [Marsh] [Winter] [Mountain] [Gorge]                            y =  16.5
-                 [Standard] [Exiles] [Squires]                                 y = -23.5
-[Faction Sel][Bat Bungler][Mob Lobber][Koffin Keeper][Faction Cards][Landmarks] y = -55
-[5P Setup][5P Draft][5-Players Marsh][Clear All][Riverboat][Credits]           y = -78
+         [3P Draft] [4P Draft] [5P Draft] [Theme]                              y =  70
+[Summer] [Lake] [Marsh] [Winter] [Mountain] [Gorge]                            y =  30
+                 [Standard] [Exiles] [Squires]                                 y = -10
+[Faction Sel][Bat Bungler][Mob Lobber][Koffin Keeper][Faction Cards][Landmarks] y = -50
+[4P Setup][5P Setup][5-Players Marsh][Rowdy Riverboat][Clear All][Credits]     y = -70
 ```
 
-Every row sits half an option button (8.5) lower than it used to, so the top row clears the ROOT logo.
+The rows are evenly spaced and centred: 40 apart, and the last two option rows 20, which is half. The
+ROOT sign that used to sit above them is gone.
 
 ---
 
@@ -33,13 +34,16 @@ just runs. Clicks are ignored while a setup is still loading (they are dropped, 
 | **5-Player Draft** | `rttArmMarsh5P` → `rttFivePStart` | 5-player Marsh ranked draft: Marsh map, 6-card draft. |
 | **5-Player Setup** | `rttArmFiveSetup` → `setupFivePlayerBoards` | Five manual selector boards and nothing else -- the 5-player counterpart of 4-Player Setup. |
 
-**Riverboat Draft** (`rttArmFlotilla` → `rttFlotillaStart`) is a **three-player** ranked draft that deals
-**four militant faction cards** and nothing else. Seats and deal are one number — `RTT_DRAFT_N = 4`, so
-`RTT_DN = 4` and the seats are `RTT_DN - 1` — which is why the fourth player is never spawned rather
-than skipped. It also spawns the Riverfolk Flotilla hireling (its card and its one boat, lifted from
-the base collection) and the Flotilla's own two-faced rules card, which stands in the helper row beside
-the map: `RTT_HELPER_ORDER` is that row, the Flotilla takes its first spot and the three town cards
-each shift one place along.
+**3-Player Draft** (`rttArm3P` → `rtt3PStart`) deals **four militant faction cards** to **three**
+seats. Seats and deal are one number — `RTT_DRAFT_N = 4`, so `RTT_DN = 4` and the seats are
+`RTT_DN - 1` — which is why the fourth player is never spawned rather than skipped.
+
+**Rowdy Riverboat** (`rttArmFlotilla` → `rttFlotillaStart`) puts the Riverfolk Flotilla hireling out —
+its rules card and its one boat — and does nothing else. It is the one entry in `RTT_WIPE_BTN` that
+destroys nothing, so it carries no warning and runs on a single click. The rules card joins the helper
+row beside the map, which `rttLayHelperRow` rebuilds whenever a card arrives or leaves: every card is
+measured, the Flotilla goes last, and the row is set down from a fixed right edge with one gap between
+each and every near edge on one line.
 
 **5-Players Marsh** (`rttArmMarsh5PMap` → `rttPlaceMarsh5P`) places *only* the 5-player Marsh board —
 no draft, no seating. It IS destructive: it goes through `rttPlaceMap` → `makeMap` → `removeMapItems`

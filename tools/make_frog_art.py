@@ -1,16 +1,22 @@
 #!/usr/bin/env python3
-"""Cut the militant frog off the Lilypad Diaspora's faction board, for the 3-Player Draft button.
+"""Take the militant frog off the Lilypad Diaspora's board art, for the 3-Player Draft button.
 
 Maintainer, 2026-09-10: "The art for this should be the pissed off frog that represents the militant
-side of frogs on the frog faction board."
+side of frogs on the frog faction board", and when the first cut used the wrong one: "I did not mean
+the enclave token for the militant but the actual frog character that is on the frog faction board
+art."
 
     python3 tools/make_frog_art.py
 
-The board prints its two enclave tokens side by side in the Enclaves column -- the peaceful frog, all
-curls and closed eyes, and under it the militant one with its brows down. That second token is the
-picture, and it is a printed CIRCLE on flat parchment, which makes this the easiest cut of the three
-button arts: no keying, no flooding, no island. A disc of the measured radius about the measured
-centre IS the token, and everything outside it is page.
+He is the right-hand of the two frogs in the board's illustration -- brow down, mouth turned, hunched
+in dungarees and a bandolier, where the one beside him is upright and grinning.
+
+A PLAIN CROP, NOT A CUT-OUT, and that is a decision rather than laziness. He is drawn in the same
+olive as the ground he stands on -- his head reads (165,152,60) against a ground of (156,146,71) to
+(188,181,91) -- so no colour key can separate them; and the white keyline that would have served as a
+boundary instead is broken along a third of his outline, so a flood leaks straight through it into
+him. The lily pads he stands among are the faction's own art and read as frogs at button size, which
+is what the 4-Player Draft button does with its photograph.
 
 Reads assets/src_art/frog_board.png (the board face as Steam serves it) and writes
 assets/src_art/frog_militant.png, which tools/relabel.py turns into the button.
@@ -18,7 +24,6 @@ assets/src_art/frog_militant.png, which tools/relabel.py turns into the button.
 import os
 import sys
 
-import numpy as np
 from PIL import Image
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -26,35 +31,20 @@ REPO = os.path.dirname(HERE)
 SRC = os.path.join(REPO, "assets", "src_art", "frog_board.png")
 OUT = os.path.join(REPO, "assets", "src_art", "frog_militant.png")
 
-# Measured on the 2205x1701 board face: the militant enclave is the LOWER of the two tokens.
-CENTRE = (971, 790)
-RADIUS = 79
-MARGIN = 6                             # a little page around it, so the disc is not cropped flush
-FEATHER = 1.2                          # the printed rim is soft; a hard disc edge reads as a sticker
-
-# THE BUTTON'S OWN COLOUR, as with the Theme and Riverboat arts: the character sits on the ground the
-# button is drawn in, so nothing reads as a rectangle around it. rtt3PBtn is drawn "#33422b".
-GROUND = (0x33, 0x42, 0x2b)
+# Measured on the 2205x1701 board face: he stands x 1560..2080, y 1020..1650. The window is wider than
+# he is so the button's art area is filled rather than left with a narrow strip -- at 760x675 the fit
+# is height-bound and he lands 234 wide on a 292-wide area, which is the weight of the buttons beside
+# him.
+WINDOW = (1440, 990, 2200, 1665)       # left, top, right, bottom
 
 
 def main():
     if not os.path.exists(SRC):
         sys.exit("missing %s" % SRC)
-    board = np.asarray(Image.open(SRC).convert("RGB")).astype(float)
-    cx, cy = CENTRE
-    r = RADIUS + MARGIN
-    win = board[cy - r:cy + r, cx - r:cx + r]
-
-    yy, xx = np.mgrid[0:win.shape[0], 0:win.shape[1]]
-    d = np.sqrt((xx - r + 0.5) ** 2 + (yy - r + 0.5) ** 2)
-    alpha = np.clip((RADIUS - d) / FEATHER + 0.5, 0.0, 1.0)
-
-    ground = np.empty_like(win)
-    ground[...] = GROUND
-    out = win * alpha[..., None] + ground * (1 - alpha[..., None])
-
-    Image.fromarray(out.round().astype(np.uint8)).save(OUT)
-    print("  the militant enclave, r %d about (%d, %d), on %s" % (RADIUS, cx, cy, GROUND))
+    board = Image.open(SRC).convert("RGB")
+    im = board.crop(WINDOW)
+    im.save(OUT)
+    print("  the militant frog, %dx%d off the board's own art" % im.size)
     print("  -> %s" % os.path.relpath(OUT, REPO))
 
 

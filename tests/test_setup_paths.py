@@ -2477,19 +2477,21 @@ def t_the_two_free_button_slots_are_bottom_right(src):
         if pos and w and w.group(1) == "36":          # the 36x20 option buttons only
             rows.setdefault(float(pos.group(2)), {})[float(pos.group(1))] = i.group(1) if i else "?"
     SLOTS = [-95.0, -57.0, -19.0, 19.0, 57.0, 95.0]
-    # THE ROWS ARE EVENLY SPACED NOW. Maintainer, 2026-09-10: "also try to have an equal distance
-    # between the rows of every buttons" -- 51.5, 19.125, -13.25, -45.625, -78, one 32.375 apart. The
-    # first tool row moved off -55 with everything else.
-    top, bottom = rows.get(-45.625, {}), rows.get(-78.0, {})
+    # THE ROWS ARE SPREAD AND CENTRED. Maintainer, 2026-09-10: "space all rows with the same space. do
+    # it so you use better the space of the whole board. maybe recenter the position of all the rows as
+    # well", and then "the space between the last two rows of small option button can be 1/2 the space
+    # between the other rows". So 70, 30, -10, -50, -70: three gaps of 40 and a last of 20, centred on
+    # the board.
+    top, bottom = rows.get(-50.0, {}), rows.get(-70.0, {})
     assert len(top) == 6, "the first tool row has %d of 6 slots filled: %s" % (len(top), sorted(top))
     free = [s for s in SLOTS if s not in bottom]
     assert free == [], "row 2 has spare slots again: %s" % free
-    assert bottom.get(19) == "rttClearAllBtn", \
-        "x=19 of row 2 holds %s, not Clear All" % bottom.get(19)
-    assert bottom.get(57) == "rttFlotillaBtn", \
-        "x=57 of row 2 holds %s, not Flotilla Draft" % bottom.get(57)
-    assert bottom.get(95) == "rttCreditsBtn", \
-        "Credits is no longer anchored at 95: %s" % bottom.get(95)
+    # THE LAST ROW, in the order he set it on 2026-09-10: "4 player setup, 5 player setup, 5 players
+    # marsh, Rowdy Riverboat, Clear all items, credit."
+    ORDER = ((-95.0, "rttFourBoardsBtn"), (-57.0, "Marsh5PSetup"), (-19.0, "Marsh5PMap"),
+             (19.0, "rttFlotillaBtn"), (57.0, "rttClearAllBtn"), (95.0, "rttCreditsBtn"))
+    for x0, bid in ORDER:
+        assert bottom.get(x0) == bid, "x=%s of the last row holds %s, not %s" % (x0, bottom.get(x0), bid)
     assert top.get(57) == "Faction Cards", "x=57 of row 1 holds %r, not Faction Cards" % top.get(57)
     assert bottom.get(95) == "rttCreditsBtn", "the bottom-right slot holds %r, not Credits" % bottom.get(95)
 
@@ -4318,26 +4320,31 @@ def t_the_top_row_is_four_drafts_on_the_map_grid(src):
     for bid, x0 in TOP:
         assert bid in got, "%s is not on the board" % bid
         assert got[bid][0] == x0, "%s is at x %s, not %s" % (bid, got[bid][0], x0)
-        assert got[bid][1] == 51.5, "%s left the top row: y %s" % (bid, got[bid][1])
+        assert got[bid][1] == 70.0, "%s left the top row: y %s" % (bid, got[bid][1])
         assert got[bid][2] == "34x34", "%s is not a square button: %s" % (bid, got[bid][2])
 
     # centred on the map row's own columns, which is what "aligned with the map buttons" means
     maps = sorted(v[0] for k, v in got.items() if v[2] == "34x34" and v[1] == got["Summer Map"][1])
     assert maps == [-95.0, -57.0, -19.0, 19.0, 57.0, 95.0], "the map row moved: %s" % maps
-    tops = sorted(v[0] for k, v in got.items() if v[1] == 51.5)
+    tops = sorted(v[0] for k, v in got.items() if v[1] == 70.0)
     assert tops == [-57.0, -19.0, 19.0, 57.0], "the top row is not the map grid's inner four: %s" % tops
     assert abs(sum(tops)) < 1e-9, "the top row is not centred: %s" % tops
 
     # 4-PLAYER SETUP WENT DOWN, as an option button
-    assert got["rttFourBoardsBtn"][:1] == (-57.0,) and got["rttFourBoardsBtn"][1] == -78.0, \
-        "4-Player Setup is at %s, not the tool row's -57" % (got["rttFourBoardsBtn"],)
+    assert got["rttFourBoardsBtn"][0] == -95.0 and got["rttFourBoardsBtn"][1] == -70.0, \
+        "4-Player Setup is at %s, not the last row's left end" % (got["rttFourBoardsBtn"][:2],)
     assert got["rttFourBoardsBtn"][2] == "36x20", "4-Player Setup is not an option button"
 
     # EVERY ROW THE SAME DISTANCE APART
     ys = sorted({v[1] for v in got.values()
                  if v[2] in ("34x34", "36x20")}, reverse=True)
+    # ...one gap, and a last one half of it: "the space between the last two rows of small option
+    # button can be 1/2 the space between the other rows".
     gaps = [round(ys[i] - ys[i + 1], 4) for i in range(len(ys) - 1)]
-    assert len(set(gaps)) == 1, "the rows are %s apart; they should all be the same" % gaps
+    assert len(set(gaps[:-1])) == 1, "the upper rows are %s apart; they should match" % gaps[:-1]
+    assert abs(gaps[-1] * 2 - gaps[0]) < 1e-6, \
+        "the last gap is %s; it should be half of %s" % (gaps[-1], gaps[0])
+    assert abs(ys[0] + ys[-1]) < 1e-6, "the rows are not centred: %s to %s" % (ys[0], ys[-1])
 
     # AND THE ROOT SIGN IS GONE. "remove entirely the root logo and the thing with birds we did."
     assert 'id="rootLogo"' not in xml, "the ROOT sign is still on the board"
@@ -4352,10 +4359,6 @@ def t_the_three_player_draft_deals_four_militants_and_no_flotilla(src):
     flotilla" -- the Riverboat's own rules without its hireling, which the Riverboat button keeps.
     """
     rt = fresh(src)
-    rt.execute("SPAWNED = {} "
-               "local _s = spawnObjectJSON "
-               "spawnObjectJSON = function(p) local o = _s(p) "
-               "  SPAWNED[#SPAWNED+1] = o.getName() or '' return o end")
     rt.execute("pcall(function() rtt3PStart(nil,nil,nil) end) FLUSH(200)")
 
     assert rt.eval("RTT_DN") == 4, "it seats %s players, not 3" % rt.eval("RTT_DN")
@@ -4365,113 +4368,36 @@ def t_the_three_player_draft_deals_four_militants_and_no_flotilla(src):
                 "Lord of the Hundreds", "Keepers in Iron", "Lilypad Diaspora"}
     assert set(facs) <= MILITANT, "an insurgent was dealt: %s" % sorted(set(facs) - MILITANT)
 
-    names = [str(v) for v in rt.eval("SPAWNED").values()]
-    assert "Flotilla" not in names, "the 3-player draft brought the Flotilla: %s" % (
-        [n for n in names if "Flotilla" in n])
     left = rt.eval("function() return #getObjectsWithTag('RTT Flotilla') end")()
-    assert left == 0, "the 3-player draft left %d Flotilla piece(s) on the table" % left
+    assert left == 0, "the 3-player draft brought %d Flotilla piece(s) with it" % left
 
 
-def t_the_flotilla_draft_seats_three_and_deals_militants(src):
-    """Three players, four militant cards, the hireling and its rules card beside the map.
+def t_the_riverboat_button_only_puts_the_flotilla_out(src):
+    """The Rowdy Riverboat spawns the hireling and touches nothing else.
 
-    Maintainer, 2026-09-09: "create an additional button option that is Flotilla Draft; add the art of
-    the flotilla for that button; rules of draft is 3 player draft only (carefull to all the
-    adjustments it might require, just do not spawn the 4th player) it deals 4 faction cards and only
-    militant factions. it spawns also the flotilla card rule next to the map as the landmark helpers
-    (think of how it needs to adjust the arrival of other helper cards) and spawns the flotilla
-    hireling (fetch it)."
+    Maintainer, 2026-09-10: "the button for the riverboat options should just spawn the flotilla item
+    and helper card nothing else", and "be called Rowdy Riverboat".
 
-    THE SEAT COUNT AND THE DEAL ARE ONE NUMBER and always have been -- RTT_DRAFT_N is what rttSetup
-    deals, RTT_DN is that, and the seats are RTT_DN - 1. The 4-player draft is 5 and the 5-player is 6,
-    so "3 player draft, 4 cards" is 4, and the fourth seat is not skipped anywhere: it is never asked
-    for. That is what makes "all the adjustments it might require" come out to nothing -- the selector
-    boards, the turn order, the order deck and the box score's row count all read RTT_DN already.
+    It ran a whole draft for four builds -- three players, four militant cards -- and that draft is the
+    3-Player Draft button now. What is left is the hireling: its card in the helper row, its boat under
+    it, and no faction touched. Which also makes it the one entry in RTT_WIPE_BTN that destroys
+    nothing, so it asks nothing and runs on a single click.
     """
     rt = fresh(src)
-    rt.execute("pcall(function() rttFlotillaStart(nil,nil,nil) end) FLUSH(120)")
+    rt.execute("pcall(function() rttFlotillaStart(nil,nil,nil) end) FLUSH(60)")
+    assert rt.eval("RTT_DN") is None, \
+        "the Riverboat button ran a draft: it seated %s" % rt.eval("RTT_DN")
+    assert rt.eval("RTT_DRAFT_FACTIONS") is None or len(dict(rt.eval("RTT_DRAFT_FACTIONS"))) == 0, \
+        "the Riverboat button dealt faction cards"
+    n = rt.eval("function() return #getObjectsWithTag('RTT Flotilla') end")()
+    assert n == 2, "it put out %d Flotilla pieces; expected the card and the boat" % n
 
-    assert rt.eval("RTT_DN") == 4, "the Flotilla draft seats %s players, not 3" % rt.eval("RTT_DN")
-    facs = list((rt.eval("RTT_DRAFT_FACTIONS") or {}).values())
-    assert len(facs) == 4, "it dealt %d faction cards, not 4: %s" % (len(facs), facs)
-    assert len(set(facs)) == 4, "it dealt the same faction twice: %s" % facs
-
-    MILITANT = {"Marquise de Cat", "Eyrie Dynasties", "Underground Duchy",
-                "Lord of the Hundreds", "Keepers in Iron", "Lilypad Diaspora"}
-    assert set(facs) <= MILITANT, "an insurgent was dealt: %s" % sorted(set(facs) - MILITANT)
-
-    # AND THE FLAG IS ONE-SHOT, like RTT_DRAFT_N and RTT_THEME beside it: the next ordinary draft must
-    # not inherit it. This is the failure mode of every "mode" flag in this file.
-    assert rt.eval("RTT_MILITANT_ONLY") is None, "the militant-only flag outlived its draft"
-
-    # ONE ORDER CARD PER SEAT. "the draft with 3 players should not contain the 4th turn player seat
-    # card obviously." Two decks ship, a four and a five, and the choice was a single comparison with
-    # no answer below four -- so three players were handed four seat cards. The five-card deck is the
-    # four with another on the FRONT, so a smaller table is the same deck with the front taken off.
-    cards = rt.eval("function(n) local d = JSON.decode(rttOrderDeckJson(n)) "
-                    "return #d.DeckIDs .. '/' .. #d.ContainedObjects .. '/' "
-                    ".. table.concat(d.DeckIDs, ',') end")
-    for seats, want in ((3, 3), (4, 4), (5, 5)):
-        got = cards(seats)
-        ids, con = got.split("/")[0], got.split("/")[1]
-        assert int(ids) == want and int(con) == want, \
-            "%d seats got %s order cards: %s" % (seats, ids, got)
-    assert cards(3).split("/")[2] == "802,801,800", \
-        "the three-seat deck is not the four with its front card off: %s" % cards(3)
-    rt.execute("pcall(function() rttSetup(nil,nil,nil) end) FLUSH(120)")
-    assert rt.eval("RTT_DN") == 5, "the next draft inherited the Flotilla's seat count"
-    after = list((rt.eval("RTT_DRAFT_FACTIONS") or {}).values())
-    assert len(after) == 5, "the next draft dealt %d cards" % len(after)
-
-    # THE HELPER ROW, READ FROM THE MAP OUTWARD. "Flotilla takes the first spot, towns shift" -- and
-    # the first spot is the one nearest the board, which is what the row ran the wrong way round on the
-    # first build: "at the moment it does not spot immediately next to the map but its offset quite a
-    # bit". The Lake board's printed edge is x -23.5, so a card at -45 is nineteen units out.
-    spot = rt.eval("function(n) local p = rttHelperSpot(n) "
-                   "return string.format('%.3f/%.3f/%.3f', p[1], p[2], p[3]) end")
-    row = [spot(n) for n in ("Flotilla", "Foxburrow", "Rabbit-Town", "Mousehold")]
-    xs = [float(v.split("/")[0]) for v in row]
-    assert xs == sorted(xs, reverse=True), "the row does not run away from the map: %s" % xs
-    assert abs(xs[0] + 30.040) < 1e-3, "the Flotilla is not in the near spot: %s" % xs[0]
-    gaps = [round(xs[i] - xs[i + 1], 3) for i in range(3)]
-    assert all(abs(g - 5.058) < 1e-3 for g in gaps), "the row is not evenly spaced: %s" % gaps
-    for v in row:
-        z = float(v.split("/")[2])
-        assert abs(z + 19.135) < 1e-3, "a helper card left the row's z: %s" % v
-
-    # AND THE THREE TOWN CARDS ARE EXACTLY WHERE HE PLACED AND LOCKED THEM. Giving the Flotilla a new
-    # near slot rather than the nearest town's is what keeps that true.
-    for town, x in (("Foxburrow", -35.098), ("Rabbit-Town", -40.156), ("Mousehold", -45.214)):
-        got = float(spot(town).split("/")[0])
-        assert abs(got - x) < 1e-3, "%s moved to %.3f; he placed it at %.3f" % (town, got, x)
-
-    # THE KIT: the rules card in the row, and the hireling the base collection ships -- its own card
-    # and its one boat.
-    rt = fresh(src)
-    rt.execute("SPAWNED = {} "
-               "local _s = spawnObjectJSON "
-               "spawnObjectJSON = function(p) local o = _s(p) "
-               "  SPAWNED[#SPAWNED+1] = string.format('%s|%.3f|%.3f', o.getName() or '', "
-               "    o.__pos.x, o.__pos.z) "
-               "  return o end")
-    rt.execute("pcall(function() rttSpawnFlotillaKit() end) FLUSH(20)")
-    got = [str(v) for v in rt.eval("SPAWNED").values()]
-    names = [g.split("|")[0] for g in got]
-    # HIS CARD AND THE BOAT, AND NOTHING ELSE: "only your card and the boat". The base collection's
-    # printed hireling card is in the same entry as the boat and came out with it for one build, so
-    # the table carried two Flotilla cards twenty units apart.
-    assert "Riverfolk Flotilla" not in names, \
-        "the printed hireling card spawned as well: %s" % names
-    assert names.count("Flotilla") == 2, \
-        "expected his card and the boat, got %s" % names
-    rules = [g for g in got if g.startswith("Flotilla|")]
-    assert rules, "the rules card did not spawn: %s" % names
-    # WHERE IT IS DROPPED is not where it ends up -- rttLayHelperRow measures the whole row and sets it
-    # down a few frames later -- so all that matters here is that it lands beside the board rather than
-    # somewhere surprising in between.
-    x, z = (float(v) for v in rules[0].split("|")[1:])
-    assert -34.0 < x < -26.0, "the rules card is dropped at %.3f, nowhere near the board's edge" % x
-    assert -25.0 < z < -17.0, "the rules card is dropped at z %.3f, off the helper row's band" % z
+    # IT NEVER ASKS, because it takes nothing away
+    d = rt.eval("RTT_WIPE_BTN['rttFlotillaBtn']")
+    assert d["warn"] is None and d["warnMap"] is None, \
+        "the Riverboat carries a wipe warning for something it does not destroy"
+    assert rt.eval("function() return rttWouldWipe(RTT_WIPE_BTN['rttFlotillaBtn']) end")() is False, \
+        "the Riverboat would arm instead of running"
 
     # THE WHOLE ROW IS BUILT, not one card placed against it. "marsh 4p helper overlaps come on check
     # all maps properly and a be rigorous." Counted off the blueprints, the cards it has to share the
@@ -4607,7 +4533,7 @@ def t_clear_all_objects_asks_before_it_clears(src):
     assert board, "the Clear All button is not in the board's XmlUI"
     el = board.group(0)
     for want in ('onclick="rttArmClearAll"', 'icon="ClearAllArt"',
-                 'position="19 -78 -20"', 'width="36"', 'height="20"'):
+                 'position="57 -70 -20"', 'width="36"', 'height="20"'):
         assert want in el, "the Clear All button is missing %s: %s" % (want, el)
     # and both pictures it needs are registered, or TTS draws a white placeholder over it
     assets = {a["Name"] for a in [o for o in walk(x) if o.get("GUID") == "bab7e1"][0]["CustomUIAssets"]}
@@ -5288,9 +5214,19 @@ def t_a_warning_describes_what_the_click_really_does(src):
     assert art(lake) == "WipeConfirmMapArt", \
         "a map button claimed to reset factions: %s" % art(lake)
 
-    # EVERY BUTTON HAS THE WORDING IT NEEDS. A setup button can hit either case, so it needs both; a
-    # map button only ever resets a map. An entry missing one would silently arm with no art at all.
+    # EVERY DESTRUCTIVE BUTTON HAS THE WORDING IT NEEDS. A setup button can hit either case, so it
+    # needs both; a map button only ever resets a map. An entry missing one would silently arm with no
+    # art at all.
+    #
+    # The Rowdy Riverboat is the exception and carries NEITHER, because it destroys nothing: since
+    # 2026-09-10 it only puts the Flotilla out ("the button for the riverboat options should just spawn
+    # the flotilla item and helper card nothing else"). It keeps its entry for the icon and the colour,
+    # and rttWouldWipe -- which asks after a warn art and a map -- lets it run on one click.
     for bid, d in dict(rt.eval("RTT_WIPE_BTN")).items():
+        if d["warn"] is None and d["warnMap"] is None:
+            assert d["map"] is None and d["places"] is None, \
+                "%s changes the table but asks nothing" % bid
+            continue
         assert d["warnMap"] is not None, "%s can change the map but has no map wording" % bid
         if d["fn"] is not None and d["places"] is None:
             assert d["warn"] is not None, "%s clears factions but has no faction wording" % bid
@@ -6176,7 +6112,7 @@ CASES = [
     ("clear all asks before it clears",   t_clear_all_objects_asks_before_it_clears),
     ("top row is four drafts",            t_the_top_row_is_four_drafts_on_the_map_grid),
     ("3P draft: 4 militants, no boat",    t_the_three_player_draft_deals_four_militants_and_no_flotilla),
-    ("flotilla draft seats three",        t_the_flotilla_draft_seats_three_and_deals_militants),
+    ("riverboat only puts it out",        t_the_riverboat_button_only_puts_the_flotilla_out),
     ("a prisoner goes pale",              t_a_prisoner_goes_pale),
     ("board shows the build number",      t_the_board_shows_the_build_number),
     ("panel pauses the clock",            t_the_panel_pauses_the_clock),

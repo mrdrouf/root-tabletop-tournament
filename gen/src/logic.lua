@@ -1614,7 +1614,8 @@ RTT_WIPE_BTN = {
   Marsh5P          = { fn = "rttFivePStart",         color = "#463221", icon = "FivePlayerArt",      warn = "WipeConfirmArt", warnMap = "WipeConfirmMapArt", wants5p = true },
   -- The Flotilla draft: three players, four militant cards, and the hireling. Its colour is the
   -- teal its own card is printed on, so the button matches the art it carries.
-  rttFlotillaBtn   = { fn = "rttFlotillaStart",      color = "#2e5a58", icon = "FlotillaArt",        warn = "WipeConfirmArtWide", warnMap = "WipeConfirmMapArtWide" },
+  -- no warn art and no map: it puts the Flotilla out and takes nothing away, so it never asks
+  rttFlotillaBtn   = { fn = "rttFlotillaStart",      color = "#2e5a58", icon = "FlotillaArt" },
   Marsh5PSetup     = { fn = "setupFivePlayerBoards", color = "#463221", icon = "FivePlayerSetupArt", warn = "WipeConfirmArtWide", warnMap = "WipeConfirmMapArtWide" },
   -- 5-Players Marsh places the Marsh map and nothing else, so it can only ever cost you the map.
   -- BUTTONS.md used to say it "is not destructive, so it does not prompt"; it goes through
@@ -5757,33 +5758,33 @@ function rttSpawnFlotillaKit()
   end
 end
 
--- THE FLOTILLA DRAFT. Maintainer, 2026-09-09: "rules of draft is 3 player draft only (carefull to all
--- the adjustments it might require, just do not spawn the 4th player) it deals 4 faction cards and
--- only militant factions."
+-- THE THREE-PLAYER DRAFT. Maintainer, 2026-09-10, asked what the new top-row button should run: "it s
+-- 3 players, 4 militant cards, no flotilla".
 --
--- The seat count and the deal are ONE number in this mod and always have been: RTT_DRAFT_N is what
--- rttSetup deals, RTT_DN is that number, and the seats are RTT_DN - 1. The 4-player draft is 5 and the
--- 5-player is 6, so three players dealt four cards is 4 -- and the fourth seat is not "skipped", it is
--- never asked for. Everything downstream reads RTT_DN: the selector boards, the turn order, the box
--- score's row count, the order deck.
---
--- MILITANT ONLY is the one genuinely new rule. The pool is normally the militants after the first plus
--- every insurgent; this drops the insurgents, which leaves the six militants -- one dealt first and
--- three drawn from the other five.
--- THE THREE-PLAYER DRAFT. Maintainer, 2026-09-10, asked what the new button should run: "it s 3
--- players, 4 militant cards, no flotilla" -- so it is the Riverboat's draft without the hireling, and
--- the Riverboat button keeps that.
+-- The seat count and the deal are ONE number here and always have been: RTT_DRAFT_N is what rttSetup
+-- deals, RTT_DN is that number, and the seats are RTT_DN - 1. The 4-player draft is 5 and the 5-player
+-- is 6, so three players dealt four cards is 4 -- the fourth seat is never asked for rather than
+-- skipped. MILITANT ONLY drops the insurgents from the pool, leaving the six militants: one dealt
+-- first and three drawn from the other five.
 function rtt3PStart(player, value, id)
   RTT_DRAFT_N = 4
   RTT_MILITANT_ONLY = true
   rttSetup(player, value, id)
 end
 
+-- THE ROWDY RIVERBOAT BUTTON PUTS THE FLOTILLA OUT, and does nothing else. Maintainer, 2026-09-10:
+-- "the button for the riverboat options should just spawn the flotilla item and helper card nothing
+-- else", and "be called Rowdy Riverboat".
+--
+-- It ran a whole draft for four builds -- three players, four militant cards -- and that draft is the
+-- 3-Player Draft button in the top row now. What is left here is the hireling: its card in the helper
+-- row and its boat under it, and not a faction touched.
+--
+-- WHICH MAKES IT THE ONE ENTRY IN RTT_WIPE_BTN THAT DESTROYS NOTHING, so it carries no warning art and
+-- runs on a single click -- rttWouldWipe asks after a `warn` art and a map, and it has neither. It
+-- keeps its entry there for the icon and the colour, which is what rttDisarm reverts to.
 function rttFlotillaStart(player, value, id)
-  RTT_DRAFT_N = 4
-  RTT_MILITANT_ONLY = true
-  rttSetup(player, value, id)
-  rttWhenMapReady(function() rttSpawnFlotillaKit() end)
+  rttSpawnFlotillaKit()
 end
 
 -- place the 5-player Marsh MAP only (no draft/selectors/seating). Sets the flag that the makeMap

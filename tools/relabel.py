@@ -266,7 +266,7 @@ WIDES = [
     # RIVERBOAT, not Flotilla, on the face of it. Maintainer, 2026-09-09: "call the button Riverboat
     # Draft." The asset name and the stem stay as they are -- they are historical here by convention,
     # the same way RankedArt reads "4-Player Draft" -- so this is the caption and nothing else.
-    ("FlotillaArt",        "flotilla_draft_v11",      ["Riverboat", "Draft"],
+    ("FlotillaArt",        "flotilla_draft_v11",      ["Rowdy", "Riverboat"],
      lambda: art_topband("assets/src_art/flotilla_button.png", 1.0)),
     ("CreditsBtnArt",      "credits_button_v11",      ["Credits"],             lambda: None, 96, 1.0),
     # Credits carries no artwork, so its caption has the whole button to itself: start it far above
