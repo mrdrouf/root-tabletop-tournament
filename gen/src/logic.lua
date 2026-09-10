@@ -4244,7 +4244,16 @@ function rttShowFactions()
   for _, seat in ipairs(RTT_SEATS or {}) do
     local clone = seat.board
     if clone ~= nil then
-      clone.UI.setAttribute("rttPickMapDeck", "active", "false")
+      -- NO rttPickMapDeck HERE. That group was deleted from the selector's blueprint on 2026-09-07
+      -- ("The map/deck pick was unreachable code; it is gone"), along with three of the four lines
+      -- that drove it. This was the fourth, and it was missed.
+      --
+      -- setAttribute on an id the object's XML does not have is a NULL on TTS's side: "[Faction
+      -- Selection - bab7e1] Lua Error: Object reference not set to an instance of an object." It was
+      -- the FIRST statement in this loop, so it took the whole loop with it -- no seat past the first
+      -- ever had its faction buttons lit, which is why one player could pick and nobody else could.
+      -- Maintainer, 2026-09-10: "cannot spawn a second faction after a draft", and "it s like only
+      -- sometimes the button works and only can spawn 1 faction".
       clone.UI.setAttribute("rttFactions", "active", "true")
       for i = 1, 6 do
         local f = (RTT_DRAFT_FACTIONS or {})[i]

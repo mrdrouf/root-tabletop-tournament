@@ -6210,6 +6210,62 @@ def t_a_seat_fact_has_one_writer(src):
     assert rt.eval("rttSetSeatOwner(RTT_SEATS[1], 'Bob')") == "Bob", "the owner is not refreshed"
 
 
+def t_every_seat_gets_its_faction_buttons(src):
+    """A draft lights EVERY seat's board, not just the first one it reaches.
+
+    Maintainer, 2026-09-10: "so you now currently still broken cannot spawn a second faction after a
+    draft", and before that "it s like only sometimes the button works and only can spawn 1 faction",
+    with `[Faction Selection - bab7e1] Lua Error: Object reference not set to an instance of an
+    object.` on every load and every pick.
+
+    That is TTS's null for `UI.setAttribute` against an id the object's XML does not declare. The
+    map/deck pick was deleted from the selector's blueprint on 2026-09-07 and three of the four lines
+    that drove it went with it; the fourth was the FIRST statement in rttShowFactions's per-seat loop.
+    So from that day the loop threw on the first seat that had a board and every seat after it kept a
+    dark board -- one player could pick, nobody else could, and it read as intermittent because which
+    seat you were decided whether you saw it.
+
+    Nothing could see it here either: the stub accepted any id, so the bogus call was a no-op and the
+    suite was green for three days. The stub now refuses an id the blueprint does not declare, exactly
+    as TTS does, which is what makes this test able to fail.
+    """
+    rt = fresh(src)
+    rt.execute("pcall(function() rttSetup(Player['Red'], '', 'rttRankedBtn') end) FLUSH(200)")
+
+    boards = rt.eval("function() local n = 0 "
+                     "for _, s in ipairs(RTT_SEATS or {}) do if s.board ~= nil then n = n + 1 end end "
+                     "return n end")()
+    assert boards >= 3, "the draft only put %d selector boards out" % boards
+
+    err = rt.eval("function() local ok, e = pcall(function() rttShowFactions() end) "
+                  "return ok and '' or tostring(e) end")()
+    assert err == "", "rttShowFactions threw: %s" % err[:120]
+
+    # EVERY board, not just the first. This is the assertion the bug broke.
+    lit = rt.eval("function() local n = 0 "
+                  "for _, s in ipairs(RTT_SEATS or {}) do "
+                  "  if s.board ~= nil and s.board.__uiattr['rttFactions.active'] == 'true' then "
+                  "    n = n + 1 end end "
+                  "return n end")()
+    assert lit == boards, "%d of %d seats had their faction buttons lit" % (lit, boards)
+
+    # ...and a pick still leaves the others pickable, which is what he actually reported
+    rt.execute("""
+      local s = RTT_SEATS[1]
+      if s ~= nil and s.board ~= nil then
+        pcall(function() rttCoordFaction({ color = s.color or 'Red', id = 'rttFac1',
+                                           board = s.board.getGUID() }) end)
+      end
+      FLUSH(200)""")
+    left = rt.eval("function() local n = 0 "
+                   "for _, s in ipairs(RTT_SEATS or {}) do "
+                   "  if s.board ~= nil and s.board.__uiattr['rttFactions.active'] == 'true' then "
+                   "    n = n + 1 end end "
+                   "return n end")()
+    assert left == boards - 1, \
+        "after one pick %d of the remaining %d boards are still lit" % (left, boards - 1)
+
+
 CASES = [
     ("manual path drives the turn system",   t_manual_turn_order),
     ("manual path spawns 4 / 5 boards",      t_boards_spawn),
@@ -6321,6 +6377,7 @@ CASES = [
     ("board shows the build number",      t_the_board_shows_the_build_number),
     ("panel pauses the clock",            t_the_panel_pauses_the_clock),
     ("start names the pass it causes",    t_start_names_the_pass_it_causes),
+    ("every seat's board lights up",      t_every_seat_gets_its_faction_buttons),
 ]
 
 

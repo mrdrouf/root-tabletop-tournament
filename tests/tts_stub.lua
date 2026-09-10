@@ -211,7 +211,27 @@ function MKOBJ(name, pos, tags)
   function o.setCustomObject() end function o.getLuaScript() return "" end
   function o.setLuaScript() end function o.getGMNotes() return "" end
   function o.setGMNotes() end function o.getValue() return 0 end function o.setValue() end
-  o.UI = {setXml=function() end, setAttribute=function() end, getAttribute=function() return "" end,
+  -- THE OBJECT'S OWN XML UI, AND WHAT IS IN IT. TTS throws "Object reference not set to an instance
+  -- of an object" when you setAttribute an id the object's XML does not declare, and it takes the rest
+  -- of the calling function with it. The stub used to accept anything, so a call to a deleted element
+  -- was a silent no-op here and a dead draft in his game: rttShowFactions drove a group that had been
+  -- removed from the selector blueprint, threw on the first seat, and left every other seat unlit --
+  -- "cannot spawn a second faction after a draft", green suite throughout.
+  --
+  -- __uiids is nil for an object whose blueprint had no XmlUI at all; those keep the old free-for-all,
+  -- so nothing that never had a UI starts failing.
+  o.__uiids = nil
+  o.__uiattr = {}
+  o.UI = {setXml=function() end, getAttribute=function() return "" end,
+          setAttribute=function(id, k, v)
+            if o.__uiids ~= nil and o.__uiids[tostring(id)] ~= true then
+              error("Object reference not set to an instance of an object. (no UI element '"
+                    .. tostring(id) .. "' on " .. tostring(o.__name) .. ")", 2)
+            end
+            -- ...and what DID land, per object, so a test can ask which boards were lit rather than
+            -- only whether the call threw
+            o.__uiattr[tostring(id) .. "." .. tostring(k)] = v
+          end,
           setXmlTable=function() end, getXmlTable=function() return {} end, show=function() end, hide=function() end}
   LIVE[g] = o
   return o
@@ -236,6 +256,13 @@ function spawnObjectJSON(p)
   if n == nil or n == "" then n = j:match('"Name":%s*"([^"]*)"') end
   if n == nil or n == "" then n = "?" end
   local o = MKOBJ(n, (p or {}).position, {})
+  -- the ids this blueprint's XmlUI declares, so a setAttribute against a missing one fails here the
+  -- way it fails in TTS. The blueprint is JSON inside a Lua literal, so the quotes are backslashed.
+  local xml = j:match([["XmlUI"%s*:%s*"(.-)","]])
+  if xml ~= nil and xml ~= "" then
+    o.__uiids = {}
+    for id in xml:gmatch([[id%s*=%s*\"([^\"]+)]]) do o.__uiids[id] = true end
+  end
   -- The spawn ROTATION and SCALE, which the stub used to drop on the floor -- so no test could tell a
   -- tile spawned face up from one spawned face down, which is exactly what the crow plots turn on.
   -- Transform from the BLUEPRINT first, then let the spawn call override it. A faction piece is

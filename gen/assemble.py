@@ -76,9 +76,71 @@ def check_spawn_tagging(logic):
             "      gen/assemble.py with a reason." % ", ".join(sorted(bad)))
 
 
+# Ids that are built at runtime, or belong to an object whose XML this check cannot see. Keep this
+# list empty if you can: every entry is a place the check has been told to look away.
+UI_ID_OK = set()
+
+
+def check_ui_ids(logic, save):
+    """Fail the build if the board drives a UI element that does not exist.
+
+    `UI.setAttribute` on an id the target's XML does not declare is a NULL on TTS's side --
+    "Lua Error: Object reference not set to an instance of an object" -- and it takes the rest of the
+    calling function with it. It cost a week: the map/deck pick was deleted from the selector's
+    blueprint on 2026-09-07 and three of the four lines that drove it went with it. The fourth sat at
+    the top of rttShowFactions's per-seat loop, so from that day every draft lit ONE seat's board and
+    threw before reaching the rest. Maintainer, 2026-09-10: "cannot spawn a second faction after a
+    draft."
+
+    Nothing in the test suite could see it -- the stub's UI records whatever you set, so a bogus id is
+    a no-op there and green all the way. This is the check that would have caught it, and it is a
+    BUILD failure rather than a test because shipping it is what does the damage.
+    """
+    # the board is the object the assembler just put the script into -- found the same way, so the
+    # two can never disagree about which object this is
+    def find(objs):
+        for o in objs:
+            if o.get("LuaScript") == "@@BOARD_LUA@@":
+                return o
+            got = find(o.get("ContainedObjects", []) or [])
+            if got is not None:
+                return got
+        return None
+    board = find(save["ObjectStates"])
+    if board is None:
+        return                                  # no board in this save: nothing to check
+    ids = re.compile(r'\bid\s*=\s*"([^"]+)"')
+    own = set(ids.findall(board.get("XmlUI") or ""))
+    # the selector boards carry their own XML, embedded in the board script as JSON literals
+    spawned = set()
+    for m in re.finditer(r'^([A-Z_]+_JSON)\s*=\s*\[===\[(.*?)\]===\]', logic, re.S | re.M):
+        try:
+            spawned |= set(ids.findall(json.loads(m.group(2)).get("XmlUI") or ""))
+        except ValueError:
+            continue
+    bad = []
+    # a literal id, and only a literal: "rttFac" .. i is built at runtime and is not one
+    for m in re.finditer(r'\b(\w+)\.UI\.(?:setAttribute|setAttributes|setValue|show|hide)'
+                         r'\s*\(\s*"([^"]+)"\s*,', logic):
+        var, name = m.group(1), m.group(2)
+        if name in UI_ID_OK:
+            continue
+        known = own if var == "self" else (own | spawned)
+        if name not in known:
+            bad.append("%s.UI...(%r)" % (var, name))
+    if bad:
+        raise SystemExit(
+            "[gen] UI ID NOT IN ANY XML: %s\n"
+            "      setAttribute on an id that does not exist is a TTS null and aborts the rest of the\n"
+            "      function. Add the element, drop the call, or list the id in UI_ID_OK with a reason."
+            % ", ".join(sorted(set(bad))))
+
+
 def build():
     save = json.load(open(os.path.join(SRC, "save.json"), encoding="utf-8"))
-    check_spawn_tagging(open(os.path.join(SRC, "logic.lua"), encoding="utf-8").read())
+    logic = open(os.path.join(SRC, "logic.lua"), encoding="utf-8").read()
+    check_spawn_tagging(logic)
+    check_ui_ids(logic, save)
     board_lua = _board_lua()
     _set_board_lua(save["ObjectStates"], board_lua)
     os.makedirs(OUT_DIR, exist_ok=True)
