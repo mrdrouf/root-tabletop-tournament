@@ -279,7 +279,15 @@ WIDES = [
     ("FactionCardsArt",    "faction_cards_v11",       ["Faction", "Cards"],    lambda: art_from_label("faction_cards_label_v4_34723094.png")),
     # No artwork, like Credits: the caption IS the button. Maintainer, 2026-09-09: "add a red clear
     # all objects option button; additional button; it can be red".
-    ("ClearAllArt",        "clear_all_v11",           ["Clear All", "Objects"], lambda: None),
+    # ...AND SET BIGGER THAN THE SHARED SIZE, because with no art beside it the caption owns the whole
+    # button and 51pt left it sitting in the middle of a lot of empty red. Maintainer, 2026-09-10:
+    # "increase the font of clear all objects."
+    #
+    # 70, not the 96 Credits and More use: those are ONE word, so the width cap settles them and the
+    # height looks after itself. Two lines grow in both directions and nothing caps the height, so 96
+    # came out 370x207 ink on a 400x222 button -- touching the edges. 70 gives 271x167, which is a
+    # third bigger than it was with about 28px of air above and below.
+    ("ClearAllArt",        "clear_all_v11",           ["Clear All", "Objects"], lambda: None, 70, 1.0),
     # A WIDE, NOT A SQUARE. Its neighbours in that row are option buttons -- art in a column on the
     # left, caption beside it -- and it shipped for one build as a square, art over caption, which is
     # the shape the top row uses. Maintainer, 2026-09-09: "the text needs to be on the right of it

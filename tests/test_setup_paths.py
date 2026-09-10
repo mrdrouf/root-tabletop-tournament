@@ -6250,12 +6250,34 @@ def t_a_spawn_burst_is_spread_over_frames(src):
     rt.execute("FLUSH(20)")
     assert got() == 20, "%d of 20 objects were ever spawned" % got()
 
-    # IN ORDER, and with the baked GUID gone from every one of them
+    # IN ORDER
     seen = [rt.eval("function() return SEEN[%d] end" % (i + 1))() for i in range(20)]
     order = [s.find('"p%02d"' % (i + 1)) for i, s in enumerate(seen)]
     assert all(o >= 0 for o in order), "the pump reordered the blueprint: %s" % order
-    assert not any('"GUID"' in s for s in seen), \
-        "a baked GUID survived to the spawn: %s" % [s for s in seen if '"GUID"' in s][:1]
+
+    # AND THE BLUEPRINT REACHES TTS EXACTLY AS IT WAS WRITTEN, baked GUID and all.
+    #
+    # Stripping it shipped ON for one build and broke the mod: "after doing the 3 player drafts
+    # clicking on a faction did nothing", with bab7e1 throwing "Object reference not set to an instance
+    # of an object" -- TTS's own null. rttCoordFaction destructs the selector board BEFORE it spawns
+    # the faction, so a spawn that throws on the first piece takes the board away and puts nothing
+    # back, which is exactly what he saw. The JSON is still valid without the field (all 701 blobs
+    # parse) -- TTS simply wants it, and no harness here can ask TTS that.
+    #
+    # This asserts the SHIPPED default, so turning it back on without proving it in a real game first
+    # fails here rather than in his game.
+    assert rt.eval("RTT_STRIP_GUID") is not True, \
+        "the GUID strip is on again; it broke every spawn path the last time it shipped"
+    assert all('"GUID"' in s for s in seen), \
+        "a baked GUID was stripped on the way to the spawn: %s" % [s for s in seen if '"GUID"' not in s][:1]
+    # ...and when it IS on, what it produces is still the same object minus that one field
+    stripped = rt.eval("""function()
+        RTT_STRIP_GUID = true
+        local out = rttFreshGuid('{\"GUID\": \"ec2372\",\"Name\": \"Custom_Token\"}')
+        RTT_STRIP_GUID = false
+        return out
+    end""")()
+    assert stripped == '{"Name": "Custom_Token"}', "the strip mangles the blueprint: %r" % stripped
 
     # THE BYTE BUDGET, on blobs too heavy to send six at a time
     rt.execute("SEEN = {} local big = string.rep('x', 30000) "

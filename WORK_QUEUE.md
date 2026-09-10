@@ -106,7 +106,9 @@ Nothing below is implemented. The maintainer asked to be consulted before each c
 ### Bugs
 
 - [x] **Objects spawn but some clients never see them (distant connections).** Diagnosed
-      2026-09-10; items 1-4 BUILT the same day, with the Resync button, in v1.154. What shipped and
+      2026-09-10; items 1-4 BUILT the same day, with the Resync button, in v1.154 -- and the GUID
+      strip in item 4 BROKE every spawn path and was reverted in v1.155; do not turn it back on
+      without proving it in a real game first. What shipped and
       why it differs from the plan is at the end of
       **[`MULTIPLAYER_SYNC.md`](MULTIPLAYER_SYNC.md)**. ONE THING IS STILL OPEN: nobody knows yet
       whether TTS replicates a tag change to clients at all, so the resend primitive

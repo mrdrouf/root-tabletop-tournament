@@ -329,6 +329,11 @@ Measured on the real blueprints: worst blueprint is the Knaves at **9 frames / 1
 single frame anywhere is 58 KB, and that is one indivisible object. `rttFactionExtras` (0.5 s) and
 `rttPlaceVPRetry` (1.2 s) have 3.3x and 8x margin, so neither needed widening.
 
+Proven after the fact against the last build the maintainer had working: every spawn payload for the
+Knaves, the Lilypad, the Gorge, the Marsh and a deck is **byte-identical**, and every faction, map and
+deck puts exactly the same number of objects on the table. The only difference staggering makes is
+*when*.
+
 Wired at `rttSpawnFaction`, `makeMap`, `makeDeck`, `rttSpawnPriority`, `rttSpawnMarshNumbers`.
 `rttSpawnLandmarkAt` and `rttSpawnFlotillaKit` were deliberately **left alone**: two objects each, so
 pacing is a no-op, and both return their spawned objects synchronously to callers that track them.
@@ -351,12 +356,10 @@ map, a deck — collapses to ONE pair two seconds after the last piece is asked 
 straight to `rttResyncClick`. Not in `RTT_WIPE_BTN` — it destroys nothing, so it carries no warning
 and there is nothing to arm. The debounce is the sweep's own busy flag.
 
-**4. Cleanups.** All four: a frame between `removeMapItems` and the rebuild (through `rttAfterFrames`,
-with `RTT_MAP_GEN` re-checked on the far side); `rttFreshGuid` strips the baked GUID at spawn, anchored
-at the head of the object so a contained object's GUID is never touched (checked: all 701 blueprint
-blobs carry it as the first key, and the only literal GUID lookup in the mod is `bab7e1`, a save-file
-object); and all three move-while-locked sites, plus the ruin shuffle beside the marker shuffle, which
-has the same problem and was not in the plan.
+**4. Cleanups.** A frame between `removeMapItems` and the rebuild (through `rttAfterFrames`, with
+`RTT_MAP_GEN` re-checked on the far side); all three move-while-locked sites, plus the ruin shuffle
+beside the marker shuffle, which has the same problem and was not in the plan. **The GUID strip is
+OFF** — see below.
 
 **Tests.** Five new cases in `tests/test_setup_paths.py`, all failing on the previous build: the pump's
 order/budgets/completeness and the GUID strip, the teardown frame, the sweep's exclusions and its
@@ -368,3 +371,43 @@ and nothing more.
 real game with a genuinely distant client: force the bug, press Resync, see whether the object
 appears. If it does not, set `RTT_RESYNC_MODE = "tint"` and repeat; `"lock"` is the proven fallback.
 Write the answer back into this file — it settles an open question about TTS itself.
+
+---
+
+## The GUID strip broke the mod (2026-09-10, reverted in v1.155)
+
+`RTT_STRIP_GUID` is `false` and must stay false until somebody proves otherwise **in a real game**.
+
+Item 4 said to strip the baked `"GUID"` from blueprint JSON at spawn so TTS assigns a unique one, and
+called it "verified safe". It shipped on in v1.154 and the maintainer reported it within the hour:
+
+> "after doing the 3 player drafts clicking on a faction did nothing did you broke something?"
+
+and then, from the console:
+
+> `[Faction Selection - bab7e1] Lua Error: Object reference not set to an instance of an object.`
+
+That message is TTS's own null, not a Lua one, and the two symptoms are the same event.
+`rttCoordFaction` **destructs the selector board before it spawns the faction**, so a
+`spawnObjectJSON` that throws on the very first piece takes the board away and puts nothing in its
+place — a click that "does nothing". Every other spawn path fails the same way and more quietly.
+
+**What was actually verified, and what was not.** Verified: the JSON is still valid without the field
+(all 701 blobs parse), the top-level GUID is the first key in every one of them so a contained
+object's is never touched, and nothing in the mod looks a spawned object up by a baked GUID (the only
+literal is `bab7e1`, a save-file object). All true, and all beside the point — **TTS's deserialiser
+wants the field**, and no test here can ask it. `tests/tts_stub.lua` never parses the JSON at all.
+
+The collision this was meant to fix — the blueprints share 47 GUIDs, so a map change destroys `79bf39`
+and creates a new `79bf39` — is still handled by the frame between teardown and rebuild, which is the
+half of that item that works.
+
+**If it is ever wanted again:** turn it on for ONE spawn, in a real game, and watch the console. Never
+for the whole mod on reasoning alone. `t_a_spawn_burst_is_spread_over_frames` asserts the default is
+off, so switching it back fails the suite before it can reach anybody's table.
+
+**Also hardened in v1.155:** the sweep now keeps GUIDs rather than object references and re-resolves
+each one at the moment it touches it, including the undo two frames later. A sweep runs over about two
+dozen frames and a draft destroys objects the whole time — every selector board goes as its seat
+picks — and touching a destroyed object is a null on TTS's side of the binding, where a `pcall` is not
+the guarantee it looks like.

@@ -1731,18 +1731,29 @@ end
 RTT_SPAWN_PER_FRAME = 6
 RTT_SPAWN_BYTES     = 48000
 
--- ...AND A FRESH GUID FOR EVERY PIECE. The blueprints carry BAKED GUIDs and share them across maps --
--- 47 duplicated overall, 25 to 29 between every pair of the seven maps -- so a map change destroys
--- GUID 79bf39 and creates a new 79bf39 moments later, which is precisely the kind of thing a client
--- applying messages out of order can resolve the wrong way. Stripping the baked one makes TTS assign
--- a unique GUID instead.
+-- ...AND A FRESH GUID FOR EVERY PIECE -- WHICH IS OFF, BECAUSE IT BROKE THE MOD.
 --
--- Safe because NOTHING in the mod looks a spawned object up by a baked GUID: the only literal GUID
--- anywhere is bab7e1, which is a save-file object and never spawned from a blueprint, and every
--- blueprint match there is -- the two dice kept from a faction, the vagabond's VP tiles -- is made
--- against the JSON STRING before it is handed over. Anchored at the head of the object, which is
--- where all 701 blueprint blobs carry it, so a contained object's GUID is never touched.
+-- The idea: the blueprints carry BAKED GUIDs and share them across maps (47 duplicated overall, 25 to
+-- 29 between every pair of the seven), so a map change destroys GUID 79bf39 and creates a new 79bf39
+-- moments later. Stripping the baked one would make TTS assign a unique GUID instead.
+--
+-- WHAT HAPPENED. Shipped on in v1.154 and the maintainer reported it the same hour: clicking a
+-- faction in the draft did nothing, and bab7e1 threw "Object reference not set to an instance of an
+-- object". That is TTS's own null, and it fits exactly -- rttCoordFaction destructs the selector board
+-- BEFORE it spawns the faction, so a spawnObjectJSON that throws on the first piece takes the board
+-- away and puts nothing in its place. Every other spawn path fails the same way, silently.
+--
+-- So TTS wants the field. The JSON stays valid without it -- all 701 blobs still parse, which is what
+-- was checked before shipping -- but the harness cannot call TTS's deserialiser and the reasoning that
+-- said this was safe was reasoning, not a test. It is left here, off, rather than deleted: if it is
+-- ever wanted again it has to be proven in a real game FIRST, on one spawn, not on the whole mod.
+--
+-- The collision it was meant to fix is handled by the frame between a map's teardown and its rebuild,
+-- which is the half of that item that does work.
+RTT_STRIP_GUID = false
+
 function rttFreshGuid(j)
+  if RTT_STRIP_GUID ~= true then return j end
   if type(j) ~= "string" then return j end
   return (j:gsub('^(%s*{%s*)"GUID"%s*:%s*"%x+",%s*', '%1', 1))
 end
@@ -1879,9 +1890,15 @@ function rttResyncTouch(o)
   else
     pcall(function()
       if o.hasTag(RTT_RESYNC_TAG) then return end     -- a sweep that overlapped: leave its undo alone
+      local guid = o.getGUID()
       o.addTag(RTT_RESYNC_TAG)
+      -- ...and the undo re-resolves too: two frames is long enough for the object to have been
+      -- destroyed, and taking a tag off a destroyed object is the same null as touching one
       Wait.frames(function()
-        pcall(function() o.removeTag(RTT_RESYNC_TAG) end)
+        pcall(function()
+          local x = getObjectFromGUID(guid)
+          if x ~= nil then x.removeTag(RTT_RESYNC_TAG) end
+        end)
       end, RTT_RESYNC_HOLD)
     end)
   end
@@ -1907,16 +1924,26 @@ function rttResyncSweep(done, retry)
   local skip = rttResyncSkip()
   local all, list = {}, {}
   pcall(function() all = getAllObjects() end)
+  -- GUIDS, NOT OBJECT REFERENCES. The sweep runs over about two dozen frames and a draft destroys
+  -- objects the whole time it is running -- every selector board goes as its seat picks. Holding the
+  -- reference means touching a destroyed object, which is a null on TTS's side of the binding, not a
+  -- Lua error, so a pcall around it is not the guarantee it looks like. Re-resolving means a piece
+  -- that has gone since the list was built simply is not there.
   for _, o in ipairs(all) do
-    local take = false
-    pcall(function() take = (o.held_by_color == nil) and (skip[o.getGUID()] ~= true) end)
-    if take then list[#list + 1] = o end
+    local take, guid = false, nil
+    pcall(function()
+      guid = o.getGUID()
+      take = (o.held_by_color == nil) and (skip[guid] ~= true)
+    end)
+    if take and guid ~= nil then list[#list + 1] = guid end
   end
   local i = 1
   local function pump()
     local n = 0
     while i <= #list and n < RTT_RESYNC_PER_FRAME do
-      rttResyncTouch(list[i])
+      local o = nil
+      pcall(function() o = getObjectFromGUID(list[i]) end)
+      if o ~= nil then rttResyncTouch(o) end
       i = i + 1
       n = n + 1
     end
