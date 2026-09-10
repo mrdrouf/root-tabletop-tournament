@@ -6266,6 +6266,72 @@ def t_every_seat_gets_its_faction_buttons(src):
         "after one pick %d of the remaining %d boards are still lit" % (left, boards - 1)
 
 
+def t_an_empty_seats_board_can_be_picked_by_anyone(src):
+    """Every board answers a click unless a real person is sitting in that seat.
+
+    Maintainer, 2026-09-10: "draft works but then clicking on faction buttons does nothing", and
+    before that "it s like only sometimes the button works and only can spawn 1 faction".
+
+    ONE LINE, DOING EXACTLY WHAT IT SAID, against a fact that changed underneath it:
+
+        if s.color ~= nil and args.color ~= s.color then return end   -- only YOUR own seat's board
+
+    rttBindSeatColors gives EVERY seat a colour whether or not a human is in it -- "the colour of the
+    human sitting at it, or a free one if nobody is" -- because that colour owns the hand, the cards
+    and the turn slot. So `s.color ~= nil` is true for every seat, always, and the guard reduced to
+    "only the exact colour of this seat may ever click it". At a table with one person that is ONE
+    board and the rest ignore him without a word: not a crash, not an error, nothing.
+
+    What it means to guard is a person taking a pick away from another PERSON, so it asks
+    rttPersonIn -- the function written for exactly that question. Both halves are asserted here,
+    because dropping the guard entirely would let a player pick out of an occupied seat.
+    """
+    # ONE HUMAN: every board is his to click, or the draft cannot finish
+    rt = fresh(src)
+    rt.execute("pcall(function() rttSetup(Player['Red'], '', 'rttRankedBtn') end) FLUSH(200)")
+    boards = rt.eval("function() local n = 0 "
+                     "for _, s in ipairs(RTT_SEATS or {}) do if s.board ~= nil then n = n + 1 end end "
+                     "return n end")()
+    assert boards >= 3, "the draft only put %d boards out" % boards
+    got = rt.eval("""function()
+        local n = 0
+        for i, s in ipairs(RTT_SEATS or {}) do
+          if s.board ~= nil then
+            local before = #getObjectsWithTag('RTT Faction')
+            pcall(function() rttCoordFaction({ color = 'Red', id = 'rttFac' .. i,
+                                               board = s.board.getGUID() }) end)
+            FLUSH(80)
+            if #getObjectsWithTag('RTT Faction') > before then n = n + 1 end
+          end
+        end
+        return n
+    end""")()
+    assert got == boards, \
+        "only %d of %d boards answered the one player at the table" % (got, boards)
+
+    # ...AND A SEAT SOMEBODY IS SITTING IN IS STILL THEIRS ALONE
+    rt = fresh(src)
+    rt.execute("SEAT('Yellow') pcall(function() rttSetup(Player['Red'], '', 'rttRankedBtn') end) FLUSH(200)")
+    refused = rt.eval("""function()
+        local n, occupied = 0, 0
+        for i, s in ipairs(RTT_SEATS or {}) do
+          if s.board ~= nil and s.color ~= 'Red' and rttPersonIn(s.color) ~= nil then
+            occupied = occupied + 1
+            local before = #getObjectsWithTag('RTT Faction')
+            pcall(function() rttCoordFaction({ color = 'Red', id = 'rttFac' .. i,
+                                               board = s.board.getGUID() }) end)
+            FLUSH(80)
+            if #getObjectsWithTag('RTT Faction') == before then n = n + 1 end
+          end
+        end
+        return { n, occupied }
+    end""")()
+    refused = dict(refused)
+    assert refused[2] > 0, "the harness seated nobody to protect"
+    assert refused[1] == refused[2], \
+        "Red picked out of %d seat(s) that somebody else is sitting in" % (refused[2] - refused[1])
+
+
 CASES = [
     ("manual path drives the turn system",   t_manual_turn_order),
     ("manual path spawns 4 / 5 boards",      t_boards_spawn),
@@ -6378,6 +6444,7 @@ CASES = [
     ("panel pauses the clock",            t_the_panel_pauses_the_clock),
     ("start names the pass it causes",    t_start_names_the_pass_it_causes),
     ("every seat's board lights up",      t_every_seat_gets_its_faction_buttons),
+    ("an empty seat is pickable",         t_an_empty_seats_board_can_be_picked_by_anyone),
 ]
 
 

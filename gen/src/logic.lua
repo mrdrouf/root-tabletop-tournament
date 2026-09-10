@@ -4277,7 +4277,23 @@ function rttCoordFaction(args)
   if seat == nil then return end
   local s = RTT_SEATS[seat]
   if s == nil or s.board == nil then return end        -- board already drafted
-  if s.color ~= nil and args.color ~= s.color then return end   -- only YOUR own seat's board (no seat conflicts)
+  -- ONLY YOUR OWN SEAT'S BOARD -- BUT ONLY IF SOMEBODY IS ACTUALLY SITTING IN IT.
+  --
+  -- Maintainer, 2026-09-10: "draft works but then clicking on faction buttons does nothing", and
+  -- before that "it s like only sometimes the button works and only can spawn 1 faction". One board
+  -- answered him and the rest ignored him in silence -- which is this line, doing exactly what it
+  -- said, against a fact that changed underneath it.
+  --
+  -- rttBindSeatColors gives EVERY seat a colour whether or not a human is in it -- "the colour of the
+  -- human sitting at it, or a free one if nobody is" -- because that colour owns the hand, the cards
+  -- and the turn slot. So `s.color ~= nil` is true for every seat, always, and the guard reduced to
+  -- "only the exact colour of this seat may ever click it". At a table with one person that is ONE
+  -- board; every other click was dropped without a word.
+  --
+  -- What it is guarding is a person taking a pick away from another PERSON. rttPersonIn is the
+  -- function that answers that -- is there a human seated in this colour -- and an empty seat has to
+  -- be pickable by somebody, or a table with an absent player cannot finish its draft either.
+  if s.color ~= nil and args.color ~= s.color and rttPersonIn(s.color) ~= nil then return end
   local idx = tonumber(string.sub(args.id, -1))
   if idx == nil then return end
   local faction = (RTT_DRAFT_FACTIONS or {})[idx]
