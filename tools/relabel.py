@@ -255,7 +255,7 @@ SQUARES = [
     ("ThemeArt",      "theme_art_v11",          ["Theme"],          lambda: art_topband("assets/src_art/theme_adventurer.png", 1.0), 0.70, 0),
     # THE TOP ROW, left to right: three drafts and the Theme. The frog is the Diaspora board's own
     # militant enclave token, and the 5-player draft wears the Marsh, which is the map it plays on.
-    ("ThreePlayerArt", "three_player_draft_v11", ["3-Player Draft"], lambda: art_topband("assets/src_art/frog_militant.png", 1.0), 0.70, 0),
+    ("ThreePlayerArt", "three_player_draft_v11", ["3-Player Draft"], lambda: art_alpha_topband("assets/src_art/frog_militant.png", 1.0), 0.70, 0),
     ("RankedArt",     "four_player_draft_v11",  ["4-Player Draft"], lambda: art_crop_aspect("assets/images/ranked.png", 1.33, 210),       0.70, 0),
     ("FivePlayerArt", "five_player_draft_v11",  ["5-Player Draft"], lambda: art_topband("assets/src_art/map_marsh.png"),  0.70, 0),
 ]
