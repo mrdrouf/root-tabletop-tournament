@@ -1321,6 +1321,7 @@ end
 function allButtonsOff()
   self.UI.setAttribute("creditsPanel","active","False")
   self.UI.setAttribute("moreButtons","active","False")
+  self.UI.setAttribute("optionRows","active","False")
   self.UI.setAttribute("standardButtons","active","False")
   self.UI.setAttribute("toolsButtons","active","False")
   self.UI.setAttribute("mapButtonsStandard","active","False")
@@ -1341,21 +1342,26 @@ end
 -- and spawn two new rows of option buttons. the buttons relagated to more is the credit button and
 -- the riverboat button."
 --
--- It is a PAGE, not two extra rows below the others, because there is nowhere to put them: the five
--- rows already run from the top of the board to the info strip at the bottom. So More takes the last
--- slot of the last row and swaps the menu for its own two rows, the way Credits already swaps it for
--- the parchment page -- same allButtonsOff, same Back button to come home.
+-- IT REPLACES THE TWO OPTION ROWS AND NOTHING ELSE. Maintainer, 2026-09-10: "the only thing that more
+-- should do is spawn a new last two rows of option buttons but everything else should stay in place",
+-- and then plainly: "it replaces the two rows of option buttons obviously do not add two more."
 --
--- The two rows use the SAME six columns as every other option row, so anything relegated later drops
--- into place beside these two without moving them.
+-- So the drafts, the maps and the decks stay exactly where they are and only the bottom two rows
+-- change hands. That needed the board regrouping: those eleven buttons were spread across
+-- setupButtons and tools1, which also hold the top row, so there was no group that meant "the option
+-- rows". There is one now.
+--
+-- The page uses the SAME six columns, and its Back sits in More's own corner slot -- the same square
+-- is the way in and the way out.
 function rttShowMore(player, value, id)
-  allButtonsOff()
+  setup()                                     -- everything above the option rows, exactly as it was
+  self.UI.setAttribute("optionRows", "active", "False")
   self.UI.setAttribute("moreButtons", "active", "True")
 end
 
 function rttHideMore(player, value, id)
   self.UI.setAttribute("moreButtons", "active", "False")
-  setup()                                     -- back to the normal menu
+  self.UI.setAttribute("optionRows", "active", "True")
 end
 
 function rttShowCredits(player, value, id)
@@ -1466,6 +1472,7 @@ function setup()
   self.UI.setAttribute("decksButtonsStandard", "active", "True")
   self.UI.setAttribute("toolsButtons", "active", "True")
   self.UI.setAttribute("tools1", "active", "True")
+  self.UI.setAttribute("optionRows", "active", "True")
 end
 
 
@@ -5483,6 +5490,19 @@ function rttFreeUnlockedPrisoners()
   end
 end
 
+-- ...AND IT CANNOT BE TOUCHED AT ALL. Maintainer, 2026-09-10: "could you set all the maps, once
+-- spawned as un interactable? so it s never possible to fuck them up by mistake. make sure nothing is
+-- broken though they still get reset and wiped with the other buttons of course."
+--
+-- `interactable` is a RUNTIME property -- it is not one of the flags a save stores (Locked,
+-- DragSelectable, Tooltip and the rest are; this is not), which is why it is set here rather than
+-- baked into the blueprints: this tick is also the only thing that runs after a reload. The mod
+-- already uses it -- the Flex Table Control turns it off on the table's own parts in its onLoad.
+--
+-- It costs a player nothing they should have: a map with it off cannot be grabbed, clicked or
+-- right-clicked, so it cannot be unlocked, dragged or deleted by hand. Scripts are unaffected, so
+-- removeMapItems still destroys it on a map change and Clear All still takes it -- both call
+-- destruct(), which does not care.
 function rttHoldMapLocked()
   local m = nil
   if RTT_MAP_LOCK_GUID ~= nil then pcall(function() m = getObjectFromGUID(RTT_MAP_LOCK_GUID) end) end
@@ -5494,6 +5514,7 @@ function rttHoldMapLocked()
   end
   if m == nil then return end
   pcall(function() if m.getLock() ~= true then m.setLock(true) end end)
+  pcall(function() if m.interactable ~= false then m.interactable = false end end)
 end
 
 function rttForestWorldCenters(mapId)   -- fallback for maps with no recorded relic spots

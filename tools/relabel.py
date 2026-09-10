@@ -82,10 +82,24 @@ def put_line(im, text, f, cx, top, squeeze):
     im.alpha_composite(tmp, (int(round(cx - tmp.width / 2)), int(round(top - RING - 2))))
 
 
-def text_block(im, lines, box_w, cx, band_top, band_bot, start_pt, drop=0, bottom=None, floor=SQUEEZE_FLOOR):
+def text_block(im, lines, box_w, cx, band_top, band_bot, start_pt, drop=0, bottom=None,
+               floor=SQUEEZE_FLOOR, middle=False):
     """Draw the caption. `bottom` bottom-aligns the block's real ink to that margin above the canvas
     foot instead of centring it in [band_top, band_bot] -- measured off the rendered pixels, because
-    the nominal line box carries slack that varies with the glyphs in the name."""
+    the nominal line box carries slack that varies with the glyphs in the name.
+
+    `middle` centres that same real ink in the band, for the same reason: centring the LINE BOX is not
+    centring what you see. A one-word caption with no descender leaves all its slack at the bottom and
+    rides high -- "More" sat 40px above the middle of its button, which is what the maintainer saw:
+    "the more button the text should be centered"."""
+    if middle:
+        layer = Image.new("RGBA", im.size, (0, 0, 0, 0))
+        sz = text_block(layer, lines, box_w, cx, band_top, band_bot, start_pt, drop, floor=floor)
+        bb = layer.getchannel("A").getbbox()
+        if bb:
+            ink = layer.crop(bb)
+            im.alpha_composite(ink, (bb[0], int(round((band_top + band_bot - ink.height) / 2))))
+        return sz
     if bottom is not None:
         layer = Image.new("RGBA", im.size, (0, 0, 0, 0))
         sz = text_block(layer, lines, box_w, cx, band_top, band_bot, start_pt, drop, floor=floor)
@@ -201,7 +215,10 @@ def wide_label(out, art, lines, pt=WIDE_PT, floor=SQUEEZE_FLOOR):
         art_px, x0 = a.size, WIDE_ART_W
     else:
         art_px, x0 = (0, 0), 0
-    sz = text_block(im, lines, W - x0 - WIDE_TEXT_PAD, x0 + (W - x0) / 2, 0, H, pt, floor=floor)
+    # A CAPTION WITH NO ART BESIDE IT OWNS THE WHOLE BUTTON, so it is centred on its own ink rather
+    # than on its line box -- the difference is invisible on a long name and 40px on a short one.
+    sz = text_block(im, lines, W - x0 - WIDE_TEXT_PAD, x0 + (W - x0) / 2, 0, H, pt, floor=floor,
+                    middle=(art is None))
     im.save(out)
     return art_px, sz
 

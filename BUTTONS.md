@@ -14,6 +14,13 @@ Layout, top to bottom:
 [4P Setup][5P Setup][5-Players Marsh][        ][Clear All][More]              y = -70
 ```
 
+With **More** open, the last two rows only — everything above is untouched:
+
+```
+[Riverboat][Credits ][               ][        ][         ][      ]            y = -47.4
+[         ][        ][               ][        ][         ][Back  ]            y = -70
+```
+
 Rows are spaced by the **gap you can see**, not by the distance between their centres: the top three
 rows are 34 tall and the option rows 20, so one centre spacing would leave a wider band under the deck
 row. Every row above leaves 5.1, and the two option rows at the bottom about half of that. The ROOT sign
@@ -40,11 +47,14 @@ just runs. Clicks are ignored while a setup is still loading (they are dropped, 
 seats. Seats and deal are one number — `RTT_DRAFT_N = 4`, so `RTT_DN = 4` and the seats are
 `RTT_DN - 1` — which is why the fourth player is never spawned rather than skipped.
 
-**More** (`rttShowMore`) takes the last slot and swaps the menu for two rows of its own, the way
-Credits swaps it for the parchment page — the board ran out of slots, and there is no room below the
-last row for two more. **Rowdy Riverboat** and **Credits** live on that page, on the same six columns
-every option row uses, and **Back** (`rttHideMore`) returns. Leaving the credits page lands on More
-rather than the main menu, since that is where its button now is.
+**More** (`rttShowMore`) takes the last slot and swaps **the two option rows** for two of its own —
+the drafts, the maps and the decks stay exactly where they are. That is what it may touch and all it
+may touch: it replaces those rows, it does not add a third and fourth below them. The eleven buttons
+it swaps out are the `optionRows` group, which exists for this; before it they were spread across
+`setupButtons` and `tools1`, which also carry the top row. **Rowdy Riverboat** and **Credits** live on
+the replacement rows, on the same six columns every option row uses, and **Back** (`rttHideMore`) sits
+in More's own slot — the same square is the way in and the way out. Leaving the **Credits** page, which
+*is* a full page, lands on More rather than the main menu, since that is where its button now is.
 
 **Rowdy Riverboat** (`rttArmFlotilla` → `rttFlotillaStart`) puts the Riverfolk Flotilla hireling out —
 its rules card and its one boat — and does nothing else. It is the one entry in `RTT_WIPE_BTN` that

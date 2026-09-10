@@ -4378,15 +4378,18 @@ def t_a_prisoner_goes_pale(src):
 
 
 def t_more_holds_what_the_board_ran_out_of_room_for(src):
-    """The last slot opens a page of its own, and the two buttons it took are on it.
+    """The last slot swaps the two option rows for two of its own, and leaves the rest of the board.
 
     Maintainer, 2026-09-10: "the last option button should be called more and spawn two new rows of
-    option buttons. the buttons relagated to more is the credit button and the riverboat button."
+    option buttons. the buttons relagated to more is the credit button and the riverboat button", then
+    on what it may touch: "the only thing that more should do is spawn a new last two rows of option
+    buttons but everything else shhould stay in place", and plainly: "it replaces the two rows of
+    option buttons obviously do not add two more."
 
-    A PAGE, not two rows below the others, because there is nowhere to put them: the five rows already
-    run from the top of the board down to the info strip. So it works the way Credits already did --
-    allButtonsOff, one group on, a Back button home -- and its rows use the same six columns as every
-    other option row, so anything relegated later drops in beside these two.
+    So the drafts, the maps and the decks DO NOT MOVE and do not go away -- only the bottom two rows
+    change hands. That is the whole of the test: moreButtons on, optionRows off, everything else as it
+    was. Its rows use the same six columns as the rows they replace, so anything relegated later drops
+    in beside these two, and Back sits in More's own slot -- the same square is the way in and out.
     """
     x = json.load(open(os.path.join(REPO, "dist/Root_Tabletop_Tournament.json"), encoding="utf-8"))
     def walk(objs):
@@ -4414,22 +4417,37 @@ def t_more_holds_what_the_board_ran_out_of_room_for(src):
             "%s sits at x %s, off the option columns" % (m.group(1), m.group(2))
 
     # AND IT IS REACHED AND LEFT the way the credits page is
+    # ...AND THE ELEVEN BUTTONS IT REPLACES ARE A GROUP OF THEIR OWN, which is what lets it replace
+    # them: they used to be spread across setupButtons and tools1, which also hold the top row.
+    rows = xml[xml.find('<ToggleGroup id="optionRows"'):]
+    rows = rows[:rows.find("</ToggleGroup>")]
+    assert 'id="rttMoreBtn"' in rows, "More is not in the group it swaps out"
+    for y in ("-47.4", "-70"):
+        assert 'position="-95 %s ' % y in rows, "the option row at y %s is not in the group" % y
+    assert 'position="19 62.9 ' not in rows, "the top row got swept into the option rows"
+
     rt = fresh(src)
     rt.execute("UIATTR = {} pcall(function() rttShowMore() end)")
     assert rt.eval("function() return tostring(UIATTR['moreButtons.active']) end")() == "True", \
-        "More did not open its page"
-    assert rt.eval("function() return tostring(UIATTR['setupButtons.active']) end")() == "False", \
-        "More left the menu underneath it"
+        "More did not put its rows out"
+    assert rt.eval("function() return tostring(UIATTR['optionRows.active']) end")() == "False", \
+        "More added two rows instead of replacing the two that were there"
+    for group in ("setupButtons", "mapButtonsStandard", "decksButtonsStandard"):
+        assert rt.eval("function() return tostring(UIATTR['%s.active']) end" % group)() != "False", \
+            "More took %s down with it; everything else should stay in place" % group
     rt.execute("pcall(function() rttHideMore() end)")
     assert rt.eval("function() return tostring(UIATTR['moreButtons.active']) end")() == "False", \
-        "Back did not close the More page"
-    assert rt.eval("function() return tostring(UIATTR['setupButtons.active']) end")() == "True", \
-        "Back did not bring the menu back"
+        "Back did not put the More rows away"
+    assert rt.eval("function() return tostring(UIATTR['optionRows.active']) end")() == "True", \
+        "Back did not bring the option rows back"
 
-    # ...and coming out of CREDITS lands on More, because that is where its button lives now
-    rt.execute("UIATTR = {} pcall(function() rttHideCredits() end)")
+    # ...and coming out of CREDITS lands on More, because that is where its button lives now. Credits
+    # IS a full page, so this is also the one path that has to put the rest of the board back up.
+    rt.execute("UIATTR = {} pcall(function() rttShowCredits() end) pcall(function() rttHideCredits() end)")
     assert rt.eval("function() return tostring(UIATTR['moreButtons.active']) end")() == "True", \
         "leaving the credits page drops you on a menu with no Credits button on it"
+    assert rt.eval("function() return tostring(UIATTR['setupButtons.active']) end")() == "True", \
+        "leaving the credits page left the drafts and maps off the board"
 
 
 def t_the_top_row_is_four_drafts_on_the_map_grid(src):
@@ -4857,6 +4875,17 @@ def t_the_map_cannot_be_left_unlocked(src):
     There is no unlock event to answer, so it is a tick. Two things have to hold for a guard that runs
     for the whole session: it must put the lock back, and it must not go hunting the whole table to
     find out where to put it.
+
+    AND IT CANNOT BE TOUCHED AT ALL. Maintainer, 2026-09-10: "could you set all the maps, once spawned
+    as un interactable? so it s never possible to fuck them up by mistake. make sure nothing is broken
+    though they still get reset and wiped with the other buttons of course."
+
+    The lock alone leaves the right-click menu on the board, so a player can still take the lock off --
+    this guard puts it back within the second, but not before a piece has been dragged. `interactable`
+    takes the menu away with everything else, so there is nothing to undo. It is a RUNTIME property and
+    not one of the flags a save stores, which is why it lives on this tick: this is also the only thing
+    that runs after a reload. Scripts are unaffected, so both halves of the maintainer's sentence hold
+    at once -- the last clause of this test is the "nothing is broken".
     """
     rt = fresh(src)
     rt.execute("MAP = MKOBJ('', {0, 11.56, 0}, {'Map Object'}) "
@@ -4867,9 +4896,13 @@ def t_the_map_cannot_be_left_unlocked(src):
     rt.execute("MAP.setLock(false) rttHoldMapLocked()")
     assert rt.eval("function() return MAP.getLock() end")() is True, \
         "the map was left unlocked"
+    assert rt.eval("function() return MAP.interactable end")() is False, \
+        "the map can still be grabbed, so it can still be unlocked by hand"
     # and nothing else on the map is touched: a ruin is locked by rttLockRuins, a warrior never is
     assert rt.eval("function() return RUIN.getLock() end")() is False, \
         "the guard locked something that is not the map board"
+    assert rt.eval("function() return RUIN.interactable end")() is True, \
+        "the guard froze something that is not the map board"
 
     # A MAP CHANGE HANDS IT A NEW BOARD. The guid is remembered between ticks so the usual tick is one
     # lookup; if that were never refreshed the guard would go on watching a board that no longer exists.
@@ -4879,6 +4912,15 @@ def t_the_map_cannot_be_left_unlocked(src):
                "MAP2.setLock(false) rttHoldMapLocked()")
     assert rt.eval("function() return MAP2.getLock() end")() is True, \
         "the guard kept watching the old board; the new map was left unlocked"
+    assert rt.eval("function() return MAP2.interactable end")() is False, \
+        "the guard kept watching the old board; the new map can still be grabbed"
+
+    # ...AND THE BUTTONS STILL TAKE IT. "make sure nothing is broken though they still get reset and
+    # wiped with the other buttons of course" -- destruct() does not ask whether a player could have
+    # reached the object, so a frozen map goes the same way a loose one did.
+    rt.execute("removeMapItems()")
+    assert rt.eval("function() return MAP2 == nil or MAP2.__dead end")() is True, \
+        "a frozen map survived the wipe"
 
     # IT IS ACTUALLY RUNNING, and it repeats. A guard nobody arms is a function nobody calls.
     head = src.index("function onLoad(state)")

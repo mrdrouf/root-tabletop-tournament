@@ -101,6 +101,11 @@ function MKOBJ(name, pos, tags)
   -- for a drop or a flip to LAND reads them. Default to settled, so nothing that never sets them
   -- changes behaviour; a test that wants the in-flight case sets o.resting = false.
   o.resting = true
+  -- HANDS ON OR OFF. TTS's own default is true -- everything on the table can be picked up, clicked
+  -- and right-clicked until something says otherwise -- and it is a plain property, not a setter, so
+  -- it reads and writes exactly like this. Unlike the lock, it is NOT one of the flags a save stores,
+  -- which is why the mod re-applies it after every load rather than baking it into a blueprint.
+  o.interactable = true
   function o.isSmoothMoving() return o.__moving == true end
   function o.getLock() return o.__locked == true end
   function o.destruct() if not o.__dead then o.__dead = true; note(REC.destroyed, o.__name.."|"..table.concat(o.__tags,",")) end end
