@@ -5638,17 +5638,34 @@ end
 -- It carries the HIRELING card's geometry, not a landmark's: the landmark cards are portrait and this
 -- is landscape, 1900x1146, like the Riverfolk Flotilla card it belongs to. Hence scale 1.88 and
 -- SidewaysCard, both lifted from that card.
-RTT_FLOTILLA_CARD_JSON = [====[{"GUID":"f10771","Name":"CardCustom","Transform":{"posX":0.0,"posY":11.575,"posZ":0.0,"rotX":0.0,"rotY":180.0,"rotZ":180.0,"scaleX":1.88,"scaleY":1.0,"scaleZ":1.88},"Nickname":"Flotilla","Description":"","GMNotes":"","ColorDiffuse":{"r":1.0,"g":1.0,"b":1.0},"Locked":true,"Grid":true,"Snap":true,"IgnoreFoW":false,"MeasureMovement":false,"DragSelectable":true,"Autoraise":true,"Sticky":true,"Tooltip":true,"GridProjection":false,"HideWhenFaceDown":false,"Hands":false,"CardID":74200,"SidewaysCard":true,"CustomDeck":{"742":{"FaceURL":"https://cdn.jsdelivr.net/gh/mrdrouf/root-tabletop-tournament@main/assets/cards/flotilla_hireling_d581d22f.png","BackURL":"https://steamusercontent-a.akamaihd.net/ugc/14444327507133601970/CD9D521A7DCD49AA22BE49DAA0B5D306A7A28E42/","NumWidth":1,"NumHeight":1,"BackIsHidden":true,"UniqueBack":false,"Type":0}},"LuaScript":"","LuaScriptState":"","XmlUI":""}]====]
-
--- Where the hireling itself lands: its own card and its one boat, in the same band as the helper row
--- and one step further out than the rules card.
 --
--- A FIRST GUESS, and the only thing here that is. Every other position in this file was measured off
--- a save the maintainer placed by hand, and this one has to wait for the same treatment.
-RTT_FLOTILLA_KIT = { -50.272, 1.55, -19.135 }
+-- ITS DECK NUMBER IS ITS OWN. It shipped for one build as CardID 74200 in deck 742, which is
+-- RABBIT-TOWN'S -- so TTS drew a landmark card instead, stretched into landscape by the scale and the
+-- sideways flag, and the maintainer got a Foxburrow lying beside a map that was not even down. Deck
+-- 9411 is used by nothing in the build; the ones that are run 2, 3, 4, 8, 74, 76, 110-159, 223, 700,
+-- 719 and 730-742.
+RTT_FLOTILLA_CARD_JSON = [====[{"GUID":"f10771","Name":"CardCustom","Transform":{"posX":0.0,"posY":11.575,"posZ":0.0,"rotX":0.0,"rotY":180.0,"rotZ":180.0,"scaleX":1.88,"scaleY":1.0,"scaleZ":1.88},"Nickname":"Flotilla","Description":"","GMNotes":"","ColorDiffuse":{"r":1.0,"g":1.0,"b":1.0},"Locked":true,"Grid":true,"Snap":true,"IgnoreFoW":false,"MeasureMovement":false,"DragSelectable":true,"Autoraise":true,"Sticky":true,"Tooltip":true,"GridProjection":false,"HideWhenFaceDown":false,"Hands":false,"CardID":941100,"SidewaysCard":true,"CustomDeck":{"9411":{"FaceURL":"https://cdn.jsdelivr.net/gh/mrdrouf/root-tabletop-tournament@main/assets/cards/flotilla_hireling_d581d22f.png","BackURL":"https://steamusercontent-a.akamaihd.net/ugc/14444327507133601970/CD9D521A7DCD49AA22BE49DAA0B5D306A7A28E42/","NumWidth":1,"NumHeight":1,"BackIsHidden":true,"UniqueBack":false,"Type":0}},"LuaScript":"","LuaScriptState":"","XmlUI":""}]====]
 
--- The rules card, the hireling card and the boat, all at once.
+-- HIS CARD AND THE BOAT, AND NOTHING ELSE. The base collection's hireling entry is a printed card and
+-- one boat, and for one build both were spawned -- so the table carried the printed card AND the card
+-- he is drawing, twenty units apart. Maintainer, 2026-09-09: "You took the actual hireling instead of
+-- taking the new card that I'm designing in the other thread", and asked which should spawn: "only
+-- your card and the boat".
+--
+-- So the boat is lifted out of the hireling entry on its own. makeSpecialWithTag cannot do that -- it
+-- spawns every object of an entry -- which is why this walks the data itself.
+RTT_FLOTILLA_TAG = "RTT Flotilla"
+RTT_FLOTILLA_BOAT = { -30.040, 11.60, -24.6 }   -- just below its own card, at the near end of the row
+
+-- THEY OUTLIVE THE MAP. Maintainer: "when I spawn another map, you actually erase the flotilla. The
+-- idea is that once I put the flotilla, it stays there." They were tagged "Map Object" and nothing
+-- else, which is the tag removeMapItems sweeps -- so laying a map down took them with it. Carrying
+-- RTT_FIXTURE_TAG as well is the idiom this board already uses for the box score and the turn panel,
+-- which are on the table rather than on the map.
 function rttSpawnFlotillaKit()
+  -- never two: a second draft replaces the kit rather than stacking one on it
+  for _, o in ipairs(getObjectsWithTag(RTT_FLOTILLA_TAG)) do pcall(function() o.destruct() end) end
+
   local spot = rttHelperSpot("Flotilla")
   spawnObjectJSON({
     json = RTT_FLOTILLA_CARD_JSON,
@@ -5656,11 +5673,28 @@ function rttSpawnFlotillaKit()
     rotation = { 0, 180, 180 },
     callback_function = function(o)
       o.setLock(true)
+      o.addTag(RTT_FLOTILLA_TAG)
       o.addTag("Map Object")
+      o.addTag(RTT_FIXTURE_TAG)
     end
   })
-  makeSpecialWithTag("Hirelings", "Riverfolk Flotilla",
-                     RTT_FLOTILLA_KIT[1], RTT_FLOTILLA_KIT[2], RTT_FLOTILLA_KIT[3], "Map Object", 180)
+
+  local kit = EVERYTHING["Hirelings"]["Riverfolk Flotilla"]
+  if kit == nil or kit["data"] == nil then return end
+  for _, v in ipairs(kit["data"]) do
+    if string.find(v.json, '"CardCustom"', 1, true) == nil then     -- the boat, not the printed card
+      spawnObjectJSON({
+        json = v.json,
+        position = RTT_FLOTILLA_BOAT,
+        rotation = { 0, 180, 0 },
+        callback_function = function(o)
+          o.addTag(RTT_FLOTILLA_TAG)
+          o.addTag("Map Object")
+          o.addTag(RTT_FIXTURE_TAG)
+        end
+      })
+    end
+  end
 end
 
 -- THE FLOTILLA DRAFT. Maintainer, 2026-09-09: "rules of draft is 3 player draft only (carefull to all

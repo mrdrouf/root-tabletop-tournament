@@ -4346,8 +4346,13 @@ def t_the_flotilla_draft_seats_three_and_deals_militants(src):
     rt.execute("pcall(function() rttSpawnFlotillaKit() end) FLUSH(20)")
     got = [str(v) for v in rt.eval("SPAWNED").values()]
     names = [g.split("|")[0] for g in got]
-    assert names.count("Flotilla") >= 1, "no Flotilla piece spawned: %s" % names
-    assert "Riverfolk Flotilla" in names, "the hireling card did not spawn: %s" % names
+    # HIS CARD AND THE BOAT, AND NOTHING ELSE: "only your card and the boat". The base collection's
+    # printed hireling card is in the same entry as the boat and came out with it for one build, so
+    # the table carried two Flotilla cards twenty units apart.
+    assert "Riverfolk Flotilla" not in names, \
+        "the printed hireling card spawned as well: %s" % names
+    assert names.count("Flotilla") == 2, \
+        "expected his card and the boat, got %s" % names
     rules = [g for g in got if g.startswith("Flotilla|")]
     assert rules, "the rules card did not spawn: %s" % names
     x, z = (float(v) for v in rules[0].split("|")[1:])
@@ -4356,14 +4361,32 @@ def t_the_flotilla_draft_seats_three_and_deals_militants(src):
 
     # ONE FACE, EVERYTHING ON IT: "use the single flotilla card where everything is on 1 face." Two
     # faces put half of what the card says face down on a card that lies locked beside the map.
-    deck = re.search(r'RTT_FLOTILLA_CARD_JSON = \[====\[(.*?)\]====\]', src, re.S)
-    assert deck, "the Flotilla card blueprint is not in the build"
-    face = json.loads(deck.group(1))["CustomDeck"]["742"]
+    blob = re.search(r'RTT_FLOTILLA_CARD_JSON = \[====\[(.*?)\]====\]', src, re.S)
+    assert blob, "the Flotilla card blueprint is not in the build"
+    card = json.loads(blob.group(1))
+    deck = list(card["CustomDeck"].keys())[0]
+    face = card["CustomDeck"][deck]
     assert "flotilla_hireling_" in face["FaceURL"], "the card's face is not the rendered one"
     assert "rules" not in face["FaceURL"] and "action" not in face["FaceURL"], \
         "the card still uses one of the two half-cards: %s" % face["FaceURL"].split("/")[-1]
     assert "assets/cards/" not in face["BackURL"], \
         "the card's back is another rules face; it should be a card back"
+
+    # ITS DECK NUMBER IS ITS OWN. It shipped as CardID 74200 in deck 742 -- Rabbit-Town's -- so TTS
+    # drew a landmark instead, stretched landscape by this card's scale and sideways flag, on a table
+    # with no map down at all. The decks in use are read out of the build rather than listed here.
+    assert str(card["CardID"]).startswith(deck), \
+        "CardID %s does not belong to deck %s" % (card["CardID"], deck)
+    used = re.findall(r'"CustomDeck":\s*\{\s*"(\d+)"', src)
+    assert used.count(deck) == 1, \
+        "deck %s is used by %d cards in the build; it must be this card's alone" % (deck, used.count(deck))
+
+    # AND IT OUTLIVES THE MAP: "once I put the flotilla, it stays there." removeMapItems sweeps
+    # everything tagged Map Object except what also carries the fixture tag, which is how the box
+    # score and the turn panel survive a map change.
+    fn = src[src.index("function rttSpawnFlotillaKit()"):]
+    fn = fn[:fn.index("\nend")]
+    assert "RTT_FIXTURE_TAG" in fn, "the Flotilla is not a fixture; a new map would erase it"
 
 
 def t_clear_all_objects_asks_before_it_clears(src):
