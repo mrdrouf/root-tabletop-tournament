@@ -2506,15 +2506,14 @@ def t_the_two_free_button_slots_are_bottom_right(src):
     # between the two option rows at the bottom.
     top, bottom = rows.get(-47.4, {}), rows.get(-70.0, {})
     assert len(top) == 6, "the first tool row has %d of 6 slots filled: %s" % (len(top), sorted(top))
-    # AND FULL AGAIN. x=19 came free when the Rowdy Riverboat and Credits moved into the More page on
-    # 2026-09-10; Resync took it the same day. There is nowhere left to put a button without moving
-    # one, which is the thing worth knowing before the next one is asked for.
+    # x=19 is spare again: the Rowdy Riverboat moved into the More page on 2026-09-10, and Credits
+    # went with it, which is what freed the last slot for More itself.
     free = [s for s in SLOTS if s not in bottom]
-    assert free == [], "the last row has spare slots %s; the board is full" % free
+    assert free == [19.0], "the last row's spare slots are %s; only 19 should be free" % free
     # THE LAST ROW, in the order he set it on 2026-09-10: "4 player setup, 5 player setup, 5 players
     # marsh, Rowdy Riverboat, Clear all items, credit."
     ORDER = ((-95.0, "rttFourBoardsBtn"), (-57.0, "Marsh5PSetup"), (-19.0, "Marsh5PMap"),
-             (19.0, "rttResyncBtn"), (57.0, "rttClearAllBtn"), (95.0, "rttMoreBtn"))
+             (57.0, "rttClearAllBtn"), (95.0, "rttMoreBtn"))
     for x0, bid in ORDER:
         assert bottom.get(x0) == bid, "x=%s of the last row holds %s, not %s" % (x0, bottom.get(x0), bid)
     assert top.get(57) == "Faction Cards", "x=57 of row 1 holds %r, not Faction Cards" % top.get(57)
@@ -6211,252 +6210,6 @@ def t_a_seat_fact_has_one_writer(src):
     assert rt.eval("rttSetSeatOwner(RTT_SEATS[1], 'Bob')") == "Bob", "the owner is not refreshed"
 
 
-def t_a_spawn_burst_is_spread_over_frames(src):
-    """A blueprint goes out a few objects at a time, in order, with a fresh GUID on each.
-
-    Diagnosed 2026-09-10, MULTIPLAYER_SYNC.md: objects the mod spawns never arrive for SOME players --
-    always on a distant connection -- because a script spawn reaches a client as an incremental create
-    message, the client drops one, and nothing re-sends it. Every spawn loop in the mod fired its whole
-    blueprint in ONE frame: the Lilypad Diaspora is 229 KB in 25 objects and a 5-player setup pushes
-    ~565 KB through a handful of frames, which is a burst TTS has demonstrably had size-dependent
-    failures on (v14.2 fixed packets that were exact multiples of 1 MB breaking in transit).
-
-    Three things have to hold and each one has bitten something in this file before:
-
-    ORDER, because the rats' mood cards are spawned from the rats board's own callback so the board has
-    a collider under them first. TWO BUDGETS, because a count alone waves a deck through -- five
-    objects carrying a hundred kilobytes between them. And EVERY OBJECT ARRIVES: a pump that drops the
-    tail would be a far worse bug than the one it fixes.
-
-    The GUID strip is the other half of the same story: the blueprints share BAKED GUIDs across maps,
-    so a map change destroys GUID 79bf39 and creates a new 79bf39 in the same breath.
-    """
-    rt = fresh(src)
-    rt.execute("SEEN = {} "
-               "local _s = spawnObjectJSON "
-               "spawnObjectJSON = function(p) SEEN[#SEEN+1] = p.json return _s(p) end")
-
-    # twenty small pieces: the COUNT budget is what paces these
-    # the marker is the NICKNAME, not the GUID -- the GUID is the thing being stripped
-    rt.execute("local specs = {} "
-               "for i = 1, 20 do specs[i] = { json = '{\"GUID\": \"aa0000\",\"Nickname\":\"p' "
-               "  .. string.format('%02d', i) .. '\"}' } end "
-               "rttSpawnStaggered(specs)")
-    per = rt.eval("RTT_SPAWN_PER_FRAME")
-    got = lambda: rt.eval("function() return #SEEN end")()
-    assert got() == per, "the first frame spawned %d objects, not %d" % (got(), per)
-    rt.execute("FLUSH(1)")
-    assert got() == 2 * per, "the second frame took it to %d, not %d" % (got(), 2 * per)
-    rt.execute("FLUSH(20)")
-    assert got() == 20, "%d of 20 objects were ever spawned" % got()
-
-    # IN ORDER
-    seen = [rt.eval("function() return SEEN[%d] end" % (i + 1))() for i in range(20)]
-    order = [s.find('"p%02d"' % (i + 1)) for i, s in enumerate(seen)]
-    assert all(o >= 0 for o in order), "the pump reordered the blueprint: %s" % order
-
-    # AND THE BLUEPRINT REACHES TTS EXACTLY AS IT WAS WRITTEN, baked GUID and all.
-    #
-    # Stripping it shipped ON for one build and broke the mod: "after doing the 3 player drafts
-    # clicking on a faction did nothing", with bab7e1 throwing "Object reference not set to an instance
-    # of an object" -- TTS's own null. rttCoordFaction destructs the selector board BEFORE it spawns
-    # the faction, so a spawn that throws on the first piece takes the board away and puts nothing
-    # back, which is exactly what he saw. The JSON is still valid without the field (all 701 blobs
-    # parse) -- TTS simply wants it, and no harness here can ask TTS that.
-    #
-    # This asserts the SHIPPED default, so turning it back on without proving it in a real game first
-    # fails here rather than in his game.
-    assert rt.eval("RTT_STRIP_GUID") is not True, \
-        "the GUID strip is on again; it broke every spawn path the last time it shipped"
-    assert all('"GUID"' in s for s in seen), \
-        "a baked GUID was stripped on the way to the spawn: %s" % [s for s in seen if '"GUID"' not in s][:1]
-    # ...and when it IS on, what it produces is still the same object minus that one field
-    stripped = rt.eval("""function()
-        RTT_STRIP_GUID = true
-        local out = rttFreshGuid('{\"GUID\": \"ec2372\",\"Name\": \"Custom_Token\"}')
-        RTT_STRIP_GUID = false
-        return out
-    end""")()
-    assert stripped == '{"Name": "Custom_Token"}', "the strip mangles the blueprint: %r" % stripped
-
-    # THE BYTE BUDGET, on blobs too heavy to send six at a time
-    rt.execute("SEEN = {} local big = string.rep('x', 30000) "
-               "local specs = {} for i = 1, 6 do specs[i] = { json = '{\"j\":\"' .. big .. '\"}' } end "
-               "rttSpawnStaggered(specs)")
-    n = got()
-    assert n < per, "%d heavy blobs went in one frame; the byte budget did nothing" % n
-    rt.execute("FLUSH(20)")
-    assert got() == 6, "the byte-budgeted pump lost objects: %d of 6" % got()
-
-    # ...but a blob bigger than the whole budget still goes, rather than jamming the queue forever
-    rt.execute("SEEN = {} rttSpawnStaggered({ { json = '{\"j\":\"' .. string.rep('x', 200000) .. '\"}' } })")
-    assert got() == 1, "a blob larger than the byte budget was never spawned"
-
-
-def t_a_map_is_taken_down_a_frame_before_it_is_rebuilt(src):
-    """removeMapItems and the respawn no longer land in the same frame.
-
-    MULTIPLAYER_SYNC.md, item 4: the blueprints share baked GUIDs across maps -- 25 to 29 between every
-    pair of the seven, 47 duplicated overall -- so the host destroyed GUID 79bf39 and created a new
-    79bf39 in one frame, which is a message pair a client can resolve the wrong way round. A frame of
-    bare table costs ~16 ms and nothing can see it: a spawned object takes a frame or more to appear.
-
-    The frame is taken through rttAfterFrames and the map's own generation is re-checked on the far
-    side of it, so a game abandoned or a second map clicked in that window does not rebuild anything.
-    """
-    rt = fresh(src)
-    rt.execute("SPAWNED = 0 "
-               "local _s = spawnObjectJSON "
-               "spawnObjectJSON = function(p) SPAWNED = SPAWNED + 1 return _s(p) end")
-    rt.execute("pcall(function() makeMap('', '', 'Winter Map') end)")
-    assert rt.eval("SPAWNED") == 0, \
-        "the map respawned in the same frame it was torn down in: %s objects" % rt.eval("SPAWNED")
-    rt.execute("FLUSH(40)")
-    assert rt.eval("SPAWNED") > 20, \
-        "the map never rebuilt after its frame: %s objects" % rt.eval("SPAWNED")
-
-    # AND A SECOND CLICK INSIDE THAT WINDOW BUILDS ONE MAP, not two interleaved
-    rt = fresh(src)
-    rt.execute("pcall(function() makeMap('', '', 'Winter Map') end) "
-               "pcall(function() makeMap('', '', 'Gorge Map') end) FLUSH(60)")
-    boards = rt.eval("function() return #getObjectsWithTag('Map Object') end")()
-    rt.execute("SOLO = 0 pcall(function() removeMapItems() end)")
-    rt2 = fresh(src)
-    rt2.execute("pcall(function() makeMap('', '', 'Gorge Map') end) FLUSH(60)")
-    one = rt2.eval("function() return #getObjectsWithTag('Map Object') end")()
-    assert boards <= one + 4, \
-        "two map clicks left %d map objects where one leaves %d" % (boards, one)
-
-
-def t_the_resync_sweep_resends_everything_it_may_touch(src):
-    """One blind pass over the table, skipping the four things it must never touch.
-
-    MULTIPLAYER_SYNC.md: the host cannot detect what a client is missing, so the repair is an
-    unconditional blind resend. Unlock-then-lock cures it by hand because setLock is an authoritative
-    object-state write -- a client that applies it and finds it has no such object takes the full
-    object state from that message. Nothing about being locked matters, so the sweep uses the cheapest
-    write there is; the mode is one constant with two proven fallbacks behind it.
-
-    THE EXCLUSIONS ARE THE TEST. A missed object is a cosmetic bug; a freed prisoner or a card yanked
-    out of somebody's hand is a real one.
-    """
-    rt = fresh(src)
-    rt.execute("PLAIN = MKOBJ('Warrior', {1, 11.6, 1}, {}) "
-               "HELD  = MKOBJ('Held', {2, 11.6, 2}, {}) HELD.held_by_color = 'Red' "
-               "JAIL  = MKOBJ('Cat Warrior', {3, 11.6, 3}, {}) JAIL.setLock(true) "
-               "RTT_LAID[JAIL.getGUID()] = { rot = {0,0,0}, pos = {3,11.6,3}, who = 'Red' }")
-    tag = rt.eval("RTT_RESYNC_TAG")
-
-    ran = rt.eval("function() return rttResyncSweep() end")()
-    assert ran is True, "the sweep refused to run on an idle table"
-    marked = lambda o: rt.eval("function() return %s.hasTag('%s') end" % (o, tag))()
-    assert marked("PLAIN") is True, "the sweep skipped an ordinary object"
-    assert marked("HELD") is False, "the sweep reached into a player's hands"
-    assert marked("JAIL") is False, "the sweep touched a laid prisoner"
-    assert rt.eval("function() return self.hasTag('%s') end" % tag)() is False, \
-        "the sweep touched the coordinator board, which carries the live XML UI"
-
-    # AND IT PUTS EVERYTHING BACK. A mark left on is a mark the next sweep will not make.
-    rt.execute("FLUSH(20)")
-    assert marked("PLAIN") is False, "the resync mark was never taken off again"
-    assert rt.eval("RTT_RESYNC_BUSY") is False, "the sweep never released its own busy flag"
-    assert rt.eval("RTT_RESYNCING") is False, "the prisoner guard was left armed"
-
-    # THE PRISONER GUARD. rttFreeUnlockedPrisoners ticks every second and stands a prisoner up the
-    # moment it finds one unlocked -- and the "lock" fallback unlocks a swept object for two frames.
-    rt.execute("RTT_RESYNCING = true JAIL.setLock(false) rttFreeUnlockedPrisoners()")
-    assert rt.eval("function() return RTT_LAID[JAIL.getGUID()] ~= nil end")() is True, \
-        "the prisoner gizmo undid itself during a sweep"
-    rt.execute("RTT_RESYNCING = false rttFreeUnlockedPrisoners()")
-    assert rt.eval("function() return RTT_LAID[JAIL.getGUID()] == nil end")() is True, \
-        "the guard stayed on after the sweep and the gizmo stopped working"
-
-    # DEBOUNCED, so a player mashing the button cannot stack sweeps on each other
-    rt = fresh(src)
-    rt.execute("for i = 1, 40 do MKOBJ('P' .. i, {i, 11.6, 0}, {}) end")
-    assert rt.eval("function() return rttResyncSweep() end")() is True
-    assert rt.eval("function() return rttResyncSweep() end")() is False, \
-        "a second sweep started while the first was still running"
-
-    # ...AND NOTHING RUNS ON A HEARTBEAT. Maintainer's own acceptance criterion: no lag, so the sweep
-    # is a handful of one-shots after a spawn plus the button, never a repeating tick.
-    body = src[src.index("function rttResyncArm()"):]
-    body = body[:body.index("\nend")]
-    assert "-1" not in body, "the resync arm schedules a repeating tick: %s" % body
-
-
-def t_the_resync_button_asks_nothing_and_destroys_nothing(src):
-    """A Resync button in the second row, wired straight to the sweep.
-
-    Maintainer, 2026-09-10: "build the resych button in the second row for handling persistent bug."
-
-    It is the manual half of the same repair: the automatic sweeps run after a spawn, and a message
-    dropped at a moment nobody spawned anything is only reachable by hand. It destroys nothing, so it
-    is not in RTT_WIPE_BTN and carries no warning -- one click and it runs.
-    """
-    x = json.load(open(os.path.join(REPO, "dist/Root_Tabletop_Tournament.json"), encoding="utf-8"))
-    def walk(objs):
-        for o in objs:
-            yield o
-            for c in (o.get("ContainedObjects") or []):
-                yield from walk([c])
-    board = [o for o in walk(x["ObjectStates"]) if o.get("GUID") == "bab7e1"][0]
-    xml = board["XmlUI"]
-
-    m = re.search(r'<Button id="rttResyncBtn"[^>]*>', xml)
-    assert m, "there is no Resync button on the board"
-    seg = m.group(0)
-    assert 'onclick="rttResyncClick"' in seg, "Resync is not wired to the sweep: %s" % seg
-    assert 'position="19 -70 ' in seg, "Resync is not in the second option row: %s" % seg
-    assert 'icon="ResyncArt"' in seg, "Resync has no label art: %s" % seg
-    assets = {a.get("Name"): a.get("URL") for a in (board.get("CustomUIAssets") or [])}
-    assert "ResyncArt" in assets, "the board declares no ResyncArt asset"
-    assert assets["ResyncArt"].endswith(".png"), assets["ResyncArt"]
-
-    # it sits in the group More swaps out, like every other option button
-    rows = xml[xml.find('<ToggleGroup id="optionRows"'):]
-    rows = rows[:rows.find("</ToggleGroup>")]
-    assert 'id="rttResyncBtn"' in rows, "Resync is outside the option rows"
-
-    # IT NEVER ASKS, because it takes nothing away
-    rt = fresh(src)
-    assert rt.eval("RTT_WIPE_BTN['rttResyncBtn']") is None, \
-        "Resync is registered as a destructive button"
-    rt.execute("PLAIN = MKOBJ('Warrior', {1, 11.6, 1}, {}) "
-               "pcall(function() rttResyncClick(Player['Red'], '', 'rttResyncBtn') end)")
-    assert rt.eval("function() return PLAIN.hasTag(RTT_RESYNC_TAG) end")() is True, \
-        "the button did not run a sweep"
-    rt.execute("FLUSH(20)")
-    assert rt.eval("function() return PLAIN.__dead end")() is False, \
-        "the Resync button destroyed something"
-
-
-def t_a_shuffled_marker_is_moved_with_its_lock_off(src):
-    """The suit markers are unlocked to be moved, then locked back the way they were.
-
-    MULTIPLAYER_SYNC.md, item 4: moving a LOCKED object does not replicate. On the clearing markers
-    that is not a missing piece but a silently WRONG board -- a client reading the pre-shuffle suit
-    layout for the whole game -- and 72 of the 84 marker blobs ship Locked:true. The mod already does
-    this correctly in rttLayHelperRow (unlock, move, lock); this shuffle did not.
-    """
-    rt = fresh(src)
-    rt.execute("MOVED = {} MARKS = {} "
-               "for i = 1, 6 do "
-               "  local o = MKOBJ('Clearing Marker', {i * 3, 11.7, 0}, {'Clearing Marker'}) "
-               "  o.setLock(true) "
-               "  local sp = o.setPosition "
-               "  o.setPosition = function(p) MOVED[#MOVED+1] = tostring(o.getLock()) return sp(p) end "
-               "  MARKS[i] = o "
-               "end "
-               "pcall(function() shuffleMaps('Winter Map') end)")
-    moved = list(rt.eval("MOVED").values())
-    assert len(moved) == 6, "%d of the 6 markers were placed" % len(moved)
-    assert set(moved) == {"false"}, \
-        "a marker was moved while it was still locked, so clients keep the old layout: %s" % moved
-    locked = [rt.eval("function() return MARKS[%d].getLock() end" % (i + 1))() for i in range(6)]
-    assert all(locked), "a marker was left unlocked after the shuffle: %s" % locked
-
-
 CASES = [
     ("manual path drives the turn system",   t_manual_turn_order),
     ("manual path spawns 4 / 5 boards",      t_boards_spawn),
@@ -6568,11 +6321,6 @@ CASES = [
     ("board shows the build number",      t_the_board_shows_the_build_number),
     ("panel pauses the clock",            t_the_panel_pauses_the_clock),
     ("start names the pass it causes",    t_start_names_the_pass_it_causes),
-    ("a spawn is spread over frames",     t_a_spawn_burst_is_spread_over_frames),
-    ("map torn down a frame early",       t_a_map_is_taken_down_a_frame_before_it_is_rebuilt),
-    ("resync resends what it may",        t_the_resync_sweep_resends_everything_it_may_touch),
-    ("resync button asks nothing",        t_the_resync_button_asks_nothing_and_destroys_nothing),
-    ("a marker moves unlocked",           t_a_shuffled_marker_is_moved_with_its_lock_off),
 ]
 
 

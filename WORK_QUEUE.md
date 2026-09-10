@@ -105,10 +105,13 @@ Nothing below is implemented. The maintainer asked to be consulted before each c
 
 ### Bugs
 
-- [x] **Objects spawn but some clients never see them (distant connections).** Diagnosed
-      2026-09-10; items 1-4 BUILT the same day, with the Resync button, in v1.154 -- and the GUID
-      strip in item 4 BROKE every spawn path and was reverted in v1.155; do not turn it back on
-      without proving it in a real game first. What shipped and
+- [ ] **Objects spawn but some clients never see them (distant connections).** Diagnosed
+      2026-09-10. Items 1-4 were built that day (v1.154), BROKE THE MOD TWICE and were reverted in
+      full in v1.156 -- nothing from the brief is shipped. Read "What went wrong" at the END of the
+      brief before re-building any of it: the diagnosis still stands, but the GUID strip is not safe
+      at all, and staggering and the sweep are each still unproven suspects for a second, different
+      failure ("only sometimes the button works and only can spawn 1 faction"). One item per build,
+      confirmed in TTS, next time. The original brief and
       why it differs from the plan is at the end of
       **[`MULTIPLAYER_SYNC.md`](MULTIPLAYER_SYNC.md)**. ONE THING IS STILL OPEN: nobody knows yet
       whether TTS replicates a tag change to clients at all, so the resend primitive

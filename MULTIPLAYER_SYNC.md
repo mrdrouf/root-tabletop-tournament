@@ -310,104 +310,63 @@ freelance it.**
 
 ---
 
-## What shipped (2026-09-10, v1.154)
+## What went wrong (2026-09-10) — read this before re-building any of it
 
-All four items, in `gen/src/logic.lua`. Read this before re-reading the plan above: a few details
-were settled differently once the code was in front of me, and the reasons are here.
+Items 1–4 shipped in v1.154 with a Resync button. The maintainer's game broke twice, and the whole
+change set was reverted in v1.156. The board script now matches v1.153 character for character.
 
-**1. Staggering.** `rttSpawnStaggered(specs, done, alive)` sits next to `rttAfterFrames`. A caller
-builds its spec list exactly as its loop used to, and hands the list over; the pump spawns until
-either **6 objects** or **48 KB of JSON** would be exceeded, then waits a frame, in blueprint order.
+### Round one: the GUID strip
 
-The byte budget is not in the plan above and it turned out to matter: the three deck buttons put a
-20 KB refill card, a 1.5 KB dominance track and a **58 KB deck** out together, which a count rule
-waves through in one frame. The check also looks at the object it is ABOUT to send rather than the
-running total, because testing afterwards let one more object through every frame — and on the decks
-that one object was the 58 KB one, so 79 of the 80 KB still went in a single frame.
+Item 4 said to strip the baked `"GUID"` from blueprint JSON at spawn "verified safe". It is not.
 
-Measured on the real blueprints: worst blueprint is the Knaves at **9 frames / 150 ms**; the heaviest
-single frame anywhere is 58 KB, and that is one indivisible object. `rttFactionExtras` (0.5 s) and
-`rttPlaceVPRetry` (1.2 s) have 3.3x and 8x margin, so neither needed widening.
-
-Proven after the fact against the last build the maintainer had working: every spawn payload for the
-Knaves, the Lilypad, the Gorge, the Marsh and a deck is **byte-identical**, and every faction, map and
-deck puts exactly the same number of objects on the table. The only difference staggering makes is
-*when*.
-
-Wired at `rttSpawnFaction`, `makeMap`, `makeDeck`, `rttSpawnPriority`, `rttSpawnMarshNumbers`.
-`rttSpawnLandmarkAt` and `rttSpawnFlotillaKit` were deliberately **left alone**: two objects each, so
-pacing is a no-op, and both return their spawned objects synchronously to callers that track them.
-The Flotilla kit calls `rttResyncArm()` instead, so its spawns still get the sweeps behind them.
-
-Where a loop used the object `spawnObjectJSON` returns (`RTT_PRIO_PIECES`, `RTT_MARSH_PIECES`), the
-record moved into the spawn callback — the loop no longer holds the object it just asked for. Both
-lists are read only by their own teardown, which pcalls every entry.
-
-**2. The sweep.** `rttResyncSweep(done, retry)`, 15 objects a frame, `getAllObjects()` minus the four
-exclusions the plan names. `RTT_RESYNC_MODE` is `"tag"`, with `"tint"` and `"lock"` written and one
-edit away. `RTT_RESYNCING` guards `rttFreeUnlockedPrisoners` for the whole sweep, and prisoners are
-skipped outright as well. The frame waits are bare `Wait.frames`, NOT `rttAfterFrames`: a sweep is not
-part of a setup chain, and one abandoned half-way would leave `RTT_RESYNC_BUSY` set for the session.
-
-`rttResyncArm()` schedules the 2 s and 6 s pair against a token, so a whole setup — five factions, a
-map, a deck — collapses to ONE pair two seconds after the last piece is asked for.
-
-**3. The button.** `rttResyncBtn` at x=19 of the last option row, the board's one free slot, wired
-straight to `rttResyncClick`. Not in `RTT_WIPE_BTN` — it destroys nothing, so it carries no warning
-and there is nothing to arm. The debounce is the sweep's own busy flag.
-
-**4. Cleanups.** A frame between `removeMapItems` and the rebuild (through `rttAfterFrames`, with
-`RTT_MAP_GEN` re-checked on the far side); all three move-while-locked sites, plus the ruin shuffle
-beside the marker shuffle, which has the same problem and was not in the plan. **The GUID strip is
-OFF** — see below.
-
-**Tests.** Five new cases in `tests/test_setup_paths.py`, all failing on the previous build: the pump's
-order/budgets/completeness and the GUID strip, the teardown frame, the sweep's exclusions and its
-debounce and the prisoner guard, the button's wiring, and a marker being moved with its lock off. The
-suite still cannot prove the fix — the stub has no concept of a client — so it guards the mechanics
-and nothing more.
-
-**STILL OPEN: does the tag toggle replicate?** Unanswered, and unanswerable from here. Validate in a
-real game with a genuinely distant client: force the bug, press Resync, see whether the object
-appears. If it does not, set `RTT_RESYNC_MODE = "tint"` and repeat; `"lock"` is the proven fallback.
-Write the answer back into this file — it settles an open question about TTS itself.
-
----
-
-## The GUID strip broke the mod (2026-09-10, reverted in v1.155)
-
-`RTT_STRIP_GUID` is `false` and must stay false until somebody proves otherwise **in a real game**.
-
-Item 4 said to strip the baked `"GUID"` from blueprint JSON at spawn so TTS assigns a unique one, and
-called it "verified safe". It shipped on in v1.154 and the maintainer reported it within the hour:
-
-> "after doing the 3 player drafts clicking on a faction did nothing did you broke something?"
-
-and then, from the console:
-
+> "after doing the 3 player drafts clicking on a faction did nothing"
 > `[Faction Selection - bab7e1] Lua Error: Object reference not set to an instance of an object.`
 
-That message is TTS's own null, not a Lua one, and the two symptoms are the same event.
-`rttCoordFaction` **destructs the selector board before it spawns the faction**, so a
-`spawnObjectJSON` that throws on the very first piece takes the board away and puts nothing in its
-place — a click that "does nothing". Every other spawn path fails the same way and more quietly.
+That is TTS's own null. `rttCoordFaction` **destructs the selector board before it spawns the
+faction**, so a `spawnObjectJSON` that throws on the first piece takes the board away and puts nothing
+back — a click that does nothing.
 
-**What was actually verified, and what was not.** Verified: the JSON is still valid without the field
-(all 701 blobs parse), the top-level GUID is the first key in every one of them so a contained
-object's is never touched, and nothing in the mod looks a spawned object up by a baked GUID (the only
-literal is `bab7e1`, a save-file object). All true, and all beside the point — **TTS's deserialiser
-wants the field**, and no test here can ask it. `tests/tts_stub.lua` never parses the JSON at all.
+What had been checked was true and beside the point: the JSON still parses without the field, the
+GUID is the first key in all 701 blobs, nothing looks a spawned object up by a baked GUID. **None of
+it asks TTS**, and `tests/tts_stub.lua` never parses the JSON at all, so the suite stayed green.
 
-The collision this was meant to fix — the blueprints share 47 GUIDs, so a map change destroys `79bf39`
-and creates a new `79bf39` — is still handled by the frame between teardown and rebuild, which is the
-half of that item that works.
+### Round two: it was not only the GUID strip
 
-**If it is ever wanted again:** turn it on for ONE spawn, in a real game, and watch the console. Never
-for the whole mod on reasoning alone. `t_a_spawn_burst_is_spread_over_frames` asserts the default is
-off, so switching it back fails the suite before it can reach anybody's table.
+v1.155 turned the strip off and left the staggering and the sweep in. It was still broken, and worse:
 
-**Also hardened in v1.155:** the sweep now keeps GUIDs rather than object references and re-resolves
-each one at the moment it touches it, including the undo two frames later. A sweep runs over about two
-dozen frames and a draft destroys objects the whole time — every selector board goes as its seat
-picks — and touching a destroyed object is a null on TTS's side of the binding, where a `pcall` is not
-the guarantee it looks like.
+> "now even 4 player is broken and 3 player still broken, it s like only sometimes the button works
+> and only can spawn 1 faction"
+
+**Intermittent, and a partial spawn.** That is a different failure from round one, and it points at
+items 1 and 2 rather than item 4. The two candidates, neither eliminated:
+
+- **The stagger made `rttSpawnFaction` asynchronous.** It used to finish inside one frame and
+  everything downstream could assume the pieces existed. It now returns while ~20 of them are still
+  queued, and its continuation goes through `rttAfterFrames`, which silently drops the remainder if
+  `RTT_RUN_ID` moves. A faction that spawns its first six pieces and stops is exactly "only can spawn
+  1 faction". **Anything that converts a synchronous spawn to an asynchronous one has to be checked
+  against every caller that reads the result, not just against the loop it replaces.**
+- **The sweep is itself a burst.** It was built to repair dropped messages and it writes state to
+  every object on the table — a few hundred — twice, after every spawn, and again on the button. On a
+  connection already dropping messages that is more traffic, not less, in the same window as a draft
+  where every click has to round-trip. "Only sometimes the button works" is what a flooded client
+  looks like.
+
+### What to do differently
+
+1. **One item per build, and the maintainer confirms each in TTS before the next.** All four went out
+   together, so when it broke there were four suspects and no way to bisect from here.
+2. **Anything TTS can see that the harness cannot must ship behind a constant, defaulted off**, and be
+   proven on ONE spawn in a real game. Payload shape, a new API property, a runtime-only field:
+   green tests mean nothing for that class of change.
+3. **Staggering is not free.** It changes the contract of every function it touches from "the pieces
+   exist when this returns" to "they will". Audit every caller first; `rttPlaceFaction`,
+   `rttCoordFaction`, `shuffleMaps`, `rttLockRuins` and `rttPlaceVP` all read what the loop spawned.
+4. **Measure the sweep's own cost before shipping it.** A repair that sends several hundred object
+   writes per spawn may be worse than the drop it repairs. Scope it to what was actually just spawned
+   rather than to `getAllObjects()`, or make it manual-only.
+
+The parts that were NOT implicated and are safe to re-land on their own: the frame between a map's
+teardown and its rebuild, and the four move-while-locked sites (`shuffleMaps`' ruins and clearing
+markers, the Flotilla boat, the landmark card's scale-before-lock). Those change no contract and add
+no traffic.
