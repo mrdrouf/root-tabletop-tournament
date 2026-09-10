@@ -4392,33 +4392,53 @@ def t_the_flotilla_draft_seats_three_and_deals_militants(src):
                "T3 = MKOBJ('', {-45.214, 11.575, -19.135}, {'RTT Helper'})")
     assert abs(float(spot()) + 45.214 + gap) < 1e-3, \
         "three cards out and it sits at %s; it should be its own gap past -45.214" % spot()
+
+    # THEY ALL STAND ON ONE LINE. "all the helper cards about landmarks and maps and the flotilla should
+    # have the bottom of the card at exactly the same height." Not their centres, which is what one z
+    # for the row gave: a landmark card is portrait and the Flotilla's is landscape, so centring both
+    # left the short one floating in the middle of the tall one -- "is a bit too high".
+    rt.execute("TALL = MKOBJ('', {-35.098, 11.575, -19.135}, {'RTT Helper'}) "
+               "TALL.__bounds = {size = Vector({5.5, 0.2, 7.8}), center = Vector({0,0,0})} "
+               "WIDE = MKOBJ('', {-50.0, 11.575, -19.135}, {'RTT Helper'}) "
+               "WIDE.__bounds = {size = Vector({6.6, 0.2, 4.0}), center = Vector({0,0,0})} "
+               "rttAlignHelperCards() FLUSH(4)")
+    def zof(name):
+        return rt.eval("function(o) return o.__pos.z end")(rt.eval(name))
+    bottom = rt.eval("RTT_HELPER_BOTTOM")
+    assert abs((zof("TALL") - 7.8 / 2) - bottom) < 1e-3, \
+        "the tall card's bottom is at %.3f, not %.3f" % (zof("TALL") - 3.9, bottom)
+    assert abs((zof("WIDE") - 4.0 / 2) - bottom) < 1e-3, \
+        "the wide card's bottom is at %.3f, not %.3f" % (zof("WIDE") - 2.0, bottom)
+    assert abs(zof("TALL") - zof("WIDE")) > 1.0, \
+        "the two are still centred together; bottom-aligning must separate their centres"
     # ...and its own card is not counted as something to make way for
     rt.execute("pcall(function() rttSpawnFlotillaKit() end) FLUSH(20)")
     once = spot()
     rt.execute("pcall(function() rttPlaceFlotillaCard() end) FLUSH(6)")
     assert spot() == once, "the Flotilla pushed itself along: %s -> %s" % (once, spot())
 
-    # ONE FACE, EVERYTHING ON IT: "use the single flotilla card where everything is on 1 face." Two
-    # faces put half of what the card says face down on a card that lies locked beside the map.
+    # NOT A CARD AT ALL. Three builds running it came out as a landmark -- a Rabbit-Town, then a
+    # Foxburrow twice -- through three different deck numbers, because TTS resolved the art off its own
+    # deck registry rather than off the CustomDeck in the blueprint. Nothing about this object needs to
+    # be a card: it is never drawn, dealt, shuffled or flipped, it lies locked beside the map and is
+    # read. A tile carries its picture as a plain URL, with no deck and no CardID to resolve.
     blob = re.search(r'RTT_FLOTILLA_CARD_JSON = \[====\[(.*?)\]====\]', src, re.S)
     assert blob, "the Flotilla card blueprint is not in the build"
     card = json.loads(blob.group(1))
-    deck = list(card["CustomDeck"].keys())[0]
-    face = card["CustomDeck"][deck]
-    assert "flotilla_hireling_" in face["FaceURL"], "the card's face is not the rendered one"
-    assert "rules" not in face["FaceURL"] and "action" not in face["FaceURL"], \
-        "the card still uses one of the two half-cards: %s" % face["FaceURL"].split("/")[-1]
-    assert "assets/cards/" not in face["BackURL"], \
-        "the card's back is another rules face; it should be a card back"
+    assert card["Name"] == "Custom_Tile", \
+        "it is a %s again; a deck is what kept coming out as a landmark" % card["Name"]
+    assert "CardID" not in card and "CustomDeck" not in card, \
+        "it still carries a deck for TTS to resolve"
 
-    # ITS DECK NUMBER IS ITS OWN. It shipped as CardID 74200 in deck 742 -- Rabbit-Town's -- so TTS
-    # drew a landmark instead, stretched landscape by this card's scale and sideways flag, on a table
-    # with no map down at all. The decks in use are read out of the build rather than listed here.
-    assert str(card["CardID"]).startswith(deck), \
-        "CardID %s does not belong to deck %s" % (card["CardID"], deck)
-    used = re.findall(r'"CustomDeck":\s*\{\s*"(\d+)"', src)
-    assert used.count(deck) == 1, \
-        "deck %s is used by %d cards in the build; it must be this card's alone" % (deck, used.count(deck))
+    # ONE FACE, EVERYTHING ON IT: "use the single flotilla card where everything is on 1 face", and it
+    # is the render he confirmed -- "its flotilla_hireling_a7 etc the right helper card art".
+    img = card["CustomImage"]
+    assert "flotilla_hireling_" in img["ImageURL"], "the tile does not carry the rendered card"
+    assert "rules" not in img["ImageURL"] and "action" not in img["ImageURL"], \
+        "the tile uses one of the two half-cards: %s" % img["ImageURL"].split("/")[-1]
+    assert img["ImageSecondaryURL"] == img["ImageURL"], \
+        "its two sides differ; turning it over should change nothing"
+    assert img["CustomTile"]["Stretch"] is True, "unstretched, the 1900x1146 card comes out square"
 
     # AND IT OUTLIVES THE MAP: "once I put the flotilla, it stays there." removeMapItems sweeps
     # everything tagged Map Object except what also carries the fixture tag, which is how the box

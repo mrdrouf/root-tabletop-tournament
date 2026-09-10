@@ -5672,26 +5672,26 @@ end
 -- landmark cards do. Maintainer, 2026-09-09: "it spawns also the flotilla card rule next to the map
 -- as the landmark helpers (think of how it needs to adjust the arrival of other helper cards)."
 --
+-- IT IS A TILE, NOT A CARD. Three builds running it came out as a landmark -- a Rabbit-Town, then a
+-- Foxburrow twice -- and three different deck numbers did not stop it: 742 (which really was
+-- Rabbit-Town's), a four-digit 9411, and 745 chosen to match the shape of every other deck here. TTS
+-- was resolving the art off its own deck registry rather than off the CustomDeck in the blueprint, and
+-- I could not tell it otherwise from outside the game.
+--
+-- So it stops being a card. Nothing about this object needs to be one: it is never drawn, dealt,
+-- shuffled or flipped -- it lies locked beside the map and is read. A Custom_Tile carries its picture
+-- as a plain ImageURL with no deck and no CardID, so there is nothing left for TTS to resolve wrongly.
+-- Stretch keeps the image's own 1900x1146 rather than squaring it.
+--
 -- ONE FACE, EVERYTHING ON IT. Maintainer, 2026-09-09: "use the single flotilla card where everything
--- is on 1 face." It shipped for one build as two faces -- rules up, activation behind -- which is how
--- the printed hireling card is laid out and is exactly wrong for a card that lies locked beside the
--- map: half of what it says was face down. The back is the landmark cards' own back, because this
--- card stands in their row.
+-- is on 1 face." Both sides of the tile carry it, so turning it over changes nothing.
 --
 -- tools/make_flotilla_card.py renders it; if that tool re-renders, the FaceURL below is the only thing
 -- to change, because the hash is in the filename.
 --
--- It carries the HIRELING card's geometry, not a landmark's: the landmark cards are portrait and this
--- is landscape, 1900x1146, like the Riverfolk Flotilla card it belongs to. Hence scale 1.88 and
--- SidewaysCard, both lifted from that card.
+-- It lies landscape like the hireling card it belongs to, not portrait like a landmark card.
 --
--- ITS DECK NUMBER IS ITS OWN, AND IT IS THREE DIGITS. It shipped as CardID 74200 in deck 742, which is
--- RABBIT-TOWN'S, so TTS drew a landmark card instead. Moving it to a four-digit 9411 did not fix that
--- -- the maintainer got a Foxburrow again -- and every deck this build actually carries is one, two or
--- three digits (2, 3, 4, 8, 74, 76, 110-159, 223, 700, 719, 730-742), so a six-digit CardID is outside
--- the shape everything else here has. 745 is free, next to the landmark decks, and its CardID is the
--- 74500 that pattern implies.
-RTT_FLOTILLA_CARD_JSON = [====[{"GUID":"f10771","Name":"CardCustom","Transform":{"posX":0.0,"posY":11.575,"posZ":0.0,"rotX":0.0,"rotY":180.0,"rotZ":180.0,"scaleX":1.88,"scaleY":1.0,"scaleZ":1.88},"Nickname":"Flotilla","Description":"","GMNotes":"","ColorDiffuse":{"r":1.0,"g":1.0,"b":1.0},"Locked":true,"Grid":true,"Snap":true,"IgnoreFoW":false,"MeasureMovement":false,"DragSelectable":true,"Autoraise":true,"Sticky":true,"Tooltip":true,"GridProjection":false,"HideWhenFaceDown":false,"Hands":false,"CardID":74500,"SidewaysCard":true,"CustomDeck":{"745":{"FaceURL":"https://cdn.jsdelivr.net/gh/mrdrouf/root-tabletop-tournament@main/assets/cards/flotilla_hireling_a75396d2.png","BackURL":"https://steamusercontent-a.akamaihd.net/ugc/14444327507133601970/CD9D521A7DCD49AA22BE49DAA0B5D306A7A28E42/","NumWidth":1,"NumHeight":1,"BackIsHidden":true,"UniqueBack":false,"Type":0}},"LuaScript":"","LuaScriptState":"","XmlUI":""}]====]
+RTT_FLOTILLA_CARD_JSON = [====[{"GUID":"f10771","Name":"Custom_Tile","Transform":{"posX":0.0,"posY":11.575,"posZ":0.0,"rotX":0.0,"rotY":180.0,"rotZ":0.0,"scaleX":3.3,"scaleY":1.0,"scaleZ":3.3},"Nickname":"Flotilla","Description":"","GMNotes":"","ColorDiffuse":{"r":1.0,"g":1.0,"b":1.0},"Locked":true,"Grid":true,"Snap":true,"IgnoreFoW":false,"MeasureMovement":false,"DragSelectable":true,"Autoraise":true,"Sticky":true,"Tooltip":true,"GridProjection":false,"HideWhenFaceDown":false,"Hands":false,"CustomImage":{"ImageURL":"https://cdn.jsdelivr.net/gh/mrdrouf/root-tabletop-tournament@main/assets/cards/flotilla_hireling_a75396d2.png","ImageSecondaryURL":"https://cdn.jsdelivr.net/gh/mrdrouf/root-tabletop-tournament@main/assets/cards/flotilla_hireling_a75396d2.png","ImageScalar":1.0,"WidthScale":0.0,"CustomTile":{"Type":3,"Thickness":0.1,"Stackable":false,"Stretch":true}},"LuaScript":"","LuaScriptState":"","XmlUI":""}]====]
 
 -- HIS CARD AND THE BOAT, AND NOTHING ELSE. The base collection's hireling entry is a printed card and
 -- one boat, and for one build both were spawned -- so the table carried the printed card AND the card
@@ -6029,7 +6029,34 @@ function rttFlotillaCardSpot()
   return { far - RTT_FLOTILLA_GAP, RTT_HELPER_ROW_Y, RTT_HELPER_ROW_Z }
 end
 
--- move the Flotilla's own card to wherever the row leaves room for it
+-- THEY ALL STAND ON ONE LINE. Maintainer, 2026-09-10: "all the helper cards about landmarks and maps
+-- and the flotilla should have the bottom of the card at exactly the same height, good oppportunity to
+-- adjust the position of the landmark helpers btw."
+--
+-- Not their CENTRES, which is what a single z for the row gave: a landmark card is portrait and the
+-- Flotilla's is landscape, so centring both on -19.135 left the small one floating in the middle of
+-- the tall one -- "is a bit too high". Bottom-aligning means reading each card's own depth and setting
+-- its centre from that, which is the one thing a fixed z cannot do.
+--
+-- RTT_HELPER_BOTTOM is the line itself, and it is the one number to move if the row should sit nearer
+-- or further from the board.
+RTT_HELPER_BOTTOM = -23.0
+
+function rttAlignHelperCards()
+  for _, o in ipairs(getObjectsWithTag(RTT_HELPER_TAG)) do
+    pcall(function()
+      local b = o.getBounds()
+      local p = o.getPosition()
+      if b ~= nil and b.size ~= nil then
+        o.setLock(false)
+        o.setPosition({ p.x, p.y, RTT_HELPER_BOTTOM + b.size.z / 2 })
+        o.setLock(true)
+      end
+    end)
+  end
+end
+
+-- move the Flotilla's own card to wherever the row leaves room for it, then line the row up
 function rttPlaceFlotillaCard()
   local spot = rttFlotillaCardSpot()
   for _, o in ipairs(getObjectsWithTag(RTT_FLOTILLA_TAG)) do
@@ -6039,11 +6066,12 @@ function rttPlaceFlotillaCard()
       pcall(function()
         o.setLock(false)
         o.setPosition({ spot[1], spot[2], spot[3] })
-        o.setRotation({ 0, 180, 180 })
+        o.setRotation({ 0, 180, 0 })
         o.setLock(true)
       end)
     end
   end
+  rttAlignHelperCards()
 end
 
 -- spawn each town standing on its clearing (model rotY = the clearing's suit rotY) + its
@@ -6252,7 +6280,14 @@ function makeMap(player,value,id,keepBoard)
   if id == "Marsh Map" then Wait.frames(function() rttSpawnMarshNumbers() end, 3) end
   -- and the Flotilla takes whatever the row leaves it: the near slot on a map with no helper cards of
   -- its own, one step further out for each one that arrives. It is a fixture, so it is still there.
-  rttWhenMapReady(function() pcall(function() rttPlaceFlotillaCard() end) end)
+  -- TWICE: once when the board is up, and again after the map's own objects have finished spawning.
+  -- Their tags are added in spawn callbacks, so a card that arrives a few frames later is not yet a
+  -- helper when the first pass counts them -- which is why the Flotilla sat still while the Marsh laid
+  -- its rules card down beside it.
+  rttWhenMapReady(function()
+    pcall(function() rttPlaceFlotillaCard() end)
+    Wait.time(function() pcall(function() rttPlaceFlotillaCard() end) end, 2.0)
+  end)
   -- A SAME-MAP REBUILD KEEPS THE BOARD. rttNewGame re-places the current map so a new game never
   -- inherits the last one's layout -- most visibly the Marsh, which re-rolls its flooding, its suits
   -- and its ruins on every build, and which has two different boards (4-player flooded, 5-player with
