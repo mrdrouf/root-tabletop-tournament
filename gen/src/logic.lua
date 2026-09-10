@@ -1695,6 +1695,274 @@ function rttAfterFrames(fn, n)
   Wait.frames(function() if RTT_RUN_ID == id then fn() end end, n)
 end
 
+-- ---- Getting a spawned object to every client --------------------------------------------------
+-- WHY THIS SECTION EXISTS. Objects the mod spawns sometimes never appear for SOME players: always on
+-- a distant, high-latency connection, never for the whole table at once, and cured either by
+-- unlock-then-lock on the missing piece or by that player rejoining. It happens in the original Root
+-- mod and the Ultimate mod too, so the cause is inherited, not something RTT introduced. Diagnosed
+-- 2026-09-10; MULTIPLAYER_SYNC.md holds the whole reasoning and the fixes that were ruled out, and
+-- should be read before changing anything here.
+--
+-- THE SHORT VERSION. A script spawn reaches clients as an INCREMENTAL create message; a distant
+-- client drops one; nothing ever re-sends it. The rejoin cure is what proves it -- a rejoin discards
+-- client state and pulls a fresh FULL snapshot, so the host's own state was right all along and only
+-- the incremental apply is lossy. Lock is not the cause, only why you notice: an unlocked object
+-- rejoins the transform sync the first time anyone moves it, and a locked one never does.
+--
+-- Two facts shape everything below. THE HOST CANNOT DETECT IT -- it has no idea what any client is
+-- missing -- so the repair is an unconditional blind resend, never a conditional one. And it runs
+-- entirely on the host: one sweep repairs every broken client at once, with no client-side code.
+
+-- SPAWNING OVER SEVERAL FRAMES. Every spawn loop in the mod used to fire its whole blueprint in a
+-- single frame: the Lilypad Diaspora is 229 KB of object JSON in 25 objects, and a 5-player setup
+-- pushes about 565 KB through a handful of frames. TTS demonstrably has had size-dependent failures
+-- in that path -- v14.2 shipped a fix for packets that were exact multiples of 1 MB breaking in
+-- transit -- so a burst that size is asking for the drop this section exists to repair.
+--
+-- THIS IS NOT A RUNTIME PATCH. The golden rule is "fix the blueprint, never patch at runtime", and it
+-- is about PLACEMENT: no spawn-then-move. Every piece still spawns directly at its final baked
+-- transform. Only the CALLS are spread out; nothing moves at all, so there is no jitter of any kind.
+--
+-- TWO BUDGETS, whichever runs out first, and always at least one object so a single blob bigger than
+-- the budget still goes. The count paces the blueprints that are MANY (the Knaves are 51 objects);
+-- the byte budget paces the ones that are few and HEAVY (the Dark Deck is 111 KB in five objects),
+-- which a count alone would wave straight through. Worst case is 51 objects at 6 a frame = 9 frames =
+-- 150 ms, which reads as one pop rather than a cascade.
+RTT_SPAWN_PER_FRAME = 6
+RTT_SPAWN_BYTES     = 48000
+
+-- ...AND A FRESH GUID FOR EVERY PIECE. The blueprints carry BAKED GUIDs and share them across maps --
+-- 47 duplicated overall, 25 to 29 between every pair of the seven maps -- so a map change destroys
+-- GUID 79bf39 and creates a new 79bf39 moments later, which is precisely the kind of thing a client
+-- applying messages out of order can resolve the wrong way. Stripping the baked one makes TTS assign
+-- a unique GUID instead.
+--
+-- Safe because NOTHING in the mod looks a spawned object up by a baked GUID: the only literal GUID
+-- anywhere is bab7e1, which is a save-file object and never spawned from a blueprint, and every
+-- blueprint match there is -- the two dice kept from a faction, the vagabond's VP tiles -- is made
+-- against the JSON STRING before it is handed over. Anchored at the head of the object, which is
+-- where all 701 blueprint blobs carry it, so a contained object's GUID is never touched.
+function rttFreshGuid(j)
+  if type(j) ~= "string" then return j end
+  return (j:gsub('^(%s*{%s*)"GUID"%s*:%s*"%x+",%s*', '%1', 1))
+end
+
+-- Spawn a list of spawnObjectJSON specs over as many frames as the budgets need, IN ORDER.
+--
+-- `done` runs once the last spawn has been ASKED for -- not once the last callback has fired, which
+-- is what the callers already assumed of the plain loop this replaces. `alive`, when given, is
+-- checked before every batch: makeMap passes its RTT_MAP_GEN so a second map click simply stops the
+-- first build's remaining spawns instead of interleaving two maps. RTT_RUN_ID is checked for free by
+-- rttAfterFrames, which is the whole reason the frame wait goes through it.
+--
+-- A short list still goes out in one frame and calls `done` synchronously, exactly as before.
+function rttSpawnStaggered(specs, done, alive)
+  local i = 1
+  local function pump()
+    if alive ~= nil then
+      local ok = false
+      pcall(function() ok = (alive() == true) end)
+      if not ok then return end
+    end
+    local n, bytes = 0, 0
+    while i <= #specs do
+      local s = specs[i]
+      local sz = (type(s.json) == "string") and #s.json or 0
+      -- LOOKING AT WHAT COMES NEXT, not at what has already gone. Testing the running total AFTER the
+      -- fact lets one more object through every frame, and on a deck that one object is 58 KB: the
+      -- three deck buttons put the refill card, the deck and the dominance track out together, and
+      -- checking afterwards sent 79 KB of the 80 in a single frame -- exactly what this is here to
+      -- stop. n > 0 keeps the rule from ever refusing to spawn at all.
+      if n > 0 and (n >= RTT_SPAWN_PER_FRAME or (bytes + sz) > RTT_SPAWN_BYTES) then break end
+      i = i + 1
+      n = n + 1
+      bytes = bytes + sz
+      if sz > 0 then s.json = rttFreshGuid(s.json) end
+      spawnObjectJSON(s)
+    end
+    if i <= #specs then
+      rttAfterFrames(pump, 1)
+    else
+      rttResyncArm()
+      if done ~= nil then done() end
+    end
+  end
+  pump()
+end
+
+-- THE RESYNC SWEEP -- the actual repair. Since the host cannot tell what is missing, it resends
+-- everything.
+--
+-- THE PRIMITIVE IS A TAG TOGGLE, and it is the one thing here that is not yet proven. The lock toggle
+-- is empirically proven, because the maintainer cures the bug by hand with it; the tag toggle is the
+-- same idea with no physics, no render change and no transform snapshot, but only host-side Lua ever
+-- READS a tag, so there is a real chance TTS does not replicate a tag change to clients at all -- in
+-- which case this sends nothing and the button does nothing. It has to be tried in a real game with a
+-- genuinely distant client. That is why the mode is one constant and the two fallbacks are already
+-- written: switching is an edit, not a rewrite.
+--
+--   "tag"   nothing to undo, nothing physical                   -- unverified
+--   "tint"  one blue channel nudged by 1/255 and put back       -- inert, and certainly replicated,
+--                                                                  because it is a render property
+--   "lock"  proven, but it touches physics: toggled to the
+--           OPPOSITE value (re-asserting a value TTS already
+--           holds is likely deduped to nothing) and back, with
+--           position, rotation and velocity restored exactly
+RTT_RESYNC_MODE      = "tag"          -- "tag" | "tint" | "lock"
+RTT_RESYNC_TAG       = "RTT Resync"
+RTT_RESYNC_PER_FRAME = 15             -- a 350-object table is ~24 frames, about 400 ms
+RTT_RESYNC_HOLD      = 2              -- frames between the touch and putting it back
+RTT_RESYNC_BUSY      = false
+RTT_RESYNC_TOKEN     = 0
+-- Read by rttFreeUnlockedPrisoners, which ticks every second and stands a prisoner back up the moment
+-- it finds one unlocked. In "lock" mode a swept object is unlocked for two frames, so that tick would
+-- silently undo the gizmo. Prisoners are skipped outright as well; this guard is belt and braces so
+-- that changing RTT_RESYNC_MODE can never quietly break them.
+RTT_RESYNCING        = false
+
+-- What a sweep must not touch. Every one of these is load-bearing.
+function rttResyncSkip()
+  local skip = {}
+  -- the coordinator board itself: it carries the live XML UI, and this file already records that
+  -- meddling with a live XML UI has left TTS unable to hand out player colours until a server restart
+  pcall(function() skip[self.getGUID()] = true end)
+  -- a laid prisoner, and the disc that marks it -- see RTT_RESYNCING above
+  for guid, was in pairs(RTT_LAID or {}) do
+    skip[guid] = true
+    if type(was) == "table" and was.disc ~= nil then skip[was.disc] = true end
+  end
+  -- and anything sitting in somebody's hand. A card in a hand belongs to that player's zone; never
+  -- reach into one.
+  pcall(function()
+    for _, c in ipairs(getSeatedPlayers()) do
+      pcall(function()
+        for _, o in ipairs(Player[c].getHandObjects()) do
+          pcall(function() skip[o.getGUID()] = true end)
+        end
+      end)
+    end
+  end)
+  return skip
+end
+
+function rttResyncTouch(o)
+  local mode = RTT_RESYNC_MODE
+  if mode == "tint" then
+    pcall(function()
+      local c = o.getColorTint()
+      local r, g, b = c.r, c.g, c.b
+      local nb = b + ((b > 0.5) and -(1 / 255) or (1 / 255))
+      o.setColorTint({ r = r, g = g, b = nb })
+      Wait.frames(function()
+        pcall(function() o.setColorTint({ r = r, g = g, b = b }) end)
+      end, RTT_RESYNC_HOLD)
+    end)
+  elseif mode == "lock" then
+    pcall(function()
+      local was = (o.getLock() == true)
+      local p, r = o.getPosition(), o.getRotation()
+      o.setLock(not was)
+      Wait.frames(function()
+        pcall(function()
+          -- only a LOCKED object went dynamic; freezing a resting one and unfreezing it disturbs
+          -- nothing, so there is nothing to put back
+          if was then
+            pcall(function() o.setVelocity({ 0, 0, 0 }) end)
+            pcall(function() o.setAngularVelocity({ 0, 0, 0 }) end)
+            o.setPosition({ p.x, p.y, p.z })
+            o.setRotation({ r.x, r.y, r.z })
+          end
+          o.setLock(was)
+        end)
+      end, RTT_RESYNC_HOLD)
+    end)
+  else
+    pcall(function()
+      if o.hasTag(RTT_RESYNC_TAG) then return end     -- a sweep that overlapped: leave its undo alone
+      o.addTag(RTT_RESYNC_TAG)
+      Wait.frames(function()
+        pcall(function() o.removeTag(RTT_RESYNC_TAG) end)
+      end, RTT_RESYNC_HOLD)
+    end)
+  end
+end
+
+-- One pass over everything on the table, staggered like the spawns for the same reason: un-staggered
+-- it would be the exact burst it exists to repair.
+--
+-- SCOPE IS getAllObjects() MINUS EXCLUSIONS, not a tag. Tag coverage across the mod's 33 spawn sites
+-- is too uneven to build on -- eleven add no tag in their own callback, some tag through a shared
+-- closure, others take an optional tag the caller may not pass -- so a tag-scoped sweep would silently
+-- miss objects. A full sweep cannot.
+--
+-- The frame waits here are BARE Wait.frames, not rttAfterFrames: a sweep is not part of a setup
+-- chain, and one abandoned half-way would leave RTT_RESYNC_BUSY true for the rest of the session.
+function rttResyncSweep(done, retry)
+  if RTT_RESYNC_BUSY then
+    if retry == true then Wait.time(function() rttResyncSweep(done, false) end, 1.0) end
+    return false
+  end
+  RTT_RESYNC_BUSY = true
+  RTT_RESYNCING = true
+  local skip = rttResyncSkip()
+  local all, list = {}, {}
+  pcall(function() all = getAllObjects() end)
+  for _, o in ipairs(all) do
+    local take = false
+    pcall(function() take = (o.held_by_color == nil) and (skip[o.getGUID()] ~= true) end)
+    if take then list[#list + 1] = o end
+  end
+  local i = 1
+  local function pump()
+    local n = 0
+    while i <= #list and n < RTT_RESYNC_PER_FRAME do
+      rttResyncTouch(list[i])
+      i = i + 1
+      n = n + 1
+    end
+    if i <= #list then
+      Wait.frames(pump, 1)
+    else
+      Wait.frames(function()
+        RTT_RESYNCING = false
+        RTT_RESYNC_BUSY = false
+        if done ~= nil then done(#list) end
+      end, RTT_RESYNC_HOLD + 2)
+    end
+  end
+  pump()
+  return true
+end
+
+-- TWO SWEEPS AFTER THE TABLE STOPS CHANGING. Every staggered spawn arms this, and arming again pushes
+-- the pair back, so a whole setup -- five factions, a map, a deck -- resolves to ONE pair of sweeps
+-- two seconds after the last piece is asked for. The second pass at six seconds is not redundant: it
+-- covers a message the FIRST pass itself dropped. The sweep is idempotent by construction, so an
+-- extra pass costs nothing.
+--
+-- NOTHING RUNS ON A HEARTBEAT. These are one-shots, and the button below is the only other way in. A
+-- resync loop would be constant network churn for no benefit.
+function rttResyncArm()
+  RTT_RESYNC_TOKEN = RTT_RESYNC_TOKEN + 1
+  local tok = RTT_RESYNC_TOKEN
+  for _, sec in ipairs({ 2.0, 6.0 }) do
+    Wait.time(function() if RTT_RESYNC_TOKEN == tok then rttResyncSweep() end end, sec)
+  end
+end
+
+-- THE RESYNC BUTTON. It will still happen occasionally -- the automatic sweeps cannot cover a message
+-- dropped at a moment nobody spawned anything -- and one person pressing a button beats the whole
+-- table logging out. It destroys nothing, so it carries no warning and is not in RTT_WIPE_BTN; the
+-- debounce is the sweep's own busy flag, so a player mashing it cannot stack sweeps.
+function rttResyncClick(player, value, id)
+  local ran = rttResyncSweep(function(n)
+    pcall(function() broadcastToAll("Resync: " .. tostring(n) .. " objects re-sent.", { 0.66, 0.82, 0.86 }) end)
+  end)
+  if ran then
+    pcall(function() broadcastToAll("Resyncing the table...", { 0.66, 0.82, 0.86 }) end)
+  end
+end
+
 -- Everything a game puts on the table, in one place. Both setup paths call this, so a new tag can
 -- never again be swept by one path and leaked by the other. Two leaks this fixes: the Pond tagged
 -- itself "RTT Pond" and nothing cleared it, and the Lizard Wizard was tagged plain "Faction" -- one
@@ -2616,6 +2884,10 @@ function makeDeck(player,value,id)
     allObjects = {EVERYTHING["Decks"]['Refill Card']['data'],EVERYTHING["Decks"]["Dominance Track Card"]['data'],EVERYTHING["Decks"][id]['data']}
   end
 
+  -- PACED LIKE EVERY OTHER SPAWN LOOP, and this one is the reason the helper counts BYTES as well as
+  -- objects: a deck is a handful of objects carrying a hundred kilobytes between them, which a
+  -- six-per-frame rule alone would wave straight through in one frame.
+  local specs = {}
   for _,n in ipairs(allObjects) do
     for _,v in ipairs(n) do
       local vec = Vector(v.move_to) * scale
@@ -2632,7 +2904,7 @@ function makeDeck(player,value,id)
       local new_pos = newVec
       new_pos.y = new_pos.y+10-8.5+0.05
       new_pos.x = new_pos.x - 45 + 8.01
-      spawnObjectJSON({
+      specs[#specs + 1] = {
           json              = v.json,
           position          = new_pos,
           callback_function = function(o)
@@ -2650,9 +2922,10 @@ function makeDeck(player,value,id)
               end
             end
           end
-      })
+      }
     end
   end
+  rttSpawnStaggered(specs)
   -- A deck chosen AFTER the lizards were set up drops a fresh draw/discard pile where the blocker
   -- sits, so put the Dragon God back on top of it. Does nothing when there is no blocker out.
   if find_object_by_gm_note("Dragon God") ~= nil then
@@ -3022,16 +3295,20 @@ end
 function rttSpawnPriority(id, jsons)
   if RTT_PRIO_MAP == id then return end
   rttClearPriority()
+  local specs = {}
   for _, j in ipairs(jsons) do
-    local ob = spawnObjectJSON({
+    specs[#specs + 1] = {
       json = j,
       callback_function = function(o)
         o.setLock(true)
         o.addTag("RTT Priority")
+        -- recorded from the CALLBACK now that the spawns are paced: the loop no longer holds the
+        -- object it just asked for. Nothing reads this list but the teardown, which pcalls each entry.
+        RTT_PRIO_PIECES[#RTT_PRIO_PIECES + 1] = o
       end
-    })
-    RTT_PRIO_PIECES[#RTT_PRIO_PIECES + 1] = ob
+    }
   end
+  rttSpawnStaggered(specs)
   RTT_PRIO_MAP = id
 end
 
@@ -3076,6 +3353,7 @@ RTT_MARSH_RANK = {
 
 function rttSpawnMarshNumbers()
   rttClearPriority()                    -- Marsh ALWAYS re-places: the flood shifts which clearings get a number
+  local specs = {}
   local excl = RTT_MARSH_EXCLUDED or {}
   local n = 0
   for _, cl in ipairs(RTT_MARSH_RANK) do
@@ -3088,7 +3366,7 @@ function rttSpawnMarshNumbers()
       n = n + 1
       local j = RTT_MARSH_NUMJSON[n]
       if j ~= nil then
-        local ob = spawnObjectJSON({
+        specs[#specs + 1] = {
           json = j,
           -- the maintainer's TOKEN x,z; Y = the tokens' true resting height on the (flat) Marsh board.
           -- (cl[2] is the SUIT marker's Y; number tokens rest ~0.05 lower, so cl[2]+0.10 floated.)
@@ -3097,12 +3375,13 @@ function rttSpawnMarshNumbers()
           callback_function = function(o)
             o.setLock(true)
             o.addTag("RTT Priority")
+            RTT_PRIO_PIECES[#RTT_PRIO_PIECES + 1] = o
           end
-        })
-        RTT_PRIO_PIECES[#RTT_PRIO_PIECES + 1] = ob
+        }
       end
     end
   end
+  rttSpawnStaggered(specs)
   RTT_PRIO_MAP = "Marsh Map"
 end
 
@@ -4381,6 +4660,10 @@ function rttSpawnFaction(faction, cx, cz, flip, category, rotationY, opts)
                        o.getName() or "", { r.x, r.y, r.z }, extrasDone)
     end)
   end
+  -- COLLECTED FIRST, SPAWNED SIX TO A FRAME. The biggest faction blueprint is 229 KB in one frame,
+  -- which is the burst MULTIPLAYER_SYNC.md measured; the order, the positions and the callbacks are
+  -- exactly what the plain loop built, only handed over a few at a time.
+  local specs = {}
   for _, v in ipairs(objects) do
     local vec = Vector(v.move_to) * scale
     if rotationY ~= nil then
@@ -4408,8 +4691,9 @@ function rttSpawnFaction(faction, cx, cz, flip, category, rotationY, opts)
     if isKnaveBoard then myCb = function(o) cb(o); rttSpawnCaptainsFor(o) end
     elseif isCrowBoard then myCb = function(o) cb(o); Wait.frames(function() rttCrowsPlots(cx, cz, flip, false, o) end, 1) end
     elseif isRatsBoard then myCb = function(o) cb(o); Wait.frames(function() pcall(function() rttRatsMoodManager(cx, cz, flip) end) end, 1) end end
-    spawnObjectJSON({ json = v.json, position = new_pos, callback_function = myCb })
+    specs[#specs + 1] = { json = v.json, position = new_pos, callback_function = myCb }
   end
+  rttSpawnStaggered(specs)
   -- The rats' Mini-Mood Manager is spawned from the rats BOARD's own callback above, not here --
   -- see RTT_RATS_BOARD_IMG. It is part of the rats' OWN setup, not an "extra". It used to run from
   -- rttFactionExtras, which is deferred half a second, so it visibly landed after the board
@@ -5478,6 +5762,11 @@ RTT_MAP_LOCK_GUID = nil
 -- again -- and there is no unlock event to hear, which is why this rides the same tick the map's lock
 -- does. RTT_LAID holds only the pieces that are down, so it is a handful of lookups.
 function rttFreeUnlockedPrisoners()
+  -- NOT WHILE A RESYNC SWEEP IS IN FLIGHT. In "lock" mode the sweep unlocks an object for two frames,
+  -- and this tick stands a prisoner back up the instant it finds one unlocked -- so a tick landing in
+  -- that gap would silently undo the gizmo. Prisoners are skipped by the sweep as well; this is the
+  -- guard that keeps that true if RTT_RESYNC_MODE is ever changed.
+  if RTT_RESYNCING then return end
   for guid in pairs(RTT_LAID or {}) do
     local o = getObjectFromGUID(guid)
     if o == nil then
@@ -5659,10 +5948,12 @@ function rttSpawnLandmarkAt(name, mx, my, mz, cx, cy, cz, mrotY, crotZ, cscale)
         position = { cx, cy, cz },
         rotation = { 0, 180, crotZ },
         callback_function = function(o)
+          -- SCALED BEFORE IT IS FROZEN. Applying a scale to an already-locked object is the same
+          -- class of write as moving one: the host takes it and clients may not.
+          if cscale ~= nil then pcall(function() o.setScale({ cscale, 1.0, cscale }) end) end
           o.setLock(true)
           o.addTag("Map Object")
           o.addTag(RTT_HELPER_TAG)     -- it stands in the helper row, so the Flotilla makes way for it
-          if cscale ~= nil then pcall(function() o.setScale({ cscale, 1.0, cscale }) end) end
         end
       })
     else
@@ -5802,6 +6093,9 @@ function rttSpawnFlotillaKit()
   for _, f in ipairs({ 4, 12, 30 }) do
     Wait.frames(function() pcall(function() rttPlaceFlotillaCard() end) end, f)
   end
+  -- two objects, so there is nothing to pace -- but they are still spawns, and a dropped one is the
+  -- same bug, so they get the same pair of sweeps behind them
+  rttResyncArm()
 end
 
 -- THE THREE-PLAYER DRAFT. Maintainer, 2026-09-10, asked what the new top-row button should run: "it s
@@ -6151,8 +6445,13 @@ function rttPlaceFlotillaCard()
     pcall(function() helper = (o.hasTag(RTT_HELPER_TAG) == true) end)
     if not helper then
       pcall(function()
+        -- with the lock off, like its sibling card three lines above: a locked object moved in place
+        -- does not replicate, so clients would keep the boat where it first landed
         local p = o.getPosition()
+        local was = (o.getLock() == true)
+        if was then o.setLock(false) end
         o.setPosition({ x, p.y, RTT_HELPER_BOTTOM - RTT_FLOTILLA_BOAT_DROP })
+        if was then o.setLock(true) end
       end)
     end
   end
@@ -6419,6 +6718,16 @@ function makeMap(player,value,id,keepBoard)
 
 
   --local my_rot = self.getRotation()
+  -- A FRAME BETWEEN THE TEARDOWN AND THE REBUILD. removeMapItems() ran above and the loop below used
+  -- to respawn in the SAME frame -- and the blueprints share baked GUIDs across maps (25 to 29 between
+  -- every pair of the seven), so the host destroyed GUID 79bf39 and created a new 79bf39 in one
+  -- frame, which is a message pair a client can resolve the wrong way round. One frame of bare table
+  -- costs about 16 ms and nothing can see it: a spawned object takes a frame or more to appear anyway.
+  --
+  -- rttAfterFrames, not Wait.frames, so an abandoned game does not rebuild a map nobody asked for; the
+  -- map's own generation is checked as well, below, for a second map click inside the same game.
+  rttAfterFrames(function()
+  if RTT_MAP_GEN ~= gen then return end
   local objects = {}
   objects = EVERYTHING["Maps"][id]['data']
   local RTT_OV = nil
@@ -6431,6 +6740,7 @@ function makeMap(player,value,id,keepBoard)
   local scale = rttPlaceScale()
 
   local boardIdx = (RTT_KEEP_BOARD ~= nil) and rttMapBoardIndex(objects) or nil
+  local specs = {}
   for idx,v in ipairs(objects) do
     local rtt_rot = nil
     local rtt_ov = false
@@ -6452,9 +6762,8 @@ function makeMap(player,value,id,keepBoard)
       new_pos = vec
       new_pos.y = new_pos.y+10-8.5+0.05-0.07+10.08
     end
-    local ob = nil
     if not skip then
-    ob = spawnObjectJSON({
+    specs[#specs + 1] = {
         json              = ovJson or v.json,
         position          = new_pos,
         rotation          = rtt_rot,
@@ -6475,13 +6784,23 @@ function makeMap(player,value,id,keepBoard)
         if spawned_object.name == "CardCustom" or spawned_object.name == "Card" then
           spawned_object.addTag(RTT_HELPER_TAG)
         end
+        -- the Marsh's own overlaid pieces, recorded from the CALLBACK now that the spawns are paced:
+        -- the loop no longer holds the object it just asked for. Only the next Marsh build reads this
+        -- list, and it pcalls every entry.
+        if rtt_ov and RTT_MARSH_PIECES ~= nil then
+          RTT_MARSH_PIECES[#RTT_MARSH_PIECES + 1] = spawned_object
         end
-    })
+        end
+    }
     end
-    if rtt_ov and ob ~= nil and RTT_MARSH_PIECES ~= nil then RTT_MARSH_PIECES[#RTT_MARSH_PIECES + 1] = ob end
   end
-  if id ~= "Marsh Map" then shuffleMaps(id) end
-  rttLockRuins()
+  -- shuffleMaps and rttLockRuins read the objects this loop puts down, so they wait for the last one
+  -- to be asked for rather than running under a half-built map.
+  rttSpawnStaggered(specs, function()
+    if id ~= "Marsh Map" then shuffleMaps(id) end
+    rttLockRuins()
+  end, function() return RTT_MAP_GEN == gen end)
+  end, 1)
 end
 
 -- EVERY MAP'S RUINS, LOCKED, however they were placed. Maintainer, 2026-09-07: "looks like Marsh is
@@ -6528,6 +6847,12 @@ function shuffleMaps(id)
   end
 
 
+  -- MOVED WITH THE LOCK OFF. Moving a LOCKED object does not replicate: the host puts it in its new
+  -- place and clients keep looking at the old one, which on the clearing markers below is not a
+  -- missing piece but a silently WRONG board -- a client reading the pre-shuffle suit layout all game.
+  -- 17 of the 24 ruin entries and 72 of the 84 marker blobs ship Locked:true. The mod already does
+  -- this correctly in rttLayHelperRow (unlock, move, lock); these two shuffles did not. Whatever lock
+  -- state a piece had is put back, so nothing else changes.
   local ruins = getObjectsWithTag("Ruin")
   local positions = {}
   for x, ruin in ipairs(ruins) do
@@ -6537,7 +6862,13 @@ function shuffleMaps(id)
   -- composing thirty of them just gives another uniform permutation -- 29 wasted passes per map build.
   ruins = shuffle(ruins)
   for x=1, #ruins do
-    ruins[x].setPosition(positions[x])
+    pcall(function()
+      local o = ruins[x]
+      local was = (o.getLock() == true)
+      if was then o.setLock(false) end
+      o.setPosition(positions[x])
+      if was then o.setLock(true) end
+    end)
   end
 
   local clearingMarkers = getObjectsWithTag("Clearing Marker")
@@ -6554,8 +6885,14 @@ function shuffleMaps(id)
   -- an accidentally-correct line into a genuinely wasteful one to match its neighbour above.
   clearingMarkers = shuffle(clearingMarkers)
   for x=1, #clearingMarkers do
-    clearingMarkers[x].setPosition(positions[x])
-    clearingMarkers[x].setRotation(rotations[x])
+    pcall(function()
+      local o = clearingMarkers[x]
+      local was = (o.getLock() == true)
+      if was then o.setLock(false) end
+      o.setPosition(positions[x])
+      o.setRotation(rotations[x])
+      if was then o.setLock(true) end
+    end)
   end
 
   local shuffleableDecks = getObjectsWithTag("Shuffleable")

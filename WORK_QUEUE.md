@@ -105,6 +105,24 @@ Nothing below is implemented. The maintainer asked to be consulted before each c
 
 ### Bugs
 
+- [x] **Objects spawn but some clients never see them (distant connections).** Diagnosed
+      2026-09-10; items 1-4 BUILT the same day, with the Resync button, in v1.154. What shipped and
+      why it differs from the plan is at the end of
+      **[`MULTIPLAYER_SYNC.md`](MULTIPLAYER_SYNC.md)**. ONE THING IS STILL OPEN: nobody knows yet
+      whether TTS replicates a tag change to clients at all, so the resend primitive
+      (`RTT_RESYNC_MODE`) has to be validated in a real game with a genuinely distant client --
+      force the bug, press Resync, and if nothing appears switch the constant to "tint", then
+      "lock". Write the answer back into that file. The original brief follows.
+      In short: script-spawned objects arrive as incremental create messages, a distant client drops
+      one, and nothing re-sends it. Lock state is NOT the cause (it also hits unlocked objects) --
+      it is why you notice, since an unlocked object self-corrects the next time it moves and a
+      locked one never does. Rejoining fixes it, which proves host state was right all along.
+      Plan: (1) stagger every spawn loop to 6/frame -- one Lilypad burst is 229 KB in a single
+      frame; (2) an automated resync sweep, tag-toggle primitive, staggered, with a fallback ladder;
+      (3) a Resync button; (4) a frame between `removeMapItems` and the rebuild, strip baked GUIDs,
+      and three move-while-locked sites. Free first step: confirm every player is on TTS v14.2+.
+      NOTE: the hand/card-visibility symptom is a SEPARATE bug and was explicitly deferred.
+
 ### Setup and placement
 
 ### Buttons and real estate

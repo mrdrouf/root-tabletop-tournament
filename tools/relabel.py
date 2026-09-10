@@ -292,6 +292,9 @@ WIDES = [
     ("CreditsBtnArt",      "credits_button_v11",      ["Credits"],             lambda: None, 96, 1.0),
     # The last slot of the last row: it opens two more rows rather than doing anything itself.
     ("MoreArt",            "more_button_v11",         ["More"],                lambda: None, 96, 1.0),
+    # THE ONE EMPTY SLOT ON THE BOARD, which is where the Resync button goes. No artwork either: it is
+    # a repair, not a thing to put on the table, and there is no picture of "send that object again".
+    ("ResyncArt",          "resync_button_v11",       ["Resync"],              lambda: None, 96, 1.0),
     # Credits carries no artwork, so its caption has the whole button to itself: start it far above
     # the shared size and let the width cap settle it, with no condensing on one short word.
 ]

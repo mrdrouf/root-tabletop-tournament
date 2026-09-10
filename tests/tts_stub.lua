@@ -94,6 +94,12 @@ function MKOBJ(name, pos, tags)
   function o.getScale() return vec(o.__scale) end
   function o.setScale(s) o.__scale = vec(s) end
   function o.addTag(t) o.__tags[#o.__tags+1] = t end
+  -- ...and taking one off again, which the shuffle and the resync sweep both do. Without it the
+  -- shuffle's own removeTag("Dummy") was a nil call the harness never reached, and a tag-mode resync
+  -- could add a mark it could not clear.
+  function o.removeTag(t)
+    for i, x in ipairs(o.__tags) do if x == t then table.remove(o.__tags, i) return end end
+  end
   function o.hasTag(t) for _,x in ipairs(o.__tags) do if x == t then return true end end return false end
   function o.getTags() return o.__tags end
   function o.setTags(t) o.__tags = t or {} end
@@ -123,6 +129,10 @@ function MKOBJ(name, pos, tags)
   function o.highlightOff() o.__glow = nil end
   function o.setLock(v) o.__locked = (v == true) end function o.setColorTint(c) o.__tint = {r=(c.r or c[1] or 1), g=(c.g or c[2] or 1), b=(c.b or c[3] or 1)} end
   function o.getColorTint() return {r=o.__tint.r, g=o.__tint.g, b=o.__tint.b} end
+  -- STOPPED DEAD. The resync sweep's "lock" fallback zeroes both before it re-locks a piece, so the
+  -- object ends the sweep exactly where it began rather than 33 ms into a fall.
+  function o.setVelocity(v) o.__vel = v end
+  function o.setAngularVelocity(v) o.__avel = v end
   function o.randomize() end function o.reload() return o end function o.clone(p) return MKOBJ(o.__name, (p or {}).position, o.__tags) end
   -- A CONTAINER WITH REAL CONTENTS, when a test gives it any (o.__contents = {{guid=..., nickname=...}}).
   -- Without this every takeObject returned an anonymous object called "taken", so nothing that draws
