@@ -236,8 +236,6 @@ SQUARES = [
     ("Squires and Disciples Deck", "deck_squires_v11", ["Squires & Disciples"], lambda: art_topband("assets/src_art/deck_squires.png"), 0.72, 0, 0.76),
 
     ("ThemeArt",      "theme_art_v11",          ["Theme"],          lambda: art_topband("assets/src_art/theme_adventurer.png", 1.0), 0.70, 0),
-    # The Riverfolk Flotilla's own otter, cut off his hireling card by tools/make_flotilla_art.py.
-    ("FlotillaArt",   "flotilla_draft_v11",     ["Flotilla", "Draft"], lambda: art_topband("assets/src_art/flotilla_button.png", 1.0), 0.70, 0),
     ("RankedArt",     "four_player_draft_v11",  ["4-Player Draft"], lambda: art_crop_aspect("assets/images/ranked.png", 1.33, 210),       0.70, 0),
     ("FourBoardsArt", "four_player_setup_v11",  ["4-Player Setup"], lambda: art_rotated("assets/images/4players.png", 90),     0.70, 0),
 ]
@@ -258,6 +256,12 @@ WIDES = [
     # No artwork, like Credits: the caption IS the button. Maintainer, 2026-09-09: "add a red clear
     # all objects option button; additional button; it can be red".
     ("ClearAllArt",        "clear_all_v11",           ["Clear All", "Objects"], lambda: None),
+    # A WIDE, NOT A SQUARE. Its neighbours in that row are option buttons -- art in a column on the
+    # left, caption beside it -- and it shipped for one build as a square, art over caption, which is
+    # the shape the top row uses. Maintainer, 2026-09-09: "the text needs to be on the right of it
+    # like the other option buttons."
+    ("FlotillaArt",        "flotilla_draft_v11",      ["Flotilla", "Draft"],
+     lambda: art_topband("assets/src_art/flotilla_button.png", 1.0)),
     ("CreditsBtnArt",      "credits_button_v11",      ["Credits"],             lambda: None, 96, 1.0),
     # Credits carries no artwork, so its caption has the whole button to itself: start it far above
     # the shared size and let the width cap settle it, with no condensing on one short word.

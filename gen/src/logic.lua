@@ -5626,15 +5626,19 @@ end
 -- landmark cards do. Maintainer, 2026-09-09: "it spawns also the flotilla card rule next to the map
 -- as the landmark helpers (think of how it needs to adjust the arrival of other helper cards)."
 --
--- TWO FACES, ONE CARD: the rules face is up (the reference you read) and the activation face is the
--- back, which is how the printed hireling card is laid out. Both are rendered by
--- tools/make_flotilla_card.py; if that tool re-renders, the two URLs below are the only thing to
--- change, because the hash is in the filename.
+-- ONE FACE, EVERYTHING ON IT. Maintainer, 2026-09-09: "use the single flotilla card where everything
+-- is on 1 face." It shipped for one build as two faces -- rules up, activation behind -- which is how
+-- the printed hireling card is laid out and is exactly wrong for a card that lies locked beside the
+-- map: half of what it says was face down. The back is the landmark cards' own back, because this
+-- card stands in their row.
+--
+-- tools/make_flotilla_card.py renders it; if that tool re-renders, the FaceURL below is the only thing
+-- to change, because the hash is in the filename.
 --
 -- It carries the HIRELING card's geometry, not a landmark's: the landmark cards are portrait and this
 -- is landscape, 1900x1146, like the Riverfolk Flotilla card it belongs to. Hence scale 1.88 and
 -- SidewaysCard, both lifted from that card.
-RTT_FLOTILLA_CARD_JSON = [====[{"GUID":"f10771","Name":"CardCustom","Transform":{"posX":0.0,"posY":11.575,"posZ":0.0,"rotX":0.0,"rotY":180.0,"rotZ":180.0,"scaleX":1.88,"scaleY":1.0,"scaleZ":1.88},"Nickname":"Flotilla","Description":"","GMNotes":"","ColorDiffuse":{"r":1.0,"g":1.0,"b":1.0},"Locked":true,"Grid":true,"Snap":true,"IgnoreFoW":false,"MeasureMovement":false,"DragSelectable":true,"Autoraise":true,"Sticky":true,"Tooltip":true,"GridProjection":false,"HideWhenFaceDown":false,"Hands":false,"CardID":74200,"SidewaysCard":true,"CustomDeck":{"742":{"FaceURL":"https://cdn.jsdelivr.net/gh/mrdrouf/root-tabletop-tournament@main/assets/cards/flotilla_hireling_rules_feea8a8e.png","BackURL":"https://cdn.jsdelivr.net/gh/mrdrouf/root-tabletop-tournament@main/assets/cards/flotilla_hireling_action_041a16a8.png","NumWidth":1,"NumHeight":1,"BackIsHidden":true,"UniqueBack":false,"Type":0}},"LuaScript":"","LuaScriptState":"","XmlUI":""}]====]
+RTT_FLOTILLA_CARD_JSON = [====[{"GUID":"f10771","Name":"CardCustom","Transform":{"posX":0.0,"posY":11.575,"posZ":0.0,"rotX":0.0,"rotY":180.0,"rotZ":180.0,"scaleX":1.88,"scaleY":1.0,"scaleZ":1.88},"Nickname":"Flotilla","Description":"","GMNotes":"","ColorDiffuse":{"r":1.0,"g":1.0,"b":1.0},"Locked":true,"Grid":true,"Snap":true,"IgnoreFoW":false,"MeasureMovement":false,"DragSelectable":true,"Autoraise":true,"Sticky":true,"Tooltip":true,"GridProjection":false,"HideWhenFaceDown":false,"Hands":false,"CardID":74200,"SidewaysCard":true,"CustomDeck":{"742":{"FaceURL":"https://cdn.jsdelivr.net/gh/mrdrouf/root-tabletop-tournament@main/assets/cards/flotilla_hireling_d581d22f.png","BackURL":"https://steamusercontent-a.akamaihd.net/ugc/14444327507133601970/CD9D521A7DCD49AA22BE49DAA0B5D306A7A28E42/","NumWidth":1,"NumHeight":1,"BackIsHidden":true,"UniqueBack":false,"Type":0}},"LuaScript":"","LuaScriptState":"","XmlUI":""}]====]
 
 -- Where the hireling itself lands: its own card and its one boat, in the same band as the helper row
 -- and one step further out than the rules card.
@@ -5893,13 +5897,19 @@ end
 -- even 5.058 apart; adding a fourth helper meant deciding what a row DOES when something joins it.
 --
 -- Maintainer, 2026-09-09, asked where the Flotilla's rules card should go: "Flotilla takes the first
--- spot, towns shift". So the order below IS the row, the positions are read off it by index, and the
--- towns keep their order and their spacing while every one of them moves one place along. Adding a
--- fifth helper later is one more name in the list and one more x.
-RTT_HELPER_ROW_X = { -45.214, -40.156, -35.098, -30.040 }   -- the maintainer's three, plus one more step
+-- spot, towns shift". So the order below IS the row and the positions are read off it by index.
+--
+-- THE ROW IS READ FROM THE MAP OUTWARD, which is what "the first spot" turned out to mean. It ran the
+-- other way for one build and put the Flotilla at the far end -- nineteen units off a board whose
+-- printed edge is at x -23.5: "at the moment it does not spot immediately next to the map but its
+-- offset quite a bit". Reading it from the map instead gives the Flotilla a new near slot at -30.040,
+-- where a card this size stops about a unit short of the board, and leaves all three town cards on the
+-- exact spots he placed and locked them on. Adding a fifth helper is one name and one more x, further
+-- out.
+RTT_HELPER_ROW_X = { -30.040, -35.098, -40.156, -45.214 }   -- one new near slot, then the three he placed
 RTT_HELPER_ROW_Y = 11.575
 RTT_HELPER_ROW_Z = -19.135
-RTT_HELPER_ORDER = { "Flotilla", "Mousehold", "Rabbit-Town", "Foxburrow" }
+RTT_HELPER_ORDER = { "Flotilla", "Foxburrow", "Rabbit-Town", "Mousehold" }
 
 -- where a named helper card stands, or the first spot if it is not in the row at all
 function rttHelperSpot(name)

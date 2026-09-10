@@ -27,7 +27,13 @@ from PIL import Image, ImageFilter
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.dirname(HERE)
 sys.path.insert(0, HERE)
-from make_theme_art import GROUND, m2i, dilate, erode, flood, fill_holes   # noqa: E402
+from make_theme_art import m2i, dilate, erode, flood, fill_holes          # noqa: E402
+
+# THIS BUTTON'S OWN COLOUR, not the Theme button's. Both tools lay their character on the ground the
+# button is drawn in so that no rectangle shows around him, and the Flotilla's button is the teal its
+# hireling card is printed on -- rttFlotillaBtn is "#2e5a58". Importing the Theme's ground left a grey
+# slab sitting on the teal.
+GROUND = (0x2e, 0x5a, 0x58)
 
 SRC = os.path.join(REPO, "assets", "src_art", "flotilla_hireling_card.png")
 OUT = os.path.join(REPO, "assets", "src_art", "flotilla_button.png")

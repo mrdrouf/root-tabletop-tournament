@@ -4312,19 +4312,27 @@ def t_the_flotilla_draft_seats_three_and_deals_militants(src):
     after = list((rt.eval("RTT_DRAFT_FACTIONS") or {}).values())
     assert len(after) == 5, "the next draft dealt %d cards" % len(after)
 
-    # THE HELPER ROW: the Flotilla takes the first spot and the towns shift, which is what he chose
-    # when asked. The row is read by name so the towns keep their order and their 5.058 spacing.
+    # THE HELPER ROW, READ FROM THE MAP OUTWARD. "Flotilla takes the first spot, towns shift" -- and
+    # the first spot is the one nearest the board, which is what the row ran the wrong way round on the
+    # first build: "at the moment it does not spot immediately next to the map but its offset quite a
+    # bit". The Lake board's printed edge is x -23.5, so a card at -45 is nineteen units out.
     spot = rt.eval("function(n) local p = rttHelperSpot(n) "
                    "return string.format('%.3f/%.3f/%.3f', p[1], p[2], p[3]) end")
-    row = [spot(n) for n in ("Flotilla", "Mousehold", "Rabbit-Town", "Foxburrow")]
+    row = [spot(n) for n in ("Flotilla", "Foxburrow", "Rabbit-Town", "Mousehold")]
     xs = [float(v.split("/")[0]) for v in row]
-    assert xs == sorted(xs), "the helper row is not in order: %s" % xs
-    assert abs(xs[0] + 45.214) < 1e-3, "the Flotilla is not in the first spot: %s" % xs[0]
-    gaps = [round(xs[i + 1] - xs[i], 3) for i in range(3)]
+    assert xs == sorted(xs, reverse=True), "the row does not run away from the map: %s" % xs
+    assert abs(xs[0] + 30.040) < 1e-3, "the Flotilla is not in the near spot: %s" % xs[0]
+    gaps = [round(xs[i] - xs[i + 1], 3) for i in range(3)]
     assert all(abs(g - 5.058) < 1e-3 for g in gaps), "the row is not evenly spaced: %s" % gaps
     for v in row:
         z = float(v.split("/")[2])
         assert abs(z + 19.135) < 1e-3, "a helper card left the row's z: %s" % v
+
+    # AND THE THREE TOWN CARDS ARE EXACTLY WHERE HE PLACED AND LOCKED THEM. Giving the Flotilla a new
+    # near slot rather than the nearest town's is what keeps that true.
+    for town, x in (("Foxburrow", -35.098), ("Rabbit-Town", -40.156), ("Mousehold", -45.214)):
+        got = float(spot(town).split("/")[0])
+        assert abs(got - x) < 1e-3, "%s moved to %.3f; he placed it at %.3f" % (town, got, x)
 
     # THE KIT: the rules card in the row, and the hireling the base collection ships -- its own card
     # and its one boat.
@@ -4343,8 +4351,19 @@ def t_the_flotilla_draft_seats_three_and_deals_militants(src):
     rules = [g for g in got if g.startswith("Flotilla|")]
     assert rules, "the rules card did not spawn: %s" % names
     x, z = (float(v) for v in rules[0].split("|")[1:])
-    assert abs(x + 45.214) < 1e-3 and abs(z + 19.135) < 1e-3, \
-        "the rules card is not in the helper row's first spot: %.3f / %.3f" % (x, z)
+    assert abs(x + 30.040) < 1e-3 and abs(z + 19.135) < 1e-3, \
+        "the rules card is not in the helper row's near spot: %.3f / %.3f" % (x, z)
+
+    # ONE FACE, EVERYTHING ON IT: "use the single flotilla card where everything is on 1 face." Two
+    # faces put half of what the card says face down on a card that lies locked beside the map.
+    deck = re.search(r'RTT_FLOTILLA_CARD_JSON = \[====\[(.*?)\]====\]', src, re.S)
+    assert deck, "the Flotilla card blueprint is not in the build"
+    face = json.loads(deck.group(1))["CustomDeck"]["742"]
+    assert "flotilla_hireling_" in face["FaceURL"], "the card's face is not the rendered one"
+    assert "rules" not in face["FaceURL"] and "action" not in face["FaceURL"], \
+        "the card still uses one of the two half-cards: %s" % face["FaceURL"].split("/")[-1]
+    assert "assets/cards/" not in face["BackURL"], \
+        "the card's back is another rules face; it should be a card back"
 
 
 def t_clear_all_objects_asks_before_it_clears(src):
