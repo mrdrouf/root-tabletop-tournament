@@ -4190,7 +4190,9 @@ def t_the_clearing_numbers_sit_where_the_saves_put_them(src):
     of for his save: "you dingus we don t use the official numbering this is the position of the
     clearing numbers use the precise position as provided." Then 2026-09-09, the same again for two
     more maps: "in the drop folder I put two saves for the position of the coffin when it spawns and
-    the position of the clearing number for autumn and lake use these."
+    the position of the clearing number for autumn and lake use these." Then 2026-09-10, the last two:
+    "the drop folder contains gorge and winter map use them for the calibration of the position of the
+    clearing numbers. you can replace all the clearing numbers for these two maps with these ones."
 
     So this is not a renumbering and not a fit. The mod's numbering is its own, and the save says where
     each of those numbers goes; on the Mountain eight of the twelve were wrong, one of them by 41 units
@@ -4202,7 +4204,9 @@ def t_the_clearing_numbers_sit_where_the_saves_put_them(src):
     """
     CASES = (("mountain.json",  "RTT_PRIO_MOUNTAINMAP", "Mountain"),
              ("autumn.json",    "RTT_PRIO_SUMMERMAP",   "Autumn"),
-             ("lakecoffin.json", "RTT_PRIO_LAKEMAP",    "Lake"))
+             ("lakecoffin.json", "RTT_PRIO_LAKEMAP",    "Lake"),
+             ("winter.json",    "RTT_PRIO_WINTERMAP",   "Winter"),
+             ("gorge.json",     "RTT_PRIO_GORGEMAP",    "Gorge"))
     for fname, table, mapname in CASES:
         saved = json.load(open(os.path.join(REPO, "assets", "src_art", "saves", fname),
                                encoding="utf-8"))
