@@ -4359,6 +4359,25 @@ def t_the_flotilla_draft_seats_three_and_deals_militants(src):
     assert abs(x + 30.040) < 1e-3 and abs(z + 19.135) < 1e-3, \
         "the rules card is not in the helper row's near spot: %.3f / %.3f" % (x, z)
 
+    # AND IT STEPS OUT WHEN THE ROW FILLS. "the helper card does not move when landmark helper cards
+    # are spawned" -- its spot is computed from what is already standing there, one pitch beyond the
+    # outermost, so the town cards keep the three spots he placed them on and the Flotilla makes way.
+    spot = rt.eval("function() local p = rttFlotillaCardSpot() "
+                   "return string.format('%.3f', p[1]) end")
+    assert abs(float(spot()) + 30.040) < 1e-3, "an empty row does not put it next to the map"
+    rt.execute("T1 = MKOBJ('', {-35.098, 11.575, -19.135}, {'RTT Helper'})")
+    assert abs(float(spot()) + 40.156) < 1e-3, \
+        "one town card out and it sits at %s; it should be one pitch past -35.098" % spot()
+    rt.execute("T2 = MKOBJ('', {-40.156, 11.575, -19.135}, {'RTT Helper'}) "
+               "T3 = MKOBJ('', {-45.214, 11.575, -19.135}, {'RTT Helper'})")
+    assert abs(float(spot()) + 50.272) < 1e-3, \
+        "three town cards out and it sits at %s; it should be past -45.214" % spot()
+    # ...and its own card is not counted as something to make way for
+    rt.execute("pcall(function() rttSpawnFlotillaKit() end) FLUSH(20)")
+    once = spot()
+    rt.execute("pcall(function() rttPlaceFlotillaCard() end) FLUSH(6)")
+    assert spot() == once, "the Flotilla pushed itself along: %s -> %s" % (once, spot())
+
     # ONE FACE, EVERYTHING ON IT: "use the single flotilla card where everything is on 1 face." Two
     # faces put half of what the card says face down on a card that lies locked beside the map.
     blob = re.search(r'RTT_FLOTILLA_CARD_JSON = \[====\[(.*?)\]====\]', src, re.S)

@@ -5562,6 +5562,7 @@ function rttSpawnLandmarkAt(name, mx, my, mz, cx, cy, cz, mrotY, crotZ, cscale)
         callback_function = function(o)
           o.setLock(true)
           o.addTag("Map Object")
+          o.addTag(RTT_HELPER_TAG)     -- it stands in the helper row, so the Flotilla makes way for it
           if cscale ~= nil then pcall(function() o.setScale({ cscale, 1.0, cscale }) end) end
         end
       })
@@ -5644,7 +5645,7 @@ end
 -- sideways flag, and the maintainer got a Foxburrow lying beside a map that was not even down. Deck
 -- 9411 is used by nothing in the build; the ones that are run 2, 3, 4, 8, 74, 76, 110-159, 223, 700,
 -- 719 and 730-742.
-RTT_FLOTILLA_CARD_JSON = [====[{"GUID":"f10771","Name":"CardCustom","Transform":{"posX":0.0,"posY":11.575,"posZ":0.0,"rotX":0.0,"rotY":180.0,"rotZ":180.0,"scaleX":1.88,"scaleY":1.0,"scaleZ":1.88},"Nickname":"Flotilla","Description":"","GMNotes":"","ColorDiffuse":{"r":1.0,"g":1.0,"b":1.0},"Locked":true,"Grid":true,"Snap":true,"IgnoreFoW":false,"MeasureMovement":false,"DragSelectable":true,"Autoraise":true,"Sticky":true,"Tooltip":true,"GridProjection":false,"HideWhenFaceDown":false,"Hands":false,"CardID":941100,"SidewaysCard":true,"CustomDeck":{"9411":{"FaceURL":"https://cdn.jsdelivr.net/gh/mrdrouf/root-tabletop-tournament@main/assets/cards/flotilla_hireling_d581d22f.png","BackURL":"https://steamusercontent-a.akamaihd.net/ugc/14444327507133601970/CD9D521A7DCD49AA22BE49DAA0B5D306A7A28E42/","NumWidth":1,"NumHeight":1,"BackIsHidden":true,"UniqueBack":false,"Type":0}},"LuaScript":"","LuaScriptState":"","XmlUI":""}]====]
+RTT_FLOTILLA_CARD_JSON = [====[{"GUID":"f10771","Name":"CardCustom","Transform":{"posX":0.0,"posY":11.575,"posZ":0.0,"rotX":0.0,"rotY":180.0,"rotZ":180.0,"scaleX":1.88,"scaleY":1.0,"scaleZ":1.88},"Nickname":"Flotilla","Description":"","GMNotes":"","ColorDiffuse":{"r":1.0,"g":1.0,"b":1.0},"Locked":true,"Grid":true,"Snap":true,"IgnoreFoW":false,"MeasureMovement":false,"DragSelectable":true,"Autoraise":true,"Sticky":true,"Tooltip":true,"GridProjection":false,"HideWhenFaceDown":false,"Hands":false,"CardID":941100,"SidewaysCard":true,"CustomDeck":{"9411":{"FaceURL":"https://cdn.jsdelivr.net/gh/mrdrouf/root-tabletop-tournament@main/assets/cards/flotilla_hireling_a75396d2.png","BackURL":"https://steamusercontent-a.akamaihd.net/ugc/14444327507133601970/CD9D521A7DCD49AA22BE49DAA0B5D306A7A28E42/","NumWidth":1,"NumHeight":1,"BackIsHidden":true,"UniqueBack":false,"Type":0}},"LuaScript":"","LuaScriptState":"","XmlUI":""}]====]
 
 -- HIS CARD AND THE BOAT, AND NOTHING ELSE. The base collection's hireling entry is a printed card and
 -- one boat, and for one build both were spawned -- so the table carried the printed card AND the card
@@ -5666,7 +5667,7 @@ function rttSpawnFlotillaKit()
   -- never two: a second draft replaces the kit rather than stacking one on it
   for _, o in ipairs(getObjectsWithTag(RTT_FLOTILLA_TAG)) do pcall(function() o.destruct() end) end
 
-  local spot = rttHelperSpot("Flotilla")
+  local spot = rttFlotillaCardSpot()
   spawnObjectJSON({
     json = RTT_FLOTILLA_CARD_JSON,
     position = { spot[1], spot[2], spot[3] },
@@ -5674,6 +5675,7 @@ function rttSpawnFlotillaKit()
     callback_function = function(o)
       o.setLock(true)
       o.addTag(RTT_FLOTILLA_TAG)
+      o.addTag(RTT_HELPER_TAG)
       o.addTag("Map Object")
       o.addTag(RTT_FIXTURE_TAG)
     end
@@ -5944,6 +5946,8 @@ RTT_HELPER_ROW_X = { -30.040, -35.098, -40.156, -45.214 }   -- one new near slot
 RTT_HELPER_ROW_Y = 11.575
 RTT_HELPER_ROW_Z = -19.135
 RTT_HELPER_ORDER = { "Flotilla", "Foxburrow", "Rabbit-Town", "Mousehold" }
+RTT_HELPER_TAG = "RTT Helper"          -- every rules card that stands in this row
+RTT_HELPER_PITCH = 5.058               -- the step he placed the town cards at
 
 -- where a named helper card stands, or the first spot if it is not in the row at all
 function rttHelperSpot(name)
@@ -5952,6 +5956,44 @@ function rttHelperSpot(name)
     if who == name then i = n end
   end
   return { RTT_HELPER_ROW_X[i] or RTT_HELPER_ROW_X[1], RTT_HELPER_ROW_Y, RTT_HELPER_ROW_Z }
+end
+
+-- THE FLOTILLA STANDS ONE STEP PAST WHATEVER ELSE IS IN THE ROW. Maintainer, 2026-09-09: "If there is
+-- no card needed ... then it should just appear next to the map, as would a normal card for a landmark
+-- appear. Otherwise, it's pushed to the left slowly", and again once it did not: "the helper card does
+-- not move when landmark helper cards are spawned."
+--
+-- Its spot is COMPUTED rather than assigned, which is what makes it move: it is one pitch beyond the
+-- outermost card already standing there, or the near slot when there is nothing. The town cards keep
+-- the three spots he placed and locked them on and never move for it -- laying a Marsh down pushes the
+-- Flotilla out past them, and clearing that map brings it back in.
+function rttFlotillaCardSpot()
+  local far = nil
+  for _, o in ipairs(getObjectsWithTag(RTT_HELPER_TAG)) do
+    local mine, x = false, nil
+    pcall(function() mine = o.hasTag(RTT_FLOTILLA_TAG) end)
+    pcall(function() x = o.getPosition().x end)
+    if not mine and x ~= nil and (far == nil or x < far) then far = x end
+  end
+  if far == nil then return { RTT_HELPER_ROW_X[1], RTT_HELPER_ROW_Y, RTT_HELPER_ROW_Z } end
+  return { far - RTT_HELPER_PITCH, RTT_HELPER_ROW_Y, RTT_HELPER_ROW_Z }
+end
+
+-- move the Flotilla's own card to wherever the row leaves room for it
+function rttPlaceFlotillaCard()
+  local spot = rttFlotillaCardSpot()
+  for _, o in ipairs(getObjectsWithTag(RTT_FLOTILLA_TAG)) do
+    local helper = false
+    pcall(function() helper = o.hasTag(RTT_HELPER_TAG) end)
+    if helper then
+      pcall(function()
+        o.setLock(false)
+        o.setPosition({ spot[1], spot[2], spot[3] })
+        o.setRotation({ 0, 180, 180 })
+        o.setLock(true)
+      end)
+    end
+  end
 end
 
 -- spawn each town standing on its clearing (model rotY = the clearing's suit rotY) + its
@@ -5964,6 +6006,8 @@ function rttMarshLandmarks()
     rttSpawnLandmarkAt(lm.name, lm.x, 11.66, lm.z, slot[1], slot[2], slot[3],
                        lm.rotY or 165, 180, nil)
   end
+  -- the town cards have joined the row, so the Flotilla steps out past them
+  Wait.frames(function() pcall(function() rttPlaceFlotillaCard() end) end, 4)
 end
 
 -- Mountain: the Tower is never used (a landmark replaces it), so spawn it BELOW the table
@@ -6156,6 +6200,9 @@ function makeMap(player,value,id,keepBoard)
   if id == "Winter Map" then Wait.frames(function() rttSpawnPriority("Winter Map", RTT_PRIO_WINTERMAP) end, 2) end
   if id == "Gorge Map" then Wait.frames(function() rttSpawnPriority("Gorge Map", RTT_PRIO_GORGEMAP) end, 2) end
   if id == "Marsh Map" then Wait.frames(function() rttSpawnMarshNumbers() end, 3) end
+  -- and the Flotilla takes whatever the row leaves it: the near slot on a map with no helper cards of
+  -- its own, one step further out for each one that arrives. It is a fixture, so it is still there.
+  rttWhenMapReady(function() pcall(function() rttPlaceFlotillaCard() end) end)
   -- A SAME-MAP REBUILD KEEPS THE BOARD. rttNewGame re-places the current map so a new game never
   -- inherits the last one's layout -- most visibly the Marsh, which re-rolls its flooding, its suits
   -- and its ruins on every build, and which has two different boards (4-player flooded, 5-player with
