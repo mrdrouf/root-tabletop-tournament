@@ -2479,10 +2479,10 @@ def t_the_two_free_button_slots_are_bottom_right(src):
     SLOTS = [-95.0, -57.0, -19.0, 19.0, 57.0, 95.0]
     # THE ROWS ARE SPREAD OUT. Maintainer, 2026-09-10: "space all rows with the same space. do it so
     # you use better the space of the whole board", then "equalize the space between the rows of option
-    # button and the deck button to be the same as the space between map and deck". They sit at 73, 33,
-    # -7, -40, -72, which leaves the same 6 between every row of the three above and a wider band
+    # button and the deck button to be the same as the space between map and deck". They sit at 62.9, 23.8,
+    # -15.3, -47.4, -70, which leaves the same 5.1 between every row above and about half of that
     # between the two option rows at the bottom.
-    top, bottom = rows.get(-40.0, {}), rows.get(-72.0, {})
+    top, bottom = rows.get(-47.4, {}), rows.get(-70.0, {})
     assert len(top) == 6, "the first tool row has %d of 6 slots filled: %s" % (len(top), sorted(top))
     free = [s for s in SLOTS if s not in bottom]
     assert free == [], "row 2 has spare slots again: %s" % free
@@ -4320,18 +4320,18 @@ def t_the_top_row_is_four_drafts_on_the_map_grid(src):
     for bid, x0 in TOP:
         assert bid in got, "%s is not on the board" % bid
         assert got[bid][0] == x0, "%s is at x %s, not %s" % (bid, got[bid][0], x0)
-        assert got[bid][1] == 73.0, "%s left the top row: y %s" % (bid, got[bid][1])
+        assert got[bid][1] == 62.9, "%s left the top row: y %s" % (bid, got[bid][1])
         assert got[bid][2] == "34x34", "%s is not a square button: %s" % (bid, got[bid][2])
 
     # centred on the map row's own columns, which is what "aligned with the map buttons" means
     maps = sorted(v[0] for k, v in got.items() if v[2] == "34x34" and v[1] == got["Summer Map"][1])
     assert maps == [-95.0, -57.0, -19.0, 19.0, 57.0, 95.0], "the map row moved: %s" % maps
-    tops = sorted(v[0] for k, v in got.items() if v[1] == 73.0)
+    tops = sorted(v[0] for k, v in got.items() if v[1] == 62.9)
     assert tops == [-57.0, -19.0, 19.0, 57.0], "the top row is not the map grid's inner four: %s" % tops
     assert abs(sum(tops)) < 1e-9, "the top row is not centred: %s" % tops
 
     # 4-PLAYER SETUP WENT DOWN, as an option button
-    assert got["rttFourBoardsBtn"][0] == -95.0 and got["rttFourBoardsBtn"][1] == -72.0, \
+    assert got["rttFourBoardsBtn"][0] == -95.0 and got["rttFourBoardsBtn"][1] == -70.0, \
         "4-Player Setup is at %s, not the last row's left end" % (got["rttFourBoardsBtn"][:2],)
     assert got["rttFourBoardsBtn"][2] == "36x20", "4-Player Setup is not an option button"
 
@@ -4349,9 +4349,9 @@ def t_the_top_row_is_four_drafts_on_the_map_grid(src):
             for i in range(len(ys) - 1)]
     assert len(set(edge[:-1])) == 1, \
         "the rows leave %s between them; the first three should match" % edge[:-1]
-    assert edge[0] == 6.0, "the rows leave %s between them, not 6" % edge[0]
-    assert edge[-1] > edge[0], \
-        "the two option rows at the bottom leave %s, no more than the rest" % edge[-1]
+    assert edge[0] == 5.1, "the rows leave %s between them, not 5.1" % edge[0]
+    assert abs(edge[-1] - edge[0] / 2) < 0.1, \
+        "the two option rows leave %s; half of %s is %s" % (edge[-1], edge[0], edge[0] / 2)
 
     # AND THE ROOT SIGN IS GONE. "remove entirely the root logo and the thing with birds we did."
     assert 'id="rootLogo"' not in xml, "the ROOT sign is still on the board"
@@ -4540,7 +4540,7 @@ def t_clear_all_objects_asks_before_it_clears(src):
     assert board, "the Clear All button is not in the board's XmlUI"
     el = board.group(0)
     for want in ('onclick="rttArmClearAll"', 'icon="ClearAllArt"',
-                 'position="57 -72 -20"', 'width="36"', 'height="20"'):
+                 'position="57 -70 -20"', 'width="36"', 'height="20"'):
         assert want in el, "the Clear All button is missing %s: %s" % (want, el)
     # and both pictures it needs are registered, or TTS draws a white placeholder over it
     assets = {a["Name"] for a in [o for o in walk(x) if o.get("GUID") == "bab7e1"][0]["CustomUIAssets"]}

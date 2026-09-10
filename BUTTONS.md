@@ -7,17 +7,17 @@ Layout, top to bottom:
 
 ```
 [ROOT logo]                                                                    y =  76.5 [x]
-         [3P Draft] [4P Draft] [5P Draft] [Theme]                              y =  73
-[Summer] [Lake] [Marsh] [Winter] [Mountain] [Gorge]                            y =  33
-                 [Standard] [Exiles] [Squires]                                 y =  -7
-[Faction Sel][Bat Bungler][Mob Lobber][Koffin Keeper][Faction Cards][Landmarks] y = -40
-[4P Setup][5P Setup][5-Players Marsh][Rowdy Riverboat][Clear All][Credits]     y = -72
+         [3P Draft] [4P Draft] [5P Draft] [Theme]                              y = 62.9
+[Summer] [Lake] [Marsh] [Winter] [Mountain] [Gorge]                            y = 23.8
+                 [Standard] [Exiles] [Squires]                                 y = -15.3
+[Faction Sel][Bat Bungler][Mob Lobber][Koffin Keeper][Faction Cards][Landmarks] y = -47.4
+[4P Setup][5P Setup][5-Players Marsh][Rowdy Riverboat][Clear All][Credits]     y = -70
 ```
 
 Rows are spaced by the **gap you can see**, not by the distance between their centres: the top three
 rows are 34 tall and the option rows 20, so one centre spacing would leave a wider band under the deck
-row. Every row above leaves 6, and the two option rows at the bottom leave 12. The ROOT sign that used
-to sit above them is gone.
+row. Every row above leaves 5.1, and the two option rows at the bottom about half of that. The ROOT sign
+that used to sit above them is gone.
 
 ---
 
