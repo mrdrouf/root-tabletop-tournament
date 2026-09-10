@@ -5994,12 +5994,20 @@ RTT_HELPER_ROW_Z = -19.135
 RTT_HELPER_ORDER = { "Flotilla", "Foxburrow", "Rabbit-Town", "Mousehold" }
 RTT_HELPER_TAG = "RTT Helper"          -- every rules card that stands in this row
 RTT_HELPER_PITCH = 5.058               -- the step he placed the town cards at
--- ...and the Flotilla clears the row by EDGES, not by a step between centres. A step cannot work here:
--- the cards are different shapes, so the same centre-to-centre distance leaves a gap beside a portrait
--- landmark card and an overlap beside a wide one -- "the shift is not enought", twice. Its own right
--- edge is set this far clear of the leftmost edge already in the row, whatever shape made it.
-RTT_HELPER_CLEAR = 1.2
-RTT_FLOTILLA_GAP = 7.5                 -- the fallback step, for the frame before its bounds are known
+-- ...and the gap the Flotilla leaves is the row's OWN gap, worked out rather than chosen. Maintainer,
+-- 2026-09-10: "space between cards not consistent with space between landmark cards."
+--
+-- Two landmark cards sit RTT_HELPER_PITCH apart centre to centre, so the space BETWEEN them is that
+-- pitch less one card's width. The Flotilla leaves the same space -- which means measuring the card it
+-- is standing next to, because that space is a property of the row and not of the Flotilla:
+--
+--     gap  = pitch - (the neighbour's width)
+--     x    = (the neighbour's left edge) - gap - (half the Flotilla's own width)
+--
+-- Put two identical cards through that and it comes out at exactly one pitch, which is the landmark
+-- row's own spacing; put a wide card and a narrow one through it and the SPACE between them is still
+-- the same, which is what the eye reads. A flat clearance could not do both.
+RTT_FLOTILLA_GAP = 7.5                 -- the fallback step, for the frame before any bounds are known
 
 -- where a named helper card stands, or the first spot if it is not in the row at all
 function rttHelperSpot(name)
@@ -6019,21 +6027,23 @@ end
 -- outermost card already standing there, or the near slot when there is nothing. The town cards keep
 -- the three spots he placed and locked them on and never move for it -- laying a Marsh down pushes the
 -- Flotilla out past them, and clearing that map brings it back in.
--- the leftmost EDGE of everything already standing in the row, and how wide the Flotilla's own card is
+-- The leftmost EDGE already standing in the row, and the WIDTH of the card that made it -- the width
+-- matters because the space the row keeps between cards is its pitch less a card's width.
 function rttHelperRowEdge()
-  local edge = nil
+  local edge, width = nil, nil
   for _, o in ipairs(getObjectsWithTag(RTT_HELPER_TAG)) do
     local mine = false
     pcall(function() mine = o.hasTag(RTT_FLOTILLA_TAG) end)
     if not mine then
       pcall(function()
         local b, p = o.getBounds(), o.getPosition()
-        local e = p.x - ((b ~= nil and b.size ~= nil) and b.size.x / 2 or 0)
-        if edge == nil or e < edge then edge = e end
+        local w = (b ~= nil and b.size ~= nil) and b.size.x or 0
+        local e = p.x - w / 2
+        if edge == nil or e < edge then edge, width = e, w end
       end)
     end
   end
-  return edge
+  return edge, width
 end
 
 function rttFlotillaCard()
@@ -6046,7 +6056,7 @@ function rttFlotillaCard()
 end
 
 function rttFlotillaCardSpot()
-  local edge = rttHelperRowEdge()
+  local edge, width = rttHelperRowEdge()
   if edge == nil then return { RTT_HELPER_ROW_X[1], RTT_HELPER_ROW_Y, RTT_HELPER_ROW_Z } end
   local half = RTT_FLOTILLA_GAP / 2
   local card = rttFlotillaCard()
@@ -6056,7 +6066,8 @@ function rttFlotillaCardSpot()
       if b ~= nil and b.size ~= nil and b.size.x > 0 then half = b.size.x / 2 end
     end)
   end
-  return { edge - RTT_HELPER_CLEAR - half, RTT_HELPER_ROW_Y, RTT_HELPER_ROW_Z }
+  local gap = RTT_HELPER_PITCH - (width or 0)
+  return { edge - gap - half, RTT_HELPER_ROW_Y, RTT_HELPER_ROW_Z }
 end
 
 -- THEY ALL STAND ON ONE LINE. Maintainer, 2026-09-10: "all the helper cards about landmarks and maps
@@ -6328,9 +6339,16 @@ function makeMap(player,value,id,keepBoard)
   -- Their tags are added in spawn callbacks, so a card that arrives a few frames later is not yet a
   -- helper when the first pass counts them -- which is why the Flotilla sat still while the Marsh laid
   -- its rules card down beside it.
+  -- MORE THAN ONCE, BUT NOT SLOWLY. A map's own cards get their helper tag in a spawn callback, so one
+  -- landing a few frames after the board is not yet a helper when the first pass counts them. That was
+  -- covered by waiting two whole seconds -- "the adjustment happens after a few secons it s quite
+  -- slow" -- where a handful of frames is all the callbacks need. Three passes inside half a second,
+  -- and a last one at a second in case the table is loaded.
   rttWhenMapReady(function()
     pcall(function() rttPlaceFlotillaCard() end)
-    Wait.time(function() pcall(function() rttPlaceFlotillaCard() end) end, 2.0)
+    for _, f in ipairs({ 4, 12, 30, 60 }) do
+      Wait.frames(function() pcall(function() rttPlaceFlotillaCard() end) end, f)
+    end
   end)
   -- A SAME-MAP REBUILD KEEPS THE BOARD. rttNewGame re-places the current map so a new game never
   -- inherits the last one's layout -- most visibly the Marsh, which re-rolls its flooding, its suits

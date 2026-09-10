@@ -4380,28 +4380,27 @@ def t_the_flotilla_draft_seats_three_and_deals_militants(src):
     spot = rt.eval("function() local p = rttFlotillaCardSpot() "
                    "return string.format('%.3f', p[1]) end")
     assert abs(float(spot()) + 30.040) < 1e-3, "an empty row does not put it next to the map"
-    # ...and it clears the row by EDGES, not by a step between centres. A step cannot work when the
-    # cards are different shapes: the same centre-to-centre distance leaves a gap beside a portrait
-    # landmark card and an overlap beside a wide one -- "the shift is not enought", twice. So the
-    # property is asserted, not the arithmetic: its right edge sits clear of the row's leftmost edge,
-    # whatever shape made that edge.
-    clear = rt.eval("RTT_HELPER_CLEAR")
+    # ...and the space it leaves is the ROW'S space, not one of its own. "space between cards not
+    # consistent with space between landmark cards." Two landmark cards sit one pitch apart centre to
+    # centre, so the space between them is that pitch less a card's width -- and the Flotilla leaves
+    # the same space, which means measuring the card it stands next to.
+    pitch = rt.eval("RTT_HELPER_PITCH")
     rt.execute("FLOT = rttFlotillaCard() "
                "FLOT.__bounds = {size = Vector({6.6, 0.2, 4.0}), center = Vector({0,0,0})}")
-    def right_edge():
+    def place_and_gap(width):
         rt.execute("pcall(function() rttPlaceFlotillaCard() end) FLUSH(4)")
-        return rt.eval("function() return FLOT.__pos.x + 6.6 / 2 end")()
-    def row_edge():
-        return rt.eval("function() local e = rttHelperRowEdge() return e or 999 end")()
+        edge = rt.eval("function() local e = rttHelperRowEdge() return e end")()
+        right = rt.eval("function() return FLOT.__pos.x + 6.6 / 2 end")()
+        return edge - right
 
-    for label, x, size in (("a portrait landmark card", -35.098, "5.5, 0.2, 7.8"),
-                           ("a wide map card", -46.0, "9.0, 0.2, 4.0")):
+    for label, x, w, d in (("a portrait landmark card", -35.098, 5.5, 7.8),
+                           ("a wide map card", -46.0, 9.0, 4.0)):
         rt.execute("local o = MKOBJ('', {%f, 11.575, -19.135}, {'RTT Helper'}) "
-                   "o.__bounds = {size = Vector({%s}), center = Vector({0,0,0})}" % (x, size))
-        gap = row_edge() - right_edge()
-        assert gap >= clear - 1e-3, \
-            "with %s in the row the Flotilla overlaps it: %.3f of clearance, wanted %.2f" % (
-                label, gap, clear)
+                   "o.__bounds = {size = Vector({%f, 0.2, %f}), center = Vector({0,0,0})}"
+                   % (x, w, d))
+        gap = place_and_gap(w)
+        assert abs(gap - (pitch - w)) < 1e-3, \
+            "beside %s it leaves %.3f; the row's own space there is %.3f" % (label, gap, pitch - w)
 
     # AND THE BOAT GOES WITH IT. "the flotilla object does not move with it" -- it had a spot of its
     # own, so the card stepped out along the row and left its pawn back beside the map.
@@ -4410,6 +4409,19 @@ def t_the_flotilla_draft_seats_three_and_deals_militants(src):
     assert abs(boat() - rt.eval("function() return FLOT.__pos.x end")()) < 1e-3, \
         "the boat is at %.3f and its card at %.3f" % (
             boat(), rt.eval("function() return FLOT.__pos.x end")())
+
+    # AND THE ROW'S RULE IS THE LANDMARK ROW'S: two cards of the same width come out exactly one pitch
+    # apart, which is the spacing he placed the town cards at.
+    rt = fresh(src)
+    rt.execute("pcall(function() rttSpawnFlotillaKit() end) FLUSH(20) "
+               "F2 = rttFlotillaCard() "
+               "F2.__bounds = {size = Vector({5.5, 0.2, 7.8}), center = Vector({0,0,0})} "
+               "N = MKOBJ('', {-35.098, 11.575, -19.135}, {'RTT Helper'}) "
+               "N.__bounds = {size = Vector({5.5, 0.2, 7.8}), center = Vector({0,0,0})} "
+               "pcall(function() rttPlaceFlotillaCard() end) FLUSH(4)")
+    centres = -35.098 - rt.eval("function() return F2.__pos.x end")()
+    assert abs(centres - pitch) < 1e-3, \
+        "two cards of one width come out %.3f apart; the row's pitch is %.3f" % (centres, pitch)
 
     # ...and its own card is not counted as something to make way for
     rt.execute("pcall(function() rttSpawnFlotillaKit() end) FLUSH(20)")
