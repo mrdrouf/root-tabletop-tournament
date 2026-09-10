@@ -11,7 +11,7 @@ Layout, top to bottom:
 [Summer] [Lake] [Marsh] [Winter] [Mountain] [Gorge]                            y = 23.8
                  [Standard] [Exiles] [Squires]                                 y = -15.3
 [Faction Sel][Bat Bungler][Mob Lobber][Koffin Keeper][Faction Cards][Landmarks] y = -47.4
-[4P Setup][5P Setup][5-Players Marsh][Rowdy Riverboat][Clear All][Credits]     y = -70
+[4P Setup][5P Setup][5-Players Marsh][        ][Clear All][More]              y = -70
 ```
 
 Rows are spaced by the **gap you can see**, not by the distance between their centres: the top three
@@ -39,6 +39,12 @@ just runs. Clicks are ignored while a setup is still loading (they are dropped, 
 **3-Player Draft** (`rttArm3P` → `rtt3PStart`) deals **four militant faction cards** to **three**
 seats. Seats and deal are one number — `RTT_DRAFT_N = 4`, so `RTT_DN = 4` and the seats are
 `RTT_DN - 1` — which is why the fourth player is never spawned rather than skipped.
+
+**More** (`rttShowMore`) takes the last slot and swaps the menu for two rows of its own, the way
+Credits swaps it for the parchment page — the board ran out of slots, and there is no room below the
+last row for two more. **Rowdy Riverboat** and **Credits** live on that page, on the same six columns
+every option row uses, and **Back** (`rttHideMore`) returns. Leaving the credits page lands on More
+rather than the main menu, since that is where its button now is.
 
 **Rowdy Riverboat** (`rttArmFlotilla` → `rttFlotillaStart`) puts the Riverfolk Flotilla hireling out —
 its rules card and its one boat — and does nothing else. It is the one entry in `RTT_WIPE_BTN` that

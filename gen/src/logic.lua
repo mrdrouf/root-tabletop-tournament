@@ -1320,6 +1320,7 @@ end
 
 function allButtonsOff()
   self.UI.setAttribute("creditsPanel","active","False")
+  self.UI.setAttribute("moreButtons","active","False")
   self.UI.setAttribute("standardButtons","active","False")
   self.UI.setAttribute("toolsButtons","active","False")
   self.UI.setAttribute("mapButtonsStandard","active","False")
@@ -1335,14 +1336,38 @@ end
 -- with a Back button to return. Rendered as an IMAGE rather than UI text on purpose -- TTS draws UI
 -- text into a fixed-resolution texture, so small type is unavoidably blurry (the same reason the old
 -- corner credit was an image).
+-- ---- More ------------------------------------------------------------------------------------
+-- THE BOARD RAN OUT OF SLOTS. Maintainer, 2026-09-10: "the last option button should be called more
+-- and spawn two new rows of option buttons. the buttons relagated to more is the credit button and
+-- the riverboat button."
+--
+-- It is a PAGE, not two extra rows below the others, because there is nowhere to put them: the five
+-- rows already run from the top of the board to the info strip at the bottom. So More takes the last
+-- slot of the last row and swaps the menu for its own two rows, the way Credits already swaps it for
+-- the parchment page -- same allButtonsOff, same Back button to come home.
+--
+-- The two rows use the SAME six columns as every other option row, so anything relegated later drops
+-- into place beside these two without moving them.
+function rttShowMore(player, value, id)
+  allButtonsOff()
+  self.UI.setAttribute("moreButtons", "active", "True")
+end
+
+function rttHideMore(player, value, id)
+  self.UI.setAttribute("moreButtons", "active", "False")
+  setup()                                     -- back to the normal menu
+end
+
 function rttShowCredits(player, value, id)
   allButtonsOff()
   self.UI.setAttribute("creditsPanel", "active", "True")
 end
 
+-- BACK FROM CREDITS GOES BACK TO MORE, because that is where its button now lives -- coming out of
+-- the credits page onto a menu that no longer has a Credits button on it would read as having lost it.
 function rttHideCredits(player, value, id)
   self.UI.setAttribute("creditsPanel", "active", "False")
-  setup()                                     -- back to the normal menu
+  rttShowMore(player, value, id)
 end
 
 local RTT_FACTION_GRID = {

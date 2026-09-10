@@ -253,7 +253,11 @@ WIDES = [
     ("Koffin Keeper",      "koffin_keeper_v11",       ["Koffin", "Keeper"],    lambda: art_from_label("koffin_keeper_lum_e1358cfd.png")),
     ("Landmarks",          "landmarks_v11",           ["Landmarks"],           lambda: art_alpha_topband("assets/icons_fit/landmarks.png", 0.70)),
     ("FivePlayerSetupArt", "five_player_setup_v11",   ["5-Player", "Setup"],   lambda: art_crop_aspect("assets/images/5players.png", 0.853)),
-    ("FourBoardsArt",      "four_player_setup_v11",   ["4-Player", "Setup"],   lambda: art_rotated("assets/images/4players.png", 90)),
+    # THE SAME TREATMENT AS 5-PLAYER SETUP, which is what "rotate by 90 degrees the art of the 4
+    # player setup so it s similar to the art for 5 player setup" comes to: that one is an upright
+    # crop of its photograph and this one was the only art on the board turned on its side. Cropping
+    # it the same way is the quarter turn.
+    ("FourBoardsArt",      "four_player_setup_v11",   ["4-Player", "Setup"],   lambda: art_crop_aspect("assets/images/4players.png", 0.853)),
     ("Marsh5PLabel",       "five_players_marsh_v11",  ["5-Players", "Marsh"],  lambda: art_topband("assets/upload/map_marsh.png")),
     ("FactionCardsArt",    "faction_cards_v11",       ["Faction", "Cards"],    lambda: art_from_label("faction_cards_label_v4_34723094.png")),
     # No artwork, like Credits: the caption IS the button. Maintainer, 2026-09-09: "add a red clear
@@ -269,6 +273,8 @@ WIDES = [
     ("FlotillaArt",        "flotilla_draft_v11",      ["Rowdy", "Riverboat"],
      lambda: art_topband("assets/src_art/flotilla_button.png", 1.0)),
     ("CreditsBtnArt",      "credits_button_v11",      ["Credits"],             lambda: None, 96, 1.0),
+    # The last slot of the last row: it opens two more rows rather than doing anything itself.
+    ("MoreArt",            "more_button_v11",         ["More"],                lambda: None, 96, 1.0),
     # Credits carries no artwork, so its caption has the whole button to itself: start it far above
     # the shared size and let the width cap settle it, with no condensing on one short word.
 ]

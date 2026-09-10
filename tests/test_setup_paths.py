@@ -2442,6 +2442,25 @@ def t_vagabond_cards_come_with_faction_cards(src):
     assert '{name = "Vagabond Cards"' not in src, "the button art is still registered"
 
 
+def menu_xml(xml):
+    """The board's own menu, with the pages that hide behind it taken out.
+
+    Two ToggleGroups sit in the same XmlUI as the menu and are inactive until something opens them --
+    the credits parchment and, since 2026-09-10, the More rows. Their buttons carry positions of their
+    own, so a scan that reads every Button on the board counts them as extra rows and gets the layout
+    wrong. They are cut out here rather than filtered by id, so a button relegated to More later is
+    excluded by being IN the page rather than by being named.
+    """
+    for gid in ("moreButtons", "creditsPanel"):
+        while True:
+            i = xml.find('<ToggleGroup id="%s"' % gid)
+            if i < 0:
+                break
+            j = xml.find("</ToggleGroup>", i)
+            xml = xml[:i] + xml[j + len("</ToggleGroup>"):]
+    return xml
+
+
 def t_the_two_free_button_slots_are_bottom_right(src):
     """Where the spare option slots sit, and who sits where.
 
@@ -2466,7 +2485,7 @@ def t_the_two_free_button_slots_are_bottom_right(src):
         for o in objs:
             yield o
             for c in (o.get("ContainedObjects") or []): yield from walk([c])
-    xml = [o for o in walk(x) if o.get("GUID") == "bab7e1"][0]["XmlUI"]
+    xml = menu_xml([o for o in walk(x) if o.get("GUID") == "bab7e1"][0]["XmlUI"])
 
     import re as _re
     rows = {}
@@ -2487,16 +2506,22 @@ def t_the_two_free_button_slots_are_bottom_right(src):
     # between the two option rows at the bottom.
     top, bottom = rows.get(-47.4, {}), rows.get(-70.0, {})
     assert len(top) == 6, "the first tool row has %d of 6 slots filled: %s" % (len(top), sorted(top))
+    # x=19 is spare again: the Rowdy Riverboat moved into the More page on 2026-09-10, and Credits
+    # went with it, which is what freed the last slot for More itself.
     free = [s for s in SLOTS if s not in bottom]
-    assert free == [], "row 2 has spare slots again: %s" % free
+    assert free == [19.0], "the last row's spare slots are %s; only 19 should be free" % free
     # THE LAST ROW, in the order he set it on 2026-09-10: "4 player setup, 5 player setup, 5 players
     # marsh, Rowdy Riverboat, Clear all items, credit."
     ORDER = ((-95.0, "rttFourBoardsBtn"), (-57.0, "Marsh5PSetup"), (-19.0, "Marsh5PMap"),
-             (19.0, "rttFlotillaBtn"), (57.0, "rttClearAllBtn"), (95.0, "rttCreditsBtn"))
+             (57.0, "rttClearAllBtn"), (95.0, "rttMoreBtn"))
     for x0, bid in ORDER:
         assert bottom.get(x0) == bid, "x=%s of the last row holds %s, not %s" % (x0, bottom.get(x0), bid)
     assert top.get(57) == "Faction Cards", "x=57 of row 1 holds %r, not Faction Cards" % top.get(57)
-    assert bottom.get(95) == "rttCreditsBtn", "the bottom-right slot holds %r, not Credits" % bottom.get(95)
+    # THE BOTTOM-RIGHT SLOT IS THE WAY ON, not a tool. Credits held it until the board ran out of
+    # room; it and the Rowdy Riverboat moved into the More page behind it.
+    assert bottom.get(95) == "rttMoreBtn", "the bottom-right slot holds %r, not More" % bottom.get(95)
+    assert "rttCreditsBtn" not in bottom.values() and "rttFlotillaBtn" not in bottom.values(), \
+        "Credits or the Riverboat is still on the main menu: %s" % sorted(bottom.values())
 
 
 def t_captain_warriors_line_up_with_their_captains(src):
@@ -4352,6 +4377,61 @@ def t_a_prisoner_goes_pale(src):
     assert '"tint"' in saved, "the saved record does not carry the piece's colour: %s" % saved[:200]
 
 
+def t_more_holds_what_the_board_ran_out_of_room_for(src):
+    """The last slot opens a page of its own, and the two buttons it took are on it.
+
+    Maintainer, 2026-09-10: "the last option button should be called more and spawn two new rows of
+    option buttons. the buttons relagated to more is the credit button and the riverboat button."
+
+    A PAGE, not two rows below the others, because there is nowhere to put them: the five rows already
+    run from the top of the board down to the info strip. So it works the way Credits already did --
+    allButtonsOff, one group on, a Back button home -- and its rows use the same six columns as every
+    other option row, so anything relegated later drops in beside these two.
+    """
+    x = json.load(open(os.path.join(REPO, "dist/Root_Tabletop_Tournament.json"), encoding="utf-8"))
+    def walk(objs):
+        for o in objs:
+            yield o
+            for c in (o.get("ContainedObjects") or []):
+                yield from walk([c])
+    board = [o for o in walk(x["ObjectStates"]) if o.get("GUID") == "bab7e1"][0]
+    xml = board["XmlUI"]
+
+    i = xml.find('<ToggleGroup id="moreButtons"')
+    assert i >= 0, "there is no More page"
+    page = xml[i:xml.find("</ToggleGroup>", i)]
+    assert 'active="False"' in page.split(">")[0], "the More page is open by default"
+
+    ids = re.findall(r'<Button id="([^"]*)"', page)
+    for bid in ("rttFlotillaBtn", "rttCreditsBtn"):
+        assert bid in ids, "%s is not on the More page: %s" % (bid, ids)
+    assert "rttMoreBack" in ids, "the More page has no way back: %s" % ids
+
+    # its rows sit on the option columns, so a third button lands beside them rather than anywhere
+    COLUMNS = (-95.0, -57.0, -19.0, 19.0, 57.0, 95.0)
+    for m in re.finditer(r'<Button id="(rttFlotillaBtn|rttCreditsBtn)"[^>]*position="(-?[\d.]+) ', page):
+        assert float(m.group(2)) in COLUMNS, \
+            "%s sits at x %s, off the option columns" % (m.group(1), m.group(2))
+
+    # AND IT IS REACHED AND LEFT the way the credits page is
+    rt = fresh(src)
+    rt.execute("UIATTR = {} pcall(function() rttShowMore() end)")
+    assert rt.eval("function() return tostring(UIATTR['moreButtons.active']) end")() == "True", \
+        "More did not open its page"
+    assert rt.eval("function() return tostring(UIATTR['setupButtons.active']) end")() == "False", \
+        "More left the menu underneath it"
+    rt.execute("pcall(function() rttHideMore() end)")
+    assert rt.eval("function() return tostring(UIATTR['moreButtons.active']) end")() == "False", \
+        "Back did not close the More page"
+    assert rt.eval("function() return tostring(UIATTR['setupButtons.active']) end")() == "True", \
+        "Back did not bring the menu back"
+
+    # ...and coming out of CREDITS lands on More, because that is where its button lives now
+    rt.execute("UIATTR = {} pcall(function() rttHideCredits() end)")
+    assert rt.eval("function() return tostring(UIATTR['moreButtons.active']) end")() == "True", \
+        "leaving the credits page drops you on a menu with no Credits button on it"
+
+
 def t_the_top_row_is_four_drafts_on_the_map_grid(src):
     """Three drafts and the Theme, centred on the map row's own columns, with the rows evenly spaced.
 
@@ -4372,7 +4452,7 @@ def t_the_top_row_is_four_drafts_on_the_map_grid(src):
             for c in (o.get("ContainedObjects") or []):
                 yield from walk([c])
     board = [o for o in walk(x["ObjectStates"]) if o.get("GUID") == "bab7e1"][0]
-    xml = board["XmlUI"]
+    xml = menu_xml(board["XmlUI"])
 
     got = {}
     for m in re.finditer(r'<Button\b[^>]*>', xml):
@@ -6188,6 +6268,7 @@ CASES = [
     ("round is 0 until start",            t_the_round_is_zero_until_start_is_pressed),
     ("clear all asks before it clears",   t_clear_all_objects_asks_before_it_clears),
     ("top row is four drafts",            t_the_top_row_is_four_drafts_on_the_map_grid),
+    ("More holds the overflow",           t_more_holds_what_the_board_ran_out_of_room_for),
     ("3P draft: 4 militants, no boat",    t_the_three_player_draft_deals_four_militants_and_no_flotilla),
     ("riverboat only puts it out",        t_the_riverboat_button_only_puts_the_flotilla_out),
     ("a prisoner goes pale",              t_a_prisoner_goes_pale),
