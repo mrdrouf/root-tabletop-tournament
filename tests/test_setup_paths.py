@@ -2469,13 +2469,18 @@ def t_the_two_free_button_slots_are_bottom_right(src):
     rows = {}
     for m in _re.finditer(r'<Button\b[^>]*>', xml):
         seg = m.group(0)
-        pos = _re.search(r'position="(-?\d+) (-?\d+) (-?\d+)"', seg)
+        # the y's are not whole numbers any more: the rows were spaced evenly on 2026-09-10 and land
+        # on 51.5, 19.125, -13.25, -45.625, -78
+        pos = _re.search(r'position="(-?[\d.]+) (-?[\d.]+) (-?[\d.]+)"', seg)
         w = _re.search(r'width="(\d+)"', seg)
         i = _re.search(r'id="([^"]*)"', seg)
         if pos and w and w.group(1) == "36":          # the 36x20 option buttons only
-            rows.setdefault(int(pos.group(2)), {})[int(pos.group(1))] = i.group(1) if i else "?"
-    SLOTS = [-95, -57, -19, 19, 57, 95]
-    top, bottom = rows.get(-55, {}), rows.get(-78, {})
+            rows.setdefault(float(pos.group(2)), {})[float(pos.group(1))] = i.group(1) if i else "?"
+    SLOTS = [-95.0, -57.0, -19.0, 19.0, 57.0, 95.0]
+    # THE ROWS ARE EVENLY SPACED NOW. Maintainer, 2026-09-10: "also try to have an equal distance
+    # between the rows of every buttons" -- 51.5, 19.125, -13.25, -45.625, -78, one 32.375 apart. The
+    # first tool row moved off -55 with everything else.
+    top, bottom = rows.get(-45.625, {}), rows.get(-78.0, {})
     assert len(top) == 6, "the first tool row has %d of 6 slots filled: %s" % (len(top), sorted(top))
     free = [s for s in SLOTS if s not in bottom]
     assert free == [], "row 2 has spare slots again: %s" % free
@@ -4276,6 +4281,97 @@ def t_a_prisoner_goes_pale(src):
     assert '"tint"' in saved, "the saved record does not carry the piece's colour: %s" % saved[:200]
 
 
+def t_the_top_row_is_four_drafts_on_the_map_grid(src):
+    """Three drafts and the Theme, centred on the map row's own columns, with the rows evenly spaced.
+
+    Maintainer, 2026-09-10: "switch the 4 player setup button with the 5 player draft button ... add a
+    4th button to the left of the big buttons on top which is 3 player draft ... since now there are 4
+    buttons, the 4 buttons on top should be centered and aligned with the even number of map buttons",
+    and "also try to have an equal distance between the rows of every buttons".
+
+    The map row is six buttons at -95, -57, -19, 19, 57, 95, so four centred on that grid are its inner
+    four. 4-Player Setup went down to the tool row to make space, which is also why its warning art and
+    5-Player Draft's swapped shapes -- the wipe warnings come square and wide, and they follow the
+    BUTTON'S shape rather than the button.
+    """
+    x = json.load(open(os.path.join(REPO, "dist/Root_Tabletop_Tournament.json"), encoding="utf-8"))
+    def walk(objs):
+        for o in objs:
+            yield o
+            for c in (o.get("ContainedObjects") or []):
+                yield from walk([c])
+    board = [o for o in walk(x["ObjectStates"]) if o.get("GUID") == "bab7e1"][0]
+    xml = board["XmlUI"]
+
+    got = {}
+    for m in re.finditer(r'<Button\b[^>]*>', xml):
+        seg = m.group(0)
+        pos = re.search(r'position="(-?[\d.]+) (-?[\d.]+) ', seg)
+        w = re.search(r'width="([\d.]+)"', seg)
+        h = re.search(r'height="([\d.]+)"', seg)
+        i = re.search(r'id="([^"]*)"', seg)
+        if pos and w and i:
+            got[i.group(1)] = (float(pos.group(1)), float(pos.group(2)),
+                               "%sx%s" % (w.group(1), h.group(1)))
+
+    TOP = (("rtt3PBtn", -57.0), ("rttRankedBtn", -19.0), ("Marsh5P", 19.0), ("rttThemeBtn", 57.0))
+    for bid, x0 in TOP:
+        assert bid in got, "%s is not on the board" % bid
+        assert got[bid][0] == x0, "%s is at x %s, not %s" % (bid, got[bid][0], x0)
+        assert got[bid][1] == 51.5, "%s left the top row: y %s" % (bid, got[bid][1])
+        assert got[bid][2] == "34x34", "%s is not a square button: %s" % (bid, got[bid][2])
+
+    # centred on the map row's own columns, which is what "aligned with the map buttons" means
+    maps = sorted(v[0] for k, v in got.items() if v[2] == "34x34" and v[1] == got["Summer Map"][1])
+    assert maps == [-95.0, -57.0, -19.0, 19.0, 57.0, 95.0], "the map row moved: %s" % maps
+    tops = sorted(v[0] for k, v in got.items() if v[1] == 51.5)
+    assert tops == [-57.0, -19.0, 19.0, 57.0], "the top row is not the map grid's inner four: %s" % tops
+    assert abs(sum(tops)) < 1e-9, "the top row is not centred: %s" % tops
+
+    # 4-PLAYER SETUP WENT DOWN, as an option button
+    assert got["rttFourBoardsBtn"][:1] == (-57.0,) and got["rttFourBoardsBtn"][1] == -78.0, \
+        "4-Player Setup is at %s, not the tool row's -57" % (got["rttFourBoardsBtn"],)
+    assert got["rttFourBoardsBtn"][2] == "36x20", "4-Player Setup is not an option button"
+
+    # EVERY ROW THE SAME DISTANCE APART
+    ys = sorted({v[1] for v in got.values()
+                 if v[2] in ("34x34", "36x20")}, reverse=True)
+    gaps = [round(ys[i] - ys[i + 1], 4) for i in range(len(ys) - 1)]
+    assert len(set(gaps)) == 1, "the rows are %s apart; they should all be the same" % gaps
+
+    # AND THE ROOT SIGN IS GONE. "remove entirely the root logo and the thing with birds we did."
+    assert 'id="rootLogo"' not in xml, "the ROOT sign is still on the board"
+    assert "Root Logo" not in json.dumps(board.get("CustomUIAssets") or []), \
+        "the ROOT sign's art is still registered"
+
+
+def t_the_three_player_draft_deals_four_militants_and_no_flotilla(src):
+    """Three seats, four militant cards, and no hireling.
+
+    Maintainer, 2026-09-10, asked what the new button runs: "it s 3 players, 4 militant cards, no
+    flotilla" -- the Riverboat's own rules without its hireling, which the Riverboat button keeps.
+    """
+    rt = fresh(src)
+    rt.execute("SPAWNED = {} "
+               "local _s = spawnObjectJSON "
+               "spawnObjectJSON = function(p) local o = _s(p) "
+               "  SPAWNED[#SPAWNED+1] = o.getName() or '' return o end")
+    rt.execute("pcall(function() rtt3PStart(nil,nil,nil) end) FLUSH(200)")
+
+    assert rt.eval("RTT_DN") == 4, "it seats %s players, not 3" % rt.eval("RTT_DN")
+    facs = list((rt.eval("RTT_DRAFT_FACTIONS") or {}).values())
+    assert len(facs) == 4, "it dealt %d faction cards, not 4: %s" % (len(facs), facs)
+    MILITANT = {"Marquise de Cat", "Eyrie Dynasties", "Underground Duchy",
+                "Lord of the Hundreds", "Keepers in Iron", "Lilypad Diaspora"}
+    assert set(facs) <= MILITANT, "an insurgent was dealt: %s" % sorted(set(facs) - MILITANT)
+
+    names = [str(v) for v in rt.eval("SPAWNED").values()]
+    assert "Flotilla" not in names, "the 3-player draft brought the Flotilla: %s" % (
+        [n for n in names if "Flotilla" in n])
+    left = rt.eval("function() return #getObjectsWithTag('RTT Flotilla') end")()
+    assert left == 0, "the 3-player draft left %d Flotilla piece(s) on the table" % left
+
+
 def t_the_flotilla_draft_seats_three_and_deals_militants(src):
     """Three players, four militant cards, the hireling and its rules card beside the map.
 
@@ -5167,7 +5263,10 @@ def t_a_warning_describes_what_the_click_really_does(src):
     rt.execute("RTT_CURRENT_MAP = 'Marsh Map' RTT_MARSH_5P_BUILT = true")
     assert warn(setup) is True, \
         "4-Player Setup on the FIVE-player Marsh must rebuild the board and warn that it will"
-    assert art(setup) == "WipeConfirmMapArt", \
+    # startswith, not equality: the same wording ships square and wide, and a button that changes rows
+    # takes the other shape with it -- 4-Player Setup went down to the tool row on 2026-09-10. What
+    # must not change is WHICH wording it uses.
+    assert art(setup).startswith("WipeConfirmMapArt"), \
         "the Marsh variant swap warned about factions instead of the map: %s" % art(setup)
     # ...and the five-player buttons are the mirror image
     five = rt.eval("RTT_WIPE_BTN['Marsh5P']")
@@ -5180,7 +5279,7 @@ def t_a_warning_describes_what_the_click_really_does(src):
     # A FACTION OUTRANKS EITHER. It is the bigger loss and it is what a setup button is for.
     rt.execute("MKOBJ('Eyrie Warrior', {2,1,2}, {'RTT Faction'})")
     assert warn(setup) is True, "a faction on the table did not warn"
-    assert art(setup) == "WipeConfirmArt", \
+    assert art(setup).startswith("WipeConfirmArt"), \
         "with factions out a setup button must warn about the FACTIONS: %s" % art(setup)
 
     # ...and a map button STILL must not claim them: it destroys Map Objects only, and a faction
@@ -6075,6 +6174,8 @@ CASES = [
     ("unlocking frees a prisoner",        t_unlocking_a_prisoner_stands_it_up),
     ("round is 0 until start",            t_the_round_is_zero_until_start_is_pressed),
     ("clear all asks before it clears",   t_clear_all_objects_asks_before_it_clears),
+    ("top row is four drafts",            t_the_top_row_is_four_drafts_on_the_map_grid),
+    ("3P draft: 4 militants, no boat",    t_the_three_player_draft_deals_four_militants_and_no_flotilla),
     ("flotilla draft seats three",        t_the_flotilla_draft_seats_three_and_deals_militants),
     ("a prisoner goes pale",              t_a_prisoner_goes_pale),
     ("board shows the build number",      t_the_board_shows_the_build_number),

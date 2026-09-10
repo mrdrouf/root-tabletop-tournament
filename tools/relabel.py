@@ -236,8 +236,11 @@ SQUARES = [
     ("Squires and Disciples Deck", "deck_squires_v11", ["Squires & Disciples"], lambda: art_topband("assets/src_art/deck_squires.png"), 0.72, 0, 0.76),
 
     ("ThemeArt",      "theme_art_v11",          ["Theme"],          lambda: art_topband("assets/src_art/theme_adventurer.png", 1.0), 0.70, 0),
+    # THE TOP ROW, left to right: three drafts and the Theme. The frog is the Diaspora board's own
+    # militant enclave token, and the 5-player draft wears the Marsh, which is the map it plays on.
+    ("ThreePlayerArt", "three_player_draft_v11", ["3-Player Draft"], lambda: art_topband("assets/src_art/frog_militant.png", 1.0), 0.70, 0),
     ("RankedArt",     "four_player_draft_v11",  ["4-Player Draft"], lambda: art_crop_aspect("assets/images/ranked.png", 1.33, 210),       0.70, 0),
-    ("FourBoardsArt", "four_player_setup_v11",  ["4-Player Setup"], lambda: art_rotated("assets/images/4players.png", 90),     0.70, 0),
+    ("FivePlayerArt", "five_player_draft_v11",  ["5-Player Draft"], lambda: art_topband("assets/src_art/map_marsh.png"),  0.70, 0),
 ]
 
 WIDES = [
@@ -250,7 +253,7 @@ WIDES = [
     ("Koffin Keeper",      "koffin_keeper_v11",       ["Koffin", "Keeper"],    lambda: art_from_label("koffin_keeper_lum_e1358cfd.png")),
     ("Landmarks",          "landmarks_v11",           ["Landmarks"],           lambda: art_alpha_topband("assets/icons_fit/landmarks.png", 0.70)),
     ("FivePlayerSetupArt", "five_player_setup_v11",   ["5-Player", "Setup"],   lambda: art_crop_aspect("assets/images/5players.png", 0.853)),
-    ("FivePlayerArt",      "five_player_draft_v11",   ["5-Player", "Draft"],   lambda: art_crop_aspect("assets/images/5players.png", 0.853)),
+    ("FourBoardsArt",      "four_player_setup_v11",   ["4-Player", "Setup"],   lambda: art_rotated("assets/images/4players.png", 90)),
     ("Marsh5PLabel",       "five_players_marsh_v11",  ["5-Players", "Marsh"],  lambda: art_topband("assets/upload/map_marsh.png")),
     ("FactionCardsArt",    "faction_cards_v11",       ["Faction", "Cards"],    lambda: art_from_label("faction_cards_label_v4_34723094.png")),
     # No artwork, like Credits: the caption IS the button. Maintainer, 2026-09-09: "add a red clear

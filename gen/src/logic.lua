@@ -1605,8 +1605,13 @@ RTT_WIPE_BTN = {
                        warn = "ClearAllConfirmArt",  warnMap = "ClearAllConfirmArt", clearsAll = true },
   rttRankedBtn     = { fn = "rttSetup",              color = "#030411", icon = "RankedArt",          warn = "WipeConfirmArt", warnMap = "WipeConfirmMapArt", wants5p = false },
   rttThemeBtn      = { fn = "rttTheme",              color = "#49514b", icon = "ThemeArt",           warn = "WipeConfirmArt", warnMap = "WipeConfirmMapArt", wants5p = true },
-  rttFourBoardsBtn = { fn = "setupFactionBoards",    color = "#3a2f22", icon = "FourBoardsArt",      warn = "WipeConfirmArt", warnMap = "WipeConfirmMapArt", wants5p = false },
-  Marsh5P          = { fn = "rttFivePStart",         color = "#463221", icon = "FivePlayerArt",      warn = "WipeConfirmArtWide", warnMap = "WipeConfirmMapArtWide", wants5p = true },
+  rttFourBoardsBtn = { fn = "setupFactionBoards",    color = "#3a2f22", icon = "FourBoardsArt",      warn = "WipeConfirmArtWide", warnMap = "WipeConfirmMapArtWide", wants5p = false },
+  -- THE TOP ROW IS FOUR DRAFTS NOW: 3-, 4- and 5-player, then the Theme. 4-Player Setup went down to
+  -- the tool row to make space, and the warnings follow the SHAPES rather than the buttons -- a square
+  -- button gets the square wipe art and a wide one the wide, which is why these two swapped theirs
+  -- when they swapped rows.
+  rtt3PBtn         = { fn = "rtt3PStart",            color = "#33422b", icon = "ThreePlayerArt",     warn = "WipeConfirmArt", warnMap = "WipeConfirmMapArt" },
+  Marsh5P          = { fn = "rttFivePStart",         color = "#463221", icon = "FivePlayerArt",      warn = "WipeConfirmArt", warnMap = "WipeConfirmMapArt", wants5p = true },
   -- The Flotilla draft: three players, four militant cards, and the hireling. Its colour is the
   -- teal its own card is printed on, so the button matches the art it carries.
   rttFlotillaBtn   = { fn = "rttFlotillaStart",      color = "#2e5a58", icon = "FlotillaArt",        warn = "WipeConfirmArtWide", warnMap = "WipeConfirmMapArtWide" },
@@ -2093,6 +2098,7 @@ function rttRunBtn(d, player)
   elseif d.fn == "setupFivePlayerBoards" then setupFivePlayerBoards()
   elseif d.fn == "clearAll"              then clearAll()
   elseif d.fn == "rttFlotillaStart"      then rttFlotillaStart()
+  elseif d.fn == "rtt3PStart"            then rtt3PStart()
   end
 end
 
@@ -2130,6 +2136,7 @@ function rttArmMarsh5P(player, value, id) rttArmOrGo("Marsh5P", player) end
 function rttArmFiveSetup(player, value, id) rttArmOrGo("Marsh5PSetup", player) end
 function rttArmMarsh5PMap(player, value, id) rttArmOrGo("Marsh5PMap", player) end
 function rttArmFlotilla(player, value, id)  rttArmOrGo("rttFlotillaBtn", player) end
+function rttArm3P(player, value, id)       rttArmOrGo("rtt3PBtn", player) end
 function rttArmClearAll(player, value, id)  rttArmOrGo("rttClearAllBtn", player) end
 
 -- Five manual selector boards and nothing else -- the 5-player counterpart of the 4-Player Setup
@@ -5763,6 +5770,15 @@ end
 -- MILITANT ONLY is the one genuinely new rule. The pool is normally the militants after the first plus
 -- every insurgent; this drops the insurgents, which leaves the six militants -- one dealt first and
 -- three drawn from the other five.
+-- THE THREE-PLAYER DRAFT. Maintainer, 2026-09-10, asked what the new button should run: "it s 3
+-- players, 4 militant cards, no flotilla" -- so it is the Riverboat's draft without the hireling, and
+-- the Riverboat button keeps that.
+function rtt3PStart(player, value, id)
+  RTT_DRAFT_N = 4
+  RTT_MILITANT_ONLY = true
+  rttSetup(player, value, id)
+end
+
 function rttFlotillaStart(player, value, id)
   RTT_DRAFT_N = 4
   RTT_MILITANT_ONLY = true
