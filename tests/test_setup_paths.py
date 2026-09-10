@@ -4307,6 +4307,21 @@ def t_the_flotilla_draft_seats_three_and_deals_militants(src):
     # AND THE FLAG IS ONE-SHOT, like RTT_DRAFT_N and RTT_THEME beside it: the next ordinary draft must
     # not inherit it. This is the failure mode of every "mode" flag in this file.
     assert rt.eval("RTT_MILITANT_ONLY") is None, "the militant-only flag outlived its draft"
+
+    # ONE ORDER CARD PER SEAT. "the draft with 3 players should not contain the 4th turn player seat
+    # card obviously." Two decks ship, a four and a five, and the choice was a single comparison with
+    # no answer below four -- so three players were handed four seat cards. The five-card deck is the
+    # four with another on the FRONT, so a smaller table is the same deck with the front taken off.
+    cards = rt.eval("function(n) local d = JSON.decode(rttOrderDeckJson(n)) "
+                    "return #d.DeckIDs .. '/' .. #d.ContainedObjects .. '/' "
+                    ".. table.concat(d.DeckIDs, ',') end")
+    for seats, want in ((3, 3), (4, 4), (5, 5)):
+        got = cards(seats)
+        ids, con = got.split("/")[0], got.split("/")[1]
+        assert int(ids) == want and int(con) == want, \
+            "%d seats got %s order cards: %s" % (seats, ids, got)
+    assert cards(3).split("/")[2] == "802,801,800", \
+        "the three-seat deck is not the four with its front card off: %s" % cards(3)
     rt.execute("pcall(function() rttSetup(nil,nil,nil) end) FLUSH(120)")
     assert rt.eval("RTT_DN") == 5, "the next draft inherited the Flotilla's seat count"
     after = list((rt.eval("RTT_DRAFT_FACTIONS") or {}).values())
@@ -4365,13 +4380,18 @@ def t_the_flotilla_draft_seats_three_and_deals_militants(src):
     spot = rt.eval("function() local p = rttFlotillaCardSpot() "
                    "return string.format('%.3f', p[1]) end")
     assert abs(float(spot()) + 30.040) < 1e-3, "an empty row does not put it next to the map"
+    # ...and it steps its OWN width, not a landmark's. One pitch past the last town card still
+    # overlapped it -- the Flotilla card is landscape and about six units across where a landmark card
+    # is a portrait three and a half: "does not move enough with 5player marsh".
+    gap = rt.eval("RTT_FLOTILLA_GAP")
+    assert gap > rt.eval("RTT_HELPER_PITCH"), "the Flotilla steps no wider than a landmark card"
     rt.execute("T1 = MKOBJ('', {-35.098, 11.575, -19.135}, {'RTT Helper'})")
-    assert abs(float(spot()) + 40.156) < 1e-3, \
-        "one town card out and it sits at %s; it should be one pitch past -35.098" % spot()
+    assert abs(float(spot()) + 35.098 + gap) < 1e-3, \
+        "one card out and it sits at %s; it should be its own gap past -35.098" % spot()
     rt.execute("T2 = MKOBJ('', {-40.156, 11.575, -19.135}, {'RTT Helper'}) "
                "T3 = MKOBJ('', {-45.214, 11.575, -19.135}, {'RTT Helper'})")
-    assert abs(float(spot()) + 50.272) < 1e-3, \
-        "three town cards out and it sits at %s; it should be past -45.214" % spot()
+    assert abs(float(spot()) + 45.214 + gap) < 1e-3, \
+        "three cards out and it sits at %s; it should be its own gap past -45.214" % spot()
     # ...and its own card is not counted as something to make way for
     rt.execute("pcall(function() rttSpawnFlotillaKit() end) FLUSH(20)")
     once = spot()
@@ -4554,6 +4574,42 @@ def t_the_round_is_zero_until_start_is_pressed(src):
                         "round": 1, "turns": 0, "active": 1})
     assert sheet_rt(empty).eval("rttRound()") == 0, \
         "an older save with no turn played came back as a started game"
+
+
+def t_unlocking_a_prisoner_stands_it_up(src):
+    """Take the lock off a marked warrior by hand and the mark comes off with it.
+
+    Maintainer, 2026-09-10: "when you unlock a warrior that has received numpad 3 on it, the warrior
+    should also loose the tint and highlight as if it had been numpad 3 again on it."
+
+    The lock is the mark's own doing -- numpad 3 lays the piece down and locks it -- so taking that
+    lock off by hand says the same thing as pressing the key again. There is no unlock event to hear,
+    which is why this rides the tick the map's own lock already needed.
+    """
+    rt = fresh(src)
+    rt.execute("W = MKOBJ('Eyrie Warrior', {3, 1, 3}, {}) W.setColorTint({0.145, 0.457, 0.810}) "
+               "HOVER['Red'] = W rttGizmoMark('Red') FLUSH(6)")
+    assert rt.eval("function() return W.__locked end")() is True, "the prisoner was not locked"
+    assert rt.eval("function() return W.__glow ~= nil end")() is True, "it was not marked"
+
+    rt.execute("W.setLock(false) rttFreeUnlockedPrisoners() FLUSH(6)")
+    assert rt.eval("function() return W.__glow == nil end")() is True, \
+        "unlocking it left the outline on"
+    tint = rt.eval("function() local c = W.getColorTint() "
+                   "return string.format('%.3f/%.3f/%.3f', c.r, c.g, c.b) end")()
+    assert [round(float(v), 3) for v in tint.split("/")] == [0.145, 0.457, 0.810], \
+        "unlocking it did not give the warrior its colour back: %s" % tint
+    assert rt.eval("function() return RTT_LAID['" + rt.eval("W.getGUID()") + "'] == nil end")() is True, \
+        "the record still holds it as a prisoner"
+
+    # a piece that is still locked is left alone, and one that is gone is forgotten
+    rt.execute("X = MKOBJ('Cat Warrior', {5, 1, 5}, {}) HOVER['Red'] = X rttGizmoMark('Red') FLUSH(6)")
+    rt.execute("rttFreeUnlockedPrisoners() FLUSH(3)")
+    assert rt.eval("function() return X.__glow ~= nil end")() is True, \
+        "a locked prisoner was freed by the sweep"
+    rt.execute("X.destruct() rttFreeUnlockedPrisoners() FLUSH(3)")
+    assert rt.eval("function() local n = 0 for _ in pairs(RTT_LAID) do n = n + 1 end return n end")() == 0, \
+        "a destroyed prisoner was left in the record"
 
 
 def t_the_map_cannot_be_left_unlocked(src):
@@ -4986,6 +5042,20 @@ def t_the_panel_pauses_the_clock(src):
     rt.execute("CLOCK = 1215")
     assert shown() == "0:45", "the clock did not pick up where it stopped: %s" % shown()
 
+
+    # AND A PAUSED CLOCK DOES NOT FLASH. Maintainer, 2026-09-10: "if pause is hit on the turncounter it
+    # should stop flashing red when it s past 20 min." The clock stops when you pause it, so the warning
+    # that the turn is running long has nothing left to warn about.
+    rt.execute("PANEL_START = CLOCK - 25 * 60 PANEL_PAUSED = nil PANEL_DEMO = nil PANEL_ALARM = false")
+    rt.execute("PANEL_TICKS = 0 for i = 1, 8 do panelTick() end")
+    ran_hot = rt.eval("PANEL_ALARM")
+    rt.execute("PANEL_TICKS = 0 PANEL_ALARM = false for i = 1, 8 do panelTick() end")
+    ran_hot = ran_hot or rt.eval("PANEL_ALARM")
+    assert ran_hot is True, "a 25-minute turn does not flash at all"
+    rt.execute("PANEL_PAUSED = CLOCK PANEL_ALARM = false PANEL_TICKS = 0")
+    for _ in range(3):
+        rt.execute("for i = 1, 8 do panelTick() end")
+        assert rt.eval("PANEL_ALARM") is not True, "a paused clock is still flashing red"
 
 def t_a_warning_describes_what_the_click_really_does(src):
     """A button warns about the thing it is actually going to take away, and about nothing else.
@@ -5949,6 +6019,7 @@ CASES = [
     ("clearing numbers match the saves",  t_the_clearing_numbers_sit_where_the_saves_put_them),
     ("the coffin spawns where he put it", t_the_coffin_spawns_where_he_put_it),
     ("a map cannot be left unlocked",     t_the_map_cannot_be_left_unlocked),
+    ("unlocking frees a prisoner",        t_unlocking_a_prisoner_stands_it_up),
     ("round is 0 until start",            t_the_round_is_zero_until_start_is_pressed),
     ("clear all asks before it clears",   t_clear_all_objects_asks_before_it_clears),
     ("flotilla draft seats three",        t_the_flotilla_draft_seats_three_and_deals_militants),
