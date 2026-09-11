@@ -6924,6 +6924,62 @@ def t_the_box_score_builds_its_own_face(src):
     assert "B O X" in xml, "the sheet built a UI with no title in it"
 
 
+def t_a_maps_helper_card_ships_where_the_row_puts_it(src):
+    """A map's rules card spawns on the helper row, instead of being dragged onto it afterwards.
+
+    Maintainer, 2026-09-11: "the lake helper card spawns first in a spot and then is adjusted. that is
+    against the core rules. spawn immediately as it should be", then "mountain helper card as well".
+
+    Winter, Lake and Mountain all ship the SAME card -- CardID 200, a CardCustom at scale 2.55 -- and
+    its blueprint put it at z -11.85. rttLayHelperRow then hauled it seven units to the row, and did it
+    four times over, at frames 4, 12, 30 and 60, so the card was visibly seen in the wrong place first.
+    That is the spawn-then-move the core rule forbids.
+
+    THE CARD'S BOUNDS ARE MEASURED, NOT GUESSED. The row's arithmetic is x = RTT_HELPER_RIGHT - w/2
+    and z = RTT_HELPER_BOTTOM + d/2, so the answer depends on the card's real size, which the stub
+    cannot know -- it gives every object the same box. The numbers below were read off a real game in
+    the maintainer's Saves, where this exact card had been laid by this exact function: it came to rest
+    at x -29.31451, z -19.094593, which is w 5.62902 by d 7.810814. Handing the stub those bounds makes
+    the harness reproduce the game's own arithmetic.
+
+    What is asserted is the join between the two: take each map's blueprint move_to, put the card
+    there the way makeMap does, run the layout, and require that it does not move.
+    """
+    rt = fresh(src)
+    # the card's world position is its move_to for x and z (makeMap scales by 1/15.5 then by 15.5
+    # again, so the two cancel) and move_to.y - 0.1 + 11.56 for height
+    rows = rt.eval("""function()
+        local out = {}
+        for _, id in ipairs({ "Winter Map", "Lake Map", "Mountain Map" }) do
+          local kit = EVERYTHING['Maps'] and EVERYTHING['Maps'][id]
+          for _, v in ipairs((kit and kit['data']) or {}) do
+            if v.json:match('"Name": "Card') ~= nil then
+              out[#out+1] = string.format("%s|%.6f|%.6f|%.6f", id, v.move_to[1],
+                                          v.move_to[2] - 0.1 + 11.56, v.move_to[3])
+            end
+          end
+        end
+        return table.concat(out, ";")
+    end""")()
+    cards = [r.split("|") for r in rows.split(";") if r]
+    assert len(cards) == 3, "expected one card on each of the three maps, found %d" % len(cards)
+
+    W, D = 5.62902, 7.810814          # measured, see the docstring
+    for name, x, y, z in cards:
+        x, y, z = float(x), float(y), float(z)
+        rt.execute("""
+          for _, o in ipairs(getAllObjects()) do o.destruct() end
+          CARD = MKOBJ('%s rules', {%f, %f, %f}, {'Map Object', 'RTT Helper'})
+          CARD.__bounds = { size = { x = %f, y = 0.3, z = %f }, center = {x=0,y=0,z=0} }
+          rttLayHelperRow()
+        """ % (name, x, y, z, W, D))
+        gx = rt.eval("function() return CARD.getPosition().x end")()
+        gz = rt.eval("function() return CARD.getPosition().z end")()
+        assert abs(gx - x) < 0.01 and abs(gz - z) < 0.01, (
+            "%s: the card ships at (%.3f, %.3f) and the row moves it to (%.3f, %.3f)"
+            % (name, x, z, gx, gz))
+
+
 CASES = [
     ("manual path drives the turn system",   t_manual_turn_order),
     ("manual path spawns 4 / 5 boards",      t_boards_spawn),
@@ -6942,6 +6998,7 @@ CASES = [
     ("gizmo follows your last pick",      t_the_gizmo_follows_the_faction_you_last_picked),
     ("panel flashes past 20 minutes",      t_the_panel_flashes_after_twenty_minutes),
     ("box score builds its own face",  t_the_box_score_builds_its_own_face),
+    ("map helper card ships on the row", t_a_maps_helper_card_ships_where_the_row_puts_it),
     ("crow plots inside the hidden zone",    t_crow_plots_spawn_inside_the_hidden_zone),
     ("crafted board same side for all",      t_crafted_board_sits_the_same_side_for_every_faction),
     ("no setup card on crafted board",       t_no_setup_card_rides_on_the_crafted_board),

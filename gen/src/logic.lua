@@ -6644,9 +6644,21 @@ end
 --
 -- Placing ONE card against a row it did not control was the mistake, and it failed differently on
 -- every map, because the cards it had to avoid are not on one line to begin with. Counted off the
--- blueprints: Summer and Gorge ship no card at all; Winter, Lake and Mountain ship one at z -11.85;
--- the Marsh ships one at -17.94; and the five-player Marsh adds three town cards at -19.135. Three
--- different lines and four different counts, none of them the Flotilla's.
+-- blueprints: Summer and Gorge ship no card at all; Winter, Lake and Mountain ship one; the Marsh
+-- ships one at -17.94; and the five-player Marsh adds three town cards at -19.135. Three different
+-- lines and four different counts, none of them the Flotilla's.
+--
+-- THE MAPS' OWN CARD NOW SHIPS WHERE THE ROW PUTS IT. Maintainer, 2026-09-11: "the lake helper card
+-- spawns first in a spot and then is adjusted. that is against the core rules. spawn immediately as
+-- it should be", and "mountain helper card as well". Winter, Lake and Mountain all ship the same card
+-- (CardID 200, scale 2.55) and it sat at z -11.85 until this function dragged it seven units to the
+-- row, four times over, at frames 4, 12, 30 and 60.
+--
+-- Its blueprint move_to is now the first slot itself -- x -29.31451, z -19.094593 -- which is
+-- -26.5 - w/2 and -23.0 + d/2 for this card's measured 5.62902 x 7.810814 bounds. It is first in the
+-- row whenever it is out: the sort puts the Flotilla last and orders everything else by descending x,
+-- and a landmark card is dropped further left than this. So the pass below now finds it already
+-- standing where it belongs and the move is a no-op.
 --
 -- So nothing is placed relative to anything else. The row is BUILT: every helper card is measured,
 -- ordered, and set down from a fixed right edge with a fixed gap, near edges on one line. Five is the
