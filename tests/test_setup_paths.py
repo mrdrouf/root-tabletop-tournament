@@ -6607,6 +6607,49 @@ def t_a_faction_spawns_a_few_pieces_at_a_time(src):
         assert n >= least, "%s put down %d pieces, expected at least %d" % (faction, n, least)
 
 
+def t_a_captain_card_lands_upright_in_its_slot(src):
+    """The captain board's three slots turn a card square to the board.
+
+    Maintainer, 2026-09-11: "the captain board of the knave needs to rotate the captain card in place
+    with the snap", and "if I put a captain card horizontally it stays horizontal instead of rotating
+    vertically."
+
+    The board's baked snap points carry a Position and nothing else, so TTS snapped where the card
+    landed and left its facing alone. Rotation snapping is asked for per point.
+
+    IT IS ASKED FOR AT SPAWN, NOT BAKED, and that is deliberate: across 2,183 snap points in the
+    maintainer's whole Saves folder, TTS itself has only ever written Position and Rotation, so there
+    is no evidence the save format carries the flag -- and a key the format ignores would look like a
+    fix and do nothing. The Lua field names are known, so the spawn callback uses them.
+
+    ZERO MEANS THE BOARD'S OWN FACING. Snap rotations are local, so a card lands square to the board
+    whatever angle the seat put it at, and the slots are portrait -- 0.39 by 0.56 in local units,
+    measured off the snap spacing and the board art -- so square to the board is upright.
+    """
+    rt = fresh(src)
+    rt.execute("BOARD = MKOBJ('Knaves Board', {0, 11.6, 0}, {}) "
+               "pcall(function() rttSpawnCaptainsFor(BOARD) end) FLUSH(30) "
+               "CAP = nil for _, o in ipairs(getAllObjects()) do "
+               "  if o.hasTag('RTT Captains') then CAP = o end end")
+    assert rt.eval("function() return CAP ~= nil end")(), "no captain board was spawned"
+    n = rt.eval("function() return #(CAP.getSnapPoints() or {}) end")()
+    assert n == 3, "the captain board has %d slots, expected 3" % n
+    bad = rt.eval("""function()
+        local out = {}
+        for i, s in ipairs(CAP.getSnapPoints() or {}) do
+          local r = s.rotation
+          local ry = r and (r[2] or r.y) or nil
+          if s.rotation_snap ~= true then out[#out+1] = "slot " .. i .. " does not snap rotation" end
+          if ry == nil or math.abs(ry) > 0.001 then
+            out[#out+1] = "slot " .. i .. " turns a card to " .. tostring(ry) .. ", not square to the board"
+          end
+        end
+        return out
+    end""")()
+    bad = list(dict(bad).values()) if bad else []
+    assert not bad, "; ".join(bad)
+
+
 CASES = [
     ("manual path drives the turn system",   t_manual_turn_order),
     ("manual path spawns 4 / 5 boards",      t_boards_spawn),
@@ -6725,6 +6768,7 @@ CASES = [
     ("resync button asks nothing",        t_the_resync_button_asks_nothing_and_destroys_nothing),
     ("resync survives churn",             t_a_resync_survives_the_table_changing_under_it),
     ("a faction spawns a few at a time",  t_a_faction_spawns_a_few_pieces_at_a_time),
+    ("a captain card lands upright",      t_a_captain_card_lands_upright_in_its_slot),
 ]
 
 

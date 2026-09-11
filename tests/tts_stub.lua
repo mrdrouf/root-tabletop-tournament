@@ -233,7 +233,11 @@ function MKOBJ(name, pos, tags)
   function o.call() end function o.setVar() end function o.getVar() end
   function o.setTable() end function o.getTable() end
   function o.createButton() end function o.clearButtons() end
-  function o.setSnapPoints() end function o.getQuantity() return 1 end
+  -- SNAP POINTS GO BOTH WAYS. setSnapPoints used to be a no-op, so a test could not tell a board that
+  -- had been given rotation snapping from one that had not -- which is the whole of what the Knaves'
+  -- captain board asks for at spawn.
+  function o.setSnapPoints(pts) o.__snaps = pts or {} end
+  function o.getQuantity() return 1 end
   function o.getStateId() return 1 end function o.setState(s) return o end
   function o.deal() end function o.flip() end function o.setDescription() end
   function o.getDescription() return "" end function o.getCustomObject() return {} end

@@ -4292,6 +4292,28 @@ function rttSpawnCaptainsFor(rulesBoard)
         pcall(function() board.addTag("RTT Faction") end) -- goes out WITH the faction on re-draft
         pcall(function() board.addTag("RTT Captains") end)
         pcall(function() board.setLock(true) end)          -- LOCKED at the baked size (no resize panel)
+        -- A CARD DROPPED SIDEWAYS TURNS UPRIGHT. Maintainer, 2026-09-11: "the captain board of the
+        -- knave needs to rotate the captain card in place with the snap", and "if I put a captain card
+        -- horizontally it stays horizontal instead of rotating vertically."
+        --
+        -- The baked snaps carry a Position and nothing else, so TTS snapped where the card landed and
+        -- left its facing alone. Rotation snapping is asked for per point, and it is asked for HERE
+        -- rather than in the blueprint because the save format may not carry the flag at all: across
+        -- 2,183 snap points in the maintainer's entire Saves folder, TTS itself has only ever written
+        -- Position and Rotation. Guessing a key that the format ignores would look like a fix and do
+        -- nothing. The Lua field names are known, so this uses them.
+        --
+        -- ZERO, meaning the board's own facing. Snap rotations are LOCAL, so a card lands square to
+        -- the board whatever angle the seat put the board at -- and the three slots are portrait
+        -- (0.39 wide by 0.56 deep in local units, measured off the snap spacing and the board art), so
+        -- square to the board IS upright. rotZ 0 is face up, which is how a captain sits in a slot.
+        pcall(function()
+          local pts = {}
+          for _, sp in ipairs(board.getSnapPoints() or {}) do
+            pts[#pts + 1] = { position = sp.position, rotation = { 0, 0, 0 }, rotation_snap = true }
+          end
+          if #pts > 0 then board.setSnapPoints(pts) end
+        end)
         -- Snaps are BAKED into the board JSON (AttachedSnapPoints, from the crafted board's own
         -- coordinate system) -- no runtime snap maths. The drafted captains are deliberately NOT moved
         -- here: they stay at RTT_KNAVE_CAP, where rttDraftKnavesCaptains deals them. There used to be a
