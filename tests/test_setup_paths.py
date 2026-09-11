@@ -6746,11 +6746,138 @@ def t_the_vagabond_gets_no_advanced_setup_card(src):
         end
       end
     """)
+    # NOT A FIXED NUMBER. The kit no longer carries the eleven relationship markers -- rttRelSync
+    # places one as each faction arrives -- so what it spawns is everything else, counted off the
+    # blueprint so this cannot go stale. The guard is here only so "no loose card" cannot pass by
+    # spawning nothing at all.
+    want = rt.eval("""function()
+        local n = 0
+        for _, v in ipairs(EVERYTHING['Standard']['Vagabond Layout']['data']) do
+          local nick = v.json:match('"Nickname": "([^"]*)"')
+          if nick == nil or rttRelKit().bp[nick] == nil then n = n + 1 end
+        end
+        return n
+    end""")()
     n = rt.eval("function() return #SEEN end")()
-    assert n >= 17, "the vagabond kit only spawned %d pieces" % n
+    assert n >= want, "the vagabond kit spawned %d of its %d non-marker pieces" % (n, want)
     c = rt.eval("function() return #CARDS end")()
     got = [rt.eval("function() return CARDS[%d] end" % (i + 1))() for i in range(c)]
     assert not got, "a loose card still lands on the vagabond's crafted board: CardID %s" % ", ".join(got)
+
+
+def t_relationship_markers_follow_the_factions_in_play(src):
+    """The vagabond gets one relationship marker per faction actually playing, as it arrives.
+
+    Maintainer, 2026-09-11: "for the vagabond relationship markers could you spawn only the ones from
+    factions in the game that have been selected at the moment they are selected and fill the
+    rightmost empty position in order."
+
+    The kit laid all ELEVEN out in a fixed row whatever was on the table, so a three-player game got
+    eight markers for factions nobody was playing.
+
+    Three things are checked, because each can break on its own:
+
+    WHO. Only a faction that is seated gets a marker, and a vagabond never does -- the kit ships no
+    marker for one, so a second vagabond is a faction the first has nothing to describe.
+
+    WHEN. It works in both directions. A faction picked after the vagabond gets its marker then; a
+    vagabond picked after everyone else catches up on all of them at once. Only the second of those
+    goes through a different branch, and only this test would notice it stop.
+
+    WHERE. Packed against the right end of the row in arrival order, and on the FAR row the offsets
+    are mirrored -- the seat's own 180 turns the row and the player together, so +x in the kit's frame
+    is the seated player's right at both rows. Getting that wrong would build the row backwards for
+    half the table, which is exactly the class of bug a near-seat-only test misses.
+    """
+    # THE HOOK KNOWS NOTHING OF THE NEW CODE -- it matches the marker's own nickname, which is a
+    # property of the blueprint. That is what lets this same test run against the previous build and
+    # fail there for the real reason (all eleven, at once, whoever is playing) rather than erroring
+    # on a function that does not exist yet.
+    hook = """
+      REL = {}
+      local _s = spawnObjectJSON
+      spawnObjectJSON = function(p)
+        local nick = (p.json or ''):match('"Nickname": "([^"]*)"')
+        if nick ~= nil and nick:match("Relationship$") then
+          local q = p.position
+          REL[#REL+1] = string.format("%s|%.3f|%.3f", nick, q.x or q[1], q.z or q[3])
+        end
+        return _s(p)
+      end
+    """
+
+    def placed(script):
+        rt = fresh(src)
+        rt.execute(hook + script)
+        n = rt.eval("function() return #REL end")()
+        out = []
+        for i in range(n):
+            nick, x, z = rt.eval("function() return REL[%d] end" % (i + 1))().split("|")
+            out.append((nick, float(x), float(z)))
+        return out
+
+    # the row's own geometry, read off the BLUEPRINT so it is available on either build
+    rt = fresh(src)
+    slots = rt.eval("""function()
+        local t = {}
+        for _, v in ipairs(EVERYTHING['Standard']['Vagabond Layout']['data']) do
+          local nick = v.json:match('"Nickname": "([^"]*)"')
+          if nick ~= nil and nick:match("Relationship$") then
+            t[#t+1] = string.format('%.3f', v.move_to[1])
+          end
+        end
+        return table.concat(t, ',')
+    end""")()
+    slots = [float(v) for v in slots.split(",")]
+    assert len(slots) == 11, "the row has %d slots, expected 11" % len(slots)
+    right = sorted(slots)[::-1]
+
+    # THE DEFECT ITSELF, stated as plainly as it can be: a vagabond alone on the table is owed no
+    # relationship markers at all, because no other faction is playing yet.
+    alone = placed("""
+      pcall(function() rttSpawnFaction('Vagabond Layout', 0, -20, false) end) FLUSH(400)
+    """)
+    assert not alone, \
+        "the kit put out %d relationship markers for a table with no other faction on it" % len(alone)
+
+    # WHO and WHERE: a vagabond, then three factions picked one at a time
+    got = placed("""
+      pcall(function() rttPlaceFaction('Tinker', 0, -20, false, 'White', false) end) FLUSH(300)
+      pcall(function() rttPlaceFaction('Marquise de Cat', -20, -20, false, 'Orange', false) end) FLUSH(300)
+      pcall(function() rttPlaceFaction('Eyrie Dynasties', 20, -20, false, 'Blue', false) end) FLUSH(300)
+      pcall(function() rttPlaceFaction('Keepers in Iron', 40, -20, false, 'Yellow', false) end) FLUSH(300)
+    """)
+    assert [g[0] for g in got] == ["Marquise Relationship", "Eyrie Relationship",
+                                   "Keepers Relationship"], \
+        "three factions are playing; the markers placed were %s" % [g[0] for g in got]
+    for i, (nick, x, _) in enumerate(got):
+        assert abs(x - right[i]) < 0.01, \
+            "%s took x=%.3f; the %s empty slot is %.3f" % (nick, x, ["1st", "2nd", "3rd"][i], right[i])
+
+    # WHEN, the other way round: the vagabond arrives last and catches up on both
+    late = placed("""
+      pcall(function() rttPlaceFaction('Marquise de Cat', -20, -20, false, 'Orange', false) end) FLUSH(300)
+      pcall(function() rttPlaceFaction('Eyrie Dynasties', 20, -20, false, 'Blue', false) end) FLUSH(300)
+      pcall(function() rttPlaceFaction('Tinker', 0, -20, false, 'White', false) end) FLUSH(300)
+    """)
+    assert [g[0] for g in late] == ["Marquise Relationship", "Eyrie Relationship"], \
+        "a vagabond picked last did not catch up: %s" % [g[0] for g in late]
+
+    # WHERE, on the far row: same slots, mirrored through the seat
+    far = placed("""
+      pcall(function() rttPlaceFaction('Tinker', 0, 20, true, 'White', false) end) FLUSH(300)
+      pcall(function() rttPlaceFaction('Marquise de Cat', -20, -20, false, 'Orange', false) end) FLUSH(300)
+    """)
+    assert len(far) == 1, "the far-row vagabond got %d markers, expected 1" % len(far)
+    assert abs(far[0][1] + right[0]) < 0.01, \
+        "the far row did not mirror the row: x=%.3f, expected %.3f" % (far[0][1], -right[0])
+
+    # and a second vagabond is not a faction the first has a marker for
+    two = placed("""
+      pcall(function() rttPlaceFaction('Tinker', 0, -20, false, 'White', false) end) FLUSH(300)
+      pcall(function() rttPlaceFaction('Ranger', 30, -20, false, 'Green', false) end) FLUSH(300)
+    """)
+    assert not two, "a vagabond was given a relationship marker: %s" % [t[0] for t in two]
 
 
 CASES = [
@@ -6874,6 +7001,7 @@ CASES = [
     ("a captain card lands upright",      t_a_captain_card_lands_upright_in_its_slot),
     ("no kit loses pieces to its cb",   t_no_kit_loses_pieces_to_its_own_callback),
     ("vagabond gets no setup card",     t_the_vagabond_gets_no_advanced_setup_card),
+    ("rel markers follow the table",    t_relationship_markers_follow_the_factions_in_play),
 ]
 
 

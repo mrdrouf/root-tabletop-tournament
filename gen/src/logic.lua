@@ -17,6 +17,11 @@ function onSave()
         seats[#seats + 1] = { i = i, pos = { s.pos[1], s.pos[2] }, color = s.color,
                               faction = s.faction, owner = s.owner, hand = s.hand,
                               key = s.key, vagN = s.vagN,
+                              -- rel: where this vagabond's relationship row sits, and relDone: which
+                              -- factions it has already been given a marker for. Both are needed
+                              -- after a reload or the next faction picked would restart the row at
+                              -- its first slot, on top of the markers already there.
+                              rel = s.rel, relDone = s.relDone,
                               picker = s.picker, pickedAt = s.pickedAt }
       end
     end
@@ -68,6 +73,7 @@ function onLoad(state)
                                       color = e.color, faction = e.faction,
                                       owner = e.owner, hand = e.hand,
                                       key = e.key, vagN = e.vagN,
+                                      rel = e.rel, relDone = e.relDone,
                                       picker = e.picker, pickedAt = e.pickedAt }
       end
     end
@@ -1252,6 +1258,32 @@ RTT_BOARD_SCALE = 15.5
 
 function rttPlaceScale()
   return Vector({ 1 / RTT_BOARD_SCALE, 1, 1 / RTT_BOARD_SCALE })
+end
+
+-- WHERE A KIT PIECE LANDS, given the seat it belongs to.
+--
+-- move_to is the piece's offset from the seat's centre, and it is already in WORLD units: the two
+-- scalings cancel -- rttPlaceScale is 1/RTT_BOARD_SCALE and the line below multiplies by
+-- RTT_BOARD_SCALE again -- which is why the vagabond's relationship row, 1.331 apart in the
+-- blueprint, is 1.331 apart on the table.
+--
+-- A far-row seat mirrors the offset; a seat placed at an angle rotates it. Pulled out of
+-- rttSpawnFaction so that a piece placed on its own later -- a relationship marker arriving with the
+-- faction it belongs to, see rttSpawnRelMarker -- lands in exactly the row the kit would have built,
+-- rather than in a second copy of this sum that can drift from it.
+function rttKitPos(cx, cz, flip, rotationY, move_to)
+  local vec = Vector(move_to) * rttPlaceScale()
+  if rotationY ~= nil then
+    vec = vec * Vector(RTT_BOARD_SCALE, 1, RTT_BOARD_SCALE)
+    vec:rotateOver("y", rotationY)
+  elseif flip then
+    vec = vec * Vector(-RTT_BOARD_SCALE, 1, -RTT_BOARD_SCALE)
+  else
+    vec = vec * Vector(RTT_BOARD_SCALE, 1, RTT_BOARD_SCALE)
+  end
+  local p = Vector(cx, 11.56, cz) + vec
+  p.y = p.y - 0.1
+  return p
 end
 
 function spawnDraftFaction(i,faction,color)
@@ -4704,6 +4736,13 @@ function rttSpawnFaction(faction, cx, cz, flip, category, rotationY, opts)
         isCap = true
       end
     end
+    -- The eleven relationship markers do not come with the kit any more: rttRelSync places one as
+    -- each faction arrives, so only the factions actually playing get one. See RTT_REL_FOR.
+    local isRel = false
+    if faction == "Vagabond Layout" then
+      local nick = v.json:match('"Nickname": "([^"]*)"')
+      if nick ~= nil and rttRelKit().bp[nick] ~= nil then isRel = true end
+    end
     -- the vagabond kit: keep the one VP tile this seat was given, drop the other ten
     local piece = v
     if opts ~= nil and opts.vpKeep ~= nil then
@@ -4717,9 +4756,8 @@ function rttSpawnFaction(faction, cx, cz, flip, category, rotationY, opts)
         end
       end
     end
-    if not isDice and not isCap then objects[#objects + 1] = piece end
+    if not isDice and not isCap and not isRel then objects[#objects + 1] = piece end
   end
-  local scale = rttPlaceScale()
   local spawnRy = rotationY or (flip and 180 or 0)
   -- Which extra return slots this spawn has already recorded, so the first piece of a given name
   -- claims them and later pieces of the same name do not redo the work. See rttAddHomeExtras.
@@ -4766,17 +4804,7 @@ function rttSpawnFaction(faction, cx, cz, flip, category, rotationY, opts)
   -- own callback, so the board has a collider under them first.
   local specs = {}
   for _, v in ipairs(objects) do
-    local vec = Vector(v.move_to) * scale
-    if rotationY ~= nil then
-      vec = vec * Vector(15.5, 1, 15.5)
-      vec:rotateOver("y", rotationY)
-    elseif flip then
-      vec = vec * Vector(-15.5, 1, -15.5)
-    else
-      vec = vec * Vector(15.5, 1, 15.5)
-    end
-    local new_pos = Vector(cx, 11.56, cz) + vec
-    new_pos.y = new_pos.y - 0.1
+    local new_pos = rttKitPos(cx, cz, flip, rotationY, v.move_to)
     -- Knaves: this piece IS the rules board (its blueprint json carries the board image). Spawn the
     -- Captains board FROM this exact board -> correct seat, same spawn flow, cleared with the faction.
     -- Detected on the blueprint DATA (deterministic), not a runtime getCustomObject (timing-safe).
@@ -4843,6 +4871,10 @@ function rttPlaceFaction(faction, cx, cz, flip, color, isDraft, category, rotati
   if isVagabond(faction) then
     seat.vagN = rttVagabondOrdinal(si)
     seat.key  = rttVagabondKey(seat.vagN)
+    -- WHERE THIS VAGABOND'S RELATIONSHIP ROW IS, kept because the markers no longer arrive with the
+    -- kit: one is placed each time another faction lands, which can be long after this, and the row
+    -- is positioned from the seat's own origin and facing. This is the only moment both are known.
+    seat.rel = { x = cx, z = cz, flip = flip, ry = rotationY }
   else
     seat.vagN = nil
     seat.key  = rttFactionKey(faction)
@@ -4915,6 +4947,9 @@ function rttPlaceFaction(faction, cx, cz, flip, color, isDraft, category, rotati
     spawnSupportersHand(supColor, seatHand)
     rttDealAllianceSupporters(supColor, before, 12)
   end
+  -- A faction has landed, so every vagabond on the table is owed its marker. pcall'd for the same
+  -- reason the vagabond kit's own spawn is: nothing here may cost a player the faction they picked.
+  pcall(function() rttRelSync() end)
   return true
 end
 
@@ -4979,6 +5014,133 @@ RTT_VAGABOND_VP_ORDER = { "White", "Black" }        -- first vagabond, second va
 
 RTT_VAGABOND_VP_ALL = {}
 for _, g in pairs(RTT_VAGABOND_VP) do RTT_VAGABOND_VP_ALL[g] = true end
+
+--------------------------------------------------- the vagabond's relationship markers --
+-- ONE MARKER PER FACTION ACTUALLY IN THE GAME, placed as that faction arrives.
+--
+-- Maintainer, 2026-09-11: "for the vagabond relationship markers could you spawn only the ones from
+-- factions in the game that have been selected at the moment they are selected and fill the rightmost
+-- empty position in order."
+--
+-- The kit laid all ELEVEN out in a row whatever was on the table, so a three-player game got eight
+-- markers for factions nobody was playing and the vagabond cleared them off by hand.
+--
+-- THE MARKER'S NICKNAME IS NOT THE FACTION'S NAME -- "Corvids Relationship" for the Corvid
+-- Conspiracy, "Duchy Relationship" for the Underground Duchy, "Hundreds Relationship" for the Lord of
+-- the Hundreds -- so the two are mapped here, faction first because the faction is what every caller
+-- holds. A vagabond is absent on purpose: the kit ships no marker for one, so a second vagabond is a
+-- faction the first has nothing to describe.
+RTT_REL_FOR = {
+  ["Marquise de Cat"]      = "Marquise Relationship",
+  ["Eyrie Dynasties"]      = "Eyrie Relationship",
+  ["Woodland Alliance"]    = "Woodland Alliance Relationship",
+  ["The Lizard Cult"]      = "The Lizard Cult Relationship",
+  ["Riverfolk Company"]    = "Riverfolk Company Relationship",
+  ["Underground Duchy"]    = "Duchy Relationship",
+  ["Corvid Conspiracy"]    = "Corvids Relationship",
+  ["Lord of the Hundreds"] = "Hundreds Relationship",
+  ["Keepers in Iron"]      = "Keepers Relationship",
+  ["Twilight Council"]     = "Council Relationship",
+  ["Lilypad Diaspora"]     = "Diaspora Relationship",
+}
+
+-- WHICH END THE ROW PACKS AGAINST. "fill the rightmost empty position": the first faction's marker
+-- takes the far right slot and each next one lands to its left, so the row stays packed against that
+-- end whatever the player count. +x is the seated player's right in the kit's own frame at BOTH rows
+-- -- the far row's 180 turns the offsets and the player together -- so the row reads the same way
+-- round the table. Set this to "left" to pack from the vagabond board's end instead; it is the only
+-- thing that decides the direction.
+RTT_REL_FILL = "right"
+
+-- THE ROW, READ OFF THE BLUEPRINT rather than written down a second time: eleven slots at one z,
+-- 1.331 apart, in the kit's own frame. Cached -- it cannot change while the mod is loaded.
+--
+-- Slots and blueprints are kept apart because a packed row breaks the pairing: the Keepers' marker
+-- goes wherever the row has got to, not into the slot the kit drew for it.
+function rttRelKit()
+  if RTT_REL_KIT ~= nil then return RTT_REL_KIT end
+  local wanted = {}
+  for _, nick in pairs(RTT_REL_FOR) do wanted[nick] = true end
+  local rows = {}
+  local kit = EVERYTHING['Standard'] and EVERYTHING['Standard']['Vagabond Layout']
+  for _, v in ipairs((kit and kit['data']) or {}) do
+    local nick = v.json:match('"Nickname": "([^"]*)"')
+    if nick ~= nil and wanted[nick] then
+      rows[#rows + 1] = { move_to = v.move_to, nick = nick, json = v.json }
+    end
+  end
+  table.sort(rows, function(a, b) return a.move_to[1] < b.move_to[1] end)
+  local out = { slots = {}, bp = {} }
+  for _, r in ipairs(rows) do
+    out.slots[#out.slots + 1] = r.move_to
+    out.bp[r.nick] = r.json
+  end
+  RTT_REL_KIT = out
+  return out
+end
+
+-- How many markers this vagabond has already been given.
+--
+-- COUNTED FROM THE SEAT, NOT FROM THE TABLE, and that is the whole point of keeping a record: these
+-- markers exist to be picked up and moved onto the relationship track, so a slot stops being occupied
+-- the moment its marker is actually used. Asking the table which slots are free would hand the next
+-- faction a slot whose marker had simply been played.
+function rttRelCount(seat)
+  local n = 0
+  for _ in pairs(seat.relDone or {}) do n = n + 1 end
+  return n
+end
+
+-- Put one faction's marker on one vagabond's row.
+function rttSpawnRelMarker(seat, faction)
+  if seat.rel == nil then return false end
+  local kit = rttRelKit()
+  local nick = RTT_REL_FOR[faction]
+  local json = nick ~= nil and kit.bp[nick] or nil
+  if json == nil then return false end
+  local n = rttRelCount(seat)
+  local slot = (RTT_REL_FILL == "right") and kit.slots[#kit.slots - n] or kit.slots[n + 1]
+  if slot == nil then return false end            -- more factions than the row has slots
+  seat.relDone = seat.relDone or {}
+  seat.relDone[faction] = true
+  local r = seat.rel
+  spawnObjectJSON({
+    json = json,
+    position = rttKitPos(r.x, r.z, r.flip, r.ry, slot),
+    callback_function = function(o)
+      o.addTag("RTT Faction")                     -- so Clear All takes it with the rest of the kit
+      -- the same half-turn the kit gives every other piece at a far-row seat
+      local ry = r.ry or (r.flip and 180 or 0)
+      if ry ~= 0 then
+        o.setRotation({ o.getRotation().x, o.getRotation().y + ry, o.getRotation().z })
+      end
+      pcall(function()
+        local p, rot = o.getPosition(), o.getRotation()
+        RTT_HOME[o.getGUID()] = { n = o.getName() or "", f = "Vagabond Layout",
+                                  p = { p.x, p.y, p.z }, r = { rot.x, rot.y, rot.z } }
+      end)
+    end,
+  })
+  return true
+end
+
+-- Bring every vagabond's row up to date with the table. Called whenever a faction lands, which covers
+-- both directions at once: a faction picked AFTER the vagabond gets its marker there and then, and a
+-- vagabond picked after the others catches up on all of them in seat order.
+function rttRelSync()
+  for _, s in ipairs(RTT_SEATS or {}) do
+    if s ~= nil and s.rel ~= nil and s.faction ~= nil and isVagabond(s.faction) then
+      s.relDone = s.relDone or {}
+      for _, t in ipairs(RTT_SEATS or {}) do
+        if t ~= nil and t.faction ~= nil and RTT_REL_FOR[t.faction] ~= nil
+           and s.relDone[t.faction] == nil then
+          rttSpawnRelMarker(s, t.faction)
+        end
+      end
+    end
+  end
+end
+
 
 -- How many vagabond seats already hold one, counting only seats BEFORE this one so the answer does
 -- not change when a later seat is filled.
