@@ -6961,6 +6961,50 @@ def t_the_panels_numbers_are_set_in_luminari(src):
             "%s became the colon without being given the colon's width" % slot
 
 
+def t_the_box_score_builds_its_own_face(src):
+    """The sheet's UI builds, and what it builds is well-formed markup.
+
+    THE BOX SCORE HAD NO COVERAGE OF ITS OWN UI AT ALL. It is the largest script in the mod -- 3,965
+    lines living as a JSON blob inside gen/src/logic.lua -- and the suite only ever loaded the BOARD
+    script, so a runtime error anywhere in rebuildUI would have blanked the entire sheet at the table
+    with every test still green. It could not even be driven here until now: onLoad registers
+    right-click entries and the stub had no addContextMenuItem, so the script threw before emitting a
+    single character of UI.
+
+    This asserts the two things that make the difference between a sheet and a blank slab: that
+    onLoad and rebuildUI run without error, and that the XML they produce parses. Malformed markup is
+    the specific failure that shows up as an empty object in TTS rather than as an error, because the
+    XML is handed to a parser that simply gives up.
+    """
+    sheet = json.loads(re.search(r"RTT_BOXSCORE_JSON = \[====\[(.*?)\]====\]", src, re.S).group(1))
+    rt = lupa.LuaRuntime(unpack_returned_tuples=True)
+    rt.execute(open(os.path.join(HERE, "tts_stub.lua"), encoding="utf-8").read())
+    rt.execute(sheet["LuaScript"].replace("!=", "~="))
+    rt.execute("LASTXML = '' self.UI.setXml = function(x) LASTXML = x end")
+
+    err = rt.eval("function() local ok, e = pcall(function() onLoad('') FLUSH(40) rebuildUI() end) "
+                  "if ok then return '' end return tostring(e) end")()
+    assert err == "", "the box score script fails while building its UI: %s" % err
+
+    xml = rt.eval("LASTXML") or ""
+    assert len(xml) > 2000, "the box score emitted almost no UI: %d characters" % len(xml)
+
+    import xml.etree.ElementTree as ET
+    try:
+        ET.fromstring("<rtt>" + xml + "</rtt>")
+    except ET.ParseError as e:
+        # show the neighbourhood of the fault, or the message alone is useless on 15KB of markup
+        pos = getattr(e, "position", None)
+        where = ""
+        if pos:
+            flat = ("<rtt>" + xml).split("\n")[pos[0] - 1]
+            where = "\n    ...%s..." % flat[max(0, pos[1] - 60):pos[1] + 60]
+        raise AssertionError("the box score emits markup TTS cannot parse: %s%s" % (e, where))
+
+    # and it is the box score, not some fallback: its title is there
+    assert "B O X" in xml, "the sheet built a UI with no title in it"
+
+
 CASES = [
     ("manual path drives the turn system",   t_manual_turn_order),
     ("manual path spawns 4 / 5 boards",      t_boards_spawn),
@@ -6979,6 +7023,7 @@ CASES = [
     ("gizmo follows your last pick",      t_the_gizmo_follows_the_faction_you_last_picked),
     ("panel flashes past 20 minutes",      t_the_panel_flashes_after_twenty_minutes),
     ("panel numbers are Luminari",     t_the_panels_numbers_are_set_in_luminari),
+    ("box score builds its own face",  t_the_box_score_builds_its_own_face),
     ("crow plots inside the hidden zone",    t_crow_plots_spawn_inside_the_hidden_zone),
     ("crafted board same side for all",      t_crafted_board_sits_the_same_side_for_every_faction),
     ("no setup card on crafted board",       t_no_setup_card_rides_on_the_crafted_board),

@@ -241,6 +241,11 @@ function MKOBJ(name, pos, tags)
   -- Vagabond Layout's spawn threw on its first ruin item and the harness saw 2 of its 17 pieces
   -- arrive, which reads exactly like a broken blueprint and is not one.
   function o.destroy() o.destruct() end
+  -- The right-click menu. The box score registers its entries in onLoad, so without these the SHEET
+  -- script could not be driven here at all -- it threw on line 3926 before emitting any UI, which is
+  -- why nothing had ever read the markup it actually produces.
+  function o.addContextMenuItem(label, fn) o.__menu = o.__menu or {} o.__menu[label] = fn return true end
+  function o.clearContextMenu() o.__menu = {} return true end
   function o.setSnapPoints(pts) o.__snaps = pts or {} end
   function o.getQuantity() return 1 end
   function o.getStateId() return 1 end function o.setState(s) return o end
