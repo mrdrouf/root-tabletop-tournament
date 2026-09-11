@@ -3788,8 +3788,17 @@ def t_the_panel_flashes_after_twenty_minutes(src):
     rt.execute('PANEL_RTXT = "7" PANEL_TTXT = "3:21"')
     g.buildUI()
     xml = g.LASTXML or ""
-    assert ">7<" in xml, "a rebuild lost the round number: it re-emits the placeholder"
-    assert ">3:21<" in xml, "a rebuild lost the clock: it re-emits the placeholder"
+    # READ AS GLYPHS, because the numbers are images now, not type: TTS cannot be given a font, so
+    # each digit is its own baked Luminari image and a field is a row of slots. The check is the same
+    # one it always was -- what the rebuild emits must be the CURRENT value -- asked of the markup
+    # that now carries it.
+    def slots(field):
+        return re.findall(r'id="%s\d" image="(\w+)"[^/]*?active="(\w+)"' % field, xml)
+    shown = lambda field: "".join(g[3:] for g, on in slots(field) if on == "true")
+    assert shown("pnlRound") == "7", \
+        "a rebuild lost the round number: it shows %r" % shown("pnlRound")
+    assert shown("pnlTime") == "3colon21", \
+        "a rebuild lost the clock: it shows %r" % shown("pnlTime")
 
     # the demo: three DEAL presses inside three seconds, with no turn running at all
     g.PANEL_START = None
@@ -6880,6 +6889,78 @@ def t_relationship_markers_follow_the_factions_in_play(src):
     assert not two, "a vagabond was given a relationship marker: %s" % [t[0] for t in two]
 
 
+def t_the_panels_numbers_are_set_in_luminari(src):
+    """ROUND and TIME are drawn in the mod's own face, like everything printed beside them.
+
+    Maintainer, 2026-09-11: "please use the same font as well force the luminari or whatefer the name
+    everywhere". Told that only baked, fixed text could be: "thats fine for only fixed text. but cant
+    you resolve that issue it looks very had hoc problem."
+
+    It was ad hoc. TTS cannot be given a font -- UI.setCustomAssets takes images only -- so anything
+    the panel TYPED came out in TTS's default face an inch from baked Luminari labels. A number is not
+    arbitrary text though: it is eleven shapes, so tools/make_digits.py bakes one image per glyph and a
+    field is a row of image slots.
+
+    THE SLOT COUNT IS THE SAFETY PROPERTY, and it is what this test really guards. Updating a field
+    means UI.setAttribute on a slot, and setAttribute against an id the XML does not declare is a TTS
+    null -- a C# NullReferenceException that pcall does NOT catch and that would take the rest of
+    panelTick with it, stopping the clock. So every slot any tick can touch must always be in the
+    markup, inactive when unused. The test drives the clock across the shapes that change the string's
+    LENGTH (0:00 -> 0:07 -> 1:05 -> 10:10 -> 62:05) and past the six-slot cap, and asserts that every
+    id written was one the XML declared.
+    """
+    panel = json.loads(re.search(r"RTT_TURN_PANEL_JSON = \[====\[(.*?)\]====\]", src, re.S).group(1))
+    rt = lupa.LuaRuntime(unpack_returned_tuples=True)
+    rt.execute(open(os.path.join(HERE, "tts_stub.lua"), encoding="utf-8").read())
+    rt.execute("CLOCK = 1000 os.time = function() return CLOCK end")
+    rt.execute(panel["LuaScript"].replace("!=", "~="))
+    rt.execute("""
+      LASTXML = '' ATTRS = {} ASSETS = {}
+      self.UI.setXml = function(x) LASTXML = x end
+      self.UI.setAttribute = function(id, k, v) ATTRS[#ATTRS+1] = id .. '|' .. k .. '|' .. tostring(v) end
+      self.UI.setCustomAssets = function(a) for _, e in ipairs(a) do ASSETS[#ASSETS+1] = e.name end end
+      Turns = Turns or {}
+    """)
+
+    # every glyph the mod can show must be registered, or a slot set to it would draw nothing
+    rt.execute("onLoad('')")
+    n = rt.eval("function() return #ASSETS end")()
+    assets = {rt.eval("function() return ASSETS[%d] end" % (i + 1))() for i in range(n)}
+    want = {"lum%d" % d for d in range(10)} | {"lumcolon"}
+    assert want <= assets, "these glyphs are never registered: %s" % sorted(want - assets)
+
+    rt.execute("buildUI()")
+    xml = rt.eval("LASTXML")
+    declared = set(re.findall(r'id="(\w+)"', xml))
+    assert not re.search(r'id="pnl(?:Round|Time)"[^>]*>\s*[\d:]', xml), \
+        "the readouts are still typed as text rather than set in glyphs"
+
+    # drive the clock across every change of shape, including past the slot cap
+    rt.execute("PANEL_START = CLOCK")
+    touched, seen = set(), []
+    for dt in (0, 7, 65, 610, 3725, 999999):
+        rt.execute("CLOCK = 1000 + %d ATTRS = {} panelTick()" % dt)
+        k = rt.eval("function() return #ATTRS end")()
+        for i in range(k):
+            touched.add(rt.eval("function() return ATTRS[%d] end" % (i + 1))().split("|")[0])
+        seen.append(rt.eval("PANEL_TTXT"))
+
+    stray = {t for t in touched if t not in declared}
+    assert not stray, \
+        "the tick writes to ids the XML never declared, which is a TTS null: %s" % sorted(stray)
+    assert "10:10" in seen and "62:05" in seen, "the clock did not render the longer strings: %s" % seen
+
+    # the colon is baked half a digit wide; a slot that becomes one must be told so or it stretches
+    rt.execute('CLOCK = 1000 ATTRS = {} PANEL_GLYPHS = {} buildUI() CLOCK = 1000 + 610 panelTick()')
+    k = rt.eval("function() return #ATTRS end")()
+    writes = [rt.eval("function() return ATTRS[%d] end" % (i + 1))() for i in range(k)]
+    colon = [w for w in writes if w.endswith("|lumcolon")]
+    if colon:
+        slot = colon[0].split("|")[0]
+        assert any(w.startswith(slot + "|preferredWidth|") for w in writes), \
+            "%s became the colon without being given the colon's width" % slot
+
+
 CASES = [
     ("manual path drives the turn system",   t_manual_turn_order),
     ("manual path spawns 4 / 5 boards",      t_boards_spawn),
@@ -6897,6 +6978,7 @@ CASES = [
     ("a warning says what really happens", t_a_warning_describes_what_the_click_really_does),
     ("gizmo follows your last pick",      t_the_gizmo_follows_the_faction_you_last_picked),
     ("panel flashes past 20 minutes",      t_the_panel_flashes_after_twenty_minutes),
+    ("panel numbers are Luminari",     t_the_panels_numbers_are_set_in_luminari),
     ("crow plots inside the hidden zone",    t_crow_plots_spawn_inside_the_hidden_zone),
     ("crafted board same side for all",      t_crafted_board_sits_the_same_side_for_every_faction),
     ("no setup card on crafted board",       t_no_setup_card_rides_on_the_crafted_board),
