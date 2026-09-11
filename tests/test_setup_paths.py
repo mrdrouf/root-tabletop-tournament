@@ -7065,6 +7065,203 @@ def t_a_landmark_card_spawns_on_the_row(src):
             % (i, sl[0], sl[2], got[0], got[1])
 
 
+def t_every_faction_gets_a_vp_panel_above_its_crafted_board(src):
+    """One VP panel per faction, standing above that faction's Crafted Improvements board.
+
+    Maintainer, 2026-09-11: "on top of every faction crafted improvement I want you to design a new
+    object of the width of the crafted improvment", and on the placement: "yes on top with a space
+    between the two sma space as between the other boards", and on the width: "outer edge so both
+    tools are aligned".
+
+    THE NUMBERS ARE DERIVED, NOT TUNED. The crafted board is a Type-0 Stretch Custom_Tile, whose world
+    size is 2*scale by 2*scale*(imgW/imgH) -- so at scale 9.516764 with 740x1955 art it is 7.204507
+    across and 19.033528 deep, identically in all THIRTEEN kits (Knaves included; it is not the
+    exception it looks like). The panel is that width at the mod's shared UI density, and it sits half
+    the board's depth away, plus the gap, plus half its own.
+
+    Four things are asserted, because each fails on its own:
+      WHO  - all thirteen kits that carry a crafted board get exactly one panel, and no other kit does.
+      WHERE- the panel's x is the board's x and its z is the board's plus RTT_VP_PANEL_DZ.
+      WHAT - the panel carries the seat's box-score ROW NAME, which is what its buttons are keyed on.
+      CLEAR- nothing the kit actually spawns lands inside the panel's footprint. This one caught a
+             real collision: the Twilight Council's retained battle die dc8eb3 sat dead centre of it,
+             the only such object in thirteen kits, because every other kit's dice are filtered out.
+    """
+    rt = fresh(src)
+    rt.execute("""
+      PANELS = {}
+      local _s = spawnObjectJSON
+      spawnObjectJSON = function(p)
+        if (p.json or ''):find('"Nickname":"VP Panel"', 1, true) then
+          local q = p.position
+          PANELS[#PANELS+1] = string.format("%.4f|%.4f|%s", q.x or q[1], q.z or q[3],
+                              p.json:match('"LuaScriptState":"([^"]*)"') or '')
+        end
+        return _s(p)
+      end
+      REPORT = {}
+      local kits = {}
+      for k in pairs(EVERYTHING['Standard']) do kits[#kits+1] = k end
+      table.sort(kits)
+      for _, kit in ipairs(kits) do
+        local cx, cz
+        for _, v in ipairs(EVERYTHING['Standard'][kit]['data']) do
+          if v.json:find('"scaleX": 9.516764', 1, true) and v.json:find('"Name": "Custom_Tile"', 1, true) then
+            cx, cz = v.move_to[1], v.move_to[3]
+          end
+        end
+        PANELS = {}
+        pcall(function() rttSpawnFaction(kit, 0, -20, false) end) FLUSH(400)
+        REPORT[#REPORT+1] = string.format("%s|%s|%s|%s", kit,
+          (cx ~= nil) and string.format("%.4f|%.4f", cx, cz) or "none|none",
+          #PANELS, PANELS[1] or "")
+      end
+      DZ = RTT_VP_PANEL_DZ
+    """)
+    dz = rt.eval("DZ")
+    n = rt.eval("function() return #REPORT end")()
+    withBoard, withPanel = 0, 0
+    for i in range(n):
+        parts = rt.eval("function() return REPORT[%d] end" % (i + 1))().split("|")
+        kit, cx, cz, count = parts[0], parts[1], parts[2], int(parts[3])
+        if cx == "none":
+            assert count == 0, "%s has no crafted board but got %d VP panel(s)" % (kit, count)
+            continue
+        withBoard += 1
+        assert count == 1, "%s has a crafted board but got %d VP panel(s)" % (kit, count)
+        withPanel += 1
+        px, pz, row = float(parts[4]), float(parts[5]), parts[6]
+        # the seat used above is (0, -20); a kit's move_to IS its world offset from that centre
+        assert abs(px - float(cx)) < 0.001, \
+            "%s: the panel is at x %.4f, the crafted board at %.4f" % (kit, px, float(cx))
+        assert abs(pz - (-20 + float(cz) + dz)) < 0.001, \
+            "%s: the panel is at z %.4f, expected %.4f" % (kit, pz, -20 + float(cz) + dz)
+        assert row != "", "%s: the panel was spawned without a row name" % kit
+    assert withBoard == 13, "expected 13 kits with a crafted board, found %d" % withBoard
+    assert withPanel == 13, "only %d of them got a panel" % withPanel
+
+    # every row name the panels carry must be a row the box score actually has
+    roster = set(re.findall(r'"([A-Za-z][A-Za-z ]*)"', re.search(
+        r"local ROSTER = \{(.*?)\}",
+        json.loads(re.search(r"RTT_BOXSCORE_JSON = \[====\[(.*?)\]====\]", src, re.S).group(1))["LuaScript"],
+        re.S).group(1)))
+    rows = set()
+    for i in range(n):
+        parts = rt.eval("function() return REPORT[%d] end" % (i + 1))().split("|")
+        if len(parts) > 6 and parts[6]:
+            rows.add(parts[6])
+    assert rows <= roster, "these panels name rows the box score does not have: %s" % sorted(rows - roster)
+
+    # CLEAR: nothing the kits really spawn may sit inside a panel
+    clash = rt.eval("""function()
+        local PW, PD = 7.195650, 7.842450
+        local bad = {}
+        for kit, kitdata in pairs(EVERYTHING['Standard']) do
+          local cx, cz
+          for _, v in ipairs(kitdata['data']) do
+            if v.json:find('"scaleX": 9.516764', 1, true) then cx, cz = v.move_to[1], v.move_to[3] end
+          end
+          if cx then
+            for _, v in ipairs(kitdata['data']) do
+              local isDice = v.json:find('"Name": "Custom_Dice"', 1, true) ~= nil
+              local kept = false
+              if isDice then for g in pairs(RTT_KEEP_DICE) do
+                if v.json:find('"GUID": "' .. g .. '"', 1, true) then kept = true end end end
+              if (not isDice) or kept then
+                if math.abs(v.move_to[1] - cx) < PW/2
+                   and math.abs(v.move_to[3] - (cz + RTT_VP_PANEL_DZ)) < PD/2 then
+                  bad[#bad+1] = kit .. ": " .. (v.json:match('"GUID":%s*"([^"]+)"') or "?")
+                end
+              end
+            end
+          end
+        end
+        return table.concat(bad, ", ")
+    end""")()
+    assert clash == "", "these land inside a VP panel: %s" % clash
+
+
+def t_the_vp_panels_buttons_reach_the_rest_of_the_mod(src):
+    """The panel is a dumb relay and the board does the work; every refusal says why.
+
+    The panel carries two frozen names -- its handler `vpRelay` and the board's `rttVPClick` -- and
+    nothing else, because a panel is destroyed and respawned with its faction and so is frozen at the
+    build the game started on, while the board and the sheet are the two scripts
+    tools/update_saves.py can still patch in a save that has already been played.
+
+    BOTH CROSS-OBJECT HOPS ARE PROBED FIRST. `obj.call` into a name the target does not define is TTS's
+    C# NullReferenceException, which pcall does NOT catch and which takes the calling function with it.
+    So the panel checks the board's RTT_VP_API and the board checks the sheet's RTT_NUDGE_API, and an
+    older partner is told about rather than called.
+
+    + and - are a WRAPPER over the sheet's existing `nudge`, never a second implementation: every rule
+    it has -- clamped to the track, refused while the marker is held, a free sub-row so markers never
+    stack -- is inherited. It answers with a sentence when it refuses, because a player at a faction
+    board has no sheet in front of them to see why nothing happened.
+    """
+    rt = fresh(src)
+    assert rt.eval("RTT_VP_API") is True, "the board does not advertise RTT_VP_API for the panel to probe"
+    rt.execute("""
+      SAID = {} CALLS = {} DEALT = {}
+      _G.printToColor = function(msg, c) SAID[#SAID+1] = tostring(msg) end
+    """)
+
+    def click(setup, id, row="Diaspora"):
+        rt.execute("SAID = {} CALLS = {} DEALT = {} " + setup +
+                   " rttVPClick({ color = 'Orange', id = %r, row = %r })" % (id, row))
+        return (rt.eval("function() return table.concat(SAID, ' | ') end")(),
+                rt.eval("function() return table.concat(CALLS, ' | ') end")(),
+                rt.eval("function() return table.concat(DEALT, ' | ') end")())
+
+    # nothing on the table: every button explains itself rather than failing silently
+    for id in ("vpPlus", "vpDraw", "vpPond"):
+        said, _, _ = click("", id)
+        assert said != "", "%s says nothing when there is nothing to act on" % id
+
+    rt.execute("""
+      SHEET = MKOBJ('Root Box Score', {0,1,0}, {'RTT BoxScore'})
+      SHEET.getVar = function(k) if k == 'RTT_NUDGE_API' then return true end end
+      SHEET.call = function(n, a) CALLS[#CALLS+1] = n..'('..tostring(a.row)..','..tostring(a.delta)..')' end
+    """)
+    for id, delta in (("vpPlus", "1"), ("vpMinus", "-1")):
+        said, calls, _ = click("", id)
+        assert calls == "rttNudge(Diaspora,%s)" % delta, "%s reached the sheet as %r" % (id, calls)
+        assert said == "", "%s complained on a good press: %s" % (id, said)
+
+    # a sheet that refuses is relayed verbatim, not swallowed
+    said, _, _ = click("SHEET.call = function() return 'held by someone' end", "vpPlus")
+    assert "held" in said, "the sheet's reason was not passed on: %r" % said
+
+    # an older sheet is NOT called -- that call would be the uncatchable null
+    said, calls, _ = click("SHEET.getVar = function() return nil end "
+                           "SHEET.call = function() CALLS[#CALLS+1] = 'CALLED' end", "vpPlus")
+    assert calls == "", "the board called a sheet that does not advertise the entry point"
+    assert said != "", "it went quiet instead of saying the sheet is too old"
+
+    # DRAW takes the SHARED deck, and a faction's own deck is not it
+    said, _, dealt = click("""
+      DECK = MKOBJ('the deck', {0,1,0}, {'Deck Object'})
+      DECK.name = 'Deck' DECK.getQuantity = function() return 7 end
+      DECK.deal = function(n, c) DEALT[#DEALT+1] = 'deck '..tostring(n)..'->'..tostring(c) end
+      FAC = MKOBJ('a faction deck', {9,1,9}, {'RTT Faction'})
+      FAC.name = 'Deck' FAC.getQuantity = function() return 40 end
+      FAC.deal = function() DEALT[#DEALT+1] = 'WRONG DECK' end
+    """, "vpDraw")
+    assert dealt == "deck 1->Orange", "DRAW dealt %r" % dealt
+
+    # POND draws the pile sitting on the pond, and says so when there is none
+    said, _, dealt = click("""
+      POND = MKOBJ('The Pond', {5,1,5}, {'RTT Pond'})
+    """, "vpPond")
+    assert "empty" in said, "an empty pond said %r" % said
+    said, _, dealt = click("""
+      PILE = MKOBJ('frog discards', {5.2,1,5.1}, {})
+      PILE.name = 'Deck'
+      PILE.deal = function(n, c) DEALT[#DEALT+1] = 'pond '..tostring(n)..'->'..tostring(c) end
+    """, "vpPond")
+    assert dealt == "pond 1->Orange", "POND dealt %r" % dealt
+
+
 CASES = [
     ("manual path drives the turn system",   t_manual_turn_order),
     ("manual path spawns 4 / 5 boards",      t_boards_spawn),
@@ -7085,6 +7282,8 @@ CASES = [
     ("box score builds its own face",  t_the_box_score_builds_its_own_face),
     ("map helper card ships on the row", t_a_maps_helper_card_ships_where_the_row_puts_it),
     ("landmark card spawns on the row", t_a_landmark_card_spawns_on_the_row),
+    ("every faction gets a VP panel",  t_every_faction_gets_a_vp_panel_above_its_crafted_board),
+    ("VP panel buttons reach the mod", t_the_vp_panels_buttons_reach_the_rest_of_the_mod),
     ("crow plots inside the hidden zone",    t_crow_plots_spawn_inside_the_hidden_zone),
     ("crafted board same side for all",      t_crafted_board_sits_the_same_side_for_every_faction),
     ("no setup card on crafted board",       t_no_setup_card_rides_on_the_crafted_board),
