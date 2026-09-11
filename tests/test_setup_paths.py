@@ -6980,6 +6980,91 @@ def t_a_maps_helper_card_ships_where_the_row_puts_it(src):
             % (name, x, z, gx, gz))
 
 
+def t_a_landmark_card_spawns_on_the_row(src):
+    """A landmark's rules card is spawned into the row, not dropped beside it and pulled in.
+
+    Maintainer, 2026-09-11, having had the maps' own card fixed: "continue the rest as well". The
+    landmark card is the other half of the same complaint. A Mountain landmark was spawned at a fixed
+    RTT_MTN_CARD = (-29.303, -19.899) and rttLayHelperRow then hauled it six units left; the Marsh's
+    three towns were dropped into four slots placed by hand and compacted out of them the same way.
+
+    rttHelperSlot runs the row's own arithmetic before the card exists. What is already standing in the
+    row is MEASURED, exactly as the layout measures it -- so on the Mountain the map's own card decides
+    where the landmark goes. Only the incoming card's own size is a constant, because it does not exist
+    yet to be asked, and that was read off a real game: Mousehold at scale 2.2991 came to rest at
+    x -35.40778, which makes it 4.9580 by 7.0407.
+
+    `k` cannot be measured either. The Marsh lays three towns in one loop and a spawn callback has not
+    run by the time the next slot is asked for, so without it all three would be given the same place.
+
+    The test asserts the join: spawn each card at the slot it is given, run the layout, and require
+    that nothing moves.
+    """
+    MAP_W, MAP_D = 5.62902, 7.810814        # the maps' rules card, measured (see the sibling test)
+    TOWN_W, TOWN_D = 4.9580, 7.0407         # a landmark card, measured
+
+    # ASKED OF WHICHEVER FUNCTION THE BUILD HAS, so this same test runs against the previous one and
+    # fails there for the real reason -- the card is put somewhere the row does not agree with --
+    # rather than erroring on a name that does not exist yet.
+    SHIM = """
+      function SPOT(k, name)
+        if rttHelperSlot ~= nil then return rttHelperSlot(k) end
+        return rttHelperSpot(name)
+      end
+    """
+
+    def place(rt, var, x, y, z, w, d):
+        rt.execute("""
+          %s = MKOBJ('%s', {%f, %f, %f}, {'Map Object', 'RTT Helper'})
+          %s.__bounds = { size = { x = %f, y = 0.3, z = %f }, center = {x=0,y=0,z=0} }
+        """ % (var, var, x, y, z, var, w, d))
+
+    def at(rt, var):
+        return [float(v) for v in rt.eval(
+            "function() local p = %s.getPosition() return string.format('%%.4f|%%.4f', p.x, p.z) end"
+            % var)().split("|")]
+
+    # THE MOUNTAIN: the map's own card is already standing there, so the landmark takes second place
+    rt = fresh(src)
+    rt.execute(SHIM + "for _, o in ipairs(getAllObjects()) do o.destruct() end")
+    place(rt, "MAPC", -29.314510, 11.573603, -19.094593, MAP_W, MAP_D)
+    slot = [float(v) for v in rt.eval(
+        "function() local s = SPOT(1, 'Mousehold') return string.format('%.4f|%.4f|%.4f', s[1], s[2], s[3]) end"
+    )().split("|")]
+    # the place a real game put this exact card, which is what the arithmetic has to reproduce
+    assert abs(slot[0] + 35.40778) < 0.01 and abs(slot[2] + 19.47969) < 0.01, \
+        "a Mountain landmark is spawned at (%.4f, %.4f); a real game has it at (-35.408, -19.480)" \
+        % (slot[0], slot[2])
+    place(rt, "LMC", slot[0], slot[1], slot[2], TOWN_W, TOWN_D)
+    rt.execute("rttLayHelperRow()")
+    for var, want in (("MAPC", (-29.3145, -19.0946)), ("LMC", (slot[0], slot[2]))):
+        got = at(rt, var)
+        assert abs(got[0] - want[0]) < 0.01 and abs(got[1] - want[1]) < 0.01, \
+            "%s was moved by the row: spawned at (%.4f, %.4f), laid at (%.4f, %.4f)" \
+            % (var, want[0], want[1], got[0], got[1])
+
+    # THE MARSH: three towns in one loop, and no map card ahead of them
+    rt = fresh(src)
+    rt.execute(SHIM + "for _, o in ipairs(getAllObjects()) do o.destruct() end")
+    towns = ["Foxburrow", "Rabbit-Town", "Mousehold"]
+    slots = []
+    for i in (1, 2, 3):
+        slots.append([float(v) for v in rt.eval(
+            "function() local s = SPOT(%d, %r) return string.format('%%.4f|%%.4f|%%.4f', s[1], s[2], s[3]) end"
+            % (i, towns[i - 1]))().split("|")])
+    xs = [s[0] for s in slots]
+    assert len(set(round(x, 3) for x in xs)) == 3, \
+        "the three towns are given the same slot: %s" % [round(x, 3) for x in xs]
+    for i, sl in enumerate(slots, 1):
+        place(rt, "T%d" % i, sl[0], sl[1], sl[2], TOWN_W, TOWN_D)
+    rt.execute("rttLayHelperRow()")
+    for i, sl in enumerate(slots, 1):
+        got = at(rt, "T%d" % i)
+        assert abs(got[0] - sl[0]) < 0.01 and abs(got[1] - sl[2]) < 0.01, \
+            "town %d was moved by the row: spawned at (%.4f, %.4f), laid at (%.4f, %.4f)" \
+            % (i, sl[0], sl[2], got[0], got[1])
+
+
 CASES = [
     ("manual path drives the turn system",   t_manual_turn_order),
     ("manual path spawns 4 / 5 boards",      t_boards_spawn),
@@ -6999,6 +7084,7 @@ CASES = [
     ("panel flashes past 20 minutes",      t_the_panel_flashes_after_twenty_minutes),
     ("box score builds its own face",  t_the_box_score_builds_its_own_face),
     ("map helper card ships on the row", t_a_maps_helper_card_ships_where_the_row_puts_it),
+    ("landmark card spawns on the row", t_a_landmark_card_spawns_on_the_row),
     ("crow plots inside the hidden zone",    t_crow_plots_spawn_inside_the_hidden_zone),
     ("crafted board same side for all",      t_crafted_board_sits_the_same_side_for_every_faction),
     ("no setup card on crafted board",       t_no_setup_card_rides_on_the_crafted_board),

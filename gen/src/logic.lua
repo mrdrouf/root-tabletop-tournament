@@ -6185,7 +6185,7 @@ RTT_SUIT_TEX = {
 }
 RTT_SUIT_LM = { rabbit = "Rabbit-Town", fox = "Foxburrow", mouse = "Mousehold" }
 RTT_MTN_LM = { -0.116, 11.660, 0.187 }
-RTT_MTN_CARD = { -29.303, 11.575, -19.899 }
+-- RTT_MTN_CARD was the fixed spot the landmark card was dropped at; rttHelperSlot works it out now.
 RTT_MTN_CARD_SCALE = 2.299
 
 RTT_MTN_LM_PIECES = RTT_MTN_LM_PIECES or {}
@@ -6611,23 +6611,51 @@ end
 -- where a card this size stops about a unit short of the board, and leaves all three town cards on the
 -- exact spots he placed and locked them on. Adding a fifth helper is one name and one more x, further
 -- out.
-RTT_HELPER_ROW_X = { -30.040, -35.098, -40.156, -45.214 }   -- one new near slot, then the three he placed
+-- RTT_HELPER_ROW_X / _ROW_Z / _ORDER were the four hand-placed slots a landmark card was dropped
+-- into and then compacted out of. rttHelperSlot computes the real place instead, so they are gone.
 RTT_HELPER_ROW_Y = 11.575
-RTT_HELPER_ROW_Z = -19.135
-RTT_HELPER_ORDER = { "Flotilla", "Foxburrow", "Rabbit-Town", "Mousehold" }
 RTT_HELPER_TAG = "RTT Helper"          -- every rules card that stands in this row
 RTT_HELPER_PITCH = 5.058               -- the step he placed the town cards at
 
--- WHERE A HELPER CARD IS DROPPED, which is not where it ends up: rttLayHelperRow measures every card
--- on the table and sets the whole row down together a few frames later. This only has to be a spot
--- that is out of the way and on the right side of the board, so the card is never seen anywhere
--- surprising in between.
-function rttHelperSpot(name)
-  local i = 1
-  for n, who in ipairs(RTT_HELPER_ORDER) do
-    if who == name then i = n end
+-- WHERE A LANDMARK CARD IS SPAWNED, which is now the place it belongs rather than a spot to be
+-- dragged out of. Maintainer, 2026-09-11: "the lake helper card spawns first in a spot and then is
+-- adjusted. that is against the core rules. spawn immediately as it should be."
+--
+-- This used to hand back one of four slots the maintainer had placed by hand, and rttLayHelperRow
+-- then compacted the row on top of that -- so a Mountain landmark was seen at -29.3 and pulled six
+-- units left a few frames later. This runs the row's own arithmetic instead, before the card exists.
+--
+-- WHAT IS AHEAD OF IT IS MEASURED, NOT ASSUMED: every helper card already on the table is asked for
+-- its own width, exactly as rttLayHelperRow asks. The Flotilla is skipped because it always sorts
+-- last and so never holds a slot this card wants.
+--
+-- ONLY THE CARD ITSELF IS A CONSTANT, because it does not exist yet to be measured. A landmark card's
+-- size was read off a game in the maintainer's Saves where this row had already laid one: Mousehold,
+-- at scale 2.2991, came to rest at x -35.40778, which makes it 4.9580 by 7.0407. The three Marsh
+-- towns are the same card stock at the same scale. (A card's DEPTH per scale unit is the same for all
+-- of them -- 3.063, the card mesh -- but the WIDTH is not, because a CardCustom takes its width from
+-- its own art's aspect, which is why the maps' own card is wider at 5.6290.)
+RTT_HELPER_TOWN_W = 4.9580
+RTT_HELPER_TOWN_D = 7.0407
+
+-- `k` is this card's place among the ones spawning in the SAME batch, 1 for the first. It cannot be
+-- measured off the table: the Marsh lays three towns in one loop and a spawn callback has not run by
+-- the time the next spot is asked for, so all three would otherwise be given the same slot.
+function rttHelperSlot(k)
+  local right = RTT_HELPER_RIGHT
+  for _, o in ipairs(getObjectsWithTag(RTT_HELPER_TAG)) do
+    local w = nil
+    pcall(function()
+      if o.hasTag(RTT_FLOTILLA_TAG) ~= true then
+        local b = o.getBounds()
+        if b ~= nil and b.size ~= nil and b.size.x > 0 then w = b.size.x end
+      end
+    end)
+    if w ~= nil then right = right - w - RTT_HELPER_GAP end
   end
-  return { RTT_HELPER_ROW_X[i] or RTT_HELPER_ROW_X[1], RTT_HELPER_ROW_Y, RTT_HELPER_ROW_Z }
+  right = right - ((k or 1) - 1) * (RTT_HELPER_TOWN_W + RTT_HELPER_GAP)
+  return { right - RTT_HELPER_TOWN_W / 2, RTT_HELPER_ROW_Y,
+           RTT_HELPER_BOTTOM + RTT_HELPER_TOWN_D / 2 }
 end
 function rttFlotillaCard()
   for _, o in ipairs(getObjectsWithTag(RTT_FLOTILLA_TAG)) do
@@ -6735,8 +6763,8 @@ end
 -- (rttSpawnLandmarkAt, from m490) so they appear in place and settle — no slide/rotate.
 function rttMarshLandmarks()
   if not RTT_5P_MARSH then return end
-  for _, lm in ipairs(RTT_MARSH_LANDMARKS or {}) do
-    local slot = rttHelperSpot(lm.name)
+  for i, lm in ipairs(RTT_MARSH_LANDMARKS or {}) do
+    local slot = rttHelperSlot(i)
     rttSpawnLandmarkAt(lm.name, lm.x, 11.66, lm.z, slot[1], slot[2], slot[3],
                        lm.rotY or 165, 180, nil)
   end
@@ -6853,8 +6881,11 @@ function rttMountainLandmark()
   -- kept as GUIDS, not handles: the loop above destroys them on the next build, and by then a map
   -- rebuild has usually taken them already
   RTT_MTN_LM_PIECES = {}
+  -- the row's next free place, worked out from the map's own rules card which is already standing
+  -- there: RTT_MTN_CARD was a fixed spot at -29.303 and the row hauled it six units left.
+  local slot = rttHelperSlot(1)
   for _, o in ipairs(rttSpawnLandmarkAt(name, RTT_MTN_LM[1], RTT_MTN_LM[2], RTT_MTN_LM[3],
-                     RTT_MTN_CARD[1], RTT_MTN_CARD[2], RTT_MTN_CARD[3],
+                     slot[1], slot[2], slot[3],
                      165, 180, RTT_MTN_CARD_SCALE) or {}) do   -- crotZ 180 = RULES face up (BackURL)
     pcall(function() RTT_MTN_LM_PIECES[#RTT_MTN_LM_PIECES + 1] = o.getGUID() end)
   end
