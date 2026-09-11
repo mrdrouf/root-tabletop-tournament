@@ -7152,6 +7152,30 @@ def t_every_faction_gets_a_vp_panel_above_its_crafted_board(src):
             rows.add(parts[6])
     assert rows <= roster, "these panels name rows the box score does not have: %s" % sorted(rows - roster)
 
+    # IT MUST NOT RESIZE WHEN IT LANDS. The blueprint's baked scale has to be exactly what buildUI
+    # sets, or the panel arrives one size and becomes another a frame later -- which is the
+    # spawn-then-adjust the core rule forbids, and which the maintainer has caught twice: "spawns
+    # first in a spot and then is adjusted. that is against the core rules." It shipped that way
+    # once: baked 6.549 deep against a built 7.852.
+    blob = json.loads(re.search(r"RTT_VP_PANEL_JSON = \[====\[(.*?)\]====\]", src, re.S).group(1))
+    baked = blob["Transform"]
+    prt = lupa.LuaRuntime(unpack_returned_tuples=True)
+    prt.execute(open(os.path.join(HERE, "tts_stub.lua"), encoding="utf-8").read())
+    prt.execute(blob["LuaScript"].replace("!=", "~="))
+    prt.execute("self.UI.setXml = function() end self.UI.setCustomAssets = function() end onLoad('Crows')")
+    built = [prt.eval("function() return self.getScale().%s end" % a)() for a in "xyz"]
+    for i, axis in enumerate("xyz"):
+        want = baked["scale" + axis.upper()]
+        assert abs(built[i] - want) < 1e-6, (
+            "the panel is baked at scale%s %.6f and builds itself to %.6f, so it resizes on load"
+            % (axis.upper(), want, built[i]))
+    # and its width is the crafted board's own, which is what "outer edge so both tools are
+    # aligned" asks for
+    assert abs(built[0] - 7.204507) < 1e-6, \
+        "the panel is %.6f wide; the crafted board is 7.204507" % built[0]
+    assert abs(built[1] - 0.10) < 1e-9, \
+        "the panel is %.4f thick; every panel in the mod is 0.10" % built[1]
+
     # CLEAR: nothing the kits really spawn may sit inside a panel
     clash = rt.eval("""function()
         local PW, PD = 7.195650, 7.842450
