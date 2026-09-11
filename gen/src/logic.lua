@@ -1702,6 +1702,61 @@ function rttAfterFrames(fn, n)
   Wait.frames(function() if RTT_RUN_ID == id then fn() end end, n)
 end
 
+-- ---- Spawning a faction over more than one frame -----------------------------------------------
+-- Maintainer, 2026-09-10, on which objects go missing for distant clients: "the bug in general occurs
+-- with the faction spawning exclusiveley not so much the other objects."
+--
+-- That is the single biggest burst in the mod, by a long way. A faction used to fire its whole
+-- blueprint in ONE frame: the Lilypad Diaspora is 229 KB of object JSON in 25 objects -- 163 KB of
+-- that is twelve Enclaves each carrying the same 13,620-byte script -- and the Knaves are 51 objects.
+-- A 5-player setup pushes about 565 KB through a handful of frames. TTS has had size-dependent
+-- failures in exactly this path (v14.2 shipped a fix for packets that were exact multiples of 1 MB
+-- breaking in transit), and a spawn reaches a client as an incremental create message that nothing
+-- ever re-sends. It is also why the frog is the one faction with a visible hitch as it lands.
+--
+-- THIS IS NOT A RUNTIME PATCH. The golden rule is about PLACEMENT -- no spawn-then-move. Every piece
+-- still spawns directly at its final baked transform. Only the CALLS are spread out; nothing moves,
+-- so there is no jitter of any kind.
+--
+-- SCOPED TO FACTIONS AND NOTHING ELSE. The first attempt paced five different loops at once and could
+-- not be bisected when the table broke. This is the one he can actually see.
+--
+-- Two budgets, whichever runs out first, always at least one object, and the check looks at what is
+-- ABOUT to be sent rather than the running total -- testing afterwards lets one more object through
+-- every frame, which on a heavy piece is most of the budget. Worst case is the Knaves at 9 frames =
+-- 150 ms, against downstream waits of 0.5 s and 1.2 s.
+RTT_SPAWN_PER_FRAME = 6
+RTT_SPAWN_BYTES     = 48000
+
+-- `done` runs once the last spawn has been ASKED for -- which is what the plain loop this replaces
+-- already meant by "finished". `alive`, when given, is checked before every batch.
+function rttSpawnStaggered(specs, done, alive)
+  local i = 1
+  local function pump()
+    if alive ~= nil then
+      local ok = false
+      pcall(function() ok = (alive() == true) end)
+      if not ok then return end
+    end
+    local n, bytes = 0, 0
+    while i <= #specs do
+      local sp = specs[i]
+      local sz = (type(sp.json) == "string") and #sp.json or 0
+      if n > 0 and (n >= RTT_SPAWN_PER_FRAME or (bytes + sz) > RTT_SPAWN_BYTES) then break end
+      i = i + 1
+      n = n + 1
+      bytes = bytes + sz
+      spawnObjectJSON(sp)
+    end
+    if i <= #specs then
+      rttAfterFrames(pump, 1)          -- RUN_ID checked for free: an abandoned game stops spawning
+    elseif done ~= nil then
+      done()
+    end
+  end
+  pump()
+end
+
 -- ---- Resync: re-send every object to every client ----------------------------------------------
 -- Objects the mod spawns sometimes never appear for SOME players: always on a distant, high-latency
 -- connection, never for the whole table, cured by unlock-then-lock on the missing piece or by that
@@ -4641,6 +4696,10 @@ function rttSpawnFaction(faction, cx, cz, flip, category, rotationY, opts)
                        o.getName() or "", { r.x, r.y, r.z }, extrasDone)
     end)
   end
+  -- COLLECTED FIRST, then handed over a few to a frame. The order, the positions and the callbacks
+  -- are exactly what the plain loop built -- the rats' mood cards still spawn from the rats board's
+  -- own callback, so the board has a collider under them first.
+  local specs = {}
   for _, v in ipairs(objects) do
     local vec = Vector(v.move_to) * scale
     if rotationY ~= nil then
@@ -4668,8 +4727,9 @@ function rttSpawnFaction(faction, cx, cz, flip, category, rotationY, opts)
     if isKnaveBoard then myCb = function(o) cb(o); rttSpawnCaptainsFor(o) end
     elseif isCrowBoard then myCb = function(o) cb(o); Wait.frames(function() rttCrowsPlots(cx, cz, flip, false, o) end, 1) end
     elseif isRatsBoard then myCb = function(o) cb(o); Wait.frames(function() pcall(function() rttRatsMoodManager(cx, cz, flip) end) end, 1) end end
-    spawnObjectJSON({ json = v.json, position = new_pos, callback_function = myCb })
+    specs[#specs + 1] = { json = v.json, position = new_pos, callback_function = myCb }
   end
+  rttSpawnStaggered(specs)
   -- The rats' Mini-Mood Manager is spawned from the rats BOARD's own callback above, not here --
   -- see RTT_RATS_BOARD_IMG. It is part of the rats' OWN setup, not an "extra". It used to run from
   -- rttFactionExtras, which is deferred half a second, so it visibly landed after the board

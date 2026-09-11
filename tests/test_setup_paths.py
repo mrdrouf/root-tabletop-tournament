@@ -6553,6 +6553,60 @@ def t_a_resync_survives_the_table_changing_under_it(src):
         assert left == 0, "resync with %s left its mark on %d object(s)" % (label, left)
 
 
+def t_a_faction_spawns_a_few_pieces_at_a_time(src):
+    """A faction goes out over several frames, in order, with every piece still arriving.
+
+    Maintainer, 2026-09-10, on which objects go missing for distant clients: "the bug in general
+    occurs with the faction spawning exclusiveley not so much the other objects."
+
+    That is the biggest burst in the mod by a long way. A faction used to fire its whole blueprint in
+    ONE frame: the Lilypad Diaspora is 229 KB of object JSON in 25 objects (163 KB of it twelve
+    Enclaves carrying the same 13,620-byte script), the Knaves are 51 objects, and a 5-player setup
+    pushes ~565 KB through a handful of frames. A spawn reaches a client as an incremental create
+    message and nothing ever re-sends it.
+
+    Three things have to hold, and each has bitten something here before. ORDER, because the rats'
+    mood cards are spawned from the rats board's own callback so the board has a collider under them
+    first. TWO BUDGETS, because a count alone waves through a piece that is heavy on its own. And
+    EVERY PIECE ARRIVES -- a pump that drops the tail is a far worse bug than the one it fixes.
+    """
+    rt = fresh(src)
+    rt.execute("SEEN = {} local _s = spawnObjectJSON "
+               "spawnObjectJSON = function(p) SEEN[#SEEN+1] = p.json return _s(p) end")
+    rt.execute("local specs = {} "
+               "for i = 1, 20 do specs[i] = { json = '{\"Nickname\":\"p' .. string.format('%02d', i) "
+               "  .. '\"}' } end rttSpawnStaggered(specs)")
+    per = rt.eval("RTT_SPAWN_PER_FRAME")
+    got = lambda: rt.eval("function() return #SEEN end")()
+    assert got() == per, "the first frame spawned %d objects, not %d" % (got(), per)
+    rt.execute("FLUSH(1)")
+    assert got() == 2 * per, "the second frame took it to %d, not %d" % (got(), 2 * per)
+    rt.execute("FLUSH(30)")
+    assert got() == 20, "%d of 20 objects were ever spawned" % got()
+    seen = [rt.eval("function() return SEEN[%d] end" % (i + 1))() for i in range(20)]
+    assert all(s.find('"p%02d"' % (i + 1)) >= 0 for i, s in enumerate(seen)), \
+        "the pump reordered the blueprint"
+
+    # THE BYTE BUDGET, on pieces too heavy to send six at a time
+    rt.execute("SEEN = {} local big = string.rep('x', 30000) local specs = {} "
+               "for i = 1, 6 do specs[i] = { json = '{\"j\":\"' .. big .. '\"}' } end "
+               "rttSpawnStaggered(specs)")
+    assert got() < per, "%d heavy pieces went in one frame; the byte budget did nothing" % got()
+    rt.execute("FLUSH(30)")
+    assert got() == 6, "the byte-budgeted pump lost pieces: %d of 6" % got()
+    # ...but one piece bigger than the whole budget still goes, rather than jamming forever
+    rt.execute("SEEN = {} rttSpawnStaggered({ { json = string.rep('x', 200000) } })")
+    assert got() == 1, "a piece larger than the byte budget was never spawned"
+
+    # AND A REAL FACTION STILL PUTS DOWN EVERY PIECE IT USED TO
+    for faction, least in (("Lilypad Diaspora", 20), ("Knaves of the Deepwood", 12),
+                           ("Marquise de Cat", 24)):
+        rt = fresh(src)
+        rt.execute("pcall(function() rttSpawnFaction(%r, 0, 0, false) end) FLUSH(200)" % faction)
+        n = rt.eval("function() return #getObjectsWithTag('RTT Faction') end")()
+        assert n >= least, "%s put down %d pieces, expected at least %d" % (faction, n, least)
+
+
 CASES = [
     ("manual path drives the turn system",   t_manual_turn_order),
     ("manual path spawns 4 / 5 boards",      t_boards_spawn),
@@ -6670,6 +6724,7 @@ CASES = [
     ("resync resends what it may",        t_the_resync_sweep_resends_everything_it_may_touch),
     ("resync button asks nothing",        t_the_resync_button_asks_nothing_and_destroys_nothing),
     ("resync survives churn",             t_a_resync_survives_the_table_changing_under_it),
+    ("a faction spawns a few at a time",  t_a_faction_spawns_a_few_pieces_at_a_time),
 ]
 
 
