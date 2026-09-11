@@ -4830,15 +4830,22 @@ def t_the_round_is_zero_until_start_is_pressed(src):
         "an older save with no turn played came back as a started game"
 
 
-def t_unlocking_a_prisoner_stands_it_up(src):
-    """Take the lock off a marked warrior by hand and the mark comes off with it.
+def t_unlocking_a_prisoner_clears_the_mark_and_leaves_it_lying(src):
+    """Take the lock off a marked warrior by hand and the mark comes off -- but the piece does not move.
 
     Maintainer, 2026-09-10: "when you unlock a warrior that has received numpad 3 on it, the warrior
-    should also loose the tint and highlight as if it had been numpad 3 again on it."
+    should also loose the tint and highlight as if it had been numpad 3 again on it." Then, 2026-09-11:
+    "unlocking a numpad 3 warrior with different tint and highlight should not put it standning just
+    readjust the color and highlight."
 
     The lock is the mark's own doing -- numpad 3 lays the piece down and locks it -- so taking that
-    lock off by hand says the same thing as pressing the key again. There is no unlock event to hear,
-    which is why this rides the tick the map's own lock already needed.
+    lock off by hand says the mark is over. It does NOT say put the piece back: unlocking is what you
+    do when you want to move the piece yourself, and standing it up and teleporting it to where it was
+    laid is the mod taking it off you at the moment you reached for it. Pressing numpad 3 again is the
+    act that means put it back, and that still does.
+
+    There is no unlock event to hear, which is why this rides the tick the map's own lock already
+    needed.
     """
     rt = fresh(src)
     rt.execute("W = MKOBJ('Eyrie Warrior', {3, 1, 3}, {}) W.setColorTint({0.145, 0.457, 0.810}) "
@@ -4855,6 +4862,19 @@ def t_unlocking_a_prisoner_stands_it_up(src):
         "unlocking it did not give the warrior its colour back: %s" % tint
     assert rt.eval("function() return RTT_LAID['" + rt.eval("W.getGUID()") + "'] == nil end")() is True, \
         "the record still holds it as a prisoner"
+    # ...AND IT IS STILL LYING DOWN, exactly where it was laid. numpad 3 tips a piece to rot.x 90.
+    assert round(rt.eval("function() return W.getRotation().x end")()) == 90, \
+        "unlocking stood the warrior back up instead of leaving it where it was"
+
+    # ...WHILE PRESSING THE KEY TWICE STILL PUTS A PIECE BACK. On a FRESH warrior, because a piece
+    # left lying by an unlock is upright no longer: marking it again records the pose it is actually
+    # in, so "put it back" correctly puts it back to lying. The key's round trip is what is asserted
+    # here, and it needs a piece that was standing when the key first found it.
+    rt.execute("U = MKOBJ('Cat Warrior', {9, 1, 9}, {}) HOVER['Red'] = U rttGizmoMark('Red') FLUSH(6)")
+    assert round(rt.eval("function() return U.getRotation().x end")()) == 90, "the mark did not lay it"
+    rt.execute("HOVER['Red'] = U rttGizmoMark('Red') FLUSH(6)")
+    assert round(rt.eval("function() return U.getRotation().x end")()) == 0, \
+        "numpad 3 a second time left the warrior lying down"
 
     # a piece that is still locked is left alone, and one that is gone is forgotten
     rt.execute("X = MKOBJ('Cat Warrior', {5, 1, 5}, {}) HOVER['Red'] = X rttGizmoMark('Red') FLUSH(6)")
@@ -6750,7 +6770,7 @@ CASES = [
     ("marsh numbers match his save",      t_the_marsh_numbers_sit_where_his_save_puts_them),
     ("the coffin spawns where he put it", t_the_coffin_spawns_where_he_put_it),
     ("a map cannot be left unlocked",     t_the_map_cannot_be_left_unlocked),
-    ("unlocking frees a prisoner",        t_unlocking_a_prisoner_stands_it_up),
+    ("unlock clears the mark only",       t_unlocking_a_prisoner_clears_the_mark_and_leaves_it_lying),
     ("round is 0 until start",            t_the_round_is_zero_until_start_is_pressed),
     ("clear all asks before it clears",   t_clear_all_objects_asks_before_it_clears),
     ("top row is four drafts",            t_the_top_row_is_four_drafts_on_the_map_grid),

@@ -5864,7 +5864,8 @@ function rttFreeUnlockedPrisoners()
     else
       local locked = false
       pcall(function() locked = (o.getLock() == true) end)
-      if not locked then pcall(function() rttFreePrisoner(o, guid) end) end
+      -- unlocked BY HAND: clear the mark, leave the piece lying where it is (standUp = false)
+      if not locked then pcall(function() rttFreePrisoner(o, guid, false) end) end
     end
   end
 end
@@ -7885,8 +7886,15 @@ RTT_GLOW_RGB = { r = 0, g = 0, b = 0 }
 -- piece its own colour, washes it out like fog, and can never clip -- a red stays red and a white
 -- stays white, which is the answer to "if its already white then thats it".
 --
--- 0.55 was the first try and read as washed out -- maintainer, 2026-09-09: "a bit less pale".
-RTT_PRISONER_FADE = 0.40
+-- 0.55 was the first try and read as washed out -- maintainer, 2026-09-09: "a bit less pale" -- so it
+-- came down to 0.40. Then, 2026-09-11, having played with it: "the numpad 3 function should make it
+-- brigher a little bit more than currenlty if possible". 0.48 is the step between the two, nearer the
+-- one he asked to come back from than the one he rejected.
+--
+-- It lifts the white-painted four as well, since RTT_PRISONER_OVER is derived from this: those are
+-- overbrightened by the same amount rather than lightened, so the two kinds of warrior keep moving
+-- together.
+RTT_PRISONER_FADE = 0.48
 
 -- AND EVERY WARRIOR, NOT JUST THE TEN THAT HAPPEN TO BE TINTED. Maintainer, 2026-09-09: "you need to
 -- do all possible warrior pieces right."
@@ -7957,16 +7965,28 @@ function rttGizmoGlow(color) rttGizmoMark(color) end
 
 -- FREE A PRISONER: stand it up, unlock it, put its light out, and forget the record. Lifted out of
 -- rttGizmoMark's second press because numpad 0 needs the same thing -- see rttGizmoHome.
-function rttFreePrisoner(o, guid)
+-- `standUp` false means: take the mark off and leave the piece exactly where it is.
+--
+-- Maintainer, 2026-09-11: "unlocking a numpad 3 warrior with different tint and highlight should not
+-- put it standning just readjust the color and highlight." Unlocking a prisoner by hand is not the
+-- same act as pressing numpad 3 again. The key says "this piece is no longer a prisoner, put it
+-- back"; unlocking says "I want to move this myself" -- and standing it up and teleporting it to
+-- where it was laid is the mod taking the piece off you at the moment you reached for it.
+--
+-- The mark still comes off either way: the disc goes, the highlight goes, the tint is restored. Only
+-- the rotation and the position are left alone.
+function rttFreePrisoner(o, guid, standUp)
   local was = RTT_LAID[guid]
   if was == nil then return end
   RTT_LAID[guid] = nil
   pcall(function() o.setLock(false) end)
-  pcall(function()
-    local ry = o.getRotation().y
-    o.setRotation({ was.rot[1], ry, was.rot[3] })
-    if was.pos ~= nil then o.setPosition({ was.pos[1], was.pos[2], was.pos[3] }) end
-  end)
+  if standUp ~= false then
+    pcall(function()
+      local ry = o.getRotation().y
+      o.setRotation({ was.rot[1], ry, was.rot[3] })
+      if was.pos ~= nil then o.setPosition({ was.pos[1], was.pos[2], was.pos[3] }) end
+    end)
+  end
   -- the disc goes with it, by GUID rather than by proximity, so two laid warriors side by side
   -- cannot take each other's marker away
   if was.disc ~= nil then
