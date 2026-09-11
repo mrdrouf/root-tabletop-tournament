@@ -6932,6 +6932,18 @@ def t_the_panels_numbers_are_set_in_luminari(src):
     rt.execute("buildUI()")
     xml = rt.eval("LASTXML")
     declared = set(re.findall(r'id="(\w+)"', xml))
+
+    # EVERY CHARACTER A FIELD CAN SHOW MUST BE ONE OF THE ELEVEN. The round's placeholder used to be a
+    # dash, which was fine as type and is not a glyph -- so a panel built before its first tick drew an
+    # empty ROUND box. Nothing else can reach a field (the round is tostring of an integer and the
+    # clock is "%d:%02d"), so this is the one that mattered.
+    def shown(field):
+        g = re.findall(r'id="%s\d" image="(\w+)"[^/]*?active="(\w+)"' % field, xml)
+        return "".join(n[3:] for n, on in g if on == "true")
+    assert shown("pnlRound") == "0", \
+        "a panel built before its first tick shows %r in ROUND" % shown("pnlRound")
+    assert shown("pnlTime") == "0colon00", \
+        "a panel built before its first tick shows %r in TIME" % shown("pnlTime")
     assert not re.search(r'id="pnl(?:Round|Time)"[^>]*>\s*[\d:]', xml), \
         "the readouts are still typed as text rather than set in glyphs"
 
