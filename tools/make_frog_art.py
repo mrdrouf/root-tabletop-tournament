@@ -88,6 +88,21 @@ SNAP = [("row", 112, 245, -3, 150, "left"),
         ("col", 374, 486, 449, 489, "below")]
 INK = (105, 105, 95)                   # darker than this on all three channels is the drawn line
 
+# THE STALK IS NOT HIS. Maintainer, 2026-09-11: "remove the little stem pointing out of the frog mount
+# it s background in the 3 player draft art." An orange reed lies across the panel and touches the
+# corner of his mouth, so the trace took it for part of him -- it came out as a stick poking out of his
+# face with nothing holding it up.
+#
+# Erased as a BAND ALONG THE STALK rather than a box: it meets his keyline at a shallow angle, and any
+# rectangle wide enough to reach the far end also bites into his jaw. Inside that band the drawn line
+# is protected -- white is his keyline, near-black is his mouth -- but ONLY within ERASE_KEEP_X of him,
+# because the stalk has white speckle highlights of its own further out, and protecting those left a
+# dotted trail hanging in the air where the stalk had been.
+ERASE = [(0, 46), (70, 86), (70, 120), (0, 82)]
+ERASE_KEEP_X = 48                      # the keyline only exists this close to him
+ERASE_WHITE = 175                      # min channel above this is the drawn keyline
+ERASE_DARK = 95                        # max channel below this is the drawn mouth
+
 FEATHER = 1.0                          # the edge softened, so it is not a cut-out against the button
 MARGIN = 6                             # kept around him once the mask decides the framing
 
@@ -117,6 +132,20 @@ def snap(a, alpha):
     return alpha
 
 
+def unstem(a, alpha, size):
+    """Take the background stalk off his mouth, leaving his own lines where they cross it."""
+    pm = Image.new("L", size, 0)
+    ImageDraw.Draw(pm).polygon(ERASE, fill=255)
+    band = np.asarray(pm) > 127
+    h, w = alpha.shape
+    near = np.tile(np.arange(w), (h, 1)) >= ERASE_KEEP_X
+    mx, mn = a.max(2).astype(int), a.min(2).astype(int)
+    keep = ((mn > ERASE_WHITE) | (mx < ERASE_DARK)) & near
+    alpha = alpha.copy()
+    alpha[band & ~keep] = 0
+    return alpha
+
+
 def main():
     if not os.path.exists(SRC):
         sys.exit("missing %s" % SRC)
@@ -127,6 +156,7 @@ def main():
     m = Image.new("L", win.size, 0)
     ImageDraw.Draw(m).polygon(OUTLINE, fill=255)
     alpha = snap(a, np.asarray(m).copy())
+    alpha = unstem(a, alpha, win.size)
 
     box = Image.fromarray(alpha).getbbox()
     x0, y0, x1, y1 = (max(0, box[0] - MARGIN), max(0, box[1] - MARGIN),

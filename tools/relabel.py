@@ -163,15 +163,20 @@ def art_rotated(path, deg):
     return im.rotate(deg, expand=True, resample=Image.BICUBIC)
 
 
-def art_crop_aspect(path, aspect, cut_top=0):
-    """Centre-crop a photo to a given w/h so it fills the button the way the old label did."""
-    im = Image.open(os.path.join(ROOT, path)).convert("RGBA")
+def crop_aspect(im, aspect, cut_top=0):
+    """Centre-crop an already-loaded image to a given w/h. Split out of art_crop_aspect so a photo can
+    be turned first -- the 4-player shot is rotated a quarter turn and THEN cropped."""
     if cut_top:
         im = im.crop((0, cut_top, im.width, im.height))
     w, h = im.size
     if w / h > aspect: w2, h2 = int(h * aspect), h
     else:              w2, h2 = w, int(w / aspect)
     return im.crop(((w - w2) // 2, (h - h2) // 2, (w - w2) // 2 + w2, (h - h2) // 2 + h2))
+
+
+def art_crop_aspect(path, aspect, cut_top=0):
+    """Centre-crop a photo to a given w/h so it fills the button the way the old label did."""
+    return crop_aspect(Image.open(os.path.join(ROOT, path)).convert("RGBA"), aspect, cut_top)
 
 
 def art_from_label(fname):
@@ -274,7 +279,14 @@ WIDES = [
     # player setup so it s similar to the art for 5 player setup" comes to: that one is an upright
     # crop of its photograph and this one was the only art on the board turned on its side. Cropping
     # it the same way is the quarter turn.
-    ("FourBoardsArt",      "four_player_setup_v11",   ["4-Player", "Setup"],   lambda: art_crop_aspect("assets/images/4players.png", 0.853)),
+    # A QUARTER TURN, not another crop. Maintainer, 2026-09-11: "rotate the 4 player setup art by 90
+    # degrees so it s similar to the 5 player setup art." The two photographs are of the same table
+    # from different sides -- in the 5-player shot the selector boards stand on their long edge and the
+    # ROOT sign is at the bottom, in the 4-player shot they lie flat with the sign at the top -- so
+    # matching them is a rotation of the picture, which cropping alone could never do. Turned first,
+    # then cropped to the same aspect as its neighbour, so the two buttons frame their subject alike.
+    ("FourBoardsArt",      "four_player_setup_v11",   ["4-Player", "Setup"],
+     lambda: crop_aspect(art_rotated("assets/images/4players.png", 90), 0.853)),
     ("Marsh5PLabel",       "five_players_marsh_v11",  ["5-Players", "Marsh"],  lambda: art_topband("assets/upload/map_marsh.png")),
     ("FactionCardsArt",    "faction_cards_v11",       ["Faction", "Cards"],    lambda: art_from_label("faction_cards_label_v4_34723094.png")),
     # No artwork, like Credits: the caption IS the button. Maintainer, 2026-09-09: "add a red clear
