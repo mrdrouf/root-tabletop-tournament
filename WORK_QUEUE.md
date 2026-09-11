@@ -138,37 +138,35 @@ Nothing below is implemented. The maintainer asked to be consulted before each c
 
 ### Setup and placement
 
-### Buttons and real estate
+- [x] **The vagabond kit stopped after two pieces.** v1.182. The spawn callback destroyed the Mighty
+      Multi-State Ruins bag for being tagged "Ruin Set" and then asked the corpse whether it was
+      "Shuffleable" -- it is the only object in the content file with either tag, and it has both.
+      TTS's C# null, not a Lua error, so the callback died on the kit's second piece. Nothing could
+      test the Vagabond Layout at all while this stood.
+- [x] **The vagabond's Advanced Setup card.** v1.182. "vagabond faction board sitll spawn the advanced
+      setup card on the crafter improvement that we removed for all other faction boards" -- a
+      nameless Card, CardID 406, dropped onto the crafted improvements board. It was the kit's
+      eighteenth piece, so it was invisible behind the bug above.
+- [x] **Relationship markers follow the table.** v1.183. "spawn only the ones from factions in the game
+      that have been selected at the moment they are selected and fill the rightmost empty position in
+      order." Placed one at a time by the arrival of the faction they belong to, packed against the
+      right end of the row. `RTT_REL_FILL` is the only thing that decides the direction -- set it to
+      "left" to pack from the vagabond board's end instead.
+- [ ] **Knaves of the Deepwood has no relationship marker.** The kit ships eleven, one per faction, and
+      the Knaves are the twelfth. Not a code gap -- there is no marker art to place. Needs a decision
+      from the maintainer (draw one, or leave the Knaves without).
 
-- [ ] **The Lizard Board's three Lost Souls counters print on top of the printed suit icons.**
-      Deferred by the maintainer on 2026-09-08 ("we are going to fix that after") -- the outcast
-      symbol beside them is done and shipped in 1.84. The buttons pass z = -COUNT_Z and land at
-      local z -0.17, which is the middle of the icon band (-0.2171..-0.1380). A button's x IS
-      mirrored against the model frame but its z is NOT -- a reflection, not a turn -- so to sit at
-      local z Z the button must be given +Z, not -Z. That is the mechanical half.
-      The design half is that THERE IS NOWHERE OBVIOUS TO PUT THEM: measured on the board texture,
-      the Outcast panel's ink-free horizontal bands are only 8, 15, 12, 9 and 9 px tall, none of
-      them enough for a numeral. Three candidates were rendered against the real art and shown to
-      the maintainer: (E) a row at the top of the Lost Souls box at local z ~+0.243, each number in
-      its own suit's column -- all three counts visible, clear background, and it sits in the box it
-      counts; (F) inside the three printed slots, tidiest but the outcast suit's slot is taken by
-      the symbol so that count is lost; (G) just under the slots at z ~+0.060, closest to the suit
-      icons but cutting across the panel's torn border and the Lost Souls frame. E was recommended.
+### Buttons and real estate
 
 - [ ] **Per-faction DRAW ONE buttons, and DRAW POND when the frogs are in.** Zaandaa: old Woodland
       Tournament mods had a draw button beside each faction board. It avoids high-ping draws from
       hands and stops accidental overdraws (pressing 11). The maintainer has this on his own list.
 - [ ] **Per-faction VP +1 / -1 buttons, echoing to the chat console.** Same source: the old mods
       printed each score change to the console, which doubles as a game log.
-- [ ] **A one-shot DEAL FIVE button beside the deck when it spawns.** Temporary, removes itself.
-
 
 
 ## NOTES DO NOT TOUCH
 
-the lizard has the lizard wizard to keep track publicly of the outcase. it also has an outcast on its faction board. could you have the outcast on the faction board follow the information on the lizard wizard? so have the symbol for the outcast suit and then when it s heated and the counter for the number of cards of each suit in the lost souls
+rotate the 4 player setup art by 90 degrees so it s similar to the 5 player setup art
 
-add enclave snap when militant or not
-
- 
-can you increase the highlight on numpad 3? make it much more highlighted? and make it black highlighted.
+remove the little stem pointing out of the frog mount it s background in the 3 player draft art
