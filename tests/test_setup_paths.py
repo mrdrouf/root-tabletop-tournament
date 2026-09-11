@@ -6670,6 +6670,89 @@ def t_a_captain_card_lands_upright_in_its_slot(src):
     assert not bad, "; ".join(bad)
 
 
+def t_no_kit_loses_pieces_to_its_own_callback(src):
+    """Every piece a faction kit hands the spawner reaches the table.
+
+    Found while checking something else: rttSpawnFaction('Vagabond Layout') put TWO objects down and
+    stopped. The kit was not short -- all 17 entries had a move_to -- and no other kit did it.
+
+    The second piece is the Mighty Multi-State Ruins bag, and it is the only object in the whole
+    content file tagged "Ruin Set". The callback destroyed it for being a Ruin Set and then, on the
+    very next line, asked it whether it was "Shuffleable" -- which it also is, being the only object
+    tagged both. Touching a destroyed object is not a Lua error TTS lets you carry on from; it is the
+    C# null, "Object reference not set to an instance of an object", so the callback died there and
+    took the other fifteen pieces with it.
+
+    THE INVARIANT IS COUNTED, NOT LISTED, so it cannot go stale as kits change: rttSpawnFaction
+    filters its blueprint (dice, drafted captains, ten of the eleven vagabond VP tiles) and hands what
+    is left to rttSpawnStaggered. Every spec handed over must arrive. That holds a callback to the one
+    rule this bug broke -- do not touch a piece you destroyed -- for every kit, including ones added
+    later.
+    """
+    rt = fresh(src)
+    rt.execute("""
+      REPORT = {}
+      local kits = {}
+      for k in pairs(EVERYTHING['Standard']) do kits[#kits+1] = k end
+      table.sort(kits)
+      for _, kit in ipairs(kits) do
+        local want, got = 0, 0
+        local _stag, _spawn = rttSpawnStaggered, spawnObjectJSON
+        rttSpawnStaggered = function(specs, ...) want = want + #specs return _stag(specs, ...) end
+        spawnObjectJSON = function(p) got = got + 1 return _spawn(p) end
+        local ok, err = pcall(function() rttSpawnFaction(kit, 0, 0, false) end)
+        FLUSH(400)
+        rttSpawnStaggered, spawnObjectJSON = _stag, _spawn
+        if not ok or got < want then
+          REPORT[#REPORT+1] = kit .. ": handed " .. want .. ", spawned " .. got
+                              .. (ok and "" or (" -- " .. tostring(err)))
+        end
+      end
+    """)
+    n = rt.eval("function() return #REPORT end")()
+    bad = [rt.eval("function() return REPORT[%d] end" % (i + 1))() for i in range(n)]
+    assert not bad, "; ".join(bad)
+
+
+def t_the_vagabond_gets_no_advanced_setup_card(src):
+    """The Vagabond's crafted board comes out bare, like every other faction's.
+
+    Maintainer, 2026-09-11: "vagabond faction board sitll spawn the advanced setup card on the crafter
+    improvement that we removed for all other faction boards."
+
+    It was a nameless Card in the kit -- CardID 406, identified by its own art, which reads "Vagabond /
+    ADVANCED SETUP" -- dropped at (17.53, 0.21, -1.37), directly onto the crafted improvements board
+    that sits at (17.55, 0.10, -4.27). The kit is the only place a loose Card appears, so the check is
+    simply that none does.
+
+    This could not have been checked before: the kit stopped after two pieces, and the card is the
+    eighteenth. See t_no_kit_loses_pieces_to_its_own_callback.
+    """
+    rt = fresh(src)
+    rt.execute("""
+      SEEN = {}
+      local _s = spawnObjectJSON
+      spawnObjectJSON = function(p) SEEN[#SEEN+1] = (p.json or '') return _s(p) end
+      pcall(function() rttSpawnFaction('Vagabond Layout', 0, 0, false) end)
+      FLUSH(400)
+      spawnObjectJSON = _s
+      -- THE FIRST "Name" IN THE BLUEPRINT IS THE OBJECT'S OWN. Matching it anywhere reached inside
+      -- the Quest deck's ContainedObjects and reported one of its 12 quest cards (CardID 11800) as a
+      -- loose card on the board.
+      CARDS = {}
+      for _, j in ipairs(SEEN) do
+        if j:match('"Name": "([^"]*)"') == "Card" then
+          CARDS[#CARDS+1] = tostring(j:match('"CardID": (%d+)'))
+        end
+      end
+    """)
+    n = rt.eval("function() return #SEEN end")()
+    assert n >= 17, "the vagabond kit only spawned %d pieces" % n
+    c = rt.eval("function() return #CARDS end")()
+    got = [rt.eval("function() return CARDS[%d] end" % (i + 1))() for i in range(c)]
+    assert not got, "a loose card still lands on the vagabond's crafted board: CardID %s" % ", ".join(got)
+
+
 CASES = [
     ("manual path drives the turn system",   t_manual_turn_order),
     ("manual path spawns 4 / 5 boards",      t_boards_spawn),
@@ -6789,6 +6872,8 @@ CASES = [
     ("resync survives churn",             t_a_resync_survives_the_table_changing_under_it),
     ("a faction spawns a few at a time",  t_a_faction_spawns_a_few_pieces_at_a_time),
     ("a captain card lands upright",      t_a_captain_card_lands_upright_in_its_slot),
+    ("no kit loses pieces to its cb",   t_no_kit_loses_pieces_to_its_own_callback),
+    ("vagabond gets no setup card",     t_the_vagabond_gets_no_advanced_setup_card),
 ]
 
 

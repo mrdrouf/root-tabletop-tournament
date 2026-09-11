@@ -236,6 +236,11 @@ function MKOBJ(name, pos, tags)
   -- SNAP POINTS GO BOTH WAYS. setSnapPoints used to be a no-op, so a test could not tell a board that
   -- had been given rotation snapping from one that had not -- which is the whole of what the Knaves'
   -- captain board asks for at spawn.
+  -- destroy() is TTS's other name for destruct(), and the mod uses both -- rttSpawnFaction's callback
+  -- calls o.destroy() on a "Ruin Set" piece and shuffleMaps calls it on a spare sword. Without it the
+  -- Vagabond Layout's spawn threw on its first ruin item and the harness saw 2 of its 17 pieces
+  -- arrive, which reads exactly like a broken blueprint and is not one.
+  function o.destroy() o.destruct() end
   function o.setSnapPoints(pts) o.__snaps = pts or {} end
   function o.getQuantity() return 1 end
   function o.getStateId() return 1 end function o.setState(s) return o end
