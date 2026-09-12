@@ -1,11 +1,28 @@
 #!/bin/sh
-# Anonymity guard, installed 2026-09-05. The public mrdrouf repos must never receive
-# anything that carries the maintainer's real identity. This blocks:
+# Anonymity guard, installed 2026-09-05; content scan added 2026-09-12. The public mrdrouf repos
+# must never receive anything that carries the maintainer's real identity. This blocks:
 #   - pushing the local-only legacy/* and discarded/* tags (real-name history),
-#   - any commit in the pushed range whose author, committer or message matches the pattern.
+#   - any commit in the pushed range whose author, committer or message matches the pattern,
+#   - any FILE CONTENT that the pushed range introduces and that matches the same pattern.
 # Deletions are always allowed. Bypass only on purpose: git push --no-verify.
+#
+# This is identity separation, not security. Nothing here is a secret and nothing here is
+# encrypted; the whole purpose is that a GitHub search for the maintainer's name returns nothing
+# of his. A guard, not a lock.
+#
+# INSTALL:  cp tools/hooks/pre-push .git/hooks/pre-push && chmod +x .git/hooks/pre-push
+# (.git/hooks is not versioned, so the copy in tools/ is the one that survives a fresh clone.)
 zero=0000000000000000000000000000000000000000
-pattern='avernas|adrien'
+# ONE pattern, read by both the metadata check and the content check below. Written twice it would
+# drift, and the copy that fell behind would be the one guarding the bigger surface.
+# It catches the surname, and the archive host's domain is built out of that surname, so it catches
+# the domain too -- which is why the domain itself is deliberately NOT spelled out here. A guard
+# that contains the string it is guarding is a leak with extra steps.
+# The halves are concatenated by the shell for the same reason: this file is committed, so a
+# literal here would (a) be the very thing a name search on GitHub finds, and (b) make every push
+# that touches this hook fail its own content check. The shell joins them; the regex never sees
+# them apart; grep over these bytes finds nothing.
+pattern='aver''nas|adri''en'
 status=0
 while read local_ref local_sha remote_ref remote_sha; do
   [ "$local_sha" = "$zero" ] && continue
@@ -16,8 +33,14 @@ while read local_ref local_sha remote_ref remote_sha; do
   esac
   if [ "$remote_sha" = "$zero" ] || ! git cat-file -e "$remote_sha" 2>/dev/null; then
     range="$local_sha"
+    # No far side to diff against. The metadata check can afford to walk all of history here (it
+    # reads commit headers), but the content check reads BYTES: over this repo's full history that
+    # is 1.6 GB decompressed, 59 s, measured. Everything any remote already holds is already
+    # public, so subtract it -- what remains is what this push actually adds.
+    objects="$local_sha --not --remotes"
   else
     range="$remote_sha..$local_sha"
+    objects="$range"
   fi
   # The version must not skip. "this number cannot be skipped its very important to keep track of
   # versions to keep track of buggs" -- a version has to name exactly one build, or a bug report
@@ -30,6 +53,50 @@ while read local_ref local_sha remote_ref remote_sha; do
   if [ -n "$bad" ]; then
     echo "pre-push: BLOCKED $remote_ref -- commits carry the real identity or name:" >&2
     echo "$bad" | cut -c1-120 >&2
+    status=1
+  fi
+  # Content check, added after the hole above it shipped: the metadata check reads commit HEADERS
+  # only, so ARCHIVE.md and the generated save in dist/ both carried the archive host's URL in
+  # plaintext and this hook waved them at public GitHub without a word.
+  #
+  # WHY THE OBJECTS AND NOT THE TREE: this scans the blobs the push introduces
+  # (git rev-list --objects), not the tip tree and not the working tree.
+  #   - the tip tree misses a leak that an earlier commit of the range added and a later one
+  #     removed -- the blob still ships, and once on GitHub it is public forever;
+  #   - every blob is read exactly once, however many commits touched it (dist/ is rebuilt by the
+  #     pre-commit hook on every single commit, so this matters here);
+  #   - anything the remote already has is excluded, so a leak that is already public does not
+  #     block every push from now until it is scrubbed. A hook that always fires is a hook that
+  #     everyone runs with --no-verify.
+  #
+  # grep -a IS LOAD-BEARING. The stream carries PNGs, and one NUL is enough for grep to declare the
+  # whole stream binary and then report NOTHING: measured on an 89 MB range holding six real
+  # matches, a clean exit. -a is also what keeps the 3 MB single-line dist/*.json read whole rather
+  # than skipped -- and that file is where the leak actually was.
+  #
+  # WHAT IT COSTS, measured on this repo: 0.12 s for the ordinary one-commit push (the pre-commit
+  # rebuild puts a 3 MB floor under every push), 0.43 s for three commits, ~2 s for a twenty-commit
+  # backlog of 89 MB -- of which only 0.25 s is git decompressing, the rest is grep. A brand-new
+  # branch with no remote-tracking refs to subtract falls back to all of history: 59 s, once.
+  blobs=$(git rev-list --objects $objects 2>/dev/null |
+          git cat-file --batch-check='%(objecttype) %(objectname) %(rest)' 2>/dev/null |
+          sed -n 's/^blob \([0-9a-f][0-9a-f]*\) \(..*\)$/\1 \2/p')
+  if [ -n "$blobs" ] && printf '%s\n' "$blobs" | cut -d' ' -f1 |
+       git cat-file --batch 2>/dev/null | LC_ALL=C grep -a -q -i -E "$pattern"; then
+    # Only now, on the path that is already going to block, is it worth one fork per blob to say
+    # WHICH file: one streamed pass over that same 89 MB costs 2 s, per-blob forks cost 5 s.
+    echo "pre-push: BLOCKED $remote_ref -- pushed file content carries the real identity:" >&2
+    printf '%s\n' "$blobs" | while read -r sha path; do
+      hit=$(git cat-file blob "$sha" 2>/dev/null |
+            LC_ALL=C grep -a -o -i -E ".{0,24}($pattern).{0,24}" | head -1)
+      # An excerpt, never the match's line: the hit can sit inside a 3 MB single-line JSON, and a
+      # 3 MB error message is not an error message. Non-printables are flattened so that a binary
+      # blob cannot repaint the terminal it is being reported in.
+      [ -n "$hit" ] && printf '  %s: %s\n' "$path" \
+        "$(printf '%s' "$hit" | LC_ALL=C sed 's/[^[:print:]]/./g' | cut -c1-100)"
+    done 2>/dev/null | head -3 >&2
+    echo "  Fix the file and amend, or -- if the word is genuinely unrelated here -- push with:" >&2
+    echo "    git push --no-verify" >&2
     status=1
   fi
 done

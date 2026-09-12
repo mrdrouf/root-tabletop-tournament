@@ -8564,7 +8564,7 @@ def t_export_without_a_box_score_still_sends_a_document(src):
 
 
 def t_the_payload_never_carries_a_hand(src):
-    """Hand SIZES are public and are recorded. Hand CONTENTS are not, anywhere, ever.
+    """Hand SIZES are public and are recorded. Hand CONTENTS never are, until the game is declared over.
 
     PERCEPTION_SPEC.md section 3.4 and ARCHIVE.md section 3: this is the four-line whitelist that
     separates a study tool from a cheat tool, and the Global script is where it has to hold, because a
@@ -8600,13 +8600,29 @@ def t_the_payload_never_carries_a_hand(src):
     rt.execute("Global.call('rttArchiveGame', nil)")
     body = rt.eval("WEBREQ[#WEBREQ].body")
 
-    for name in ("Ambush!", "Favor of the Mice"):
-        assert name not in body, "the payload names a card in a hand: %r" % name
-    for g in secrets:
-        assert g not in body, "the payload carries the GUID of a card in a hand: %r" % g
-
     doc = json.loads(body)
+
+    # NOT "absent from the payload" -- absent from the THREE SECTIONS THE GAME IS PLAYED THROUGH.
+    # This used to search the whole body and it went red the day obsReveal landed, which is the
+    # feature working rather than the whitelist failing: the maintainer, 2026-09-12, "there is no
+    # cheating problem since it's at the moment of the export". A blanket search cannot tell a hand
+    # recorded DURING PLAY -- the thing that would make this a cheat tool -- from one recorded at the
+    # moment the game is declared over, and it is only the first that matters. So the assertion is
+    # the separation obsReveal's own header argues for, section by section.
+    during_play = {k: json.dumps(doc[k]) for k in ("objects", "events", "snapshots")}
+    for name in ("Ambush!", "Favor of the Mice"):
+        for sect, blob in during_play.items():
+            assert name not in blob, "%s names a card in a hand: %r" % (sect, name)
+    for g in secrets:
+        for sect, blob in during_play.items():
+            assert g not in blob, "%s carries the GUID of a card in a hand: %r" % (sect, g)
     assert all(g not in doc["objects"] for g in secrets), "a hand card got a static entry"
+
+    # ...and the reveal DOES carry them, which is the other half: a test that only proved the three
+    # live sections were clean would also pass if the export had quietly stopped recording anything.
+    shown = json.dumps(doc.get("reveal"))
+    for name in ("Ambush!", "Favor of the Mice"):
+        assert name in shown, "the export's reveal lost the hand it exists to record: %r" % name
     # the SIZE is public -- everyone at a Root table can count the cards in a hand -- and is kept
     assert doc["snapshots"][-1]["hands"]["Red"] == 2, \
         "hand sizes were lost with the contents: %r" % doc["snapshots"][-1].get("hands")
@@ -8857,7 +8873,7 @@ CASES = [
     ("a drop arms one timer, once",     t_a_drop_arms_one_timer_and_a_second_drop_adds_none),
     ("the flush drains and dies",       t_the_flush_writes_its_queue_and_lets_the_timer_die),
     ("EXPORT sends without a sheet",    t_export_without_a_box_score_still_sends_a_document),
-    ("no hand ever leaves the table",   t_the_payload_never_carries_a_hand),
+    ("a hand leaves only at export",    t_the_payload_never_carries_a_hand),
     ("game two is not game one",        t_a_second_game_is_not_appended_to_the_first),
 ]
 

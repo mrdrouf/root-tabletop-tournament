@@ -1,4 +1,4 @@
-# RTT Game Archive — recording a game and shipping it to adriendavernas.com
+# RTT Game Archive — recording a game and shipping it to the archive host
 
 **Status:** spec, 2026-09-12. This file is the CONTRACT. The Lua recorder, the PHP endpoint and the
 local fetcher are written against it independently and must not disagree.
@@ -6,6 +6,10 @@ local fetcher are written against it independently and must not disagree.
 The mod records what happens on the table during a game and, when the maintainer presses EXPORT on
 the box score, POSTs one JSON document to a server he controls. A local tool pulls those documents
 down, validates them and files them into a corpus the solver can train on.
+
+`tools/ARCHIVE_GUIDE.md` is the runbook that goes with this contract: how to deploy the pieces,
+where the keys live, what to check when a game does not arrive. Anything operational belongs there,
+not here.
 
 ---
 
@@ -25,7 +29,7 @@ Three constraints, each measured or paid for already:
    drag, an undo, a scripted move — all corrected at the next keyframe.
 
 And one consequence of shipping a public mod: **the shipped save is public, so anything baked into
-it is public.** `dist/Root_Tabletop_Tournament.json` is committed to GitHub. There is therefore no
+it is public.** `dist/Root_Tournament_Edition.json` is committed to GitHub. There is therefore no
 such thing as a secret write key. The ingest endpoint is defended server-side (shape validation,
 size cap, rate limit, quarantine) and the *read* side has a real secret that never enters the repo.
 
@@ -110,6 +114,13 @@ because objects-per-row triples the size for no gain.
   //   extra kind-specific: for "turn", the colour whose turn began
   "events": [[12.4, 1, "drop", "79bf39", "Red", 3.2, -8.6, 180.0, ""]],
 
+  // captured ONCE, when EXPORT is pressed — the ONLY hidden information in the document.
+  // Nothing above or below this key is hidden. See "Hard rules on content" below before touching it.
+  "reveal": {"at": 1757684000,
+             "hands": {"Red": ["Ambush!", "Dominance (Fox)"]},
+             "facedown": [["a1b2c3", "Corvid Plot: Raid", 9.0, 1.1]],   // [guid, name, x, z]
+             "unnamed": 2},
+
   // full board at each turn boundary, DELTA-ENCODED against the previous snapshot
   // rows: [guid, x, z, ry, stateId, qty, faceDown]
   "snapshots": [
@@ -119,6 +130,45 @@ because objects-per-row triples the size for no gain.
   ]
 }
 ```
+
+### Clearing ids: what `setup.clearings` can and cannot tell you
+
+**It does not carry Root clearing numbers, and it cannot be made to.** Measured 2026-09-12, all five
+fixed maps, against `root_engine/maps_data/<map>_geometry.json`:
+
+- The recorder's original id was a **south-to-north sort index** — not any numbering Root uses. Mean
+  residual against the printed layout: **16–20 units**, versus a clearing radius of ~4. It shipped
+  twelve confident, meaningless ids. That is now the row's **fourth** field, the marker's art tail,
+  which is its real identity: the twelve priority markers are pictures of the numbers 1–12 and the
+  same twelve textures appear on every map. (Read off the art: `5C589936`=1, `A5F4904F`=2,
+  `1D520705`=3, `B6E7F63F`=4, `9033BAB1`=5, `344FFF8A`=6, `1C7937D8`=7, `67903445`=8, `B30D2841`=9,
+  `76BA556B`=10, `DE6E0673`=11, `2E2A197D`=12.)
+- **Even the true priority number is a different numbering from the engine's.** RTT's markers show
+  the tournament **clearing-priority** order; `clearings_uv` is keyed by the **setup-card** numbers.
+  Fitting one onto the other with the correct labels gives 16–20 unit residuals at arbitrary
+  rotations. Neither is wrong; they are different facts, and no fixed table converts them.
+- **The markers are also an imprecise reference,** because RTT places each one *beside* its clearing
+  so the suit token stays visible. Best unlabelled fit: worst-point error 4.4–5.1 u against a
+  tolerance of one radius (~4). So `fit_map` answers `unconfirmed` on most maps, which is why a
+  fetched game currently reports `clearings NOT resolved`.
+
+**Do not fix this by loosening `CORROBORATION_TOLERANCE`.** Measured, same run: at the correct
+orientation the worst point is 4.4–5.1 u; at 180° it is 7.4 u (Autumn), 7.4 u (Winter), 8.1 u
+(Gorge) — a separation of only **1.6×**. A tolerance loose enough to accept the truth would accept a
+half-turned board on three of five maps, and `PERCEPTION_SPEC.md` §3.2a already records that a
+mirrored board scores the same on every other physical signal. Silently inverting a corpus is the
+worst outcome available here.
+
+**The fix, when it is done, is a better reference: the ruins.** Four per map, at known clearings,
+printed rather than hand-placed, and asymmetric — `PERCEPTION_SPEC.md` §3.2a calls them "the one
+thing on the table that can tell north from south and resolve a 180-degree calibration error". RTT
+tags them `Ruin`. That is a recorder change (ship the ruin positions) plus a `fit_map` change, and it
+is NOT yet done.
+
+**Nothing is lost in the meantime.** Every event and keyframe carries world x/z, `setup.map_tile`
+carries the board's own transform read off the map object, and `raw/` keeps the original bytes
+forever — so clearing ids can be back-filled into already-archived games by re-running the cleaner
+once the reference improves. `fetch.py` refuses rather than guesses, which is what makes that true.
 
 ### Three fields that are not what the example above first said
 
@@ -141,10 +191,40 @@ wrong consumer.
 
 ### Hard rules on content
 
-- **Public information only.** Hand *sizes* may be recorded; hand *contents* never. Face-down cards
-  record `faceDown: 1` and their GUID, never their face. No Corvid plots, no Alliance supporters, no
-  deck order. `PERCEPTION_SPEC.md` §3.4 — this is the four-line whitelist that separates a study tool
-  from a cheat tool.
+- **Nothing hidden while the game runs; one reveal at EXPORT.** This rule changed on 2026-09-12,
+  and the *shape* of the change is the whole of it — read both halves before touching either.
+
+  **The live stream is public information only.** Every event row and every per-turn keyframe carries
+  no hidden information at all. Hand *sizes* may be recorded; hand *contents* never. A face-down card
+  records `faceDown: 1` and its GUID, never its face. No Corvid plots, no Alliance supporters, no deck
+  order. `PERCEPTION_SPEC.md` §3.4 — the four-line whitelist that separates a study tool from a cheat
+  tool — still governs everything written while the game is being played, unchanged.
+
+  **One `reveal` section is captured at the instant EXPORT is pressed, and at no other moment.** It
+  carries hand contents and the identities of face-down cards:
+
+  ```jsonc
+  "reveal": {
+    "at":       1757684000,                    // os.time() at EXPORT — not at arming, not per turn
+    "hands":    {"Red": ["Ambush!", "Dominance (Fox)"]},       // colour -> card names, in hand order
+    "facedown": [["a1b2c3", "Corvid Plot: Raid", 9.0, 1.1]],   // [guid, name, x, z]
+    "unnamed":  2                              // face-down objects whose name read back empty
+  }
+  ```
+
+  The maintainer's reasoning, in his own words: *"there is no cheating problem since it's at the
+  moment of the export."* He is right, and the reason he is right is a property of the log rather than
+  a promise about who holds it: **a log that never contains hidden information while the game is
+  running cannot be used as a live advisor** — not by the host, not by a spectator handed the
+  notebook, not by anyone who pulls the document off the server mid-tournament — because until EXPORT
+  there is nothing hidden in it to read. That property is the safeguard. Preserve it. Do not sample
+  hands at a keyframe, at game end, or every N turns "since we reveal them anyway": each of those
+  turns the running log into an oracle and the sentence above stops being true.
+
+  **The one caveat, stated honestly:** EXPORT pressed in the middle of a game would reveal that
+  moment's hands. EXPORT therefore means "the game is over", and nothing enforces that but the person
+  pressing the button.
+
 - **No geometry in Lua.** Emit raw world x/z. Which clearing or forest a piece is in is decided by
   `root_engine/eyes/geometry.py`, which owns the tile-local map data. `root_engine/tts/live.lua`
   reached the same conclusion the hard way: *"only the viewer knows where the forests are — send the
@@ -179,18 +259,45 @@ the previous one. First snapshot of a game is `full: 1`.
 failure the recorder keeps the log and writes a one-line status the maintainer can see; it does not
 retry on a timer.
 
-**Visibility.** On a successful send, `broadcastToAll("Game archived.", ...)`. The host pressed a
-button and the table is told where the data went. This is not optional.
+**Visibility.** The archive says nothing to the table. The outcome of a send — sent, failed,
+quarantined — is written to the box score's own status line beside INFO, which the host is already
+reading because he just pressed the button next to it. The `broadcastToAll("Game archived.", ...)`
+line that this spec previously called "not optional" was removed on 2026-09-12 at the maintainer's
+instruction. It was a decision, not an oversight: do not reinstate it because this paragraph used to
+demand it.
+
+What that gives up: the other players are no longer told, in the moment, that a record of their game
+left the table. The fact is still visible — the status line is on a panel anyone can open — but it is
+no longer announced, and nobody who was not watching the box score will notice.
 
 ---
 
-## 5. Server (`adriendavernas.com`)
+## 5. Server (the archive host)
 
-Bluehost shared hosting: Apache, PHP, home `/home2/adrienda`, web root `~/public_html`.
+> **The archive host's hostname is deliberately not written anywhere in this repository — including
+> here. Do not "helpfully" put it back.**
+>
+> This repo is published on GitHub under the pseudonym **mrdrouf**, `dist/Root_Tournament_Edition.json`
+> is committed, and the host's domain contains the maintainer's real name. A plaintext URL in the Lua
+> is therefore a plaintext URL on GitHub, and a search for his name lands on this project. The real
+> value lives in exactly two places: **encoded**, in a constant in `gen/src/observer.lua` that is
+> assembled back into a URL at runtime, and in plaintext in the local, **gitignored**
+> `root_games/config.json` (§6). Everywhere else — this file, `tools/ARCHIVE_GUIDE.md`, commit
+> messages, `website/upload_rtt.sh` — it is "the archive host".
+>
+> **This is identity separation, not security.** Anyone who wants the hostname can decode that
+> constant in a minute, and nothing on the server depends on it staying unknown: `ingest.php` is
+> public and takes no write secret at all (§0). The encoding buys exactly one thing — that searching
+> GitHub for the maintainer's real name finds nothing. So neither "clean up" the obfuscation into a
+> readable string nor mistake it for a control that protects the endpoint; hardening belongs in
+> `ingest.php`, where §0 already put it.
+
+Bluehost shared hosting: Apache, PHP, home `/home2/<account>` (the account name is a truncation of
+the real name — same rule, keep it out of the repo), web root `~/public_html`.
 
 ```
 public_html/rtt/ingest.php      POST, public, no secret (see §0)
-public_html/rtt/admin.php       GET,  requires ADMIN_KEY — list / fetch / delete
+public_html/rtt/admin.php       GET,  requires ADMIN_KEY — list / get / delete / log
 public_html/rtt/.htaccess       deny everything except the two .php files
 ../rtt_data/                    OUTSIDE public_html — the JSON lives here, unreachable by URL
   ../rtt_data/quarantine/       failed validation, kept for inspection
@@ -208,6 +315,13 @@ public_html/rtt/.htaccess       deny everything except the two .php files
   existing `rdbSay` reader could consume it unchanged;
 - never echo a PHP warning into the response body.
 
+**Bluehost runs mod_security in front of all of this, and it judges the User-Agent.** Measured
+2026-09-12 against the live endpoint: `Python-urllib/3.9` and a bare `Mozilla/5.0` are refused with
+**HTTP 406 and an HTML body**, before PHP is reached. `curl/*`, an empty agent, `TabletopSimulator`
+and every `UnityPlayer/*` string tested are allowed through. So the mod is safe — TTS's `WebRequest`
+is Unity's — and `fetch.py` is safe because it sets `User-Agent: root_games/fetch.py`. Any NEW client
+must set one too, and a 406 with HTML in the body means this, not a bug in `ingest.php`.
+
 `admin.php` requires `?key=<ADMIN_KEY>` where ADMIN_KEY is a 32-char random string **generated at
 deploy time and never committed**. It lives in `../rtt_data/admin_key.txt`, chmod 600, and in a
 gitignored local file for the fetcher.
@@ -222,7 +336,8 @@ the mod and the solver and owned by neither (`root_engine/FOLDERS.md`'s rule).
 ```
 root_games/
   fetch.py           # pull new games over HTTPS, validate, clean, file them
-  config.json        # {"endpoint": "...", "admin_key": "..."} — GITIGNORED
+  config.json        # {"endpoint": "...", "admin_key": "..."} — GITIGNORED; the one plaintext
+                     #   copy of the archive host's URL that is allowed to exist (§5)
   config.example.json
   raw/<game_id>.json      # exactly what the server holds, never edited
   games/<game_id>/        # cleaned, one folder per game

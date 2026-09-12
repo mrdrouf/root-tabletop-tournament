@@ -94,7 +94,56 @@ OBS_ENABLED = false
 -- The `www.` host is deliberate, not decoration. It is the host the site's own pages link, and a
 -- host that redirects is not a detail on a POST: a 301 can be replayed as a GET with the body
 -- dropped, which would look exactly like a silent server failure. Name the canonical host.
-OBS_ENDPOINT = "https://www.adriendavernas.com/rtt/ingest.php"
+-- AND IT IS STORED ENCODED, ASSEMBLED AT RUNTIME. THIS IS IDENTITY SEPARATION, NOT SECURITY.
+--
+-- This repo is published on GitHub under the pseudonym "mrdrouf". The archive host's domain is the
+-- maintainer's REAL NAME, and `dist/Root_Tournament_Edition.json` is committed with this script
+-- baked into its top-level LuaScript -- so a plaintext URL in this file is a plaintext URL in a
+-- public repo, and code search is very good at surnames. Encoded, a search for his name finds
+-- nothing in this project. THAT IS THE ENTIRE PURPOSE, and it is the only thing this buys.
+--
+-- It is not a secret and it defends nothing. There is no write key and there must never be one (see
+-- above); ingest.php is defended server-side. Anyone who reads this file can decode the table below
+-- in a minute, and that is DELIBERATE -- a future maintainer has to be able to change the URL, so
+-- the scheme is a byte table and an offset and nothing cleverer. Two ways to get this wrong:
+--   * DO NOT "clean it up" back into a string literal. The plaintext is the whole problem.
+--   * DO NOT treat it as a control that protects anything. It protects a pseudonym, not a server,
+--     and nothing downstream may be built on the idea that this URL is hidden from anybody.
+--
+-- TO CHANGE THE URL, regenerate the table with this one-liner -- run it in a scratch directory and
+-- NOT in this repo, so the plaintext is never written into a file here:
+--   lua -e 'local u="<the new URL>" local t={} for i=1,#u do t[i]=u:byte(i)+41 end print(table.concat(t,", "))'
+-- Each number is one ASCII byte of the URL plus OBS_EP_OFFSET, in order. Nothing else is done to it.
+local OBS_EP_OFFSET = 41
+local OBS_EP_BYTES = {
+  145, 157, 157, 153, 156, 99, 88, 88, 160, 160, 160, 87, 138, 141, 155, 146, 142, 151, 141,
+  138, 159, 142, 155, 151, 138, 156, 87, 140, 152, 150, 88, 155, 157, 157, 88, 146, 151, 144,
+  142, 156, 157, 87, 153, 145, 153
+}
+
+-- The assembled value keeps the plain name the rest of this file already knows it by, so nothing
+-- downstream changes shape: it reads OBS_ENDPOINT and neither knows nor cares that it was encoded.
+-- It stays a GLOBAL assigned once here at load, exactly as the literal was -- so pointing a live
+-- table at a test server from the host's Execute Lua Code box (`OBS_ENDPOINT = "https://..."`)
+-- still works, and so does arming one with `OBS_ENABLED = true`.
+--
+-- A BAD BYTE GIVES AN EMPTY STRING RATHER THAN A MANGLED URL, and obsArchive refuses to send to one
+-- that does not start with "https://". A half-edited table -- bytes changed without the offset, a
+-- number lost to a stray edit -- would otherwise assemble into garbage that WebRequest fails on with
+-- response_code 0 and an empty body, which is exactly what a dead network looks like from here and
+-- would send somebody to the server to find a fault that is in this file.
+local function obsAssembleEndpoint()
+  local out = {}
+  -- one `local` per line, inside a loop: the rebinding trap from the header
+  for i = 1, #OBS_EP_BYTES do
+    local b = OBS_EP_BYTES[i] - OBS_EP_OFFSET
+    if b < 32 or b > 126 then return "" end
+    out[#out + 1] = string.char(b)
+  end
+  return table.concat(out)
+end
+
+OBS_ENDPOINT = obsAssembleEndpoint()
 
 OBS_SCHEMA = "rtt-game/1"
 
@@ -335,19 +384,31 @@ end
 -- THE HIDDEN-INFORMATION LINE. Read PERCEPTION_SPEC.md §3.4 before touching this function. --
 -- ======================================================================================= --
 --
--- A Global script running on the host can read EVERY player's hand. A tool that does is a cheat
--- tool, and the difference between a study tool and a cheat tool is a whitelist of about four lines.
--- These are those lines, and they are deliberately the ONLY place in this file where the word
--- `getHandObjects` appears -- so a grep for it finds the whole of the hidden-information surface in
--- one hit, and a later edit cannot widen it somewhere else without being obvious.
+-- A Global script running on the host can read EVERY player's hand. A tool that does so WHILE THE
+-- GAME IS STILL BEING PLAYED is a cheat tool, and the difference between a study tool and a cheat
+-- tool is a whitelist of about four lines. These are those lines.
+--
+-- THE WHOLE HIDDEN-INFORMATION SURFACE OF THIS FILE IS TWO FUNCTIONS, and `getHandObjects` appears
+-- in exactly those two -- so one grep still finds all of it, and a later edit cannot widen it
+-- somewhere else without being obvious:
+--   * THIS ONE, which runs DURING PLAY -- on every flush and every keyframe -- and takes hand SIZES
+--     and GUIDs and nothing else whatever.
+--   * `obsReveal`, which runs ONCE, inside the EXPORT press, and takes hand CONTENTS. Its own header
+--     carries the maintainer's reasoning and explains why its isolation from the live paths is the
+--     whole of the safety argument. Nothing in this function changed when that one was added.
+--
+-- ARCHIVE.md §3's "Hard rules on content" read "hand sizes may be recorded; hand contents never".
+-- As of the maintainer's decision of 2026-09-12 that rule holds everywhere on this side of the
+-- EXPORT press and is suspended for `obsReveal` alone; the contract is being updated to say so. It
+-- is still the rule HERE, and the reason it is safe there is that it is unbreakable here.
 --
 -- WHAT IS PUBLIC, AND THEREFORE RECORDED: how many cards a player holds. Everyone at a Root table
 -- can see that; ARCHIVE.md §3 says so in as many words ("Hand sizes may be recorded").
 --
--- WHAT IS NOT, AND IS THEREFORE NEVER READ: which cards they are. This function takes `#cards` and
--- the GUIDs, and NOTHING else -- no name, no art, no position, no state. The GUIDs are not data
--- that leaves the table: they are subtracted from everything the recorder emits, so a card in a hand
--- gets no static entry, no event row and no snapshot row. §3.4's rule is "never iterate
+-- WHAT IS NOT, AND IS THEREFORE NEVER READ HERE: which cards they are. This function takes `#cards`
+-- and the GUIDs, and NOTHING else -- no name, no art, no position, no state. The GUIDs are not data
+-- that leaves the table: they are subtracted from everything the live paths emit, so a card in a
+-- hand gets no static entry, no event row and no snapshot row. §3.4's rule is "never iterate
 -- Player.getPlayers() for hands"; this iteration exists to ENFORCE that rule rather than to break
 -- it, and it is the only way to know which objects to leave out -- `getAllObjects` returns cards
 -- held in hand zones exactly like cards on the table, so without this set they would be recorded in
@@ -588,16 +649,40 @@ local function obsClearings()
     for _, o in ipairs(getObjectsWithTag("RTT Priority")) do
       local p = nil
       pcall(function() p = o.getPosition() end)
-      if p ~= nil then marks[#marks + 1] = { x = p.x, z = p.z } end
+      -- THE ART IS THE MARKER'S IDENTITY. Each priority marker's texture is a picture of its number,
+      -- and the same twelve textures are used on every map (verified: 12 distinct arts, an identical
+      -- set across Autumn, Lake, Mountain, Winter and Gorge). Nothing else on the object says which
+      -- clearing it is -- they carry no name, no description and no GMNotes.
+      local art = ""
+      pcall(function()
+        local co = o.getCustomObject()
+        local u = (co ~= nil) and (co.image or co.diffuse or co.mesh) or nil
+        if type(u) == "string" and u ~= "" then art = u:gsub("/$", ""):match("([^/]+)$") or "" end
+      end)
+      if p ~= nil then marks[#marks + 1] = { x = p.x, z = p.z, a = art:sub(1, 8) } end
     end
   end)
+  -- THE ORDER IS A TIE-BREAK, NOT A MEANING. It used to be the whole answer: the markers were sorted
+  -- south-to-north and numbered 1..n, and that index was shipped as the clearing id. It is not any
+  -- numbering Root uses -- not the setup-card numbers the engine's maps_data/<map>_geometry.json is
+  -- keyed by, and not the priority order the markers themselves show -- so every archived game
+  -- carried twelve confident, meaningless ids, and fetch.py's corroboration step could only ever
+  -- answer "unconfirmed". Measured against all five maps' geometry: mean residual 16-20 units,
+  -- against a clearing radius of about 3.5.
+  --
+  -- TWO NUMBERINGS EXIST AND THEY ARE NOT THE SAME ONE. RTT's markers are CLEARING PRIORITY, the
+  -- tournament tie-break order. The engine's geometry is keyed by the SETUP-CARD numbers. Neither is
+  -- wrong and no fixed table converts one to the other, because they are different facts about the
+  -- board. So this ships what it actually knows -- which marker, and where it physically is -- and
+  -- leaves the translation to the reader, which has the map geometry to do it with.
   table.sort(marks, function(a, b)
     if math.abs(a.z - b.z) > 3 then return a.z < b.z end
     return a.x < b.x
   end)
   local out = {}
   for i, m in ipairs(marks) do
-    out[#out + 1] = "[" .. i .. "," .. obsNum(m.x) .. "," .. obsNum(m.z) .. "]"
+    out[#out + 1] = "[" .. i .. "," .. obsNum(m.x) .. "," .. obsNum(m.z)
+      .. ",\"" .. m.a .. "\"]"
   end
   return out
 end
@@ -691,7 +776,8 @@ local function obsArm(why)
   OBS.carry = 0
   OBS.full = true
   -- log(), never print(): print() writes to the IN-GAME CHAT that every player sees, log() to the
-  -- host's system console. The recorder is silent at the table until the maintainer presses EXPORT.
+  -- host's system console. THE RECORDER IS SILENT AT THE TABLE, FULL STOP -- not merely until the
+  -- EXPORT press. Even the result of the send is the host's business alone now; see obsReport.
   log("RTT archive: armed on " .. tostring(why) .. ", game_id " .. OBS.id)
 end
 
@@ -1051,7 +1137,126 @@ local function obsSeats()
   return out
 end
 
-local function obsDocument(box)
+-- ========================================================================================= --
+-- THE REVEAL -- the ONE place in this file that records hidden information, and it runs only --
+-- on the EXPORT press. Read the whitelist block at obsHands before touching it.               --
+-- ========================================================================================= --
+--
+-- THE MAINTAINER, 2026-09-12: "there is no cheating problem since it's at the moment of the export".
+-- He is right, and the SHAPE of this code is what makes him right -- so the shape is the whole
+-- feature, and the two facts below are the ones a later edit must not quietly undo:
+--
+--   1. NOTHING HIDDEN IS RECORDED WHILE THE GAME IS BEING PLAYED. The three paths that run during
+--      play -- `obsPush`, `obsFlush` and `obsKeyframe` -- are untouched by this section. They still
+--      subtract every hand GUID from everything they emit and `obsStatic` still refuses to describe
+--      a face-down object. Go and read them: the only hand call they make is `obsHands`, which takes
+--      SIZES, and there is not one `getName()` on a hidden thing anywhere in them.
+--   2. THIS FUNCTION HAS EXACTLY ONE CALLER: `obsArchive`, which is reached only through
+--      `rttArchiveGame`, which is reached only from the box score's EXPORT and UPLOAD buttons. The
+--      game is over at that moment, the maintainer has just declared it so, and the document leaves
+--      the table immediately.
+--
+-- THAT SEPARATION IS THE ENTIRE SAFETY ARGUMENT, and it is fragile in one specific way: moving this
+-- call into the flush or the keyframe -- or caching what it returns anywhere that outlives the send
+-- -- turns the archive into a LIVE ADVISOR without changing a single field name. A running log that
+-- contained hands could be read mid-game off the host's console, and worse, `onSave` writes the log
+-- into the save file on every autosave, so it would sit on disk while the game was still being
+-- played. One line in the wrong place is the whole distance between a study tool and a cheat tool.
+-- If a future change wants hands during play, the answer is no.
+--
+-- Everything is pcall'd, and not decoratively: a player who has left between the scan and the read,
+-- a colour that has no hand zone, and an object destroyed mid-loop are all reachable at a real
+-- table, and each of them surfaces as "Object reference not set to an instance of an object" and
+-- takes the rest of the export with it.
+local function obsReveal()
+  local parts = {}
+  parts[#parts + 1] = '{"at":' .. string.format("%d", math.floor(os.time()))
+
+  -- EVERY SEATED COLOUR, not just the host's. `Player[colour]` is USERDATA like every other player
+  -- handle in this file -- read the field you want inside a pcall and never ask what type it is,
+  -- which is the trap in the header that survives a green test suite because the stub hands back a
+  -- plain table.
+  --
+  -- A CARD IN A HAND ANSWERS getName() EVEN WHEN IT IS FACE DOWN to everyone else: TTS answers off
+  -- the object, not off what the asker is allowed to see. That is what makes this section possible
+  -- at all, and it is exactly why nothing during play may call it.
+  --
+  -- HAND 1 ONLY, because that is the Root hand. RTT parks pieces in a second hand zone
+  -- (`rttSnapshotHand2`) and what is in that one is not anybody's hand of cards.
+  local hs = {}
+  pcall(function()
+    for _, c in ipairs(getSeatedPlayers()) do
+      local p = nil
+      pcall(function() p = Player[c] end)
+      if p ~= nil then
+        local cards = nil
+        pcall(function() cards = p.getHandObjects(1) end)
+        if cards ~= nil then
+          local names = {}
+          for k = 1, #cards do
+            local nm = ""
+            pcall(function() nm = cards[k].getName() or "" end)
+            names[#names + 1] = obsStr(nm)
+          end
+          hs[#hs + 1] = obsStr(c) .. ":[" .. table.concat(names, ",") .. "]"
+        end
+      end
+    end
+  end)
+  parts[#parts + 1] = ',"hands":{' .. table.concat(hs, ",") .. "}"
+
+  -- THE FACE-DOWN OBJECTS, NOW NAMED. The keyframes already carry every one of these -- GUID,
+  -- position, `faceDown: 1` -- so the ONLY fact this list adds is the name, which is precisely the
+  -- fact the keyframes are forbidden to carry. `[guid, name, x, z]`, one row each, the same
+  -- arrays-of-arrays shape the rest of the document uses for bulk rows.
+  --
+  -- CARDS IN HANDS ARE SUBTRACTED HERE TOO, even though this section is allowed to see them:
+  -- `getAllObjects` returns a hand card exactly like a table card, so without the exclusion every
+  -- face-down card in somebody's hand would appear twice -- once in `hands` above and once here,
+  -- carrying the coordinates of a hand zone, which is not a place on the table. One fact, one place.
+  --
+  -- AN OBJECT WITH NO NAME IS COUNTED, NOT LISTED. Unnamed cardboard -- item tokens, priority
+  -- markers, a blank -- would contribute a row that says nothing the keyframe did not already say.
+  -- The count is kept because "the reveal saw forty face-down things and could name thirty-one" is
+  -- worth knowing downstream, and a short list with no count is indistinguishable from a scan that
+  -- half failed.
+  local hidden = obsHands()
+  local rows = {}
+  local unnamed = 0
+  pcall(function()
+    local objs = getAllObjects()
+    if objs == nil then return end
+    for i = 1, #objs do
+      local o = objs[i]
+      local g = nil
+      pcall(function() g = o.getGUID() end)
+      if g ~= nil and g ~= "" and not hidden[g] then
+        local down = false
+        pcall(function() down = (o.is_face_down == true) end)
+        if down then
+          local nm = ""
+          pcall(function() nm = o.getName() or "" end)
+          if nm == "" then
+            unnamed = unnamed + 1
+          else
+            local p = nil
+            pcall(function() p = o.getPosition() end)
+            -- A piece somebody is holding at the moment of the press has a meaningless position;
+            -- the last keyframe's baseline is the better answer and costs nothing.
+            if p == nil then p = OBS.prev[g] or { x = 0, z = 0 } end
+            rows[#rows + 1] = "[" .. obsStr(g) .. "," .. obsStr(nm) .. ","
+              .. obsNum(p.x) .. "," .. obsNum(p.z) .. "]"
+          end
+        end
+      end
+    end
+  end)
+  parts[#parts + 1] = ',"facedown":[' .. table.concat(rows, ",") .. "]"
+  parts[#parts + 1] = ',"unnamed":' .. unnamed .. "}"
+  return table.concat(parts)
+end
+
+local function obsDocument(box, reveal)
   local d = {}
   local function add(s) d[#d + 1] = s end
 
@@ -1090,6 +1295,28 @@ local function obsDocument(box)
   add(',"objects":{' .. table.concat(frags, ",") .. "}")
   add(',"events":[' .. table.concat(OBS.ev, ",") .. "]")
   add(',"snapshots":[' .. table.concat(OBS.snap, ",") .. "]")
+
+  -- THE REVEAL RIDES LAST, AND IS DROPPED BEFORE THE GAME IS. ARCHIVE.md §3 caps the recorder at
+  -- OBS_MAX_BYTES and a game is expected near 150 KB, so this can only fire on a document that is
+  -- already abnormal -- but a reveal is a few hundred short strings appended to a log that may
+  -- already be sitting at the cap, and the movement log is the half the corpus is actually built out
+  -- of. So it is measured against what is already in hand and left out if it does not fit, rather
+  -- than pushing the document past the limit this recorder promises ingest.php it will stay inside.
+  -- The 10 is the length of the `,"reveal":` that would carry it.
+  --
+  -- `truncated` is deliberately NOT set here. It means "rows were dropped from the log" and every
+  -- consumer reads it that way; an absent "reveal" is its own signal, and the console line says why.
+  if reveal ~= nil and reveal ~= "" then
+    local sofar = 0
+    for i = 1, #d do sofar = sofar + #d[i] end
+    if (sofar + #reveal + 10) <= OBS_MAX_BYTES then
+      add(',"reveal":' .. reveal)
+    else
+      log("RTT archive: reveal dropped, " .. (sofar + #reveal + 10)
+        .. " bytes would pass OBS_MAX_BYTES; the game is sent without it.")
+    end
+  end
+
   if OBS.truncated then add(',"truncated":true') end
   add("}")
   return table.concat(d)
@@ -1126,19 +1353,27 @@ local function obsSay(req)
   return ok, msg
 end
 
--- ARCHIVE.md §4 "Visibility", and it is not optional: the host pressed a button and the table is
--- told where the data went. A FAILURE IS SAID OUT LOUD TOO -- the alternative is that a maintainer
--- who is expecting "Game archived." gets silence and cannot tell a broken endpoint from a recorder
--- that never armed. There is no retry: the log is kept, and pressing UPLOAD sends it again.
+-- THE TABLE IS NOT TOLD, AND THAT IS THE POINT. Two `broadcastToAll` lines stood here -- one for a
+-- success, one for a failure -- under a comment arguing that they were not optional: "the host
+-- pressed a button and the table is told where the data went". THE MAINTAINER'S INSTRUCTION OF
+-- 2026-09-12 IS THE OPPOSITE, and it is his table. The archive says nothing in chat, ever. Five
+-- other people in a tournament game do not need a line about where the host's training corpus went,
+-- and the failure line was the worse of the two: it announces a broken endpoint to a room that can
+-- do nothing about it, in the middle of the last scoring of the game.
+--
+-- THE HOST IS NOT LEFT BLIND, which is the half that makes the silence safe. `OBS.status` is still
+-- set on every outcome, success and failure alike, and `rttArchiveStatus()` hands it to the box
+-- score for its own status line beside INFO -- the same line that already reports the notebook write
+-- and the Root Database upload. That line is the HOST'S, not the table's, so a maintainer expecting
+-- "archived" can still tell a broken endpoint from a recorder that never armed.
+--
+-- THE log() LINES STAY for exactly the same reason: log() writes to the host's system console,
+-- print() and broadcastToAll write to everyone's chat. There is still no retry -- the log is kept,
+-- and pressing UPLOAD sends it again.
 local function obsReport(req)
   OBS.sending = false
   local ok, msg = obsSay(req)
   OBS.status = os.date("%H:%M") .. " " .. msg
-  if ok then
-    broadcastToAll("Game archived. " .. msg, { r = 0.85, g = 0.75, b = 0.55 })
-  else
-    broadcastToAll("Game archive failed: " .. msg, { r = 1, g = 0.6, b = 0.2 })
-  end
   local body = ""
   pcall(function() body = tostring(req.text or ""):sub(1, 300) end)
   log("RTT archive: ok=" .. tostring(ok) .. " body=" .. body)
@@ -1172,13 +1407,34 @@ local function obsArchive(params)
   pcall(function() turn = Turns.turn_color or "" end)
   pcall(function() obsKeyframe(turn) end)
 
-  local body = obsDocument(box)
+  -- THE REVEAL, BUILT HERE AND NOWHERE ELSE. This is the moment the maintainer has declared the
+  -- game over, and it is the only moment in a whole session at which anything hidden is read --
+  -- obsReveal's header says why that isolation is the entire safety argument. Guarded like the
+  -- keyframe above it: a reveal that throws must cost the reveal, not the archive.
+  local reveal = ""
+  pcall(function() reveal = obsReveal() end)
+
+  local body = obsDocument(box, reveal)
   -- 4 MB is ingest.php's hard Content-Length limit (§5); our own cap is 1 MB, so this can only fire
   -- if something has gone wrong upstream, and sending it would burn the rate limit for nothing.
   if #body > 4 * 1048576 then
     OBS.status = "payload too large (" .. #body .. " bytes), not sent"
-    broadcastToAll("Game archive: payload too large, not sent.", { r = 1, g = 0.6, b = 0.2 })
     log("RTT archive: " .. OBS.status)
+    return
+  end
+
+  -- THE ASSEMBLED ENDPOINT IS CHECKED BEFORE EVERY SEND. OBS_ENDPOINT is not a literal any more --
+  -- it is built at load out of a byte table and an offset (see the constants, and the reason it is
+  -- encoded at all) -- so it has a failure mode a literal never had: bytes edited without the
+  -- offset, a number lost to a stray keystroke, and the string that comes out is not a URL.
+  -- WebRequest.custom would then fail the way a dead host fails, with response_code 0 and an empty
+  -- body, and the status line would send the maintainer to look at the server for a fault that is in
+  -- this file. Refuse instead, and say which of the two it is. The assembled value is deliberately
+  -- NOT logged: the console line would put the host's domain back in plain text.
+  if type(OBS_ENDPOINT) ~= "string" or OBS_ENDPOINT:sub(1, 8) ~= "https://" then
+    OBS.status = "the endpoint did not assemble, nothing sent"
+    log("RTT archive: OBS_ENDPOINT is not an https:// URL (" .. #tostring(OBS_ENDPOINT)
+      .. " chars) -- check OBS_EP_BYTES and OBS_EP_OFFSET. Nothing sent.")
     return
   end
 
@@ -1215,7 +1471,6 @@ local function obsArchive(params)
   if not sent then
     OBS.sending = false
     OBS.status = "this TTS build cannot send custom headers"
-    broadcastToAll("Game archive: this TTS build cannot send the request.", { r = 1, g = 0.6, b = 0.2 })
     log("RTT archive: WebRequest.custom is unavailable")
     return
   end
