@@ -7625,10 +7625,27 @@ def t_the_box_score_columns_fit_what_goes_in_them(src):
     """
     sheet = json.loads(re.search(r"RTT_BOXSCORE_JSON = \[====\[(.*?)\]====\]", src, re.S).group(1))["LuaScript"]
 
-    m = re.search(r"local iconW, facW, domW, nameW, liveW, timeW = "
-                  r"(\d+), (\d+), (\d+), (\d+), (\d+), (\d+)", sheet)
+    m = re.search(r"local iconW, facW, domW, nameW, liveW = "
+                  r"(\d+), (\d+), (\d+), (\d+), (\d+)", sheet)
     assert m, "the box score's column widths are not where this test expects them"
-    iconW, facW, domW, nameW, liveW, timeW = (int(g) for g in m.groups())
+    iconW, facW, domW, nameW, liveW = (int(g) for g in m.groups())
+
+    # THE ORDER OF THE ROW, which is the thing he actually asked for: the name comes straight after
+    # the faction, and the dominance column sits to the RIGHT of it. It used to sit between them, 52px
+    # wide on every row whether anyone held a card or not, which was the dead space he photographed.
+    # And there is no turn-time column any more.
+    assert "mmss(row.lastTurn)" not in sheet, \
+        "the turn-time cell is back in the row; he asked for that column removed"
+    assert "timeW" not in sheet.replace("-- timeW", ""), \
+        "a turn-time column width is back in the layout"
+    fac_at = sheet.index("facName ..")
+    name_at = sheet.index("esc(row.player)")
+    # the ROW's dominance cell, not the export's `row.dom ~= nil` -- that one comes far earlier in the
+    # script and made this read the wrong order for a moment
+    dom_at = sheet.index('<VerticalLayout preferredWidth="\' .. domW')
+    assert fac_at < name_at < dom_at, (
+        "the row is ordered faction/dominance/name again; the name must follow the faction directly "
+        "and the dominance column go to its right")
 
     assert nameW == 187, \
         "the name column is %d; two 20%% rises off 130 is 187" % nameW
@@ -7689,7 +7706,7 @@ def t_the_box_score_columns_fit_what_goes_in_them(src):
         "the variant subtext no longer shrinks to fit; the captains line would be clipped"
 
     # and the declared total is still the sum of its parts, so a column cannot drift out of the width
-    assert re.search(r"local W = 54 \+ iconW \+ facW \+ domW \+ nameW \+ timeW", sheet), \
+    assert re.search(r"local W = 54 \+ iconW \+ facW \+ domW \+ nameW \+", sheet), \
         "the sheet's width is no longer computed from its columns"
 
 
