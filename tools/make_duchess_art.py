@@ -27,11 +27,6 @@ pink is warm: keyed on warmth alone the flood went straight up her arms and ate 
 checkerboard is a mid-dark red -- around 80 to 90 mean -- where her skin is 200, so brightness tells
 them apart even though colour does not.
 
-SEEDED FROM THE SIDES, not the corners or the top. Her crown is drawn ON the picture's first row --
-the artist put her head right up against the frame -- so a flood seeded along the top row walks
-straight in through her scalp. The checkerboard runs the full height of both sides, so that is where
-the flood starts instead.
-
 AND THE BOTTOM IS CLOSED. The window stops at the desk's top edge -- she is taken from the desk up, as
 the frog is taken from the hip up -- and that crop leaves her silhouette open at the bottom, so the
 flood would climb into her from underneath. Cropping above the desk rather than through her is what
@@ -73,6 +68,12 @@ SPECK = 1          # opened by this, to shed the single pixels the key leaves in
 FEATHER = 0.7      # and the edge is softened, so she is not a cut-out against the button
 MARGIN = 3
 
+# THE CAP: how much of a shape the card's gold frame cuts off, and what may be put back.
+CAP_PROBE = 10     # rows of a clipped shape measured to fit its dome
+CAP_MAX = 12       # ...and never invent more than this many rows on top of it
+CAP_MIN_W = 8      # a run narrower than this on the first row is a whisker, not a skull
+CAP_MIN_ROWS = 2   # a shape missing less than this is left alone; a one-row cap is only a nub
+
 
 def figure(win):
     """The Duchess, as a mask over the window: everything the checkerboard cannot reach."""
@@ -82,14 +83,112 @@ def figure(win):
 
     h, w = ground.shape
     seen = np.zeros((h, w), bool)
-    for y in range(0, h, 4):                       # both full-height sides, which are all checkerboard
-        for x in (0, w - 1):
-            if ground[y, x] and not seen[y, x]:
-                seen |= flood(ground, (y, x))
+
+    # SEEDED FROM THE SIDES *AND ALONG THE TOP*. Both sides are checkerboard the whole way down, so
+    # they were seeded from the start. The top row was not, on the theory that a flood let in there
+    # would walk through her scalp -- and that theory is wrong, which is why the maintainer could
+    # still see, 2026-09-12, "residual background on top of the middel of her nose". The flood only
+    # ever walks through pixels the key calls ground, and her scalp is neutral grey, so it is not
+    # ground and the flood cannot enter it. What the top row DOES reach is the one patch of
+    # checkerboard the sides cannot: the wedge between the back of her head and the top of her snout,
+    # walled in by her on both sides, closed underneath where head meets snout, and open only at the
+    # frame. Twenty-four pixels of mustard tile, kept as part of her for want of a seed.
+    seeds = [(y, x) for y in range(0, h, 4) for x in (0, w - 1)]
+    seeds += [(0, x) for x in range(w)]
+    for y, x in seeds:
+        if ground[y, x] and not seen[y, x]:
+            seen |= flood(ground, (y, x))
 
     her = fill_holes(~seen)
     her = fill_holes(dilate(erode(her, SPECK), SPECK))
     return her
+
+
+def runs(row):
+    """The row's True stretches, as (first, last) pairs."""
+    xs = np.where(row)[0]
+    out = []
+    if not len(xs):
+        return out
+    s = p = xs[0]
+    for x in xs[1:]:
+        if x != p + 1:
+            out.append((s, p))
+            s = x
+        p = x
+    out.append((s, p))
+    return out
+
+
+def cap_fit(her, l0, r0):
+    """How far above the frame the shape starting at l0..r0 on row 0 goes, and the arc that gets there.
+
+    A dome's half-width near its apex grows as the SQUARE ROOT of the drop below it -- that is just a
+    circle, x^2 + y^2 = r^2, read the other way round. So hw^2 is a straight line in y, and the line's
+    own root is the apex. Fit it on the rows that survive and read off the rows that did not.
+    """
+    ls, rs = [l0], [r0]
+    for y in range(1, CAP_PROBE):
+        cand = [(l, r) for l, r in runs(her[y]) if r >= ls[-1] - 3 and l <= rs[-1] + 3]
+        if not cand:
+            break
+        ls.append(min(c[0] for c in cand))
+        rs.append(max(c[1] for c in cand))
+    ys = np.arange(len(ls), dtype=float)
+    k, c = np.polyfit(ys, ((np.array(rs) - np.array(ls)) / 2.0) ** 2, 1)
+    mx, bx = np.polyfit(ys, (np.array(ls) + np.array(rs)) / 2.0, 1)
+    return (c / k if k > 0 else 0.0), k, c, mx, bx
+
+
+def recap(win, her):
+    """Put back the tops of the shapes the card's gold frame cuts off.
+
+    Maintainer, 2026-09-12, twice: "you still have the top of the head of the duchess cut in the art."
+
+    HE IS RIGHT AND THE CARD IS THE REASON. The artist drew her head running into the gold frame:
+    on the picture's first row her skull is already 48 pixels wide and still widening downward, so
+    its apex is printed over -- it is not in this image, nor in any other. The Duchy rules board's
+    header carries a different mole (blue neckerchief, no crown), the wiki holds no minister art at
+    all, and the board's own Unswayed Ministers box is empty. There is nothing to recover from.
+
+    So the crest is rebuilt rather than found, and only the crest: six rows, off an arc measured from
+    the twenty rows of skull the card did keep. Each new row is the first surviving row's OWN pixels
+    resampled narrower, which carries its white rim line and its left-to-right grey shading up to the
+    apex instead of flooding a flat grey that would read as a patch.
+
+    Her snout is clipped too, but by less than a row and a half, so CAP_MIN_ROWS leaves it: capping it
+    would add a pale nub where the notch between head and snout should simply be empty.
+    """
+    caps = []
+    for l0, r0 in runs(her[0]):
+        if r0 - l0 + 1 < CAP_MIN_W:
+            continue
+        miss, k, c, mx, bx = cap_fit(her, l0, r0)
+        n = int(min(CAP_MAX, round(miss)))
+        if n >= CAP_MIN_ROWS:
+            caps.append((l0, r0, n, k, c, mx, bx))
+    if not caps:
+        return win, her, 0
+
+    n_add = max(cp[2] for cp in caps)
+    h, w, _ = win.shape
+    win2 = np.zeros((h + n_add, w, 3), np.uint8)
+    win2[n_add:] = win
+    her2 = np.zeros((h + n_add, w), bool)
+    her2[n_add:] = her
+
+    for l0, r0, n, k, c, mx, bx in caps:
+        strip = Image.fromarray(win[0:1, l0:r0 + 1])
+        for j in range(n):
+            y = -(n - j)                                   # window row, negative: above the picture
+            hw = np.sqrt(max(0.0, k * y + c))
+            wide = int(round(2 * hw))
+            if wide < 1:
+                continue
+            x = max(0, min(w - wide, int(round(mx * y + bx - wide / 2.0))))
+            win2[n_add - n + j, x:x + wide] = np.asarray(strip.resize((wide, 1), Image.BILINEAR))[0]
+            her2[n_add - n + j, x:x + wide] = True
+    return win2, her2, n_add
 
 
 def main():
@@ -99,7 +198,7 @@ def main():
     x0, y0, x1, y1 = WINDOW
     win = card[y0:y1, x0:x1]
 
-    mask = figure(win)
+    win, mask, capped = recap(win, figure(win))
     box = Image.fromarray((mask * 255).astype(np.uint8)).getbbox()
     if box is None:
         sys.exit("the cut found nothing; the key or the window is wrong")
@@ -114,6 +213,7 @@ def main():
     op = (np.asarray(soft) > 127).mean()
     print("  the Duchess of Mud, desk up: %dx%d on alpha, %.0f%% of the frame is her"
           % (bx1 - bx0, by1 - by0, 100 * op))
+    print("  %d rows of skull rebuilt above the card's frame" % capped)
     print("  -> %s" % os.path.relpath(OUT, REPO))
 
 

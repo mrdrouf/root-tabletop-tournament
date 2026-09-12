@@ -7941,6 +7941,62 @@ def t_nothing_creates_more_than_a_handful_of_objects_a_frame(src):
         "these kits create far more than the %d-per-frame budget: %s" % (budget, ", ".join(over))
 
 
+def t_the_duchess_keeps_her_whole_head_and_none_of_her_tiles(src):
+    """The 5-Player button's art: her crest is a dome, and the wedge above her nose is gone.
+
+    Both faults were reported, 2026-09-12: "you still have the top of the head of the duchess cut in
+    the art and also residual background on top of the middel of her nose." Both came out of
+    tools/make_duchess_art.py and neither is visible to a Lua test, so this one reads the PNG.
+
+    THE WEDGE was a pocket of checkerboard walled in by the back of her head and the top of her snout
+    and open only at the card's frame -- so a flood seeded from the sides alone could never reach it
+    and it was kept as part of her. The cut now seeds the top row too, which leaves that notch empty;
+    the test is that a gap opens between her head and her snout at all. Before the fix there was not
+    one row of it in the whole picture.
+
+    THE CREST the card itself cuts off: her skull is already 48 pixels wide on the picture's first row
+    and still widening, so its apex is printed over by the gold band. Six rows are rebuilt off an arc
+    fitted to the skull the card kept, and the test is the shape of the result -- a dome starts narrow
+    and widens, a slice starts at nearly full width.
+    """
+    import numpy as np
+    from PIL import Image
+
+    art = np.asarray(Image.open(os.path.join(REPO, "assets", "src_art", "duchess_mud.png"))
+                     .convert("RGBA"))
+    opaque = art[..., 3] > 127
+
+    def runs(row):
+        xs = np.where(row)[0]
+        out = []
+        if not len(xs):
+            return out
+        s = p = xs[0]
+        for x in xs[1:]:
+            if x != p + 1:
+                out.append((s, p))
+                s = x
+            p = x
+        out.append((s, p))
+        return out
+
+    notched = 0
+    for y in range(min(45, opaque.shape[0])):
+        r = runs(opaque[y])
+        if len(r) >= 2 and max(b[0] - a[1] - 1 for a, b in zip(r, r[1:])) >= 5:
+            notched += 1
+    assert notched >= 8, \
+        ("the notch between her head and her snout is filled in on %d of the top 45 rows -- that is "
+         "the checkerboard wedge the side-seeded flood could not reach" % (45 - notched))
+
+    top = next(y for y in range(opaque.shape[0]) if opaque[y].any())
+    crest = max(r[1] - r[0] + 1 for r in runs(opaque[top]))
+    below = max(r[1] - r[0] + 1 for r in runs(opaque[top + 12]))
+    assert crest < 0.5 * below, \
+        ("her head starts %d wide and is only %d wide twelve rows down: that is a slice, not a dome, "
+         "so the card's frame is still cutting her skull" % (crest, below))
+
+
 CASES = [
     ("manual path drives the turn system",   t_manual_turn_order),
     ("manual path spawns 4 / 5 boards",      t_boards_spawn),
@@ -8076,6 +8132,7 @@ CASES = [
     ("no kit loses pieces to its cb",   t_no_kit_loses_pieces_to_its_own_callback),
     ("vagabond gets no setup card",     t_the_vagabond_gets_no_advanced_setup_card),
     ("rel markers follow the table",    t_relationship_markers_follow_the_factions_in_play),
+    ("the duchess keeps her head",      t_the_duchess_keeps_her_whole_head_and_none_of_her_tiles),
 ]
 
 
