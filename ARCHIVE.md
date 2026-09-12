@@ -71,24 +71,19 @@ carries the finished box score.
 `rttArchiveGame` must never throw into its caller. It is wrapped in `pcall` at the call site and
 guards internally as well.
 
-### The game ending is a trigger too (v1.221, capped at two in v1.222)
+### The game ending is a trigger too (v1.221; capped at two in v1.222; fired from the win in v1.223)
 
 Maintainer, 2026-09-12: *"I want this archive to be sent also whenever a player reaches 30 or takes a
-dominance win"*, then, once it shipped: *"make it so that it could fire twice during the game. There's
-a second win condition after a misplay. That's fine, but only twice."*
-
-`archiveOnWin` in the box score, called from the end of `poll`:
+dominance win"*; then *"make it so that it could fire twice during the game. There's a second win
+condition after a misplay. That's fine, but only twice."*; then, on a first version that ran the check
+off the end of every poll: *"the poll continuously watching is very bad design. the fire can come from
+boxscore."*
 
 ```lua
 local WIN_ARCHIVE_MAX = 2
 
 function archiveOnWin()
-  if S.winner == nil then
-    S.winArmed = true                          -- no win on the sheet: the next one may archive
-    return
-  end
-  if S.winArmed == false then return end       -- this same win has already been sent
-  S.winArmed = false
+  if S.winner == nil then return end
   if (S.winArchives or 0) >= WIN_ARCHIVE_MAX then return end
   S.winArchives = (S.winArchives or 0) + 1
   logev("archive-win", S.winner, currentRound(), S.winnerReason)
@@ -96,24 +91,24 @@ function archiveOnWin()
 end
 ```
 
-**At the poll, not at the two declarations.** `S.winner` is set when a VP marker settles on 30 and
-when the DOM WIN button is pressed, and a third path could be added later. The poll is the thing that
-runs, so it sees every one of them.
+**Called where the game is won.** Two sites, both in the box score: the score reader, right after a
+marker settling on 30 sets `S.winner`, and the DOM WIN branch of `uiRowBtn`. Both already know a win
+has just happened.
 
-**A count alone would not work.** The poll runs continuously, so "fewer than two sent" is true again
-on the next pass and both sends would go on the SAME win a fraction of a second apart. What is counted
-is the **edge** — a winner appearing where there was none — so the arm (`S.winArmed`) is a separate
-flag from the tally (`S.winArchives`), and only `S.winner` going back to `nil`, which is exactly what
-undoing a win does, re-arms it.
+**Why the watcher was worse than slow.** Reading `S.winner` from the poll meant rebuilding that fact
+from state afterwards — an arm/disarm flag to turn a standing condition back into the edge it already
+was, and a second flag in `onLoad` so that loading a finished save did not look like a win. Calling at
+the source needs neither: `onLoad` restores `S.winner` without calling this, so a finished game coming
+back off a save archives nothing.
 
 **Two, because the second is the correction.** A game is declared won, somebody spots the misplay and
 takes it back, and the real end comes later; the first send records a game that had not finished. A
-third is not a correction any more.
+third is not a correction any more. `S.winArchives` lives in `S`, which `onSave` encodes whole, so the
+count survives a reload; `uiReset` clears it.
 
-Both fields live in `S`, which `onSave` encodes whole, so the count survives a reload. `uiReset` clears
-them. A **reload is not a win**: `onLoad` disarms a restored winner, or the first poll after every load
-of a finished game would send it again. A v1.221 save's single `wonArchived` boolean is carried over as
-one send already spent.
+**The price of calling at the source** is that a third way to win, added later, would archive nothing.
+The suite guards it: every line that puts a faction into `S.winner` must have the call beside it, so a
+new win path fails in the harness rather than at the table.
 
 **Only one version on the site** needs nothing at this end: the `game_id` dedupe above means every send
 replaces the one before it.

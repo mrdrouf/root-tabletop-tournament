@@ -8913,44 +8913,61 @@ def t_the_torn_boards_are_cut_where_the_art_is_torn(src):
 
 
 def t_a_won_game_archives_itself_once(src):
-    """A win archives the game -- twice at most, once per win -- and EXPORT still re-sends.
+    """Winning archives the game -- twice at most, once per win -- and EXPORT still re-sends.
 
     Maintainer, 2026-09-12: "I want this archive to be sent also whenever a player reaches 30 or takes
-    a dominance win", then, after the first version shipped: "make it so that it could fire twice
-    during the game. There's a second win condition after a misplay. That's fine, but only twice."
+    a dominance win"; then "make it so that it could fire twice during the game. There's a second win
+    condition after a misplay. That's fine, but only twice."; then, on a first version that ran the
+    check off the end of every poll: "the poll continuously watching is very bad design. the fire can
+    come from boxscore."
 
-    A game is declared won, somebody spots the misplay and takes it back, and the real end comes
-    later. The first send records a game that had not finished; the second is the one worth keeping. A
-    third is not a correction any more.
+    THE FIRE COMES FROM THE WIN. The two places that declare a winner -- the score reader when a
+    marker settles on 30, and the DOM WIN button -- know a win has just happened, so they call it.
+    Watching S.winner from the poll instead meant rebuilding that fact from state afterwards, with an
+    arm/disarm flag to turn a standing condition back into the edge it already was, and a second flag
+    so that loading a finished save did not look like a win. Calling it at the source needs neither.
 
-    A COUNT ALONE WOULD NOT DO IT, and that is the case this test exists for. The poll runs
-    continuously, so "fewer than two sent" is true again on the very next pass and both sends would go
-    on the SAME win a fraction of a second apart. What is counted is the EDGE -- a winner appearing
-    where there was none -- so the arm is a separate flag from the tally, and only a win being UNDONE
-    re-arms it.
+    THE COST OF CALLING AT THE SOURCE is that a third way to win, added later, would archive nothing.
+    That is what the first half of this test is for: it finds every line that puts a faction into
+    S.winner and requires the call beside it, so a new win path fails here rather than at the table.
+    onLoad is excluded on purpose -- restoring a winner from a save is not winning.
 
-    DRIVEN THROUGH THE REAL BUTTON. S is a local in the sheet's script and no test can reach into it,
-    which is right -- so this loads a state holding one row with a dominance on it and presses DOM WIN
-    through uiRowBtn, exactly as a player does. Pressing it again undoes the win, which is how the
-    misplay is reproduced.
-
-    THE 30-VP PATH IS THE SAME HOOK, checked structurally rather than driven: reaching 30 is the poll
-    noticing a settled VP marker on the map's printed track, which needs a map, a marker and the track
-    geometry. Both paths set S.winner and the poll calls archiveOnWin, so what matters is that the
-    call is inside the poll -- hooked at the two declarations instead, a third way to win would
-    silently not archive.
+    The rest drives the REAL button: S is a local in the sheet's script and no test can reach into it,
+    so this loads a state holding a dominance and presses DOM WIN through uiRowBtn the way a player
+    does. Pressing again takes the win back, which is how the misplay is reproduced.
 
     ONE VERSION ON THE SITE is the server's half and needs nothing here: ingest dedupes on game_id
-    (ARCHIVE.md), so every send replaces the one before it. What is checked here is the only half this
-    end owns -- how many times it sends, and on what.
+    (ARCHIVE.md), so every send replaces the one before it.
     """
     sheet = json.loads(re.search(r"RTT_BOXSCORE_JSON = \[====\[(.*?)\]====\]", src, re.S).group(1))
     lua = sheet["LuaScript"]
+    lines = lua.split("\n")
 
-    poll = lua[lua.index("local function poll()"):]
-    poll = poll[:poll.index("\n------------------------------------------------------------------ turn flow --")]
-    assert "archiveOnWin" in poll, \
-        "the poll does not archive a won game, so only the paths hooked by hand would send"
+    def enclosing(n):
+        for i in range(n, -1, -1):
+            m = re.match(r"(local\s+)?function\s+([\w.:]+)", lines[i])
+            if m:
+                return m.group(2)
+        return "?"
+
+    declarations, unhooked = 0, []
+    for i, line in enumerate(lines):
+        if line.strip().startswith("--"):
+            continue
+        # `=(?!=)` so a comparison is not read as an assignment: this file tests S.winner far
+        # more often than it sets it.
+        m = re.search(r"S\.winner\s*=(?!=)\s*(\S+)", line)
+        if not m or m.group(1) == "nil":
+            continue
+        if enclosing(i) == "onLoad":            # a reload is not a win
+            continue
+        declarations += 1
+        if "archiveOnWin" not in "\n".join(lines[i:i + 6]):
+            unhooked.append("line %d in %s: %s" % (i + 1, enclosing(i), line.strip()))
+    assert declarations >= 2, \
+        "only %d live winner declarations found; the scan is not reaching them" % declarations
+    assert not unhooked, \
+        "these declare a winner and never archive it: %s" % "; ".join(unhooked)
 
     STATE = json.dumps({
         "rows": [{"fac": "Marquise de Cat", "score": 12, "locks": [], "edits": {},
@@ -8972,51 +8989,41 @@ def t_a_won_game_archives_itself_once(src):
         return rt
 
     sent = lambda rt: rt.eval("SENT")
-    # pressing DOM WIN toggles: on for a win, again to take it back
+    # DOM WIN toggles: once for a win, again to take it back. Nothing else is needed -- the press
+    # itself sends, which is the whole point of the change.
     press = lambda rt: rt.execute("pcall(function() uiRowBtn(Player['Red'], '', 'domwin_1') end)")
-    polls = lambda rt, n=4: [rt.execute("pcall(archiveOnWin)") for _ in range(n)]
 
     rt = fresh_sheet(STATE)
 
-    # 1) the first win sends once, and stays once however many polls pass over it
-    press(rt); polls(rt, 6)
+    press(rt)
     assert sent(rt) == 1, "a dominance win sent the archive %d time(s), not once" % sent(rt)
 
-    # 2) the misplay: take the win back, win again -- the second send, and only one
-    press(rt); polls(rt)                       # undone
+    # the misplay: take the win back, win again
+    press(rt)
     assert sent(rt) == 1, "undoing a win sent the archive (%d sends)" % sent(rt)
-    press(rt); polls(rt, 6)                    # won again
-    assert sent(rt) == 2, \
-        "the second win did not archive, or archived more than once (%d sends)" % sent(rt)
+    press(rt)
+    assert sent(rt) == 2, "the second win did not archive (%d sends)" % sent(rt)
 
-    # 3) a third win is not a correction any more
-    press(rt); polls(rt)                       # undone
-    press(rt); polls(rt, 6)                    # won a third time
+    # a third win is not a correction any more
+    press(rt); press(rt)
     assert sent(rt) == 2, "a third win sent the archive again (%d sends)" % sent(rt)
 
-    # 4) ...but EXPORT always sends, which is how a record that went early is replaced
+    # ...but EXPORT always sends, which is how a record that went early is replaced
     rt.execute("pcall(function() uiExport(Player['Red']) end)")
     assert sent(rt) == 3, "EXPORT did not re-send the archive (%d sends)" % sent(rt)
 
-    # 5) a new game gets its own two
+    # a new game gets its own two
     rt.execute("pcall(uiReset)")
     rt.execute("pcall(function() onLoad(%s) end) FLUSH(20) SENT = 0" % json.dumps(STATE))
-    press(rt); polls(rt)
-    press(rt); polls(rt)
-    press(rt); polls(rt)
+    for _ in range(5):
+        press(rt)
     assert sent(rt) == 2, "after a reset the new game sent %d time(s), not two" % sent(rt)
 
-    # 6) a RELOAD of a sheet that already holds a winner is not a new win
+    # and a RELOAD of a sheet that already holds a winner archives nothing at all
     state = rt.eval("onSave()")
     rt2 = fresh_sheet(state)
-    polls(rt2, 6)
     assert sent(rt2) == 0, \
         "loading a finished game sent its archive again (%d sends)" % sent(rt2)
-
-    # 7) and with no winner on the sheet, nothing goes
-    rt3 = fresh_sheet(STATE)
-    polls(rt3, 6)
-    assert sent(rt3) == 0, "the archive went with no winner on the sheet"
 
 
 CASES = [
