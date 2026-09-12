@@ -8849,6 +8849,69 @@ def t_the_clock_has_room_for_a_two_digit_minute(src):
          % (w_round + spacing + w_time, box))
 
 
+def t_the_torn_boards_are_cut_where_the_art_is_torn(src):
+    """The two parchment boards are physically cut along the damage their art draws.
+
+    Maintainer, 2026-09-12: "the boards imitate some parchment that has some damage. That's like the
+    black squiggly lines on the sides ... Actually, physically, the board is where the art suggests
+    that there is parchment damage. That's what I mean by cutting."
+
+    MergeDistancePixels IS THE WHOLE OF IT. Both boards are Custom_Tokens, so TTS traces the image's
+    alpha and cuts the object to that outline -- but it SIMPLIFIES the trace first, merging points
+    that lie within this many pixels of a straight line. The tears are drawn a few dozen pixels deep
+    and a few wide, so at a coarse setting they are simplified away and the object comes out a rounded
+    rectangle with the damage merely painted on it.
+
+    MEASURED BY SIMPLIFYING THE OUTLINE THE SAME WAY. The dominance board's traced outline is 8,067
+    points; at 15 that collapses to 23 vertices and the silhouette departs from the drawn shape over
+    0.73% of the frame, with the cut running straight past the notches. At 3 it is 55 vertices and
+    0.18%, and the line follows each tear down into it. Past that the gain is small -- 2 gives 79
+    vertices for 0.11% -- and every vertex is collider the table pays for.
+
+    ONLY THESE TWO. Maintainer, the same day: "Don't modify any board that was there before. Only the
+    one we created together with the parchment. And the one with the card and the dominance." The six
+    map tokens are also at 15 and are deliberately left there; this is keyed to the two GUIDs rather
+    than to a blanket sweep so it cannot creep onto the maps.
+    """
+    rt = fresh(src)
+    blobs = rt.eval("""function()
+        local out = {}
+        for _, cat in pairs(EVERYTHING) do
+          for _, kit in pairs(cat) do
+            for _, v in ipairs(kit['data'] or {}) do out[#out+1] = v.json end
+          end
+        end
+        return table.concat(out, "\1")
+    end""")()
+    want = {"c9f388": "the dominance track", "aa1464": "the deck/discard holder"}
+    seen = {}
+    maps = []
+    for raw in blobs.split("\x01"):
+        try:
+            d = json.loads(raw)
+        except ValueError:
+            continue
+        tk = ((d.get("CustomImage") or {}).get("CustomToken"))
+        if not tk:
+            continue
+        g = d.get("GUID")
+        if g in want:
+            seen[g] = tk.get("MergeDistancePixels")
+        elif (d.get("Transform") or {}).get("scaleX", 0) >= 10:
+            maps.append((d.get("Nickname"), tk.get("MergeDistancePixels")))
+
+    assert set(seen) == set(want), \
+        "these parchment boards are not in the build: %s" % sorted(set(want) - set(seen))
+    coarse = {want[g]: v for g, v in seen.items() if v is None or v > 3.0}
+    assert not coarse, \
+        ("%s trace their outline too coarsely to follow the tears: %s"
+         % (", ".join(sorted(coarse)), coarse))
+
+    # ...and the original maps are untouched, which is the other half of the instruction
+    assert maps and all(v == 15.0 for _, v in maps), \
+        "a map's outline tracing was changed; the originals must be left alone: %s" % maps
+
+
 CASES = [
     ("manual path drives the turn system",   t_manual_turn_order),
     ("manual path spawns 4 / 5 boards",      t_boards_spawn),
@@ -9000,6 +9063,7 @@ CASES = [
     ("a hand leaves only at export",    t_the_payload_never_carries_a_hand),
     ("card backs are backs, not blanks", t_every_card_back_is_a_back_and_not_a_blank),
     ("the clock fits 10:00",           t_the_clock_has_room_for_a_two_digit_minute),
+    ("torn boards are cut torn",      t_the_torn_boards_are_cut_where_the_art_is_torn),
     ("game two is not game one",        t_a_second_game_is_not_appended_to_the_first),
 ]
 
