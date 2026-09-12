@@ -68,8 +68,11 @@ def current_sources():
     # document itself, not on any object, so it is read here by name rather than found by walk().
     # Empty is fatal: writing "" over a save's Global would delete the recorder from the maintainer's
     # own save, which is the exact damage this script exists to undo, only in reverse.
-    glob = doc.get("LuaScript")
-    if not glob:
+    # NOT `glob`: that is the module imported at the top of this file, and naming a local after it
+    # shadowed it -- glob.glob() two functions down then raised "'str' object has no attribute
+    # 'glob'" and the script could not deploy at all.
+    global_lua = doc.get("LuaScript")
+    if not global_lua:
         raise RuntimeError("no top-level LuaScript (Global script) in the build")
     board = next(o for o in walk(doc) if o.get("GUID") == BOARD)
     surface = next((o for o in walk(doc) if o.get("GUID") == SURFACE), None)
@@ -93,10 +96,10 @@ def current_sources():
             panel = json.loads(m.group(1))
     if panel is None:
         raise RuntimeError("no turn panel in the build: neither an object nor RTT_TURN_PANEL_JSON")
-    return glob, board, box, panel, surface
+    return global_lua, board, box, panel, surface
 
 
-def update_doc(doc, board, box, panel=None, surface=None, glob=None):
+def update_doc(doc, board, box, panel=None, surface=None, global_lua=None):
     """-> list of what changed. Only ever writes script/UI fields, never a transform or state."""
     changed = []
     # The Global script, on the save document itself. A save made before the recorder existed carries
@@ -106,8 +109,8 @@ def update_doc(doc, board, box, panel=None, surface=None, glob=None):
     # Top level ONLY, and by name: `walk` would happily hand back an object whose own LuaScript this
     # has no business touching. And LuaScriptState beside it is left alone like every other one --
     # that is the recorder's onSave log, i.e. a game in progress.
-    if glob is not None and doc.get("LuaScript") != glob:
-        doc["LuaScript"] = glob
+    if global_lua is not None and doc.get("LuaScript") != global_lua:
+        doc["LuaScript"] = global_lua
         changed.append("global.LuaScript")
     for o in walk(doc):
         if o.get("GUID") == BOARD:
@@ -146,10 +149,10 @@ def in_scope(path, every):
 def main():
     dry = "--dry-run" in sys.argv
     every = "--all" in sys.argv
-    glob, board, box, panel, surface = current_sources()
+    global_lua, board, box, panel, surface = current_sources()
     print("built board script: %d chars; box score: %s; global: %d chars"
           % (len(board["LuaScript"]), "%d chars" % len(box["LuaScript"]) if box else "not in build",
-             len(glob)))
+             len(global_lua)))
 
     stamp = time.strftime("%Y%m%d-%H%M%S")
     bdir = os.path.join(BACKUPS, stamp)
@@ -168,7 +171,7 @@ def main():
             continue
         if not any(o.get("GUID") == BOARD or o.get("Nickname") == BOXSCORE for o in walk(doc)):
             continue
-        changed = update_doc(doc, board, box, panel, surface, glob)
+        changed = update_doc(doc, board, box, panel, surface, global_lua)
         if not changed:
             skipped += 1
             continue
