@@ -7360,6 +7360,79 @@ def t_every_board_stands_the_same_height_in_the_same_black(src):
             "%s's slab is not true black: %s" % (name, c)
 
 
+def t_no_script_calls_a_local_declared_below_it(src):
+    """No script calls a `local function` from above the line that declares it.
+
+    A Lua `local function` is only in scope AFTER its own line. Above it, the same name compiles to a
+    GLOBAL lookup, which is nil -- so the call does not fail to compile, it fails when a player presses
+    the button. This has now cost three separate rounds:
+
+      * `steamIdFor`, called before its declaration in the box score;
+      * `slug`, called by `deckSlug` fifteen lines before it is declared -- latent, because it is only
+        reached by a deck name outside the three in DECK_SLUG, so nothing had ever run it;
+      * `nudge`, called by the VP panel's `rttNudge` two hundred lines before its declaration. The
+        maintainer found that one in his console: "attempt to call a nil value at rttNudge".
+
+    The last one is why this exists rather than another hand-written case. There WAS a test on
+    rttNudge, and it passed, because every state it set up returned early and never reached the line
+    that mattered. A static check does not care how far into a function the call sits.
+
+    IT IS LEXICAL, SO THE CHECK CAN BE TOO. Whether the enclosing function runs later is irrelevant --
+    the name is resolved when the chunk is compiled. A name that is ALSO declared as a global function
+    somewhere is exempt, since the early reference then finds that.
+    """
+    def strip(code):
+        """Blank out comments and string bodies, keeping line numbers intact."""
+        out, i, n = [], 0, len(code)
+        while i < n:
+            if code.startswith("--[[", i):
+                j = code.find("]]", i)
+                j = n if j < 0 else j + 2
+                out.append(re.sub(r"[^\n]", " ", code[i:j])); i = j
+            elif code.startswith("--", i):
+                j = code.find("\n", i)
+                j = n if j < 0 else j
+                out.append(" " * (j - i)); i = j
+            elif code[i] in "'\"":
+                q, j = code[i], i + 1
+                while j < n and code[j] != q:
+                    j += 2 if code[j] == "\\" else 1
+                j = min(j + 1, n)
+                out.append(re.sub(r"[^\n]", " ", code[i:j])); i = j
+            else:
+                out.append(code[i]); i += 1
+        return "".join(out)
+
+    def faults(code):
+        code = strip(code)
+        lines = code.split("\n")
+        decl = {}
+        for i, l in enumerate(lines):
+            m = re.match(r"\s*local function\s+([A-Za-z_]\w*)", l)
+            if m and m.group(1) not in decl:
+                decl[m.group(1)] = i + 1
+        glob = set(re.findall(r"^\s*function\s+([A-Za-z_]\w*)\s*\(", code, re.M))
+        out = []
+        for name, dline in decl.items():
+            if name in glob:
+                continue
+            for i, l in enumerate(lines[:dline - 1]):
+                if re.search(r"(?<![\w.:])%s\s*\(" % re.escape(name), l):
+                    out.append("line %d calls %s(), declared local at line %d" % (i + 1, name, dline))
+        return out
+
+    scripts = {"the board script": src}
+    for name in ("RTT_BOXSCORE_JSON", "RTT_TURN_PANEL_JSON", "RTT_VP_PANEL_JSON"):
+        m = re.search(r"%s = \[=+\[(.*?)\]=+\]" % name, src, re.S)
+        assert m, "%s is not in the build" % name
+        scripts[name] = json.loads(m.group(1))["LuaScript"]
+
+    bad = []
+    for label, code in scripts.items():
+        bad += ["%s: %s" % (label, f) for f in faults(code)]
+    assert not bad, "these calls read a nil global rather than the local they name:\n  " + "\n  ".join(bad)
+
+
 CASES = [
     ("manual path drives the turn system",   t_manual_turn_order),
     ("manual path spawns 4 / 5 boards",      t_boards_spawn),
@@ -7383,6 +7456,7 @@ CASES = [
     ("every faction gets a VP panel",  t_every_faction_gets_a_vp_panel_above_its_crafted_board),
     ("VP panel buttons reach the mod", t_the_vp_panels_buttons_reach_the_rest_of_the_mod),
     ("boards share height and black",  t_every_board_stands_the_same_height_in_the_same_black),
+    ("no call above its local decl",   t_no_script_calls_a_local_declared_below_it),
     ("crow plots inside the hidden zone",    t_crow_plots_spawn_inside_the_hidden_zone),
     ("crafted board same side for all",      t_crafted_board_sits_the_same_side_for_every_faction),
     ("no setup card on crafted board",       t_no_setup_card_rides_on_the_crafted_board),
