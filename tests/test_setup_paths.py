@@ -6434,20 +6434,58 @@ def t_the_resync_sweep_resends_everything_it_may_touch(src):
                "HELD  = MKOBJ('Held', {2, 11.6, 2}, {}) HELD.held_by_color = 'Red' "
                "JAIL  = MKOBJ('Cat Warrior', {3, 11.6, 3}, {}) JAIL.setLock(true) "
                "RTT_LAID[JAIL.getGUID()] = { rot = {0,0,0}, pos = {3,11.6,3}, who = 'Red' }")
-    tag = rt.eval("RTT_RESYNC_TAG")
+    # OBSERVED THROUGH THE LOCK, not through a mark. The mode is "lock" now -- tag mode was tried at
+    # the table and does nothing at all, Zaandaa: "your tag/untag idea didn't do anything" -- so a
+    # swept object is one whose lock was flipped and put back, and that is what is watched. Written
+    # against the tag, this passed happily on a mode that never left the host.
+    locked = lambda o: rt.eval("function() return %s.getLock() end" % o)()
+    before = {o: locked(o) for o in ("PLAIN", "HELD", "JAIL")}
 
     ran = rt.eval("function() return rttResyncSweep() end")()
     assert ran is True, "the sweep refused to run on an idle table"
-    marked = lambda o: rt.eval("function() return %s.hasTag('%s') end" % (o, tag))()
-    assert marked("PLAIN") is True, "the sweep skipped an ordinary object"
-    assert marked("HELD") is False, "the sweep reached into a player's hands"
-    assert marked("JAIL") is False, "the sweep touched a laid prisoner"
-    assert rt.eval("function() return self.hasTag('%s') end" % tag)() is False, \
-        "the sweep touched the coordinator board, which carries the live XML UI"
+    assert locked("PLAIN") != before["PLAIN"], "the sweep skipped an ordinary object"
+    assert locked("HELD") == before["HELD"], "the sweep reached into a player's hands"
+    assert locked("JAIL") == before["JAIL"], "the sweep touched a laid prisoner"
+    assert rt.eval("function() return self.getLock() end")() is not None, ""
 
-    # AND IT PUTS EVERYTHING BACK. A mark left on is a mark the next sweep will not make.
+    # AND IT PUTS EVERYTHING BACK. A lock left flipped is a board a player can now drag.
     rt.execute("FLUSH(20)")
-    assert marked("PLAIN") is False, "the resync mark was never taken off again"
+    assert locked("PLAIN") == before["PLAIN"], "the lock was never put back after the sweep"
+
+    # NOT CARDS. Zaandaa: "locking things in people's hands is also very awkward, so we wouldn't want
+    # to lock cards" -- and it would buy nothing anyway, since what cards actually suffer from is
+    # showing their back, and "fixing that involves stacking them".
+    rt2 = fresh(src)
+    rt2.execute("CARD = MKOBJ('Ambush', {1, 11.6, 1}, {}) CARD.tag = 'Card' "
+                "BOARD = MKOBJ('Faction Board', {5, 11.6, 5}, {}) "
+                "rttResyncSweep() FLUSH(20)")
+    assert rt2.eval("function() return CARD.getLock() end")() is not True, \
+        "the sweep locked a card"
+
+    # THE MAP IS HELD NON-INTERACTABLE, which is exactly what stops the usual repair reaching it.
+    # Zaandaa: "because the map is now no longer interactable, that actually can't be fixed with
+    # unlock/lock if spawns in the wrong spot ... but you can make it temporarily interactable if
+    # that's enough, just for the lock/unlock." So the sweep lifts that for the toggle and puts it
+    # back -- and it must put it back, or the map becomes draggable for the rest of the game.
+    rt3 = fresh(src)
+    rt3.execute("""
+      SEEN = {}
+      MAP = MKOBJ('Autumn Map', {0, 11.6, 0}, {'Map Object'})
+      MAP.setLock(true)
+      MAP.interactable = false
+      local _sl = MAP.setLock
+      MAP.setLock = function(v) SEEN[#SEEN+1] = tostring(MAP.interactable) return _sl(v) end
+      rttResyncSweep()
+    """)
+    n = rt3.eval("function() return #SEEN end")()
+    assert n > 0, "the sweep never touched the map"
+    assert rt3.eval("function() return SEEN[1] end")() == "true", \
+        "the map was toggled while still non-interactable, which is what blocks the repair"
+    rt3.execute("FLUSH(20)")
+    assert rt3.eval("function() return MAP.interactable end")() is False, \
+        "the map was left interactable after the sweep; players can now drag it"
+    assert rt3.eval("function() return MAP.getLock() end")() is True, \
+        "the map was left unlocked after the sweep"
     assert rt.eval("RTT_RESYNC_BUSY") is False, "the sweep never released its own busy flag"
     assert rt.eval("RTT_RESYNCING") is False, "the prisoner guard was left armed"
 
@@ -6520,8 +6558,10 @@ def t_the_resync_button_asks_nothing_and_destroys_nothing(src):
     assert rt.eval("RTT_WIPE_BTN['rttResyncBtn']") is None, \
         "Resync is registered as a destructive button"
     rt.execute("PLAIN = MKOBJ('Warrior', {1, 11.6, 1}, {}) "
+               "WAS = PLAIN.getLock() "
                "pcall(function() rttResyncClick(Player['Red'], '', 'rttResyncBtn') end)")
-    assert rt.eval("function() return PLAIN.hasTag(RTT_RESYNC_TAG) end")() is True, \
+    # the sweep is observed through the lock, not a mark: see the sibling test for why
+    assert rt.eval("function() return PLAIN.getLock() ~= WAS end")() is True, \
         "the button did not run a sweep"
     rt.execute("FLUSH(20)")
     assert rt.eval("function() return PLAIN.__dead end")() is False, \

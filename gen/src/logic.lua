@@ -1810,12 +1810,19 @@ end
 -- replicate a tag change at all, in which case the button does nothing. It is one constant with two
 -- written fallbacks, so switching is an edit, not a rewrite:
 --
---   "tag"   nothing to undo, nothing physical                  -- UNVERIFIED
+--   "tag"   nothing to undo, nothing physical                  -- DISPROVEN, see below
 --   "tint"  one blue channel nudged by 1/255 and put back      -- inert, and certainly replicated,
 --                                                                 because it is a render property
 --   "lock"  proven, but it touches physics: toggled to the opposite value and back, with position,
 --           rotation and velocity restored exactly
-RTT_RESYNC_MODE      = "tag"          -- "tag" | "tint" | "lock"
+--
+-- TAG MODE DOES NOTHING, and that is now tested rather than suspected. Zaandaa, 2026-09-12, after a
+-- session: "your tag/untag idea didn't do anything." TTS does not replicate a tag change to a client
+-- that has lost an object, so the button was a no-op for the whole time it shipped. Lock is the one
+-- mode anybody has seen work, and the maintainer's own reservation about it -- "I could do lock
+-- unlock but I think it s too brutal" -- is answered below rather than by staying with a mode that
+-- does nothing: cards are left alone, and everything that is moved is put back exactly.
+RTT_RESYNC_MODE      = "lock"         -- "tag" | "tint" | "lock"
 RTT_RESYNC_TAG       = "RTT Resync"
 RTT_RESYNC_PER_FRAME = 15             -- a 350-object table is ~24 frames, about 400 ms
 RTT_RESYNC_HOLD      = 2              -- frames between the touch and putting it back
@@ -1866,20 +1873,41 @@ function rttResyncTouch(o)
     end)
   elseif mode == "lock" then
     pcall(function()
+      -- NOT CARDS. Zaandaa: "locking things in people's hands is also very awkward, so we wouldn't
+      -- want to lock cards" -- and it would buy nothing anyway, because the fault cards actually
+      -- suffer from is showing their back, and "fixing that involves stacking them", not locking.
+      if o.tag == "Card" then return end
+      -- BY GUID, LIKE THE TAG UNDO. The put-back runs two frames later and used to hold the OBJECT,
+      -- so a piece destroyed in between -- a draft destroys selector boards the whole time a sweep is
+      -- running -- was touched dead, which is TTS's C# null and not something the pcall around this
+      -- can catch. The harness found 22 of them in one sweep the moment this mode was switched on.
+      local guid = o.getGUID()
       local was = (o.getLock() == true)
       local p, r = o.getPosition(), o.getRotation()
+      -- TEMPORARILY INTERACTABLE. The map is held non-interactable so nobody drags it, and that is
+      -- exactly what stops the usual repair working on it -- Zaandaa: "because the map is now no
+      -- longer interactable, that actually can't be fixed with unlock/lock if spawns in the wrong
+      -- spot ... but you can make it temporarily interactable if that's enough, just for the
+      -- lock/unlock." It is put back below, on the same frame as the lock.
+      local touchable = nil
+      pcall(function()
+        if o.interactable == false then touchable = false; o.interactable = true end
+      end)
       o.setLock(not was)
       Wait.frames(function()
         pcall(function()
+          local x = getObjectFromGUID(guid)
+          if x == nil then return end               -- gone since the touch; nothing to put back
           -- only a LOCKED object went dynamic; freezing a resting one and unfreezing it disturbs
           -- nothing, so there is nothing to put back
           if was then
-            pcall(function() o.setVelocity({ 0, 0, 0 }) end)
-            pcall(function() o.setAngularVelocity({ 0, 0, 0 }) end)
-            o.setPosition({ p.x, p.y, p.z })
-            o.setRotation({ r.x, r.y, r.z })
+            pcall(function() x.setVelocity({ 0, 0, 0 }) end)
+            pcall(function() x.setAngularVelocity({ 0, 0, 0 }) end)
+            x.setPosition({ p.x, p.y, p.z })
+            x.setRotation({ r.x, r.y, r.z })
           end
-          o.setLock(was)
+          x.setLock(was)
+          if touchable == false then pcall(function() x.interactable = false end) end
         end)
       end, RTT_RESYNC_HOLD)
     end)
@@ -6273,6 +6301,11 @@ end
 -- removeMapItems still destroys it on a map change and Clear All still takes it -- both call
 -- destruct(), which does not care.
 function rttHoldMapLocked()
+  -- NOT WHILE A SWEEP IS RUNNING. This ticks every few seconds and forces the map locked and
+  -- non-interactable; a resync deliberately unlocks it for two frames and makes it interactable for
+  -- the same two, so a tick landing in that window would undo the repair and put the map back before
+  -- its position had been restored. RTT_RESYNCING is the same guard the prisoner tick uses.
+  if RTT_RESYNCING == true then return end
   local m = nil
   if RTT_MAP_LOCK_GUID ~= nil then pcall(function() m = getObjectFromGUID(RTT_MAP_LOCK_GUID) end) end
   if m == nil then
