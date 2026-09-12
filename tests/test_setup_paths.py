@@ -8725,6 +8725,43 @@ def t_a_second_game_is_not_appended_to_the_first(src):
 
 
 
+def t_every_card_back_is_a_back_and_not_a_blank(src):
+    """No deck may be hidden as a blank: BackIsHidden is true on every CustomDeck in the mod.
+
+    Maintainer, 2026-09-12: "we can see the back of the frog cards when frog cards are in hand. at
+    the moment its a bug we can only see white when its in the hand of another player or the sympathy
+    deck of WA."
+
+    WHAT THE FLAG ACTUALLY DOES. BackIsHidden is what TTS consults when a card is hidden FROM YOU --
+    in someone else's hand, or face down in a hidden zone. True means "show this deck's BackURL".
+    False means the generic hidden face, which for a custom deck renders as a blank white card. The
+    face, the back image and the deck all being correct does not help: the flag is a separate switch
+    and nothing else in the blueprint reveals that it is off.
+
+    IT WAS ONE DECK AGAINST SIXTY-SEVEN, which is what made it a bug rather than a choice. The
+    Lilypad Diaspora's deck 740 -- fifteen copies of the definition, because the deck and every loose
+    card each carry their own -- and the Vagabond's deck 118 were false; every other deck in the mod
+    was true. The frogs' back art was never the problem: it serves 200, it is 497x696, and it is the
+    two frogs Kyle Ferrin drew.
+
+    This reads the BUILD, not gen/src, because that is what ships -- and it names the deck ids rather
+    than counting, so a future failure says which deck to go and look at.
+    """
+    # THE src IT WAS HANDED, not a fresh read of dist. Opening the build directly makes the case
+    # answer for whatever is on disk whichever build is under test, so --old reported the bug as
+    # fixed in the very build that has it. This suite has been bitten by that exact shortcut before.
+    b = src
+    blank = set()
+    for m in re.finditer(r'"(\d+)"\s*:\s*\{[^{}]*?"BackIsHidden"\s*:\s*(\w+)[^{}]*?\}', b):
+        if m.group(2) == "false":
+            blank.add(m.group(1))
+    assert not blank, ("these decks are hidden as a blank white card rather than their own back: %s"
+                       % ", ".join(sorted(blank)))
+    total = len(re.findall(r'"BackIsHidden"', b))
+    assert total > 400, \
+        "only %d BackIsHidden flags found; the scan is not reaching the blueprints" % total
+
+
 CASES = [
     ("manual path drives the turn system",   t_manual_turn_order),
     ("manual path spawns 4 / 5 boards",      t_boards_spawn),
@@ -8874,6 +8911,7 @@ CASES = [
     ("the flush drains and dies",       t_the_flush_writes_its_queue_and_lets_the_timer_die),
     ("EXPORT sends without a sheet",    t_export_without_a_box_score_still_sends_a_document),
     ("a hand leaves only at export",    t_the_payload_never_carries_a_hand),
+    ("card backs are backs, not blanks", t_every_card_back_is_a_back_and_not_a_blank),
     ("game two is not game one",        t_a_second_game_is_not_appended_to_the_first),
 ]
 
