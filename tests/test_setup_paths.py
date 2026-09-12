@@ -7177,8 +7177,11 @@ def t_every_faction_gets_a_vp_panel_above_its_crafted_board(src):
         "the panel is %.4f thick; every panel in the mod is 0.10" % built[1]
 
     # CLEAR: nothing the kits really spawn may sit inside a panel
+    # THE PANEL'S SIZE IS READ, NOT WRITTEN DOWN. These were hardcoded once and went stale the moment
+    # the panel was resized, so the check was testing a rectangle the panel no longer had. The width
+    # is the crafted board's, which is the point of it; the depth is the live constant.
     clash = rt.eval("""function()
-        local PW, PD = 7.195650, 7.842450
+        local PW, PD = 7.204507, RTT_VP_PANEL_DEPTH
         local bad = {}
         for kit, kitdata in pairs(EVERYTHING['Standard']) do
           local cx, cz
@@ -7192,8 +7195,15 @@ def t_every_faction_gets_a_vp_panel_above_its_crafted_board(src):
               if isDice then for g in pairs(RTT_KEEP_DICE) do
                 if v.json:find('"GUID": "' .. g .. '"', 1, true) then kept = true end end end
               if (not isDice) or kept then
-                if math.abs(v.move_to[1] - cx) < PW/2
-                   and math.abs(v.move_to[3] - (cz + RTT_VP_PANEL_DZ)) < PD/2 then
+                -- FOOTPRINTS, NOT CENTRES. A board can overlap the panel with its middle well
+                -- outside it; a Type-0 Stretch tile is 2*scale deep and at most 2*scale wide, so
+                -- `scale` is a safe half-extent, and anything else is treated as a point.
+                local sc = 0
+                if (v.json:match('"Name":%s*"([^"]+)"') or "") == "Custom_Tile" then
+                  sc = tonumber(v.json:match('"scaleX":%s*([%d%.]+)') or 0)
+                end
+                if math.abs(v.move_to[1] - cx) < PW/2 + sc
+                   and math.abs(v.move_to[3] - (cz + RTT_VP_PANEL_DZ)) < PD/2 + sc then
                   bad[#bad+1] = kit .. ": " .. (v.json:match('"GUID":%s*"([^"]+)"') or "?")
                 end
               end
