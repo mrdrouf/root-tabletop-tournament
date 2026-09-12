@@ -71,18 +71,26 @@ carries the finished box score.
 `rttArchiveGame` must never throw into its caller. It is wrapped in `pcall` at the call site and
 guards internally as well.
 
-### The game ending is a trigger too (v1.221)
+### The game ending is a trigger too (v1.221, capped at two in v1.222)
 
 Maintainer, 2026-09-12: *"I want this archive to be sent also whenever a player reaches 30 or takes a
-dominance win. However, this needs to happen only once ... The archive would be sent again on an
-Export button press."*
+dominance win"*, then, once it shipped: *"make it so that it could fire twice during the game. There's
+a second win condition after a misplay. That's fine, but only twice."*
 
 `archiveOnWin` in the box score, called from the end of `poll`:
 
 ```lua
+local WIN_ARCHIVE_MAX = 2
+
 function archiveOnWin()
-  if S.winner == nil or S.wonArchived == true then return end
-  S.wonArchived = true
+  if S.winner == nil then
+    S.winArmed = true                          -- no win on the sheet: the next one may archive
+    return
+  end
+  if S.winArmed == false then return end       -- this same win has already been sent
+  S.winArmed = false
+  if (S.winArchives or 0) >= WIN_ARCHIVE_MAX then return end
+  S.winArchives = (S.winArchives or 0) + 1
   logev("archive-win", S.winner, currentRound(), S.winnerReason)
   pcall(function() Global.call("rttArchiveGame", { box = exportJson() }) end)
 end
@@ -90,17 +98,25 @@ end
 
 **At the poll, not at the two declarations.** `S.winner` is set when a VP marker settles on 30 and
 when the DOM WIN button is pressed, and a third path could be added later. The poll is the thing that
-runs, so it sees every one of them; hooking the declarations would mean remembering this each time a
-way to win is added.
+runs, so it sees every one of them.
 
-**Once per game, and the flag is in `S`,** which `onSave` encodes whole — so it survives a reload, and
-a second win in the same game finds it already set. `uiReset` clears it. A **reload is not a win**:
-`onLoad` marks a restored winner as already archived, or the first poll after every load of a finished
-game would send it again.
+**A count alone would not work.** The poll runs continuously, so "fewer than two sent" is true again
+on the next pass and both sends would go on the SAME win a fraction of a second apart. What is counted
+is the **edge** — a winner appearing where there was none — so the arm (`S.winArmed`) is a separate
+flag from the tally (`S.winArchives`), and only `S.winner` going back to `nil`, which is exactly what
+undoing a win does, re-arms it.
 
-It is **not** cleared when a win is undone. That is deliberate and is the instruction read literally;
-a record that went early is replaced by the next EXPORT rather than left wrong for ever — which the
-`game_id` dedupe above makes free.
+**Two, because the second is the correction.** A game is declared won, somebody spots the misplay and
+takes it back, and the real end comes later; the first send records a game that had not finished. A
+third is not a correction any more.
+
+Both fields live in `S`, which `onSave` encodes whole, so the count survives a reload. `uiReset` clears
+them. A **reload is not a win**: `onLoad` disarms a restored winner, or the first poll after every load
+of a finished game would send it again. A v1.221 save's single `wonArchived` boolean is carried over as
+one send already spent.
+
+**Only one version on the site** needs nothing at this end: the `game_id` dedupe above means every send
+replaces the one before it.
 
 ---
 

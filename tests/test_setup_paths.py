@@ -8913,33 +8913,40 @@ def t_the_torn_boards_are_cut_where_the_art_is_torn(src):
 
 
 def t_a_won_game_archives_itself_once(src):
-    """Taking a dominance win sends the archive -- once -- and EXPORT still re-sends.
+    """A win archives the game -- twice at most, once per win -- and EXPORT still re-sends.
 
     Maintainer, 2026-09-12: "I want this archive to be sent also whenever a player reaches 30 or takes
-    a dominance win. However, this needs to happen only once ... The archive would be sent again on an
-    Export button press. Every subsequent sending of the archive of the game needs to erase the
-    previous one, so there is only one archive per game."
+    a dominance win", then, after the first version shipped: "make it so that it could fire twice
+    during the game. There's a second win condition after a misplay. That's fine, but only twice."
+
+    A game is declared won, somebody spots the misplay and takes it back, and the real end comes
+    later. The first send records a game that had not finished; the second is the one worth keeping. A
+    third is not a correction any more.
+
+    A COUNT ALONE WOULD NOT DO IT, and that is the case this test exists for. The poll runs
+    continuously, so "fewer than two sent" is true again on the very next pass and both sends would go
+    on the SAME win a fraction of a second apart. What is counted is the EDGE -- a winner appearing
+    where there was none -- so the arm is a separate flag from the tally, and only a win being UNDONE
+    re-arms it.
 
     DRIVEN THROUGH THE REAL BUTTON. S is a local in the sheet's script and no test can reach into it,
     which is right -- so this loads a state holding one row with a dominance on it and presses DOM WIN
-    through uiRowBtn, exactly as a player does. What that sets is what the archive hook reads.
+    through uiRowBtn, exactly as a player does. Pressing it again undoes the win, which is how the
+    misplay is reproduced.
 
-    THE 30-VP PATH IS THE SAME HOOK, and is checked structurally rather than driven: reaching 30 is
-    the POLL noticing a settled VP marker on the map's printed track, which needs a map, a marker and
-    the track geometry. Both paths set S.winner and the poll calls archiveOnWin once per pass, so what
-    matters is that the call is inside the poll -- if it were hooked at the two declarations instead,
-    a third way to win would silently not archive.
+    THE 30-VP PATH IS THE SAME HOOK, checked structurally rather than driven: reaching 30 is the poll
+    noticing a settled VP marker on the map's printed track, which needs a map, a marker and the track
+    geometry. Both paths set S.winner and the poll calls archiveOnWin, so what matters is that the
+    call is inside the poll -- hooked at the two declarations instead, a third way to win would
+    silently not archive.
 
-    THE FLAG IS IN S, which onSave encodes whole, so "once" survives a save. A RELOAD IS NOT A WIN: a
-    sheet that comes back with a winner already on it has had its moment.
-
-    ERASING THE PREVIOUS SEND is the server's job -- ingest dedupes on game_id (ARCHIVE.md) -- so what
-    is checked here is the only half this end owns: how many times it sends, and when.
+    ONE VERSION ON THE SITE is the server's half and needs nothing here: ingest dedupes on game_id
+    (ARCHIVE.md), so every send replaces the one before it. What is checked here is the only half this
+    end owns -- how many times it sends, and on what.
     """
     sheet = json.loads(re.search(r"RTT_BOXSCORE_JSON = \[====\[(.*?)\]====\]", src, re.S).group(1))
     lua = sheet["LuaScript"]
 
-    # the hook is in the poll, where every way of winning passes
     poll = lua[lua.index("local function poll()"):]
     poll = poll[:poll.index("\n------------------------------------------------------------------ turn flow --")]
     assert "archiveOnWin" in poll, \
@@ -8965,43 +8972,50 @@ def t_a_won_game_archives_itself_once(src):
         return rt
 
     sent = lambda rt: rt.eval("SENT")
-    win = lambda rt: rt.execute("pcall(function() uiRowBtn(Player['Red'], '', 'domwin_1') end)"
-                                " pcall(archiveOnWin)")
+    # pressing DOM WIN toggles: on for a win, again to take it back
+    press = lambda rt: rt.execute("pcall(function() uiRowBtn(Player['Red'], '', 'domwin_1') end)")
+    polls = lambda rt, n=4: [rt.execute("pcall(archiveOnWin)") for _ in range(n)]
 
-    # 1) DOM WIN sends the archive, once, however many polls follow
     rt = fresh_sheet(STATE)
-    win(rt)
-    assert sent(rt) == 1, "a dominance win did not archive the game (%d sends)" % sent(rt)
-    for _ in range(5):
-        rt.execute("pcall(archiveOnWin)")
-    assert sent(rt) == 1, "the archive went %d times; it must go once a game" % sent(rt)
 
-    # 2) undo it and win again -- still once, which is what "only once" means
-    win(rt)          # press again: undoes the win
-    win(rt)          # and again: wins a second time
-    assert sent(rt) == 1, \
-        "a second win in the same game sent the archive again (%d sends)" % sent(rt)
+    # 1) the first win sends once, and stays once however many polls pass over it
+    press(rt); polls(rt, 6)
+    assert sent(rt) == 1, "a dominance win sent the archive %d time(s), not once" % sent(rt)
 
-    # 3) ...but EXPORT always sends, which is how a record that went early is replaced
+    # 2) the misplay: take the win back, win again -- the second send, and only one
+    press(rt); polls(rt)                       # undone
+    assert sent(rt) == 1, "undoing a win sent the archive (%d sends)" % sent(rt)
+    press(rt); polls(rt, 6)                    # won again
+    assert sent(rt) == 2, \
+        "the second win did not archive, or archived more than once (%d sends)" % sent(rt)
+
+    # 3) a third win is not a correction any more
+    press(rt); polls(rt)                       # undone
+    press(rt); polls(rt, 6)                    # won a third time
+    assert sent(rt) == 2, "a third win sent the archive again (%d sends)" % sent(rt)
+
+    # 4) ...but EXPORT always sends, which is how a record that went early is replaced
     rt.execute("pcall(function() uiExport(Player['Red']) end)")
-    assert sent(rt) == 2, "EXPORT did not re-send the archive (%d sends)" % sent(rt)
+    assert sent(rt) == 3, "EXPORT did not re-send the archive (%d sends)" % sent(rt)
 
-    # 4) a new game re-arms it
-    rt.execute("pcall(uiReset) SENT = 0")
+    # 5) a new game gets its own two
+    rt.execute("pcall(uiReset)")
     rt.execute("pcall(function() onLoad(%s) end) FLUSH(20) SENT = 0" % json.dumps(STATE))
-    win(rt)
-    assert sent(rt) == 1, "after a reset, a new game's win did not archive (%d sends)" % sent(rt)
+    press(rt); polls(rt)
+    press(rt); polls(rt)
+    press(rt); polls(rt)
+    assert sent(rt) == 2, "after a reset the new game sent %d time(s), not two" % sent(rt)
 
-    # 5) a RELOAD of a sheet that already holds a winner is not a new win
+    # 6) a RELOAD of a sheet that already holds a winner is not a new win
     state = rt.eval("onSave()")
     rt2 = fresh_sheet(state)
-    rt2.execute("pcall(archiveOnWin)")
+    polls(rt2, 6)
     assert sent(rt2) == 0, \
         "loading a finished game sent its archive again (%d sends)" % sent(rt2)
 
-    # 6) and with no winner on the sheet, nothing goes
+    # 7) and with no winner on the sheet, nothing goes
     rt3 = fresh_sheet(STATE)
-    rt3.execute("pcall(archiveOnWin)")
+    polls(rt3, 6)
     assert sent(rt3) == 0, "the archive went with no winner on the sheet"
 
 
@@ -9157,7 +9171,7 @@ CASES = [
     ("card backs are backs, not blanks", t_every_card_back_is_a_back_and_not_a_blank),
     ("the clock fits 10:00",           t_the_clock_has_room_for_a_two_digit_minute),
     ("torn boards are cut torn",      t_the_torn_boards_are_cut_where_the_art_is_torn),
-    ("a won game archives once",      t_a_won_game_archives_itself_once),
+    ("a won game archives twice",     t_a_won_game_archives_itself_once),
     ("game two is not game one",        t_a_second_game_is_not_appended_to_the_first),
 ]
 
