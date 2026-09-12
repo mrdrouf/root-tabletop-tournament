@@ -156,6 +156,19 @@ Nothing below is implemented. The maintainer asked to be consulted before each c
       the Knaves are the twelfth. Not a code gap -- there is no marker art to place. Needs a decision
       from the maintainer (draw one, or leave the Knaves without).
 
+- [x] **Resync did nothing at all.** v1.207. Zaandaa: "your tag/untag idea didn't do anything" -- TTS
+      does not replicate a tag change to a client that has lost an object, so the button was a no-op
+      from v1.154. Mode is `"lock"` now; cards are skipped (locking things in hands is awkward and
+      does not fix what cards suffer from), and the map is made interactable for the toggle and put
+      back, per Zaandaa's own suggestion. Switching modes also exposed a dead-handle bug in the lock
+      branch's put-back, which the harness caught: 22 in one sweep.
+- [ ] **Does lock mode actually cure it for a distant client?** Unproven. Needs the real test: force
+      the bug in a game with a genuinely distant client, press Resync, say whether the object appears.
+      The harness cannot settle it -- the stub has no concept of a client.
+- [ ] **Cards showing their back.** Zaandaa: "sometimes you can't see what cards are, like only seeing
+      the back of a card", and "fixing that involves stacking them" -- not lock/unlock. The sweep
+      deliberately leaves cards alone, so this needs its own remedy if it is worth one.
+
 ### Buttons and real estate
 
 - [ ] **Per-faction DRAW ONE buttons, and DRAW POND when the frogs are in.** Zaandaa: old Woodland
