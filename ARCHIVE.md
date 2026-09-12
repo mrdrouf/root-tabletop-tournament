@@ -13,6 +13,26 @@ not here.
 
 ---
 
+
+## 0b. It ships on (2026-09-12)
+
+`OBS_ENABLED` is **true** in the shipped save. Maintainer: *"I want that everyone using my mod sends
+me the data."* Every table running this save archives its games, not only his, and he asked for no
+notice anywhere in the mod.
+
+Two consequences worth writing down rather than rediscovering:
+
+- **The payload carries each seat's `steam_name`** (section 3). That is the only identifiable field in
+  it; everything else is game state. Dropping or hashing it would keep every bit of the analysis.
+- **The gate the recorder was built behind is gone.** `tests/test_setup_paths.py`'s observer cases were
+  written as "these stop it shipping broken, they cannot tell you it works", on the understanding that
+  one watched game came first. They are now the only thing between a mistake in `observer.lua` and
+  every table running it.
+
+A host can still silence one table for a session with `OBS_ENABLED = false` in the Execute Lua Code
+box -- every handler re-reads the flag -- and that is the path the suite drives, since the shipped
+default no longer provides it.
+
 ## 0. Why it is shaped this way
 
 Three constraints, each measured or paid for already:

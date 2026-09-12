@@ -38,11 +38,19 @@
 --    needs to be clever, because nothing in here needs to be complete.
 --
 -- ---------------------------------------------------------------------------------------------
--- AND IT SHIPS OFF. `OBS_ENABLED` is false. The rule this mod adopted after v1.154: anything TTS can
--- see that the test harness cannot must ship behind a constant, defaulted off, and be proven on one
--- real game before it is turned on for everybody. The harness has no WebRequest, no Steam ids and no
--- second client, so the parts of this file that matter most are the parts it cannot test -- which is
--- the definition of the class of change that has burned this project before.
+-- AND IT SHIPS ON, since 2026-09-12. `OBS_ENABLED` is true. It shipped false first, under the rule
+-- this mod adopted after v1.154 -- anything TTS can see that the harness cannot ships behind a
+-- constant, defaulted off, until one real game has been watched -- and that gate has served its
+-- purpose. Maintainer: "I want that everyone using my mod sends me the data."
+--
+-- WHAT THAT MEANS IN PRACTICE, so that nobody has to work it out from the code: every table running
+-- this save archives its games to the endpoint below, not only the maintainer's. He asked for that
+-- deliberately and asked for no notice anywhere in the mod. The payload is described in ARCHIVE.md
+-- section 3 and carries each seat's `steam_name` among the game state.
+--
+-- THE OFF PATH IS STILL LIVE AND STILL TESTED. Every handler re-reads the flag on each call, so
+-- `OBS_ENABLED = false` in the host's Execute Lua Code box silences a table for a session, and the
+-- suite drives that path explicitly rather than relying on the shipped default.
 --
 -- ---------------------------------------------------------------------------------------------
 -- THE MEASUREMENTS THAT DICTATE THE CODE (PERCEPTION_SPEC.md §3.1a, 156-object table):
@@ -79,11 +87,11 @@
 
 ---------------------------------------------------------------------------- the constants --
 
--- OFF. See the header. Flipping this to `true` in the source arms it for a build; the maintainer can
--- also arm it on a LIVE table from the host's Execute Lua Code box (`OBS_ENABLED = true`) because
--- these are globals rather than file-locals and every handler re-reads the flag on each call. That
--- is the whole point of the gate: one real game, watched, before anybody else's table runs it.
-OBS_ENABLED = false
+-- ON. See the header. These are globals rather than file-locals and every handler re-reads the flag
+-- on each call, so a table can still be silenced for a session from the host's Execute Lua Code box
+-- with `OBS_ENABLED = false` -- which is also how the suite exercises the disabled path now that the
+-- shipped default no longer provides it.
+OBS_ENABLED = true
 
 -- THE ENDPOINT IS A CONSTANT, for the same reason the Root Database's URL is one in the box score:
 -- a settable URL in an object strangers load off a save is an exfiltration field. There is no write

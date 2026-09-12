@@ -8337,8 +8337,10 @@ def t_a_resync_pressed_while_the_draft_deals_frees_itself(src):
 #   * anything about a second client, a dead object handle mid-flush, or the 39 ms JSON.encode this
 #     whole design is built to avoid. Timings are not measurable here at all.
 #
-# So: OBS_ENABLED still ships false, and it must stay false until one real game has been watched.
-# These cases stop the recorder shipping BROKEN. They cannot tell anyone it works.
+# OBS_ENABLED ships TRUE since 2026-09-12 -- maintainer: "I want that everyone using my mod sends me
+# the data" -- so the gate these cases were written behind is gone and they are now the only thing
+# between a mistake here and every table running it. They stop the recorder shipping BROKEN. They
+# still cannot tell anyone it works.
 
 _OBSERVER_SRC = {}
 
@@ -8387,8 +8389,10 @@ def fresh_observer(armed=True):
     rt.execute(open(os.path.join(HERE, "tts_stub.lua"), encoding="utf-8").read())
     rt.execute(observer_lua().replace("!=", "~="))       # TTS accepts != ; Lua 5.5 does not
     rt.execute("onLoad('')")
-    if armed:
-        rt.execute("OBS_ENABLED = true")
+    # SET EITHER WAY, NOT JUST WHEN ARMING. OBS_ENABLED ships true since 2026-09-12, so `armed=False`
+    # used to mean "whatever the source says" and would silently have stopped testing the off path the
+    # day the default flipped. Both states are now asked for explicitly.
+    rt.execute("OBS_ENABLED = " + ("true" if armed else "false"))
     return rt
 
 
@@ -8413,9 +8417,10 @@ def t_an_idle_table_arms_no_timer(src):
     and a recorder that watches the entire table is the single most likely piece in this repo to
     reach for a poll.
 
-    Two idle states, because they fail differently. The SHIPPED one -- OBS_ENABLED false, which is how
-    the save goes out and how it will sit on every stranger's table -- must not so much as queue a
-    drop. The ARMED one must still arm nothing until something actually moves.
+    Two idle states, because they fail differently. The SILENCED one -- `OBS_ENABLED = false`, which a
+    host can type into the Execute Lua Code box to stop a table archiving -- must not so much as queue
+    a drop. The ARMED one, which is how the save now ships, must still arm nothing until something
+    actually moves.
     """
     rt = fresh_observer(armed=False)
     assert rt.eval("TIMERS()") == 0, \
@@ -8423,7 +8428,7 @@ def t_an_idle_table_arms_no_timer(src):
 
     rt.execute("IDLE = MKOBJ('Cat Warrior', {3, 1, -8}, {})")
     rt.execute("OBJ_DROP('Red', IDLE)")
-    assert rt.eval("OBS_ENABLED") is False, "OBS_ENABLED does not ship false"
+    assert rt.eval("OBS_ENABLED") is False, "the fixture failed to disable the recorder"
     assert rt.eval("TIMERS()") == 0, "a drop armed a timer with OBS_ENABLED false"
     assert rt.eval("#OBS.pend") == 0, "a disabled recorder still queued a drop"
 
