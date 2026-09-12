@@ -1762,28 +1762,49 @@ RTT_SPAWN_BYTES     = 48000
 
 -- `done` runs once the last spawn has been ASKED for -- which is what the plain loop this replaces
 -- already meant by "finished". `alive`, when given, is checked before every batch.
+-- ONE QUEUE FOR THE WHOLE TABLE, not one per caller. This used to pace each CALL at six a frame,
+-- which is only the same thing while exactly one thing is spawning. Place a map and its clearing
+-- markers follow two frames later, so two batches overlapped and the table saw twelve a frame --
+-- half the point of the budget, silently.
+--
+-- Everything queues here now and drains at the one rate, so the number the constant names is the
+-- number TTS is actually asked for, however many callers are going at once. Batches keep their order.
+-- One object, through the same queue: a lone spawn is cheap on its own but it still lands in
+-- whatever frame it is asked for, and that frame is usually already full.
+RTT_SPAWN_Q       = RTT_SPAWN_Q or {}
+RTT_SPAWN_PUMPING = false
+
 function rttSpawnStaggered(specs, done, alive)
-  local i = 1
+  RTT_SPAWN_Q[#RTT_SPAWN_Q + 1] = { i = 1, specs = specs, done = done, alive = alive }
+  if RTT_SPAWN_PUMPING then return end
+  RTT_SPAWN_PUMPING = true
   local function pump()
-    if alive ~= nil then
-      local ok = false
-      pcall(function() ok = (alive() == true) end)
-      if not ok then return end
-    end
     local n, bytes = 0, 0
-    while i <= #specs do
-      local sp = specs[i]
-      local sz = (type(sp.json) == "string") and #sp.json or 0
-      if n > 0 and (n >= RTT_SPAWN_PER_FRAME or (bytes + sz) > RTT_SPAWN_BYTES) then break end
-      i = i + 1
-      n = n + 1
-      bytes = bytes + sz
-      spawnObjectJSON(sp)
+    while #RTT_SPAWN_Q > 0 and n < RTT_SPAWN_PER_FRAME do
+      local b = RTT_SPAWN_Q[1]
+      local drop = false
+      if b.alive ~= nil then
+        local ok = false
+        pcall(function() ok = (b.alive() == true) end)
+        drop = not ok
+      end
+      if drop or b.i > #b.specs then
+        table.remove(RTT_SPAWN_Q, 1)
+        if not drop and b.done ~= nil then pcall(b.done) end
+      else
+        local sp = b.specs[b.i]
+        local sz = (type(sp.json) == "string") and #sp.json or 0
+        if n > 0 and (bytes + sz) > RTT_SPAWN_BYTES then break end
+        b.i = b.i + 1
+        n = n + 1
+        bytes = bytes + sz
+        spawnObjectJSON(sp)
+      end
     end
-    if i <= #specs then
+    if #RTT_SPAWN_Q > 0 then
       rttAfterFrames(pump, 1)          -- RUN_ID checked for free: an abandoned game stops spawning
-    elseif done ~= nil then
-      done()
+    else
+      RTT_SPAWN_PUMPING = false
     end
   end
   pump()
@@ -3395,16 +3416,21 @@ end
 function rttSpawnPriority(id, jsons)
   if RTT_PRIO_MAP == id then return end
   rttClearPriority()
+  -- THROUGH THE QUEUE, like everything else. Twelve markers in one frame, landing two frames after a
+  -- map's own pieces, is exactly the burst the maintainer's play-tester described: "often clearing
+  -- markers/stuff floated".
+  local specs = {}
   for _, j in ipairs(jsons) do
-    local ob = spawnObjectJSON({
+    specs[#specs + 1] = {
       json = j,
       callback_function = function(o)
         o.setLock(true)
         o.addTag("RTT Priority")
+        RTT_PRIO_PIECES[#RTT_PRIO_PIECES + 1] = o
       end
-    })
-    RTT_PRIO_PIECES[#RTT_PRIO_PIECES + 1] = ob
+    }
   end
+  rttSpawnStaggered(specs)
   RTT_PRIO_MAP = id
 end
 
@@ -3450,6 +3476,7 @@ RTT_MARSH_RANK = {
 function rttSpawnMarshNumbers()
   rttClearPriority()                    -- Marsh ALWAYS re-places: the flood shifts which clearings get a number
   local excl = RTT_MARSH_EXCLUDED or {}
+  local numSpecs = {}
   local n = 0
   for _, cl in ipairs(RTT_MARSH_RANK) do
     local isEx = false
@@ -3461,7 +3488,7 @@ function rttSpawnMarshNumbers()
       n = n + 1
       local j = RTT_MARSH_NUMJSON[n]
       if j ~= nil then
-        local ob = spawnObjectJSON({
+        numSpecs[#numSpecs + 1] = {
           json = j,
           -- the maintainer's TOKEN x,z; Y = the tokens' true resting height on the (flat) Marsh board.
           -- (cl[2] is the SUIT marker's Y; number tokens rest ~0.05 lower, so cl[2]+0.10 floated.)
@@ -3470,12 +3497,13 @@ function rttSpawnMarshNumbers()
           callback_function = function(o)
             o.setLock(true)
             o.addTag("RTT Priority")
+            RTT_PRIO_PIECES[#RTT_PRIO_PIECES + 1] = o
           end
-        })
-        RTT_PRIO_PIECES[#RTT_PRIO_PIECES + 1] = ob
+        }
       end
     end
   end
+  rttSpawnStaggered(numSpecs)
   RTT_PRIO_MAP = "Marsh Map"
 end
 
@@ -4316,7 +4344,10 @@ function rttSpawnVPPanel(pos, row, spawnRy)
   -- edited at spawn is frozen at the version the game started on, and LuaScriptState survives a
   -- reload, which is the whole point of the panel knowing its row.
   json = json:gsub('"LuaScriptState":""', '"LuaScriptState":"' .. row .. '"', 1)
-  spawnObjectJSON({
+  -- QUEUED, not spawned on the spot. This fires from the crafted board's own callback, which runs
+  -- inside a frame the pump has already filled to its budget -- so a single panel was what took every
+  -- faction from six a frame to seven.
+  rttSpawnStaggered({ {
     json = json,
     position = pos,
     rotation = { 0, 180 + (spawnRy or 0), 0 },
@@ -4324,7 +4355,7 @@ function rttSpawnVPPanel(pos, row, spawnRy)
       o.addTag("RTT Faction")          -- cleared with the faction, like every other piece of the kit
       o.setLock(true)
     end,
-  })
+  } })
 end
 
 RTT_VP_PANEL_JSON = [====[{"GUID":"7d5ea1","Name":"BlockSquare","Transform":{"posX":0.0,"posY":11.56,"posZ":0.0,"rotX":0.0,"rotY":180.0,"rotZ":0.0,"scaleX":7.204507,"scaleY":0.1,"scaleZ":3.372897},"Nickname":"VP Panel","Description":"Victory points, a card, and the pond.","GMNotes":"","ColorDiffuse":{"r":0.0,"g":0.0,"b":0.0},"Locked":true,"Grid":true,"Snap":true,"IgnoreFoW":false,"MeasureMovement":false,"DragSelectable":true,"Autoraise":true,"Sticky":true,"Tooltip":false,"GridProjection":false,"HideWhenFaceDown":false,"Hands":false,"LuaScript":"RTT_COORD_GUID = \"bab7e1\"\n\n-- RTT VP PANEL. One per faction, standing just above that faction's Crafted Improvements board.\n--\n-- Maintainer, 2026-09-11: \"on top of every faction crafted improvement I want you to design a new\n-- object of the width of the crafted improvment. it should be a square that is litteraly the VP token\n-- of that faction much larger. on the left and right side a + and - button that is basically a thin\n-- rectangle to the side of it. at the bottom of the VP square put a draw button that draws 1 card.\n-- when the frog pond is there also have a button that draws 1 card from the pond below.\"\n--\n-- BUILT THE WAY THE TURN PANEL AND THE BOX SCORE ARE: the object is a plain black slab and everything\n-- visible is an object XmlUI drawn on it, with the slab resized to fit the UI. Same SLAB_Y, same\n-- black, same pixel density -- \"all of these panels must be homegenous in art thinkness colors etc\".\n--\n-- IT IS A DUMB RELAY. Every click goes to the setup board by name and the board decides what happens,\n-- for two reasons: the board and the sheet are the two scripts tools/update_saves.py can still patch\n-- in a save that has already been played, and a panel is destroyed and respawned with its faction, so\n-- anything baked into it is frozen at the version the game was started on.\nlocal SLAB_Y      = 0.10\nlocal PX_PER_UNIT = 100        -- object-UI render density, shared with the turn panel and box score\nlocal BASE        = 3.85 * 0.7\nlocal FRAME       = 5\n\nPANEL_FRAME_URL = \"https://cdn.jsdelivr.net/gh/mrdrouf/root-tabletop-tournament@main/assets/labels/turn_panel_frame_015b64ac.png\"\nlocal PARCH2 = \"#F9E6BB\"       -- the crafted card's own ground, measured\nlocal GOLD, GOLDHI = \"#C9A05C\", \"#E4C88E\"\n-- Maintainer, 2026-09-12: \"make the + sign green and - red\". Kept in the board's own register rather\n-- than picked bright: the red is WARN, the one the setup buttons already arm in, and the green is its\n-- opposite number at the same weight. The glyph goes on in parchment, which carries on both.\nlocal PLUSC, PLUSHI   = \"#4E7A3A\", \"#6B9B54\"\nlocal MINUSC, MINUSHI = \"#A83226\", \"#C4503F\"\nlocal INKTXT, RUST = \"#26170B\", \"#7E4A1E\"\nlocal NOClick = ' raycastTarget=\"false\"'\n\n-- THE FACE, in UI pixels. 257 wide IS the crafted board's own width: that board is 7.204507 world\n-- units across (its art is 740x1955 on a Type-0 Stretch tile, so world = 2 * scale * imgW/imgH), and\n-- at the shared density of BASE/PX_PER_UNIT world units per pixel that is 267.3 across the slab, less\n-- the 2x5 of bare slab the UI leaves as a rim. So the two boards stand the same width, and one UI\n-- pixel is the same size here as on the turn panel.\nlocal VP_WORLD_W = 7.204507    -- the crafted improvements board's measured width\nlocal W    = 257\n-- HALF THE HEIGHT IT WAS. Maintainer, 2026-09-12: \"make the vp counter half its height. keep the VP\n-- art a square and fill the left and right space with the plus and minus buttons filling the new\n-- space that is therefore larger to fill and less height.\"\n--\n-- So the token keeps its square and simply gets smaller, and everything the shorter row frees up\n-- horizontally goes to the two buttons: they were 28 wide by 155 tall and are now 82 by 65. The\n-- bands still sum exactly, across and down, which is the only way a TTS layout lines up:\n--   6 + 93 + 5 + 49 + 5 + 93 + 6 = 257        6 + 49 + 5 + 49 + 6 = 115\n-- AND THE DRAW BUTTON MATCHES THEM. Maintainer, 2026-09-12: \"make the draw card button as high as\n-- the VP buttons, but keep the current height of the current board it s good.\" Two rows of the same\n-- height inside an unchanged 115 is one equation, and it settles everything: 115 less the padding and\n-- the gap, halved, is 49 -- so the token is 49 square, the + / - are 49 tall, and DRAW is too. The\n-- padding is trimmed to 6 and the gap to 5 to leave the token as much of that as it can have.\nlocal PAD  = 6\nlocal GAP  = 5\nlocal RAIL = 93                -- the + / - buttons: wide and shallow, the full height of the row\nlocal TOKEN = 49               -- the VP token, still square: its side IS the row's height\nlocal BTN  = 49                -- DRAW, the same height as the buttons beside the token\n\nVP_ROW  = VP_ROW or \"\"         -- the sheet's row name for this seat, handed down at spawn\nVP_POND = false                -- is the frog pond on the table this instant\n\n-- THE HEIGHT NEVER CHANGES, and the pond is why. The pond can arrive long after the panel -- the\n-- frogs may be picked fifth -- and a panel that grew a row when it did would have to move itself to\n-- keep its edge off the crafted board, which is the spawn-then-adjust the core rule forbids.\n--\n-- So the pond does not get a row of its own: the one button band is always BTN tall, and when there\n-- is a pond the two buttons SHARE it side by side. Nothing resizes and nothing moves when the frogs\n-- sit down. An earlier try reserved a second row and let DRAW fill it when empty, which made a 88px\n-- button carrying two words -- the maintainer, on the shipped panel: \"size is off\".\nlocal function contentH()\n  return PAD + TOKEN + GAP + BTN + PAD\nend\n\n-- THE TOKEN'S ART IS THE FACTION'S OWN VP MARKER, read off the marker itself rather than baked. The\n-- box score does exactly this for its row icons (markerImage / refreshAssets), so there is no new\n-- image to draw, nothing to keep in step with the faction list, and a marker that is recoloured is\n-- followed for free.\nfunction vpMarker()\n  local want = (VP_ROW or \"\") .. \" VP\"\n  if want == \" VP\" then return nil end\n  for _, o in ipairs(getAllObjects()) do\n    local n = \"\"\n    pcall(function() n = o.getName() or \"\" end)\n    if n == want then return o end\n  end\n  return nil\nend\n\n-- A NAME OF ITS OWN. Every panel called its image \"vptoken\", and the maintainer saw what that costs\n-- the moment something made them all redraw at once: \"when I spawned the frogs, all VP markers\n-- changed to the frogs\" -- the pond's arrival pings every panel, each re-registered \"vptoken\" with\n-- its own marker's url, and the last one to answer took the name for all of them.\n--\n-- The box score has always keyed its row icons this way (assetName(fac) -> \"vp\" .. fac with the\n-- non-word characters stripped) for the same reason. This is that, per panel.\nlocal function assetName()\n  return \"vp\" .. ((VP_ROW or \"\"):gsub(\"%W\", \"\"))\nend\n\nlocal function tokenURL()\n  local m = vpMarker()\n  if m == nil then return nil end\n  local url = nil\n  pcall(function()\n    local co = m.getCustomObject()\n    url = co and (co.image or co.face or co.diffuse) or nil\n  end)\n  if url == \"\" then return nil end\n  return url\nend\n\nlocal function button(id, label, fill, hi, press, textColor, fs)\n  return '<Button id=\"' .. id .. '\" colors=\"' .. fill .. '|' .. hi .. '|' .. press\n      .. '|#00000000\" onClick=\"vpRelay\">'\n      .. '<Text fontSize=\"' .. fs .. '\" fontStyle=\"Bold\" color=\"' .. textColor\n      .. '\" resizeTextForBestFit=\"true\" resizeTextMinSize=\"9\" resizeTextMaxSize=\"' .. fs .. '\"'\n      .. NOClick .. '>' .. label .. '</Text></Button>'\nend\n\nfunction buildUI()\n  local H = contentH()\n  -- PINNED TO THE BOARD BELOW IT, not to the shared constant. The maintainer asked for the panel to\n  -- follow the crafted board's outer edge \"so both tools are aligned\", and that board is 7.204507\n  -- wide; the turn panel's own density would make this one 7.195650, leaving the two edges 0.0089\n  -- out of line. Taking the density from the width instead moves the disagreement into the border\n  -- thickness, where it is 0.00017 -- fifty times smaller, and invisible where the other is not.\n  local k = VP_WORLD_W / (W + 2 * FRAME)\n  pcall(function() self.setScale({ (W + 2 * FRAME) * k, SLAB_Y, (H + 2 * FRAME) * k }) end)\n  local sx = PX_PER_UNIT / (W + 2 * FRAME)\n  local sy = PX_PER_UNIT / (H + 2 * FRAME)\n\n  local x = {}\n  local function add(s) x[#x + 1] = s end\n  add(string.format('<Panel position=\"0 0 -60\" rotation=\"0 0 180\" scale=\"%.4f %.4f 1\"'\n      .. ' width=\"%d\" height=\"%d\" color=\"#00000000\"%s>', sx, sy, W, H, NOClick))\n  -- THE TURN PANEL'S OWN FRAME, not a flat field: that panel draws the real Crafted Improvements\n  -- border as a UI image behind its layout, and a flat parchment rectangle beside it would not be\n  -- the homogeneity the maintainer asked for -- it would be the one panel without a border.\n  add('<Image id=\"vpbg\" image=\"pnlframe\" width=\"' .. W .. '\" height=\"' .. H .. '\"' .. NOClick .. '/>')\n  add('<VerticalLayout padding=\"' .. PAD .. ' ' .. PAD .. ' ' .. PAD .. ' ' .. PAD\n      .. '\" spacing=\"' .. GAP .. '\" childForceExpandHeight=\"false\">')\n\n  -- the token, with its two rails. childForceExpandWidth=\"false\" is not decoration: TTS expands\n  -- children by default and silently ignores every preferredWidth without it.\n  -- childForceExpandHeight=\"true\" is what makes the rails RAILS. Left false, a button takes its own\n  -- text's height and sits as a chip in the top corner -- which is exactly how it shipped, and what\n  -- the maintainer photographed. The maintainer asked for \"a + and - button that is basically a thin\n  -- rectangle to the side of it\", so they take the square's full height and only 28px of width.\n  add('<HorizontalLayout preferredHeight=\"' .. TOKEN .. '\" spacing=\"' .. GAP\n      .. '\" childForceExpandWidth=\"false\" childForceExpandHeight=\"true\">')\n  add(button(\"vpMinus\", \"&#8211;\", MINUSC, MINUSHI, MINUSC, PARCH2, 30):gsub('<Button ',\n      '<Button preferredWidth=\"' .. RAIL .. '\" ', 1))\n  if VP_ART then\n    -- NOT TINTED. A marker's ColorDiffuse was multiplied over this for one build and the result was\n    -- near-black -- the maintainer: \"the VP marker is completely off\". The marker's IMAGE is already\n    -- the finished face; the tint is what TTS lays over the 3D tile, not over the picture. The box\n    -- score draws this same image with no colour attribute at all, and keeps the tint for the solid\n    -- swatch it falls back to when a marker has no image. This follows it.\n    add('<Image id=\"vpToken\" image=\"' .. assetName() .. '\" preferredWidth=\"' .. TOKEN\n        .. '\" preferredHeight=\"' .. TOKEN .. '\"' .. NOClick .. '/>')\n  else\n    -- no marker on the table yet: an empty plate rather than a broken image\n    add('<Panel color=\"#E7D8B4\" preferredWidth=\"' .. TOKEN .. '\" preferredHeight=\"' .. TOKEN .. '\"'\n        .. NOClick .. '/>')\n  end\n  add(button(\"vpPlus\", \"+\", PLUSC, PLUSHI, PLUSC, PARCH2, 30):gsub('<Button ',\n      '<Button preferredWidth=\"' .. RAIL .. '\" ', 1))\n  add('</HorizontalLayout>')\n\n  add('<HorizontalLayout preferredHeight=\"' .. BTN .. '\" spacing=\"' .. GAP .. '\">')\n  add(button(\"vpDraw\", VP_POND and \"DRAW CARD\" or \"DRAW 1 CARD\", PARCH2, GOLDHI, GOLD, RUST, 14))\n  if VP_POND then\n    add(button(\"vpPond\", \"DRAW POND\", PARCH2, GOLDHI, GOLD, RUST, 14))\n  end\n  add('</HorizontalLayout>')\n  add('</VerticalLayout></Panel>')\n  pcall(function() self.UI.setXml(table.concat(x)) end)\nend\n\n-- Re-read the marker's art and whether the pond is out, then draw. Called on events only -- there is\n-- no tick: a panel that rebuilt itself on a timer would fight every click across the table.\nfunction vpRefresh()\n  local url = tokenURL()\n  VP_ART = (url ~= nil)\n  -- ONE CALL WITH BOTH: setCustomAssets REPLACES the list, so registering the token on its own\n  -- would take the frame away with it.\n  local assets = { { name = \"pnlframe\", url = PANEL_FRAME_URL } }\n  if url ~= nil then assets[#assets + 1] = { name = assetName(), url = url } end\n  pcall(function() self.UI.setCustomAssets(assets) end)\n  local pond = false\n  pcall(function() pond = (#getObjectsWithTag(\"RTT Pond\") > 0) end)\n  VP_POND = pond\n  buildUI()\nend\n\nfunction vpRelay(player, value, id)\n  local c = getObjectFromGUID(RTT_COORD_GUID)\n  if c == nil then return end\n  -- guarded: obj.call into a function the target does not define is TTS's C# null, which pcall does\n  -- NOT catch and which would take this handler with it\n  local ok = false\n  pcall(function() ok = (c.getVar(\"RTT_VP_API\") == true) end)\n  if not ok then\n    printToColor(\"This board is from an older build and has no VP panel support.\", player.color)\n    return\n  end\n  c.call(\"rttVPClick\", { color = player.color, id = id, row = VP_ROW, panel = self.getGUID() })\nend\n\nfunction onSave() return VP_ROW or \"\" end\n\nfunction onLoad(state)\n  if type(state) == \"string\" and state ~= \"\" then VP_ROW = state end\n  vpRefresh()\n  -- AND AGAIN, BECAUSE THE MARKER IS NOT THERE YET. The panel is spawned from the crafted board's\n  -- callback and its faction's VP marker is a later piece of the same staggered spawn, so at this\n  -- instant there is nothing named \"<row> VP\" to read a picture off -- the panel came up with an\n  -- empty plate and stayed that way, which is half of \"the VP marker is completely off\".\n  --\n  -- Looking again a few times costs nothing and is not a move: it re-reads a picture, it does not\n  -- place anything. The pond is caught the same way when it is picked early; picked late, the board\n  -- pings every panel from rttSpawnPond.\n  for _, f in ipairs({ 10, 40, 120 }) do\n    Wait.frames(function() pcall(vpRefresh) end, f)\n  end\nend\n","LuaScriptState":"","XmlUI":"","Tags":["RTT Faction","RTT VP Panel"]}]====]
@@ -5310,7 +5341,7 @@ function rttSpawnRelMarker(seat, faction)
   seat.relDone = seat.relDone or {}
   seat.relDone[faction] = true
   local r = seat.rel
-  spawnObjectJSON({
+  rttSpawnStaggered({ {
     json = json,
     position = rttKitPos(r.x, r.z, r.flip, r.ry, slot),
     callback_function = function(o)
@@ -5326,7 +5357,7 @@ function rttSpawnRelMarker(seat, faction)
                                   p = { p.x, p.y, p.z }, r = { rot.x, rot.y, rot.z } }
       end)
     end,
-  })
+  } })
   return true
 end
 
@@ -5855,6 +5886,7 @@ function rttRatsMoodManager(cx, cz, flip)
   local def = EVERYTHING["Tools"] and EVERYTHING["Tools"]["Mini-Mood Manager"]
   if def == nil or def['data'] == nil then return end
   local ry = flip and 0 or 180                      -- his save is rotY 180 at a near-row seat
+  local moodSpecs = {}
   for i, v in ipairs(def['data']) do
     local l = RTT_MOOD_LOCAL[i]
     if l ~= nil then
@@ -5864,15 +5896,18 @@ function rttRatsMoodManager(cx, cz, flip)
       -- (assets/board/rats_board_mood.png), so there is no second object to stack, lock or wipe --
       -- only the eight mood cards still spawn, and they land on the printed slots.
       if i > 1 then
-        spawnObjectJSON({
+        moodSpecs[#moodSpecs + 1] = {
           json = v.json,
           position = { cx + lx, l[2], cz + lz },
           rotation = { 0, ry, 0 },
           callback_function = function(o) pcall(function() o.addTag("RTT Faction") end) end
-        })
+        }
       end
     end
   end
+  -- the eight mood cards go through the queue like everything else; spawned on the spot they were
+  -- three more objects in a frame the pump had already filled
+  rttSpawnStaggered(moodSpecs)
 end
 
 -- HOW HIGH A CAT IS DROPPED INTO ITS CLEARING.
@@ -5990,6 +6025,7 @@ function rttCrowsPlots(cx, cz, flip, isDraft, board)
   -- that player's colour, so face UP inside it they read at a glance and opponents see a blank block.
   -- (Face down in a zone would gain nothing: a face-down tile is unreadable to its owner too.)
   local hz = rttCrowsHiddenZone(board, cx, cz, isDraft)
+  local plotSpecs = {}
   local ry = board.getRotation().y
   for i, blob in ipairs(RTT_CROW_PLOTS or {}) do
     local idx = i - 1
@@ -6010,13 +6046,14 @@ function rttCrowsPlots(cx, cz, flip, isDraft, board)
       w.y = w.y + 0.2
       rz = 180
     end
-    spawnObjectJSON({
+    plotSpecs[#plotSpecs + 1] = {
       json = blob,
       position = { w.x, w.y, w.z },
       rotation = { 0, ry, rz },
       callback_function = function(o) o.setLock(false) o.addTag("RTT Faction") end   -- cleared with the faction
-    })
+    }
   end
+  rttSpawnStaggered(plotSpecs)
 end
 
 -- the maintainer's hidden-plot cover: a Hidden Zone (FogOfWarTrigger) parked to the RIGHT of the plot grid.
@@ -7299,6 +7336,7 @@ function makeMap(player,value,id,keepBoard)
   local scale = rttPlaceScale()
 
   local boardIdx = (RTT_KEEP_BOARD ~= nil) and rttMapBoardIndex(objects) or nil
+  local mapSpecs = {}
   for idx,v in ipairs(objects) do
     local rtt_rot = nil
     local rtt_ov = false
@@ -7320,9 +7358,8 @@ function makeMap(player,value,id,keepBoard)
       new_pos = vec
       new_pos.y = new_pos.y+10-8.5+0.05-0.07+10.08
     end
-    local ob = nil
     if not skip then
-    ob = spawnObjectJSON({
+    mapSpecs[#mapSpecs + 1] = {
         json              = ovJson or v.json,
         position          = new_pos,
         rotation          = rtt_rot,
@@ -7343,15 +7380,28 @@ function makeMap(player,value,id,keepBoard)
         if spawned_object.name == "CardCustom" or spawned_object.name == "Card" then
           spawned_object.addTag(RTT_HELPER_TAG)
         end
+        -- the Marsh's own pieces, recorded here rather than from the spawn's return value: that
+        -- value only exists when the spawn happens on the spot, and it does not any more. The
+        -- callback is the only moment the object is certainly there in either case.
+        if rtt_ov and RTT_MARSH_PIECES ~= nil then
+          pcall(function() RTT_MARSH_PIECES[#RTT_MARSH_PIECES + 1] = spawned_object.getGUID() end)
         end
-    })
-    end
-    if rtt_ov and ob ~= nil and RTT_MARSH_PIECES ~= nil then
-      pcall(function() RTT_MARSH_PIECES[#RTT_MARSH_PIECES + 1] = ob.getGUID() end)
+        end
+    }
     end
   end
-  if id ~= "Marsh Map" then shuffleMaps(id) end
-  rttLockRuins()
+  -- SIX A FRAME, LIKE A FACTION. This loop used to create every piece of the map in ONE frame -- 42
+  -- to 49 objects and about 70 KB for Winter, Marsh or Mountain -- while rttSpawnFaction had been
+  -- paced at six since v1.154 for exactly the reason a map should be. MULTIPLAYER_SYNC.md lists
+  -- "stagger every spawn loop" as work item 1 and only the faction loop ever got it.
+  --
+  -- That is the burst Zaandaa was describing: "often clearing markers/stuff floated, and a few times
+  -- the map itself floated ... then I reloaded the map multiple times and that very often didn't
+  -- work." The map, not the factions -- the one path that was never paced.
+  rttSpawnStaggered(mapSpecs, function()
+    if id ~= "Marsh Map" then shuffleMaps(id) end
+    rttLockRuins()
+  end)
 end
 
 -- EVERY MAP'S RUINS, LOCKED, however they were placed. Maintainer, 2026-09-07: "looks like Marsh is

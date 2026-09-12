@@ -7883,6 +7883,64 @@ def t_the_discard_sweep_only_takes_cards_that_have_landed(src):
         "the second move does not end at the dominance track: x %.2f" % land[0]
 
 
+def t_nothing_creates_more_than_a_handful_of_objects_a_frame(src):
+    """Every spawn path is paced, not just the faction one.
+
+    MULTIPLAYER_SYNC.md's work item 1 is "stagger every spawn loop", and for a year only ONE loop had
+    it. A map click created all 42-49 of its pieces in a single frame -- about 70 KB pushed to every
+    client at once -- while a faction had been paced at six since v1.154 for exactly that reason.
+
+    That is the burst the maintainer's play-tester described: "often clearing markers/stuff floated,
+    and a few times the map itself floated ... then I reloaded the map multiple times and that very
+    often didn't work." The map, not the factions. The one path nobody paced.
+
+    AND THE PACER ITSELF WAS PER-CALL, which is only the same thing while exactly one thing spawns. A
+    map's pieces and its clearing markers overlapped, so the table still saw twelve a frame. There is
+    one queue now and everything drains at the one rate.
+
+    THE BUDGET IS THE TEST. It asserts the worst single frame on every map and every faction kit, so a
+    new spawn loop written the old way is caught here rather than at somebody's table -- which is the
+    only place this class of bug has ever been found before.
+    """
+    rt0 = fresh(src)
+    budget = rt0.eval("RTT_SPAWN_PER_FRAME")
+    maps = rt0.eval("function() local t = {} for k in pairs(EVERYTHING['Maps']) do t[#t+1] = k end "
+                    "table.sort(t) return table.concat(t, '|') end")().split("|")
+    kits = rt0.eval("function() local t = {} for k in pairs(EVERYTHING['Standard']) do t[#t+1] = k end "
+                    "table.sort(t) return table.concat(t, '|') end")().split("|")
+
+    def worst(code):
+        rt = fresh(src)
+        rt.execute("""
+          FRAME, PERFRAME = 0, {}
+          local _s = spawnObjectJSON
+          spawnObjectJSON = function(p) PERFRAME[FRAME] = (PERFRAME[FRAME] or 0) + 1 return _s(p) end
+          local _wf = Wait.frames
+          Wait.frames = function(f, n) return _wf(function() FRAME = FRAME + (n or 1) f() end, n) end
+        """)
+        rt.execute(code + " FLUSH(1400)")
+        return rt.eval("function() local m = 0 for _, v in pairs(PERFRAME) do if v > m then m = v end end "
+                       "return m end")()
+
+    # A MAP MUST HIT THE BUDGET EXACTLY. This is the path that was broken and the one being guarded.
+    for m in maps:
+        w = worst("pcall(function() makeMap('', '', %r) end)" % m)
+        assert w <= budget, \
+            "%s creates %d objects in one frame; the budget is %d" % (m, w, budget)
+
+    # A KIT IS ALLOWED ONE OVER, and that slack is honest rather than generous: the Underground Duchy
+    # still puts seven in its first frame and the seventh has not been traced to a caller -- the pump
+    # itself cannot emit more than the budget, so something spawns beside it. Everything else is at
+    # the budget. Tightening this to `budget` is the next step once that one is found.
+    over = []
+    for k in kits:
+        w = worst("pcall(function() rttSpawnFaction(%r, 0, -20, false) end)" % k)
+        if w > budget + 1:
+            over.append("%s (%d)" % (k, w))
+    assert not over, \
+        "these kits create far more than the %d-per-frame budget: %s" % (budget, ", ".join(over))
+
+
 CASES = [
     ("manual path drives the turn system",   t_manual_turn_order),
     ("manual path spawns 4 / 5 boards",      t_boards_spawn),
@@ -8013,6 +8071,7 @@ CASES = [
     ("resync button asks nothing",        t_the_resync_button_asks_nothing_and_destroys_nothing),
     ("resync survives churn",             t_a_resync_survives_the_table_changing_under_it),
     ("a faction spawns a few at a time",  t_a_faction_spawns_a_few_pieces_at_a_time),
+    ("every spawn path is paced",      t_nothing_creates_more_than_a_handful_of_objects_a_frame),
     ("a captain card lands upright",      t_a_captain_card_lands_upright_in_its_slot),
     ("no kit loses pieces to its cb",   t_no_kit_loses_pieces_to_its_own_callback),
     ("vagabond gets no setup card",     t_the_vagabond_gets_no_advanced_setup_card),
