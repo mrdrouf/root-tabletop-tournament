@@ -8824,8 +8824,14 @@ def t_the_clock_has_room_for_a_two_digit_minute(src):
     assert w_time >= need, \
         ("the clock field is %dpx and \"10:00\" needs %.0f at fontSize %d: it will be cut"
          % (w_time, need, fs))
-    assert w_time > w_round, \
-        ("the clock has %dpx and ROUND has %d; ROUND shows two digits and the clock shows five"
+    # EQUAL, NOT MERELY BIG ENOUGH. Widening the clock's half alone fitted "10:00" and broke the
+    # panel: maintainer, 2026-09-12, "now you discentered the number. Offset to the left, it's ugly.
+    # The geometry and the symmetry of the board are broken." The frame art is a plain parchment
+    # rectangle with nothing printed on it, so these two cream fields ARE the panel's geometry -- an
+    # uneven pair puts the divider off the centre line with nothing to disguise it. Room for the
+    # clock has to come out of the margin, never out of ROUND.
+    assert w_time == w_round, \
+        ("the readouts are %dpx and %dpx; unequal fields move the divider off the panel's centre"
          % (w_time, w_round))
 
     # ...and the row must not expand its children, or every width above is ignored
