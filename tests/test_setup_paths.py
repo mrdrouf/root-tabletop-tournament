@@ -8399,12 +8399,18 @@ def fresh_observer(armed=True):
 def _a_game_is_on(rt):
     """The recorder is inert until a faction reaches the table; this is what tells it one has.
 
-    ARCHIVE.md section 4 arms on "the first turn change or the first faction spawn, whichever comes
-    first", and the faction half is asked at FLUSH time rather than in onObjectSpawn -- the tag is
-    added in the spawn's callback_function, which has not run yet when the spawn event fires. So a
-    tagged piece on the table is the whole of the signal.
+    IT IS THE START BUTTON NOW, and nothing else. ARCHIVE.md section 4 used to arm on "the first turn
+    change or the first faction spawn, whichever comes first" -- and both of those happen DURING the
+    setup that spawns the faction, so the recorder woke up while RTT was still destroying selector
+    boards and walked a table full of objects on their way out. That is where the maintainer's
+    "[Global] Lua Error <onPlayerTurn>: Object reference not set" came from, and his answer was
+    "recorder should probably start only when start button has been pressed."
+
+    So a game being on means START has been pressed. The faction piece is still put out, because a
+    table with a game on has pieces on it and several cases below read them.
     """
     rt.execute("MKOBJ('Cat Warrior', {1, 1, 1}, {'RTT Faction'})")
+    rt.execute("pcall(rttRecordStart)")
 
 
 def t_an_idle_table_arms_no_timer(src):
@@ -8452,6 +8458,9 @@ def t_a_drop_arms_one_timer_and_a_second_drop_adds_none(src):
     other two events would pass the timer half of this and be useless.
     """
     rt = fresh_observer()
+    # START first: the recorder queues nothing until the game has been started, so a drop before it
+    # is somebody arranging the table rather than a move.
+    rt.execute("pcall(rttRecordStart)")
     rt.execute("A = MKOBJ('Cat Warrior', {3, 1, -8}, {})")
     rt.execute("B = MKOBJ('Cat Wood', {5, 1, -2}, {})")
 
@@ -8601,7 +8610,9 @@ def t_the_payload_never_carries_a_hand(src):
     assert rt.eval("#OBS.ev") == 0, "a hand card was written into the event log"
 
     # a turn change walks the whole table -- the greediest read the recorder ever does
-    rt.execute("Turns.enable = true Turns.order = {'Red', 'Blue'} TURN_SET('Red')")
+    # FLUSH after every turn change: onPlayerTurn hands its body to Wait.frames now, so that RTT's
+    # setup churn is over before the recorder walks the table. Nothing it does is synchronous.
+    rt.execute("Turns.enable = true Turns.order = {'Red', 'Blue'} TURN_SET('Red') FLUSH(10)")
     rt.execute("Global.call('rttArchiveGame', nil)")
     body = rt.eval("WEBREQ[#WEBREQ].body")
 
@@ -8681,13 +8692,16 @@ def t_a_second_game_is_not_appended_to_the_first(src):
     assert rt.eval("OBS.run") == 7, "the recorder did not pick up RTT's run id: %r" % rt.eval("OBS.run")
 
     # the teardown's empty record, which is NOT a new game and must not wipe anything
-    rt.execute("RTT_SEAT_RECORD = '{}' TURN_SET('Red')")
+    rt.execute("RTT_SEAT_RECORD = '{}' TURN_SET('Red') FLUSH(10)")
     assert rt.eval("OBS.id") == first, "an emptied seat record was mistaken for a new game"
 
     # ...and now a genuinely new run
     rt.execute("""RTT_SEAT_RECORD =
       '{"run":8,"seats":[{"key":"Eyrie Dynasties","color":"Blue","pos":[3,4],"owner":"Someone"}]}'""")
-    rt.execute("TURN_SET('Blue')")
+    # ...and game two is STARTED, the same way game one was. A run id change resets the log; it is the
+    # START button that begins recording again, which is the whole of the change made after the first
+    # live 4-player setup threw.
+    rt.execute("TURN_SET('Blue') FLUSH(10) pcall(rttRecordStart) TURN_SET('Blue') FLUSH(10)")
     assert rt.eval("OBS.run") == 8, "the new run id was not taken up: %r" % rt.eval("OBS.run")
     evs = [json.loads(rt.eval("OBS.ev[%d]" % i)) for i in range(1, rt.eval("#OBS.ev") + 1)]
     assert all(e[2] != "drop" for e in evs), \
@@ -9031,6 +9045,61 @@ def t_a_won_game_archives_itself_once(src):
         "loading a finished game sent its archive again (%d sends)" % sent(rt2)
 
 
+def t_the_recorder_does_nothing_until_start_is_pressed(src):
+    """Before START the recorder touches nothing at all -- which is where the crash came from.
+
+    Maintainer, 2026-09-12, on the first 4-player setup with it live:
+
+        [Global] Lua Error <onPlayerTurn>: Object reference not set to an instance of an object
+
+    and then: "recorder should probably start only when start button has been pressed."
+
+    THAT ERROR IS TTS'S C# NULL AND PCALL DOES NOT CATCH IT. Every object touch in onPlayerTurn and
+    obsKeyframe was already wrapped and it escaped anyway, so the fix cannot be more guarding -- it
+    has to be not touching the dead object. The dead objects are RTT's: a setup destroys every
+    selector board and respawns the box score, and rttDestroyUI defers its destruct by a frame, so
+    getAllObjects can hand back something already on its way out. The recorder used to arm on the
+    first faction spawn or the first turn change -- both of which happen in the middle of that -- and
+    then walk the whole table.
+
+    ARMING ON START MOVES THE RECORDER OUTSIDE THE WINDOW ENTIRELY, which is stronger than guarding
+    inside it: the setup is finished before START is pressed. So this drives the shape of a setup --
+    pieces spawning, pieces dropping, the turn system coming on -- against a recorder that is enabled
+    but not started, and requires that it does not queue, does not arm a timer, does not take a game
+    id and does not send anything.
+
+    The last assertion is the one that would have caught the bug: a keyframe walk is what threw, and
+    OBS.snap staying empty is the harness's way of saying the walk never happened.
+    """
+    rt = fresh_observer()                    # enabled, but START not pressed
+    assert rt.eval("OBS_ENABLED") is True, "the fixture did not enable the recorder"
+    assert rt.eval("OBS.id") is None, "the recorder took a game id before START"
+
+    # a setup, as far as the recorder can see it: pieces arrive, get dropped, turns come on
+    rt.execute("""
+      for i = 1, 6 do MKOBJ('Cat Warrior', {i, 1, i}, {'RTT Faction'}) end
+      P = MKOBJ('Cat Wood', {2, 1, 2}, {'RTT Faction'})
+      OBJ_DROP('Red', P)
+      Turns.enable = true Turns.order = {'Red', 'Blue'}
+      TURN_SET('Red')
+      FLUSH(20)
+    """)
+    assert rt.eval("OBS.id") is None, "a setup armed the recorder before START was pressed"
+    assert rt.eval("#OBS.pend") == 0, \
+        "the recorder queued %d event(s) during setup" % rt.eval("#OBS.pend")
+    assert rt.eval("TIMERS()") == 0, \
+        "the recorder armed %d timer(s) during setup" % rt.eval("TIMERS()")
+    assert rt.eval("#OBS.snap") == 0, \
+        "the recorder walked the table during setup -- that walk is what threw the C# null"
+    assert rt.eval("#WEBREQ") == 0, "the recorder sent something before the game started"
+
+    # ...and START turns it on
+    rt.execute("pcall(rttRecordStart)")
+    assert rt.eval("OBS.id") is not None, "START did not begin a recording"
+    rt.execute("OBJ_DROP('Red', P) FLUSH(20)")
+    assert rt.eval("#OBS.ev") > 0, "nothing was recorded after START"
+
+
 CASES = [
     ("manual path drives the turn system",   t_manual_turn_order),
     ("manual path spawns 4 / 5 boards",      t_boards_spawn),
@@ -9184,6 +9253,7 @@ CASES = [
     ("the clock fits 10:00",           t_the_clock_has_room_for_a_two_digit_minute),
     ("torn boards are cut torn",      t_the_torn_boards_are_cut_where_the_art_is_torn),
     ("a won game archives twice",     t_a_won_game_archives_itself_once),
+    ("nothing runs before START",     t_the_recorder_does_nothing_until_start_is_pressed),
     ("game two is not game one",        t_a_second_game_is_not_appended_to_the_first),
 ]
 

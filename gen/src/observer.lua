@@ -108,7 +108,23 @@
 -- respawning the box score -- and rttDestroyUI defers its destruct by a frame, so there is a window
 -- in which getAllObjects can hand back an object that is already going. obsKeyframe walks all of
 -- them. Deferring the handler's body by one frame past the churn is the first thing to try.
-OBS_ENABLED = false
+-- How many 2-frame waits onPlayerTurn gives RTT's setup before recording the turn anyway. Thirty is
+-- about a second at 60 fps and a setup chain is 6-10 s -- but the point is a CEILING, not a matching
+-- duration: a turn recorded mid-churn is a cosmetic wrong, a recorder that retries for ever is the
+-- heartbeat MULTIPLAYER_SYNC.md forbids.
+OBS_TURN_WAIT_MAX = 30
+
+-- ON. It was on for an hour on 2026-09-12 and came straight off: the first 4-player setup threw
+-- "[Global] Lua Error <onPlayerTurn>: Object reference not set to an instance of an object", twice.
+-- What changed since is not a guard -- pcall cannot catch a C# null and every touch was already
+-- wrapped -- it is WHEN this file runs at all. It arms on the START button and on nothing else, so
+-- the setup that was destroying boards underneath it is over before it looks at the table. The suite
+-- drives a whole setup against an enabled-but-unstarted recorder and requires it to queue nothing,
+-- arm nothing, walk nothing and send nothing.
+--
+-- A host can still silence one table for a session with `OBS_ENABLED = false` in the Execute Lua
+-- Code box; every handler re-reads the flag.
+OBS_ENABLED = true
 
 -- THE ENDPOINT IS A CONSTANT, for the same reason the Root Database's URL is one in the box score:
 -- a settable URL in an object strangers load off a save is an exfiltration field. There is no write
@@ -839,6 +855,28 @@ local function obsRunId()
   return run
 end
 
+-- IS RTT IN THE MIDDLE OF A SETUP? Read off the board's own busy flag, the same way obsRunId reads
+-- RTT_RUN_ID, because that is the one moment this file must keep its hands off the table.
+--
+-- WHY IT EXISTS: the maintainer's first 4-player setup with the recorder live threw, twice, in red --
+-- "[Global] Lua Error <onPlayerTurn>: Object reference not set to an instance of an object". That is
+-- TTS's C# null and PCALL DOES NOT CATCH IT, which is why every touch in onPlayerTurn and obsKeyframe
+-- being wrapped did not help. The only fix for a C# null is not to touch the dead object.
+--
+-- And the dead objects are RTT's: a setup destroys every selector board and respawns the box score,
+-- and rttDestroyUI defers its destruct by a frame, so there is a window where getAllObjects hands
+-- back something already on its way out. obsKeyframe walks all of them. RTT_BUSY is true for that
+-- whole chain -- it is the flag the mod already uses to refuse a second setup click -- so it is
+-- exactly the window to stand out of.
+local function obsBusy()
+  local busy = false
+  pcall(function()
+    local b = getObjectFromGUID(OBS_BOARD)
+    if b ~= nil then busy = (b.getVar("RTT_BUSY") == true) end
+  end)
+  return busy
+end
+
 local function obsNewGameCheck()
   local run = obsRunId()
   if run == nil or run == 0 then return end
@@ -876,6 +914,10 @@ end
 -- fire on the main thread in the middle of somebody's drag.
 local function obsPush(kind, guid, color, extra)
   if not OBS_ENABLED then return end
+  -- NOT UNTIL START. The recorder arms on the START button and on nothing else, so before it is
+  -- pressed there is no game to belong to and dropping a piece is somebody arranging the table.
+  -- This also keeps the queue empty through the whole setup, which is where the C# null came from.
+  if OBS.id == nil then return end
   if guid == nil or guid == "" then return end
   -- THE ONLY THING THAT EMPTIES THIS QUEUE IS A TIMER THAT IS ALLOWED TO FAIL -- see OBS_MAX_PEND.
   -- The oldest QUARTER goes in one slice rather than one entry per push, for the same measured
@@ -902,6 +944,12 @@ end
 
 function obsFlush()
   OBS.timer = nil
+  -- NOT WHILE RTT IS SETTING UP. The queue is kept, not dropped, and the timer is re-armed so it
+  -- lands after the churn: nothing is lost, it is only written a moment later.
+  if obsBusy() then
+    obsArmFlush()
+    return
+  end
   local q = OBS.pend
   OBS.pend = {}
 
@@ -920,12 +968,12 @@ function obsFlush()
   -- getVar and not a seat-record walk.
   obsNewGameCheck()
 
-  if OBS.id == nil then
-    local factions = 0
-    pcall(function() factions = #getObjectsWithTag("RTT Faction") end)
-    if factions == 0 then return end
-    obsArm("faction spawn")
-  end
+  -- ARMING ON A FACTION SPAWN IS GONE. It used to arm here, which meant the recorder woke up in the
+  -- middle of the setup that spawns the faction -- the exact moment RTT is destroying selector boards
+  -- -- and then walked the table. Maintainer, after the first live 4-player setup threw:
+  -- "recorder should probably start only when start button has been pressed." START is after all of
+  -- that, and it is also the honest answer to "when did this game begin".
+  if OBS.id == nil then return end
 
   local hands = obsHands()
   local requeue = nil
@@ -1507,6 +1555,26 @@ end
 -- It is pcall'd at the call site AND guarded here, because the one thing it must never do is throw
 -- into `uiExport`: a fault in the archive would then cost the maintainer the notebook write and the
 -- Root Database upload, which are the parts of that button anyone actually depends on.
+-- THE START BUTTON IS WHAT BEGINS A RECORDING. Called by the turn panel's START, which is the moment
+-- the maintainer declares the game begun: the table is laid, the setup chain has finished, every
+-- board that was going to be destroyed has been, and the first turn has not been taken.
+--
+-- Maintainer, 2026-09-12: "recorder should probably start only when start button has been pressed."
+-- Before this the recorder armed on the first faction spawn or the first turn change, both of which
+-- happen DURING setup -- so it woke up inside the churn and walked a table full of objects on their
+-- way out, which is where "[Global] Lua Error <onPlayerTurn>: Object reference not set" came from.
+--
+-- IT RESETS FIRST. START wipes the box score and begins turn 1, so anything the log already holds
+-- belongs to a previous game or to the setting up of this one, and neither belongs in this record.
+function rttRecordStart()
+  if not OBS_ENABLED then return false end
+  local ok = pcall(function()
+    obsResetLog()
+    obsArm("start button")
+  end)
+  return ok
+end
+
 function rttArchiveGame(params)
   local ok, err = pcall(function() obsArchive(params) end)
   if not ok then
@@ -1601,8 +1669,34 @@ function onPlayerTurn(player, previous_player)
   pcall(function() to = player.color or "" end)
   pcall(function() from = previous_player.color or "" end)
 
+  -- NOTHING HEAVY, AND NOTHING NOW. `Turns.enable = true` inside rttEnableTurns fires this handler
+  -- SYNCHRONOUSLY, in the middle of the setup that is destroying boards -- so the work is moved off
+  -- this frame entirely and waits for RTT to finish. `to` and `from` are already plain strings above;
+  -- the two Player handles are deliberately not carried across the frame boundary.
+  --
+  -- BOUNDED, not a loop: it waits at most OBS_TURN_WAIT_MAX times for RTT_BUSY to clear and then runs
+  -- regardless. A recorder that could sit and retry for ever is the heartbeat this file is built not
+  -- to have.
+  local tries = 0
+  local function later()
+    tries = tries + 1
+    if obsBusy() and tries < OBS_TURN_WAIT_MAX then
+      pcall(function() Wait.frames(later, 2) end)
+      return
+    end
+    obsTurnWork(to, from)
+  end
+  pcall(function() Wait.frames(later, 2) end)
+end
+
+-- The body of onPlayerTurn, run a frame or more later. Split out so the handler itself returns
+-- immediately and holds nothing.
+function obsTurnWork(to, from)
+  if not OBS_ENABLED then return end
   obsNewGameCheck()
-  if OBS.id == nil then obsArm("turn change") end
+  -- ...and nor does a turn change arm it, for the same reason: Turns.enable = true is set BY the
+  -- setup. A turn before START is a turn in a game that has not started.
+  if OBS.id == nil then return end
 
   -- FLUSH FIRST, so every event that is already pending is written with a seq BELOW the keyframe's
   -- and the file reads in the order things happened. The timer is cancelled rather than left to fire
