@@ -7601,6 +7601,71 @@ def t_the_riverfolk_panel_stands_where_he_put_it(src):
         "the Marquise panel moved to x %.4f; it should still sit on its crafted board at %.4f" % (mx, cx)
 
 
+def t_the_box_score_columns_fit_what_goes_in_them(src):
+    """The player's name has room, and the faction column is only as wide as its contents need.
+
+    Maintainer, 2026-09-12: "in the boxscore widen the name area by 20% reduce the faction column as
+    much as possible without possible squeezing anything that could go there, carefull about subtext
+    with the captains for example."
+
+    THE FACTION COLUMN'S FLOOR IS MEASURED, and this guards the measurement rather than the number. A
+    faction cell is a name beside a 26px chip with 2 of spacing, so the name is given facW - 30. The
+    widest short name in the sheet's own ROSTER is "Vagabond" at 71px in the row's 15px bold, so the
+    column cannot go below 101 and is set to 105.
+
+    If the roster ever gains a longer name than the one the column was sized for, that measurement is
+    stale and the name would be squeezed -- so this fails on the ROSTER, which is the thing that would
+    have changed, rather than on a width nobody would think to re-check.
+
+    THE CAPTAINS SUBTEXT IS DELIBERATELY OVER-FULL and is asserted to still be handled, not to fit:
+    the widest it can be is three of the twelve characters comma-joined -- "Scoundrel, Adventurer,
+    Gladiator", 159px at its own 11 -- against a column that has never been more than 118. It has
+    always been shrunk by resizeTextForBestFit rather than clipped, and what matters is that the
+    shrink is still there, because without it that line would simply be cut off.
+    """
+    sheet = json.loads(re.search(r"RTT_BOXSCORE_JSON = \[====\[(.*?)\]====\]", src, re.S).group(1))["LuaScript"]
+
+    m = re.search(r"local iconW, facW, domW, nameW, liveW, timeW = "
+                  r"(\d+), (\d+), (\d+), (\d+), (\d+), (\d+)", sheet)
+    assert m, "the box score's column widths are not where this test expects them"
+    iconW, facW, domW, nameW, liveW, timeW = (int(g) for g in m.groups())
+
+    assert nameW == 156, \
+        "the name column is %d; the maintainer asked for 130 + 20%% = 156" % nameW
+
+    # the cell is [name at facW-30][2 spacing][26 chip]
+    # THE MEASUREMENT'S OWN PREMISE, kept as the measurements themselves. Character count is NOT width
+    # and saying so cost a round: "Riverfolk" is nine characters and 63px, "Vagabond" is eight and 71.
+    # So every roster name is recorded at the row's 15px bold, and a name that is not in this table is
+    # one nobody has measured -- which is exactly when the column's floor would silently go stale.
+    NAME_PX = {
+        "Marquise": 65, "Eyrie": 36, "Alliance": 56, "Vagabond": 71, "Riverfolk": 63,
+        "Lizard": 44, "Duchy": 45, "Crows": 46, "Rats": 32, "Badgers": 59,
+        "Knaves": 52, "Council": 54, "Diaspora": 63,
+    }
+    roster = re.findall(r'"([^"]+)"',
+                        re.search(r"local ROSTER = \{(.*?)\}", sheet, re.S).group(1))
+    unmeasured = [n for n in roster if n not in NAME_PX]
+    assert not unmeasured, (
+        "the roster gained %s, which nobody has measured -- the faction column's floor was taken "
+        "against these names and is now stale" % ", ".join(repr(n) for n in unmeasured))
+    widest = max(NAME_PX[n] for n in roster)
+    assert facW - 30 >= widest, \
+        "the faction column gives the name %d px; %r needs %d" % (
+            facW - 30, max(roster, key=lambda n: NAME_PX[n]), widest)
+
+    # the subtext must still be allowed to shrink, or the captains line would be cut off instead
+    var = re.search(r"esc\(row\.variant\)", sheet)
+    assert var, "the variant subtext is no longer emitted"
+    block = sheet[max(0, var.start() - 400):var.end()]
+    assert 'resizeTextForBestFit="true"' in block, \
+        "the variant subtext no longer shrinks to fit; the captains line would be clipped"
+
+    # and the declared total is still the sum of its parts, so a column cannot drift out of the width
+    assert re.search(r"local W = 54 \+ iconW \+ facW \+ domW \+ nameW \+ timeW", sheet), \
+        "the sheet's width is no longer computed from its columns"
+
+
 CASES = [
     ("manual path drives the turn system",   t_manual_turn_order),
     ("manual path spawns 4 / 5 boards",      t_boards_spawn),
@@ -7619,6 +7684,7 @@ CASES = [
     ("gizmo follows your last pick",      t_the_gizmo_follows_the_faction_you_last_picked),
     ("panel flashes past 20 minutes",      t_the_panel_flashes_after_twenty_minutes),
     ("box score builds its own face",  t_the_box_score_builds_its_own_face),
+    ("box score columns fit",         t_the_box_score_columns_fit_what_goes_in_them),
     ("map helper card ships on the row", t_a_maps_helper_card_ships_where_the_row_puts_it),
     ("landmark card spawns on the row", t_a_landmark_card_spawns_on_the_row),
     ("every faction gets a VP panel",  t_every_faction_gets_a_vp_panel_above_its_crafted_board),
