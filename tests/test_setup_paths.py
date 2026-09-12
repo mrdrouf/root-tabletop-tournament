@@ -7286,6 +7286,80 @@ def t_the_vp_panels_buttons_reach_the_rest_of_the_mod(src):
     assert dealt == "pond 1->Orange", "POND dealt %r" % dealt
 
 
+def t_every_board_stands_the_same_height_in_the_same_black(src):
+    """One thickness and one edge colour across every board and panel on the table.
+
+    Maintainer, 2026-09-11: "note that the border of the turn panel is not true black and also the
+    panel seems thicker than the crafted improvement panels. all of these panels must be homogenous in
+    art thinkness colors etc", and then "you should also harmonize the boxscore design as well".
+
+    Both faults turned out to be wider than the panel he was looking at, and neither is visible from
+    above -- on a Custom_Tile ColorDiffuse tints the 3D SIDES, not the imaged face, so this is what you
+    see looking along the table:
+
+      THICKNESS. Thirty-two of the thirty-six board-sized tiles stood 0.1 proud. Four did not: the
+      Lord of the Hundreds' rules board at 0.2, and the Keepers', Twilight Council's and Lilypad
+      Diaspora's at 0.254821777 -- two and a half times the rest.
+
+      EDGE COLOUR. Nine of the thirteen Crafted Improvements boards had a true black edge and four --
+      Riverfolk, Hundreds, Keepers, Diaspora -- were dark brown (0.075, 0.043, 0.031). Those four sat
+      beside nine black ones, and now beside a VP panel whose slab is true black.
+
+    THE FACTION RULES BOARDS ARE DELIBERATELY NOT BLACK and are not swept up by this: each carries its
+    own faction's colour on its edge (the Marquise orange, the Eyrie blue, the Corvids purple). That is
+    the base mod's design, so only the SHARED boards -- the ones every faction gets a copy of -- are
+    held to one colour.
+
+    The pond is the one exception left, at 0.2: its single snap point sits at local y 0.2, so thinning
+    the tile would leave cards hovering over it. It is a play surface rather than a panel.
+    """
+    # READ OUT OF THE BUILD, not off gen/src: the suite tests dist/, and a check that opened the
+    # source tree would pass against any build at all, including the one that has the fault.
+    rt = fresh(src)
+    blobs = rt.eval("""function()
+        local out = {}
+        for _, cat in pairs(EVERYTHING) do
+          for _, kit in pairs(cat) do
+            for _, v in ipairs(kit['data'] or {}) do out[#out+1] = v.json end
+          end
+        end
+        return table.concat(out, "\\1")
+    end""")()
+
+    thick, brown = [], []
+    for raw in blobs.split("\x01"):
+        try:
+            d = json.loads(raw)
+        except ValueError:
+            continue
+        if d.get("Name") != "Custom_Tile":
+            continue
+        t = d.get("Transform") or {}
+        if (t.get("scaleX") or 0) < 4:          # boards, not tokens and markers
+            continue
+        ct = ((d.get("CustomImage") or {}).get("CustomTile")) or {}
+        if ct.get("Thickness") not in (None, 0.1):
+            thick.append("%s at %s" % (d.get("GUID"), ct.get("Thickness")))
+        if abs((t.get("scaleX") or 0) - 9.516764) < 0.001:      # the crafted improvements board
+            c = d.get("ColorDiffuse") or {}
+            if (round(c.get("r", 1), 3), round(c.get("g", 1), 3), round(c.get("b", 1), 3)) != (0.0, 0.0, 0.0):
+                brown.append("%s is (%.3f, %.3f, %.3f)"
+                             % (d.get("GUID"), c.get("r", 1), c.get("g", 1), c.get("b", 1)))
+    assert len(thick) + len(brown) >= 0 and blobs != "", "no blueprints were read out of the build"
+
+    assert not thick, "these boards do not stand 0.1 proud like the rest: %s" % ", ".join(thick)
+    assert not brown, "these crafted boards have a brown edge, not a black one: %s" % ", ".join(brown)
+
+    # and the three scripted panels are the same slab: 0.1 thick, true black
+    for name in ("RTT_BOXSCORE_JSON", "RTT_TURN_PANEL_JSON", "RTT_VP_PANEL_JSON"):
+        d = json.loads(re.search(r"%s = \[=+\[(.*?)\]=+\]" % name, src, re.S).group(1))
+        t, c = d["Transform"], d.get("ColorDiffuse") or {}
+        assert abs(t["scaleY"] - 0.10) < 1e-9, \
+            "%s is %.4f thick; every panel in the mod is 0.10" % (name, t["scaleY"])
+        assert (c.get("r"), c.get("g"), c.get("b")) == (0.0, 0.0, 0.0), \
+            "%s's slab is not true black: %s" % (name, c)
+
+
 CASES = [
     ("manual path drives the turn system",   t_manual_turn_order),
     ("manual path spawns 4 / 5 boards",      t_boards_spawn),
@@ -7308,6 +7382,7 @@ CASES = [
     ("landmark card spawns on the row", t_a_landmark_card_spawns_on_the_row),
     ("every faction gets a VP panel",  t_every_faction_gets_a_vp_panel_above_its_crafted_board),
     ("VP panel buttons reach the mod", t_the_vp_panels_buttons_reach_the_rest_of_the_mod),
+    ("boards share height and black",  t_every_board_stands_the_same_height_in_the_same_black),
     ("crow plots inside the hidden zone",    t_crow_plots_spawn_inside_the_hidden_zone),
     ("crafted board same side for all",      t_crafted_board_sits_the_same_side_for_every_faction),
     ("no setup card on crafted board",       t_no_setup_card_rides_on_the_crafted_board),
