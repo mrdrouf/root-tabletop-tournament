@@ -72,7 +72,13 @@ FRAME = (46, 33, 20)                  # a clean dark edge in place of the board'
 FRAME_PX = 14                         # its width, in the plaque's own pixels
 
 INK = (24, 18, 11)
-SUBTITLE = "Tabletop Tournament"
+# THE MOD'S NAME, AS THE PLAQUE SPELLS IT. The sign's own R-O-O-T tiles are the first word, so the
+# line under them carries the rest: "Root: Tournament Edition" reads off the finished plaque without
+# the subtitle having to repeat "Root". Renamed 2026-09-12 at the maintainer's word -- "the title of
+# the mod should be Root: Tournament Edition" -- from "Tabletop Tournament", which the comments above
+# still quote because they record how the fitting was measured, and it was measured on that string.
+# Eighteen characters against nineteen, so nothing about the fit changes.
+SUBTITLE = "Tournament Edition"
 
 # THE COMPOSITION. Next to the original the first attempt read timid: its plaque runs almost the full
 # width of the frame, and a polite margin all round loses the presence that makes a mod icon legible
@@ -273,7 +279,7 @@ def frame_and_scale(inner, width):
     return plaque
 
 
-SUBTITLE_LINES = ("Tabletop", "Tournament")
+SUBTITLE_LINES = ("Tournament", "Edition")
 TWO_LINE_TRACK = 1.04      # a letterspace, not a justification: see set_two_line
 
 

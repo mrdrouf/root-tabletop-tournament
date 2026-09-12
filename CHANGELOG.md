@@ -1,4 +1,4 @@
-# Root Tabletop Tournament — changelog
+# Root: Tournament Edition — changelog
 
 Forked from Root – Ultimate Collection (Steam Workshop `2516434159`), base v13.3.
 One line per change, oldest first. The build number is in `VERSION`, shows in the

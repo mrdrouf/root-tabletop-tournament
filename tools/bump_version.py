@@ -97,8 +97,8 @@ def stamp(label):
 def build():
     subprocess.run([sys.executable, os.path.join(REPO, "gen", "assemble.py")],
                    check=True, capture_output=True)
-    built = os.path.join(REPO, "gen", "build", "Root_Tabletop_Tournament.json")
-    dist = os.path.join(REPO, "dist", "Root_Tabletop_Tournament.json")
+    built = os.path.join(REPO, "gen", "build", "Root_Tournament_Edition.json")
+    dist = os.path.join(REPO, "dist", "Root_Tournament_Edition.json")
     open(dist, "wb").write(open(built, "rb").read())
 
 

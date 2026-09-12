@@ -4,15 +4,35 @@ local function note(t, v) t[#t+1] = v end
 
 Wait = {}
 local Q = {}
-function Wait.time(f, s)   note(Q, {f=f, at=(s or 0)}) return #Q end
-function Wait.frames(f, n) note(Q, {f=f, at=(n or 1)/60}) return #Q end
-function Wait.condition(f) note(Q, {f=f, at=0}) return #Q end
-function Wait.stop() end
+-- A STABLE HANDLE, and a Wait.stop that honours it. These were `#Q` and a no-op, which are two
+-- separate lies. `#Q` is not an identity: FLUSH empties the queue, so the next timer armed is handle
+-- 1 all over again and a stop would cancel a stranger. And a stop that does nothing means a
+-- cancelled callback still fires -- which is not a detail for the recorder in the save's Global
+-- script, because `onPlayerTurn` cancels its one pending flush and then flushes INLINE so the
+-- keyframe cannot land ahead of the events it is meant to follow. Against the old stub that
+-- cancelled callback ran anyway, a moment later, into an empty queue: harmless there, but any test
+-- counting flushes or timers across a turn was counting a flush the game never performs.
+local WID = 0
+local STOPPED = {}
+function Wait.time(f, s)   WID = WID + 1 note(Q, {f=f, at=(s or 0), id=WID})    return WID end
+function Wait.frames(f, n) WID = WID + 1 note(Q, {f=f, at=(n or 1)/60, id=WID}) return WID end
+function Wait.condition(f) WID = WID + 1 note(Q, {f=f, at=0, id=WID})           return WID end
+function Wait.stop(h) if h ~= nil then STOPPED[h] = true end end
+-- HOW MANY ONE-SHOTS ARE ACTUALLY PENDING. MULTIPLAYER_SYNC.md's non-negotiable #2 -- "nothing may
+-- run on a permanent heartbeat -- the sweep is a small number of one-shots after setup, plus the
+-- button" -- was a rule no test could check, because the queue was a file-local with no reader. An
+-- idle table can now be asked to prove it has armed nothing, which is the whole acceptance criterion
+-- the recorder was designed around.
+function TIMERS()
+  local n = 0
+  for _, e in ipairs(Q) do if not STOPPED[e.id] then n = n + 1 end end
+  return n
+end
 function FLUSH(rounds)
   for _ = 1, (rounds or 12) do
     local batch = Q; Q = {}
     table.sort(batch, function(a,b) return a.at < b.at end)
-    for _, e in ipairs(batch) do pcall(e.f) end
+    for _, e in ipairs(batch) do if not STOPPED[e.id] then pcall(e.f) end end
     if #Q == 0 then break end
   end
 end
@@ -25,7 +45,11 @@ function FLUSH_UNTIL(secs, rounds)
   for _ = 1, (rounds or 12) do
     local due, later = {}, {}
     for _, e in ipairs(Q) do
-      if (e.at or 0) <= secs then due[#due+1] = e else later[#later+1] = e end
+      -- a cancelled one-shot is DROPPED here rather than deferred: leaving it in `later` would keep
+      -- it pending forever and TIMERS() would report a heartbeat that does not exist
+      if not STOPPED[e.id] then
+        if (e.at or 0) <= secs then due[#due+1] = e else later[#later+1] = e end
+      end
     end
     if #due == 0 then Q = later break end
     Q = later
@@ -196,6 +220,13 @@ function MKOBJ(name, pos, tags)
   -- been green against code that never ran.
   o.tag = ({ Card = "Card", CardCustom = "Card", Deck = "Deck", DeckCustom = "Deck",
              Custom_Tile = "Tile", Custom_Token = "Custom_Token" })[o.__name] or o.__name
+  -- ...and `type`, which carries the SAME string. TTS exposes both names for it and this mod reads
+  -- both -- logic.lua's dominance-card guard hedges with `o.type ~= "Card" and o.tag ~= "Card"`, and
+  -- the recorder in the Global script reads `o.type` alone, for the static fragment's "t" field and
+  -- for the face-down test it applies only to a Card or a Tile. With `type` missing, that test was
+  -- nil == "Card" for every object in the harness, so the one branch that decides whether a
+  -- face-down Corvid plot is recorded as hidden had never been executed here.
+  o.type = o.tag
   -- "If the Object is finished spawning." A card still arriving has no settled GUID yet, so nothing
   -- may reload it.
   o.spawning = false
@@ -584,7 +615,21 @@ Global = {
   getVar = function(k) return GV[k] end,
   setTable = function(k, v) GV[k] = v end,
   getTable = function(k) return GV[k] end,
-  call = function(n, a) note(REC.calls, n) end,
+  -- A REAL DISPATCH, not just a tally. `Global.call(name, params)` runs the function of that name in
+  -- the SAVE'S GLOBAL SCRIPT, and since the archive recorder moved into that slot (ARCHIVE.md
+  -- section 1) the box score reaches it exactly this way -- `pcall(function()
+  -- Global.call("rttArchiveGame", { box = exportJson() }) end)`. Recording the name and calling
+  -- nothing made that hook untestable: the tally reads the same whether the recorder answers or was
+  -- never built into the save at all, which is precisely the failure assemble.py's @@GLOBAL_LUA@@
+  -- check exists to stop shipping.
+  --
+  -- It still records, and the board-script tests are untouched by this: that runtime loads bab7e1's
+  -- script alone, so `_G[n]` is nil for every name it calls and this behaves exactly as before.
+  call = function(n, a)
+    note(REC.calls, n)
+    local f = _G[n]
+    if type(f) == "function" then return f(a) end
+  end,
 }
 function GVGET(k) return GV[k] end
 
@@ -811,3 +856,73 @@ parse = function(s, i)
 end
 function JSON.decode(s) if type(s) ~= "string" or s == "" then return nil end
   local ok, v = pcall(function() local r = parse(s, 1) return r end); if ok then return v end return nil end
+
+-- the save's GLOBAL script ---------------------------------------------------
+-- Everything from here down exists because the game recorder lives in the SAVE'S TOP-LEVEL
+-- LuaScript (ARCHIVE.md section 1) rather than on the setup board, and this stub had never had to
+-- model that world at all: no WebRequest, no object lifecycle events, and a Global.call that counted
+-- instead of calling. The recorder is nothing BUT handlers and one upload, so without these it could
+-- be loaded and then not exercised by a single line.
+
+-- THE TRANSPORT, RECORDED INSTEAD OF SENT. The harness must never make a network call -- the endpoint
+-- is a real host the maintainer pays for, and a test suite that POSTs to it would file junk games in
+-- the corpus the solver trains on. So the request is kept, whole, for the test to read: the URL, the
+-- method, the headers and above all the BODY, which is the payload every rule in ARCHIVE.md section 3
+-- is about. "The payload contains no hand contents" is a claim you can only check against the bytes
+-- that were going to leave the table.
+--
+-- WebRequest.custom is the only form the mod uses (the box score's Root Database upload and the
+-- recorder both call it); post/get are here so that a future caller does not silently find nil.
+WEBREQ = {}
+WebRequest = {
+  custom = function(url, method, download, body, headers, cb)
+    WEBREQ[#WEBREQ + 1] = { url = url, method = method, download = download, body = body,
+                            headers = headers, cb = cb }
+    return WEBREQ[#WEBREQ]
+  end,
+}
+function WebRequest.post(url, body, cb) return WebRequest.custom(url, "POST", true, body, {}, cb) end
+function WebRequest.get(url, cb)        return WebRequest.custom(url, "GET",  true, nil,  {}, cb) end
+
+-- THE ANSWER, when a test wants one. TTS hands the callback a WebRequest carrying `text`,
+-- `response_code`, `is_error` and `error`, and the recorder's obsSay reads all four -- including the
+-- case that has no HTTP in it at all: a dead host or a TLS failure never reaches the PHP, and comes
+-- back with an empty body, response_code 0 and the reason in `error`. Pass `err` to produce that one.
+function WEBREPLY(i, text, code, err)
+  local r = WEBREQ[i or #WEBREQ]
+  if r == nil or r.cb == nil then return false end
+  r.cb({ text = text or "", response_code = code or 200,
+         is_error = (err ~= nil and err ~= ""), error = err })
+  return true
+end
+
+-- THE OBJECT LIFECYCLE EVENTS. TTS delivers these to every script that defines them, and they are
+-- the recorder's entire input: it never polls, so an event that cannot be fired is a recorder that
+-- cannot be tested. Named OBJ_* rather than DROP/TAKE/GONE because `TAKE` and `GONE` are already
+-- taken as locals by tests in this suite -- test_setup_paths.py's gizmo counter assigns a global
+-- `TAKE` -- and a stub helper a test can overwrite by accident is worse than no helper.
+--
+-- DELIBERATELY NOT pcall'd, unlike the turn engine's delivery above. There the pcall models TTS
+-- carrying on to the next script when one handler throws; here the point is the opposite -- a
+-- handler that throws is the bug, and swallowing it would hand the suite a green run for a recorder
+-- that dies on its first drop.
+local function fireObjectEvent(name, ...)
+  local f = _G[name]
+  if type(f) ~= "function" then return false end
+  f(...)
+  return true
+end
+function OBJ_DROP(color, o)     return fireObjectEvent("onObjectDrop", color, o) end
+function OBJ_SPAWN(o)           return fireObjectEvent("onObjectSpawn", o) end
+function OBJ_TAKE(container, o) return fireObjectEvent("onObjectLeaveContainer", container, o) end
+function OBJ_STOW(container, o) return fireObjectEvent("onObjectEnterContainer", container, o) end
+-- THE HANDLE IS STILL GOOD WHEN THIS EVENT LANDS. TTS fires onObjectDestroy just BEFORE the object
+-- goes, which is the only reason a handler can ask a dying piece for its GUID -- the recorder does
+-- exactly that, and takes the piece's last known position from its own keyframe baseline instead,
+-- because by the following frame the handle throws. Firing this after destruct() would model the
+-- opposite and make that careful code look unnecessary.
+function OBJ_GONE(o)
+  local fired = fireObjectEvent("onObjectDestroy", o)
+  if o ~= nil and o.destruct ~= nil then pcall(o.destruct) end
+  return fired
+end

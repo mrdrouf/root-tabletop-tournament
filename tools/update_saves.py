@@ -7,15 +7,17 @@ autosave and resume, and the old script comes straight back with it. On 2026-09-
 carried a stale board, and the maintainer had been testing a box-score fix that his save was quietly
 reverting.
 
-Only three fields are replaced, on two objects, so everything else in the save -- table state, piece
-positions, and crucially every LuaScriptState (the gizmo's config, the box score's recorded game) --
-is left exactly as it was:
+Only script and UI fields are replaced, so everything else in the save -- table state, piece
+positions, and crucially every LuaScriptState (the gizmo's config, the box score's recorded game, and
+now the archive recorder's own log) -- is left exactly as it was:
 
+    the save itself     LuaScript  -- the table's Global script, i.e. the archive recorder
     board bab7e1        LuaScript, XmlUI, CustomUIAssets
     "Root Box Score"    LuaScript
+    "Turn Panel"        LuaScript
     table surface 4ee1f2 CustomUIAssets
 
-SCOPE: the base RTT save ONLY -- Root_Tabletop_Tournament.json. Nothing else, by instruction
+SCOPE: the base RTT save ONLY -- Root_Tournament_Edition.json. Nothing else, by instruction
 (2026-09-05, after a first pass rewrote 26 files and a second still covered the autosaves). Autosaves
 and named saves are the maintainer's, not this script's. --all is kept for the rare case where he
 asks for a sweep, and it is never the default.
@@ -25,12 +27,12 @@ Run from the repo root, after a build:  python3 tools/update_saves.py [--dry-run
 import glob, json, os, re, shutil, sys, time
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-BUILT = os.path.join(REPO, "dist", "Root_Tabletop_Tournament.json")
+BUILT = os.path.join(REPO, "dist", "Root_Tournament_Edition.json")
 SAVES = os.path.expanduser("~/Library/Tabletop Simulator/Saves")
 # NOT inside Saves/: TTS scans that folder, and it must not find our copies
 BACKUPS = os.path.expanduser("~/Library/Tabletop Simulator/RTT_save_backups")
 KEEP_SETS = 2
-BASE_SAVE = "Root_Tabletop_Tournament.json"   # the only save this touches by default
+BASE_SAVE = "Root_Tournament_Edition.json"   # the only save this touches by default
 BOARD = "bab7e1"
 # The table surface carries nothing but a list of URLs: the art of the two faction selectors, which
 # are spawned mid-game and would otherwise be asking for their icons for the first time at the moment
@@ -54,7 +56,7 @@ def read(path):
 
 
 def current_sources():
-    """The board, and the box score -- which is NOT a top-level object in the build.
+    """The Global script, the board, and the box score -- which is NOT a top-level object in the build.
 
     The mod carries the sheet as a Lua long-bracket string, RTT_BOXSCORE_JSON, and spawns it on
     demand. Looking for a "Root Box Score" object in the build finds nothing, so the first version of
@@ -62,6 +64,13 @@ def current_sources():
     "is it current?" check was skipped whenever the source was missing.
     """
     doc = read(BUILT)
+    # The table's Global script (gen/src/observer.lua, ARCHIVE.md section 1). It is a field on the save
+    # document itself, not on any object, so it is read here by name rather than found by walk().
+    # Empty is fatal: writing "" over a save's Global would delete the recorder from the maintainer's
+    # own save, which is the exact damage this script exists to undo, only in reverse.
+    glob = doc.get("LuaScript")
+    if not glob:
+        raise RuntimeError("no top-level LuaScript (Global script) in the build")
     board = next(o for o in walk(doc) if o.get("GUID") == BOARD)
     surface = next((o for o in walk(doc) if o.get("GUID") == SURFACE), None)
     if surface is None or not surface.get("CustomUIAssets"):
@@ -84,12 +93,22 @@ def current_sources():
             panel = json.loads(m.group(1))
     if panel is None:
         raise RuntimeError("no turn panel in the build: neither an object nor RTT_TURN_PANEL_JSON")
-    return board, box, panel, surface
+    return glob, board, box, panel, surface
 
 
-def update_doc(doc, board, box, panel=None, surface=None):
+def update_doc(doc, board, box, panel=None, surface=None, glob=None):
     """-> list of what changed. Only ever writes script/UI fields, never a transform or state."""
     changed = []
+    # The Global script, on the save document itself. A save made before the recorder existed carries
+    # TTS's empty boilerplate there, so resuming it would record nothing and give no sign of it --
+    # precisely how a stale board was quietly reverting the box-score fix on 2026-09-05.
+    #
+    # Top level ONLY, and by name: `walk` would happily hand back an object whose own LuaScript this
+    # has no business touching. And LuaScriptState beside it is left alone like every other one --
+    # that is the recorder's onSave log, i.e. a game in progress.
+    if glob is not None and doc.get("LuaScript") != glob:
+        doc["LuaScript"] = glob
+        changed.append("global.LuaScript")
     for o in walk(doc):
         if o.get("GUID") == BOARD:
             for k in ("LuaScript", "XmlUI", "CustomUIAssets"):
@@ -127,9 +146,10 @@ def in_scope(path, every):
 def main():
     dry = "--dry-run" in sys.argv
     every = "--all" in sys.argv
-    board, box, panel, surface = current_sources()
-    print("built board script: %d chars; box score: %s"
-          % (len(board["LuaScript"]), "%d chars" % len(box["LuaScript"]) if box else "not in build"))
+    glob, board, box, panel, surface = current_sources()
+    print("built board script: %d chars; box score: %s; global: %d chars"
+          % (len(board["LuaScript"]), "%d chars" % len(box["LuaScript"]) if box else "not in build",
+             len(glob)))
 
     stamp = time.strftime("%Y%m%d-%H%M%S")
     bdir = os.path.join(BACKUPS, stamp)
@@ -148,7 +168,7 @@ def main():
             continue
         if not any(o.get("GUID") == BOARD or o.get("Nickname") == BOXSCORE for o in walk(doc)):
             continue
-        changed = update_doc(doc, board, box, panel, surface)
+        changed = update_doc(doc, board, box, panel, surface, glob)
         if not changed:
             skipped += 1
             continue

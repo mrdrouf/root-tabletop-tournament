@@ -1,4 +1,9 @@
-# Root Tabletop Tournament (RTT)
+# Root: Tournament Edition (RTT)
+
+<sub>Renamed from "Root Tabletop Tournament" on 2026-09-12. **RTT** stays as the internal
+shorthand: it prefixes every global in `gen/src/logic.lua` and every tag the teardown sweeps,
+and the GitHub repo keeps its `root-tabletop-tournament` slug because all 56 asset URLs baked
+into the save are jsDelivr paths through it.</sub>
 
 A tournament build of Root for Tabletop Simulator: one self‑contained save with a streamlined draft
 pipeline, random seating, per‑map clearing‑priority markers, faction pieces baked to their final
@@ -9,8 +14,8 @@ the code assembles the finished save from scratch. All art streams from remote h
 
 ## Install (players) — one file
 
-> **[`dist/Root_Tabletop_Tournament.json`](https://github.com/mrdrouf/root-tabletop-tournament/blob/main/dist/Root_Tabletop_Tournament.json)**
-> · raw: `https://raw.githubusercontent.com/mrdrouf/root-tabletop-tournament/main/dist/Root_Tabletop_Tournament.json`
+> **[`dist/Root_Tournament_Edition.json`](https://github.com/mrdrouf/root-tabletop-tournament/blob/main/dist/Root_Tournament_Edition.json)**
+> · raw: `https://raw.githubusercontent.com/mrdrouf/root-tabletop-tournament/main/dist/Root_Tournament_Edition.json`
 
 Drop that one file into your Tabletop Simulator **Saves** folder (no subfolder):
 
@@ -18,8 +23,8 @@ Drop that one file into your Tabletop Simulator **Saves** folder (no subfolder):
 - **macOS:** `~/Library/Tabletop Simulator/Saves/`
 - **Linux:** `~/.local/share/Tabletop Simulator/Saves/`
 
-Then **Games → Save & Load → "Root Tabletop Tournament"** and load it fresh (don't "Continue").
-(`dist/Root_Tabletop_Tournament.png` is an optional save‑list thumbnail.)
+Then **Games → Save & Load → "Root: Tournament Edition"** and load it fresh (don't "Continue").
+(`dist/Root_Tournament_Edition.png` is an optional save‑list thumbnail.)
 
 ---
 
@@ -85,10 +90,12 @@ a new draft (or switching between the Ranked and manual‑selector paths) first 
 ## Building (maintainers)
 
 ```
-python gen/assemble.py     # -> gen/build/Root_Tabletop_Tournament.json (then copy to dist/ + Saves)
+python gen/assemble.py     # -> gen/build/Root_Tournament_Edition.json (then copy to dist/ + Saves)
 ```
 
 Source of truth is `gen/src/`: **`save.json`** (object layout) + **`content.lua`** (Root's object data)
-+ **`logic.lua`** (setup, draft, seating, factions, maps, box score). See **[`gen/README.md`](gen/README.md)**.
++ **`logic.lua`** (setup, draft, seating, factions, maps, box score) + **`observer.lua`** (the game
+archive, which becomes the save's Global script — see **[`ARCHIVE.md`](ARCHIVE.md)**; it ships inert).
+See **[`gen/README.md`](gen/README.md)**.
 The generator owns everything and assembles the finished save from scratch. `tools/lua_chunker.py`
 validates the board Lua is delimiter‑balanced before a build ships.

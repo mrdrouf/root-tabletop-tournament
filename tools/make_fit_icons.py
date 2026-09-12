@@ -15,7 +15,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CACHE = os.path.join(os.environ.get("TEMP", "/tmp"), "rtt_iconcache")
 FIT = os.path.join(ROOT, "assets", "icons_fit"); os.makedirs(FIT, exist_ok=True)
 
-d = json.load(open(os.path.join(ROOT, "dist", "Root_Tabletop_Tournament.json"), encoding="utf-8"))
+d = json.load(open(os.path.join(ROOT, "dist", "Root_Tournament_Edition.json"), encoding="utf-8"))
 fs = next(o for o in d["ObjectStates"] if o.get("GUID") == "bab7e1")
 assets = {a["Name"]: a["URL"] for a in fs.get("CustomUIAssets", [])}
 

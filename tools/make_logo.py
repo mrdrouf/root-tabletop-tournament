@@ -28,7 +28,7 @@ over the picture. The plaque is the one tools/make_icon.py builds -- imported, n
 can never drift apart.
 
 This script now writes the mod's art everywhere it is seen: assets/icon/logo_*.png, the
-assets/icon/mod_icon_*.png that make_icon.py used to own, and dist/Root_Tabletop_Tournament.png, the
+assets/icon/mod_icon_*.png that make_icon.py used to own, and dist/Root_Tournament_Edition.png, the
 256px thumbnail Tabletop Simulator shows in its save list.
 
 Run from the repo root:  python3 tools/make_logo.py
@@ -44,7 +44,7 @@ from make_icon import build_plaque                            # noqa: E402
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SCENE = os.path.join(ROOT, "assets", "src_art", "birds_playing_root.png")
 OUTDIR = os.path.join(ROOT, "assets", "icon")
-THUMB = os.path.join(ROOT, "dist", "Root_Tabletop_Tournament.png")   # what TTS shows in the save list
+THUMB = os.path.join(ROOT, "dist", "Root_Tournament_Edition.png")   # what TTS shows in the save list
 
 SIZE = 1024
 # THE PLAQUE SITS ON THE PICTURE, IT DOES NOT SIT UNDER IT. Stacking the two -- a square picture over a

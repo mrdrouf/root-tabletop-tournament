@@ -20,7 +20,7 @@ a round reporting a box-score fix as broken while his save was silently revertin
 
 So after every build, run BOTH:
 
-    cp dist/Root_Tabletop_Tournament.json ~/Library/Tabletop\ Simulator/Saves/
+    cp dist/Root_Tournament_Edition.json ~/Library/Tabletop\ Simulator/Saves/
     python3 tools/update_saves.py
 
 update_saves.py rewrites only three fields on two objects (board bab7e1's LuaScript/XmlUI/
@@ -28,7 +28,7 @@ CustomUIAssets, and any "Root Box Score" LuaScript), so table state and every Lu
 gizmo config, the box score's recorded game -- survive untouched. Originals are backed up outside the
 Saves folder, last two sets kept.
 
-SCOPE: `Root_Tabletop_Tournament.json` ONLY. The maintainer said so plainly after a first pass
+SCOPE: `Root_Tournament_Edition.json` ONLY. The maintainer said so plainly after a first pass
 rewrote 26 files and a second still swept the autosaves. His saves are his. `--all` exists for a
 sweep he explicitly asks for; it is never the default. NOTE the consequence, which is his to manage,
 not something to route around: resuming from an autosave still restores the script stored in it.

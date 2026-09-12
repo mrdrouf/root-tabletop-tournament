@@ -710,7 +710,7 @@ def t_the_credits_page_gives_every_caption_its_own_column(src):
 
     # AND THE PAGE THE BOARD LOADS IS THE ONE IN THE REPO. This reads the save rather than `src`:
     # CustomUIAssets is a field of the OBJECT, not of the Lua that board_lua() hands these tests.
-    saved = json.load(open(os.path.join(REPO, "dist", "Root_Tabletop_Tournament.json"),
+    saved = json.load(open(os.path.join(REPO, "dist", "Root_Tournament_Edition.json"),
                            encoding="utf-8"))
     def board(objs):
         for o in objs:
@@ -2119,7 +2119,7 @@ def t_camera_states_are_the_hosts(src):
     """
     frag = open(os.path.join(REPO, "cs"), encoding="utf-8").read().strip().rstrip(",")
     want = json.loads("{" + frag + "}")["CameraStates"]
-    for path in ("dist/Root_Tabletop_Tournament.json", "gen/src/save.json"):
+    for path in ("dist/Root_Tournament_Edition.json", "gen/src/save.json"):
         got = json.load(open(os.path.join(REPO, path), encoding="utf-8")).get("CameraStates")
         assert got is not None, "%s has no CameraStates at all" % path
         assert len(got) == 10, "%s has %d camera states, expected 10" % (path, len(got))
@@ -2146,7 +2146,7 @@ def t_the_turn_panel_is_the_only_clock(src):
     # the toggle and its button are gone, art included
     for gone in ("function rttToggleTurnPanel", "function rttSpawnOldClock"):
         assert gone not in src, "%s is back; the panel is the only clock now" % gone
-    x = json.load(open(os.path.join(REPO, "dist/Root_Tabletop_Tournament.json"),
+    x = json.load(open(os.path.join(REPO, "dist/Root_Tournament_Edition.json"),
                        encoding="utf-8"))["ObjectStates"]
     def walk(objs):
         for o in objs:
@@ -2174,7 +2174,7 @@ def t_the_turn_panel_is_the_only_clock(src):
     # panel NAMED the function, which was true and useless.
     called = sorted(set(re.findall(r's\.call\("([A-Za-z_][A-Za-z0-9_]*)"', blob["LuaScript"])))
     assert called, "the panel calls nothing on the sheet; this check has stopped checking"
-    built = open(os.path.join(REPO, "dist/Root_Tabletop_Tournament.json"),
+    built = open(os.path.join(REPO, "dist/Root_Tournament_Edition.json"),
                  encoding="utf-8", errors="surrogateescape").read()
     for fn in called:
         assert ("function " + fn) in built, (
@@ -2480,7 +2480,7 @@ def t_the_two_free_button_slots_are_bottom_right(src):
 
     Reads the built save, because this is XmlUI on the board object rather than anything in the Lua.
     """
-    x = json.load(open(os.path.join(REPO, "dist/Root_Tabletop_Tournament.json"),
+    x = json.load(open(os.path.join(REPO, "dist/Root_Tournament_Edition.json"),
                        encoding="utf-8"))["ObjectStates"]
     def walk(objs):
         for o in objs:
@@ -3853,7 +3853,7 @@ def t_every_selector_icon_is_downloaded_with_the_table(src):
 
     So: every image a spawned board asks for must also be listed on an object that IS in the save.
     """
-    save = json.loads(open(os.path.join(REPO, "dist", "Root_Tabletop_Tournament.json"),
+    save = json.loads(open(os.path.join(REPO, "dist", "Root_Tournament_Edition.json"),
                            encoding="utf-8").read())
 
     def walk(objs):
@@ -4402,7 +4402,7 @@ def t_more_holds_what_the_board_ran_out_of_room_for(src):
     was. Its rows use the same six columns as the rows they replace, so anything relegated later drops
     in beside these two, and Back sits in More's own slot -- the same square is the way in and out.
     """
-    x = json.load(open(os.path.join(REPO, "dist/Root_Tabletop_Tournament.json"), encoding="utf-8"))
+    x = json.load(open(os.path.join(REPO, "dist/Root_Tournament_Edition.json"), encoding="utf-8"))
     def walk(objs):
         for o in objs:
             yield o
@@ -4474,7 +4474,7 @@ def t_the_top_row_is_four_drafts_on_the_map_grid(src):
     5-Player Draft's swapped shapes -- the wipe warnings come square and wide, and they follow the
     BUTTON'S shape rather than the button.
     """
-    x = json.load(open(os.path.join(REPO, "dist/Root_Tabletop_Tournament.json"), encoding="utf-8"))
+    x = json.load(open(os.path.join(REPO, "dist/Root_Tournament_Edition.json"), encoding="utf-8"))
     def walk(objs):
         for o in objs:
             yield o
@@ -4706,7 +4706,7 @@ def t_clear_all_objects_asks_before_it_clears(src):
     """
     # THE BUTTON IS ON THE BOARD, in the free slot of the second tool row, red before you touch it.
     # Read off the XmlUI, which is a field of the board object rather than anything in its Lua.
-    x = json.load(open(os.path.join(REPO, "dist/Root_Tabletop_Tournament.json"),
+    x = json.load(open(os.path.join(REPO, "dist/Root_Tournament_Edition.json"),
                        encoding="utf-8"))["ObjectStates"]
     def walk(objs):
         for o in objs:
@@ -5223,7 +5223,7 @@ def t_the_board_shows_the_build_number(src):
     setAttribute on elements that are already there; it never rewrites its own XML. VERSION and the
     stamp are kept in step by tools/bump_version.py, which the pre-commit hook runs.
     """
-    save = json.loads(open(os.path.join(REPO, "dist", "Root_Tabletop_Tournament.json"),
+    save = json.loads(open(os.path.join(REPO, "dist", "Root_Tournament_Edition.json"),
                            encoding="utf-8").read())
     board = [o for o in save["ObjectStates"] if o.get("GUID") == BOARD][0]
     m = re.search(r'<Panel id="rttVersion".*?</Panel>', board.get("XmlUI") or "", re.S)
@@ -6532,7 +6532,7 @@ def t_the_resync_button_asks_nothing_and_destroys_nothing(src):
     dropped at a moment nobody spawned anything is only reachable by hand. It destroys nothing, so it
     is not in RTT_WIPE_BTN and carries no warning -- one click and it runs.
     """
-    x = json.load(open(os.path.join(REPO, "dist/Root_Tabletop_Tournament.json"), encoding="utf-8"))
+    x = json.load(open(os.path.join(REPO, "dist/Root_Tournament_Edition.json"), encoding="utf-8"))
     def walk(objs):
         for o in objs:
             yield o
@@ -8304,6 +8304,411 @@ def t_a_resync_pressed_while_the_draft_deals_frees_itself(src):
         "the second press reloaded %d of the 3 cards" % rt.eval("function() return #RELOADED end")()
 
 
+# ------------------------------------------------ the game recorder (the save's GLOBAL script) --
+#
+# WHAT THESE SIX CASES ARE WORTH, stated plainly, because MULTIPLAYER_SYNC.md's "Testing" section
+# says of this stub in as many words: "Green tests mean nothing here."
+#
+# REAL -- this is the same code TTS runs, doing the same work:
+#   * every byte of the payload. obsStr / obsNum / obsDocument are pure string arithmetic with no TTS
+#     in them, so "the document parses as JSON", "game_id is 16 hex", "boxscore is an object" and
+#     "seats is a non-empty array of at most six" are genuinely checked -- and they are the four
+#     things ingest.php quarantines a game over (ARCHIVE.md section 5). Two files written by two
+#     different hands agreeing on one shape is exactly what a test is for.
+#   * the hidden-information whitelist. Which GUIDs land in the exclusion set and which rows are
+#     therefore never emitted is Lua control flow, and the payload really is searched for the card
+#     names and GUIDs afterwards. PERCEPTION_SPEC.md section 3.4 is the line between a study tool and
+#     a cheat tool; this checks the code that draws it.
+#   * the arming arithmetic. `OBS.timer` as the empty->non-empty transition test, the queue being
+#     taken and replaced, the requeue-once flag: all plain Lua.
+#
+# ONLY THE STUB AGREEING WITH ITSELF -- true here, unproven in the game:
+#   * that a timer fires at all, or once, or after 0.4 s. Wait.time is fifteen lines at the top of
+#     tts_stub.lua. TIMERS() counts what was handed to that queue, not what TTS will do with it.
+#   * that WebRequest.custom sends anything. It records. Nothing here has ever reached the endpoint,
+#     and ARCHIVE.md's transport, the 4 MB Content-Length limit and the rate limiter are all beyond
+#     this file.
+#   * that getAllObjects returns hand cards the way obsHands assumes. The stub puts the same objects
+#     in both places because the recorder says TTS does; if that is wrong, this suite agrees with the
+#     mistake.
+#   * that `Player` is userdata. It is a plain table here, and the memory note is explicit that this
+#     precise lie is how makeMap's five-player guard stayed broken through three reports with a green
+#     suite. Nothing below type-checks a player, and nothing below can prove the recorder does not.
+#   * anything about a second client, a dead object handle mid-flush, or the 39 ms JSON.encode this
+#     whole design is built to avoid. Timings are not measurable here at all.
+#
+# So: OBS_ENABLED still ships false, and it must stay false until one real game has been watched.
+# These cases stop the recorder shipping BROKEN. They cannot tell anyone it works.
+
+_OBSERVER_SRC = {}
+
+
+def observer_lua():
+    """The recorder, read out of the BUILD -- dist/ -- and not off gen/src/observer.lua.
+
+    The same rule as every other case in this file, and it has bitten this project: the suite tests
+    dist/, so a run against a stale dist/ tests the code that was built last time. Here it would fail
+    in the least helpful way possible, because the Global script's PREVIOUS content was 320 bytes of
+    TTS's commented-out template -- every name below would simply be nil, and the failure would read
+    as "the recorder does nothing" rather than "you did not rebuild".  So it is named outright.
+
+    These cases always read the working dist/, `--old` included: the recorder does not exist in main
+    at all, so there is no pre-refactor version of it to run and no bug of its own to demonstrate.
+    """
+    if "src" not in _OBSERVER_SRC:
+        # cached: dist/ is a 3 MB document and six cases would otherwise parse it six times
+        raw = json.load(open(os.path.join(REPO, "dist", "Root_Tournament_Edition.json"),
+                             encoding="utf-8"))
+        src = raw.get("LuaScript") or ""
+        assert "rttArchiveGame" in src, (
+            "dist/'s top-level LuaScript is not the recorder (%d bytes, starts %r) -- rebuild with "
+            "python3 gen/assemble.py and copy gen/build/ over dist/" % (len(src), src[:60]))
+        _OBSERVER_SRC["src"] = src
+    return _OBSERVER_SRC["src"]
+
+
+def fresh_observer(armed=True):
+    """A runtime holding the GLOBAL script, which is a different world from fresh() above.
+
+    fresh() loads bab7e1's board script; this loads the save's top-level one. They never share a
+    runtime, deliberately -- in TTS they are two separate script environments that can only reach each
+    other through Global.call/setVar, and loading both here would let a test pass on a name the game
+    would not have resolved.
+
+    NO FLUSH in the fixture, unlike fresh(). Every case below is about what is left PENDING, and a
+    flush here would quietly drain the one thing being measured.
+
+    ARMED BY DEFAULT, because OBS_ENABLED ships false: the recorder is gated off until one real game
+    has been watched, and with the flag down every handler returns on its first line. The flag is a
+    plain global rather than a file-local for this exact reason -- it is how the maintainer arms a
+    live table from the host's Execute Lua Code box, so arming it here drives the same path he will.
+    """
+    rt = lupa.LuaRuntime(unpack_returned_tuples=True)
+    rt.execute(open(os.path.join(HERE, "tts_stub.lua"), encoding="utf-8").read())
+    rt.execute(observer_lua().replace("!=", "~="))       # TTS accepts != ; Lua 5.5 does not
+    rt.execute("onLoad('')")
+    if armed:
+        rt.execute("OBS_ENABLED = true")
+    return rt
+
+
+def _a_game_is_on(rt):
+    """The recorder is inert until a faction reaches the table; this is what tells it one has.
+
+    ARCHIVE.md section 4 arms on "the first turn change or the first faction spawn, whichever comes
+    first", and the faction half is asked at FLUSH time rather than in onObjectSpawn -- the tag is
+    added in the spawn's callback_function, which has not run yet when the spawn event fires. So a
+    tagged piece on the table is the whole of the signal.
+    """
+    rt.execute("MKOBJ('Cat Warrior', {1, 1, 1}, {'RTT Faction'})")
+
+
+def t_an_idle_table_arms_no_timer(src):
+    """A table nobody is touching must have no live timer at all.
+
+    MULTIPLAYER_SYNC.md's non-negotiable #2, in the maintainer's own acceptance criteria: "Nothing may
+    run on a permanent heartbeat -- the sweep is a small number of one-shots after setup, plus the
+    button. A 1 s resync loop would be constant network churn and repeated physics wake for no
+    benefit." The last attempt at background work in this mod was reverted whole over exactly that,
+    and a recorder that watches the entire table is the single most likely piece in this repo to
+    reach for a poll.
+
+    Two idle states, because they fail differently. The SHIPPED one -- OBS_ENABLED false, which is how
+    the save goes out and how it will sit on every stranger's table -- must not so much as queue a
+    drop. The ARMED one must still arm nothing until something actually moves.
+    """
+    rt = fresh_observer(armed=False)
+    assert rt.eval("TIMERS()") == 0, \
+        "loading the recorder armed %d timer(s) before anything happened" % rt.eval("TIMERS()")
+
+    rt.execute("IDLE = MKOBJ('Cat Warrior', {3, 1, -8}, {})")
+    rt.execute("OBJ_DROP('Red', IDLE)")
+    assert rt.eval("OBS_ENABLED") is False, "OBS_ENABLED does not ship false"
+    assert rt.eval("TIMERS()") == 0, "a drop armed a timer with OBS_ENABLED false"
+    assert rt.eval("#OBS.pend") == 0, "a disabled recorder still queued a drop"
+
+    rt = fresh_observer()
+    rt.execute("FLUSH(6)")
+    assert rt.eval("TIMERS()") == 0, \
+        "an armed but untouched table has %d timer(s) pending" % rt.eval("TIMERS()")
+
+
+def t_a_drop_arms_one_timer_and_a_second_drop_adds_none(src):
+    """The flush timer is armed on the empty->non-empty transition, once, and never stacked.
+
+    This is the whole of what keeps the recorder off a heartbeat. `OBS.timer` IS the transition test:
+    nil means nothing is pending, so the first event after a quiet spell arms one 0.4 s one-shot and
+    every event inside that window rides along with it. Arm per event instead and a player sliding
+    eight warriors out of a supply arms eight timers -- which is a heartbeat wearing a different hat,
+    and the exact shape of the background work that was reverted whole once already.
+
+    The queue is asserted alongside the timer count on purpose: "one timer" is only the right answer
+    if all three drops are still going to be written. A recorder that armed once and dropped the
+    other two events would pass the timer half of this and be useless.
+    """
+    rt = fresh_observer()
+    rt.execute("A = MKOBJ('Cat Warrior', {3, 1, -8}, {})")
+    rt.execute("B = MKOBJ('Cat Wood', {5, 1, -2}, {})")
+
+    rt.execute("OBJ_DROP('Red', A)")
+    assert rt.eval("TIMERS()") == 1, \
+        "the first drop armed %d timer(s), wanted exactly 1" % rt.eval("TIMERS()")
+    assert rt.eval("#OBS.pend") == 1, "the first drop queued %d entries" % rt.eval("#OBS.pend")
+
+    rt.execute("OBJ_DROP('Blue', B) OBJ_DROP('Red', A)")
+    assert rt.eval("TIMERS()") == 1, \
+        "three drops inside one window armed %d timers" % rt.eval("TIMERS()")
+    assert rt.eval("#OBS.pend") == 3, \
+        "the later drops were lost instead of riding the armed flush: %d queued" % rt.eval("#OBS.pend")
+
+
+def t_the_flush_writes_its_queue_and_lets_the_timer_die(src):
+    """One flush drains the queue, writes a row per piece, and arms nothing to take its place.
+
+    "Does not re-arm" is the half that matters: a flush that armed the next flush would be a 0.4 s
+    loop running for as long as the save is open, on the host, in a mod other people host -- and it
+    would look exactly like this one in every other respect. The queue being empty afterwards is the
+    other half; ARCHIVE.md section 4 says the flush "appends rows, clears the list. Does not re-arm."
+
+    The rows are parsed rather than counted, because the shape is a contract with two other files
+    written against it: [t, seq, kind, guid, color, x, z, ry, extra], section 3. A recorder that wrote
+    nine right-looking values in the wrong order would be discovered by root_games/fetch.py, weeks
+    later, over a corpus that cannot be re-recorded.
+    """
+    rt = fresh_observer()
+    _a_game_is_on(rt)
+    rt.execute("A = MKOBJ('Cat Warrior', {3, 1, -8}, {})")
+    rt.execute("B = MKOBJ('Cat Wood', {5, 1, -2}, {})")
+    rt.execute("OBJ_DROP('Red', A) OBJ_DROP('Blue', B)")
+    assert rt.eval("TIMERS()") == 1, "nothing was armed to flush"
+
+    rt.execute("FLUSH(1)")
+    assert rt.eval("#OBS.pend") == 0, "the flush left %d entries queued" % rt.eval("#OBS.pend")
+    assert rt.eval("TIMERS()") == 0, \
+        "the flush re-armed itself: %d timer(s) still pending" % rt.eval("TIMERS()")
+    assert rt.eval("OBS.id") is not None, "a faction was on the table and the recorder never armed"
+    assert rt.eval("#OBS.ev") == 2, "the flush wrote %d rows for 2 drops" % rt.eval("#OBS.ev")
+
+    rows = [json.loads(rt.eval("OBS.ev[%d]" % i)) for i in (1, 2)]
+    guids = [rt.eval("A.getGUID()"), rt.eval("B.getGUID()")]
+    for i, row in enumerate(rows):
+        assert len(row) == 9, "row %d has %d fields, the contract has 9: %s" % (i + 1, len(row), row)
+        assert row[2] == "drop", "row %d is a %r, not a drop" % (i + 1, row[2])
+        assert row[3] == guids[i], "row %d names %r, the piece dropped was %r" % (i + 1, row[3], guids[i])
+    assert [r[1] for r in rows] == [1, 2], "the sequence numbers are %s" % [r[1] for r in rows]
+    assert [r[4] for r in rows] == ["Red", "Blue"], \
+        "the rows credit %s, the drops were Red then Blue" % [r[4] for r in rows]
+    # the coordinates are the piece's own, which is what makes a row worth recording at all
+    assert (rows[0][5], rows[0][6]) == (3.0, -8.0), "the first row landed at %s" % rows[0][5:7]
+
+
+def t_export_without_a_box_score_still_sends_a_document(src):
+    """EXPORT must produce a payload even when the box score hands it nothing.
+
+    ARCHIVE.md section 2 is explicit that rttArchiveGame must never throw into its caller: it is
+    pcall'd at the call site AND guarded internally, because a fault in the archive would otherwise
+    cost the maintainer the notebook write and the Root Database upload -- the parts of that button
+    anyone actually depends on. Section 4 then keeps the movement log valuable on its own: a game with
+    no box score still archives. `params` nil, `params` not a table, and `params.box` nil are all
+    normal and none of the three may be a script error inside somebody's EXPORT.
+
+    Driven through Global.call rather than by calling the function, because that is the one line
+    logic.lua adds -- pcall(function() Global.call("rttArchiveGame", { box = exportJson() }) end) --
+    and a name that resolves here is the only evidence this suite can offer that the hook has a
+    target at all.
+
+    The four assertions on the document are ingest.php's, verbatim (section 5). It is the one place
+    two independently written files have to agree, and a disagreement means every game of a
+    tournament lands in quarantine.
+    """
+    rt = fresh_observer()
+    rt.execute("SEAT('Red', 'MrDrouf')")
+    _a_game_is_on(rt)
+
+    assert rt.eval("Global.call('rttArchiveGame', nil)") is True, \
+        "rttArchiveGame(nil) reported a failure"
+    assert rt.eval("#WEBREQ") == 1, "a nil box score sent %d requests" % rt.eval("#WEBREQ")
+    assert rt.eval("WEBREQ[1].method") == "POST", "the archive was not a POST"
+    assert rt.eval("WEBREQ[1].headers['Content-Type']") == "application/json", \
+        "the payload went out as %r" % rt.eval("WEBREQ[1].headers['Content-Type']")
+
+    doc = json.loads(rt.eval("WEBREQ[1].body"))
+    assert doc["schema"] == "rtt-game/1", "schema is %r" % doc["schema"]
+    assert re.fullmatch(r"[0-9a-f]{16}", doc["game_id"]), \
+        "game_id %r is not the 16 hex ingest.php accepts" % doc["game_id"]
+    assert isinstance(doc["boxscore"], dict), \
+        "boxscore is %s, and ingest.php rejects anything but an object" % type(doc["boxscore"]).__name__
+    assert isinstance(doc["seats"], list) and 1 <= len(doc["seats"]) <= 6, \
+        "seats is %r, and ingest.php wants a non-empty array of at most six" % (doc["seats"],)
+    assert doc["seats"][0]["color"] == "Red", "the one seated colour is not in the payload: %s" % doc["seats"]
+
+    # THE SERVER HAS TO ANSWER BEFORE THE SECOND PRESS. Both hooks fire in a normal session -- EXPORT,
+    # then UPLOAD -- and `OBS.sending` stops the two colliding in flight; it is cleared by the reply,
+    # so a test that presses twice without one is not testing the second press, it is testing the
+    # in-flight guard. Assert the guard, then answer, then press.
+    assert rt.eval("Global.call('rttArchiveGame', nil)") is True, "a press mid-send threw"
+    assert rt.eval("#WEBREQ") == 1, "a second press was sent while the first was still in flight"
+    rt.execute("""WEBREPLY(1, '{"ok":true,"message":"stored as a3f1c09e"}', 200)""")
+    assert rt.eval("OBS.sending") is False, "the reply did not clear the in-flight flag"
+    # the server's OWN words, not a status code -- ARCHIVE.md section 5 gives ingest.php the same
+    # {"ok":true,"message":"..."} shape the Root Database uses so that obsSay can read it unchanged
+    assert "stored as a3f1c09e" in rt.eval("rttArchiveStatus()"), \
+        "the server's message was thrown away: %r" % rt.eval("rttArchiveStatus()")
+
+    # ...and the other shape the call site can produce: params that is not a table at all.
+    assert rt.eval("Global.call('rttArchiveGame', 'not a table')") is True, \
+        "a non-table params threw into the caller"
+    assert rt.eval("#WEBREQ") == 2, "the second press did not send"
+    assert json.loads(rt.eval("WEBREQ[2].body"))["game_id"] == doc["game_id"], \
+        "the second press invented a new game_id; the server would file two games instead of one"
+
+
+def t_the_payload_never_carries_a_hand(src):
+    """Hand SIZES are public and are recorded. Hand CONTENTS are not, anywhere, ever.
+
+    PERCEPTION_SPEC.md section 3.4 and ARCHIVE.md section 3: this is the four-line whitelist that
+    separates a study tool from a cheat tool, and the Global script is where it has to hold, because a
+    Global script running on the host can read every player's hand. getAllObjects returns a card held
+    in a hand zone exactly like a card on the table, so without the exclusion set those cards get a
+    static entry (with their NAME), an event row and a snapshot row.
+
+    Three ways in are closed here and all three are checked against the bytes that were going to leave
+    the table: the static map, the event queue -- a hand card dropped INTO the hand is still a drop --
+    and the keyframe, which walks the whole board and is the greediest of the three.
+
+    The face-down tile is the same rule one step further on. A face-down Corvid plot is a Tile whose
+    ART IS THE SECRET, and it still answers getName(); it is recorded as a position and a faceDown
+    flag and never as a name.
+    """
+    rt = fresh_observer()
+    rt.execute("SEAT('Red', 'MrDrouf') SEAT('Blue', 'Someone')")
+    _a_game_is_on(rt)
+    rt.execute("""
+      HANDCARDS['Red'] = { MKOBJ('Ambush!', {40, 1, 40}, {}),
+                           MKOBJ('Favor of the Mice', {41, 1, 41}, {}) }
+      PLOT = MKOBJ('Custom_Tile', {6, 1, 6}, {})
+      PLOT.is_face_down = true
+    """)
+    secrets = [rt.eval("HANDCARDS['Red'][%d].getGUID()" % i) for i in (1, 2)]
+
+    # the queue is not a way round the whitelist: a card dropped while it is in a hand is still skipped
+    rt.execute("OBJ_DROP('Red', HANDCARDS['Red'][1]) FLUSH(1)")
+    assert rt.eval("#OBS.ev") == 0, "a hand card was written into the event log"
+
+    # a turn change walks the whole table -- the greediest read the recorder ever does
+    rt.execute("Turns.enable = true Turns.order = {'Red', 'Blue'} TURN_SET('Red')")
+    rt.execute("Global.call('rttArchiveGame', nil)")
+    body = rt.eval("WEBREQ[#WEBREQ].body")
+
+    for name in ("Ambush!", "Favor of the Mice"):
+        assert name not in body, "the payload names a card in a hand: %r" % name
+    for g in secrets:
+        assert g not in body, "the payload carries the GUID of a card in a hand: %r" % g
+
+    doc = json.loads(body)
+    assert all(g not in doc["objects"] for g in secrets), "a hand card got a static entry"
+    # the SIZE is public -- everyone at a Root table can count the cards in a hand -- and is kept
+    assert doc["snapshots"][-1]["hands"]["Red"] == 2, \
+        "hand sizes were lost with the contents: %r" % doc["snapshots"][-1].get("hands")
+
+    plot = rt.eval("PLOT.getGUID()")
+    assert plot not in doc["objects"], "a face-down tile was described by name in the payload"
+    rows = [r for s in doc["snapshots"] for r in s["rows"] if r[0] == plot]
+    assert rows, "the face-down tile was dropped from the board entirely, not recorded as hidden"
+    assert rows[0][6] == 1, "the face-down tile is recorded face up: %s" % rows[0]
+
+
+def t_a_second_game_is_not_appended_to_the_first(src):
+    """Two games in one session must never end up in one document under one game_id.
+
+    RTT already owns the fact that a new game has started: rttClearGameObjects bumps RTT_RUN_ID on
+    every teardown -- "invalidates every in-flight setup callback" -- and rttSeatRecord publishes it.
+    The recorder watches that number, and it has to, because the server dedupes on game_id: a second
+    game appended to the first one's log would be POSTed under the first one's id and OVERWRITE it
+    with a mixture of both. That is the one failure in this feature that destroys data rather than
+    losing it.
+
+    A CLEARED RECORD IS NOT A NEW GAME, which is the subtle half: the teardown writes {} into
+    RTT_SEAT_RECORD before the new seats exist, so an absent or zero run id must leave the log alone
+    and only a DIFFERENT one may wipe it. Both directions are checked.
+
+    THE CHECK RUNS ON EVERY FLUSH, and that is the second half of this case. It used to run at a
+    turn change, at EXPORT, and -- only while the recorder was still inert -- in the flush, so once a
+    game was under way nothing in the ordinary drag-and-drop path looked at the run id again. A table
+    playing without the TTS turn system (this repo's history says that is common) therefore carried
+    game two's entire setup in game one's log until EXPORT, where the check finally fired, wiped
+    everything including game two's own rows, and sent a document holding one keyframe and no events.
+    So this drives BOTH paths: the turn change, and then a bare flush with the turn system switched
+    off, which is the one that used to sail straight past.
+
+    AND IT ASSERTS THE NEW ID AS WELL AS THE WIPE. It could not before: game_id was os.time() plus
+    the os.clock() millisecond plus a hash of who is at this table -- and the table is the SAME table
+    for two consecutive games by definition, so two arms inside one millisecond minted identical ids.
+    Harmless at a real table where the next game is minutes away; certain here, where the whole case
+    runs in under a millisecond. That is a data-destroying collision (the server dedupes on game_id),
+    so obsGameId now folds in a counter that only ever goes up, and the id is checked here because
+    the harness can finally see it.
+    """
+    rt = fresh_observer()
+    rt.execute("SEAT('Red', 'MrDrouf') Turns.enable = true Turns.order = {'Red', 'Blue'}")
+    _a_game_is_on(rt)
+    rt.execute("""RTT_SEAT_RECORD =
+      '{"run":7,"seats":[{"key":"Marquise de Cat","color":"Red","pos":[1,2],"owner":"MrDrouf"}]}'""")
+    rt.execute("X = MKOBJ('Cat Wood', {3, 1, 3}, {}) OBJ_DROP('Red', X) FLUSH(1)")
+    first = rt.eval("OBS.id")
+    assert first is not None and rt.eval("#OBS.ev") == 1, "the first game recorded nothing"
+    assert rt.eval("OBS.run") == 7, "the recorder did not pick up RTT's run id: %r" % rt.eval("OBS.run")
+
+    # the teardown's empty record, which is NOT a new game and must not wipe anything
+    rt.execute("RTT_SEAT_RECORD = '{}' TURN_SET('Red')")
+    assert rt.eval("OBS.id") == first, "an emptied seat record was mistaken for a new game"
+
+    # ...and now a genuinely new run
+    rt.execute("""RTT_SEAT_RECORD =
+      '{"run":8,"seats":[{"key":"Eyrie Dynasties","color":"Blue","pos":[3,4],"owner":"Someone"}]}'""")
+    rt.execute("TURN_SET('Blue')")
+    assert rt.eval("OBS.run") == 8, "the new run id was not taken up: %r" % rt.eval("OBS.run")
+    evs = [json.loads(rt.eval("OBS.ev[%d]" % i)) for i in range(1, rt.eval("#OBS.ev") + 1)]
+    assert all(e[2] != "drop" for e in evs), \
+        "the first game's rows survived into the second: %s" % evs
+    assert rt.eval("#OBS.snap") == 1, \
+        "%d keyframes carried over; the second game's first snapshot must be its only one" \
+        % rt.eval("#OBS.snap")
+    assert evs[-1][1] == 1, \
+        "the sequence counter kept counting from the first game: %s" % (evs[-1],)
+    # AND THE SECOND GAME'S FIRST KEYFRAME IS A FULL ONE. The reset empties the delta baseline as well
+    # as the rows, so the new log describes the whole board from scratch instead of encoding it as a
+    # difference against a board that belongs to a game it no longer holds. Every piece that was out
+    # in game one is still physically on the table, so without this the second game's document would
+    # open with an almost empty snapshot and nothing to resolve its GUIDs against.
+    snap = json.loads(rt.eval("OBS.snap[1]"))
+    assert snap["full"] == 1, "the second game opened with a delta against the first game's board"
+    assert snap["rows"], "the second game's first keyframe describes nothing"
+    assert any(r[0] == rt.eval("X.getGUID()") for r in snap["rows"]), \
+        "a piece that was on the table throughout is missing from the new game's full keyframe"
+    second = rt.eval("OBS.id")
+    assert second != first, \
+        "game two was minted the same game_id as game one (%r) -- the server dedupes on it, so the " \
+        "second POST would overwrite the first game entirely" % first
+
+    # ...AND NOW WITH NO TURN SYSTEM AT ALL, which is the path that used to escape the check.
+    # Nothing here presses EXPORT and nothing passes the turn: a piece is dragged, the flush runs,
+    # and that alone has to notice the run id moved. Before obsNewGameCheck was hoisted out of the
+    # `OBS.id == nil` block this assertion failed -- game three's rows landed in game two's log.
+    rt.execute("Turns.enable = false")
+    rt.execute("""RTT_SEAT_RECORD =
+      '{"run":9,"seats":[{"key":"The Lizard Cult","color":"Green","pos":[5,6],"owner":"Third"}]}'""")
+    rt.execute("Y = MKOBJ('Lizard Warrior', {4, 1, 4}, {}) OBJ_DROP('Green', Y) FLUSH(1)")
+    assert rt.eval("OBS.run") == 9, \
+        "a flush with the turn system off never noticed the new run: OBS.run=%r" % rt.eval("OBS.run")
+    assert rt.eval("OBS.id") not in (first, second), \
+        "game three kept an earlier game's id: %r" % rt.eval("OBS.id")
+    evs3 = [json.loads(rt.eval("OBS.ev[%d]" % i)) for i in range(1, rt.eval("#OBS.ev") + 1)]
+    assert not any(e[3] == rt.eval("X.getGUID()") for e in evs3), \
+        "game two's rows survived into game three: %s" % evs3
+
+
+
 CASES = [
     ("manual path drives the turn system",   t_manual_turn_order),
     ("manual path spawns 4 / 5 boards",      t_boards_spawn),
@@ -8447,17 +8852,24 @@ CASES = [
     ("a lost card is put back",         t_a_card_the_reload_loses_is_put_back),
     ("mid-deal resync frees itself",   t_a_resync_pressed_while_the_draft_deals_frees_itself),
     ("the deal survives a card going",  t_the_draft_deal_survives_a_card_going),
+    # the recorder in the save's Global script -- see the honesty note above these
+    ("an idle table arms no timer",     t_an_idle_table_arms_no_timer),
+    ("a drop arms one timer, once",     t_a_drop_arms_one_timer_and_a_second_drop_adds_none),
+    ("the flush drains and dies",       t_the_flush_writes_its_queue_and_lets_the_timer_die),
+    ("EXPORT sends without a sheet",    t_export_without_a_box_score_still_sends_a_document),
+    ("no hand ever leaves the table",   t_the_payload_never_carries_a_hand),
+    ("game two is not game one",        t_a_second_game_is_not_appended_to_the_first),
 ]
 
 
 def main():
     old = "--old" in sys.argv
     if old:
-        raw = subprocess.run(["git", "-C", REPO, "show", "main:dist/Root_Tabletop_Tournament.json"],
+        raw = subprocess.run(["git", "-C", REPO, "show", "main:dist/Root_Tournament_Edition.json"],
                              capture_output=True, text=True).stdout
         label = "PRE-REFACTOR"
     else:
-        raw = open(os.path.join(REPO, "dist", "Root_Tabletop_Tournament.json"), encoding="utf-8").read()
+        raw = open(os.path.join(REPO, "dist", "Root_Tournament_Edition.json"), encoding="utf-8").read()
         label = "current"
     src = board_lua(raw)
 

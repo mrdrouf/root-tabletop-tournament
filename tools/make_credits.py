@@ -68,7 +68,7 @@ THUMBS = {
     "Ginso's Gizmo":      (906, 1186, 1010, 1317),
 }
 
-TITLE = "Root Tabletop Tournament"
+TITLE = "Root: Tournament Edition"
 SUBTITLE = "a revamp by MrDrouf & Claude"
 BASED = ["based on Root - Ultimate Collection",
          "by Ehss #7883 and slugfacekillah #4920"]

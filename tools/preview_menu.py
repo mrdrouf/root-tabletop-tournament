@@ -12,7 +12,7 @@ import json, re, os, sys, hashlib, urllib.request
 from PIL import Image, ImageDraw, ImageFont
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-DIST = os.path.join(ROOT, "dist", "Root_Tabletop_Tournament.json")
+DIST = os.path.join(ROOT, "dist", "Root_Tournament_Edition.json")
 CACHE = os.path.join(os.environ.get("TEMP", "/tmp"), "rtt_iconcache")
 OUT = os.path.join(ROOT, "tools", "menu_preview.png")
 os.makedirs(CACHE, exist_ok=True)

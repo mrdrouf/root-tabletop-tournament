@@ -2,12 +2,13 @@
 assemble.py — the RTT generator.
 
 Builds the finished self-contained save from owned source in gen/src/:
-    save.json    -- the object layout / blueprint (with an @@BOARD_LUA@@ placeholder)
+    save.json    -- the object layout / blueprint (@@BOARD_LUA@@ and @@GLOBAL_LUA@@ placeholders)
     content.lua  -- Root's object DATA
     logic.lua    -- OUR code (setup, draft, seating, factions, maps, box score)
+    observer.lua -- the game recorder, which becomes the save's top-level GLOBAL script
 There is no external base and no patch pipeline; the finished save is assembled from scratch.
 
-    python gen/assemble.py            # -> gen/build/Root_Tabletop_Tournament.json
+    python gen/assemble.py            # -> gen/build/Root_Tournament_Edition.json
     python gen/assemble.py --verify   # also assert it matches dist/ (the reference) structurally
 """
 import json
@@ -18,8 +19,8 @@ import sys
 HERE = os.path.dirname(os.path.abspath(__file__))
 SRC = os.path.join(HERE, "src")
 OUT_DIR = os.path.join(HERE, "build")
-OUT = os.path.join(OUT_DIR, "Root_Tabletop_Tournament.json")
-REFERENCE = os.path.join(os.path.dirname(HERE), "dist", "Root_Tabletop_Tournament.json")
+OUT = os.path.join(OUT_DIR, "Root_Tournament_Edition.json")
+REFERENCE = os.path.join(os.path.dirname(HERE), "dist", "Root_Tournament_Edition.json")
 
 
 def _set_board_lua(objs, lua):
@@ -34,6 +35,41 @@ def _board_lua():
     content = os.path.join(SRC, "content.lua")
     logic = os.path.join(SRC, "logic.lua")
     return open(content, encoding="utf-8").read() + open(logic, encoding="utf-8").read()
+
+
+def _set_global_lua(save, lua):
+    """Fill the save's TOP-LEVEL LuaScript -- the table's Global script -- with the recorder.
+
+    Top level only, deliberately: this is a flat assignment rather than the recursive walk
+    _set_board_lua does, because "the Global script" is one field on the save document and an object
+    that happened to carry the same placeholder string would be a different thing entirely.
+
+    A missing placeholder is fatal rather than a no-op. The recorder is invisible when it is absent
+    -- the table looks identical, every game plays normally, and the only symptom is that no game is
+    ever archived -- so a save.json that lost @@GLOBAL_LUA@@ must stop the build, not ship quietly.
+    """
+    if save.get("LuaScript") != "@@GLOBAL_LUA@@":
+        raise SystemExit(
+            "[gen] NO @@GLOBAL_LUA@@ IN save.json: the save's top-level LuaScript is %.40r.\n"
+            "      That field is where the recorder goes (ARCHIVE.md section 1). Restore the placeholder;\n"
+            "      note save.json is CRLF and must be edited in BINARY mode." % (save.get("LuaScript"),))
+    save["LuaScript"] = lua
+
+
+def _global_lua():
+    """The Global Lua = the archive recorder (observer.lua), alone.
+
+    It is kept out of the board script on purpose (ARCHIVE.md section 1): a fault in the recorder cannot
+    then take the board's 869 KB script down with it, and the mod's diff stays purely additive.
+    """
+    observer = os.path.join(SRC, "observer.lua")
+    if not os.path.exists(observer):
+        raise SystemExit(
+            "[gen] MISSING gen/src/observer.lua: it is the save's Global script (ARCHIVE.md section 1).\n"
+            "      Building without it would ship a save whose Global is the literal string\n"
+            "      \"@@GLOBAL_LUA@@\" -- a syntax error on every client at load -- or, worse, an empty\n"
+            "      Global that swallows logic.lua's Global.call(\"rttArchiveGame\") hooks in silence.")
+    return open(observer, encoding="utf-8").read()
 
 
 # Functions that spawn objects but legitimately do not tag them for faction teardown.
@@ -168,8 +204,11 @@ def check_calls(logic, save):
                                                             faction spawned and everything after this
                                                             line was skipped
 
-    The table's Global script is TTS's default stub: an empty onLoad and an empty onUpdate. It has
-    never defined either name in this repo's history.
+    The table's Global script was TTS's default stub -- an empty onLoad and an empty onUpdate -- for
+    this repo's whole history, so neither name was ever defined. It now holds observer.lua, which is
+    why build() fills @@GLOBAL_LUA@@ BEFORE calling this: `glob` below has to be the recorder's real
+    source, or the archive hooks logic.lua adds (`Global.call("rttArchiveGame", ...)`, ARCHIVE.md
+    section 2) would be reported missing against a placeholder string.
     """
     board = None
     stack = list(save.get("ObjectStates") or [])
@@ -212,9 +251,59 @@ def check_calls(logic, save):
             "      CALL_TARGET_OK with a reason." % "; ".join(sorted(set(bad))))
 
 
+# Calls that WRITE to an object. The recorder may not contain one, at all, ever.
+#
+# ARCHIVE.md section 0 constraint 2 is the entire reason the recorder is safe to run during a live
+# game: object writes are replicated by TTS to every client, reads are not. A recorder that only reads
+# adds zero bytes to the client sync. One that writes is the shape of the bug that broke v1.154, and
+# it would do it on a heartbeat's worth of objects at every turn change -- on the host, in the middle
+# of somebody's turn, in a mod other people host.
+#
+# The trailing \w* catches the smooth/variant spellings too, so setPositionSmooth and setRotationSmooth
+# cannot slip past the plain names.
+OBSERVER_WRITES = ("setLock", "addTag", "removeTag", "setColorTint", "setPosition", "setRotation",
+                   "setScale", "spawnObjectJSON", "destruct", "takeObject")
+
+
+def check_observer_reads_only(observer):
+    """Fail the build if gen/src/observer.lua writes to an object.
+
+    This is a BUILD failure and not a test for the same reason check_ui_ids is: the test stub records
+    a setLock as cheerfully as it records a getPosition, so a write is green in the suite and only
+    shows up as desync at a real table with real players -- which is the one place this project cannot
+    afford to find it. Shipping the violation is what does the damage, so the build is where it stops.
+
+    Deliberately dumb: a plain text scan for the call names, tolerating only a Lua LINE comment (via
+    _in_comment, same as check_calls), because observer.lua is expected to explain at length WHY it
+    never writes and will therefore name these calls in prose. A `--[[ ]]` block comment quoting one
+    still trips this -- write that note as line comments instead. A banned name inside a STRING trips
+    it too, and that is also on purpose: the check stays a flat rule with no parser to be wrong.
+    """
+    bad = []
+    for m in re.finditer(r"\b((?:%s)\w*)\s*\(" % "|".join(OBSERVER_WRITES), observer):
+        if _in_comment(observer, m.start()):
+            continue
+        # report the line: observer.lua is one long file of handlers and "setLock" alone would send
+        # the reader hunting for it
+        bad.append("%s (line %d)" % (m.group(1), observer.count("\n", 0, m.start()) + 1))
+    if bad:
+        raise SystemExit(
+            "[gen] OBSERVER WRITES TO AN OBJECT: %s\n"
+            "      The recorder READS ONLY (ARCHIVE.md section 0, constraint 2). Object writes are\n"
+            "      replicated to every client and are what broke v1.154; reads are not replicated,\n"
+            "      which is why recording during a live game costs the table nothing. Get the same\n"
+            "      result from a read, or keep the state in the recorder's own log."
+            % ", ".join(bad))              # source order, not sorted: read them top-down like the file
+
+
 def build():
     save = json.load(open(os.path.join(SRC, "save.json"), encoding="utf-8"))
     logic = open(os.path.join(SRC, "logic.lua"), encoding="utf-8").read()
+    global_lua = _global_lua()
+    check_observer_reads_only(global_lua)
+    # Before the checks, not after: check_calls resolves logic.lua's Global.call(...) targets against
+    # the save's top-level LuaScript, and it can only do that once the real recorder is sitting there.
+    _set_global_lua(save, global_lua)
     check_spawn_tagging(logic)
     check_ui_ids(logic, save)
     check_calls(logic, save)

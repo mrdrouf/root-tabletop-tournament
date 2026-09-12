@@ -1,4 +1,4 @@
-# Root Tabletop Tournament — to-do
+# Root: Tournament Edition — to-do
 
 **`WORK_QUEUE.md` is the live queue.** Every open task, every new request and every
 "still broken" report lives there. This file holds only the longer-lived design
