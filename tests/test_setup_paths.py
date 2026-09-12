@@ -7770,6 +7770,40 @@ def t_the_discard_sweep_only_takes_cards_that_have_landed(src):
     assert not swept(True, True), \
         "a dominance card being carried over the discard is snatched out of the player's hand"
 
+    # AND THE DROP IS HANDLED AT ONCE, which is what keeps a real discard snappy. Waiting for the card
+    # to come to rest fixed the snatching and broke the look of a genuine discard: the card landed on
+    # the discard, slid under its board and was moved a second later. Maintainer: "the dominance shifts
+    # from under the discard card board to the dominance board and so it does not look nice ... it s
+    # also very slow to activate and not snappy anymore."
+    #
+    # A drop is not a deal -- nobody releases a card that is being dealt -- so acting on the drop is
+    # immediate AND safe, and it catches the card while it is still falling.
+    def dropped(dx, name="Fox Dominance"):
+        rt = lupa.LuaRuntime(unpack_returned_tuples=True)
+        rt.execute(open(os.path.join(HERE, "tts_stub.lua"), encoding="utf-8").read())
+        rt.execute("""
+          MOVED = {}
+          self.positionToWorld = function(p) return { x = p[1]*3.38, y = p[2], z = p[3]*3.38 } end
+          CARD = MKOBJ(%r, {0,1,0}, {})
+          CARD.name = 'Card' CARD.tag = 'Card'
+          CARD.getDescription = function() return 'fox' end
+          CARD.resting = false
+          CARD.getPosition = function() return { x = -0.957*3.38 + %f, y = 2, z = 0.222*3.38 } end
+          CARD.setPositionSmooth = function(p) MOVED[#MOVED+1] = 'smooth' end
+          Physics = { cast = function() return {} end }
+        """ % (name, dx))
+        rt.execute(script.replace("!=", "~="))
+        rt.execute("pcall(function() onLoad('') end) "
+                   "pcall(function() onObjectDrop('Red', CARD) end) FLUSH(20)")
+        return rt.eval("function() return #MOVED end")() > 0
+
+    assert dropped(0.0), \
+        "a dominance card released over the discard is left to land and moved a second later"
+    assert not dropped(6.47), \
+        "a dominance card dropped on the DRAW pile is taken; the drop radius reaches too far"
+    assert not dropped(0.0, name="Ambush"), \
+        "an ordinary card dropped on the discard is being sent to the dominance track"
+
 
 CASES = [
     ("manual path drives the turn system",   t_manual_turn_order),
