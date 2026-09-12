@@ -7804,6 +7804,44 @@ def t_the_discard_sweep_only_takes_cards_that_have_landed(src):
     assert not dropped(0.0, name="Ambush"), \
         "an ordinary card dropped on the discard is being sent to the dominance track"
 
+    # AND IT GOES OVER THE TABLE, NOT THROUGH IT. Maintainer: "the movement of the dominance card ...
+    # goes through the board that holds the decks." It crosses about 110 units to reach its slot -- the
+    # deck holder is at (63.9, 24.0) and the track at x -41.88 -- and it was doing all of that at table
+    # height, starting ON the holder it had just been discarded onto.
+    #
+    # The first move must therefore be a LIFT, straight up from where the card is, and it must happen
+    # on release rather than after a wait, because that is what keeps it feeling immediate.
+    rt = lupa.LuaRuntime(unpack_returned_tuples=True)
+    rt.execute(open(os.path.join(HERE, "tts_stub.lua"), encoding="utf-8").read())
+    rt.execute("""
+      MOVES = {}
+      self.positionToWorld = function(p) return { x = 63.90 + p[1]*3.38, y = 11.6, z = 24.00 + p[3]*3.38 } end
+      CARD = MKOBJ('Fox Dominance', {0,1,0}, {})
+      CARD.name='Card' CARD.tag='Card'
+      CARD.getDescription = function() return 'fox' end
+      CARD.resting = false
+      CARD.getPosition = function() return { x = 60.67, y = 11.70, z = 24.75 } end
+      CARD.setPositionSmooth = function(p, collide, fast)
+        MOVES[#MOVES+1] = { x = p.x or p[1], y = p.y or p[2], z = p.z or p[3] }
+      end
+      Physics = { cast = function() return {} end }
+    """)
+    rt.execute(script.replace("!=", "~="))
+    rt.execute("pcall(function() onLoad('') end) pcall(function() onObjectDrop('Red', CARD) end)")
+    assert rt.eval("function() return #MOVES end")() == 1, \
+        "the card does not move the instant it is released"
+    lift = [rt.eval("function() return MOVES[1].%s end" % a)() for a in "xyz"]
+    assert abs(lift[0] - 60.67) < 0.01 and abs(lift[2] - 24.75) < 0.01, \
+        "the first move is not straight up; the card crosses the deck holder at table height"
+    assert lift[1] > 11.70 + 2.0, \
+        "the card only rises %.2f before crossing; that will not clear the boards" % (lift[1] - 11.70)
+    rt.execute("FLUSH(60)")
+    assert rt.eval("function() return #MOVES end")() == 2, \
+        "the card never crosses to its slot after lifting"
+    land = [rt.eval("function() return MOVES[2].%s end" % a)() for a in "xyz"]
+    assert abs(land[0] + 41.88) < 0.01, \
+        "the second move does not end at the dominance track: x %.2f" % land[0]
+
 
 CASES = [
     ("manual path drives the turn system",   t_manual_turn_order),
