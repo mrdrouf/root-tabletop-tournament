@@ -8801,9 +8801,25 @@ def t_the_clock_has_room_for_a_two_digit_minute(src):
         return int(w.group(1)), int(fs.group(1))
 
     w_time, fs = field("pnlTime")
-    w_round, _ = field("pnlRound")
+    w_round, fs_round = field("pnlRound")
 
-    PX_PER_PT = 129.0 / 50.0           # "10:00" in the UI's bold face, measured at 50pt
+    # THE SIZE IS FIXED, NOT FITTED. Maintainer, 2026-09-12: "when it goes to 10-minute size of the
+    # numbers do not change size." resizeTextForBestFit picks whatever size fits the box, so a string
+    # that outgrows its field shrinks instead of being cut -- better than chopping, and still a
+    # readout that changes size mid-game while the one beside it does not. With the field measured to
+    # hold five characters there is nothing left for it to do, and its absence is what makes "does not
+    # change size" a property of the panel rather than a hope about the strings.
+    for el in ("pnlTime", "pnlRound"):
+        tag = re.search(r'<Text id="%s"[^>]*>' % el, xml).group(0)
+        assert "resizeTextForBestFit" not in tag, \
+            "%s still refits itself, so its digits change size when the string grows" % el
+    assert fs == fs_round, \
+        ("the clock is fontSize %d and ROUND is %d; they are meant to match" % (fs, fs_round))
+
+    # Five characters in the UI's bold face, measured at 50pt: "10:00" and "99:59" are both 129px,
+    # since the digits are all one width. With best-fit gone this is not a shrink threshold any more
+    # -- it is the line between drawn and CUT.
+    PX_PER_PT = 129.0 / 50.0
     need = PX_PER_PT * fs
     assert w_time >= need, \
         ("the clock field is %dpx and \"10:00\" needs %.0f at fontSize %d: it will be cut"
