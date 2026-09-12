@@ -27,9 +27,10 @@ pink is warm: keyed on warmth alone the flood went straight up her arms and ate 
 checkerboard is a mid-dark red -- around 80 to 90 mean -- where her skin is 200, so brightness tells
 them apart even though colour does not.
 
-SEEDED FROM THE SIDES, not the corners or the top. Her head is cut off by the card's own border, so she
-touches the top edge of the picture: a flood seeded along the top row walks in through her scalp. The
-checkerboard runs the full height of both sides, so that is where the flood starts.
+SEEDED FROM THE SIDES, not the corners or the top. Her crown is drawn ON the picture's first row --
+the artist put her head right up against the frame -- so a flood seeded along the top row walks
+straight in through her scalp. The checkerboard runs the full height of both sides, so that is where
+the flood starts instead.
 
 AND THE BOTTOM IS CLOSED. The window stops at the desk's top edge -- she is taken from the desk up, as
 the frog is taken from the hip up -- and that crop leaves her silhouette open at the bottom, so the
@@ -53,10 +54,16 @@ from make_theme_art import m2i, dilate, erode, flood, fill_holes          # noqa
 SRC = os.path.join(REPO, "assets", "src_art", "duchess_card.png")
 OUT = os.path.join(REPO, "assets", "src_art", "duchess_mud.png")
 
-# THE PICTURE, on the 361x311 card: inside the printed border on three sides, and stopping at the
-# desk's top edge. The desk is a flat cream band from y 184 down to the title, and everything below
-# that line is furniture rather than her.
-WINDOW = (12, 12, 349, 184)
+# THE PICTURE, on the 361x311 card: the whole of it, stopping at the desk's top edge.
+#
+# EVERY EDGE IS MEASURED, because guessing at them cost her the top of her head. Maintainer,
+# 2026-09-12: "you cut the top of the head of the duchess that s bad keep the entirety of the head."
+# The window began at y=12 on the assumption that the border needed clearing, and her crown is at
+# y=8 -- the picture's very first row -- so four rows of skull went with the border.
+#
+# The card is: black edge, a gold band, one dark rule at x=7 / y=7, and then the picture. So the
+# interior is x 8..351 and y 8..183, and the desk is the flat cream band from y 184 down to the title.
+WINDOW = (8, 8, 352, 184)
 
 WARM = 42          # red-over-green: the checkerboard is +52 to +66, her head is 0, her robe is cool
 DARK = 185         # ...and it is never bright: the squares are 80-90 mean, her skin is 200
