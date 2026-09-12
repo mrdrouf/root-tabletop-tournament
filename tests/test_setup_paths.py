@@ -7649,26 +7649,37 @@ def t_the_box_score_columns_fit_what_goes_in_them(src):
     assert not unmeasured, (
         "the roster gained %s, which nobody has measured -- the faction column's floor was taken "
         "against these names and is now stale" % ", ".join(repr(n) for n in unmeasured))
-    # THE COLUMN IS NOW NARROWER THAN ITS WIDEST NAME, on purpose -- he took the width for the player
-    # name and knew what it cost. So what is guarded is no longer "it fits" but "it cannot be cut off
-    # and it stays legible": the name must shrink to fit, and the size it is driven to must not fall
-    # below the floor the sheet declares.
+    # THE FACTION NAME MUST NEVER SHRINK. Maintainer, 2026-09-12, having seen it at 74: "revert the
+    # width of the name of factions so there is never shrinking involved for the name of the faction
+    # itself." So the column has to be wide enough for every name at its full size, and that is the
+    # assertion -- not merely that it cannot be cut off.
     widest = max(NAME_PX[n] for n in roster)
     biggest = max(roster, key=lambda n: NAME_PX[n])
     field = facW - 30
-    if field < widest:
-        # the faction name's own <Text>, found by the variable it prints
-        i = sheet.index("facName ..")
-        line = sheet[max(0, i - 400):i]
-        assert 'resizeTextForBestFit=' in line, (
-            "the faction column gives the name %d px and %r needs %d, but that Text does not shrink "
-            "to fit -- it would be cut off mid-word" % (field, biggest, widest))
-        floor = int(re.search(r'resizeTextMinSize=.(\d+)', line).group(1))
-        got = 15.0 * field / widest
-        assert got >= floor - 0.5, (
-            "%r would be driven to %.1fpt in %d px, below the declared floor of %d"
-            % (biggest, got, field, floor))
-        assert floor >= 9, "the faction name may shrink to %dpt, which is past legible" % floor
+    assert field >= widest, (
+        "the faction column gives the name %d px and %r needs %d, so it would be shrunk -- he asked "
+        "for the name never to shrink" % (field, biggest, widest))
+
+    # and the shrink stays on that Text as a backstop, so a roster that one day gains a longer name is
+    # shrunk rather than cut off mid-word. At this width it can never fire.
+    i = sheet.index("facName ..")
+    assert "resizeTextForBestFit=" in sheet[max(0, i - 400):i], \
+        "the faction name has no shrink backstop; a longer name would be cut off mid-word"
+
+    # THE PLAYER'S NAME IS THE OPPOSITE CASE and is the one he actually wanted solved: "just make sure
+    # that long names are not cut some names are really long". A column is never wide enough on its
+    # own -- without a fit, a name past the column's width is cut off however wide it is made, and
+    # widening only moves where that starts. So the name must shrink, and must be allowed to go small
+    # enough for the longest name anyone really has: a Steam name runs to 32 characters, which at 187px
+    # needs about 11.
+    j = sheet.index("esc(row.player)")
+    cell = sheet[max(0, j - 400):j]
+    assert "resizeTextForBestFit=" in cell, \
+        "the player name does not shrink to fit; a long name is cut off whatever the column's width"
+    nfloor = int(re.search(r'resizeTextMinSize=.(\d+)', cell).group(1))
+    assert nfloor <= 11, (
+        "the player name may only shrink to %dpt; a 32-character name needs about 11 in %d px"
+        % (nfloor, nameW))
 
     # the subtext must still be allowed to shrink, or the captains line would be cut off instead
     var = re.search(r"esc\(row\.variant\)", sheet)
