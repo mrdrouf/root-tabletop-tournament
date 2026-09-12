@@ -391,7 +391,12 @@ root_games/
 ```
 
 `fetch.py` talks HTTPS with `urllib` — **no SSH, no password**. It:
-- lists remote `game_id`s, downloads only ones not already in `raw/`;
+- lists remote games and downloads the ones it does not hold **and the ones the server has
+  replaced since** — a re-send rewrites `games/<game_id>.json`, so "already in `raw/`" is not
+  the same as "current". The listing carries `bytes` and `mtime` per game and `needs_download`
+  compares both: a differing size, or a server file newer than our copy, is re-fetched. Without
+  that the corpus keeps the FIRST version of every corrected game and nothing anywhere says so;
+- writes to `raw/` and never edits it;
 - re-validates the schema locally (never trust the server's validation);
 - resolves each event's world x/z to a clearing id *if* the map geometry is available, and leaves it
   null otherwise — it must not guess;
