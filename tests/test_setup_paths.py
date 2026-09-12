@@ -467,6 +467,7 @@ def t_the_lizard_board_follows_the_wizard(src):
         for _, o in ipairs(getAllObjects()) do if o.getName() == "souls" then o.destruct() end end
         local dk = MKOBJ("souls", WIZ.positionToWorld(Vector({ 0.48, 0.2, 0 })), {})
         dk.name = "Deck"
+        dk.tag  = "Deck"
         local objs = {}
         for i, dsc in ipairs(descs) do objs[i] = { description = dsc } end
         dk.getObjects = function() return objs end
@@ -4992,6 +4993,7 @@ def t_the_cats_are_dropped_clear_of_the_clearing(src):
       for i = 1, 40 do MAP.__snaps[i] = { position = {0,0,0} } end
       BAG = MKOBJ("Marquise Supply", {-36, 11.4, 44}, {})
       BAG.name = "Bag"
+      BAG.tag  = "Bag"
       BAG.takeObject = function(p)
         DROPS[#DROPS + 1] = string.format("%.3f|%s", p.position[2],
           table.concat({p.rotation[1], p.rotation[2], p.rotation[3]}, ","))
@@ -5042,6 +5044,7 @@ def t_the_badger_relics_are_drawn_uniformly(src):
       for i = 1, 40 do MAP.__snaps[i] = { position = {0,0,0} } end
       BAG = MKOBJ("Relics", {-36, 11.4, 44}, {})
       BAG.name = "Bag"
+      BAG.tag  = "Bag"
       BAG.shuffle = function() end        -- the engine gives us nothing; the draw must not need it
       function __round()
         for _, o in ipairs(getObjectsWithTag("RTT Faction")) do
@@ -7997,6 +8000,310 @@ def t_the_duchess_keeps_her_whole_head_and_none_of_her_tiles(src):
          "so the card's frame is still cutting her skull" % (crest, below))
 
 
+def _reload_probe(rt):
+    """Count reload() calls and let a test make one of them fail the way a lost card would."""
+    rt.execute("""
+      RELOADED = {}
+      LOSE = {}
+      local _mk = MKOBJ
+      MKOBJ = function(n, p, t)
+        local o = _mk(n, p, t)
+        local _r = o.reload
+        o.reload = function()
+          RELOADED[#RELOADED + 1] = o.__guid
+          -- a card the reload swallows: destroyed, nothing handed back
+          if LOSE[o.__guid] then o.destruct() return nil end
+          return _r()
+        end
+        return o
+      end
+      function CARDN() local n = 0
+        for _, o in ipairs(getAllObjects()) do if o.tag == "Card" then n = n + 1 end end return n end
+    """)
+
+
+def t_the_resync_button_reloads_the_cards_on_the_table(src):
+    """Resync re-creates every loose card it may touch, loses none of them, and says so.
+
+    Maintainer, 2026-09-12: "make the reload cards with the resynch button."
+
+    WHY A RE-CREATE AND NOT A WRITE. The sweep's whole premise is that a property write reaches a
+    client that has NO SUCH OBJECT, which then takes the full state out of that message -- so it can
+    put back something a client never received. A card showing its back is the other case: the client
+    HAS the card, the write applies the way writes do, and whatever is stale stays stale. Zaandaa:
+    "sometimes you can't see what cards are, like only seeing the back of a card", and "fixing that
+    involves stacking them". Stacking is a DESTROY plus a CREATE, and reload() is that in one call.
+
+    The count is the other half. A repair that re-creates forty objects and gives back thirty-nine is
+    worse than the fault, so the pass is checked on what is on the table after it, not on what it did.
+    """
+    rt = fresh(src)
+    _reload_probe(rt)
+    rt.execute("MSG = {} broadcastToAll = function(m) MSG[#MSG+1] = tostring(m) end")
+    rt.execute("pcall(function() rttSetup(Player['Red'],'','rttRankedBtn') end) FLUSH(250)")
+    before = rt.eval("CARDN()")
+    assert before > 0, "the fixture put no cards on the table, so this proves nothing"
+    rt.execute("RELOADED = {} rttResyncClick(Player['Red'],'','rttResyncBtn') FLUSH(120)")
+    n = rt.eval("function() return #RELOADED end")()
+    assert n == before, "%d of the %d cards on the table were reloaded" % (n, before)
+    after = rt.eval("CARDN()")
+    assert after == before, "the table went from %d cards to %d across a resync" % (before, after)
+    assert rt.eval("RTT_RESYNC_BUSY") is False, "the sweep never released its busy flag"
+    msg = rt.eval("MSG")
+    msg = list(dict(msg).values()) if msg else []
+    assert any("cards reloaded" in m for m in msg), \
+        "the button did not report the cards it reloaded: %s" % msg
+
+
+def t_a_card_reload_is_paced_like_a_spawn(src):
+    """The card pass goes a couple a frame, not all at once.
+
+    A reload is a destroy AND a create, which is heavier than anything else the sweep does -- and the
+    whole reason this file staggers is that a burst of create messages is what loses objects in the
+    first place. A repair that fires forty of them in one frame is the bug wearing a different hat;
+    MULTIPLAYER_SYNC.md records that shape being shipped once already, as "only sometimes the button
+    works".
+    """
+    rt = fresh(src)
+    _reload_probe(rt)
+    rt.execute("""
+      DECK = {}
+      for i = 1, 12 do DECK[i] = MKOBJ("Card", { 10 + i, 1, 0 }, {}) end
+      RELOADED = {}
+      rttResyncReloadCards(function() end)
+    """)
+    per = rt.eval("RTT_RESYNC_CARDS_PER_FRAME")
+    first = rt.eval("function() return #RELOADED end")()
+    assert first == per, "the first frame reloaded %d cards, not the %d budget" % (first, per)
+    rt.execute("FLUSH(1)")
+    assert rt.eval("function() return #RELOADED end")() <= 2 * per, \
+        "the second frame went past the budget"
+    rt.execute("FLUSH(60)")
+    assert rt.eval("function() return #RELOADED end")() == 12, \
+        "the pass dropped its tail: only %d of 12 cards were reloaded" \
+        % rt.eval("function() return #RELOADED end")()
+
+
+def t_a_reloaded_card_comes_back_whole(src):
+    """Tags, lock and place survive the re-create, and the teardown list learns the new GUID.
+
+    TTS documents NEITHER whether a respawned object keeps its GUID nor whether it keeps its tags, so
+    the pass puts both back rather than hoping. Each matters for a different reason:
+
+    TAGS, because this mod's teardown is tag-driven -- rttClearGameObjects sweeps RTT_TEARDOWN_TAGS --
+    so a card that comes back untagged is a card Clear All walks straight past. That is the "old seat
+    number cards remain if you start a new draft" bug, which this file has already fixed once.
+
+    THE GUID, because the draft deck is the one thing tracked by guid instead: rttSpawnDeck records
+    every card it puts out in RTT_SPAWNED, and the teardown destroys that list by guid. A reload that
+    hands back a new guid takes the card off that list unless the swap is made.
+
+    THE LOCK AND THE PLACE, because a resync must leave the table exactly as it found it. A draft card
+    that came back unlocked, or half a unit off its slot, would be a repair nobody asked for.
+    """
+    rt = fresh(src)
+    _reload_probe(rt)
+    rt.execute("""
+      C = MKOBJ("Card", { 12.5, 3.25, -7.5 }, { "RTT Faction", "Deck Object" })
+      C.setRotation({ 0, 270, 180 })
+      C.setLock(true)
+      OLD = C.getGUID()
+      RTT_SPAWNED = { "somethingelse", OLD }
+      rttResyncReloadCards(function() end)
+      FLUSH(60)
+      NEW = nil
+      for _, o in ipairs(getAllObjects()) do
+        if o.tag == "Card" and o.getGUID() ~= OLD then NEW = o end
+      end
+    """)
+    assert rt.eval("NEW") is not None, "the card did not come back at all"
+    got = rt.eval("function() local o = NEW return { g = o.getGUID(), lock = o.getLock(), "
+                  "x = o.getPosition().x, y = o.getPosition().y, z = o.getPosition().z, "
+                  "faction = o.hasTag('RTT Faction'), deck = o.hasTag('Deck Object'), "
+                  "ntags = #o.getTags() } end")()
+    assert got["faction"] and got["deck"], "the reloaded card lost its tags, so teardown cannot see it"
+    assert got["ntags"] == 2, "the tags were doubled up: %d on a card that had 2" % got["ntags"]
+    assert got["lock"] is True, "the reloaded card came back unlocked"
+    assert (abs(got["x"] - 12.5) < 0.05 and abs(got["y"] - 3.25) < 0.05
+            and abs(got["z"] + 7.5) < 0.05), \
+        "the reloaded card is at %.3f,%.3f,%.3f, not where it stood" % (got["x"], got["y"], got["z"])
+    spawned = rt.eval("RTT_SPAWNED")
+    spawned = list(dict(spawned).values()) if spawned else []
+    assert got["g"] in spawned, \
+        "RTT_SPAWNED still names the old guid, so Clear All would leave this card behind"
+    assert rt.eval("OLD") not in spawned, "the dead guid is still on the teardown list"
+
+
+def t_a_card_reload_leaves_alone_what_it_must(src):
+    """Six kinds of card the pass must not re-create, each for its own reason.
+
+    IN A HAND and HELD, because a card in somebody's hand belongs to that player's zone and a card
+    being dragged belongs to their cursor; re-creating either yanks it out from under them. Zaandaa:
+    "locking things in people's hands is also very awkward."
+
+    MOVING and STILL SPAWNING, because both are cards something else is in the middle of. The
+    supporter deal animates three cards across the table and flips them when they land; the API is
+    explicit that a spawning object's guid "is assigned correctly once the spawning member becomes
+    false", so a card taken mid-arrival cannot even be accounted for afterwards.
+
+    SCRIPTED, because a respawn runs the card's onLoad again, re-registering everything it registers.
+    Nothing in the mod ships a scripted CARD today -- the Refill Card is a Custom_Token -- and this
+    keeps that free if one is ever added.
+
+    CARRYING BUTTONS, because createButton is runtime-only and a respawned card comes back bare.
+
+    A DECK, because a deck is the draw pile and the discard: re-creating one re-creates every card
+    inside it at once, and rttFindDrawDeck would then be hunting a guid that no longer exists.
+    """
+    rt = fresh(src)
+    _reload_probe(rt)
+    rt.execute("""
+      SEAT('Red', 'hostess')
+      SPARED = {}
+      local function card(kind) local o = MKOBJ("Card", { 40, 1, 0 }, {}) SPARED[kind] = o return o end
+      HANDCARDS['Red'] = { card("in a hand") }
+      card("held").held_by_color = "Red"
+      card("moving").__moving = true
+      card("still spawning").spawning = true
+      local s = card("scripted") s.getLuaScript = function() return "function onLoad() end" end
+      card("with buttons").createButton({ label = "x" })
+      SPARED["a deck"] = MKOBJ("Deck", { 40, 1, 9 }, {})
+      TAKEN = MKOBJ("Card", { 40, 1, 18 }, {})           -- the control: this one MUST be reloaded
+      rttResyncReloadCards(function() end)
+      FLUSH(60)
+      LEFT = {}
+      for kind, o in pairs(SPARED) do LEFT[kind] = (getObjectFromGUID(o.__guid) ~= nil) end
+      CONTROL = (getObjectFromGUID(TAKEN.__guid) == nil)
+    """)
+    left = dict(rt.eval("LEFT"))
+    kept = [k for k, v in left.items() if not v]
+    assert not kept, "the pass re-created what it must not touch: %s" % ", ".join(sorted(kept))
+    assert rt.eval("CONTROL") is True, \
+        "the control card was not reloaded either, so this test would pass on a pass that does nothing"
+
+
+def t_a_card_the_reload_loses_is_put_back(src):
+    """If a re-create ever swallows a card, the pass spawns it again from the blueprint it kept.
+
+    THE ONE WAY THIS REPAIR COULD COST SOMETHING. reload() destroys before it creates, so a failure
+    leaves nothing -- and a vanished card is a worse outcome than a card showing its back, which is
+    the whole complaint. So every card is snapshotted before it is touched (its JSON, its tags, its
+    lock, where it stood) and the accounting pass at the end puts back anything it cannot find.
+
+    AND IT MUST NOT PUT BACK WHAT IS STILL THERE. Spawning a duplicate is the mirror-image bug, so a
+    card counts as absent only when it answers to neither guid, nothing stands within a whisker of
+    where it was, and nobody at the table is mid-drag with a card that could be it. The second half of
+    this test is the ordinary case, where the reload works and the count must not grow.
+    """
+    rt = fresh(src)
+    _reload_probe(rt)
+    rt.execute("""
+      A = MKOBJ("Card", { 55, 1, 0 }, { "RTT Faction" })
+      A.setLock(true)
+      LOSE[A.getGUID()] = true
+      B = MKOBJ("Card", { 55, 1, 6 }, { "RTT Faction" })
+      rttResyncReloadCards(function() end)
+      FLUSH(60)
+      BACK = nil
+      for _, o in ipairs(getAllObjects()) do
+        if o.tag == "Card" then
+          local p = o.getPosition()
+          if math.abs(p.x - 55) < 0.05 and math.abs(p.z) < 0.05 then BACK = o end
+        end
+      end
+    """)
+    assert rt.eval("BACK") is not None, "the swallowed card was not put back"
+    got = rt.eval("function() local o = BACK return { lock = o.getLock(), "
+                  "tag = o.hasTag('RTT Faction') } end")()
+    assert got["lock"] is True and got["tag"] is True, \
+        "the card came back without its lock or its tag: %s" % dict(got)
+    assert rt.eval("CARDN()") == 2, \
+        "the table holds %d cards where it held 2" % rt.eval("CARDN()")
+
+    # ...and the ordinary case, where nothing was lost and nothing may be duplicated
+    rt2 = fresh(src)
+    _reload_probe(rt2)
+    rt2.execute("""
+      for i = 1, 5 do MKOBJ("Card", { 55 + i, 1, 0 }, {}) end
+      rttResyncReloadCards(function() end)
+      FLUSH(60)
+    """)
+    assert rt2.eval("CARDN()") == 5, \
+        "a clean pass left %d cards where there were 5" % rt2.eval("CARDN()")
+
+
+def t_the_draft_deal_survives_a_card_going(src):
+    """Take a card away mid-deal and the rest of the draft still deals.
+
+    rttSlideOut walks the draft one card every 0.6 s and rttFlipAll turns the same table over
+    afterwards at 0.12 s a card, so a handle stored when the deck was spawned is held for the better
+    part of ten seconds. It used to store the OBJECTS. Touching a destroyed object in TTS is a C#
+    NullReferenceException -- "Object reference not set to an instance of an object" -- which pcall
+    does not catch and which takes the rest of the calling function with it, so anything that removed
+    a draft card in that window killed the deal from that card on.
+
+    The card pass is what made this reachable on purpose -- it re-creates a card by destroying it --
+    but it was never the only way in: Clear All, a player deleting a card, or a hand grabbing one all
+    do the same. The deal keeps GUIDS now and re-resolves each card at the moment it moves it.
+    """
+    for label, at in (("half way through the deal", 8), ("while they are flipping", 22)):
+        rt = fresh(src)
+        rt.execute("NULLS = {} local _p = pcall "
+                   "pcall = function(f, ...) local ok, e = _p(f, ...) "
+                   "  if not ok and tostring(e):find('Object reference not set') then "
+                   "    NULLS[#NULLS+1] = tostring(e) end "
+                   "  return ok, e end")
+        rt.execute("pcall(function() rttSetup(Player['Red'],'','rttRankedBtn') end) FLUSH(%d)" % at)
+        gone = rt.eval("""function()
+            for _, o in ipairs(getAllObjects()) do
+              if o.tag == "Card" then local g = o.getGUID() o.destruct() return g end
+            end
+            return nil
+          end""")()
+        assert gone is not None, "no draft card was on the table at round %d to take away" % at
+        rt.execute("FLUSH(250)")
+        nulls = rt.eval("NULLS")
+        nulls = list(dict(nulls).values()) if nulls else []
+        assert not nulls, "losing a card %s threw %d null(s): %s" % (
+            label, len(nulls), nulls[0][:130])
+
+
+def t_a_resync_pressed_while_the_draft_deals_frees_itself(src):
+    """Pressed mid-deal, the pass declines the cards -- and does not take the button down with it.
+
+    The cards are declined because rttSlideOut is walking the draft and rttFlipAll is about to turn it
+    over; re-creating a card underneath either is the null the case above guards. But declining is a
+    RETURN out of the middle of the sweep, and the sweep hands its busy flag to this pass rather than
+    clearing it itself. An early return that forgot to clear left RTT_RESYNC_BUSY up for the rest of
+    the session: pressed once during a draft, the button never worked again.
+
+    So: no card touched, the flag down, the reason said out loud, and the very next press works.
+    """
+    rt = fresh(src)
+    _reload_probe(rt)
+    rt.execute("""
+      MSG = {} broadcastToAll = function(m) MSG[#MSG+1] = tostring(m) end
+      for i = 1, 3 do MKOBJ("Card", { 70 + i, 1, 0 }, {}) end
+      RTT_BUSY = true
+      rttResyncClick(Player['Red'], '', 'rttResyncBtn')
+      FLUSH(120)
+    """)
+    assert rt.eval("function() return #RELOADED end")() == 0, \
+        "cards were reloaded while a draft was dealing"
+    assert rt.eval("RTT_RESYNC_BUSY") is False, \
+        "the sweep kept its busy flag, so the button is dead for the rest of the session"
+    msg = rt.eval("MSG")
+    msg = list(dict(msg).values()) if msg else []
+    assert any("while the draft is dealing" in m for m in msg), \
+        "nobody was told why the cards were left alone: %s" % msg
+
+    # ...and the next press, with the deal over, does the cards
+    rt.execute("RTT_BUSY = false RELOADED = {} "
+               "rttResyncClick(Player['Red'], '', 'rttResyncBtn') FLUSH(120)")
+    assert rt.eval("function() return #RELOADED end")() == 3, \
+        "the second press reloaded %d of the 3 cards" % rt.eval("function() return #RELOADED end")()
+
+
 CASES = [
     ("manual path drives the turn system",   t_manual_turn_order),
     ("manual path spawns 4 / 5 boards",      t_boards_spawn),
@@ -8133,6 +8440,13 @@ CASES = [
     ("vagabond gets no setup card",     t_the_vagabond_gets_no_advanced_setup_card),
     ("rel markers follow the table",    t_relationship_markers_follow_the_factions_in_play),
     ("the duchess keeps her head",      t_the_duchess_keeps_her_whole_head_and_none_of_her_tiles),
+    ("resync reloads the cards",        t_the_resync_button_reloads_the_cards_on_the_table),
+    ("the card reload is paced",        t_a_card_reload_is_paced_like_a_spawn),
+    ("a reloaded card comes back whole", t_a_reloaded_card_comes_back_whole),
+    ("the reload spares what it must",  t_a_card_reload_leaves_alone_what_it_must),
+    ("a lost card is put back",         t_a_card_the_reload_loses_is_put_back),
+    ("mid-deal resync frees itself",   t_a_resync_pressed_while_the_draft_deals_frees_itself),
+    ("the deal survives a card going",  t_the_draft_deal_survives_a_card_going),
 ]
 
 

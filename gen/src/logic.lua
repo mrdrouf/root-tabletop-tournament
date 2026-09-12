@@ -1949,6 +1949,268 @@ function rttResyncTouch(o)
   end
 end
 
+-- CARDS ARE RELOADED, BECAUSE NOTHING ELSE REACHES THEM ---------------------------------------------
+--
+-- The sweep above cannot help a card and says so at its own `if o.tag == "Card" then return end`.
+-- Zaandaa, 2026-09-12: "sometimes you can't see what cards are, like only seeing the back of a card",
+-- and "fixing that involves stacking them" -- not lock/unlock. Maintainer, the same day: "I don t
+-- think flip will do anything. make the reload cards with the resynch button."
+--
+-- WHY A PROPERTY WRITE IS THE WRONG SHAPE FOR A CARD. The whole theory above is that a lock toggle
+-- reaches a client that has NO SUCH OBJECT, which then takes the full state out of that message. A
+-- card showing its back is the opposite case: the client HAS the object, so the write applies the way
+-- writes normally do and whatever is stale stays stale. Stacking works because it is a DESTROY plus a
+-- CREATE -- TTS deletes the cards and creates a deck -- and a create carries the whole object
+-- definition over the wire again. So the repair has to be a re-create, not a write.
+--
+-- reload() IS THAT, WITHOUT THE STACK. The API: "causes the Object to be deleted and respawned
+-- instantly to refresh it, so its old Object reference will no longer be valid." One call, no partner
+-- card needed, no reordering, and the card comes back where it stood. group() -- the literal
+-- stack-and-unstack -- is strictly worse here: it needs two cards, it reorders them, and it leaves a
+-- deck somebody then has to split.
+--
+-- BUTTON ONLY. Nothing arms this automatically. A reload is far heavier than a lock toggle, and the
+-- lesson written at the bottom of MULTIPLAYER_SYNC.md is that a repair which floods a client is worse
+-- than the drop it repairs -- "only sometimes the button works" is what v1.155 looked like. So it runs
+-- when a person asks for it and at no other time, even if RTT_RESYNC_AUTO is ever turned on.
+RTT_RESYNC_CARDS           = true
+RTT_RESYNC_CARDS_PER_FRAME = 2     -- a reload is a destroy+create; the lock toggle's 15 would be a burst
+RTT_RESYNC_CARD_SETTLE     = 6     -- frames before the accounting pass: a respawned object's GUID is
+                                   -- only "assigned correctly once the spawning member becomes false"
+RTT_RESYNC_CARD_EPS        = 0.05  -- how near its old spot a card must be to BE the card that was there
+
+-- WHAT MAY BE RELOADED. Every one of these costs something real if it is skipped wrongly and costs
+-- something worse if it is not skipped at all.
+function rttResyncCardOK(o, skip)
+  local ok = false
+  pcall(function()
+    -- LOOSE CARDS ONLY. Not decks: a deck is the draw pile and the discard, reloading one re-creates
+    -- every card in it at once, and rttFindDrawDeck would be looking for an object that no longer has
+    -- that guid. Not tokens, not tiles -- the sweep above already covers those, cheaply.
+    if o.tag ~= "Card" then return end
+    if skip[o.getGUID()] == true then return end        -- in a hand, a laid prisoner, or the board itself
+    if o.held_by_color ~= nil then return end           -- somebody has hold of it right now
+    if o.spawning == true then return end               -- it has not finished arriving; its guid is not settled
+    if o.isSmoothMoving() then return end               -- mid-flight: a dealt draft card, a supporter
+    -- A SCRIPTED CARD RESTARTS ITS SCRIPT. onLoad runs again on the respawn, which would re-register
+    -- everything it registers. The Refill Card is a Custom_Token so it is already out of scope, but
+    -- this keeps that true if a scripted card is ever added.
+    if (o.getLuaScript() or "") ~= "" then return end
+    -- ...AND BUTTONS DO NOT SURVIVE. createButton is runtime-only, so a respawned card comes back
+    -- bare. Nothing in the mod puts buttons on a card today; if anything ever does, it keeps them.
+    local b = o.getButtons()
+    if b ~= nil and #b > 0 then return end
+    -- STILL, AND STAYING STILL. A locked card cannot move, so it needs no further test. A free one
+    -- must be at rest AND carry no velocity: `resting` alone is not enough -- the supporter deal
+    -- already waits on it with a timeout because it does not always arrive.
+    if o.getLock() ~= true then
+      if o.resting ~= true then return end
+      local v = o.getVelocity()
+      if v ~= nil and (math.abs(v.x) + math.abs(v.y) + math.abs(v.z)) > 0.01 then return end
+    end
+    ok = true
+  end)
+  return ok
+end
+
+-- The teardown list is the one registry that can hold a CARD's guid -- rttSpawnDeck records every
+-- draft card it puts out -- and a reload can hand back a different one. Miss this and Clear All walks
+-- straight past a reloaded card, which is the "old seat number cards remain" bug in a new costume.
+function rttResyncSwapGuid(old, new)
+  if old == new or new == nil then return end
+  for i, g in ipairs(RTT_SPAWNED or {}) do
+    if g == old then RTT_SPAWNED[i] = new end
+  end
+end
+
+-- WHAT WAS THERE BEFORE, kept whole, so nothing depends on the reload having carried it. TTS documents
+-- neither whether the respawned card keeps its guid nor whether it keeps its tags, and the mod's
+-- teardown is TAG-driven -- a card that comes back untagged is a card that never gets cleared.
+function rttResyncCardSnapshot(o)
+  local rec = nil
+  pcall(function()
+    local tg = {}
+    for _, t in ipairs(o.getTags() or {}) do tg[#tg + 1] = t end
+    rec = { guid = o.getGUID(), json = o.getJSON(), tags = tg,
+            pos = o.getPosition(), rot = o.getRotation(), scale = o.getScale(),
+            lock = (o.getLock() == true) }
+  end)
+  if rec == nil or rec.json == nil or rec.json == "" then return nil end
+  return rec
+end
+
+-- Put back what the respawn did not carry. Re-adding is CONDITIONAL on both sides: a tag is added only
+-- if it is missing and the lock is written only if it differs, so this is a no-op if TTS turns out to
+-- carry them and a repair if it does not. Either way the card ends the sweep as it began it.
+function rttResyncCardRestore(rec, guid)
+  local o = getObjectFromGUID(guid)
+  if o == nil then return end
+  for _, t in ipairs(rec.tags) do
+    pcall(function() if not o.hasTag(t) then o.addTag(t) end end)
+  end
+  pcall(function() if (o.getLock() == true) ~= rec.lock then o.setLock(rec.lock) end end)
+  -- and where it stood, if the respawn did not put it back there. Never while somebody is holding it.
+  pcall(function()
+    if o.held_by_color ~= nil then return end
+    local p = o.getPosition()
+    local dx, dy, dz = p.x - rec.pos.x, p.y - rec.pos.y, p.z - rec.pos.z
+    if (dx * dx + dy * dy + dz * dz) > (RTT_RESYNC_CARD_EPS * RTT_RESYNC_CARD_EPS) then
+      o.setPosition({ rec.pos.x, rec.pos.y, rec.pos.z })
+      o.setRotation({ rec.rot.x, rec.rot.y, rec.rot.z })
+    end
+  end)
+  rttResyncSwapGuid(rec.guid, guid)
+end
+
+-- THE ACCOUNTING PASS. One scan of the table, not one per card, and its job is to be sure the reload
+-- gave every card back. A card is matched by guid first -- the respawn may have kept it, or told us
+-- the new one -- and then by WHERE IT STOOD, which is where a reload puts it. A match is CLAIMED, so
+-- two cards on the same spot cannot both be answered by the same survivor.
+function rttResyncCardsSettle(list, done, gen)
+  local all, cards, held = {}, {}, false
+  pcall(function() all = getAllObjects() end)
+  for _, o in ipairs(all) do
+    pcall(function()
+      if o.tag == "Card" then
+        cards[#cards + 1] = { guid = o.getGUID(), p = o.getPosition(), taken = false }
+        if o.held_by_color ~= nil then held = true end
+      end
+    end)
+  end
+  local lost = {}
+  for _, rec in ipairs(list) do
+    local hit = nil
+    for _, c in ipairs(cards) do
+      if not c.taken and (c.guid == rec.guid or (rec.newguid ~= nil and c.guid == rec.newguid)) then
+        hit = c break
+      end
+    end
+    if hit == nil then
+      for _, c in ipairs(cards) do
+        if not c.taken then
+          local dx, dy, dz = c.p.x - rec.pos.x, c.p.y - rec.pos.y, c.p.z - rec.pos.z
+          if (dx * dx + dy * dy + dz * dz) <= (RTT_RESYNC_CARD_EPS * RTT_RESYNC_CARD_EPS) then
+            hit = c break
+          end
+        end
+      end
+    end
+    if hit ~= nil then
+      hit.taken = true
+      rttResyncCardRestore(rec, hit.guid)
+    elseif not held then
+      -- PROVABLY ABSENT, AND ONLY THEN. Not by guid, not where it stood, and nobody at the table is
+      -- holding a card that could be it. Anything less than that and the put-back would DUPLICATE the
+      -- card, which is a worse bug than the one this exists to fix -- so when somebody is mid-drag the
+      -- pass declines to guess and leaves the accounting to the next press of the button.
+      lost[#lost + 1] = rec
+    end
+  end
+  -- ...and the put-back is paced too. If a reload ever fails wholesale this is forty spawns, which is
+  -- the exact burst the whole file exists to avoid.
+  -- ...AND NOT AT ALL IF THE GAME HAS MOVED ON. A put-back after a teardown would resurrect last
+  -- game's cards onto the new table, which is a leak, not a repair -- exactly the "old seat number
+  -- cards remain" complaint pointing the other way.
+  if gen ~= nil and RTT_RUN_ID ~= gen then lost = {} end
+  local i = 1
+  local function put()
+    if i > #lost then
+      RTT_RESYNCING = false
+      RTT_RESYNC_BUSY = false
+      if done ~= nil then done(#list, #lost, false) end
+      return
+    end
+    local rec = lost[i]
+    i = i + 1
+    pcall(function()
+      spawnObjectJSON({
+        json = rec.json,
+        position = { rec.pos.x, rec.pos.y, rec.pos.z },
+        rotation = { rec.rot.x, rec.rot.y, rec.rot.z },
+        scale    = { rec.scale.x, rec.scale.y, rec.scale.z },
+        callback_function = function(c)
+          pcall(function() if rec.lock then c.setLock(true) end end)
+          for _, t in ipairs(rec.tags) do
+            pcall(function() if not c.hasTag(t) then c.addTag(t) end end)
+          end
+          pcall(function() rttResyncSwapGuid(rec.guid, c.getGUID()) end)
+        end,
+      })
+    end)
+    Wait.frames(put, 1)
+  end
+  put()
+end
+
+-- The pass itself. Same shape as the sweep above -- a list of GUIDS, re-resolved every frame, because
+-- a draft destroys objects the whole time one is running and a held reference goes bad on TTS's side
+-- of the binding where a pcall cannot reach it.
+function rttResyncReloadCards(done)
+  -- NOT WHILE A SETUP IS RUNNING, and this one is not defensive politeness -- it is a null the harness
+  -- found on the first run. rttSlideOut deals the draft one card every 0.6 s and it holds the OBJECTS,
+  -- not their guids, for the whole of that; rttFlipAll turns the same table over afterwards. Reload a
+  -- card out from under either and the next step of the deal touches a destroyed handle, which is TTS's
+  -- C# null and takes the rest of the draft with it. RTT_BUSY is true for the whole chain, and
+  -- RTT_RUN_ID moves the moment a new game starts, so between them no reload can land inside a deal.
+  --
+  -- (The deal holding references at all is its own latent fault, older than this pass and reachable
+  -- without it -- anything that destroys a draft card mid-deal does the same. It is in the work queue.)
+  --
+  -- AND IT RELEASES THE SWEEP ON THE WAY OUT. rttResyncSweep hands the busy flag over to this pass
+  -- rather than clearing it itself, so an early return that forgot to clear would leave the button
+  -- dead for the rest of the session -- pressed once during a draft and never usable again.
+  if RTT_BUSY == true then
+    RTT_RESYNCING = false
+    RTT_RESYNC_BUSY = false
+    if done ~= nil then done(0, 0, true) end
+    return
+  end
+  local gen = RTT_RUN_ID
+  local skip = rttResyncSkip()
+  local all, list = {}, {}
+  pcall(function() all = getAllObjects() end)
+  for _, o in ipairs(all) do
+    if rttResyncCardOK(o, skip) then
+      local g = nil
+      pcall(function() g = o.getGUID() end)
+      if g ~= nil then list[#list + 1] = g end
+    end
+  end
+  local i, done_recs = 1, {}
+  local function pump()
+    -- asked every frame, not once: a deal that starts under the pass stops it where it stands
+    if RTT_RUN_ID ~= gen or RTT_BUSY == true then i = #list + 1 end
+    local n = 0
+    while i <= #list and n < RTT_RESYNC_CARDS_PER_FRAME do
+      local o = nil
+      pcall(function() o = getObjectFromGUID(list[i]) end)
+      -- ASKED AGAIN, not once when the list was built: a card picked up, dealt into a hand or
+      -- destroyed since then must not be reloaded now.
+      if o ~= nil and rttResyncCardOK(o, skip) then
+        -- SNAPSHOT HERE, not when the list was built. getJSON serialises the whole card, and doing
+        -- forty of them in the frame that builds the list is its own little burst -- the one thing
+        -- this pass must not be. Taken the instant before the destroy, it is also the freshest
+        -- possible copy of what has to come back.
+        local rec = rttResyncCardSnapshot(o)
+        if rec ~= nil then
+          local new = nil
+          pcall(function() new = o.reload() end)
+          pcall(function() if new ~= nil then rec.newguid = new.getGUID() end end)
+          done_recs[#done_recs + 1] = rec
+        end
+      end
+      i = i + 1
+      n = n + 1
+    end
+    if i <= #list then
+      Wait.frames(pump, 1)
+    else
+      Wait.frames(function() rttResyncCardsSettle(done_recs, done, gen) end, RTT_RESYNC_CARD_SETTLE)
+    end
+  end
+  pump()
+end
+
 -- One pass over everything on the table, staggered like the spawns for the same reason: un-staggered
 -- it would be the exact burst it exists to repair.
 --
@@ -1959,9 +2221,9 @@ end
 --
 -- The frame waits here are BARE Wait.frames, not rttAfterFrames: a sweep is not part of a setup
 -- chain, and one abandoned half-way would leave RTT_RESYNC_BUSY true for the rest of the session.
-function rttResyncSweep(done, retry)
+function rttResyncSweep(done, retry, withCards)
   if RTT_RESYNC_BUSY then
-    if retry == true then Wait.time(function() rttResyncSweep(done, false) end, 1.0) end
+    if retry == true then Wait.time(function() rttResyncSweep(done, false, withCards) end, 1.0) end
     return false
   end
   RTT_RESYNC_BUSY = true
@@ -1996,9 +2258,18 @@ function rttResyncSweep(done, retry)
       Wait.frames(pump, 1)
     else
       Wait.frames(function()
+        -- THE CARDS COME AFTER, not alongside. Two bursts in the same frames is the thing this whole
+        -- file is built to avoid, and the busy flag has to stay up across both or a second press lands
+        -- in the middle of the reloads. rttResyncCardsSettle owns clearing it from here on.
+        if withCards == true and RTT_RESYNC_CARDS == true then
+          rttResyncReloadCards(function(nc, lostc, waited)
+            if done ~= nil then done(#list, nc, lostc, waited) end
+          end)
+          return
+        end
         RTT_RESYNCING = false
         RTT_RESYNC_BUSY = false
-        if done ~= nil then done(#list) end
+        if done ~= nil then done(#list, 0, 0, false) end
       end, RTT_RESYNC_HOLD + 2)
     end
   end
@@ -2035,9 +2306,15 @@ end
 -- table logging out. It destroys nothing, so it carries no warning and is not in RTT_WIPE_BTN; the
 -- debounce is the sweep's own busy flag, so a player mashing it cannot stack sweeps.
 function rttResyncClick(player, value, id)
-  local ran = rttResyncSweep(function(n)
-    pcall(function() broadcastToAll("Resync: " .. tostring(n) .. " objects re-sent.", { 0.66, 0.82, 0.86 }) end)
-  end)
+  local ran = rttResyncSweep(function(n, nc, lostc, waited)
+    local msg = "Resync: " .. tostring(n) .. " objects re-sent"
+    if (nc or 0) > 0 then msg = msg .. ", " .. tostring(nc) .. " cards reloaded" end
+    if (lostc or 0) > 0 then msg = msg .. " (" .. tostring(lostc) .. " put back)" end
+    -- said out loud rather than silently skipped: pressing Resync mid-draft still re-sends the table,
+    -- and the person who pressed it should know the cards were left for a second press
+    if waited == true then msg = msg .. "; cards left alone while the draft is dealing" end
+    pcall(function() broadcastToAll(msg .. ".", { 0.66, 0.82, 0.86 }) end)
+  end, false, true)
   if ran then
     pcall(function() broadcastToAll("Resyncing the table...", { 0.66, 0.82, 0.86 }) end)
   end
@@ -2615,7 +2892,12 @@ function rttSpawnDeck(jsons, i, cards)
     callback_function = function(o)
       o.setLock(true)
       RTT_SPAWNED[#RTT_SPAWNED+1] = o.getGUID()
-      cards[i] = o
+      -- GUIDS, NOT THE OBJECTS. The deal below walks this table one card every 0.6 s and then flips it
+      -- again at 0.12 s a card, so a handle stored here is held for the better part of ten seconds --
+      -- and touching a destroyed object is TTS's C# null, which no pcall around it catches. Anything
+      -- that takes a draft card away in that window used to kill the rest of the deal: Clear All, a
+      -- player deleting a card, and now the resync pass, which re-creates a card by destroying it.
+      cards[i] = o.getGUID()
       rttAfter(function() rttSpawnDeck(jsons, i+1, cards) end, 0.1)
     end
   })
@@ -2628,14 +2910,17 @@ function rttSlideOut(cards, k)
     rttAfter(function() rttFlipAll(cards, 1) end, 0.6)
     return
   end
-  local c = cards[RTT_NLEFT + k]                        -- the k-th draft card (top of the deck)
+  local g = cards[RTT_NLEFT + k]                        -- the k-th draft card (top of the deck)
+  local c = (g ~= nil) and getObjectFromGUID(g) or nil
   if c ~= nil then
     c.setLock(false)
     local _nd = #cards - RTT_NLEFT local _sp = (_nd > 1) and (28.0 / (_nd - 1)) or 0 local s = {63.9, 11.6, -14 + (_nd - k) * _sp}
     local mid = {s[1], s[2] + 4, (RTT_DECK[3] + s[3]) / 2}   -- lift over -> arc
     c.setPositionSmooth(mid, false, false)
+    -- ...and the second half of the arc resolves again, 0.35 s later, rather than riding the handle
     rttAfter(function()
-      if c ~= nil then c.setPositionSmooth({s[1], s[2], s[3]}, false, true) end
+      local x = getObjectFromGUID(g)
+      if x ~= nil then x.setPositionSmooth({s[1], s[2], s[3]}, false, true) end
     end, 0.35)
   end
   rttAfter(function() rttSlideOut(cards, k+1) end, 0.6)
@@ -2646,7 +2931,8 @@ end
 function rttFlipAll(cards, k)
   if k > (#cards - RTT_NLEFT) then                     -- flip ALL the dealt cards
     for i = 1, RTT_NLEFT do                            -- unlock the leftover deck so it's movable
-      if cards[i] ~= nil then cards[i].setLock(false) end
+      local x = (cards[i] ~= nil) and getObjectFromGUID(cards[i]) or nil
+      if x ~= nil then x.setLock(false) end
     end
     -- Captains FIRST, then the turn order (maintainer: "draft the captains before the turn order
     -- cards not after"). rttDraftKnavesCaptains needs ~0.5s to deal its four once it starts, so the
@@ -2655,7 +2941,8 @@ function rttFlipAll(cards, k)
     rttAfter(rttDealOrder, 2.2)
     return
   end
-  local c = cards[RTT_NLEFT + k]
+  local g = cards[RTT_NLEFT + k]
+  local c = (g ~= nil) and getObjectFromGUID(g) or nil
   if c ~= nil then c.flip() end
   rttAfter(function() rttFlipAll(cards, k+1) end, 0.12)
 end

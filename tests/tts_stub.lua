@@ -162,7 +162,51 @@ function MKOBJ(name, pos, tags)
   -- object ends the sweep exactly where it began rather than 33 ms into a fall.
   function o.setVelocity(v) o.__vel = v end
   function o.setAngularVelocity(v) o.__avel = v end
-  function o.randomize() end function o.reload() return o end function o.clone(p) return MKOBJ(o.__name, (p or {}).position, o.__tags) end
+  o.__vel = vec{0, 0, 0}
+  function o.getVelocity() return vec(o.__vel) end
+  function o.randomize() end function o.clone(p) return MKOBJ(o.__name, (p or {}).position, o.__tags) end
+
+  -- A REAL RELOAD, NOT A NO-OP. This used to be `function o.reload() return o end`, which is not what
+  -- TTS does and is the worst kind of stub: any test written against it passes whatever the code does.
+  -- The API is explicit -- "causes the Object to be deleted and respawned instantly to refresh it, so
+  -- its old Object reference will no longer be valid" -- so the old handle must go bad here too, or
+  -- the harness cannot see a caller that keeps holding it.
+  --
+  -- AND IT IS MODELLED AT ITS WORST. Two things TTS does not document: whether the respawned object
+  -- keeps the GUID, and whether it keeps its tags. Both are modelled as LOST, because that is the
+  -- case the mod has to survive -- code that is correct against a new GUID and empty tags is also
+  -- correct if TTS turns out to keep them, and code written against the generous assumption is only
+  -- correct by luck. What is kept is what a refresh plainly must keep: where it stands, how it is
+  -- turned, its scale, its lock, and which way up it is.
+  function o.reload()
+    local n = MKOBJ(o.__name, o.__pos, {})
+    n.__rot, n.__scale = vec(o.__rot), vec(o.__scale)
+    n.__locked = o.__locked
+    n.is_face_down = o.is_face_down
+    n.__json = o.__json
+    note(REC.spawned, "reload:" .. o.__name)
+    o.destruct()
+    return n
+  end
+
+  -- THE OBJECT'S TYPE. TTS carries it on every object as a plain string -- "Card", "Deck", "Tile" --
+  -- and the resync sweep reads it to decide what may be locked and what must be reloaded. The stub
+  -- carried no `tag` at all, so `o.tag == "Card"` was `nil == "Card"` for every object in every test:
+  -- the sweep's own "NOT CARDS" guard never once fired here, and a card pass keyed on it would have
+  -- been green against code that never ran.
+  o.tag = ({ Card = "Card", CardCustom = "Card", Deck = "Deck", DeckCustom = "Deck",
+             Custom_Tile = "Tile", Custom_Token = "Custom_Token" })[o.__name] or o.__name
+  -- "If the Object is finished spawning." A card still arriving has no settled GUID yet, so nothing
+  -- may reload it.
+  o.spawning = false
+  -- Enough of a blueprint to respawn from, which is all the mod asks of it: the GUID it had, its type
+  -- and its tags. spawnObjectJSON below reads exactly these three out of a blob.
+  function o.getJSON()
+    if o.__json ~= nil then return o.__json end
+    local tg = (#o.__tags == 0) and "" or ('"' .. table.concat(o.__tags, '","') .. '"')
+    return string.format('{"GUID": "%s","Name": "%s","Nickname": "%s","Locked": %s,"Tags": [%s]}',
+                         o.__guid, o.__name, o.__name, tostring(o.__locked == true), tg)
+  end
   -- A CONTAINER WITH REAL CONTENTS, when a test gives it any (o.__contents = {{guid=..., nickname=...}}).
   -- Without this every takeObject returned an anonymous object called "taken", so nothing that draws
   -- from a bag -- the badger relics above all -- could be checked for WHAT it drew, only that it drew
@@ -232,7 +276,13 @@ function MKOBJ(name, pos, tags)
   function o.getSnapPoints() return o.__snaps or {} end
   function o.call() end function o.setVar() end function o.getVar() end
   function o.setTable() end function o.getTable() end
-  function o.createButton() end function o.clearButtons() end
+  -- BUTTONS ARE RUNTIME-ONLY, and that is why the harness has to see them: nothing a script draws on
+  -- an object survives the object being respawned, so a card carrying buttons is a card the resync
+  -- pass must leave alone. They used to be a pair of no-ops, so getButtons did not exist at all.
+  o.__buttons = {}
+  function o.createButton(p) o.__buttons[#o.__buttons+1] = p or {} end
+  function o.clearButtons() o.__buttons = {} end
+  function o.getButtons() return o.__buttons end
   -- SNAP POINTS GO BOTH WAYS. setSnapPoints used to be a no-op, so a test could not tell a board that
   -- had been given rotation snapping from one that had not -- which is the whole of what the Knaves'
   -- captain board asks for at spawn.
@@ -377,7 +427,10 @@ end
 -- A deck whose contents the mod can inspect and draw from. `specs` is a list of {desc}, top first.
 function MKDECK(specs)
   local o = MKOBJ("Deck", {0, 2, 0}, {"Deck Object"})
+  -- NAME AND TAG TOGETHER. Scripts in this mod read `o.tag or o.name`, so a fixture that sets only
+  -- one of them describes an object TTS could not produce.
   o.name = "Deck"
+  o.tag  = "Deck"
   o.__cards = {}
   for i, sp in ipairs(specs) do
     o.__cards[i] = { guid = string.format("c%03d", i), description = sp.desc or "", nickname = sp.nick or "card" }
@@ -405,6 +458,7 @@ function MKDECK(specs)
     if c == nil then return nil end
     local t = MKOBJ(c.nickname, p.position, {})
     t.name = "Card"
+    t.tag  = "Card"
     t.__desc = c.description
     t.getDescription = function() return c.description end
     -- taken face down when the caller asked for it: a z rotation anywhere near 180 is a card on its back
@@ -424,6 +478,9 @@ end
 local HANDS = {}
 local COLORS = {"Red","Yellow","Orange","Teal","Green","Brown","Blue","Purple","Pink","White","Grey","Black"}
 Player = {}
+-- [colour] = the OBJECTS in that colour's hand. Deliberately not the `HANDS` above, which is that
+-- colour's hand TRANSFORMS -- two different things one letter apart.
+HANDCARDS = {}
 
 -- A ROSTER, not one fixed object per colour. The stub used to keep a single Player[c] table per
 -- colour with changeColor as a NO-OP, so every assertion about who sits where was really an assertion
@@ -477,7 +534,12 @@ for _, c in ipairs(COLORS) do
       e.color = nc
     end,
     getHandCount = function() return 2 end,
-    getHandObjects = function() return {} end, print = function() end, broadcast = function() end,
+    -- WHAT IS ACTUALLY IN THE HAND. This returned {} for every colour, so every exclusion built on it
+    -- was untestable -- the resync sweep has skipped hand objects since v1.154 and the harness could
+    -- not tell that apart from not skipping them. A test fills HANDS[colour] with objects.
+    -- refresh() rebuilds this table on every Player[c] access, so the store has to live outside it.
+    getHandObjects = function() return HANDCARDS[c] or {} end,
+    print = function() end, broadcast = function() end,
   }
 end
 

@@ -285,6 +285,46 @@ So:
 
 ---
 
+## Cards: a re-create, not a write (v1.211)
+
+The sweep above cannot repair a card and never could. Its whole premise is that a property write
+reaches a client that has **no such object**, which then takes the full state out of that message. A
+card showing its back is the other case entirely: the client **has** the card, the write applies the
+way writes do, and whatever is stale stays stale.
+
+Zaandaa: *"sometimes you can't see what cards are, like only seeing the back of a card"*, and
+*"fixing that involves stacking them"*. Stacking works because it is a **destroy plus a create** —
+TTS deletes the cards and creates a deck — and a create carries the whole object definition again.
+`Object.reload()` is exactly that in one call: *"causes the Object to be deleted and respawned
+instantly to refresh it, so its old Object reference will no longer be valid."* `group()` — the
+literal stack-and-unstack — is strictly worse: two cards needed, they get reordered, and somebody has
+to split the deck afterwards.
+
+**Button only.** Nothing arms it. A reload is far heavier than a lock toggle and the lesson at the
+bottom of this file is that a repair which floods a client is worse than the drop it repairs.
+
+**The one way it could cost something** is that reload destroys before it creates, so every card is
+snapshotted first — its JSON, its tags, its lock, where it stood — and an accounting pass at the end
+spawns back anything it cannot find. A card counts as absent only when it answers to neither guid,
+nothing stands within 0.05 of where it was, and nobody is mid-drag: a duplicate is the mirror-image
+bug and is worse than a miss.
+
+**What it will not touch:** cards in a hand, held cards, moving cards, cards still spawning, scripted
+cards (a respawn re-runs `onLoad`), cards carrying buttons (`createButton` is runtime-only), and
+**decks** — reloading the draw pile re-creates every card in it and `rttFindDrawDeck` would be hunting
+a guid that no longer exists.
+
+**It found a real bug on its first run.** `rttSpawnDeck` stored the draft cards as OBJECTS, and
+`rttSlideOut` walks them one every 0.6 s with `rttFlipAll` flipping them afterwards at 0.12 s each —
+a handle held for the better part of ten seconds. Removing a draft card in that window killed the deal
+from that card on, and that was reachable long before this pass: Clear All, or a player deleting a
+card, does the same. The deal keeps GUIDs now. Belt and braces, the pass also declines outright while
+`RTT_BUSY` is up and stops where it stands if `RTT_RUN_ID` moves.
+
+**Still unproven, exactly as lock mode is:** whether it cures a distant client. Force a card to show
+its back, press Resync, report whether it turns over. If it does not, the next rung is reloading the
+decks as well.
+
 ## Parked — do not fix as part of this
 
 **Players seeing each other's hands / card visibility.** This is a *different* failure and none of

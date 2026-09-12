@@ -165,9 +165,25 @@ Nothing below is implemented. The maintainer asked to be consulted before each c
 - [ ] **Does lock mode actually cure it for a distant client?** Unproven. Needs the real test: force
       the bug in a game with a genuinely distant client, press Resync, say whether the object appears.
       The harness cannot settle it -- the stub has no concept of a client.
-- [ ] **Cards showing their back.** Zaandaa: "sometimes you can't see what cards are, like only seeing
-      the back of a card", and "fixing that involves stacking them" -- not lock/unlock. The sweep
-      deliberately leaves cards alone, so this needs its own remedy if it is worth one.
+- [x] **Cards showing their back.** v1.211. Zaandaa: "sometimes you can't see what cards are, like only
+      seeing the back of a card", and "fixing that involves stacking them" -- not lock/unlock.
+      Maintainer: "I don t think flip will do anything. make the reload cards with the resynch button."
+      The Resync button now runs a second pass that calls `reload()` on every loose table card: the API
+      is explicit that it "causes the Object to be deleted and respawned instantly", which is what
+      stacking does, without the stack. A lock toggle cannot help here -- the client HAS the card, so
+      the write applies normally and the stale bit stays stale; only a create carries the definition
+      again. Button only, never automatic, two cards a frame, and every card snapshotted before it is
+      touched so a swallowed one is spawned back from its own blueprint. Skipped: hands, held, moving,
+      still spawning, scripted, button-carrying, and decks.
+- [x] **The draft deal held card OBJECTS for ten seconds.** v1.211, found by the harness on the first
+      run of the card pass. `rttSpawnDeck` stored the objects; `rttSlideOut` walks them one every
+      0.6 s and `rttFlipAll` flips them at 0.12 s each, so anything that removed a draft card in that
+      window -- Clear All, a player deleting one, now a reload -- killed the rest of the deal with a
+      C# null. It keeps GUIDs and re-resolves at each step now.
+- [ ] **Does the card reload actually cure it for a distant client?** Same unproven step as lock mode
+      below, and the same test: force a card to show its back, press Resync, say whether it turns over.
+      The harness cannot settle it. If it does NOT work, the next rung is reloading the DECKS too,
+      which is a bigger hammer and was deliberately left out.
 
 ### Buttons and real estate
 
