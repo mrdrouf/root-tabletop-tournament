@@ -7693,6 +7693,67 @@ def t_the_box_score_columns_fit_what_goes_in_them(src):
         "the sheet's width is no longer computed from its columns"
 
 
+def t_the_discard_sweep_only_takes_cards_that_have_landed(src):
+    """A dominance card flying over the discard is not snatched onto the dominance track.
+
+    Maintainer, 2026-09-12: "when dealing cards it looks like if a dominance or frog card goes over the
+    discard it gets snatched and go to the dominance slot. so there is a risk of that happening when
+    dealing cards to the hand of the player in the 3rd sear", and, on the mechanism: "when a dominance
+    card gets over the discard snatch it automatically gets to the dominance stack ... that s what
+    makes the dominance card move when it shoots over it."
+
+    HE WAS RIGHT ABOUT THE SHAPE OF IT. The Refill Card -- the tile the draw and discard piles sit on
+    -- runs updateButtons on a one-second repeat, and that casts a 2-unit sphere over the discard and
+    sends any dominance card it finds to the track. It took whatever the sphere happened to CONTAIN,
+    and a card dealt across the table passes through that sphere on its way to a hand. Dealing to the
+    third seat flies cards straight over it.
+
+    Nothing else in the mod does this: there are exactly two scripted objects on the table and no
+    scripting zone anywhere near the discard, so the sweep is the only thing that can move a card by
+    itself.
+
+    A CARD IN FLIGHT IS NOT RESTING, and one being carried is held; neither is ON the discard. A card
+    genuinely discarded settles there and is taken by the next sweep a second later, which is how long
+    it always took -- so nothing legitimate is slower, and this asserts that too rather than only
+    asserting the fix.
+    """
+    m = None
+    for mm in re.finditer(r"json=\[\[(.*?)\]\]", src, re.S):
+        try:
+            d = json.loads(mm.group(1))
+        except ValueError:
+            continue
+        if d.get("GUID") == "aa1464":
+            m = d
+            break
+    assert m is not None, "the Refill Card blueprint is not in the build"
+    script = m["LuaScript"]
+
+    def swept(resting, held):
+        rt = lupa.LuaRuntime(unpack_returned_tuples=True)
+        rt.execute(open(os.path.join(HERE, "tts_stub.lua"), encoding="utf-8").read())
+        rt.execute("""
+          MOVED = {}
+          CARD = MKOBJ('Fox Dominance', {0,1,0}, {})
+          CARD.name = 'Card'  CARD.tag = 'Card'
+          CARD.getDescription = function() return 'fox' end
+          CARD.resting = %s
+          CARD.held_by_color = %s
+          CARD.setPositionSmooth = function(p) MOVED[#MOVED+1] = 'smooth' end
+          Physics = { cast = function() return { { hit_object = CARD } } end }
+        """ % ("true" if resting else "false", "nil" if not held else "'Red'"))
+        rt.execute(script.replace("!=", "~="))
+        rt.execute("pcall(function() onLoad('') end) pcall(updateButtons) FLUSH(20)")
+        return rt.eval("function() return #MOVED end")() > 0
+
+    assert swept(True, False), \
+        "a dominance card resting on the discard is no longer sent to the track; the sweep is broken"
+    assert not swept(False, False), \
+        "a dominance card in flight over the discard is still snatched onto the dominance track"
+    assert not swept(True, True), \
+        "a dominance card being carried over the discard is snatched out of the player's hand"
+
+
 CASES = [
     ("manual path drives the turn system",   t_manual_turn_order),
     ("manual path spawns 4 / 5 boards",      t_boards_spawn),
@@ -7712,6 +7773,7 @@ CASES = [
     ("panel flashes past 20 minutes",      t_the_panel_flashes_after_twenty_minutes),
     ("box score builds its own face",  t_the_box_score_builds_its_own_face),
     ("box score columns fit",         t_the_box_score_columns_fit_what_goes_in_them),
+    ("discard sweep takes only landed", t_the_discard_sweep_only_takes_cards_that_have_landed),
     ("map helper card ships on the row", t_a_maps_helper_card_ships_where_the_row_puts_it),
     ("landmark card spawns on the row", t_a_landmark_card_spawns_on_the_row),
     ("every faction gets a VP panel",  t_every_faction_gets_a_vp_panel_above_its_crafted_board),
