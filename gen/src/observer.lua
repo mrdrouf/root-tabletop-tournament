@@ -87,11 +87,28 @@
 
 ---------------------------------------------------------------------------- the constants --
 
--- ON. See the header. These are globals rather than file-locals and every handler re-reads the flag
--- on each call, so a table can still be silenced for a session from the host's Execute Lua Code box
--- with `OBS_ENABLED = false` -- which is also how the suite exercises the disabled path now that the
--- shipped default no longer provides it.
-OBS_ENABLED = true
+-- OFF AGAIN, 2026-09-12, WITHIN THE HOUR OF BEING TURNED ON. The maintainer's first 4-player setup
+-- with it live threw, twice, in red:
+--
+--     [Global] Lua Error <onPlayerTurn>: Object reference not set to an instance of an object
+--     [Global] Lua Error: Object reference not set to an instance of an object
+--
+-- That is TTS's C# NullReferenceException, not a Lua error, and the thing this file most needs
+-- understood about it is that PCALL DOES NOT CATCH IT -- every object touch in onPlayerTurn and in
+-- obsKeyframe below is already wrapped and it escaped anyway. Guarding harder is not the fix; not
+-- touching the dead thing is.
+--
+-- NOT DIAGNOSED YET, and that is exactly why this is false rather than patched. The suite cannot
+-- reach it: the stub has no Player userdata, no hand zones, and no TTS object that answers a method
+-- after it has been destroyed. Shipping a guess as a fix would put the same red line on every table
+-- again, which is the shape of the v1.154 revert this repo already paid for once.
+--
+-- The lead, for whoever picks it up: onPlayerTurn fires SYNCHRONOUSLY from `Turns.enable = true`
+-- inside rttEnableTurns, i.e. in the middle of a setup that is destroying selector boards and
+-- respawning the box score -- and rttDestroyUI defers its destruct by a frame, so there is a window
+-- in which getAllObjects can hand back an object that is already going. obsKeyframe walks all of
+-- them. Deferring the handler's body by one frame past the churn is the first thing to try.
+OBS_ENABLED = false
 
 -- THE ENDPOINT IS A CONSTANT, for the same reason the Root Database's URL is one in the box score:
 -- a settable URL in an object strangers load off a save is an exfiltration field. There is no write

@@ -14,7 +14,7 @@ not here.
 ---
 
 
-## 0b. It ships on (2026-09-12)
+## 0b. It shipped on, and came off the same day (2026-09-12)
 
 `OBS_ENABLED` is **true** in the shipped save. Maintainer: *"I want that everyone using my mod sends
 me the data."* Every table running this save archives its games, not only his, and he asked for no
@@ -32,6 +32,30 @@ Two consequences worth writing down rather than rediscovering:
 A host can still silence one table for a session with `OBS_ENABLED = false` in the Execute Lua Code
 box -- every handler re-reads the flag -- and that is the path the suite drives, since the shipped
 default no longer provides it.
+
+### ...and it is false again, undiagnosed
+
+v1.226. The first 4-player setup with it live threw twice, in red:
+
+```
+[Global] Lua Error <onPlayerTurn>: Object reference not set to an instance of an object
+[Global] Lua Error: Object reference not set to an instance of an object
+```
+
+**`pcall` does not catch that.** It is TTS's C# NullReferenceException, and every object touch in
+`onPlayerTurn` and `obsKeyframe` is already wrapped -- it escaped anyway. Guarding harder is not the
+fix; not touching the dead object is.
+
+**Turned off rather than patched,** because it is not diagnosed and the suite cannot reach it: the
+stub has no `Player` userdata, no hand zones, and no object that answers a method after it has been
+destroyed. Shipping a guess would put the same red line on every table again.
+
+**The lead.** `onPlayerTurn` fires SYNCHRONOUSLY from `Turns.enable = true` inside `rttEnableTurns` --
+in the middle of a setup that is destroying selector boards and respawning the box score -- and
+`rttDestroyUI` defers its destruct by a frame, so there is a window where `getAllObjects` hands back
+an object that is already going. `obsKeyframe` walks all of them. Deferring the handler's body one
+frame past the churn is the first thing to try. The second is to make the recorder skip the keyframe
+entirely while `RTT_BUSY` is true.
 
 ## 0. Why it is shaped this way
 
