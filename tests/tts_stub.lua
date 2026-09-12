@@ -249,7 +249,17 @@ function MKOBJ(name, pos, tags)
   function o.setSnapPoints(pts) o.__snaps = pts or {} end
   function o.getQuantity() return 1 end
   function o.getStateId() return 1 end function o.setState(s) return o end
-  function o.deal() end function o.flip() end function o.setDescription() end
+  function o.deal() end function o.setDescription() end
+  -- FACING IS REAL NOW. is_face_down was hardcoded false and flip() was a no-op, so nothing could tell
+  -- a card dealt face down from one dealt face up -- which is exactly what the Woodland Alliance's
+  -- supporters turn on. A card is face down when its own z rotation is near 180, and flipping turns
+  -- both the flag and the rotation over, the way TTS does.
+  o.is_face_down = false
+  function o.flip()
+    o.is_face_down = not o.is_face_down
+    o.__rot = vec{ o.__rot.x, o.__rot.y, o.is_face_down and 180 or 0 }
+    return o
+  end
   function o.getDescription() return "" end function o.getCustomObject() return {} end
   function o.setCustomObject() end function o.getLuaScript() return "" end
   function o.setLuaScript() end function o.getGMNotes() return "" end
@@ -397,7 +407,12 @@ function MKDECK(specs)
     t.name = "Card"
     t.__desc = c.description
     t.getDescription = function() return c.description end
-    t.is_face_down = false
+    -- taken face down when the caller asked for it: a z rotation anywhere near 180 is a card on its back
+    local rz = 0
+    if p.rotation ~= nil then rz = p.rotation[3] or p.rotation.z or 0 end
+    rz = rz % 360
+    t.is_face_down = (rz > 90 and rz < 270)
+    t.__rot = vec{ 0, (p.rotation and (p.rotation[2] or p.rotation.y)) or 0, rz }
     note(REC.spawned, "take:" .. (c.description ~= "" and c.description or c.nickname))
     if p.callback_function then p.callback_function(t) end
     return t

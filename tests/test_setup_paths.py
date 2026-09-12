@@ -3274,8 +3274,13 @@ def t_a_new_game_leaves_the_map_alone_but_fixes_the_marsh_variant(src):
     for c, n in zip(["Purple", "Blue", "White", "Pink", "Green"], ["H1", "H2", "H3", "H4", "H5"]):
         rt.execute("SEAT('%s','%s')" % (c, n))
 
-    # the maintainer's sequence: a 5-player Marsh game, then a 4-player one
-    two_clicks(rt, "rttArmMarsh5P", "Marsh5P")
+    # the maintainer's sequence: a 5-player Marsh game, then a 4-player one.
+    #
+    # THROUGH THE MAP BUTTON, not the draft one. The five-player DRAFT used to place the Marsh for you
+    # and no longer does -- "don t force marsh for 5 player draft; make it like the other draft no map
+    # by default" -- so the button that puts a five-player Marsh on the table is Marsh5PMap. What this
+    # test is about is unchanged: whether a new game rebuilds a board of the wrong variant.
+    two_clicks(rt, "rttArmMarsh5PMap", "Marsh5PMap")
     assert rt.eval(TOWNS)() > 0, "the 5-player Marsh placed no towns, so this proves nothing"
     board5 = rt.eval(BOARD)()
     assert board5 != "", "no map board found -- rttFindMapObject needs snap points"
@@ -3295,9 +3300,9 @@ def t_a_new_game_leaves_the_map_alone_but_fixes_the_marsh_variant(src):
     rt2 = fresh(src)
     for c, n in zip(["Purple", "Blue", "White", "Pink", "Green"], ["H1", "H2", "H3", "H4", "H5"]):
         rt2.execute("SEAT('%s','%s')" % (c, n))
-    two_clicks(rt2, "rttArmMarsh5P", "Marsh5P")
-    two_clicks(rt2, "rttArmMarsh5P", "Marsh5P")
-    assert rt2.eval(TOWNS)() > 0, "a second 5-player game lost its town landmarks"
+    two_clicks(rt2, "rttArmMarsh5PMap", "Marsh5PMap")
+    two_clicks(rt2, "rttArmMarsh5PMap", "Marsh5PMap")
+    assert rt2.eval(TOWNS)() > 0, "a second 5-player Marsh lost its town landmarks"
     assert rt2.eval("RTT_5P_MARSH") is True, "a second 5-player game left 5-player mode"
 
     # AND OTHERWISE THE MAP IS LEFT COMPLETELY ALONE. Eight four-player games in a row on the same
@@ -7131,11 +7136,19 @@ def t_every_faction_gets_a_vp_panel_above_its_crafted_board(src):
         assert count == 1, "%s has a crafted board but got %d VP panel(s)" % (kit, count)
         withPanel += 1
         px, pz, row = float(parts[4]), float(parts[5]), parts[6]
-        # the seat used above is (0, -20); a kit's move_to IS its world offset from that centre
-        assert abs(px - float(cx)) < 0.001, \
-            "%s: the panel is at x %.4f, the crafted board at %.4f" % (kit, px, float(cx))
-        assert abs(pz - (-20 + float(cz) + dz)) < 0.001, \
-            "%s: the panel is at z %.4f, expected %.4f" % (kit, pz, -20 + float(cz) + dz)
+        # the seat used above is (0, -20); a kit's move_to IS its world offset from that centre.
+        # A faction listed in RTT_VP_PANEL_AT says where it wants its panel instead -- only the
+        # Riverfolk do, because only they have a public hand board in that lane.
+        at = rt.eval("function() local a = RTT_VP_PANEL_AT[%r] "
+                     "return a and string.format('%%.4f|%%.4f', a[1], a[2]) or '' end" % kit)()
+        if at:
+            wx, wz = (float(v) for v in at.split("|"))
+        else:
+            wx, wz = float(cx), float(cz) + dz
+        assert abs(px - wx) < 0.001, \
+            "%s: the panel is at x %.4f, expected %.4f" % (kit, px, wx)
+        assert abs(pz - (-20 + wz)) < 0.001, \
+            "%s: the panel is at z %.4f, expected %.4f" % (kit, pz, -20 + wz)
         assert row != "", "%s: the panel was spawned without a row name" % kit
     assert withBoard == 13, "expected 13 kits with a crafted board, found %d" % withBoard
     assert withPanel == 13, "only %d of them got a panel" % withPanel
@@ -7443,6 +7456,151 @@ def t_no_script_calls_a_local_declared_below_it(src):
     assert not bad, "these calls read a nil global rather than the local they name:\n  " + "\n  ".join(bad)
 
 
+def t_the_five_player_draft_places_no_map(src):
+    """Launching the five-player draft leaves the table's board alone, like every other draft.
+
+    Maintainer, 2026-09-12: "don t force marsh for 5 player draft; make it like the other draft no map
+    by default."
+
+    It was the only draft that chose a board for you: rttBeginPick placed the Marsh whenever
+    RTT_5P_MARSH was set, and rttFivePStart sets it.
+
+    THE FLAG STAYS, AND IT IS NOT A LEFTOVER. RTT_5P_MARSH does not mean "place the Marsh", it means
+    "a Marsh on this table is the FIVE-player Marsh" -- flooded clearings out, three towns in. So the
+    five-player draft still has to leave it true, or picking the Marsh afterwards would build the
+    four-player board for a five-player game. That is asserted here too, because deleting the flag
+    along with the placement is the obvious wrong fix.
+    """
+    rt = fresh(src)
+    for c, n in zip(["Purple", "Blue", "White", "Pink", "Green"], ["H1", "H2", "H3", "H4", "H5"]):
+        rt.execute("SEAT('%s','%s')" % (c, n))
+
+    # ASKED OF THE BOARD, NOT OF THE TAG. "Map Object" is carried by things that are not maps -- the
+    # turn panel is tagged it -- so counting tags says a map arrived when none did. rttFindMapObject
+    # is the mod's own answer to "which object is the map": the one with the most snap points.
+    board = "function() local b = rttFindMapObject() return b and (b.getName() or 'unnamed') or '' end"
+    assert rt.eval(board)() == "", "the table did not start empty"
+
+    rt.execute("pcall(function() rttArmMarsh5P(Player['Purple'],'','Marsh5P') end) FLUSH_UNTIL(0.5, 4)")
+    rt.execute("pcall(function() rttArmMarsh5P(Player['Purple'],'','Marsh5P') end) FLUSH(300)")
+    assert rt.eval(board)() == "", \
+        "the five-player draft put a board on an empty table: %s" % rt.eval(board)()
+    assert rt.eval("RTT_CURRENT_MAP") in (None, ""), \
+        "the five-player draft chose a map: %s" % rt.eval("RTT_CURRENT_MAP")
+    assert rt.eval("RTT_5P_MARSH") is True, \
+        "the five-player draft cleared RTT_5P_MARSH, so a Marsh picked now would build the 4p board"
+
+    # and it still draws its six faction cards, so the draft itself was not broken by this
+    n = rt.eval("function() return #(RTT_DRAFT_FACTIONS or {}) end")()
+    assert n == 6, "the five-player draft dealt %d faction cards, expected 6" % n
+
+
+def t_alliance_supporters_travel_face_down(src):
+    """The Woodland Alliance's three opening supporters are not readable on their way to the hand.
+
+    Maintainer, 2026-09-12: "when the WA receives its supporter cards at spawning, make sure they are
+    drwned face down then flip when they are in the supporter stack otherwise other players can see
+    them."
+
+    A hand zone hides its cards from everyone but its owner -- but only once they are IN it, and these
+    are deliberately animated across the table so they read as coming off the top of the deck. For the
+    length of that flight a face-up card was legible to the whole table, and three known supporters is
+    most of what the Alliance has to keep secret.
+
+    THE FLIP CANNOT HAPPEN IN THE CALLBACK. takeObject's callback fires when the card is TAKEN, not
+    when it arrives, so turning it over there would undo the whole point. It waits for the card to come
+    to rest, with a timeout that flips anyway -- a card left face down in the Alliance's own hand is a
+    worse outcome than one turned over a moment early.
+
+    Both halves are asserted, because either alone is satisfiable by doing nothing: face down at the
+    moment it is taken, face up once it has settled.
+    """
+    rt = fresh(src)
+    rt.execute("""
+      TAKEN, FACING_AT_TAKE = {}, {}
+      DECK = MKOBJ('the deck', {0,1,0}, {'Deck Object'})
+      DECK.name = 'Deck'
+      local cards = {}
+      for i = 1, 40 do cards[i] = { description = "", nickname = "c" .. i } end
+      DECK.getObjects = function() return cards end
+      DECK.getQuantity = function() return #cards end
+      DECK.takeObject = function(p)
+        local c = MKOBJ('supporter', p.position, {})
+        c.name = 'Card'
+        local rz = 0
+        if p.rotation then rz = (p.rotation[3] or p.rotation.z or 0) % 360 end
+        c.is_face_down = (rz > 90 and rz < 270)
+        FACING_AT_TAKE[#FACING_AT_TAKE+1] = c.is_face_down
+        c.resting = true
+        TAKEN[#TAKEN+1] = c
+        if p.callback_function then p.callback_function(c) end
+        return c
+      end
+      RTT_ALLY_SUP_DONE = {}
+      Player['Green'].setHandTransform({ position = {x=10,y=1,z=10}, rotation = {x=0,y=0,z=0} }, 2)
+      rttDealAllianceSupporters('Green', {x=-75,y=1,z=0}, 8)
+      FLUSH(400)
+    """)
+    n = rt.eval("function() return #TAKEN end")()
+    assert n == 3, "the Alliance was dealt %d supporters, expected 3" % n
+    for i in range(1, n + 1):
+        assert rt.eval("function() return FACING_AT_TAKE[%d] end" % i)() is True, \
+            "supporter %d leaves the deck face up, so the table can read it in flight" % i
+        assert rt.eval("function() return TAKEN[%d].is_face_down end" % i)() is False, \
+            "supporter %d is still face down after landing in the hand" % i
+
+
+def t_the_riverfolk_panel_stands_where_he_put_it(src):
+    """The Riverfolk's VP panel sits clear of their public hand board, where he placed it.
+
+    Maintainer, 2026-09-12: "for the otter faction spawn it properly next to the public hand board of
+    that faction so it does not clash", then "the save otter contains the position of the vp board you
+    should use for the otter faction".
+
+    Read out of that save rather than guessed. TS_Save_42 has the panel at world (70.0087, -37.5730);
+    the seat's centre solves to (52.0001, -46.0000) from its crafted board, and two other boards of
+    that kit confirm it to four decimals. So the panel belongs at kit-local (18.0086, 8.4270).
+
+    THE RIVERFOLK ARE THE ONLY FACTION WITH A PUBLIC HAND BOARD, a wide landscape tile in the same +z
+    lane the panel stands in, and that is why they are the only override. The collision sweep missed it
+    because it takes `scale` as a tile's half-width -- correct for portrait art, an UNDERESTIMATE for
+    landscape, since a Type-0 Stretch tile is 2*scale deep but 2*scale*(imgW/imgH) wide.
+    """
+    rt = fresh(src)
+    rt.execute("""
+      PANELS = {}
+      local _s = spawnObjectJSON
+      spawnObjectJSON = function(p)
+        if (p.json or ''):find('"Nickname":"VP Panel"', 1, true) then
+          PANELS[#PANELS+1] = string.format("%.4f|%.4f", p.position.x or p.position[1],
+                                                          p.position.z or p.position[3])
+        end
+        return _s(p)
+      end
+    """)
+
+    def panel_local(kit):
+        rt.execute("PANELS = {} pcall(function() rttSpawnFaction(%r, 52.0001, -46.0, false) end) FLUSH(400)" % kit)
+        got = rt.eval("function() return PANELS[1] or '' end")()
+        assert got, "%s spawned no VP panel" % kit
+        x, z = (float(v) for v in got.split("|"))
+        return x - 52.0001, z + 46.0
+
+    x, z = panel_local("Riverfolk Company")
+    assert abs(x - 18.0086) < 0.001 and abs(z - 8.4270) < 0.001, \
+        "the Riverfolk panel is at kit-local (%.4f, %.4f); his save puts it at (18.0086, 8.4270)" % (x, z)
+
+    # and no other faction is moved by the override existing
+    cx = rt.eval("""function()
+        for _, v in ipairs(EVERYTHING['Standard']['Marquise de Cat']['data']) do
+          if v.json:find('"scaleX": 9.516764', 1, true) then return v.move_to[1] end
+        end
+    end""")()
+    mx, mz = panel_local("Marquise de Cat")
+    assert abs(mx - cx) < 0.001, \
+        "the Marquise panel moved to x %.4f; it should still sit on its crafted board at %.4f" % (mx, cx)
+
+
 CASES = [
     ("manual path drives the turn system",   t_manual_turn_order),
     ("manual path spawns 4 / 5 boards",      t_boards_spawn),
@@ -7467,6 +7625,9 @@ CASES = [
     ("VP panel buttons reach the mod", t_the_vp_panels_buttons_reach_the_rest_of_the_mod),
     ("boards share height and black",  t_every_board_stands_the_same_height_in_the_same_black),
     ("no call above its local decl",   t_no_script_calls_a_local_declared_below_it),
+    ("5p draft places no map",         t_the_five_player_draft_places_no_map),
+    ("supporters travel face down",    t_alliance_supporters_travel_face_down),
+    ("riverfolk panel clears its hand", t_the_riverfolk_panel_stands_where_he_put_it),
     ("crow plots inside the hidden zone",    t_crow_plots_spawn_inside_the_hidden_zone),
     ("crafted board same side for all",      t_crafted_board_sits_the_same_side_for_every_faction),
     ("no setup card on crafted board",       t_no_setup_card_rides_on_the_crafted_board),
