@@ -71,6 +71,37 @@ carries the finished box score.
 `rttArchiveGame` must never throw into its caller. It is wrapped in `pcall` at the call site and
 guards internally as well.
 
+### The game ending is a trigger too (v1.221)
+
+Maintainer, 2026-09-12: *"I want this archive to be sent also whenever a player reaches 30 or takes a
+dominance win. However, this needs to happen only once ... The archive would be sent again on an
+Export button press."*
+
+`archiveOnWin` in the box score, called from the end of `poll`:
+
+```lua
+function archiveOnWin()
+  if S.winner == nil or S.wonArchived == true then return end
+  S.wonArchived = true
+  logev("archive-win", S.winner, currentRound(), S.winnerReason)
+  pcall(function() Global.call("rttArchiveGame", { box = exportJson() }) end)
+end
+```
+
+**At the poll, not at the two declarations.** `S.winner` is set when a VP marker settles on 30 and
+when the DOM WIN button is pressed, and a third path could be added later. The poll is the thing that
+runs, so it sees every one of them; hooking the declarations would mean remembering this each time a
+way to win is added.
+
+**Once per game, and the flag is in `S`,** which `onSave` encodes whole — so it survives a reload, and
+a second win in the same game finds it already set. `uiReset` clears it. A **reload is not a win**:
+`onLoad` marks a restored winner as already archived, or the first poll after every load of a finished
+game would send it again.
+
+It is **not** cleared when a win is undone. That is deliberate and is the instruction read literally;
+a record that went early is replaced by the next EXPORT rather than left wrong for ever — which the
+`game_id` dedupe above makes free.
+
 ---
 
 ## 3. The payload
