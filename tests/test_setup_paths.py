@@ -8762,6 +8762,71 @@ def t_every_card_back_is_a_back_and_not_a_blank(src):
         "only %d BackIsHidden flags found; the scan is not reaching the blueprints" % total
 
 
+def t_the_clock_has_room_for_a_two_digit_minute(src):
+    """The turn clock's field fits "10:00", not just "0:00".
+
+    Maintainer, 2026-09-12: "make sure that there is no bug when the timer reaches 10:00 because
+    characters are chopped and pushed and cut when its bigger maybe increase area or something."
+
+    IT WAS SIZED FOR FOUR CHARACTERS. The panel's content box is W - 2*30 = 240 and the row spacing
+    is 10, so an even split handed each readout 115px. In the UI's bold face at the readout font size
+    "0:00" is 101px and "10:00" is 129 -- it overran by fourteen, and that is the chopping. ROUND
+    never shows more than two digits ("12" is 56px), so half the row was width the clock needed.
+
+    2.58 PX PER POINT is that measurement made portable: 129px at 50pt. The check scales with the
+    font size actually emitted, so raising RO_FS without widening the field fails here rather than at
+    the table.
+
+    childForceExpandWidth IS CHECKED SEPARATELY AND IS NOT A DETAIL. TTS expands layout children to
+    fill by default and SILENTLY IGNORES preferredWidth while it does -- the same silent-ignore that
+    this repo has been caught by before. Without that flag the constants read correctly, the test
+    reads correctly, and the clock is chopped exactly as it was.
+    """
+    panel = json.loads(re.search(r"RTT_TURN_PANEL_JSON = \[====\[(.*?)\]====\]", src, re.S).group(1))
+    rt = lupa.LuaRuntime(unpack_returned_tuples=True)
+    rt.execute(open(os.path.join(HERE, "tts_stub.lua"), encoding="utf-8").read())
+    rt.execute(panel["LuaScript"].replace("!=", "~="))
+    rt.execute("LASTXML = '' self.UI.setXml = function(x) LASTXML = x end buildUI()")
+    xml = rt.eval("LASTXML")
+    assert 'id="pnlTime"' in xml, "the panel drew no clock at all"
+
+    def field(el_id):
+        """(preferredWidth, fontSize) of the readout wrapping that id."""
+        i = xml.index('id="%s"' % el_id)
+        start = xml.rindex("<VerticalLayout", 0, i)
+        block = xml[start:i]
+        w = re.search(r'preferredWidth="(\d+)"', block)
+        fs = re.search(r'id="%s"[^>]*fontSize="(\d+)"' % el_id, xml)
+        assert w, "the %s readout has no preferredWidth, so the row splits it evenly" % el_id
+        return int(w.group(1)), int(fs.group(1))
+
+    w_time, fs = field("pnlTime")
+    w_round, _ = field("pnlRound")
+
+    PX_PER_PT = 129.0 / 50.0           # "10:00" in the UI's bold face, measured at 50pt
+    need = PX_PER_PT * fs
+    assert w_time >= need, \
+        ("the clock field is %dpx and \"10:00\" needs %.0f at fontSize %d: it will be cut"
+         % (w_time, need, fs))
+    assert w_time > w_round, \
+        ("the clock has %dpx and ROUND has %d; ROUND shows two digits and the clock shows five"
+         % (w_time, w_round))
+
+    # ...and the row must not expand its children, or every width above is ignored
+    row = xml[xml.rindex("<HorizontalLayout", 0, xml.index('id="pnlRound"')):xml.index('id="pnlRound"')]
+    assert 'childForceExpandWidth="false"' in row, \
+        "the readout row expands its children, so TTS ignores both preferredWidths"
+
+    # the two fields plus the spacing still fill the content box exactly, neither short nor overflowing
+    panel_w = int(re.search(r'<Panel[^>]*width="(\d+)"', xml).group(1))
+    pad = re.search(r'<VerticalLayout padding="(\d+) (\d+)', xml)
+    spacing = int(re.search(r'<HorizontalLayout preferredHeight="96" spacing="(\d+)"', xml).group(1))
+    box = panel_w - int(pad.group(1)) - int(pad.group(2))
+    assert w_round + spacing + w_time == box, \
+        ("the readouts sum to %d and the content box is %d"
+         % (w_round + spacing + w_time, box))
+
+
 CASES = [
     ("manual path drives the turn system",   t_manual_turn_order),
     ("manual path spawns 4 / 5 boards",      t_boards_spawn),
@@ -8912,6 +8977,7 @@ CASES = [
     ("EXPORT sends without a sheet",    t_export_without_a_box_score_still_sends_a_document),
     ("a hand leaves only at export",    t_the_payload_never_carries_a_hand),
     ("card backs are backs, not blanks", t_every_card_back_is_a_back_and_not_a_blank),
+    ("the clock fits 10:00",           t_the_clock_has_room_for_a_two_digit_minute),
     ("game two is not game one",        t_a_second_game_is_not_appended_to_the_first),
 ]
 
