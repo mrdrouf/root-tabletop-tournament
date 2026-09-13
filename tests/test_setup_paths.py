@@ -9150,6 +9150,89 @@ def t_draw_one_takes_from_the_draw_pile_not_the_discard(src):
     assert rt.eval("GOT2 ~= nil"), "with no holder out, DRAW ONE found no deck at all"
 
 
+def t_an_off_turn_point_lands_in_the_round_it_happened_in(src):
+    """A point scored on somebody else's turn corrects this round's box, not next round's.
+
+    Zaandaa, 2026-09-12: "off turn point should be reflected immediately for players higher in turn
+    order ... I want off turn points to be counted in the current round. Think of it like the score at
+    the end of the round." His example is a Shadow Council on p3's turn paying p1, who had already
+    played that round -- so p1's box was already written and the point surfaced a round late. "It's
+    common enough to matter."
+
+    THE RULE IS TWO BRANCHES AND ONE IS "DO NOTHING". Already played this round, so the box holds a
+    number: update it. Not played yet: leave it, because the score their own turn is about to write
+    already includes the point. Both are driven here, because the second one is the half that would
+    silently double-count if it were got wrong.
+
+    THE MARKER OUTRANKS A TYPED NUMBER. Maintainer: "a hand typed correction in a given turn can be
+    overruled by a vp marker in that turn positioned somewhere else." So a hand-edited box is replaced
+    and its edit cleared, the same way lockRow clears it -- the track is what the game actually says.
+
+    AND IT REACHES BACK NO FURTHER THAN THE CURRENT ROUND. An earlier round is history; a declared
+    dominance keeps the number it froze; a won game moves nothing at all.
+    """
+    sheet = json.loads(re.search(r"RTT_BOXSCORE_JSON = \[====\[(.*?)\]====\]", src, re.S).group(1))
+    lua = sheet["LuaScript"]
+
+    def sheet_with(rows, **state_extra):
+        """A sheet holding exactly these rows, on round 4.
+
+        Everything goes in through onLoad, which replaces the sheet's state wholesale -- the state is
+        a file-local and nothing outside the script can reach in, so this is the only door. It is also
+        the honest one: it is the same path a reloaded table takes.
+        """
+        rt = lupa.LuaRuntime(unpack_returned_tuples=True)
+        rt.execute(open(os.path.join(HERE, "tts_stub.lua"), encoding="utf-8").read())
+        rt.execute(lua.replace("!=", "~="))
+        rt.execute("self.UI.setXml = function() end")
+        state = dict({"rows": rows, "meta": {"map": "", "deck": ""},
+                      "active": 1, "round": 4, "started": True}, **state_extra)
+        rt.execute("pcall(function() onLoad(%s) end) FLUSH(20)" % json.dumps(json.dumps(state)))
+        return rt
+
+    def row(fac, score, locks, edits=None, dom=None):
+        r = {"fac": fac, "score": score, "locks": locks, "edits": edits or {}}
+        if dom:
+            r["dom"] = dom
+        return r
+
+    # p1 has played round 4 (its box says 8); the marker then moves to 9 on somebody else's turn
+    rt = sheet_with([row("Eyrie Dynasties", 9, [2, 5, 7, 8])])   # marker at 9, box still 8
+    rt.execute("amendRound(1)")
+    locks = json.loads(rt.eval("onSave()"))["rows"][0]["locks"]
+    assert locks == [2, 5, 7, 9], \
+        "an off-turn point should have made round 4 read 9: the row reads %s" % locks
+
+    # p4 has NOT played round 4 -- nothing is written, so nothing is amended
+    rt = sheet_with([row("Corvid Conspiracy", 12, [3, 3, 3])])   # marker moved, box not written
+    rt.execute("amendRound(1)")
+    locks = json.loads(rt.eval("onSave()"))["rows"][0]["locks"]
+    assert locks == [3, 3, 3], \
+        "a faction yet to play this round had a box written for it early: %s" % locks
+
+    # a hand-typed box is replaced by the marker, and its edit cleared with it
+    rt = sheet_with([row("Keepers in Iron", 7, [0, 1, 5, 6], {"4": "12"})])
+    rt.execute("amendRound(1)")
+    saved = json.loads(rt.eval("onSave()"))["rows"][0]
+    assert saved["locks"][3] == 7, "the marker did not overrule the typed box: %s" % saved["locks"]
+    assert not saved.get("edits", {}).get("4"), \
+        "the typed box was overruled but its edit was left behind to come back: %s" % saved.get("edits")
+
+    # a declared dominance keeps the number it froze
+    rt = sheet_with([row("Woodland Alliance", 15, [1, 4, 9, 14],
+                         None, {"turn": 4, "suit": "fox", "kind": "standard", "frozen": True})])
+    rt.execute("amendRound(1)")
+    locks = json.loads(rt.eval("onSave()"))["rows"][0]["locks"]
+    assert locks[3] == 14, "an off-turn point overwrote a frozen dominance score: %s" % locks
+
+    # and a won game moves nothing
+    rt = sheet_with([row("Marquise de Cat", 31, [5, 11, 18, 30])],
+                    winner="Marquise de Cat", winnerReason="score")
+    rt.execute("amendRound(1)")
+    locks = json.loads(rt.eval("onSave()"))["rows"][0]["locks"]
+    assert locks[3] == 30, "the sheet moved after the game was won: %s" % locks
+
+
 CASES = [
     ("manual path drives the turn system",   t_manual_turn_order),
     ("manual path spawns 4 / 5 boards",      t_boards_spawn),
@@ -9305,6 +9388,7 @@ CASES = [
     ("a won game archives twice",     t_a_won_game_archives_itself_once),
     ("nothing runs before START",     t_the_recorder_does_nothing_until_start_is_pressed),
     ("draw one takes the draw pile",  t_draw_one_takes_from_the_draw_pile_not_the_discard),
+    ("off-turn points land in round", t_an_off_turn_point_lands_in_the_round_it_happened_in),
     ("game two is not game one",        t_a_second_game_is_not_appended_to_the_first),
 ]
 
