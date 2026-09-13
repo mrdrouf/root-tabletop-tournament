@@ -9233,6 +9233,225 @@ def t_an_off_turn_point_lands_in_the_round_it_happened_in(src):
     assert locks[3] == 30, "the sheet moved after the game was won: %s" % locks
 
 
+def t_numpad_two_reaches_every_kind_of_piece(src):
+    """Numpad 2 can fetch a relic and an enclave, including when none is left at home.
+
+    Maintainer, 2026-09-13: "Numpad 2 did not work with enclave when set on an enclave off initial
+    position ... also does not work with relics. it should work with everything."
+
+    TWO SEPARATE FAULTS behind one complaint.
+
+    RELICS could not even be CHOSEN. The twelve relics live inside a Bag nicknamed "Relics", so they
+    never spawn as loose objects and nothing ever recorded a home slot for one -- and the bag lookup
+    only matched containers whose nickname ended in "Supply", which "Relics" does not. rttTokenEligible
+    therefore answered no and the two-second hold did nothing at all.
+
+    ENCLAVES could be chosen but not fetched once they were all in play. The fetch only ever found a
+    piece still SITTING on a home slot, so an empty supply row made the key go dead -- silently, which
+    reads as broken rather than as "there are none left".
+    """
+    rt = fresh(src)
+    assert rt.eval('rttTokenEligible([[Relic]])') is True, \
+        "a relic still cannot be chosen: it is in a bag the lookup does not recognise"
+    assert rt.eval('rttBagOfMap()[ [[Relic]] ]') == "Relics", \
+        "a relic is not mapped to its bag: %r" % rt.eval('rttBagOfMap()[ [[Relic]] ]')
+    # ...and a warrior is still refused, which is the one exclusion this key has always had
+    assert rt.eval('rttTokenEligible([[Cat Warrior]])') is False, \
+        "numpad 2 now offers warriors, which is numpad 1's job"
+
+    # AN ENCLAVE EARNS ITS PLACE BY SPAWNING, which is the difference between it and a relic: it is
+    # eligible because the mod recorded where one came from, not because it sits in a bag. So the row
+    # is laid out first -- in a bare harness nothing has spawned and there is nothing to be eligible.
+    rt.execute("""
+      RTT_HOME = {}
+      for i = 1, 3 do
+        RTT_HOME["h" .. i] = { n = "Enclave", f = "Lilypad Diaspora",
+                               p = { 10 + i, 1, 10 }, r = { 0, 0, 0 } }
+      end
+      -- all three are away on the map, none on a slot
+      FAR = MKOBJ("Enclave", { 60, 1, 60 }, {})
+      NEAR = MKOBJ("Enclave", { 12.4, 1, 10.2 }, {})
+      RTT_TOKEN_PICK["Red"] = "Enclave"
+      POINTER = { Red = Vector({ 30, 1, 30 }) }
+    """)
+    assert rt.eval('rttTokenEligible([[Enclave]])') is True, \
+        "an enclave with a recorded home cannot be chosen"
+    # every enclave is in play: the supply row is empty, and the key must still hand one over
+    rt.execute('rttGizmoToken("Red")')
+    moved = rt.eval("NEAR.getPosition().x")
+    assert abs(moved - 30) < 0.001, \
+        ("the nearest-to-home enclave was not fetched: it is at x %.2f, the cursor is at 30" % moved)
+    assert abs(rt.eval("FAR.getPosition().x") - 60) < 0.001, \
+        "the enclave across the table was taken instead of the one beside its own row"
+
+
+def t_a_shared_row_fills_without_stacking(src):
+    """The Keepers' three waystations are one row, so numpad 0 never puts two on one slot.
+
+    Maintainer, 2026-09-13: "numpad 0 on waystations did not return to the rightmost empty slot but
+    there started to stack on the leftmost one."
+
+    THEY HAVE THREE DIFFERENT NAMES -- "Tablet/Figure Waystation", "Jewelry/Tablet Waystation",
+    "Figure/Jewelry Waystation" -- one object each. Every slot lookup in this file matched on the
+    exact name, so each waystation had a row of ONE: its own spawn spot. Sent home it went there
+    whether or not another was already sitting on it, because the occupancy test only ever looked for
+    a piece of the SAME name. Three pieces, three rows of one, and nothing aware they form a row.
+
+    rttHomeFamily keys on the last word, which is what the three names share and how the game itself
+    names them. A single-word name is its own family, so nothing else in the game changes -- which the
+    last assertion is here to hold.
+    """
+    rt = fresh(src)
+    assert rt.eval('rttHomeFamily([[Figure/Jewelry Waystation]])') == "Waystation"
+    assert rt.eval('rttHomeFamily([[Enclave]])') == "Enclave", \
+        "a piece with a one-word name was swept into a family"
+
+    rt.execute("""
+      RTT_HOME = {}
+      NAMES = { "Tablet/Figure Waystation", "Jewelry/Tablet Waystation", "Figure/Jewelry Waystation" }
+      for i, n in ipairs(NAMES) do
+        RTT_HOME["w" .. i] = { n = n, f = "Keepers in Iron", p = { 10 + i, 1, 10 }, r = { 0, 0, 0 } }
+      end
+      -- two of them are already home, on the first two slots of the row
+      A = MKOBJ(NAMES[1], { 11, 1, 10 }, {})
+      B = MKOBJ(NAMES[2], { 12, 1, 10 }, {})
+      -- ...and the third is out on the map, hovered, about to be sent home
+      C = MKOBJ(NAMES[3], { 40, 1, 40 }, {})
+      HOVER = { Red = C }
+      rttGizmoHome("Red")
+    """)
+    x = rt.eval("C.getPosition().x")
+    assert abs(x - 13) < 0.001, \
+        ("the third waystation landed at x %.2f; slots 11 and 12 are taken so the free one is 13"
+         % x)
+    for who, want in (("A", 11), ("B", 12)):
+        assert abs(rt.eval("%s.getPosition().x" % who) - want) < 0.001, \
+            "%s was moved when another waystation was sent home" % who
+
+
+def t_dealing_five_again_asks_first(src):
+    """The first DEAL 5 goes straight through; a second one asks.
+
+    Maintainer, 2026-09-13: "if there is a second time a press on drw 5 card, put a warning like the
+    other warnings saying 'Draw 5 cards again?'"
+
+    THE FIRST DEAL IS NEVER QUESTIONED, which is the point of asking on the second: dealing the
+    opening hands is the button's ordinary job and a confirm in front of it would be noise every game.
+    A second deal is usually a mis-click and it cannot be undone -- five more cards in every hand and
+    five fewer in the deck.
+
+    Same two-press shape as START's wipe, including the four-second disarm, so a stray click cannot
+    leave the button primed for the rest of the session.
+    """
+    panel = json.loads(re.search(r"RTT_TURN_PANEL_JSON = \[====\[(.*?)\]====\]", src, re.S).group(1))
+    rt = lupa.LuaRuntime(unpack_returned_tuples=True)
+    rt.execute(open(os.path.join(HERE, "tts_stub.lua"), encoding="utf-8").read())
+    rt.execute("CLOCK = 1000 os.time = function() return CLOCK end")
+    rt.execute(panel["LuaScript"].replace("!=", "~="))
+    rt.execute("""
+      LASTXML = '' self.UI.setXml = function(x) LASTXML = x end
+      DEALT = 0
+      SEAT('Red', 'a') SEAT('Blue', 'b')
+      DECK = MKOBJ('Deck', {0, 1, 0}, {'Deck Object'})
+      DECK.getQuantity = function() return 54 end
+      DECK.deal = function(n, c) DEALT = DEALT + 1 end
+    """)
+    def label():
+        rt.execute("buildUI()")
+        m = re.search(r'id="pnlDeal".*?<Text[^>]*>([^<]*)</Text>', rt.eval("LASTXML"), re.S)
+        return m.group(1) if m else ""
+
+    assert label() == "DEAL 5 CARDS", "the button does not start as the deal: %r" % label()
+    rt.execute("pcall(panelDeal)")
+    first = rt.eval("DEALT")
+    assert first > 0, "the first press dealt nothing"
+    # ...and the button goes back to reading as the deal: the question belongs to the NEXT press, not
+    # to the state of having dealt. Asking here would put a warning on a button nobody has pressed.
+    assert label() == "DEAL 5 CARDS", "the button asks before it has been pressed again: %r" % label()
+
+    # the second press asks instead of dealing
+    rt.execute("pcall(panelDeal)")
+    assert "AGAIN" in label(), "a second press does not ask: %r" % label()
+    assert rt.eval("DEALT") == first, "the arming press dealt without being confirmed"
+
+    # and the press after that deals
+    rt.execute("pcall(panelDeal)")
+    assert rt.eval("DEALT") > first, "the confirming press did not deal"
+
+    # a question nobody answers disarms itself
+    rt.execute("pcall(panelDeal)")
+    assert "AGAIN" in label(), "the button did not ask again"
+    rt.execute("FLUSH(30)")
+    assert "AGAIN" not in label(), "the question stayed up instead of disarming"
+
+    # START begins a new game, so its opening deal is unquestioned again
+    rt.execute("Turns = Turns or {} pcall(panelStart) FLUSH(10) PANEL_START = nil")
+    assert label() == "DEAL 5 CARDS", "a new game still asks before its first deal: %r" % label()
+
+
+def t_the_discard_sweep_never_takes_from_the_draw_pile(src):
+    """The deck holder's sweep turns a discard face up, and never reaches into the draw pile.
+
+    Maintainer, 2026-09-13: "Moving frogs did draw a card??!! How could that be?" and "when a card is
+    put on the discard pile it should flip face up."
+
+    THE FROG BUG. sendDeckHome walks a DECK's contents and takes out every card that belongs somewhere
+    else -- and with the frogs in the game, that includes every card described as a frog, because
+    those live in the pond. Right for a discard pile, catastrophic for the draw pile: a deck resting
+    inside one of the swept spheres had its frog cards pulled out one at a time, which looks exactly
+    like somebody drawing. The sweep is aimed at the discard, the vulture board and the lizard wizard,
+    and nothing in it could tell the draw deck from a discard -- both are a Deck, at a swept location,
+    at rest. The draw slot is now a place the sweep refuses to touch.
+
+    THE FLIP. A discard is public: it is what everyone reads to know what has been played, and a card
+    dropped face down stayed that way for the rest of the game. Only on the real discard -- the same
+    function sweeps the pond and the lizard wizard, and a frog waiting in the pond is not a discard.
+
+    This reads the script out of the BUILD rather than off gen/src, because the holder's script is
+    embedded in a blueprint and it is the built copy that ships.
+    """
+    rt = fresh(src)
+    holder = rt.eval("""function()
+        for _, cat in pairs(EVERYTHING) do
+          for _, kit in pairs(cat) do
+            for _, v in ipairs(kit['data'] or {}) do
+              if v.json:find('"GUID": "aa1464"', 1, true) then return v.json end
+            end
+          end
+        end
+        return ""
+    end""")()
+    assert holder != "", "the deck holder is not in the build"
+    lua = json.loads(holder)["LuaScript"]
+
+    assert "DRAW_GUARD" in lua, \
+        "the sweep has no guard on the draw pile, so a deck resting there is still emptied of frogs"
+    assert "pos_draw" in lua.split("DRAW_GUARD")[1][:2000], \
+        "the guard does not measure against the draw slot"
+    assert "is_face_down" in lua and "item.flip()" in lua, \
+        "a card left on the discard is never turned face up"
+
+    # the flip is gated on the discard sweep, not on the pond one
+    # the nearest branch above the flip has to be the discard one. The comment between them is long,
+    # so this looks back far enough to clear it and then checks nothing else opened a branch in between.
+    i = lua.index("item.flip()")
+    window = lua[max(0, i - 2500):i]
+    gate = window.rindex("elseif dominance then") if "elseif dominance then" in window else -1
+    assert gate >= 0, \
+        "the face-up flip is not gated on the real discard, so it would turn pond cards over too"
+    assert "elseif" not in window[gate + len("elseif dominance then"):], \
+        "another branch sits between the discard gate and the flip" 
+
+    # and the script still parses -- it is edited as an escaped string inside a blueprint
+    probe = lupa.LuaRuntime(unpack_returned_tuples=True)
+    err = ""
+    try:
+        probe.execute("local f = function() " + lua.replace("!=", "~=") + " end")
+    except Exception as exc:
+        err = str(exc)[:160]
+    assert err == "", "the deck holder's script no longer parses: %s" % err
+
+
 CASES = [
     ("manual path drives the turn system",   t_manual_turn_order),
     ("manual path spawns 4 / 5 boards",      t_boards_spawn),
@@ -9389,6 +9608,10 @@ CASES = [
     ("nothing runs before START",     t_the_recorder_does_nothing_until_start_is_pressed),
     ("draw one takes the draw pile",  t_draw_one_takes_from_the_draw_pile_not_the_discard),
     ("off-turn points land in round", t_an_off_turn_point_lands_in_the_round_it_happened_in),
+    ("numpad 2 reaches everything",    t_numpad_two_reaches_every_kind_of_piece),
+    ("a shared row does not stack",    t_a_shared_row_fills_without_stacking),
+    ("dealing five again asks",        t_dealing_five_again_asks_first),
+    ("the sweep spares the draw pile", t_the_discard_sweep_never_takes_from_the_draw_pile),
     ("game two is not game one",        t_a_second_game_is_not_appended_to_the_first),
 ]
 
