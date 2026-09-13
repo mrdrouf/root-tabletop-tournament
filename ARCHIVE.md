@@ -97,6 +97,35 @@ script down with it, and the diff is purely additive.
 
 ---
 
+## 1b. Reading it back: rtt/index.php (2026-09-13)
+
+Maintainer: *"could you build a page on my website that shows a summary of the games that have been
+archived ... Every time I would check that page, it would have all that information"*, then *"make
+the name of the page easy and no need of password"*.
+
+**https://<host>/rtt/index.php** — a plain PHP page beside `ingest.php` and `admin.php`.
+
+**No automation, by design.** It reads `rtt_data/games/` at the moment it is loaded, so it is current
+by construction: a game that arrived thirty seconds ago is on it, and a re-sent game shows its newest
+version because ingest overwrites the file in place. Nothing is generated, cached, scheduled or
+synced, and there is no second copy to drift.
+
+**It is open.** No key, by instruction. So two things are deliberate: it reads only what a results
+table needs — who played what, the score each round, who won, when it was archived — and never the
+`reveal` block (the hands) or the event log; and it sends `X-Robots-Tag: noindex, nofollow`, so it
+does not surface in a search for a player's name. `admin.php` keeps its key: that one serves the raw
+records, hands included.
+
+**A bare `/rtt/` answers 403 and was left that way.** The `.htaccess` default-deny is a `FilesMatch`
+on `.*`, which catches the directory request before mod_dir looks for an index; `DirectoryIndex` does
+not help and `RedirectMatch` is not permitted by this host's `AllowOverride`. Every fix loosens the
+deny that stands between a stray `ingest.php~` and the public internet. Ten characters of URL is not
+worth that.
+
+**`RTT_TIMEZONE`** at the top of the file pins the clock. The host runs three hours behind the
+maintainer, so a game archived at 22:25 read as 19:25 — the page was quietly wrong about when his own
+evening happened. One constant, one edit if he moves.
+
 ## 2. The trigger
 
 `uiExport` in the box score is the moment the maintainer declares the game finished — it writes the
