@@ -4521,7 +4521,57 @@ RTT_VP_API = true                      -- the panel probes this before it calls;
 -- The shared clearing-card deck, for the DRAW button. NOT rttFindMainDeck: that one wants 20+ cards,
 -- which is the right question for "is the game deck on the table" and the wrong one for a draw
 -- button, since a deck down to three cards late in a game is still the deck you draw from.
+-- THE DECK HOLDER, and the two slots printed on it. Its own script keeps these as
+-- `pos_draw = {0.957, 0.178, 0.222}` and `pos_discard = {-0.957, 0.178, 0.222}` in its LOCAL space,
+-- which is why they are read through positionToWorld rather than written down as table coordinates:
+-- the holder can be moved or turned and the slots move with it.
+RTT_HOLDER_GUID    = "aa1464"
+RTT_HOLDER_DRAW    = {  0.957, 0.178, 0.222 }
+RTT_HOLDER_DISCARD = { -0.957, 0.178, 0.222 }
+
+-- WHICH PILE IS THE DRAW DECK. Maintainer, 2026-09-12: "the draw one card happened to draw from the
+-- discard pile!"
+--
+-- IT USED TO TAKE THE BIGGEST. Any "Deck Object" was a candidate and the one with the most cards won,
+-- which is right for exactly as long as the draw deck is the biggest thing on the table -- and two of
+-- the four decks tag EVERY CARD "Deck Object", not just the deck: Squires and Disciples, and the Dark
+-- Deck. So a discard pile is itself a tagged Deck Object, and the moment it grew past what was left
+-- of the draw deck -- around halfway through a game, every game -- DRAW ONE started dealing from the
+-- discard. Nothing about it looked wrong: it drew a real card off a real pile.
+--
+-- SO ASK THE HOLDER INSTEAD OF COUNTING. It has a draw slot and a discard slot and it knows where
+-- both are; the pile nearest the draw slot is the draw deck whatever its size, and anything nearer
+-- the discard slot is refused outright rather than merely scored lower. A single card left in the
+-- draw slot still wins against forty in the discard, which is the case that matters.
+--
+-- THE OLD RULE IS KEPT AS A FALLBACK, for a table with no holder out -- the flotilla and hireling
+-- kits both put decks out without one -- and it is only reached when the holder cannot be found.
 function rttFindDrawDeck()
+  local holder = getObjectFromGUID(RTT_HOLDER_GUID)
+  if holder ~= nil then
+    local draw, disc = nil, nil
+    pcall(function()
+      draw = holder.positionToWorld(RTT_HOLDER_DRAW)
+      disc = holder.positionToWorld(RTT_HOLDER_DISCARD)
+    end)
+    if draw ~= nil and disc ~= nil then
+      local best, bestD = nil, nil
+      for _, o in ipairs(getAllObjects()) do
+        local dd, xd = nil, nil
+        pcall(function()
+          if (o.name == "Deck" or o.name == "DeckCustom") and o.hasTag("Deck Object") then
+            local p = o.getPosition()
+            dd = math.sqrt((p.x - draw.x) ^ 2 + (p.z - draw.z) ^ 2)
+            xd = math.sqrt((p.x - disc.x) ^ 2 + (p.z - disc.z) ^ 2)
+          end
+        end)
+        -- nearer the discard slot than the draw slot: that IS the discard, whatever it holds
+        if dd ~= nil and dd < xd and (bestD == nil or dd < bestD) then best, bestD = o, dd end
+      end
+      if best ~= nil then return best end
+    end
+  end
+  -- no holder on the table: the old rule, which is right when there is only one pile out
   local best, bestN = nil, -1
   for _, o in ipairs(getAllObjects()) do
     local n = nil

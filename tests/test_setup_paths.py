@@ -9100,6 +9100,56 @@ def t_the_recorder_does_nothing_until_start_is_pressed(src):
     assert rt.eval("#OBS.ev") > 0, "nothing was recorded after START"
 
 
+def t_draw_one_takes_from_the_draw_pile_not_the_discard(src):
+    """DRAW ONE takes the pile on the holder's draw slot, however small it has got.
+
+    Maintainer, 2026-09-12: "the draw one card happened to draw from the discard pile!"
+
+    IT USED TO TAKE THE BIGGEST PILE. Any object tagged "Deck Object" was a candidate and the one with
+    the most cards won. That is right for exactly as long as the draw deck is the biggest thing on the
+    table -- and two of the four decks tag EVERY CARD "Deck Object" and not just the deck itself:
+    Squires and Disciples, and the Dark Deck. A discard pile of those is therefore a tagged Deck
+    Object in its own right, so the moment it grew past what was left of the draw deck -- about
+    halfway through a game, every game -- DRAW ONE began dealing from the discard. Nothing looked
+    wrong: it drew a real card off a real pile.
+
+    THE HOLDER KNOWS WHICH SLOT IS WHICH. Its own script keeps pos_draw and pos_discard in local
+    space, so the two spots move with it if it is turned or shifted. The pile nearest the draw slot is
+    the draw deck whatever its size, and one nearer the discard slot is refused outright rather than
+    just scored lower.
+
+    THE FIXTURE IS THE FAILING CASE ITSELF: a nearly-spent draw deck of 6 against a fat discard of 44,
+    which is what the end of a game looks like and what the old rule got wrong every time.
+    """
+    rt = fresh(src)
+    rt.execute("""
+      -- spelled out rather than read off the constants, so this stands up the SAME table against a
+      -- build that has no holder constants at all -- which is how it reports the old rule's actual
+      -- failure instead of erroring on a nil
+      HOLDER = REGUID(MKOBJ('Custom_Token', { 63.9, 1, 24.0 }, { 'Deck Object' }), 'aa1464')
+      DRAWPOS = HOLDER.positionToWorld(Vector({  0.957, 0.178, 0.222 }))
+      DISCPOS = HOLDER.positionToWorld(Vector({ -0.957, 0.178, 0.222 }))
+
+      DRAW = MKOBJ('Deck', DRAWPOS, { 'Deck Object' })
+      DRAW.getQuantity = function() return 6 end
+      DISCARD = MKOBJ('Deck', DISCPOS, { 'Deck Object' })
+      DISCARD.getQuantity = function() return 44 end
+      GOT = rttFindDrawDeck()
+    """)
+    got = rt.eval("GOT and GOT.getGUID() or ''")
+    draw = rt.eval("DRAW.getGUID()")
+    disc = rt.eval("DISCARD.getGUID()")
+    assert got == draw, (
+        "DRAW ONE picked the %s pile: 6 cards on the draw slot against 44 on the discard"
+        % ("discard" if got == disc else "wrong"))
+
+    # ...and with no holder on the table -- a flotilla or hireling deck on its own -- it still finds one
+    # ...and with no holder out -- a flotilla or hireling deck on its own -- it still finds a deck,
+    # which is the only case the old rule was ever right for and the reason it is kept as a fallback.
+    rt.execute("HOLDER.destruct() GOT2 = rttFindDrawDeck()")
+    assert rt.eval("GOT2 ~= nil"), "with no holder out, DRAW ONE found no deck at all"
+
+
 CASES = [
     ("manual path drives the turn system",   t_manual_turn_order),
     ("manual path spawns 4 / 5 boards",      t_boards_spawn),
@@ -9254,6 +9304,7 @@ CASES = [
     ("torn boards are cut torn",      t_the_torn_boards_are_cut_where_the_art_is_torn),
     ("a won game archives twice",     t_a_won_game_archives_itself_once),
     ("nothing runs before START",     t_the_recorder_does_nothing_until_start_is_pressed),
+    ("draw one takes the draw pile",  t_draw_one_takes_from_the_draw_pile_not_the_discard),
     ("game two is not game one",        t_a_second_game_is_not_appended_to_the_first),
 ]
 

@@ -220,6 +220,11 @@ function MKOBJ(name, pos, tags)
   -- been green against code that never ran.
   o.tag = ({ Card = "Card", CardCustom = "Card", Deck = "Deck", DeckCustom = "Deck",
              Custom_Tile = "Tile", Custom_Token = "Custom_Token" })[o.__name] or o.__name
+  -- ...AND `name`, WHICH IS THE OTHER ONE THIS MOD READS. TTS carries both: `tag` is the broad type
+  -- ("Deck") and `name` the exact one ("DeckCustom"). Only MKDECK used to set it, so every object a
+  -- test built by hand had `o.name == nil` -- and `o.name == "Deck"` is how rttFindDrawDeck and
+  -- rttPondPile decide what is a deck at all. A test could stand up two decks and the code under it
+  -- would see neither.
   -- ...and `type`, which carries the SAME string. TTS exposes both names for it and this mod reads
   -- both -- logic.lua's dominance-card guard hedges with `o.type ~= "Card" and o.tag ~= "Card"`, and
   -- the recorder in the Global script reads `o.type` alone, for the static fragment's "t" field and
@@ -229,6 +234,7 @@ function MKOBJ(name, pos, tags)
   o.type = o.tag
   -- "If the Object is finished spawning." A card still arriving has no settled GUID yet, so nothing
   -- may reload it.
+  o.name = o.__name
   o.spawning = false
   -- Enough of a blueprint to respawn from, which is all the mod asks of it: the GUID it had, its type
   -- and its tags. spawnObjectJSON below reads exactly these three out of a blob.
@@ -371,6 +377,16 @@ function MKOBJ(name, pos, tags)
   return o
 end
 function getObjectFromGUID(g) local o = LIVE[g]; if o and not o.__dead then return o end return nil end
+-- A BLUEPRINT'S GUID IS FIXED, and some of this mod's code looks an object up by the one baked into
+-- its blueprint -- the deck holder is aa1464 wherever it ends up. MKOBJ hands out o0001, o0002, ... so
+-- a test that needs one of those fixed ids has to say so; writing o.__guid by hand is not enough,
+-- because LIVE is keyed on the old one and getObjectFromGUID would still not find it.
+function REGUID(o, g)
+  LIVE[o.__guid] = nil
+  o.__guid = g
+  LIVE[g] = o
+  return o
+end
 function getObjectsWithTag(t)
   local r = {}
   for _, o in pairs(LIVE) do if not o.__dead and o.hasTag(t) then r[#r+1] = o end end
