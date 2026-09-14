@@ -1448,14 +1448,23 @@ def t_numpad_zero_leaves_locked_pieces_alone(src):
         "numpad 0 sent a hand-locked warrior home; a lock is a lock"
 
     # ...while an unlocked one still goes home, which is the whole point of the key.
+    #
+    # HOME FOR A WARRIOR IS ITS SUPPLY, NOT A SLOT. This block used to assert the warrior landed on
+    # the home slot at x 7.0 -- so it was pinning the very behaviour the maintainer said he never
+    # asked for, 2026-09-14: "warriors should always return to supply with numpad 0. you implemented
+    # something I never asked for warriors." A warrior's recorded positions are the spots its
+    # starting figures stand on; its supply is the bag.
     rt.execute("""
-      V = MKOBJ('Marquise Warrior', { 32, 1, 32 }, {})
+      PUT = 0
+      SUP = MKOBJ('Marquise Supply', { 60, 1, -40 }, {})
+      SUP.putObject = function(o) PUT = PUT + 1 o.destruct() end
+      V = MKOBJ('Cat Warrior', { 32, 1, 32 }, {})
       HOVER['Red'] = V
       onScriptingButtonDown(10, 'Red')
       FLUSH()
     """)
-    assert abs(float(rt.eval("V.__pos.x")) - 7.0) < 0.01, \
-        "an ordinary warrior no longer goes home; it went to %.2f" % rt.eval("V.__pos.x")
+    assert rt.eval("PUT") == 1, "an unlocked warrior no longer goes home to its supply"
+    assert rt.eval("V.__dead") is True, "the supply did not take the warrior"
 
 
 def t_numpad_two_hands_you_the_token_you_chose(src):
@@ -10480,6 +10489,90 @@ def t_both_slot_builders_ignore_spawn_spots_the_same_way(src):
     assert rt.eval("W3") == 3, \
         "the waystations lost their shared row: %d slots" % rt.eval("W3")
 
+
+def t_a_warrior_reaches_its_supply_with_the_bag_map_broken(src):
+    """Numpad 0 on a warrior does not depend on the one lookup that keeps failing.
+
+    Maintainer, 2026-09-14, on v1.264: "I am running v1.264 still same bug."
+
+    ON THAT BUILD THERE IS EXACTLY ONE WAY to send a warrior back to its spawn position:
+    rttBagOfMap() not knowing it. That map is a single cached sweep over 63 kits and nearly two
+    megabytes of pattern matching, executed by TTS's MoonSharp rather than the Lua this harness runs.
+    It cannot be observed from here and it has evidently been wrong at his table across four builds,
+    so it does not get to be the only answer.
+
+    THREE INDEPENDENT GUARDS, none of which consult that map:
+
+      * rttHomeMeasuredOnly returns true for any "... Warrior" unconditionally, so a warrior can
+        never be offered the spots its starting figures stand on, whatever any lookup says.
+      * rttSupplyForPiece asks a SECOND way when the map draws a blank -- rttPieceNamesFromDef, the
+        function numpad 1 uses, which is the key he keeps telling me works: simple patterns, no
+        cache, no whole-table sweep, finds the bag that CONTAINS the warrior.
+      * and a warrior never falls through to the "own recorded spot" step at all. If both lookups
+        fail the supply genuinely cannot be found, and doing nothing is the right answer -- not
+        putting the warrior back where it started.
+    """
+    # the map completely broken, which is the state his table is evidently in
+    rt = fresh(src)
+    rt.execute("""
+      RTT_BAG_OF = {}
+      RTT_HOME = {} PUT = 0
+      for i = 1, 3 do
+        RTT_HOME["w" .. i] = { n = "Cat Warrior", f = "Marquise de Cat",
+                               p = { 40 + i, 11.6, -50 }, r = { 0, 0, 0 } }
+      end
+      BAG = MKOBJ("Marquise Supply", { 60, 11.5, -40 }, {})
+      BAG.putObject = function(o) PUT = PUT + 1 o.destruct() end
+      W = MKOBJ("Cat Warrior", { 3, 11.6, 3 }, {})
+      RTT_HOME[W.getGUID()] = { n = "Cat Warrior", f = "Marquise de Cat",
+                                p = { 99, 11.6, -99 }, r = { 0, 0, 0 } }
+      HOVER = { Red = W }
+      rttGizmoHome("Red")
+      FLUSH(20)
+    """)
+    assert rt.eval('#rttHomeSlots([[Cat Warrior]])') == 0, \
+        "a warrior was offered its spawn spots as a row while the bag map was broken"
+    assert rt.eval('rttSupplyForPiece([[Cat Warrior]])') == "Marquise Supply", \
+        "the second lookup did not find the supply either"
+    assert rt.eval("PUT") == 1, "the warrior did not reach its supply with the bag map broken"
+
+    # ...for EVERY faction that has one, not just the cats
+    rt = fresh(src)
+    pairs_ = rt.eval("""function()
+      local o = {}
+      for w, b in pairs(rttBagOfMap()) do if w:match('Warrior$') then o[#o+1] = w .. '|' .. b end end
+      table.sort(o) return table.concat(o, ';')
+    end""")().split(";")
+    assert len(pairs_) >= 12, "expected a warrior for most factions, got %d" % len(pairs_)
+    for line in pairs_:
+        war, sup = line.split("|")
+        r2 = fresh(src)
+        r2.execute("""
+          RTT_BAG_OF = {} RTT_HOME = {} PUT = 0
+          BAG = MKOBJ("%s", { 60, 11.5, -40 }, {})
+          BAG.putObject = function(o) PUT = PUT + 1 o.destruct() end
+          W = MKOBJ("%s", { 3, 11.6, 3 }, {})
+          RTT_HOME[W.getGUID()] = { n = "%s", f = "F", p = { 99, 11.6, -99 }, r = { 0, 0, 0 } }
+          HOVER = { Red = W } rttGizmoHome("Red") FLUSH(20)
+        """ % (sup, war, war))
+        assert r2.eval("PUT") == 1, \
+            "%s did not reach %s with the bag map broken" % (war, sup)
+
+    # AND WITH NO SUPPLY FINDABLE AT ALL: nothing happens. It is NOT put back where it started.
+    rt = fresh(src)
+    rt.execute("""
+      RTT_BAG_OF = {} KEEP = EVERYTHING EVERYTHING = {}
+      RTT_HOME = {}
+      W = MKOBJ("Cat Warrior", { 3, 11.6, 3 }, {})
+      RTT_HOME[W.getGUID()] = { n = "Cat Warrior", f = "Marquise de Cat",
+                                p = { 99, 11.6, -99 }, r = { 0, 0, 0 } }
+      HOVER = { Red = W } rttGizmoHome("Red") FLUSH(20)
+      EVERYTHING = KEEP
+    """)
+    assert abs(rt.eval("W.getPosition().x") - 3) < 0.001, \
+        ("with no supply findable the warrior was moved to x %.1f; it must be left alone rather "
+         "than sent back to its spawn spot" % rt.eval("W.getPosition().x"))
+
 CASES = [
     ("manual path drives the turn system",   t_manual_turn_order),
     ("manual path spawns 4 / 5 boards",      t_boards_spawn),
@@ -10565,6 +10658,7 @@ CASES = [
     ("a refused put still reaches home",     t_a_warrior_reaches_its_supply_even_if_the_put_is_refused),
     ("a partial supply map is not cached",   t_a_half_built_supply_map_is_never_cached),
     ("both slot builders agree",             t_both_slot_builders_ignore_spawn_spots_the_same_way),
+    ("warriors home with the map broken",    t_a_warrior_reaches_its_supply_with_the_bag_map_broken),
     ("numpad 2 hands you your token",  t_numpad_two_hands_you_the_token_you_chose),
     ("gizmo default key is numpad 0",         t_gizmo_default_key_is_numpad_zero),
     ("gizmo: warrior to/from supply",         t_gizmo_warrior_to_and_from_supply),

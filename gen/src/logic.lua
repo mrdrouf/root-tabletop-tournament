@@ -8308,6 +8308,71 @@ function rttBagOfMap()
   return m
 end
 
+-- IS THIS PIECE A WARRIOR? One spelling, used everywhere, because three different tests for it is
+-- how the rules drift apart. Every warrior in the mod is nicknamed "<something> Warrior".
+function rttIsWarrior(name)
+  return tostring(name or ""):match("Warrior$") ~= nil
+end
+
+-- WHICH SUPPLY A PIECE BELONGS IN -- and it asks TWICE, because the first way can fail silently.
+--
+-- Maintainer, 2026-09-14, on v1.264: "I am running v1.264 still same bug." On that build the ONLY
+-- way a warrior can be sent back to its spawn position is rttBagOfMap() not knowing it -- and that
+-- map is one cached sweep over 63 kits and nearly two megabytes of pattern matching, run by TTS's
+-- MoonSharp rather than the Lua this repo tests against. It cannot be observed from here and it has
+-- now been wrong at his table across four builds, so it does not get to be the only answer.
+--
+-- THE SECOND WAY IS THE ONE NUMPAD 1 USES, and numpad 1 is the key he keeps telling me works:
+-- "numpad 1 works numpad 0 does not". rttPieceNamesFromDef reads a kit with simple patterns only --
+-- no backtracking, no cache, no whole-table sweep -- and finds the bag that CONTAINS the warrior.
+-- Asking the working question is better than auditing the broken one.
+function rttSupplyForPiece(name)
+  local viaMap = nil
+  pcall(function() viaMap = rttBagOfMap()[name] end)
+  if viaMap ~= nil then return viaMap end
+  if not rttIsWarrior(name) then return nil end
+  local found = nil
+  pcall(function()
+    for _, cat in pairs(EVERYTHING or {}) do
+      for _, def in pairs(cat) do
+        if found == nil and type(def) == "table" and def['data'] ~= nil then
+          local sup, war = rttPieceNamesFromDef(def)
+          if war == name and sup ~= nil then found = sup end
+        end
+      end
+    end
+  end)
+  if found ~= nil then return found end
+
+  -- THIRD AND LAST: the one kit blob that both looks like a container and names this piece, found by
+  -- PLAIN TEXT SEARCH -- string.find with the plain flag, no pattern engine involved at all.
+  --
+  -- The tier above only knows bags whose nickname ends in "Supply", because that is all numpad 1
+  -- ever needed; the Dark Deck's infected warriors live in one called "RODENT ZERO". This tier has
+  -- no such assumption, and nothing in it can misbehave differently under TTS's MoonSharp, which is
+  -- the whole reason there is a third tier at all.
+  --
+  -- The container's own nickname is the FIRST one in a blueprint and its contents follow, which is
+  -- the same fact rttBagOfMap is built on.
+  pcall(function()
+    for _, cat in pairs(EVERYTHING or {}) do
+      for _, def in pairs(cat) do
+        if found == nil and type(def) == "table" and def['data'] ~= nil then
+          for _, v in ipairs(def['data']) do
+            if found == nil and type(v.json) == "string"
+               and string.find(v.json, '"Nickname": "' .. name .. '"', 1, true) ~= nil
+               and string.find(v.json, "Bag", 1, true) ~= nil then
+              local first = string.match(v.json, '"Nickname":%s*"([^"]*)"')
+              if first ~= nil and first ~= "" and first ~= name then found = first end
+            end
+          end
+        end
+      end
+    end
+  end)
+  return found
+end
+
 -- kept for the warriors-only callers: the same map, narrowed to names ending in "Warrior".
 RTT_WARRIOR_SUPPLY = nil
 function rttWarriorSupplyMap()
@@ -8758,6 +8823,11 @@ end
 -- a phantom row of its own spawn spots back, which is the bug of 2026-09-14 all over again.
 function rttHomeMeasuredOnly(name)
   if RTT_HOME_EXTRA_ONLY[name] then return true end
+  -- A WARRIOR, UNCONDITIONALLY AND WITHOUT ASKING ANYTHING ELSE. This used to be decided by the bag
+  -- map, so a map that failed to build handed every warrior a phantom row of the spots its starting
+  -- figures stand on -- and numpad 0 walked it back to one of them. That a warrior belongs in its
+  -- supply is a fact about the game, not a lookup that can come back empty.
+  if rttIsWarrior(name) then return true end
   return rttBagOfMap()[name] ~= nil
 end
 
@@ -9095,7 +9165,7 @@ function rttGizmoHome(color)
   -- never walk on to a row or to where the piece happened to start, because those are not its home.
   -- Relics never reach this line -- their scoring row is a MEASURED place on the board and step 3
   -- takes it -- which is the one and only exception in the game.
-  local bagName = rttBagOfMap()[name]
+  local bagName = rttSupplyForPiece(name)
   if bagName ~= nil then
     local bag = rttFindByName(bagName)
     if bag ~= nil then
@@ -9140,7 +9210,14 @@ function rttGizmoHome(color)
     return
   end
 
-  -- 5. its own recorded spot -- only for a piece with NO supply at all, and every slot full
+  -- 5. its own recorded spot -- only for a piece with NO supply at all, and every slot full.
+  --
+  -- NEVER A WARRIOR. "warriors should always return to supply with numpad 0." If both lookups came
+  -- back empty the supply genuinely cannot be found, and the right answer is to do nothing rather
+  -- than to put the warrior back where it started -- which is the behaviour he has been reporting
+  -- for two days and never asked for.
+  if rttIsWarrior(name) then return end
+
   if home ~= nil then
     pcall(function()
       hovered.setPositionSmooth({ home.p[1], home.p[2], home.p[3] }, false, true)
