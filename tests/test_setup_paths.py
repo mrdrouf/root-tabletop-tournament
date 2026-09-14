@@ -11414,6 +11414,71 @@ def t_the_cats_wait_for_their_supply(src):
     assert rt.eval("TAKEN") == 0, \
         "an abandoned run still placed cats once the supply turned up"
 
+
+def t_the_plus_minus_buttons_only_move_the_marker(src):
+    """The score has ONE source: where the VP marker is. A button may not write it.
+
+    Zaandaa at the table, 2026-09-14: "the +- buttons by the factions and on the box score itself
+    don't adjust the printed numbers in the current round column. Moving the VP marker manually does
+    ... The buttons move the marker and update the current score on the right but not current round
+    score."
+
+    THE CAUSE IS THE SHAPE OF IT, not a missing call. nudge moved the marker AND wrote
+    `row.score = target` itself, which made the button a second source of truth. The poll only writes
+    the current round's cell when it SEES the score change --
+    `if sc ~= row.score then ... amendRound(rowIdx) end` -- so a button that had already written the
+    new score left it nothing to see. Dragging the marker updated the round column; pressing + or -
+    did not, and the live score moved either way.
+
+    Maintainer: "the boxscore should track the vp marker position why would it make an exception of
+    how it behaves depending on which button moved the marker this is very worrying." So the fix is
+    the architecture: the button does one thing, and the poll does what it always did.
+
+    Pinned as a property rather than driven end to end, because nudge needs a detected score TRACK
+    with real snap points and a map object to reach its move at all. What the poll does once it sees
+    a change is covered by t_an_off_turn_point_lands_in_the_round_it_happened_in.
+    """
+    head = "RTT_BOXSCORE_JSON = [====["
+    i = src.index(head)
+    ls = json.loads(src[i + len(head):src.index("]====]", i)])["LuaScript"]
+
+    a = ls.index("local function nudge(i, delta)")
+    b = ls.index("---------------------------------------------------------------", a)
+    # STATEMENTS ONLY: the comment above the fix quotes the old assignment verbatim, so a plain
+    # substring search over the body matches the explanation and not the code.
+    code = [l.strip() for l in ls[a:b].split("\n")
+            if l.strip() and not l.strip().startswith("--")]
+
+    writes = [l for l in code if re.match(r"^row\.score\s*=", l)]
+    assert not writes, \
+        ("nudge still writes the score itself (%s), so the poll will not see the change and the "
+         "current round column will not be amended" % writes[0])
+    assert any("setPositionSmooth" in l for l in code), "nudge no longer moves the marker at all"
+    assert any("pcall(poll)" in l for l in code), \
+        "nudge moves the marker but never asks the poll to look, so the sheet waits out POLL_SECONDS"
+
+    # the readings of row.score that REMAIN are fine: they work out where to move to, not what to write
+    assert any(l.startswith("local base = row.score") for l in code) and \
+           any(l.startswith("local target = row.score") for l in code), \
+        "nudge no longer reads the current score to work out where to move to"
+
+    # ...and both entry points still go through this one function, so they cannot diverge again
+    assert "nudge(i, tonumber(d.delta) or 0)" in ls, \
+        "the faction VP panels no longer reach the sheet through nudge"
+    # ...and the sheet's OWN pair is gone, by his decision -- Zaandaa: "Do we need the +- buttons on
+    # the box score object now that there are buttons by each faction?"; maintainer: "No I'll remove."
+    # Every faction has the same pair on its own VP panel, where the player is already looking.
+    assert 'chip("plus_' not in ls and 'chip("minus_' not in ls, \
+        "the sheet still renders its own +/- chips"
+    assert 'if kind == "plus"' not in ls and 'kind == "minus"' not in ls, \
+        "the handler for the removed chips is still there; an id never emitted needs no handler"
+
+    # the poll is still the thing that amends the round, which is the whole point
+    assert "amendRound(rowIdx)" in ls, "the poll no longer amends the round when the marker moves"
+    j = ls.index("amendRound(rowIdx)")
+    assert "if sc ~= row.score then" in ls[max(0, j - 400):j], \
+        "the round amendment is no longer gated on the poll seeing the marker move"
+
 CASES = [
     ("manual path drives the turn system",   t_manual_turn_order),
     ("manual path spawns 4 / 5 boards",      t_boards_spawn),
@@ -11515,6 +11580,7 @@ CASES = [
     ("a leaving row takes its pointers",     t_a_row_leaving_takes_its_pointers_with_it),
     ("the sweep re-asks before it touches",  t_the_sweep_and_its_timers_respect_what_changed_since),
     ("the cats wait for their supply",       t_the_cats_wait_for_their_supply),
+    ("+/- only moves the VP marker",         t_the_plus_minus_buttons_only_move_the_marker),
     ("numpad 2 hands you your token",  t_numpad_two_hands_you_the_token_you_chose),
     ("gizmo default key is numpad 0",         t_gizmo_default_key_is_numpad_zero),
     ("gizmo: warrior to/from supply",         t_gizmo_warrior_to_and_from_supply),
