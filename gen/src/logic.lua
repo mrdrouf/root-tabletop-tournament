@@ -3997,6 +3997,32 @@ RTT_LAYOUT = {
   [4] = { 1, 2, 4, 3 }, [5] = { 1, 5, 2, 4, 3 }, [6] = { 1, 2, 5, 6, 4, 3 },
 }
 
+-- FIVE PLAYERS PUT THREE BOARDS ON ONE ROW, AND THE MIDDLE ONE IS PINCHED.
+--
+-- Maintainer, 2026-09-14: "in 5 player setup move the 1st player faction board position 2/3 of a
+-- card width to the right and the 3rd player faction board to the left by the same distance so the
+-- 2nd player faction board has more space."
+--
+-- The five-player layout is { 1, 5, 2, 4, 3 }: players 1, 2 and 3 all sit on the NEAR row, at
+-- x 52, 0 and -52, while players 4 and 5 have the whole far row between them. So the middle board is
+-- the only one with a neighbour on each side. Moving the outer two APART by the same amount widens
+-- both of its gaps and leaves it exactly where it is.
+--
+-- 2/3 OF A CARD IS 3.3053. RTT_HELPER_TOWN_W (4.9580, further down this file) is the maintainer's own
+-- measurement of a card standing in the helper row, so this is his unit rather than a guess at one.
+-- Written out rather than derived from that constant, because globals are assigned in file order and
+-- RTT_HELPER_TOWN_W does not exist yet at this line.
+RTT_5P_SPREAD = 3.3053
+
+-- A NEAR-ROW SEAT FACES +z, SO ITS RIGHT IS +x. Player 1 sits at position 1 (x 52) and moves right to
+-- 55.3; player 3 sits at position 2 (x -52) and moves left to -55.3. Keyed by POSITION index, which
+-- is what the layout hands out -- and applied at five players only, so every other count is untouched.
+--
+-- 3.3 is well inside the 12-unit radius rttSeatHandFor searches, so each seat still finds its own
+-- hand; and the seat's own recorded pos moves with the board, so the faction kit, the relationship
+-- row and the VP panel all follow it.
+RTT_5P_NUDGE = { [1] = RTT_5P_SPREAD, [2] = -RTT_5P_SPREAD }
+
 -- hand transform for each board position (base handPositions/handRotations, by x,z sign): the
 -- player's hand sits just behind their board (z=±64 behind the board at z=±46).
 RTT_SEAT_HAND = {
@@ -4121,8 +4147,21 @@ local function rttAtan2(y, x)
   return math.atan(y, x)
 end
 
-function rttSeatClockwise(x, z)
-  local a = rttAtan2(RTT_POS[1][2], RTT_POS[1][1]) - rttAtan2(z, x)
+-- THE REFERENCE IS A SEAT, NOT A FIXED COORDINATE.
+--
+-- This measured from RTT_POS[1] -- the bottom-right SPOT -- so a board standing anywhere further
+-- into that corner came out at a hair under a full turn instead of zero, and sorted LAST. The
+-- five-player spread does exactly that: it moves player 1 from x 52 to 55.3, and the whole turn order
+-- rotated by one. Found by the suite before it shipped.
+--
+-- rttSeatOrderIdx passes the seat that is actually closest to the corner, which is the maintainer's
+-- own rule word for word: "turn order is decided clockwise by the position from the first player
+-- who's the closest to the bottom right corner". That also holds for a board dragged there by hand,
+-- which a fixed coordinate never could.
+function rttSeatClockwise(x, z, rx, rz)
+  rx = rx or RTT_POS[1][1]
+  rz = rz or RTT_POS[1][2]
+  local a = rttAtan2(rz, rx) - rttAtan2(z, x)
   local two = 2 * math.pi
   a = a % two
   if a < 0 then a = a + two end
@@ -4136,8 +4175,20 @@ function rttSeatOrderIdx()
   for i, s in ipairs(RTT_SEATS or {}) do
     if s ~= nil and s.pos ~= nil then idx[#idx + 1] = i end
   end
+  -- WHICH SEAT IS NEAREST THE BOTTOM-RIGHT CORNER (+x, -z). Maximising x - z is that, and it needs no
+  -- made-up corner coordinate: of two seats the one further right, or further toward the near edge,
+  -- wins. Its angle becomes zero, so it leads the order however far out it sits.
+  local rx, rz = nil, nil
+  local bestCorner = nil
+  for _, i in ipairs(idx) do
+    local px, pz = RTT_SEATS[i].pos[1], RTT_SEATS[i].pos[2]
+    local d = px - pz
+    if bestCorner == nil or d > bestCorner then bestCorner, rx, rz = d, px, pz end
+  end
   local ang = {}
-  for _, i in ipairs(idx) do ang[i] = rttSeatClockwise(RTT_SEATS[i].pos[1], RTT_SEATS[i].pos[2]) end
+  for _, i in ipairs(idx) do
+    ang[i] = rttSeatClockwise(RTT_SEATS[i].pos[1], RTT_SEATS[i].pos[2], rx, rz)
+  end
   table.sort(idx, function(a, b)
     if math.abs(ang[a] - ang[b]) > 1e-9 then return ang[a] < ang[b] end
     return a < b
@@ -4356,15 +4407,17 @@ function rttSpawnSelectors()
   for i = 1, n do
     local pi = layout[i] or i
     local p = RTT_POS[pi] or RTT_POS[1]
+    -- the five-player spread, and nothing at any other count -- see RTT_5P_NUDGE
+    local px = p[1] + ((n == 5) and (RTT_5P_NUDGE[pi] or 0) or 0)
     local board = spawnObjectJSON({
       json = RTT_SELECTOR_JSON,
-      position = { p[1], 11.56, p[2] },
+      position = { px, 11.56, p[2] },
       rotation = { 0, (p[2] > 0) and 180 or 0, 0 },
       callback_function = function(o) o.setLock(true) o.addTag(RTT_SELECTOR_TAG) end
     })
     -- pos is a COPY: `p` is RTT_POS[pi] itself, and a seat that aliased the spot table would
     -- corrupt it for every later game the moment anything wrote through s.pos.
-    RTT_SEATS[i] = { board = board, color = nil, pos = { p[1], p[2] }, hand = RTT_SEAT_HAND[pi],
+    RTT_SEATS[i] = { board = board, color = nil, pos = { px, p[2] }, hand = RTT_SEAT_HAND[pi],
                      faction = nil, owner = nil }
   end
 end

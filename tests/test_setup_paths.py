@@ -11606,6 +11606,61 @@ def t_a_faction_cannot_be_given_more_options_than_it_has(src):
     assert "local capN = variantCap(row.fac)" in ls, \
         "the captain detector no longer reads the shared cap"
 
+
+def t_five_players_give_the_middle_board_room(src):
+    """At five players the two outer boards on the near row move apart.
+
+    Maintainer, 2026-09-14: "in 5 player setup move the 1st player faction board position 2/3 of a
+    card width to the right and the 3rd player faction board to the left by the same distance so the
+    2nd player faction board has more space."
+
+    The five-player layout is { 1, 5, 2, 4, 3 }: players 1, 2 and 3 all sit on the NEAR row at x 52,
+    0 and -52, while players 4 and 5 have the whole far row between them -- so the middle board is the
+    only one with a neighbour on each side. A near-row seat faces +z, so its right is +x: player 1
+    moves out to 55.3 and player 3 to -55.3, and the middle board does not move at all.
+
+    2/3 of a card is 3.3053, taken from RTT_HELPER_TOWN_W -- the maintainer's own measurement of a
+    card standing in the helper row.
+
+    AND THE TURN ORDER SURVIVED IT, which it did not at first. rttSeatClockwise measured from the
+    bottom-right SPOT, so player 1 standing further into that corner came out a hair under a full
+    turn instead of zero and sorted LAST -- the whole order rotated by one. The reference is now the
+    seat actually nearest the corner, which is the rule as he stated it.
+    """
+    def seats(n):
+        rt = fresh(src)
+        rt.execute("RTT_ORDER = {} for i = 1, %d do RTT_ORDER[i] = i end rttSpawnSelectors()" % n)
+        return [(round(rt.eval("RTT_SEATS[%d].pos[1]" % i), 2),
+                 round(rt.eval("RTT_SEATS[%d].pos[2]" % i), 0)) for i in range(1, n + 1)]
+
+    five = seats(5)
+    assert five[0] == (55.31, -46) or abs(five[0][0] - 55.3053) < 0.01, \
+        "player 1 is at %s; it should have moved right to about 55.31" % (five[0],)
+    assert abs(five[2][0] + 55.3053) < 0.01, \
+        "player 3 is at %s; it should have moved left to about -55.31" % (five[2],)
+    assert five[1] == (0.0, -46), "the middle board moved; it should stay where it was: %s" % (five[1],)
+    assert abs(abs(five[0][0]) - abs(five[2][0])) < 1e-6, \
+        "the two outer boards moved by different amounts"
+    assert five[3] == (-52.0, 46) and five[4] == (52.0, 46), \
+        "the far row moved; only the crowded near row was meant to change"
+
+    # EVERY OTHER COUNT IS UNTOUCHED
+    for n, want in ((3, [(52.0, -46), (-52.0, -46), (52.0, 46)]),
+                    (4, [(52.0, -46), (-52.0, -46), (-52.0, 46), (52.0, 46)])):
+        got = seats(n)
+        assert got == want, "%d players moved: %s" % (n, got)
+
+    # ...AND THE TURN ORDER STILL STARTS AT THE CORNER-MOST SEAT
+    rt = fresh(src)
+    rt.execute("RTT_ORDER = {1,2,3,4,5} rttSpawnSelectors() ORD = table.concat(rttSeatOrderIdx(), ',')")
+    assert rt.eval("ORD") == "1,2,3,4,5", \
+        ("the five-player turn order is %s; the spread must not rotate it" % rt.eval("ORD"))
+
+    # a board dragged even further into the corner still leads, which a fixed reference could not do
+    rt.execute("RTT_SEATS[2].pos = { 90, -60 } ORD2 = table.concat(rttSeatOrderIdx(), ',')")
+    assert rt.eval("ORD2").startswith("2"), \
+        "a seat dragged nearest the bottom-right corner does not lead the order: %s" % rt.eval("ORD2")
+
 CASES = [
     ("manual path drives the turn system",   t_manual_turn_order),
     ("manual path spawns 4 / 5 boards",      t_boards_spawn),
@@ -11709,6 +11764,7 @@ CASES = [
     ("the cats wait for their supply",       t_the_cats_wait_for_their_supply),
     ("+/- only moves the VP marker",         t_the_plus_minus_buttons_only_move_the_marker),
     ("variant picks are capped",             t_a_faction_cannot_be_given_more_options_than_it_has),
+    ("5p gives the middle board room",       t_five_players_give_the_middle_board_room),
     ("numpad 2 hands you your token",  t_numpad_two_hands_you_the_token_you_chose),
     ("gizmo default key is numpad 0",         t_gizmo_default_key_is_numpad_zero),
     ("gizmo: warrior to/from supply",         t_gizmo_warrior_to_and_from_supply),
