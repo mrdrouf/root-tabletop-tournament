@@ -11661,6 +11661,96 @@ def t_five_players_give_the_middle_board_room(src):
     assert rt.eval("ORD2").startswith("2"), \
         "a seat dragged nearest the bottom-right corner does not lead the order: %s" % rt.eval("ORD2")
 
+
+def t_the_crow_hidden_box_shrank_away_from_the_board(src):
+    """The crows' hidden box is 10% smaller, taken off the far side and the near-to-player side only.
+
+    Maintainer, 2026-09-14: "reduce the crow hidden box for all setup by 10% height and width by
+    shortening the lower side and the side at the opposite side of the faction board so it s smaller
+    but stays close to the crow faction board. be careful when you do this for all crows possible
+    positions."
+
+    "All crow positions" is the hard half, and the geometry already answers it: the zone is placed in
+    BOARD-LOCAL coordinates and spawned rotated to the board, so one change is right at every seat and
+    on both rows. Anything keyed on world x or z would not be.
+
+    THE TWO UNITS ARE DIFFERENT AND THAT IS THE TRAP. The box's SIZE is in world units; the offsets
+    are board-local, and the crow board is scaled 8.82 -- so half of a 1.329 world shrink is 0.07534
+    of a board-local unit, not 0.6645. Getting it wrong moved the box nearly six units across the
+    table instead of two thirds of one. Caught by rendering the zone at all five seat positions and
+    diffing against the previous build.
+
+    The HEIGHT is deliberately untouched: SY is how tall the fog column stands, and shortening that
+    would let people see over the plots rather than make the box smaller.
+    """
+    rt = fresh(src)
+    S = 8.82                                   # the crow rules board's own scale
+    WAS = {"lx": 3.074, "lxl": 2.26, "lz": -0.565, "sx": 13.29, "sy": 5.10, "sz": 9.50}
+    now = {k: rt.eval("RTT_CROW_HZ_" + n) for k, n in
+           (("lx", "LX"), ("lxl", "LX_LEFT"), ("lz", "LZ"), ("sx", "SX"), ("sy", "SY"), ("sz", "SZ"))}
+
+    assert abs(now["sx"] - WAS["sx"] * 0.9) < 1e-6, \
+        "the box width is %s; 10%% off %s is %s" % (now["sx"], WAS["sx"], WAS["sx"] * 0.9)
+    assert abs(now["sz"] - WAS["sz"] * 0.9) < 1e-6, \
+        "the box depth is %s; 10%% off %s is %s" % (now["sz"], WAS["sz"], WAS["sz"] * 0.9)
+    assert abs(now["sy"] - WAS["sy"]) < 1e-9, \
+        "the fog column's HEIGHT changed; only the footprint was meant to shrink"
+
+    # the edge nearest the faction board must not move, on either side
+    for side, key in (("right", "lx"), ("left", "lxl")):
+        near_was = WAS[key] * S - WAS["sx"] / 2
+        near_now = now[key] * S - now["sx"] / 2
+        assert abs(near_was - near_now) < 1e-3, \
+            ("the %s box's edge nearest the board moved from %.3f to %.3f; it must stay put"
+             % (side, near_was, near_now))
+        far_was = WAS[key] * S + WAS["sx"] / 2
+        far_now = now[key] * S + now["sx"] / 2
+        assert abs((far_was - far_now) - WAS["sx"] * 0.1) < 1e-3, \
+            "the %s box's far edge came in %.3f, expected %.3f" % (side, far_was - far_now, WAS["sx"] * 0.1)
+
+    # board-local +z is toward the player on both rows, so THAT edge comes in and the far one stays
+    upper_was = WAS["lz"] * S - WAS["sz"] / 2
+    upper_now = now["lz"] * S - now["sz"] / 2
+    assert abs(upper_was - upper_now) < 1e-3, \
+        "the box's far-from-player edge moved from %.3f to %.3f; it must stay put" % (upper_was, upper_now)
+    lower_was = WAS["lz"] * S + WAS["sz"] / 2
+    lower_now = now["lz"] * S + now["sz"] / 2
+    assert abs((lower_was - lower_now) - WAS["sz"] * 0.1) < 1e-3, \
+        "the lower edge came in %.3f, expected %.3f" % (lower_was - lower_now, WAS["sz"] * 0.1)
+
+    # ...and the same box comes out at every seat, on both rows
+    def zone(cx, cz, ry):
+        r = fresh(src)
+        r.execute("""
+          SP = nil
+          local real = spawnObjectJSON
+          spawnObjectJSON = function(p)
+            if type(p.json) == "string" and p.json:find("FogOfWarTrigger", 1, true) then SP = p end
+            return real(p)
+          end
+          B = MKOBJ("Crow Board", { %f, 11.6, %f }, {})
+          B.setRotation({ 0, %d, 0 })  B.__scale = Vector({ 8.82, 1, 8.82 })
+          rttCrowsHiddenZone(B, %f, %f, false)
+          FLUSH(20)
+          OK = SP ~= nil
+          SZX = SP and SP.scale[1] or 0
+          SZZ = SP and SP.scale[3] or 0
+        """ % (cx, cz, ry, cx, cz))
+        return r.eval("OK"), r.eval("SZX"), r.eval("SZZ")
+
+    for label, cx, cz, ry in (("near right", 52, -46, 180), ("near left", -52, -46, 180),
+                              ("near centre", 0, -46, 180), ("far right", 52, 46, 0),
+                              ("far left", -52, 46, 0)):
+        ok, sx, sz = zone(cx, cz, ry)
+        assert ok is True, "no hidden zone was spawned at the %s seat" % label
+        assert abs(sx - now["sx"]) < 1e-6 and abs(sz - now["sz"]) < 1e-6, \
+            "the %s seat got a %sx%s box instead of %sx%s" % (label, sx, sz, now["sx"], now["sz"])
+
+    # the 4x3 plot grid still fits with room to spare
+    gap = rt.eval("RTT_CROW_PLOT_GAP")
+    assert 4 * gap < now["sx"] and 3 * gap < now["sz"], \
+        "the plots (%.1f x %.1f) no longer fit the box" % (4 * gap, 3 * gap)
+
 CASES = [
     ("manual path drives the turn system",   t_manual_turn_order),
     ("manual path spawns 4 / 5 boards",      t_boards_spawn),
@@ -11765,6 +11855,7 @@ CASES = [
     ("+/- only moves the VP marker",         t_the_plus_minus_buttons_only_move_the_marker),
     ("variant picks are capped",             t_a_faction_cannot_be_given_more_options_than_it_has),
     ("5p gives the middle board room",       t_five_players_give_the_middle_board_room),
+    ("the crow box shrank inward",           t_the_crow_hidden_box_shrank_away_from_the_board),
     ("numpad 2 hands you your token",  t_numpad_two_hands_you_the_token_you_chose),
     ("gizmo default key is numpad 0",         t_gizmo_default_key_is_numpad_zero),
     ("gizmo: warrior to/from supply",         t_gizmo_warrior_to_and_from_supply),

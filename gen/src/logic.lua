@@ -7168,17 +7168,46 @@ RTT_CROW_PLOTS = {
 
 -- Hidden-box placement, read from the maintainer's hand-placed save (the SAME board-local spot + size for
 -- every seat -- straightened and uniform, per his instruction). Past the crafted board, near depth-centre.
-RTT_CROW_HZ_LX = 3.074    -- board-local X magnitude on the RIGHT side (seats 2 & 4) -- clears the crafted.
-RTT_CROW_HZ_LX_LEFT = 2.26 -- LEFT side (seats 1 & 3): closer to the faction board by the crafted board's
+-- THE BOX IS 10% SMALLER, TAKEN OFF TWO SIDES ONLY.
+--
+-- Maintainer, 2026-09-14: "reduce the crow hidden box for all setup by 10% height and width by
+-- shortening the lower side and the side at the opposite side of the faction board so it s smaller
+-- but stays close to the crow faction board. be careful when you do this for all crows possible
+-- positions."
+--
+-- Every number here is BOARD-LOCAL and the zone is spawned rotated to the board, so one change is
+-- automatically right at every seat and on both rows -- which is what "all crows possible positions"
+-- asks for. Nothing keyed on world x or z would be.
+--
+-- TAKING IT OFF ONE SIDE MEANS MOVING THE CENTRE HALF AS FAR -- AND THE TWO ARE IN DIFFERENT UNITS.
+-- The box's SIZE is in world units; these offsets are BOARD-LOCAL, and the crow board is scaled 8.82,
+-- so a board-local 1 is 8.82 world. 10% of the width is 1.329 world, so the far edge comes in by that
+-- and the centre moves 0.6645 world toward the board -- which is 0.6645 / 8.82 = 0.07534 of these.
+-- The depth is 0.95 world off the lower edge, so 0.475 world of centre, 0.05385 local.
+--
+-- Getting that wrong moved the box nearly six units across the table instead of two thirds of one;
+-- it was caught by rendering the zone for all five seat positions and diffing against the build
+-- before, which is the only way a change expressed in one frame and applied in another gets checked.
+--
+-- THE HEIGHT (SY, 5.10) IS DELIBERATELY UNCHANGED. "Height and width" reads as the two dimensions of
+-- the rectangle on the table; SY is how tall the fog column stands, and shortening that would let
+-- people see over the plots rather than make the box smaller.
+RTT_CROW_HZ_LX = 2.99866 -- board-local X magnitude on the RIGHT side (seats 2 & 4) -- clears the crafted.
+                          -- was 3.074, less 0.07534 -- half the width taken off the far side, in board-local units
+RTT_CROW_HZ_LX_LEFT = 2.18466 -- LEFT side (seats 1 & 3): closer to the faction board by the crafted board's
                           -- width (7.2 world / 8.82 = 0.82 board-local) since no crafted sits on that side.
-RTT_CROW_HZ_LZ = -0.565   -- board-local Z: near the crow board's depth centre
+                          -- was 2.26, less the same 0.07534
+RTT_CROW_HZ_LZ = -0.61885-- board-local Z: was -0.565, less half the depth taken off the lower edge.
+                          -- Board-local +z is toward the PLAYER on both rows -- the crow board carries
+                          -- rotY 180 on the near row and 0 on the far one -- so this is the edge
+                          -- nearest them that comes in, and the far edge stays put.
 -- plot layout INSIDE the hidden zone: world-unit spacing, and how far above the zone's own y they
 -- sit so they rest visibly in it rather than at its floor.
 RTT_CROW_PLOT_GAP = 1.60
 RTT_CROW_PLOT_Y   = -2.20
-RTT_CROW_HZ_SX = 13.29    -- uniform box dimensions for every seat (his hand-placed size)
-RTT_CROW_HZ_SY = 5.10
-RTT_CROW_HZ_SZ = 9.50
+RTT_CROW_HZ_SX = 11.961   -- uniform box dimensions for every seat; his hand-placed 13.29 x 9.50 less
+RTT_CROW_HZ_SY = 5.10     -- 10%, with the height left alone. The 4x3 plot grid inside is 6.4 x 4.8
+RTT_CROW_HZ_SZ = 8.55     -- world units and stays centred, so it still sits well clear of every edge.
 
 RTT_CROW_HZ_JSON = [==[{"GUID":"8719cd","Name":"FogOfWarTrigger","Transform":{"posX":-27.8318653,"posY":14.1115437,"posZ":-46.7588654,"rotX":0.0,"rotY":359.8908,"rotZ":0.0,"scaleX":14.3045025,"scaleY":5.1,"scaleZ":12.5832348},"Nickname":"","Description":"","GMNotes":"","AltLookAngle":{"x":0.0,"y":0.0,"z":0.0},"ColorDiffuse":{"r":1.0,"g":1.0,"b":1.0,"a":0.25},"LayoutGroupSortIndex":0,"Value":0,"Locked":true,"Grid":true,"Snap":true,"IgnoreFoW":false,"MeasureMovement":false,"DragSelectable":true,"Autoraise":true,"Sticky":true,"Tooltip":true,"GridProjection":false,"HideWhenFaceDown":false,"Hands":false,"FogColor":"White","FogHidePointers":false,"FogReverseHiding":false,"FogSeethrough":true,"LuaScript":"","LuaScriptState":"","XmlUI":""}]==]
 
