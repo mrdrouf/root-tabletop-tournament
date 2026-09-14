@@ -754,8 +754,13 @@ local function obsClearings()
   end)
   local out = {}
   for i, m in ipairs(marks) do
+    -- ESCAPED LIKE EVERY OTHER STRING IN THE DOCUMENT. This one was concatenated between bare
+    -- quotes, so a marker whose art tail carried a quote, a backslash or a control byte wrote
+    -- unparseable JSON -- and ingest.php rejects the whole document, so ONE odd byte on one marker
+    -- would lose the entire game rather than one field. Every other string field goes through
+    -- obsStr; this was the exception. Found by the multi-agent review, 2026-09-14.
     out[#out + 1] = "[" .. i .. "," .. obsNum(m.x) .. "," .. obsNum(m.z)
-      .. ",\"" .. m.a .. "\"]"
+      .. "," .. obsStr(m.a) .. "]"
   end
   return out
 end

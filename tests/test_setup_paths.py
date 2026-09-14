@@ -11289,6 +11289,71 @@ def t_a_row_leaving_takes_its_pointers_with_it(src):
     assert "if i < S.active then S.active = S.active - 1 end" in prune, \
         "the poll's prune still only clamps the top, so END TURN can slide onto the next faction"
 
+
+def t_the_sweep_and_its_timers_respect_what_changed_since(src):
+    """A resync asks again at the moment it touches a piece, and an abandoned run's timers stay dead.
+
+    Three findings from the multi-agent review, 2026-09-14.
+
+    THE SWEEP'S LIST IS BUILT IN ONE PASS AND DRAINED OVER MANY FRAMES, so "nobody is holding it" and
+    "it has come to rest" were answers from seconds earlier. A piece picked up mid-sweep, or still
+    gliding home from numpad 0, was swept anyway.
+
+    A MARK STILL LANDING IS NOT THE SWEEP'S BUSINESS. numpad 3 records the prisoner at once but locks,
+    lights and fades it two frames later; a sweep starting in that window unlocked it, and the
+    prisoner tick -- which frees anything it finds unlocked -- then stripped the mark while the
+    deferred half was still on its way.
+
+    AND TWO TIMERS IN rttPlaceFaction WERE ARMED WITH A BARE Wait.time: the extras at 0.5 s and the
+    VP retry at 1.2 s. Press a setup button inside that window and the abandoned run's callbacks fired
+    into the new one -- extras spawning for a faction just cleared, a VP marker walking onto a track
+    for a game that no longer existed.
+    """
+    rt = fresh(src)
+    rt.execute("""
+      RTT_LAID = {} RTT_MARKING = {}
+      SETTLED = MKOBJ("Cat Warrior", { 1, 1, 1 }, {})
+      HELD    = MKOBJ("Cat Warrior", { 2, 1, 2 }, {})  HELD.held_by_color = "Red"
+      FLYING  = MKOBJ("Cat Warrior", { 3, 1, 3 }, {})  FLYING.resting = false
+      MARKING = MKOBJ("Cat Warrior", { 4, 1, 4 }, {})
+      RTT_MARKING[MARKING.getGUID()] = true
+      OBJS = { SETTLED, HELD, FLYING, MARKING }
+      getAllObjects = function() return OBJS end
+      TOUCHED = {}
+      local real = rttResyncTouch
+      rttResyncTouch = function(o) TOUCHED[o.getGUID()] = true return real(o) end
+      rttResyncSweep(false)
+      FLUSH(60)
+    """)
+    assert rt.eval("TOUCHED[SETTLED.getGUID()] == true") is True, \
+        "the sweep no longer touches a settled piece; it has stopped doing its job"
+    for who, why in (("HELD", "a piece somebody is holding"),
+                     ("FLYING", "a piece still in flight"),
+                     ("MARKING", "a warrior whose numpad 3 mark is still landing")):
+        assert rt.eval("TOUCHED[%s.getGUID()] == true" % who) is not True, \
+            "the sweep grabbed %s" % why
+
+    # the run-guarded clock
+    rt = fresh(src)
+    rt.execute("""
+      FIRED = 0
+      rttAfterTime(function() FIRED = FIRED + 1 end, 0.5)
+      RTT_RUN_ID = RTT_RUN_ID + 1
+      FLUSH(30)
+      A = FIRED
+      rttAfterTime(function() FIRED = FIRED + 1 end, 0.5)
+      FLUSH(30)
+      B = FIRED
+    """)
+    assert rt.eval("A") == 0, "a callback from an abandoned run fired into the new one"
+    assert rt.eval("B") == 1, "a callback from the CURRENT run did not fire"
+
+    # ...and rttPlaceFaction really uses it
+    assert "Wait.time(function() rttFactionExtras" not in src, \
+        "the faction extras timer is still armed without the run guard"
+    assert "Wait.time(function() rttPlaceVPRetry" not in src, \
+        "the VP retry timer is still armed without the run guard"
+
 CASES = [
     ("manual path drives the turn system",   t_manual_turn_order),
     ("manual path spawns 4 / 5 boards",      t_boards_spawn),
@@ -11388,6 +11453,7 @@ CASES = [
     ("a prisoner can always stand up",       t_a_prisoner_can_always_be_stood_back_up),
     ("two vagabonds share no pieces",        t_two_vagabonds_do_not_share_pieces),
     ("a leaving row takes its pointers",     t_a_row_leaving_takes_its_pointers_with_it),
+    ("the sweep re-asks before it touches",  t_the_sweep_and_its_timers_respect_what_changed_since),
     ("numpad 2 hands you your token",  t_numpad_two_hands_you_the_token_you_chose),
     ("gizmo default key is numpad 0",         t_gizmo_default_key_is_numpad_zero),
     ("gizmo: warrior to/from supply",         t_gizmo_warrior_to_and_from_supply),

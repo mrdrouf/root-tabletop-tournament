@@ -1734,6 +1734,16 @@ function rttAfterFrames(fn, n)
   Wait.frames(function() if RTT_RUN_ID == id then fn() end end, n)
 end
 
+-- The same guard on a CLOCK. rttPlaceFaction armed two of these with a bare Wait.time -- the extras
+-- at 0.5 s and the VP retry at 1.2 s -- so pressing a setup button inside that window left the
+-- abandoned run's callbacks to fire into the new one: extras spawned for a faction that had just
+-- been cleared, and a VP marker walked onto a track for a game that no longer existed. Found by the
+-- multi-agent review, 2026-09-14.
+function rttAfterTime(fn, secs)
+  local id = RTT_RUN_ID
+  Wait.time(function() if RTT_RUN_ID == id then fn() end end, secs)
+end
+
 -- ---- Spawning a faction over more than one frame -----------------------------------------------
 -- Maintainer, 2026-09-10, on which objects go missing for distant clients: "the bug in general occurs
 -- with the faction spawning exclusiveley not so much the other objects."
@@ -1893,6 +1903,12 @@ function rttResyncSkip()
     skip[guid] = true
     if type(was) == "table" and was.disc ~= nil then skip[was.disc] = true end
   end
+  -- ...AND A MARK THAT IS STILL LANDING. numpad 3 records the prisoner at once but locks, lights and
+  -- fades it two frames later. A sweep starting in that window found a piece not yet in RTT_LAID (it
+  -- is, but not yet locked) and unlocked it -- and the prisoner tick, which frees anything it finds
+  -- unlocked, then stripped the mark while the deferred half was still on its way. Found by the
+  -- multi-agent review, 2026-09-14.
+  for guid in pairs(RTT_MARKING or {}) do skip[guid] = true end
   -- and anything sitting in somebody's hand. A card in a hand belongs to that player's zone; never
   -- reach into one.
   -- EVERY HAND, NOT JUST THE FIRST. getHandObjects() with no argument reads hand ONE, and this table
@@ -2285,7 +2301,17 @@ function rttResyncSweep(done, retry, withCards)
     while i <= #list and n < RTT_RESYNC_PER_FRAME do
       local o = nil
       pcall(function() o = getObjectFromGUID(list[i]) end)
-      if o ~= nil then rttResyncTouch(o) end
+      -- ASKED AGAIN, NOW. The list is built in one pass and drained over many frames, so "nobody is
+      -- holding it" and "it has come to rest" were answers from seconds earlier. A piece picked up,
+      -- or still gliding home from numpad 0, was swept anyway. Both are cheap to re-ask and the
+      -- object is already resolved. Found by the multi-agent review, 2026-09-14.
+      local ok = false
+      if o ~= nil then
+        pcall(function()
+          ok = (o.held_by_color == nil) and (o.resting ~= false) and (o.spawning ~= true)
+        end)
+      end
+      if ok then rttResyncTouch(o) end
       i = i + 1
       n = n + 1
     end
@@ -5478,7 +5504,7 @@ function rttSpawnFaction(faction, cx, cz, flip, category, rotationY, opts)
     local myCb = cb
     if isKnaveBoard then myCb = function(o) cb(o); rttSpawnCaptainsFor(o) end
     elseif isCrowBoard then myCb = function(o) cb(o); Wait.frames(function() rttCrowsPlots(cx, cz, flip, false, o) end, 1) end
-    elseif isRatsBoard then myCb = function(o) cb(o); Wait.frames(function() pcall(function() rttRatsMoodManager(cx, cz, flip) end) end, 1) end end
+    elseif isRatsBoard then myCb = function(o) cb(o); Wait.frames(function() pcall(function() rttRatsMoodManager(cx, cz, flip, rotationY) end) end, 1) end end
     -- The panel goes down WITH the board it belongs to, at the board's own move_to plus the offset,
     -- so it is placed by the same arithmetic as the rest of the kit and never has to be adjusted.
     if isCraftBoard then
@@ -5504,7 +5530,7 @@ function rttSpawnFaction(faction, cx, cz, flip, category, rotationY, opts)
   -- Same rule for the moles: the Mole Monger belongs to the Duchy's own setup, so it goes down with
   -- the faction rather than being a button the maintainer has to remember.
   if faction == "Underground Duchy" then
-    pcall(function() rttMoleMonger(cx, cz, flip) end)
+    pcall(function() rttMoleMonger(cx, cz, flip, rotationY) end)
   end
   -- The gizmo's extra return slots are NOT added here. They used to be, and it looked right -- the
   -- loop above has finished, so "every piece has spawned" seemed true. It is not: the loop only ASKS
@@ -5594,13 +5620,13 @@ function rttPlaceFaction(faction, cx, cz, flip, color, isDraft, category, rotati
   end)
 
   local extraFaction, extraX, extraZ, extraFlip, extraDraft = faction, cx, cz, flip, isDraft == true
-  Wait.time(function() rttFactionExtras(extraFaction, extraX, extraZ, extraFlip, extraDraft) end, 0.5)
+  rttAfterTime(function() rttFactionExtras(extraFaction, extraX, extraZ, extraFlip, extraDraft) end, 0.5)
 
   RTT_VP_PLACED = (RTT_VP_PLACED or 0) + 1
   -- by the seat's KEY, not the faction: "Vagabond 2" resolves to "Vagabond 2 VP", so the second
   -- vagabond's marker is the one that gets found and walked onto the score track.
   local vpN, vpF = RTT_VP_PLACED, (seat.key or faction)
-  Wait.time(function() rttPlaceVPRetry(vpF, vpN, 6) end, 1.2)
+  rttAfterTime(function() rttPlaceVPRetry(vpF, vpN, 6) end, 1.2)
 
   -- The supporters hand belongs to THE PLAYER WHO PICKED the Alliance, not to the seat's colour.
   -- One rule at every player count, not a solo exception: in a real game the picker IS the seat's
@@ -6055,7 +6081,7 @@ function rttPlaceVPRetry(faction, n, tries)
   end
   RTT_VP_PENDING[faction] = n                      -- remember it, whatever happens below
   if tries and tries > 0 then
-    Wait.time(function() rttPlaceVPRetry(faction, n, tries - 1) end, 0.6)
+    rttAfterTime(function() rttPlaceVPRetry(faction, n, tries - 1) end, 0.6)
   end
   -- deliberately no give-up branch: the tag stays on, and rttPlaceUnplacedVPs retries when a map lands.
 end
@@ -6327,20 +6353,41 @@ RTT_MONGER_RIGHT = { -19.1480, 11.562, -8.5210 }   -- seats on the RIGHT, and th
 -- A seat is "left" when its x and z share a sign -- that is the far row's mirror of the near row's
 -- left-hand seat. The centre seats (x = 0) have no side and take the RIGHT offset, which is the case
 -- the maintainer pinned with 5p seat 2.
-function rttMongerSpot(cx, cz, flip)
-  local o = ((cx < 0 and cz < 0) or (cx > 0 and cz > 0)) and RTT_MONGER_LEFT or RTT_MONGER_RIGHT
+-- A SEAT OFFSET, TURNED THE WAY THE SEAT IS TURNED.
+--
+-- rttMongerSpot and the rats' mood manager both mirrored an offset with the `flip` flag and stopped
+-- there, so a seat laid out at an ANGLE -- rotationY, which a hand-placed Faction Select board can
+-- carry -- got its piece at an un-rotated offset, out beside the board instead of on it. Found by
+-- the multi-agent review, 2026-09-14.
+--
+-- rotationY nil behaves EXACTLY as before, which is every tournament path: the ranked draft passes
+-- nil and the 4/5-Player Setup buttons spawn their selectors locked at 0 or 180. Nothing that works
+-- today changes.
+function rttSeatOffset(cx, cz, flip, rotationY, ox, oz)
+  if rotationY ~= nil and rotationY ~= 0 then
+    local v = Vector(ox, 0, oz)
+    v:rotateOver("y", rotationY)
+    return cx + v.x, cz + v.z
+  end
   local s = flip and -1 or 1
-  return { cx + o[1] * s, o[2], cz + o[3] * s }
+  return cx + ox * s, cz + oz * s
 end
 
-function rttMoleMonger(cx, cz, flip)
+function rttMongerSpot(cx, cz, flip, rotationY)
+  local o = ((cx < 0 and cz < 0) or (cx > 0 and cz > 0)) and RTT_MONGER_LEFT or RTT_MONGER_RIGHT
+  local x, z = rttSeatOffset(cx, cz, flip, rotationY, o[1], o[3])
+  return { x, o[2], z }
+end
+
+function rttMoleMonger(cx, cz, flip, rotationY)
   local def = EVERYTHING["Tools"] and EVERYTHING["Tools"]["Mole Monger"]
   if def == nil or def['data'] == nil or def['data'][1] == nil then return end
-  local p = rttMongerSpot(cx, cz, flip)
+  local p = rttMongerSpot(cx, cz, flip, rotationY)
   spawnObjectJSON({
     json = def['data'][1].json,
     position = { p[1], p[2], p[3] },
-    rotation = { 0, flip and 0 or 180, 0 },        -- both saved copies face the near row at rotY 180
+    -- both saved copies face the near row at rotY 180; an angled seat turns with it
+    rotation = { 0, ((rotationY ~= nil) and (180 + rotationY) or (flip and 0 or 180)) % 360, 0 },
     callback_function = function(o)
       pcall(function() o.addTag("RTT Faction") end)   -- goes out WITH the faction on a reset
       pcall(function() o.setLock(true) end)           -- parked reference tile; he locked his own copy
@@ -6365,16 +6412,23 @@ RTT_MOOD_LOCAL = {
   {  -0.4258, 11.9144,  -6.3879 },
 }
 
-function rttRatsMoodManager(cx, cz, flip)
+function rttRatsMoodManager(cx, cz, flip, rotationY)
   local def = EVERYTHING["Tools"] and EVERYTHING["Tools"]["Mini-Mood Manager"]
   if def == nil or def['data'] == nil then return end
-  local ry = flip and 0 or 180                      -- his save is rotY 180 at a near-row seat
+  -- his save is rotY 180 at a near-row seat; an angled seat turns with it
+  local ry = (rotationY ~= nil) and ((180 + rotationY) % 360) or (flip and 0 or 180)
   local moodSpecs = {}
   for i, v in ipairs(def['data']) do
     local l = RTT_MOOD_LOCAL[i]
     if l ~= nil then
       local lx, lz = l[1], l[3]
-      if flip then lx, lz = -lx, -lz end
+      if rotationY ~= nil and rotationY ~= 0 then
+        local v = Vector(lx, 0, lz)
+        v:rotateOver("y", rotationY)
+        lx, lz = v.x, v.z
+      elseif flip then
+        lx, lz = -lx, -lz
+      end
       -- i == 1 was the manager BOARD tile. It is now PRINTED INTO the rats board art itself
       -- (assets/board/rats_board_mood.png), so there is no second object to stack, lock or wipe --
       -- only the eight mood cards still spawn, and they land on the printed slots.
