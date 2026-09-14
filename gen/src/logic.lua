@@ -9351,6 +9351,20 @@ RTT_HOME_RIGHT_IS_PLUS_X = true
 -- asked for anyway. Each plot has a slot of its own, so its own spot is never contended.
 RTT_HOME_OWN_SPOT = { ["Plot"] = true }
 
+-- ...AND A PLOT COMES HOME EXACTLY AS IT IS. Maintainer, 2026-09-14: "with numpad 0 if you return a
+-- crow plot do not flip it either way ever."
+--
+-- Every other piece is re-faced on the way home, and that is a fix in its own right -- gardens used to
+-- come back upside down. A plot is different because WHICH WAY UP IT LIES IS INFORMATION: face up in
+-- the crow player's own hidden box is how they read their plots, face down is a thing they have chosen
+-- to do to it, and the key that tidies its position has no business overruling either. The recorded
+-- facing would flip a face-down plot back up, silently, and there is no way to tell the key "just the
+-- position please".
+--
+-- So for these names numpad 0 moves the piece and does not touch its rotation at all -- not the face,
+-- not the yaw. Squaring a spun tile up is worth less than never undoing a deliberate flip.
+RTT_HOME_KEEP_FACING = { ["Plot"] = true }
+
 -- Acclaim fills stack by stack, in the maintainer's order: bottom-right, bottom-left, top-right,
 -- top-left, two per stack.
 RTT_HOME_STACKED = { ["Acclaim"] = 2 }
@@ -9747,7 +9761,10 @@ function rttGizmoHome(color)
   if RTT_HOME_OWN_SPOT[name] and home ~= nil then
     pcall(function()
       hovered.setPositionSmooth({ home.p[1], home.p[2], home.p[3] }, false, true)
-      hovered.setRotation({ home.r[1], home.r[2], home.r[3] })
+      -- a plot keeps whatever face it is lying on -- see RTT_HOME_KEEP_FACING
+      if not RTT_HOME_KEEP_FACING[name] then
+        hovered.setRotation({ home.r[1], home.r[2], home.r[3] })
+      end
     end)
     return
   end
@@ -9783,7 +9800,11 @@ function rttGizmoHome(color)
     if not rttHomeSlotTaken(sl, name, hovered, ytol) then
       pcall(function()
         hovered.setPositionSmooth({ sl.p[1], sl.p[2], sl.p[3] }, false, true)
-        hovered.setRotation({ sl.r[1], sl.r[2], sl.r[3] })
+        -- the same rule here: a plot with no record of its own would otherwise be re-faced by
+        -- whichever slot it landed in, which is the same flip by another road
+        if not RTT_HOME_KEEP_FACING[name] then
+          hovered.setRotation({ sl.r[1], sl.r[2], sl.r[3] })
+        end
       end)
       return
     end

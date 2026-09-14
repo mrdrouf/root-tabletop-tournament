@@ -1404,6 +1404,64 @@ def t_gizmo_default_key_is_numpad_zero(src):
         "releasing the token hotkey fired %s" % {k: v for k, v in got.items() if v}
 
 
+def t_numpad_zero_never_flips_a_crow_plot(src):
+    """Numpad 0 carries a plot home without touching which way up it lies.
+
+    Maintainer, 2026-09-14: "with numpad 0 if you return a crow plot do not flip it either way ever."
+
+    Every other piece IS re-faced on the way home, and that is a fix in its own right -- gardens used
+    to come back upside down. A plot is the exception because which way up it lies is INFORMATION: face
+    up in the crow player's own hidden box is how they read their plots, face down is something they
+    chose to do, and a key that tidies position has no business overruling either. The recorded facing
+    would have flipped a face-down plot back up, silently.
+
+    Both roads are checked. A plot normally goes home by its own recorded spot, but a plot the record
+    has lost falls through to the rightmost-empty-slot rule, which would re-face it from the SLOT --
+    the same flip by another road.
+    """
+    for label, seed in (("its own recorded spot", "RTT_HOME[P.getGUID()] = HOMEREC"),
+                        ("a slot, with its own record lost", "")):
+        rt = fresh(src)
+        # NOT named REC: that is the stub's own recorder, and clobbering it makes setPositionSmooth
+        # throw inside the pcall the code under test wraps round it -- which swallowed the very
+        # setRotation this case exists to watch, and passed against both builds.
+        rt.execute("""
+          RTT_HOME = {}
+          HOMEREC = { n='Plot', f='Corvid Conspiracy', p={ 5.0, 11.9, -36.0 }, r={ 0, 180, 0 } }
+          RTT_HOME['plot-slot'] = HOMEREC       -- a slot of this kind exists either way
+          P = MKOBJ('Plot', { 30, 11.9, 30 }, {})
+          P.setRotation({ 0, 12, 180 })         -- face DOWN, and spun
+          %s
+          HOVER['Red'] = P
+          rttGizmoHome('Red')
+          FLUSH(10)
+        """ % seed)
+        rot = [float(rt.eval("P.__rot.%s" % a)) for a in "xyz"]
+        pos = [float(rt.eval("P.__pos.%s" % a)) for a in "xyz"]
+        assert abs(pos[0] - 5.0) < 0.01 and abs(pos[2] - (-36.0)) < 0.01, \
+            "the plot did not go home by %s: it is at (%.2f, %.2f)" % (label, pos[0], pos[2])
+        assert abs(rot[2] - 180) < 0.01, \
+            ("the plot was turned face UP on the way home by %s (rotZ %.1f) -- a flip the player made "
+             "is theirs" % (label, rot[2]))
+        assert abs(rot[1] - 12) < 0.01, \
+            "the plot's facing was squared up by %s (rotY %.1f); its rotation is not the key's to touch" \
+            % (label, rot[1])
+
+    # ...and everything else still IS re-faced, which is the whole reason the rotation is recorded
+    rt = fresh(src)
+    rt.execute("""
+      RTT_HOME = {}
+      RTT_HOME['g1'] = { n='Garden', f='Lilypad Diaspora', p={ 5.0, 11.9, -36.0 }, r={ 0, 180, 0 } }
+      G = MKOBJ('Garden', { 30, 11.9, 30 }, {})
+      G.setRotation({ 0, 12, 180 })
+      HOVER['Red'] = G
+      rttGizmoHome('Red')
+      FLUSH(10)
+    """)
+    assert abs(float(rt.eval("G.__rot.z"))) < 0.01, \
+        "a garden came home still upside down; only a plot keeps its own face"
+
+
 def t_numpad_zero_leaves_locked_pieces_alone(src):
     """Numpad 0 does nothing to a piece that is locked -- a prisoner included.
 
@@ -9884,9 +9942,15 @@ def t_a_crow_plot_goes_back_to_its_own_square(src):
     x, z = rt.eval("VICTIM.getPosition().x"), rt.eval("VICTIM.getPosition().z")
     assert abs(x - 24.8) < 0.001 and abs(z - (-38.4)) < 0.001, \
         "the plot went to (%.2f, %.2f); its own square is (24.80, -38.40)" % (x, z)
-    assert abs(rt.eval("VICTIM.getRotation().y") - 90) < 0.001 and \
-           abs(rt.eval("VICTIM.getRotation().z")) < 0.001, \
-        "the plot came back turned the wrong way"
+    # ...AND IT COMES BACK EXACTLY AS IT LEFT, face and all. This used to assert the opposite -- that
+    # the plot was turned face up and squared to the board -- until the maintainer, 2026-09-14: "with
+    # numpad 0 if you return a crow plot do not flip it either way ever." Which way up a plot lies is
+    # information, and the key that tidies its position does not get to overrule it. It went out face
+    # down at rotY 0, so it comes back face down at rotY 0. See t_numpad_zero_never_flips_a_crow_plot.
+    assert abs(rt.eval("VICTIM.getRotation().z") - 180) < 0.001, \
+        "the plot was turned face up on the way home"
+    assert abs(rt.eval("VICTIM.getRotation().y")) < 0.001, \
+        "the plot was squared up on the way home; its rotation is not the key's to touch"
     # nothing else was disturbed: the other eleven are still on their own squares
     moved = rt.eval("(function() local n = 0 for i, o in ipairs(P) do if o ~= VICTIM then "
                     "local p = o.getPosition() "
@@ -12360,6 +12424,7 @@ CASES = [
     ("5-player buttons warn first",         t_the_five_player_buttons_warn_before_wiping),
     ("a dead handle cannot crash us",       t_a_destroyed_object_cannot_crash_the_map_scan),
     ("map buttons warn before wiping",       t_map_buttons_warn_before_wiping),
+    ("numpad 0 never flips a plot",   t_numpad_zero_never_flips_a_crow_plot),
     ("numpad 0 leaves locked alone",  t_numpad_zero_leaves_locked_pieces_alone),
     ("a relic fills its row from the left",  t_a_relic_goes_to_the_left_end_of_its_own_row),
     ("the keepers record their relic rows",  t_the_keepers_kit_records_its_relic_rows),
