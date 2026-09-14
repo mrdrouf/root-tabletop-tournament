@@ -102,11 +102,18 @@ function onLoad(state)
     -- THE LABEL SAYS HOW TO SET IT, in the maintainer's own words. A key whose whole behaviour
     -- depends on a hold cannot have that left off the one line a player ever reads:
     -- nothing else in the game would tell them, and an unset key is silent by design.
-    -- the seconds come from RTT_KEY2_HOLD itself, so the label cannot drift from the key. (`or 1`
-    -- only so a nil could never take the other three hotkeys down with it.)
-    local hold = RTT_KEY2_HOLD or 1
-    addHotkey("Move any token to cursor; set type by holding numpad 2 for "
-              .. tostring(hold) .. ((hold == 1) and " second" or " seconds"),
+    -- THIS STRING IS FROZEN. DO NOT EDIT IT, not even the number in it.
+    --
+    -- TTS stores a player's key assignment against the hotkey's DESCRIPTION. Change so much as a word
+    -- and the entry in Options - Game Keys becomes a new, unbound one: the player's key silently
+    -- stops working and nothing says why. Maintainer, 2026-09-14, one build after I rewrote this line
+    -- to keep its wording in step with RTT_KEY2_HOLD: "wtf you broke numpad 2 now".
+    --
+    -- So the hold is one second (RTT_KEY2_HOLD) and this line still says two. A label a second out of
+    -- date is worth less than nothing next to a key that has come unbound, and the numeral is the
+    -- only part that is stale. If it ever has to be right, it costs every player a rebind, and that
+    -- is the maintainer's call to make, not a side effect of tidying.
+    addHotkey("Move any token to cursor; set type by holding numpad 2 for 2 seconds",
               function(color, _, _, isKeyUp)
       if isKeyUp then rttKey2Up(color) else rttKey2Down(color) end
     end, true)
@@ -10198,9 +10205,11 @@ RTT_TOKEN_PICK = {}              -- player colour -> the piece name their numpad
 RTT_KEY2 = {}                    -- the press in flight: its hold timer, and whether it fired
 
 -- HOW LONG THE HOLD IS. Two seconds when it was built, one since the maintainer asked on 2026-09-14:
--- "set numpad 2 setting time to 1 second instead of 2". ONE number, read by the timer below and by
--- the hotkey's own label in onLoad, because a label that disagrees with the key is worse than none:
--- the hold is the only way to set this key up and the label is the one line a player ever reads.
+-- "set numpad 2 setting time to 1 second instead of 2".
+--
+-- THE HOTKEY'S LABEL STILL SAYS TWO, AND MUST. TTS keys a player's binding to the label string, so
+-- editing it unbinds them -- which is what my first pass at this did. See the addHotkey call in
+-- onLoad. This number is the one the key obeys; that one is a word in a menu.
 RTT_KEY2_HOLD = 1
 
 -- Warriors are numpad 1's job, so they are not offered here; anything else that has a supply to come
