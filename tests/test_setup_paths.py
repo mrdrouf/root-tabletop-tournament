@@ -11489,6 +11489,71 @@ def t_the_plus_minus_buttons_only_move_the_marker(src):
     assert "if sc ~= row.score then" in ls[max(0, j - 400):j], \
         "the round amendment is no longer gated on the poll seeing the marker move"
 
+
+def t_a_faction_cannot_be_given_more_options_than_it_has(src):
+    """Three Knave captains, one Eyrie leader, and both writers agree on the number.
+
+    Maintainer, 2026-09-14: "the boxscore should limit the pick of knaves captains to 3 and the eyrie
+    leader to only 1 one should not be able to select more manually."
+
+    The Eyrie has one leader on its board. The Knaves draft four captains and only THREE are ever in
+    play -- the mod's own spawn says so, hard-capping the captain warriors at three.
+
+    AND THE SHEET HAS TWO WRITERS OF THAT FIELD: this picker, and the automatic detector that counts
+    the captain meeples standing by the board. The detector accepted up to FOUR, so the two disagreed
+    about what a legal selection even is -- the same shape as the +/- bug found hours earlier, where
+    two writers of one value had different rules. They read one number now.
+
+    At a cap of ONE a pick REPLACES: a leader is a single choice, and making you deselect the old one
+    first would be two clicks to say one thing. Above one, a pick beyond the cap is refused;
+    deselecting always works, so a captain is swapped by dropping one and adding another.
+    """
+    head = "RTT_BOXSCORE_JSON = [====["
+    i = src.index(head)
+    ls = json.loads(src[i + len(head):src.index("]====]", i)])["LuaScript"]
+
+    rt = lupa.LuaRuntime(unpack_returned_tuples=True)
+    a = ls.index("local function baseFac")
+    rt.execute(ls[a:ls.index("\n-- the full faction roster")].replace("local function", "function"))
+
+    assert rt.eval('variantCap("Knaves")') == 3, "the Knaves cap is not three captains"
+    assert rt.eval('variantCap("Eyrie")') == 1, "the Eyrie cap is not one leader"
+    assert rt.eval('variantCap("Vagabond")') is None, \
+        "the vagabond's character was capped; he asked only for the Knaves and the Eyrie"
+
+    CH = '{"Thief","Tinker","Ranger","Vagrant","Scoundrel"}'
+    def knave(cur, pick):
+        return rt.eval('toggleCSV([==[%s]==], [==[%s]==], %s, variantCap("Knaves"))' % (cur, pick, CH))
+
+    cur = ""
+    for pick in ("Thief", "Tinker", "Ranger"):
+        cur = knave(cur, pick)
+    assert cur == "Thief, Tinker, Ranger", "the first three captains did not all take: %r" % cur
+    assert knave(cur, "Vagrant") == cur, \
+        "a fourth captain was accepted; only three are ever in play"
+    cur = knave(cur, "Tinker")
+    assert cur == "Thief, Ranger", "deselecting a captain no longer works: %r" % cur
+    cur = knave(cur, "Vagrant")
+    assert cur == "Thief, Ranger, Vagrant", \
+        "a captain could not be added back after dropping one: %r" % cur
+
+    LD = '{"Builder","Charismatic","Commander","Despot"}'
+    def eyrie(cur, pick):
+        return rt.eval('toggleCSV([==[%s]==], [==[%s]==], %s, variantCap("Eyrie"))' % (cur, pick, LD))
+
+    cur = eyrie("", "Builder")
+    assert cur == "Builder", "the first leader did not take: %r" % cur
+    cur = eyrie(cur, "Despot")
+    assert cur == "Despot", \
+        "picking a second leader did not replace the first -- the row now claims %r" % cur
+    assert eyrie(cur, "Despot") == "", "clicking the chosen leader no longer clears it"
+
+    # ...and the detector reads the SAME number rather than a 4 of its own
+    assert "#caps <= 4" not in ls, \
+        "the captain detector still accepts four, so it can write a selection the picker refuses"
+    assert "local capN = variantCap(row.fac)" in ls, \
+        "the captain detector no longer reads the shared cap"
+
 CASES = [
     ("manual path drives the turn system",   t_manual_turn_order),
     ("manual path spawns 4 / 5 boards",      t_boards_spawn),
@@ -11591,6 +11656,7 @@ CASES = [
     ("the sweep re-asks before it touches",  t_the_sweep_and_its_timers_respect_what_changed_since),
     ("the cats wait for their supply",       t_the_cats_wait_for_their_supply),
     ("+/- only moves the VP marker",         t_the_plus_minus_buttons_only_move_the_marker),
+    ("variant picks are capped",             t_a_faction_cannot_be_given_more_options_than_it_has),
     ("numpad 2 hands you your token",  t_numpad_two_hands_you_the_token_you_chose),
     ("gizmo default key is numpad 0",         t_gizmo_default_key_is_numpad_zero),
     ("gizmo: warrior to/from supply",         t_gizmo_warrior_to_and_from_supply),
