@@ -11672,63 +11672,63 @@ def t_five_players_give_the_middle_board_room(src):
         "a seat dragged nearest the bottom-right corner does not lead the order: %s" % rt.eval("ORD2")
 
 
-def t_the_crow_hidden_box_shrank_away_from_the_board(src):
-    """The crows' hidden box is 10% smaller, taken off the far side and the near-to-player side only.
+def t_the_crows_box_supply_and_warriors_come_from_the_save(src):
+    """The crows' hidden box, supply bag and four starting warriors are where the save "crow" put them.
 
-    Maintainer, 2026-09-14: "reduce the crow hidden box for all setup by 10% height and width by
-    shortening the lower side and the side at the opposite side of the faction board so it s smaller
-    but stays close to the crow faction board. be careful when you do this for all crows possible
-    positions."
+    Maintainer, 2026-09-14: "new position entirely for the hidden crow box as well as supply and
+    starting warriors. use the save crow for the new one. use that calibration for warriors supply
+    everything at spawn. no other position."
 
-    "All crow positions" is the hard half, and the geometry already answers it: the zone is placed in
-    BOARD-LOCAL coordinates and spawned rotated to the board, so one change is right at every seat and
-    on both rows. Anything keyed on world x or z would not be.
+    The numbers below are lifted from TS_Save_45 itself -- his seat at (-52, -46), near row -- and the
+    mod has to reproduce them, so this is the one test in the suite that checks against a measurement
+    rather than against the mod's own arithmetic. Each half is checked the way it is built: the kit
+    pieces through a real spawn, so rttKitPos and the seat mirroring are exercised, and the box against
+    a board placed at the save's own transform, since the box is positioned in the board's frame.
 
-    THE TWO UNITS ARE DIFFERENT AND THAT IS THE TRAP. The box's SIZE is in world units; the offsets
-    are board-local, and the crow board is scaled 8.82 -- so half of a 1.329 world shrink is 0.07534
-    of a board-local unit, not 0.6645. Getting it wrong moved the box nearly six units across the
-    table instead of two thirds of one. Caught by rendering the zone at all five seat positions and
-    diffing against the previous build.
-
-    The HEIGHT was left alone by THIS change and halved by the next one the maintainer asked for;
-    t_the_crow_hidden_box_is_half_as_tall owns it, and this case only checks the footprint it was
-    about.
+    ONE SPOT, NOT TWO, is the part that is easy to lose. The box used to be mirrored to the player's
+    left or right with a different magnitude on each side; his new spot is above his own board, which
+    has no side, and "no other position" is what retired the rule. So the same board-local offset has
+    to come out at every seat and on both rows -- checked here by spawning it at all five.
     """
+    # --- from TS_Save_45 "crow" ------------------------------------------------------------------
+    B_X, B_Z, B_RY, B_S = -55.7267, -50.3196, 179.96, 8.82        # his crow board
+    Z_X, Z_Z, Z_Y = -49.718475, -36.640170, 14.111544             # his hidden box
+    Z_ALONG_X, Z_ALONG_Z = 10.582065, 7.987982                    # its footprint, on world axes
+    CX, CZ = -52.0, -46.0                                         # the seat it all sits at
+    SUPPLY = (-11.0287, 6.8548)
+    WARRIORS = sorted([(-11.9509, 11.3987), (-11.9502, 10.7957),
+                       (-10.4587, 11.3989), (-10.4585, 10.7960)])
+
+    # --- the box, against a board standing exactly where his does ---------------------------------
     rt = fresh(src)
-    S = 8.82                                   # the crow rules board's own scale
-    WAS = {"lx": 3.074, "lxl": 2.26, "lz": -0.565, "sx": 13.29, "sy": 5.10, "sz": 9.50}
-    now = {k: rt.eval("RTT_CROW_HZ_" + n) for k, n in
-           (("lx", "LX"), ("lxl", "LX_LEFT"), ("lz", "LZ"), ("sx", "SX"), ("sy", "SY"), ("sz", "SZ"))}
+    rt.execute("""
+      SP = nil
+      local real = spawnObjectJSON
+      spawnObjectJSON = function(p)
+        if type(p.json) == "string" and p.json:find("FogOfWarTrigger", 1, true) then SP = p end
+        return real(p)
+      end
+      B = MKOBJ("Crow Board", { %f, 11.56, %f }, {})
+      B.setRotation({ 0, %f, 0 })  B.__scale = Vector({ %f, 1, %f })
+      rttCrowsHiddenZone(B, %f, %f, false)
+      FLUSH(20)
+      OK = SP ~= nil
+      ZX = SP and (SP.position.x or SP.position[1]) or 0
+      ZZ = SP and (SP.position.z or SP.position[3]) or 0
+      SX, SY, SZ = SP and SP.scale[1] or 0, SP and SP.scale[2] or 0, SP and SP.scale[3] or 0
+    """ % (B_X, B_Z, B_RY, B_S, B_S, CX, CZ))
+    assert rt.eval("OK") is True, "no hidden box was spawned at all"
+    zx, zz = rt.eval("ZX"), rt.eval("ZZ")
+    assert abs(zx - Z_X) < 0.05 and abs(zz - Z_Z) < 0.05, \
+        "the box lands at (%.3f, %.3f); he put it at (%.3f, %.3f)" % (zx, zz, Z_X, Z_Z)
+    # his box is turned a quarter-circle against the board, so ours carries the same rectangle with
+    # its sides swapped -- aligned to the board, which is how every seat-relative thing in the mod sits
+    sx, sz = rt.eval("SX"), rt.eval("SZ")
+    assert abs(sx - Z_ALONG_X) < 1e-4 and abs(sz - Z_ALONG_Z) < 1e-4, \
+        "the box is %.3f x %.3f; his covers %.3f x %.3f of table" % (sx, sz, Z_ALONG_X, Z_ALONG_Z)
 
-    assert abs(now["sx"] - WAS["sx"] * 0.9) < 1e-6, \
-        "the box width is %s; 10%% off %s is %s" % (now["sx"], WAS["sx"], WAS["sx"] * 0.9)
-    assert abs(now["sz"] - WAS["sz"] * 0.9) < 1e-6, \
-        "the box depth is %s; 10%% off %s is %s" % (now["sz"], WAS["sz"], WAS["sz"] * 0.9)
-
-    # the edge nearest the faction board must not move, on either side
-    for side, key in (("right", "lx"), ("left", "lxl")):
-        near_was = WAS[key] * S - WAS["sx"] / 2
-        near_now = now[key] * S - now["sx"] / 2
-        assert abs(near_was - near_now) < 1e-3, \
-            ("the %s box's edge nearest the board moved from %.3f to %.3f; it must stay put"
-             % (side, near_was, near_now))
-        far_was = WAS[key] * S + WAS["sx"] / 2
-        far_now = now[key] * S + now["sx"] / 2
-        assert abs((far_was - far_now) - WAS["sx"] * 0.1) < 1e-3, \
-            "the %s box's far edge came in %.3f, expected %.3f" % (side, far_was - far_now, WAS["sx"] * 0.1)
-
-    # board-local +z is toward the player on both rows, so THAT edge comes in and the far one stays
-    upper_was = WAS["lz"] * S - WAS["sz"] / 2
-    upper_now = now["lz"] * S - now["sz"] / 2
-    assert abs(upper_was - upper_now) < 1e-3, \
-        "the box's far-from-player edge moved from %.3f to %.3f; it must stay put" % (upper_was, upper_now)
-    lower_was = WAS["lz"] * S + WAS["sz"] / 2
-    lower_now = now["lz"] * S + now["sz"] / 2
-    assert abs((lower_was - lower_now) - WAS["sz"] * 0.1) < 1e-3, \
-        "the lower edge came in %.3f, expected %.3f" % (lower_was - lower_now, WAS["sz"] * 0.1)
-
-    # ...and the same box comes out at every seat, on both rows
-    def zone(cx, cz, ry):
+    # --- the same box at every seat, on both rows: no side rule left ------------------------------
+    def local_offset(cx, cz, ry):
         r = fresh(src)
         r.execute("""
           SP = nil
@@ -11737,54 +11737,85 @@ def t_the_crow_hidden_box_shrank_away_from_the_board(src):
             if type(p.json) == "string" and p.json:find("FogOfWarTrigger", 1, true) then SP = p end
             return real(p)
           end
-          B = MKOBJ("Crow Board", { %f, 11.6, %f }, {})
+          B = MKOBJ("Crow Board", { %f, 11.56, %f }, {})
           B.setRotation({ 0, %d, 0 })  B.__scale = Vector({ 8.82, 1, 8.82 })
           rttCrowsHiddenZone(B, %f, %f, false)
           FLUSH(20)
-          OK = SP ~= nil
-          SZX = SP and SP.scale[1] or 0
-          SZZ = SP and SP.scale[3] or 0
+          local l = SP and B.positionToLocal({ SP.position.x or SP.position[1], 11.56,
+                                               SP.position.z or SP.position[3] }) or nil
+          OUT = l and string.format("%%f|%%f|%%f|%%f", l.x, l.z, SP.scale[1], SP.scale[3]) or ""
         """ % (cx, cz, ry, cx, cz))
-        return r.eval("OK"), r.eval("SZX"), r.eval("SZZ")
+        out = r.eval("OUT")
+        assert out, "no box spawned at (%s, %s)" % (cx, cz)
+        return [float(v) for v in out.split("|")]
 
-    for label, cx, cz, ry in (("near right", 52, -46, 180), ("near left", -52, -46, 180),
-                              ("near centre", 0, -46, 180), ("far right", 52, 46, 0),
-                              ("far left", -52, 46, 0)):
-        ok, sx, sz = zone(cx, cz, ry)
-        assert ok is True, "no hidden zone was spawned at the %s seat" % label
-        assert abs(sx - now["sx"]) < 1e-6 and abs(sz - now["sz"]) < 1e-6, \
-            "the %s seat got a %sx%s box instead of %sx%s" % (label, sx, sz, now["sx"], now["sz"])
+    want = local_offset(CX, CZ, 180)
+    for label, cx, cz, ry in (("near right", 52, -46, 180), ("near centre", 0, -46, 180),
+                              ("far right", 52, 46, 0), ("far left", -52, 46, 0)):
+        got = local_offset(cx, cz, ry)
+        assert all(abs(g - w) < 1e-6 for g, w in zip(got, want)), \
+            ("the %s seat's box sits at board-local (%.4f, %.4f) %.3fx%.3f, his seat's at "
+             "(%.4f, %.4f) %.3fx%.3f -- one spot, no sides" % tuple([label] + got + want))
 
-    # the 4x3 plot grid still fits with room to spare
-    gap = rt.eval("RTT_CROW_PLOT_GAP")
-    assert 4 * gap < now["sx"] and 3 * gap < now["sz"], \
-        "the plots (%.1f x %.1f) no longer fit the box" % (4 * gap, 3 * gap)
+    # --- the supply and the four warriors, through a real spawn at his seat ------------------------
+    r = fresh(src)
+    r.execute("""
+      GOT = {}
+      local real = spawnObjectJSON
+      spawnObjectJSON = function(p)
+        local j = (type(p.json) == "string") and p.json or ""
+        local nick = j:match('"Nickname":%%s*"([^"]*)"')
+        if nick == "Corvid Warrior" or nick == "Corvid Supply" then
+          GOT[#GOT+1] = string.format("%%s|%%f|%%f", nick,
+            (p.position.x or p.position[1]) - (%f), (p.position.z or p.position[3]) - (%f))
+        end
+        return real(p)
+      end
+      pcall(function() rttSpawnFaction("Corvid Conspiracy", %f, %f, false, nil, nil) end)
+      FLUSH(80)
+    """ % (CX, CZ, CX, CZ))
+    rows = [x.split("|") for x in list(r.eval("GOT").values())]
+    war = sorted((round(float(x), 4), round(float(z), 4)) for n, x, z in rows if n == "Corvid Warrior")
+    sup = [(float(x), float(z)) for n, x, z in rows if n == "Corvid Supply"]
+    assert len(sup) == 1, "expected one Corvid Supply, spawned %d" % len(sup)
+    assert abs(sup[0][0] - SUPPLY[0]) < 0.005 and abs(sup[0][1] - SUPPLY[1]) < 0.005, \
+        "the supply spawns at (%.4f, %.4f); he left it at (%.4f, %.4f)" % (sup[0] + SUPPLY)
+    assert len(war) == 4, "expected 4 starting warriors, spawned %d" % len(war)
+    for got, wanted in zip(war, WARRIORS):
+        assert abs(got[0] - wanted[0]) < 0.005 and abs(got[1] - wanted[1]) < 0.005, \
+            "a warrior spawns at (%.4f, %.4f); he left one at (%.4f, %.4f)" % (got + wanted)
 
-def t_the_crow_hidden_box_is_half_as_tall(src):
-    """The crows' fog box is half its old height -- and still standing on the table.
+    # nothing of the kit may stand inside the box he cleared for the plots
+    half_x, half_z = Z_ALONG_X / 2, Z_ALONG_Z / 2
+    bx, bz = Z_X - CX, Z_Z - CZ
+    for x, z in [sup[0]] + war:
+        assert abs(x - bx) > half_x or abs(z - bz) > half_z, \
+            "a kit piece at (%.3f, %.3f) stands inside the hidden box" % (x, z)
 
-    Maintainer, 2026-09-14, after the footprint came in 10%: "if you can also cut the actual height
-    (actual 3D height) of the hidden box by half for the crow if possible not sure."
 
-    THE TRAP IS THAT A TTS ZONE IS POSITIONED BY ITS CENTRE. The box was 5.10 tall centred at 14.11,
-    which puts its floor at 11.56 -- the table. Halving the height alone leaves the centre where it
-    is and lifts the floor to 12.835, so the plots would lie UNDERNEATH the box, visible to the whole
-    table: the fog would hide nothing and nobody would see why. So the floor is what is pinned, the
-    box grows upward from it, and the plots rest at their own height above that same floor instead of
-    at an offset from a centre that moves.
+def t_the_crow_box_stands_on_the_table_a_quarter_as_tall(src):
+    """The box is a quarter of the height he saved -- and still standing ON the table, not over it.
 
-    Checked against the numbers the old build produced -- floor 11.56, plots at 11.91 -- not against
-    the new constants, which would only be checking the arithmetic against itself.
+    Maintainer, 2026-09-14: "also reduce the height of the hidden box by 4." The box in his save is
+    5.10 tall, so this is 1.275.
+
+    THE TRAP IS THAT A TTS ZONE IS POSITIONED BY ITS CENTRE. His box is 5.10 tall centred at 14.1115,
+    which puts its floor at 11.56 -- the table. Changing the height alone leaves the centre where it is
+    and lifts the floor off the table, and the plots would then lie UNDERNEATH the box, in plain sight
+    of everyone: the fog would hide nothing and nobody would see why. So the floor is what is pinned,
+    the box grows upward from it, and the plots rest at their own height above that same floor rather
+    than at an offset from a centre that moves. This is the second height change to survive that.
     """
     rt = fresh(src)
-    WAS_SY, WAS_CENTRE = 5.10, 14.11
-    FLOOR = WAS_CENTRE - WAS_SY / 2          # 11.56, the table surface the old box stood on
-    PLOTS = WAS_CENTRE - 2.20                # 11.91, where the plots have always rested
+    HIS_SY, HIS_CENTRE = 5.10, 14.111544
+    FLOOR = 11.56                              # his box's floor, and the table surface
+    PLOTS = 11.91                              # where the plots have always rested
 
     sy = rt.eval("RTT_CROW_HZ_SY")
-    assert abs(sy - WAS_SY / 2) < 1e-9, "the box is %s tall; half of %s is %s" % (sy, WAS_SY, WAS_SY / 2)
+    assert abs(sy - HIS_SY / 4) < 1e-6, "the box is %s tall; a quarter of %s is %s" % (sy, HIS_SY, HIS_SY / 4)
+    assert abs((HIS_CENTRE - HIS_SY / 2) - FLOOR) < 0.01, \
+        "his own box did not stand on %s; this test's floor is wrong" % FLOOR
 
-    # ...and the box that actually spawns stands on the table, at every seat and on both rows
     for label, cx, cz, ry in (("near right", 52, -46, 180), ("near left", -52, -46, 180),
                               ("near centre", 0, -46, 180), ("far right", 52, 46, 0),
                               ("far left", -52, 46, 0)):
@@ -11805,7 +11836,7 @@ def t_the_crow_hidden_box_is_half_as_tall(src):
           PY = HZ and HZ.y or 0
         """ % (cx, cz, ry, cx, cz))
         zy, zh, py = r.eval("ZY"), r.eval("ZH"), r.eval("PY")
-        assert abs(zh - WAS_SY / 2) < 1e-9, "the %s seat's box is %.3f tall, not %.3f" % (label, zh, WAS_SY / 2)
+        assert abs(zh - HIS_SY / 4) < 1e-6, "the %s seat's box is %.3f tall, not %.3f" % (label, zh, HIS_SY / 4)
         assert abs((zy - zh / 2) - FLOOR) < 1e-6, \
             "the %s seat's box floats: its floor is %.3f, the table is %.3f" % (label, zy - zh / 2, FLOOR)
         assert abs(py - PLOTS) < 1e-6, \
@@ -11813,6 +11844,13 @@ def t_the_crow_hidden_box_is_half_as_tall(src):
         assert FLOOR <= py <= zy + zh / 2, \
             "the %s seat's plots at %.3f are outside a box running %.3f to %.3f" \
             % (label, py, zy - zh / 2, zy + zh / 2)
+
+    # the 4x3 grid still fits the footprint with room to pick a tile up
+    gap = rt.eval("RTT_CROW_PLOT_GAP")
+    sx, sz = rt.eval("RTT_CROW_HZ_SX"), rt.eval("RTT_CROW_HZ_SZ")
+    assert 3 * gap < sx and 2 * gap < sz, \
+        "the plots (%.1f x %.1f) no longer fit the %.1f x %.1f box" % (3 * gap, 2 * gap, sx, sz)
+
 
 
 def t_the_mole_board_steps_away_from_the_monger(src):
@@ -12020,8 +12058,8 @@ CASES = [
     ("+/- only moves the VP marker",         t_the_plus_minus_buttons_only_move_the_marker),
     ("variant picks are capped",             t_a_faction_cannot_be_given_more_options_than_it_has),
     ("5p gives the middle board room",       t_five_players_give_the_middle_board_room),
-    ("the crow box shrank inward",           t_the_crow_hidden_box_shrank_away_from_the_board),
-    ("the crow box is half as tall",         t_the_crow_hidden_box_is_half_as_tall),
+    ("the crow kit comes from the save",     t_the_crows_box_supply_and_warriors_come_from_the_save),
+    ("the crow box stands on the table",     t_the_crow_box_stands_on_the_table_a_quarter_as_tall),
     ("the mole board steps off the monger",  t_the_mole_board_steps_away_from_the_monger),
     ("numpad 2 hands you your token",  t_numpad_two_hands_you_the_token_you_chose),
     ("gizmo default key is numpad 0",         t_gizmo_default_key_is_numpad_zero),

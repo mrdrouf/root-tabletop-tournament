@@ -6696,8 +6696,8 @@ function rttCrowsPlots(cx, cz, flip, isDraft, board)
     local row = (idx % 3) + 1
     local w, rz
     if hz ~= nil then
-      -- 4 x 3 centred on the zone. Spacing is world units, not board-local: the grid is 4.7 x 3.3
-      -- against a 13.3 x 9.5 zone, so it sits well inside with room to grab a tile.
+      -- 4 x 3 centred on the zone. Spacing is world units, not board-local: the grid is 4.8 x 3.2
+      -- against a 10.6 x 8.0 box, so it sits well inside with room to grab a tile.
       local dx = (col - 2.5) * RTT_CROW_PLOT_GAP
       local dz = (row - 2.0) * RTT_CROW_PLOT_GAP
       local ca, sa = math.cos(math.rad(ry)), math.sin(math.rad(ry))
@@ -6723,7 +6723,7 @@ function rttCrowsPlots(cx, cz, flip, isDraft, board)
   rttSpawnStaggered(plotSpecs)
 end
 
--- the maintainer's hidden-plot cover: a Hidden Zone (FogOfWarTrigger) parked to the RIGHT of the plot grid.
+-- the maintainer's hidden-plot cover: a Hidden Zone (FogOfWarTrigger) over the plot grid, above his board.
 -- Its FogColor decides who can see inside; grey/White = everyone, so we recolour it to the crow
 -- player's own colour (the seated player nearest the crow board) so only they can see their plots.
 function rttCrowsHiddenZone(board, cx, cz, isDraft)
@@ -6744,27 +6744,12 @@ function rttCrowsHiddenZone(board, cx, cz, isDraft)
       end
     end
   end
-  -- Maintainer's rule: hidden box on the player's LEFT for seats 1 & 3 (table +x side), RIGHT for seats
-  -- 2 & 4 (table -x side). TWO things decide the board-local x, and BOTH matter:
-  --   (1) WHICH visual side the player wants -- read from the board's own world x (cx): cx>0 -> left.
-  --   (2) how board-local +x MAPS to a visual side -- this FLIPS with the board's row rotation: on a
-  --       near-row board (rotY~0) +x is the player's LEFT, on a far-row board (rotY~180) +x is their
-  --       RIGHT. (This is what inverted the far-row seats 3 & 4 when I used cx alone.)
-  -- Using cx (not RTT_SEATS) keeps it working for the manual 4-player selector, which never sets seats.
-  -- NB the crow FACTION board's rotY is 0 on the far row (cz>0) and 180 on the near row (cz<0) -- opposite
-  -- of the selector boards -- so board-local +x reads as the player's LEFT when rotY~180, RIGHT when rotY~0.
-  local ry = board.getRotation().y % 360
-  local leftSign = (ry > 90 and ry < 270) and 1 or -1   -- board-local x that reads as the player's LEFT
-  -- cx >= 0, not cx > 0: the CENTRE seats sit at cx == 0 and fell through to the -x side, putting the
-  -- box on the wrong side of the board. They now match seat 1 -- the box to the player's LEFT, at the
-  -- same offset from the board -- which is what the maintainer asked for for 5-player seat 2.
-  local sideSign = (cx >= 0) and leftSign or -leftSign   -- the box's board-local side (the correct L/R side)
-  -- Closeness follows the box's SIDE, not cx: the +x side is the player's LEFT AND is opposite the crafted
-  -- board (at ~ -1.79), so it comes in CLOSER; the -x side is the crafted side, so it stays FARTHER to
-  -- clear the crafted. (Keying this on cx put the closer box on the wrong far-row seat -- 4 instead of 3.)
-  local mag = (sideSign > 0) and RTT_CROW_HZ_LX_LEFT or RTT_CROW_HZ_LX
-  local lx = sideSign * mag
-  local w = board.positionToWorld({ lx, 0.30, RTT_CROW_HZ_LZ })
+  -- ONE spot, in the board's own frame, which is the whole reason this needs no rule: the board is
+  -- already turned the way its player sits, so the same offset lands above the board at every seat and
+  -- on both rows. The side-picking that used to live here -- left for seats 1 & 3, right for 2 & 4,
+  -- with a different magnitude on each side to clear the crafted board -- went with the old spot out
+  -- past the crafted board. The maintainer's new spot has no side: "no other position."
+  local w = board.positionToWorld({ RTT_CROW_HZ_LX, 0.30, RTT_CROW_HZ_LZ })
   local blob = string.gsub(RTT_CROW_HZ_JSON, '"FogColor":"White"', '"FogColor":"' .. color .. '"')
   spawnObjectJSON({
     json = blob,
@@ -7205,55 +7190,43 @@ RTT_CROW_PLOTS = {
 [==[{"GUID":"d87fa8","Name":"Custom_Tile","Transform":{"posX":2.59436,"posY":11.5615435,"posZ":-33.8944244,"rotX":1.47051026e-07,"rotY":180.000031,"rotZ":7.15139436e-07,"scaleX":0.703911364,"scaleY":1.0,"scaleZ":0.703911364},"Nickname":"Plot","Description":"","GMNotes":"","AltLookAngle":{"x":0.0,"y":0.0,"z":0.0},"ColorDiffuse":{"r":0.539603055,"g":0.391118348,"b":0.632404268},"LayoutGroupSortIndex":0,"Value":0,"Locked":false,"Grid":true,"Snap":true,"IgnoreFoW":false,"MeasureMovement":false,"DragSelectable":true,"Autoraise":true,"Sticky":true,"Tooltip":true,"GridProjection":false,"HideWhenFaceDown":false,"Hands":false,"CustomImage":{"ImageURL":"https://steamusercontent-a.akamaihd.net/ugc/1807607729518134114/5AC4FA97221C50C053365BA874BA837016D5C4DA/","ImageSecondaryURL":"https://steamusercontent-a.akamaihd.net/ugc/1807607729518125572/1C3B0C57CFFD05BB8AF1B9412849D054E6D7131E/","ImageScalar":1.0,"WidthScale":0.0,"CustomTile":{"Type":2,"Thickness":0.1,"Stackable":false,"Stretch":true}},"LuaScript":"","LuaScriptState":"","XmlUI":""}]==]
 }
 
--- Hidden-box placement, read from the maintainer's hand-placed save (the SAME board-local spot + size for
--- every seat -- straightened and uniform, per his instruction). Past the crafted board, near depth-centre.
--- THE BOX IS 10% SMALLER, TAKEN OFF TWO SIDES ONLY.
+-- WHERE THE CROWS' HIDDEN BOX GOES -- and the crows' supply and starting warriors with it. The whole
+-- calibration is read from the maintainer's own save "crow" (TS_Save_45, 2026-09-14), his seat at
+-- (-52, -46): "new position entirely for the hidden crow box as well as supply and starting warriors.
+-- use the save crow for the new one. use that calibration for warriors supply everything at spawn. no
+-- other position." The supply and the four warriors are in the KIT blueprint, where every other kit
+-- piece's spot lives; only the box, which no blueprint carries, is written out here.
 --
--- Maintainer, 2026-09-14: "reduce the crow hidden box for all setup by 10% height and width by
--- shortening the lower side and the side at the opposite side of the faction board so it s smaller
--- but stays close to the crow faction board. be careful when you do this for all crows possible
--- positions."
+-- ONE SPOT, NOT TWO. The box used to sit out past the crafted board, mirrored to the player's left or
+-- right depending on which side of the table the seat was on. What he measured is directly above his
+-- own board, between it and the map, and that has no side to it -- so the two-sided rule and its
+-- second magnitude are gone, and "no other position" is the instruction that removed them.
 --
--- Every number here is BOARD-LOCAL and the zone is spawned rotated to the board, so one change is
--- automatically right at every seat and on both rows -- which is what "all crows possible positions"
--- asks for. Nothing keyed on world x or z would be.
+-- BOARD-LOCAL IS STILL WHAT MAKES ONE MEASUREMENT RIGHT EVERYWHERE. The crow board carries rotY 180
+-- on the near row and 0 on the far one, so its own transform mirrors this offset for a far-row seat
+-- and nothing here has to know which row, which seat, or which side of the table it is on.
 --
--- TAKING IT OFF ONE SIDE MEANS MOVING THE CENTRE HALF AS FAR -- AND THE TWO ARE IN DIFFERENT UNITS.
--- The box's SIZE is in world units; these offsets are BOARD-LOCAL, and the crow board is scaled 8.82,
--- so a board-local 1 is 8.82 world. 10% of the width is 1.329 world, so the far edge comes in by that
--- and the centre moves 0.6645 world toward the board -- which is 0.6645 / 8.82 = 0.07534 of these.
--- The depth is 0.95 world off the lower edge, so 0.475 world of centre, 0.05385 local.
---
--- Getting that wrong moved the box nearly six units across the table instead of two thirds of one;
--- it was caught by rendering the zone for all five seat positions and diffing against the build
--- before, which is the only way a change expressed in one frame and applied in another gets checked.
---
--- THE HEIGHT CAME DOWN SEPARATELY. The 10% was the footprint; the maintainer then asked for "the
--- actual 3D height of the hidden box" halved, so SY is 2.55 where it was 5.10.
---
--- IT IS HALVED FROM THE TABLE, NOT ABOUT ITS CENTRE. A TTS zone's position is its CENTRE, so halving
--- the height alone would have lifted the floor from 11.56 to 12.835 and left the plots lying UNDER
--- the box, in plain sight of the table. The floor is the fixed thing and the constants say so: the
--- box stands on RTT_CROW_HZ_FLOOR and reaches half its own height above it, and the plots rest at
--- their own small height above that same floor rather than at an offset from a centre that moves.
-RTT_CROW_HZ_LX = 2.99866 -- board-local X magnitude on the RIGHT side (seats 2 & 4) -- clears the crafted.
-                          -- was 3.074, less 0.07534 -- half the width taken off the far side, in board-local units
-RTT_CROW_HZ_LX_LEFT = 2.18466 -- LEFT side (seats 1 & 3): closer to the faction board by the crafted board's
-                          -- width (7.2 world / 8.82 = 0.82 board-local) since no crafted sits on that side.
-                          -- was 2.26, less the same 0.07534
-RTT_CROW_HZ_LZ = -0.61885-- board-local Z: was -0.565, less half the depth taken off the lower edge.
-                          -- Board-local +z is toward the PLAYER on both rows -- the crow board carries
-                          -- rotY 180 on the near row and 0 on the far one -- so this is the edge
-                          -- nearest them that comes in, and the far edge stays put.
--- plot layout INSIDE the hidden zone: world-unit spacing, and how far above the box's FLOOR they
--- rest. 0.35 is the height they have always sat at (the old -2.20 from a centre of 14.11); written
--- from the floor it no longer moves when the box's height changes.
+-- HOW HIS NUMBERS BECAME THESE. In the save the box sits at world (-49.7185, -36.6402) against a
+-- board at (-55.7267, -50.3196) turned 179.96 and scaled 8.82; undoing that rotation and that scale
+-- gives the offsets below. He had also turned the box a quarter-circle against the board, so its
+-- 7.988 x 10.582 footprint is written here the other way round: the same rectangle on the table,
+-- aligned to the board like everything else seat-relative in the mod rather than carrying his 0.2
+-- degrees of hand-jitter.
+RTT_CROW_HZ_LX = -0.682287  -- board-local; x 8.82 (the board's scale) = world units
+RTT_CROW_HZ_LZ = -1.551479
+
+-- plot layout INSIDE the hidden box: world-unit spacing, and how far above the box's FLOOR they rest.
+-- 0.35 is the height they have always sat at (once the old -2.20 from a centre of 14.11); written
+-- from the floor it does not move when the box's height changes -- and the height has now changed
+-- twice. The grid is derived from the box rather than written down beside it, so moving the box moves
+-- the plots with it and there is no second number to forget.
 RTT_CROW_PLOT_GAP = 1.60
 RTT_CROW_PLOT_Y   = 0.35
-RTT_CROW_HZ_FLOOR = 11.56 -- the table surface. The box stands ON it and grows upward from it.
-RTT_CROW_HZ_SX = 11.961   -- uniform box dimensions for every seat; his hand-placed 13.29 x 9.50 less
-RTT_CROW_HZ_SY = 2.55     -- 10%. The height is half his 5.10, taken off the top. The 4x3 plot grid
-RTT_CROW_HZ_SZ = 8.55     -- inside is 6.4 x 4.8 world units and stays centred, well clear of every edge.
+RTT_CROW_HZ_FLOOR = 11.56   -- the table surface. The box stands ON it and grows upward from it,
+                            -- which is why its height can change without the plots leaving it.
+RTT_CROW_HZ_SX = 10.582065  -- his own box's footprint, turned onto the board's axes
+RTT_CROW_HZ_SY = 1.275      -- "also reduce the height of the hidden box by 4": his 5.10, quartered
+RTT_CROW_HZ_SZ = 7.987982
 
 RTT_CROW_HZ_JSON = [==[{"GUID":"8719cd","Name":"FogOfWarTrigger","Transform":{"posX":-27.8318653,"posY":14.1115437,"posZ":-46.7588654,"rotX":0.0,"rotY":359.8908,"rotZ":0.0,"scaleX":14.3045025,"scaleY":5.1,"scaleZ":12.5832348},"Nickname":"","Description":"","GMNotes":"","AltLookAngle":{"x":0.0,"y":0.0,"z":0.0},"ColorDiffuse":{"r":1.0,"g":1.0,"b":1.0,"a":0.25},"LayoutGroupSortIndex":0,"Value":0,"Locked":true,"Grid":true,"Snap":true,"IgnoreFoW":false,"MeasureMovement":false,"DragSelectable":true,"Autoraise":true,"Sticky":true,"Tooltip":true,"GridProjection":false,"HideWhenFaceDown":false,"Hands":false,"FogColor":"White","FogHidePointers":false,"FogReverseHiding":false,"FogSeethrough":true,"LuaScript":"","LuaScriptState":"","XmlUI":""}]==]
 
