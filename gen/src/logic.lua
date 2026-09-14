@@ -4413,7 +4413,11 @@ function rttSpawnSelectors()
       json = RTT_SELECTOR_JSON,
       position = { px, 11.56, p[2] },
       rotation = { 0, (p[2] > 0) and 180 or 0, 0 },
-      callback_function = function(o) o.setLock(true) o.addTag(RTT_SELECTOR_TAG) end
+      -- tag first, and each call on its own: nothing may run before the tag that a reset looks for
+      callback_function = function(o)
+        pcall(function() o.addTag(RTT_SELECTOR_TAG) end)
+        pcall(function() o.setLock(true) end)
+      end
     })
     -- pos is a COPY: `p` is RTT_POS[pi] itself, and a seat that aliased the spot table would
     -- corrupt it for every later game the moment anything wrote through s.pos.
@@ -6697,7 +6701,7 @@ function rttCrowsPlots(cx, cz, flip, isDraft, board)
     local w, rz
     if hz ~= nil then
       -- 4 x 3 centred on the zone. Spacing is world units, not board-local: the grid is 4.8 x 3.2
-      -- against a 10.6 x 8.0 box, so it sits well inside with room to grab a tile.
+      -- against a 12.5 x 7.3 box, so it sits well inside with room to grab a tile.
       local dx = (col - 2.5) * RTT_CROW_PLOT_GAP
       local dz = (row - 2.0) * RTT_CROW_PLOT_GAP
       local ca, sa = math.cos(math.rad(ry)), math.sin(math.rad(ry))
@@ -6756,7 +6760,25 @@ function rttCrowsHiddenZone(board, cx, cz, isDraft)
     position = { w.x, RTT_CROW_HZ_FLOOR + RTT_CROW_HZ_SY / 2, w.z },
     rotation = { 0, board.getRotation().y, 0 },        -- straightened: aligned to the crow board
     scale = { RTT_CROW_HZ_SX, RTT_CROW_HZ_SY, RTT_CROW_HZ_SZ },  -- uniform dimensions for every seat
-    callback_function = function(o) o.setLock(true) o.addTag("RTT Faction") end
+    -- TAGGED FIRST, EACH CALL ON ITS OWN, AND TRACKED BY GUID AS WELL. The maintainer, 2026-09-14:
+    -- "when the crow faction is reset don t forget to erase the hidden box as well." The box carried
+    -- the right tag in the source and still outlived the reset, and there are two ways that happens,
+    -- so both are closed here rather than guessing which one it was:
+    --   1. THE TAG NEVER LANDED. This callback used to read `o.setLock(true) o.addTag(...)` on one
+    --      line. A TTS object answering a C# null -- which is what a getter or setter hits on an
+    --      object type it has no data for, and a Hidden Zone is not a normal object -- is NOT a Lua
+    --      error: pcall does not catch it and it takes the REST OF THE CALLBACK with it. So a
+    --      setLock that fell over on a zone would silently eat the addTag on the same line.
+    --   2. THE SWEEP NEVER SAW IT. rttClearGameObjects finds things through getObjectsWithTag, and a
+    --      zone is not an ordinary object in TTS; if it is outside that collection then no tag,
+    --      however correctly applied, would ever have reached it.
+    -- The GUID list is the sweep's own second net for exactly this -- the draft deck and the order
+    -- cards are on it because the tag sweep cannot see them either -- and it is cleared with them.
+    callback_function = function(o)
+      pcall(function() o.addTag("RTT Faction") end)
+      pcall(function() RTT_SPAWNED[#RTT_SPAWNED + 1] = o.getGUID() end)
+      pcall(function() o.setLock(true) end)
+    end
   })
   -- Where it went, so rttCrowsPlots can lay the plots inside it. Returning this rather than having the
   -- caller recompute the same arithmetic is what keeps the two in step: if the zone is moved -- and the
@@ -7191,11 +7213,17 @@ RTT_CROW_PLOTS = {
 }
 
 -- WHERE THE CROWS' HIDDEN BOX GOES -- and the crows' supply and starting warriors with it. The whole
--- calibration is read from the maintainer's own save "crow" (TS_Save_45, 2026-09-14), his seat at
--- (-52, -46): "new position entirely for the hidden crow box as well as supply and starting warriors.
--- use the save crow for the new one. use that calibration for warriors supply everything at spawn. no
--- other position." The supply and the four warriors are in the KIT blueprint, where every other kit
--- piece's spot lives; only the box, which no blueprint carries, is written out here.
+-- calibration is read from the maintainer's own save "crow": "new position entirely for the hidden
+-- crow box as well as supply and starting warriors. use the save crow for the new one. use that
+-- calibration for warriors supply everything at spawn. no other position." The supply and the four
+-- warriors are in the KIT blueprint, where every other kit piece's spot lives; only the box, which no
+-- blueprint carries, is written out here.
+--
+-- THE BOX WAS THEN MEASURED A SECOND TIME. He re-saved "crow" with it moved and reshaped -- "I changed
+-- the hidden box in save called crow use that one keep the height you did in the previous one that was
+-- good" -- this time from the seat at (52, -46) rather than (-52, -46), which is its own proof that
+-- the board-local frame below carries a measurement between seats. The supply and the warriors came
+-- back out of that save at exactly the kit offsets baked from the first one, so only the box changed.
 --
 -- ONE SPOT, NOT TWO. The box used to sit out past the crafted board, mirrored to the player's left or
 -- right depending on which side of the table the seat was on. What he measured is directly above his
@@ -7206,14 +7234,14 @@ RTT_CROW_PLOTS = {
 -- on the near row and 0 on the far one, so its own transform mirrors this offset for a far-row seat
 -- and nothing here has to know which row, which seat, or which side of the table it is on.
 --
--- HOW HIS NUMBERS BECAME THESE. In the save the box sits at world (-49.7185, -36.6402) against a
--- board at (-55.7267, -50.3196) turned 179.96 and scaled 8.82; undoing that rotation and that scale
--- gives the offsets below. He had also turned the box a quarter-circle against the board, so its
--- 7.988 x 10.582 footprint is written here the other way round: the same rectangle on the table,
--- aligned to the board like everything else seat-relative in the mod rather than carrying his 0.2
--- degrees of hand-jitter.
-RTT_CROW_HZ_LX = -0.682287  -- board-local; x 8.82 (the board's scale) = world units
-RTT_CROW_HZ_LZ = -1.551479
+-- HOW HIS NUMBERS BECAME THESE. In the save the box sits at world (53.3161, -37.0324) against a board
+-- at (48.2733, -50.3196) turned 179.96 and scaled 8.82; undoing that rotation and that scale gives the
+-- offsets below. This box stands square to the board -- he had turned the first one a quarter-circle,
+-- which is why that one's sides had to be written the other way round and this one's do not. Its 0.3
+-- degrees of hand-jitter are dropped: the box spawns aligned to the board, like everything else
+-- seat-relative in the mod.
+RTT_CROW_HZ_LX = -0.572855  -- board-local; x 8.82 (the board's scale) = world units
+RTT_CROW_HZ_LZ = -1.506059
 
 -- plot layout INSIDE the hidden box: world-unit spacing, and how far above the box's FLOOR they rest.
 -- 0.35 is the height they have always sat at (once the old -2.20 from a centre of 14.11); written
@@ -7224,9 +7252,11 @@ RTT_CROW_PLOT_GAP = 1.60
 RTT_CROW_PLOT_Y   = 0.35
 RTT_CROW_HZ_FLOOR = 11.56   -- the table surface. The box stands ON it and grows upward from it,
                             -- which is why its height can change without the plots leaving it.
-RTT_CROW_HZ_SX = 10.582065  -- his own box's footprint, turned onto the board's axes
-RTT_CROW_HZ_SY = 1.275      -- "also reduce the height of the hidden box by 4": his 5.10, quartered
-RTT_CROW_HZ_SZ = 7.987982
+RTT_CROW_HZ_SX = 12.523570  -- his own box's footprint, on the board's axes
+RTT_CROW_HZ_SY = 1.275      -- "also reduce the height of the hidden box by 4": a quarter of the 5.10
+                            -- he had in the save, and "keep the height you did in the previous one
+                            -- that was good" -- so the height does NOT come from the save any more.
+RTT_CROW_HZ_SZ = 7.284424
 
 RTT_CROW_HZ_JSON = [==[{"GUID":"8719cd","Name":"FogOfWarTrigger","Transform":{"posX":-27.8318653,"posY":14.1115437,"posZ":-46.7588654,"rotX":0.0,"rotY":359.8908,"rotZ":0.0,"scaleX":14.3045025,"scaleY":5.1,"scaleZ":12.5832348},"Nickname":"","Description":"","GMNotes":"","AltLookAngle":{"x":0.0,"y":0.0,"z":0.0},"ColorDiffuse":{"r":1.0,"g":1.0,"b":1.0,"a":0.25},"LayoutGroupSortIndex":0,"Value":0,"Locked":true,"Grid":true,"Snap":true,"IgnoreFoW":false,"MeasureMovement":false,"DragSelectable":true,"Autoraise":true,"Sticky":true,"Tooltip":true,"GridProjection":false,"HideWhenFaceDown":false,"Hands":false,"FogColor":"White","FogHidePointers":false,"FogReverseHiding":false,"FogSeethrough":true,"LuaScript":"","LuaScriptState":"","XmlUI":""}]==]
 

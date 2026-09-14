@@ -11679,22 +11679,31 @@ def t_the_crows_box_supply_and_warriors_come_from_the_save(src):
     starting warriors. use the save crow for the new one. use that calibration for warriors supply
     everything at spawn. no other position."
 
-    The numbers below are lifted from TS_Save_45 itself -- his seat at (-52, -46), near row -- and the
-    mod has to reproduce them, so this is the one test in the suite that checks against a measurement
-    rather than against the mod's own arithmetic. Each half is checked the way it is built: the kit
-    pieces through a real spawn, so rttKitPos and the seat mirroring are exercised, and the box against
-    a board placed at the save's own transform, since the box is positioned in the board's frame.
+    The numbers below are lifted from the save itself and the mod has to reproduce them, so this is the
+    one test in the suite that checks against a measurement rather than against the mod's own
+    arithmetic. Each half is checked the way it is built: the kit pieces through a real spawn, so
+    rttKitPos and the seat mirroring are exercised, and the box against a board placed at the save's own
+    transform, since the box is positioned in the board's frame.
+
+    The box was measured twice. The second save (TS_Save_46) has it moved and reshaped, and sits at the
+    seat (52, -46) rather than the one the kit offsets were taken from -- which is the useful part: the
+    supply and the warriors come back out of it at exactly the offsets baked from the FIRST save, at a
+    different seat, so the expectations below are one measurement checked from two places.
+
+    The HEIGHT is deliberately not from the save. "keep the height you did in the previous one that was
+    good" -- his box is 5.10 in both saves; the mod's is a quarter of that. t_the_crow_box_stands_on_
+    the_table_a_quarter_as_tall owns it.
 
     ONE SPOT, NOT TWO, is the part that is easy to lose. The box used to be mirrored to the player's
     left or right with a different magnitude on each side; his new spot is above his own board, which
     has no side, and "no other position" is what retired the rule. So the same board-local offset has
     to come out at every seat and on both rows -- checked here by spawning it at all five.
     """
-    # --- from TS_Save_45 "crow" ------------------------------------------------------------------
-    B_X, B_Z, B_RY, B_S = -55.7267, -50.3196, 179.96, 8.82        # his crow board
-    Z_X, Z_Z, Z_Y = -49.718475, -36.640170, 14.111544             # his hidden box
-    Z_ALONG_X, Z_ALONG_Z = 10.582065, 7.987982                    # its footprint, on world axes
-    CX, CZ = -52.0, -46.0                                         # the seat it all sits at
+    # --- from TS_Save_46 "crow" ------------------------------------------------------------------
+    B_X, B_Z, B_RY, B_S = 48.273285, -50.319595, 179.9577, 8.82   # his crow board
+    Z_X, Z_Z = 53.316063, -37.032433                              # his hidden box
+    Z_ALONG_X, Z_ALONG_Z = 12.523570, 7.284424                    # its footprint, on the board's axes
+    CX, CZ = 52.0, -46.0                                          # the seat it all sits at
     SUPPLY = (-11.0287, 6.8548)
     WARRIORS = sorted([(-11.9509, 11.3987), (-11.9502, 10.7957),
                        (-10.4587, 11.3989), (-10.4585, 10.7960)])
@@ -11721,8 +11730,8 @@ def t_the_crows_box_supply_and_warriors_come_from_the_save(src):
     zx, zz = rt.eval("ZX"), rt.eval("ZZ")
     assert abs(zx - Z_X) < 0.05 and abs(zz - Z_Z) < 0.05, \
         "the box lands at (%.3f, %.3f); he put it at (%.3f, %.3f)" % (zx, zz, Z_X, Z_Z)
-    # his box is turned a quarter-circle against the board, so ours carries the same rectangle with
-    # its sides swapped -- aligned to the board, which is how every seat-relative thing in the mod sits
+    # this box stands square to the board (the first one he measured was turned a quarter-circle, which
+    # is why that one's sides were written the other way round); ours drops his 0.3 of hand-jitter
     sx, sz = rt.eval("SX"), rt.eval("SZ")
     assert abs(sx - Z_ALONG_X) < 1e-4 and abs(sz - Z_ALONG_Z) < 1e-4, \
         "the box is %.3f x %.3f; his covers %.3f x %.3f of table" % (sx, sz, Z_ALONG_X, Z_ALONG_Z)
@@ -11750,7 +11759,7 @@ def t_the_crows_box_supply_and_warriors_come_from_the_save(src):
         return [float(v) for v in out.split("|")]
 
     want = local_offset(CX, CZ, 180)
-    for label, cx, cz, ry in (("near right", 52, -46, 180), ("near centre", 0, -46, 180),
+    for label, cx, cz, ry in (("near left", -52, -46, 180), ("near centre", 0, -46, 180),
                               ("far right", 52, 46, 0), ("far left", -52, 46, 0)):
         got = local_offset(cx, cz, ry)
         assert all(abs(g - w) < 1e-6 for g, w in zip(got, want)), \
@@ -11793,11 +11802,89 @@ def t_the_crows_box_supply_and_warriors_come_from_the_save(src):
             "a kit piece at (%.3f, %.3f) stands inside the hidden box" % (x, z)
 
 
+def t_a_reset_takes_the_crows_hidden_box_with_it(src):
+    """A reset erases the crows' hidden box, even when the box refuses to be locked.
+
+    Maintainer, 2026-09-14: "when the crow faction is reset don t forget to erase the hidden box as
+    well." It carried the teardown's tag in the source and outlived the reset anyway.
+
+    THE SUSPECT IS THE CALLBACK, NOT THE SWEEP. It read `o.setLock(true) o.addTag("RTT Faction")` on
+    one line. A TTS object answering a C# null -- what a getter or setter hits on an object type it has
+    no data for, and a Hidden Zone is not an ordinary object -- is not a Lua error: pcall does not
+    catch it and it takes the rest of the callback with it. A setLock that fell over on a zone would
+    have eaten the addTag beside it, silently, leaving an untagged box the sweep cannot find.
+
+    That is what this reproduces: the box is given a setLock that blows up, and the reset still has to
+    take it. The mod also puts the box on the teardown's GUID list now, which covers the other way this
+    happens -- getObjectsWithTag never returning a zone at all, which nothing in this harness could
+    show, since the stub's tags work perfectly.
+    """
+    rt = fresh(src)
+    rt.execute("""
+      -- a Hidden Zone that cannot be locked, standing in for the C# null
+      local real = spawnObjectJSON
+      spawnObjectJSON = function(p)
+        if type(p.json) == "string" and p.json:find("FogOfWarTrigger", 1, true) then
+          local cb = p.callback_function
+          p.callback_function = function(o)
+            o.setLock = function() error("C# null: a zone has no lock") end
+            if cb ~= nil then cb(o) end
+          end
+        end
+        return real(p)
+      end
+      SEAT('Purple','H1') pcall(function() setupFactionBoards(nil,nil,nil) end) FLUSH(10)
+      pcall(function() rttPlaceFaction('Corvid Conspiracy', 52, -46, false, 'Purple',
+                                       false, nil, nil, 'Purple', nil) end)
+      FLUSH(60)
+      function COUNTZONES()
+        local n, tagged = 0, 0
+        for _, o in ipairs(getAllObjects()) do
+          if (o.getName() or ''):find('FogOfWar') then
+            n = n + 1
+            if o.hasTag('RTT Faction') then tagged = tagged + 1 end
+          end
+        end
+        return n, tagged
+      end
+      BEFORE, TAGGED = COUNTZONES()
+      pcall(function() rttClearGameObjects() end)
+      FLUSH(30)
+      AFTER = COUNTZONES()
+    """)
+    assert rt.eval("BEFORE") == 1, "the crows spawned %s hidden boxes, expected 1" % rt.eval("BEFORE")
+    assert rt.eval("TAGGED") == 1, \
+        "the hidden box spawned WITHOUT the teardown's tag -- the lock failure ate the addTag beside it"
+    assert rt.eval("AFTER") == 0, \
+        "the reset left %s hidden box(es) on the table" % rt.eval("AFTER")
+
+    # and the sweep's second net holds it too, for the case where a zone is simply not in
+    # getObjectsWithTag's world -- nothing here can prove that one, so this pins the belt as well
+    r2 = fresh(src)
+    r2.execute("""
+      SEAT('Purple','H1') pcall(function() setupFactionBoards(nil,nil,nil) end) FLUSH(10)
+      pcall(function() rttPlaceFaction('Corvid Conspiracy', 52, -46, false, 'Purple',
+                                       false, nil, nil, 'Purple', nil) end)
+      FLUSH(60)
+      ZG = ''
+      for _, o in ipairs(getAllObjects()) do
+        if (o.getName() or ''):find('FogOfWar') then ZG = o.getGUID() end
+      end
+      ONLIST = false
+      for _, g in ipairs(RTT_SPAWNED or {}) do if g == ZG then ONLIST = true end end
+    """)
+    assert r2.eval("ONLIST") is True, \
+        "the hidden box is not on RTT_SPAWNED, so a tag sweep that cannot see zones would leave it"
+
+
 def t_the_crow_box_stands_on_the_table_a_quarter_as_tall(src):
     """The box is a quarter of the height he saved -- and still standing ON the table, not over it.
 
     Maintainer, 2026-09-14: "also reduce the height of the hidden box by 4." The box in his save is
-    5.10 tall, so this is 1.275.
+    5.10 tall, so this is 1.275 -- and when he re-measured the box's POSITION a save later, he kept
+    this height: "keep the height you did in the previous one that was good". So the height is the one
+    number here that does not come from the save, and a later re-measurement must not quietly restore
+    his 5.10 along with the rest.
 
     THE TRAP IS THAT A TTS ZONE IS POSITIONED BY ITS CENTRE. His box is 5.10 tall centred at 14.1115,
     which puts its floor at 11.56 -- the table. Changing the height alone leaves the centre where it is
@@ -11807,7 +11894,7 @@ def t_the_crow_box_stands_on_the_table_a_quarter_as_tall(src):
     than at an offset from a centre that moves. This is the second height change to survive that.
     """
     rt = fresh(src)
-    HIS_SY, HIS_CENTRE = 5.10, 14.111544
+    HIS_SY, HIS_CENTRE = 5.10, 14.111544       # his box, in both saves
     FLOOR = 11.56                              # his box's floor, and the table surface
     PLOTS = 11.91                              # where the plots have always rested
 
@@ -12060,6 +12147,7 @@ CASES = [
     ("5p gives the middle board room",       t_five_players_give_the_middle_board_room),
     ("the crow kit comes from the save",     t_the_crows_box_supply_and_warriors_come_from_the_save),
     ("the crow box stands on the table",     t_the_crow_box_stands_on_the_table_a_quarter_as_tall),
+    ("a reset erases the crow box",          t_a_reset_takes_the_crows_hidden_box_with_it),
     ("the mole board steps off the monger",  t_the_mole_board_steps_away_from_the_monger),
     ("numpad 2 hands you your token",  t_numpad_two_hands_you_the_token_you_chose),
     ("gizmo default key is numpad 0",         t_gizmo_default_key_is_numpad_zero),
