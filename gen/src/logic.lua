@@ -6479,7 +6479,22 @@ end
 -- Kit-local, so it rotates and mirrors with the seat like every other kit offset, and a card width
 -- is read at call time: RTT_HELPER_TOWN_W is declared further down the file and would be nil here.
 function rttMoleKitDX(cx, cz)
-  return rttMongerOnPlayersRight(cx, cz) and -RTT_HELPER_TOWN_W or RTT_HELPER_TOWN_W
+  local dx = rttMongerOnPlayersRight(cx, cz) and -RTT_HELPER_TOWN_W or RTT_HELPER_TOWN_W
+  -- ONE SEAT TAKES ANOTHER CARD WIDTH. Maintainer, 2026-09-14: "when moles faction are in 4th seat
+  -- with 5 players or 3rd seat with 4 players (thats the same position) they need to spawn one card
+  -- width more to their left."
+  --
+  -- He is right that it is one position: RTT_LAYOUT[4] is { 1, 2, 4, 3 } and RTT_LAYOUT[5] is
+  -- { 1, 5, 2, 4, 3 }, so a four-player seat 3 and a five-player seat 4 both land on RTT_POS[4],
+  -- (-52, 46) -- and a six-player seat 5 with them. That is the only seat of the six in the -x/+z
+  -- quadrant, which is what this tests for: it holds for the ranked draft and the manual selector
+  -- alike, and the five-player spread never touches this position (RTT_5P_NUDGE is positions 1 and 2).
+  --
+  -- The Monger sits on this seat's LEFT, so the step above sends the kit right; a card width back the
+  -- other way CANCELS it, and the Duchy lands on its blueprint offsets here. That is arithmetic, not a
+  -- special case: the rule is still "a card width off the Monger", with his correction on top.
+  if cx < 0 and cz > 0 then dx = dx - RTT_HELPER_TOWN_W end
+  return dx
 end
 
 function rttMongerSpot(cx, cz, flip, rotationY)

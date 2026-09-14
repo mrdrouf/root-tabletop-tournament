@@ -11966,6 +11966,13 @@ def t_the_mole_board_steps_away_from_the_monger(src):
     on both rows (rttKitPos mirrors x and z together for a far-row seat, which is turned half a
     circle to match), so one rule covers all six seats -- including the two centre ones, which have
     no side of the table and take the same offset as a right-hand seat.
+
+    ONE SEAT TAKES ANOTHER CARD WIDTH on top of that: "when moles faction are in 4th seat with 5
+    players or 3rd seat with 4 players (thats the same position) they need to spawn one card width
+    more to their left." Both of those are RTT_POS[4], (-52, 46) -- RTT_LAYOUT[4] is { 1, 2, 4, 3 }
+    and RTT_LAYOUT[5] is { 1, 5, 2, 4, 3 }. The Monger sits on that seat's left, so the step off it
+    goes right and his correction cancels it exactly: the Duchy lands on its blueprint offsets there,
+    which is what this asserts outright rather than restating the arithmetic.
     """
     W = fresh(src).eval("RTT_HELPER_TOWN_W")          # the maintainer's measured card width
     BOARD  = "B8AC776D9A0834C541CE5BA4617071B0A7526F33"   # the Duchy faction board's own face
@@ -11996,8 +12003,11 @@ def t_the_mole_board_steps_away_from_the_monger(src):
         return ([(w, float(x), float(z)) for w, x, z in rows],
                 [float(v) for v in (rt.eval("TUNNEL") or "").split("|") if v != ""])
 
-    for label, cx, cz, flip in (("seat 1", 52, -46, False), ("seat 2", -52, -46, False),
-                                ("seat 3", 52, 46, True),   ("seat 4", -52, 46, True),
+    # RTT_POS[4] is the seat he corrected: 4-player seat 3, 5-player seat 4, 6-player seat 5
+    EXTRA_LEFT = ((-52.0, 46.0),)
+    for label, cx, cz, flip in (("pos 1", 52, -46, False), ("pos 2", -52, -46, False),
+                                ("pos 3", 52, 46, True),
+                                ("pos 4 (4p seat 3 / 5p seat 4)", -52, 46, True),
                                 ("5p centre near", 0, -46, False), ("5p centre far", 0, 46, True)):
         was, was_tunnel = spawn(cx, cz, flip, True)
         now, now_tunnel = spawn(cx, cz, flip, False)
@@ -12013,6 +12023,11 @@ def t_the_mole_board_steps_away_from_the_monger(src):
 
         on_right = (monger[0][1] - cx) * s > 0          # kit-local +x is the player's right
         want = -W if on_right else W
+        if (float(cx), float(cz)) in EXTRA_LEFT:
+            want -= W                                  # his correction, a card width further left
+            assert abs(want) < 1e-9, \
+                ("at %s the correction is meant to cancel the step off the Monger and leave the kit "
+                 "on its blueprint offsets; it comes to %.4f" % (label, want))
         # the side rule the Monger's own two measured spots encode, stated independently
         assert on_right == ((cx < 0 and cz < 0) or (cx > 0 and cz > 0)), \
             "%s: the Monger landed on the player's %s, against its own seat rule" \
