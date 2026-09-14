@@ -8696,6 +8696,11 @@ RTT_HOME_STACKED = { ["Acclaim"] = 2 }
 -- Checked BEFORE anything else, so the piece is not even asked about itself.
 RTT_HOME_NEVER = { ["RUIN"] = true }
 
+-- How long to wait before checking a piece actually went into its supply, and how far above the bag
+-- to drop it if it did not. See the supply step in rttGizmoHome.
+RTT_SUPPLY_CHECK = 4     -- frames
+RTT_SUPPLY_DROP  = 3.0   -- units above the bag: clear of it, close enough to fall straight in
+
 -- ROWS THAT FILL FROM THE PLAYER'S LEFT instead of their right. Every other row in the game fills
 -- rightmost-empty-first, which is what the maintainer asked for on 2026-09-06 and what the
 -- comparator below does. The Keepers' relic rows are the exception he named on 2026-09-13: "note
@@ -9063,7 +9068,36 @@ function rttGizmoHome(color)
   if bagName ~= nil then
     local bag = rttFindByName(bagName)
     if bag ~= nil then
+      -- PUT IT IN, THEN CHECK THAT IT WENT IN.
+      --
+      -- Maintainer, 2026-09-14, after this had been "fixed" three times: "all warriors all go back to
+      -- supply always." By then his own table was running this build, his supplies were on it, no
+      -- warrior was locked, and his board's own script sent a warrior to the supply when the harness
+      -- drove it. Everything up to this line is provably right, so the thing that is not doing what it
+      -- is told is putObject -- the one call the harness cannot watch, because the stub answers for it.
+      --
+      -- Every supply in the game is a LOCKED Custom_Model_Bag, and a locked container is the obvious
+      -- suspect for a put that quietly does nothing. But rather than bet on a reason, this checks the
+      -- outcome: if the piece is still on the table a few frames later, it did not go in, so it is
+      -- dropped onto the bag from above and TTS swallows it the ordinary way -- the same thing a
+      -- player does by hand.
+      --
+      -- BY GUID, NEVER BY HANDLE. A successful putObject destroys the piece, and asking a destroyed
+      -- object anything is TTS's C# null, which pcall does not catch. So both sides are looked up
+      -- again on the later frame, and a piece that is gone simply is not found.
+      local g, bg = nil, nil
+      pcall(function() g = hovered.getGUID() bg = bag.getGUID() end)
       pcall(function() bag.putObject(hovered) end)
+      if g ~= nil and bg ~= nil then
+        Wait.frames(function()
+          local o, b = getObjectFromGUID(g), getObjectFromGUID(bg)
+          if o == nil or b == nil then return end          -- it went in; nothing to do
+          pcall(function()
+            local p = b.getPosition()
+            o.setPositionSmooth({ p.x, p.y + RTT_SUPPLY_DROP, p.z }, false, true)
+          end)
+        end, RTT_SUPPLY_CHECK)
+      end
       return
     end
     -- OUT LOUD, because the alternative is a key that looks broken. If this ever fires, the supply is

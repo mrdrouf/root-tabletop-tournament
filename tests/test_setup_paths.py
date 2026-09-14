@@ -10319,6 +10319,71 @@ def t_a_piece_with_a_supply_goes_there_and_nowhere_else(src):
     assert rt.eval("PUT") == 0, "the relic was put in its bag instead of on its scoring row"
     assert rt.eval("R.getPosition().x") < -48, "the relic never reached its scoring row"
 
+
+def t_a_warrior_reaches_its_supply_even_if_the_put_is_refused(src):
+    """Numpad 0 does not trust putObject; it checks the piece actually went in.
+
+    Maintainer, 2026-09-14, after this had been "fixed" three times: "all warriors all go back to
+    supply always."
+
+    BY THEN EVERYTHING UP TO THAT CALL WAS PROVABLY RIGHT. His own table was running the build, the
+    supplies were on it, no warrior was locked, and driving HIS board's own script from the harness
+    sent a warrior to the supply. The only thing left that could disobey is putObject itself -- the
+    one call the harness cannot watch, because the stub answers for it.
+
+    Every supply in the game is a LOCKED Custom_Model_Bag, which is the obvious suspect for a put that
+    quietly does nothing. Rather than bet on the reason, the key now checks the OUTCOME: if the piece
+    is still on the table a few frames later it did not go in, so it is dropped onto the bag from
+    above and TTS swallows it the ordinary way -- the same thing a player does by hand.
+
+    BY GUID, NEVER BY HANDLE: a successful putObject destroys the piece, and asking a destroyed object
+    anything is TTS's C# null, which pcall does not catch.
+    """
+    def run(put_works):
+        rt = fresh(src)
+        rt.execute("""
+          RTT_HOME = {} PUT = 0
+          BAG = MKOBJ("Marquise Supply", { 60, 11.5, -40 }, {})
+          BAG.putObject = function(o) PUT = PUT + 1 if %s then o.destruct() end end
+          W = MKOBJ("Cat Warrior", { 3, 11.6, 3 }, {})
+          HOVER = { Red = W }
+          rttGizmoHome("Red")
+          FLUSH(20)
+        """ % ("true" if put_works else "false"))
+        return rt
+
+    # THE ORDINARY CASE: the put is honoured and the piece is gone. Nothing else must happen.
+    rt = run(True)
+    assert rt.eval("PUT") == 1, "the warrior was never offered to its supply"
+    assert rt.eval("W.__dead") is True, "the supply did not absorb the warrior"
+
+    # THE CASE HE WAS LIVING IN: the put is refused, silently. The warrior still gets there.
+    rt = run(False)
+    assert rt.eval("PUT") == 1
+    assert rt.eval("W.__dead") is not True
+    x, z = rt.eval("W.getPosition().x"), rt.eval("W.getPosition().z")
+    assert abs(x - 60) < 0.01 and abs(z - (-40)) < 0.01, \
+        ("a warrior the supply refused was left at (%.1f, %.1f); it should have been dropped onto "
+         "the bag" % (x, z))
+    assert rt.eval("W.getPosition().y") > 11.5, \
+        "the warrior was put at the bag's own height rather than above it, so it cannot fall in"
+
+    # AND THE DEAD HANDLE IS NEVER TOUCHED: with the piece absorbed, the follow-up must find nothing
+    # and ask nothing. A destroyed object answers TTS's C# null, which pcall does not catch.
+    rt = fresh(src)
+    rt.execute("""
+      RTT_HOME = {} ASKED = 0
+      BAG = MKOBJ("Marquise Supply", { 60, 11.5, -40 }, {})
+      BAG.putObject = function(o) o.destruct() end
+      W = MKOBJ("Cat Warrior", { 3, 11.6, 3 }, {})
+      W.getPosition = function() ASKED = ASKED + 1 return vec({3,11.6,3}) end
+      HOVER = { Red = W }
+      rttGizmoHome("Red")
+      FLUSH(20)
+    """)
+    assert rt.eval("ASKED") == 0, \
+        "the absorbed warrior was asked its position after being destroyed"
+
 CASES = [
     ("manual path drives the turn system",   t_manual_turn_order),
     ("manual path spawns 4 / 5 boards",      t_boards_spawn),
@@ -10401,6 +10466,7 @@ CASES = [
     ("numpad 0 asks a piece nothing",        t_numpad_zero_never_interrogates_the_piece_it_sends_home),
     ("numpad 0 leaves ruins alone",          t_numpad_zero_leaves_ruins_alone),
     ("a supply is final",                    t_a_piece_with_a_supply_goes_there_and_nowhere_else),
+    ("a refused put still reaches home",     t_a_warrior_reaches_its_supply_even_if_the_put_is_refused),
     ("numpad 2 hands you your token",  t_numpad_two_hands_you_the_token_you_chose),
     ("gizmo default key is numpad 0",         t_gizmo_default_key_is_numpad_zero),
     ("gizmo: warrior to/from supply",         t_gizmo_warrior_to_and_from_supply),
