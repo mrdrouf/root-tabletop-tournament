@@ -10119,6 +10119,88 @@ def t_a_warrior_goes_to_its_supply_like_wood_does(src):
     assert rt.eval("#rttHomeSlots([[Enclave]])") == 3, \
         "a bagless building lost its spawn-recorded row"
 
+
+def t_numpad_zero_never_interrogates_the_piece_it_sends_home(src):
+    """Numpad 0 asks a piece its NAME and nothing else, unless it is a relic.
+
+    Maintainer, 2026-09-14: "numpad 1 works numpad 0 does not" -- on warriors, with tokens still
+    working. Those two facts together point at one line.
+
+    NUMPAD 1 NEVER TOUCHES THE PIECE IT FETCHES; it finds your supply from your seat and takes from
+    it. Numpad 0 did nothing to a piece either, beyond reading its name, until the relic work put
+    rttRelicKind on its path -- and that calls getCustomObject() on EVERY piece anybody hovers.
+
+    getCustomObject() IS NOT SAFE TO CALL ON ANYTHING. TTS answers a C# null for an object it has no
+    custom data for, and a C# null is not a Lua error -- pcall does not catch it, and it takes the
+    rest of the calling function with it, which here is the step that puts the warrior in its supply.
+    Tokens and tiles carry CustomImage and answer happily. That is exactly why wood worked and a
+    warrior did not.
+
+    THIS IS THE CLASS OF BUG THE HARNESS CANNOT SEE, because the stub always answers politely. So the
+    test does not try to reproduce the null: it pins the property that makes the null unreachable --
+    numpad 0 must not ASK a piece that is not a relic.
+    """
+    rt = fresh(src)
+    rt.execute("""
+      RTT_HOME = {} PUT = 0 ASKED = 0
+      -- the three cats that stand beside the board at setup
+      for i = 1, 3 do
+        RTT_HOME["w" .. i] = { n = "Cat Warrior", f = "Marquise de Cat",
+                               p = { 40 + i * 1.4, 11.6, -50 }, r = { 0, 0, 0 } }
+      end
+      BAG = MKOBJ("Marquise Supply", { 60, 11.5, -40 }, {})
+      BAG.putObject = function(o) PUT = PUT + 1 end
+      W = MKOBJ("Cat Warrior", { 0, 11.6, 0 }, {})
+      -- stands in for TTS answering a C# null: if numpad 0 asks, the test knows
+      W.getCustomObject = function() ASKED = ASKED + 1 return {} end
+      HOVER = { Red = W }
+      rttGizmoHome("Red")
+    """)
+    assert rt.eval("ASKED") == 0, \
+        ("numpad 0 asked a warrior for its custom object %d time(s); in TTS that answer is a C# null "
+         "and pcall does not catch it" % rt.eval("ASKED"))
+    assert rt.eval("PUT") == 1, "the warrior did not reach its supply"
+
+    # the same for a wood token, which has no row either
+    rt.execute("""
+      ASKED = 0 PUTW = 0
+      WB = MKOBJ("Wood Supply", { 70, 11.5, -40 }, {})
+      WB.putObject = function(o) PUTW = PUTW + 1 end
+      D = MKOBJ("Wood", { 0, 11.6, 0 }, {})
+      D.getCustomObject = function() ASKED = ASKED + 1 return {} end
+      HOVER = { Red = D }
+      rttGizmoHome("Red")
+    """)
+    assert rt.eval("ASKED") == 0, "numpad 0 interrogates a wood token on its way to the bag"
+    assert rt.eval("PUTW") == 1, "the wood token did not reach its supply"
+
+    # ...and a RELIC still is asked, because that is the only way to know which row is its row
+    rt.execute("""
+      RTT_HOME = {} ASKED = 0
+      rttAddHomeExtras("Keepers in Iron", -52, -46, false, 0, "Relics", { 0, 0, 0 }, {})
+      R = MKOBJ("Relic", { 0, 11.6, 0 }, {})
+      local real = R.getCustomObject
+      R.getCustomObject = function()
+        ASKED = ASKED + 1
+        return { image = "https://x/1B21B3A568831670A0934FED30A6BB5E2CBD1DAD/" }
+      end
+      HOVER = { Red = R }
+      rttGizmoHome("Red")
+    """)
+    assert rt.eval("ASKED") > 0, "a relic is no longer asked which kind it is, so it cannot find its row"
+    assert rt.eval("R.getPosition().x") < -48, \
+        "the relic did not reach its scoring row: x %.2f" % rt.eval("R.getPosition().x")
+
+    # and the name gate itself: nothing but a relic is ever asked
+    rt.execute("""
+      ASKED2 = 0
+      X = MKOBJ("Sympathy", { 0, 11.6, 0 }, {})
+      X.getCustomObject = function() ASKED2 = ASKED2 + 1 return {} end
+      RES = rttRelicKind(X)
+    """)
+    assert rt.eval("ASKED2") == 0 and rt.eval("RES") is None, \
+        "rttRelicKind still asks a piece that is not nicknamed Relic"
+
 CASES = [
     ("manual path drives the turn system",   t_manual_turn_order),
     ("manual path spawns 4 / 5 boards",      t_boards_spawn),
@@ -10198,6 +10280,7 @@ CASES = [
     ("home slots drop, not embed",           t_a_piece_sent_home_lands_on_the_board_not_in_it),
     ("numpad 2 undoes numpad 0",             t_numpad_two_is_numpad_zero_run_backwards),
     ("a warrior goes to its supply",         t_a_warrior_goes_to_its_supply_like_wood_does),
+    ("numpad 0 asks a piece nothing",        t_numpad_zero_never_interrogates_the_piece_it_sends_home),
     ("numpad 2 hands you your token",  t_numpad_two_hands_you_the_token_you_chose),
     ("gizmo default key is numpad 0",         t_gizmo_default_key_is_numpad_zero),
     ("gizmo: warrior to/from supply",         t_gizmo_warrior_to_and_from_supply),

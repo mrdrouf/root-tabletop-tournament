@@ -8546,7 +8546,25 @@ function onObjectDrop(color, o)
 end
 
 -- The kind of relic a tile is, or nil for anything that is not one.
+--
+-- IT ASKS THE NAME BEFORE IT ASKS THE OBJECT. Maintainer, 2026-09-14: "numpad 1 works numpad 0 does
+-- not", on warriors, with tokens working -- and that pair of facts points at exactly one line.
+-- Numpad 1 never touches the piece it is fetching; numpad 0 used to do nothing to it either beyond
+-- reading its name, until this function was added to its path and started calling getCustomObject()
+-- on EVERY piece anybody hovers.
+--
+-- getCustomObject() IS NOT SAFE TO CALL ON ANYTHING. TTS answers a C# null for an object it has no
+-- custom data for, and a C# null is not a Lua error: pcall does not catch it and it takes the rest of
+-- the calling function with it -- here, the two steps below that would have put the warrior in its
+-- supply. Tokens and tiles carry CustomImage and answer happily, which is precisely why numpad 0
+-- still worked on wood and not on a warrior.
+--
+-- So the name is the gate. All twelve relics are nicknamed "Relic" and nothing else in the mod is,
+-- so no relic is missed and nothing that is not one is ever asked.
 function rttRelicKind(o)
+  local name = nil
+  pcall(function() name = o.getName() end)
+  if name ~= "Relic" then return nil end
   local img = nil
   pcall(function() img = (o.getCustomObject() or {}).image end)
   if type(img) ~= "string" then return nil end
@@ -8977,11 +8995,15 @@ function rttGizmoHome(color)
   --
   -- If nothing is recorded with a kind, this narrows to nothing and the unfiltered list stands --
   -- an older bake with no relic slots behaves as it did.
-  local kind = rttRelicKind(hovered)
-  if kind ~= nil then
-    local only = {}
-    for _, sl in ipairs(slots) do if sl.k == kind then only[#only + 1] = sl end end
-    if #only > 0 then slots = only end
+  -- ...and only when there is a row to narrow. A warrior has none -- its supply is a bag -- so this
+  -- whole step is skipped for it and the piece is never asked anything about itself.
+  if #slots > 0 then
+    local kind = rttRelicKind(hovered)
+    if kind ~= nil then
+      local only = {}
+      for _, sl in ipairs(slots) do if sl.k == kind then only[#only + 1] = sl end end
+      if #only > 0 then slots = only end
+    end
   end
 
   local ytol = rttHomeYTol(slots)
