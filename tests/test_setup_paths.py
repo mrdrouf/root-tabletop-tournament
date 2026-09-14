@@ -11162,6 +11162,67 @@ def t_a_prisoner_can_always_be_stood_back_up(src):
     assert abs(rt.eval("DOWN") - 90) < 1, "numpad 3 no longer lays a warrior down"
     assert abs(rt.eval("W.getRotation().x")) < 1, "numpad 3 no longer stands its own prisoner up"
 
+
+def t_two_vagabonds_do_not_share_pieces(src):
+    """A second vagabond gets its own relationship markers, and does NOT get a second Quest deck.
+
+    Both from the multi-agent review, 2026-09-14.
+
+    THE MARKERS TRADED PLACES. Every vagabond gets the same eleven nicknames, so two of them put two
+    objects called "Marquise Relationship" on the table and two RTT_HOME rows keyed on that one name.
+    numpad 0 could not tell them apart: it read a row of two slots spanning BOTH boards and sent
+    whichever marker it was handed to the far one. Over two presses the harness showed them actually
+    swapping, each player losing their place on the relationship track. The mod already renames the
+    second vagabond's VP tile for exactly this reason; the markers never got the same treatment.
+
+    THE QUEST DECK IS SHARED. Three quests face up, one deck, whoever plays a vagabond draws from it.
+    The kit carries the deck and its board, and this path spawns the whole kit once per vagabond
+    seat, so a second vagabond put a second deck and board out and the players would work two
+    separate displays. The OLD spawn path guarded this; the RTT path never did.
+    """
+    rt = fresh(src)
+    rt.execute("""
+      RTT_HOME = {}
+      S1 = { rel = { x =  52, z = -46, flip = false, ry = 0 }, vagN = 1, relDone = {} }
+      S2 = { rel = { x = -52, z = -46, flip = false, ry = 0 }, vagN = 2, relDone = {} }
+      rttSpawnRelMarker(S1, "Marquise de Cat")
+      rttSpawnRelMarker(S2, "Marquise de Cat")
+      FLUSH(30)
+      A = #rttHomeSlots("Marquise Relationship")
+      B = #rttHomeSlots("Marquise Relationship 2")
+    """)
+    assert rt.eval("A") == 1 and rt.eval("B") == 1, \
+        ("the two vagabonds' Marquise markers share a row (%s and %s slots); numpad 0 will send one "
+         "to the other's board" % (rt.eval("A"), rt.eval("B")))
+
+    # the FIRST vagabond's markers keep their plain names -- nothing changes in a one-vagabond game
+    rt.execute("""
+      PLAIN = false
+      for _, h in pairs(RTT_HOME) do if h.n == "Marquise Relationship" then PLAIN = true end end
+    """)
+    assert rt.eval("PLAIN") is True, \
+        "the first vagabond's markers were renamed too; a normal game should be untouched"
+
+    # THE QUEST DECK: spawned once, and not again
+    def quest_pieces(already_out):
+        r = fresh(src)
+        r.execute(('Q = MKOBJ("", {0,1,0}, { "Quest" })' if already_out else "") + """
+          N = 0
+          local real = spawnObjectJSON
+          spawnObjectJSON = function(sp)
+            if type(sp.json) == "string" and sp.json:find('"Quest"', 1, true) then N = N + 1 end
+            return real(sp)
+          end
+          pcall(function() rttSpawnFaction("Vagabond Layout", 52, -46, false, "Standard", 0) end)
+          FLUSH(60)
+        """)
+        return r.eval("N")
+
+    assert quest_pieces(False) == 2, \
+        "the first vagabond no longer gets a Quest board and deck (%d pieces)" % quest_pieces(False)
+    assert quest_pieces(True) == 0, \
+        "a second vagabond spawned another Quest deck; the deck is shared by the whole table"
+
 CASES = [
     ("manual path drives the turn system",   t_manual_turn_order),
     ("manual path spawns 4 / 5 boards",      t_boards_spawn),
@@ -11259,6 +11320,7 @@ CASES = [
     ("a waystation row reads like the rest", t_a_waystation_row_reads_the_same_way_as_every_other),
     ("a new setup blocks a double filing",   t_a_new_setup_stops_the_old_game_being_filed_twice),
     ("a prisoner can always stand up",       t_a_prisoner_can_always_be_stood_back_up),
+    ("two vagabonds share no pieces",        t_two_vagabonds_do_not_share_pieces),
     ("numpad 2 hands you your token",  t_numpad_two_hands_you_the_token_you_chose),
     ("gizmo default key is numpad 0",         t_gizmo_default_key_is_numpad_zero),
     ("gizmo: warrior to/from supply",         t_gizmo_warrior_to_and_from_supply),

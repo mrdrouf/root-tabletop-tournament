@@ -5316,6 +5316,18 @@ end
 -- ONE VP tile out of the eleven and spawns it under the given name. Rewriting the blueprint's
 -- Nickname before the spawn is deliberate -- renaming the object afterwards would be exactly the
 -- spawn-then-patch this codebase forbids.
+-- Is a Quest deck or board already out? The tag is the kit's own, and it is the only thing that
+-- marks these two pieces.
+function rttQuestOnTable()
+  local found = false
+  pcall(function()
+    for _, o in ipairs(getAllObjects()) do
+      if o.hasTag("Quest") then found = true return end
+    end
+  end)
+  return found
+end
+
 function rttSpawnFaction(faction, cx, cz, flip, category, rotationY, opts)
   category = category or "Standard"
   local def = EVERYTHING[category] and EVERYTHING[category][faction]
@@ -5357,6 +5369,24 @@ function rttSpawnFaction(faction, cx, cz, flip, category, rotationY, opts)
     end
     -- The eleven relationship markers do not come with the kit any more: rttRelSync places one as
     -- each faction arrives, so only the factions actually playing get one. See RTT_REL_FOR.
+    -- ONE QUEST DECK AND ONE QUEST BOARD FOR THE TABLE, however many vagabonds are in the game.
+    --
+    -- The Quest deck is shared: three quests face up, one deck, whoever plays a vagabond draws from
+    -- it. The Vagabond Layout kit carries both the deck and its board, and this path spawns the whole
+    -- kit once per vagabond seat -- so a second vagabond put a second deck and a second board on the
+    -- table, and the players, seeing two, would work two separate three-quest displays.
+    --
+    -- The OLD spawn path already guarded this (makeVagabondLayout destroys Quest-tagged pieces when
+    -- `vagabondAlreadySpawned`); the RTT path never did. Found by the multi-agent review,
+    -- 2026-09-14. Two entries in the kit carry the tag: the board (a Custom_Tile) and the deck.
+    --
+    -- SKIPPED RATHER THAN SPAWNED-AND-DESTROYED, which is this file's rule: a piece that should not
+    -- exist is never created.
+    local isQuest = false
+    if faction == "Vagabond Layout" and string.find(v.json, '"Quest"', 1, true) ~= nil
+       and rttQuestOnTable() then
+      isQuest = true
+    end
     local isRel = false
     if faction == "Vagabond Layout" then
       local nick = v.json:match('"Nickname": "([^"]*)"')
@@ -5379,7 +5409,7 @@ function rttSpawnFaction(faction, cx, cz, flip, category, rotationY, opts)
         end
       end
     end
-    if not isDice and not isCap and not isRel then objects[#objects + 1] = piece end
+    if not isDice and not isCap and not isRel and not isQuest then objects[#objects + 1] = piece end
   end
   local spawnRy = rotationY or (flip and 180 or 0)
   -- Which extra return slots this spawn has already recorded, so the first piece of a given name
@@ -5773,6 +5803,22 @@ function rttSpawnRelMarker(seat, faction)
       if ry ~= 0 then
         o.setRotation({ o.getRotation().x, o.getRotation().y + ry, o.getRotation().z })
       end
+      -- THE SECOND VAGABOND'S MARKERS CARRY THEIR OWN NAMES.
+      --
+      -- Every vagabond gets the same eleven nicknames, so with two of them at the table there were
+      -- two objects called "Marquise Relationship" and two RTT_HOME rows keyed on that one name.
+      -- numpad 0 could not tell them apart: it read a row of two slots spanning both boards and sent
+      -- whichever marker it was given to the far one. The harness showed the two actually TRADING
+      -- PLACES over two presses, each player losing their position on the relationship track.
+      --
+      -- The mod already does exactly this for the VP tile -- the second vagabond's is renamed
+      -- "Vagabond 2 VP" -- for exactly this reason; the markers simply never got the same treatment.
+      -- Found by the multi-agent review, 2026-09-14. Nothing looks a marker up by name at runtime:
+      -- the blueprint lookups happen before this point, off the kit table.
+      pcall(function()
+        local n2 = tonumber(seat.vagN) or 1
+        if n2 > 1 then o.setName((o.getName() or "") .. " " .. tostring(n2)) end
+      end)
       pcall(function()
         local p, rot = o.getPosition(), o.getRotation()
         RTT_HOME[o.getGUID()] = { n = o.getName() or "", f = "Vagabond Layout",
