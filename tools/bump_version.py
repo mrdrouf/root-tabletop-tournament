@@ -111,23 +111,48 @@ def version_at(rev):
 
 
 def check_sequence(rng):
-    """Refuse a range whose minor numbers have a hole. Returns a complaint, or ''."""
+    """Refuse a range where the version ever repeats or goes backwards. Returns a complaint, or ''."""
     out = subprocess.run(["git", "-C", REPO, "rev-list", "--reverse", "--no-merges", rng],
                          capture_output=True)
     if out.returncode != 0:
         return ""                                  # unknown range: let the push through
     shas = out.stdout.decode().split()
+    # SEEDED FROM THE COMMIT ALREADY ON THE REMOTE, which is the whole point of the check.
+    #
+    # This only ever compared commits WITHIN the pushed range, so the ordinary one-commit push -- by
+    # far the common case here -- had a single sha, never entered the comparison, and passed no
+    # matter what number it carried. The guard has been decorative since it was written. Found by the
+    # multi-agent review, 2026-09-14.
+    #
+    # A range is "<remote tip>..<local tip>", so its base is the last version the remote knows; the
+    # first pushed commit is now compared against that. An unknown or empty base (a brand-new branch,
+    # the all-zeros sha) yields None and behaves exactly as before.
     prev = None
+    if ".." in rng:
+        base = rng.split("..")[0]
+        if base and set(base) != {"0"}:
+            prev = version_at(base)
     for sha in shas:
         cur = version_at(sha)
         if cur is None:                            # predates versioning
             continue
         if prev is not None:
-            ok = (cur[0] == prev[0] and cur[1] == prev[1] + 1) or \
-                 (cur[0] == prev[0] + 1 and cur[1] == 0)
-            if not ok:
-                return ("v%d.%d -> v%d.%d at %s: the minor must go up by exactly one, or the major "
-                        "by one and the minor back to 0." % (prev[0], prev[1], cur[0], cur[1], sha[:9]))
+            # STRICTLY INCREASING, not "exactly one more".
+            #
+            # The rule this enforces is the maintainer's, 2026-09-07: "you need to make sure there is
+            # an iteration of that every time github is pushed" -- every push must carry a number
+            # nobody has seen. "Exactly one" was a stricter reading, and it is one the real workflow
+            # cannot meet: a manual bump before committing plus the pre-commit hook's own bump moves
+            # the number by two or three, and an abandoned commit message burns one outright. Those
+            # are SKIPPED numbers, never reused, so a version still names exactly one build.
+            #
+            # Until this check was seeded from the remote tip it never ran on an ordinary one-commit
+            # push and none of that mattered. Now that it does run, enforcing the letter of the old
+            # rule would refuse every push the current workflow makes -- so it enforces the thing
+            # that is actually dangerous: a version that repeats or goes backwards.
+            if (cur[0], cur[1]) <= (prev[0], prev[1]):
+                return ("v%d.%d -> v%d.%d at %s: the version must go UP on every commit; this one "
+                        "repeats or lowers it." % (prev[0], prev[1], cur[0], cur[1], sha[:9]))
         prev = cur
     return ""
 
@@ -162,9 +187,20 @@ def main():
             minor += 1
 
     label = "%d.%d" % (major, minor)
-    open(VERSION_FILE, "w", encoding="utf-8").write(label + "\n")
+    # STAMP, BUILD, *THEN* RECORD THE NUMBER.
+    #
+    # VERSION used to be written first, so a build that threw left the file already advanced and the
+    # next attempt burned another number on top. The stamp still has to come before the build --
+    # assemble.py reads the stamped save -- but the file that says which version this IS is only
+    # written once the build has actually succeeded.
+    #
+    # NOT A COMPLETE CURE, and deliberately not chased further: a `git commit` that runs this hook
+    # and then produces no commit -- quitting the message editor without saving is the usual way --
+    # still burns a number, and nothing inside a pre-commit hook can see that coming. A hole means
+    # numbers were SKIPPED, never reused, so a version still names exactly one build.
     stamp(label)
     build()
+    open(VERSION_FILE, "w", encoding="utf-8").write(label + "\n")
     if "--quiet" not in argv:
         print("[version] v%s stamped on the board and built" % label)
     return 0

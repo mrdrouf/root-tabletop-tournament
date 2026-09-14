@@ -135,8 +135,27 @@ def update_doc(doc, board, box, panel=None, surface=None, global_lua=None):
     return changed
 
 
+BACKUP_SET = re.compile(r"^\d{8}-\d{6}$")      # the name make_backup gives a set: 20260914-013000
+
+
 def prune_backups():
-    sets = sorted(glob.glob(os.path.join(BACKUPS, "*")))
+    """Keep the KEEP_SETS most recent backup SETS, and touch nothing else.
+
+    THIS USED TO DELETE THE BACKUP IT HAD JUST MADE, every single run. It globbed BACKUPS/* and kept
+    the last two BY NAME -- but that directory also holds loose one-off files the maintainer put
+    there himself (Root_Tabletop_Tournament.png.bak-20260908-114247, ...removed-..., a
+    pre-archive-test copy), and a filename beginning with a letter sorts AFTER one beginning with a
+    digit. So the two entries "kept" were those loose files and every real timestamped set was
+    deleted -- including the one made moments earlier, which is the only rollback a deploy has. It
+    ate the hand-made files too, once they fell out of the last two.
+
+    Found by the multi-agent review, 2026-09-14, and confirmed against the live directory.
+
+    Directories only, and only ones named like a set: a file in here is somebody's own copy and is
+    never this script's to remove.
+    """
+    sets = sorted(d for d in glob.glob(os.path.join(BACKUPS, "*"))
+                  if os.path.isdir(d) and BACKUP_SET.match(os.path.basename(d)))
     for old in sets[:-KEEP_SETS]:
         shutil.rmtree(old, ignore_errors=True)
 
