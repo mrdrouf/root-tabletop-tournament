@@ -9648,6 +9648,19 @@ function rttGizmoMark(color)
   pcall(function() guid = hovered.getGUID() end)
   if guid == nil then return end
 
+  -- ...AND A PRESS THAT ARRIVES WHILE THE LAST ONE IS STILL LANDING DOES NOTHING AT ALL.
+  --
+  -- The mark takes two frames -- the bounds are only real once TTS has applied the rotation -- and
+  -- rttIsLaid reads a record that the FIRST press has already written. So a second press inside that
+  -- window is not seen as "stand it up": it runs the whole marking path again, overwrites the record
+  -- with the half-tipped pose, and the first press's deferred half then lands on top. The warrior is
+  -- left locked, lit and faded with a record describing a pose it was never in.
+  --
+  -- Not just a 33 ms double-tap by one person: this is a tournament mod, every seat has the same
+  -- keys, and two players pressing numpad 3 on the same contested prisoner is the likelier way in.
+  -- Found by the multi-agent review, 2026-09-14.
+  if RTT_MARKING[guid] then return end
+
   if rttIsLaid(hovered) then                            -- second press: stand it back up
     rttFreePrisoner(hovered, guid)
     return
@@ -9672,7 +9685,20 @@ function rttGizmoMark(color)
   -- the same record the rotation is -- which is in onSave, so a reload still knows how to undo it.
   local tint = nil
   pcall(function() tint = hovered.getColorTint() end)
-  RTT_LAID[guid] = { rot = { r.x, r.y, r.z }, pos = { p.x, p.y, p.z }, who = color,
+  -- THE POSE TO STAND IT BACK UP IN -- which is not necessarily the pose it is in right now.
+  --
+  -- Unlocking a prisoner by hand deliberately leaves it LYING WHERE IT IS (rttFreePrisoner's
+  -- standUp = false): "unlocking a numpad 3 warrior with different tint and highlight should not put
+  -- it standning just readjust the color and highlight." Mark that flat warrior again and this
+  -- recorded 90 degrees as its standing pose, so pressing numpad 3 a third time "stood it up" into
+  -- the pose it was already in -- the gizmo could never get it back on its feet.
+  --
+  -- A warrior stands at rotX 0. Anything tipped past 45 degrees is already down, so 0 is the pose to
+  -- come back to. Found by the multi-agent review, 2026-09-14.
+  local rx = r.x
+  local nx = ((rx % 360) + 360) % 360
+  if nx > 45 and nx < 315 then rx = 0 end
+  RTT_LAID[guid] = { rot = { rx, r.y, r.z }, pos = { p.x, p.y, p.z }, who = color,
                      tint = (tint ~= nil) and { tint.r, tint.g, tint.b } or nil }
   RTT_MARKING[guid] = true                       -- hands off until the mark below has landed
   pcall(function() hovered.setRotation({ 90, r.y, r.z }) end)   -- tips forward, away from the player

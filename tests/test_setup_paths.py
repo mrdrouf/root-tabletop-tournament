@@ -11095,6 +11095,73 @@ def t_a_new_setup_stops_the_old_game_being_filed_twice(src):
     j = obs.index('if OBS.id == nil then obsArm("export") end')
     assert i < j, "the refusal must come before the arm, or the arm wins"
 
+
+def t_a_prisoner_can_always_be_stood_back_up(src):
+    """Numpad 3 can always undo itself, however it was pressed.
+
+    TWO DEFECTS, both from the multi-agent review, 2026-09-14.
+
+    A RE-MARKED PRISONER COULD NEVER BE STOOD UP. Unlocking a prisoner by hand deliberately leaves it
+    LYING WHERE IT IS -- "unlocking a numpad 3 warrior with different tint and highlight should not
+    put it standning just readjust the color and highlight". Mark that flat warrior again and the
+    code recorded 90 degrees as its STANDING pose, so the next press "stood it up" into the pose it
+    was already in. A warrior stands at rotX 0; anything tipped past 45 is already down.
+
+    A SECOND PRESS INSIDE THE MARK'S OWN 2-FRAME WINDOW STRANDED IT. The record is written on the
+    first press but the lock, the light and the fade land two frames later, once TTS has applied the
+    rotation. rttIsLaid reads that record -- so a press arriving in between was taken as "stand it
+    up", removed the record, and then the first press's deferred half landed anyway: locked, lit and
+    faded with nothing left to undo it. Not just a fast double-tap -- every seat has the same keys,
+    and two players pressing on the same contested prisoner is the likelier way in.
+    """
+    def table(script):
+        rt = fresh(src)
+        rt.execute("""
+          RTT_LAID = {} RTT_MARKING = {}
+          W = MKOBJ('Cat Warrior', { 30, 1, 30 }, {})
+          W.setColorTint({ 0.85, 0.1, 0.09 })
+          Global.setVar("RTT_SEAT_COLOR", JSON.encode({ ["Marquise de Cat"] = "Red" }))
+          HOVER = { Red = W }
+        """ + script)
+        return rt
+
+    # MARK, UNLOCK BY HAND (stays flat), MARK AGAIN, then stand it up
+    rt = table("""
+      onScriptingButtonDown(3, 'Red') FLUSH(10)
+      W.setLock(false) pcall(rttFreeUnlockedPrisoners) FLUSH(10)
+      FLAT = W.getRotation().x
+      onScriptingButtonDown(3, 'Red') FLUSH(10)
+      onScriptingButtonDown(3, 'Red') FLUSH(10)
+    """)
+    assert abs(rt.eval("FLAT") - 90) < 1, \
+        "unlocking by hand no longer leaves the warrior lying down, which is what he asked for"
+    up = rt.eval("W.getRotation().x")
+    assert abs(up) < 1, \
+        ("a re-marked prisoner stood up at rotX %.0f -- it is still lying down, and the gizmo has no "
+         "way left to raise it" % up)
+
+    # TWO PRESSES IN ONE FRAME: one ordinary prisoner, still on the record, still recoverable
+    rt = table("""
+      onScriptingButtonDown(3, 'Red')
+      onScriptingButtonDown(3, 'Red')
+      FLUSH(10)
+    """)
+    assert rt.eval("RTT_LAID[W.getGUID()] ~= nil") is True, \
+        "two presses in one frame stranded the warrior off the record: locked and lit with no undo"
+    assert rt.eval("W.__locked") is True, "the prisoner is not locked"
+    rt.execute("onScriptingButtonDown(3, 'Red') FLUSH(10)")
+    assert rt.eval("RTT_LAID[W.getGUID()]") is None and abs(rt.eval("W.getRotation().x")) < 1, \
+        "the doubly-pressed prisoner could not be stood back up afterwards"
+
+    # ...and an ordinary press/settle/press still lays it down and stands it up
+    rt = table("""
+      onScriptingButtonDown(3, 'Red') FLUSH(10)
+      DOWN = W.getRotation().x
+      onScriptingButtonDown(3, 'Red') FLUSH(10)
+    """)
+    assert abs(rt.eval("DOWN") - 90) < 1, "numpad 3 no longer lays a warrior down"
+    assert abs(rt.eval("W.getRotation().x")) < 1, "numpad 3 no longer stands its own prisoner up"
+
 CASES = [
     ("manual path drives the turn system",   t_manual_turn_order),
     ("manual path spawns 4 / 5 boards",      t_boards_spawn),
@@ -11191,6 +11258,7 @@ CASES = [
     ("the box score scrolls past ten",       t_the_box_score_scrolls_past_round_ten),
     ("a waystation row reads like the rest", t_a_waystation_row_reads_the_same_way_as_every_other),
     ("a new setup blocks a double filing",   t_a_new_setup_stops_the_old_game_being_filed_twice),
+    ("a prisoner can always stand up",       t_a_prisoner_can_always_be_stood_back_up),
     ("numpad 2 hands you your token",  t_numpad_two_hands_you_the_token_you_chose),
     ("gizmo default key is numpad 0",         t_gizmo_default_key_is_numpad_zero),
     ("gizmo: warrior to/from supply",         t_gizmo_warrior_to_and_from_supply),
