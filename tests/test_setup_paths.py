@@ -6595,6 +6595,80 @@ def t_the_resync_sweep_leaves_zones_alone_and_survives_a_bad_object(src):
          "the pump with nothing scheduled and the busy flag stuck up" % r2.eval("FIRST"))
 
 
+def t_the_resync_never_asks_for_a_hand_that_is_not_there(src):
+    """The sweep asks each seat how many hands it has, and the button frees itself if a sweep dies.
+
+    Maintainer, 2026-09-14: "still this error and then after the resynch button does not work
+    anymore" -- "<rttResyncClick>: Object reference not set to an instance of an object".
+
+    THE BUG WAS ONE CONSTANT READ AS A COUNT. rttResyncSkip walked hands 1 through
+    RTT_HANDS_PER_SEAT, which is 4, to leave cards in hands alone. This table gives each colour TWO
+    hand zones -- the ordinary one, and a second holding the Alliance's secret supporters -- so hands
+    3 and 4 do not exist, and asking TTS for the contents of a hand that is not there is a C# null:
+    uncatchable by the pcall around it, and it takes the rest of the call with it.
+
+    BOTH HALVES OF HIS REPORT COME FROM THAT ONE LINE. rttResyncSkip runs before the sweep's pump, so
+    the click died with RTT_RESYNC_BUSY already raised and nothing left to lower it -- an error, and
+    then a button that does nothing at all for the rest of the session.
+
+    THIS IS WHY NO TEST CAUGHT IT: the stub hands back an empty table for any index, politely, where
+    TTS nulls. So the property pinned here is that the fourth hand is never ASKED FOR -- the same shape
+    as the getCustomObject rule, where the test asserts a call count of zero rather than trying to
+    reproduce a null the harness cannot have.
+    """
+    rt = fresh(src)
+    rt.execute("""
+      SEAT('Purple','H1')
+      MKOBJ('Warrior', {1, 11.6, 1}, {})
+      ASKED = {}
+      local p = Player['Purple']
+      local real = p.getHandObjects
+      p.getHandObjects = function(i) ASKED[#ASKED+1] = (i or 1) return real(i) end
+      pcall(function() rttResyncSweep() end)
+      HANDS = p.getHandCount()
+      WORST = 0
+      for _, i in ipairs(ASKED) do if i > WORST then WORST = i end end
+      N = #ASKED
+    """)
+    hands, worst, n = rt.eval("HANDS"), rt.eval("WORST"), rt.eval("N")
+    assert n > 0, "the sweep never looked in a hand at all; this check proves nothing"
+    assert worst <= hands, \
+        ("the sweep asked for hand %d of a seat that owns %d -- that is the C# null that killed the "
+         "button and left it dead" % (worst, hands))
+
+    # ...and a sweep that dies anyway must not own the button for the rest of the session
+    r2 = fresh(src)
+    r2.execute("""
+      MKOBJ('Warrior', {1, 11.6, 1}, {})
+      pcall(function() rttResyncSweep() end)
+      FLUSH_UNTIL(1, 60)                 -- the sweep finishes normally
+      RTT_RESYNC_BUSY = true             -- now stand in for one that died with its flag up
+      FLUSH(400)                         -- ...and let the watchdog come round
+    """)
+    assert r2.eval("RTT_RESYNC_BUSY") is not True, \
+        "a sweep that never finished still owns the button; the watchdog did not free it"
+    assert r2.eval("RTT_RESYNCING") is not True, "the resyncing flag was left up too"
+
+    # the watchdog is armed BEFORE any of the work, or the thing that kills the sweep kills the
+    # watchdog with it
+    r3 = fresh(src)
+    r3.execute("""
+      MKOBJ('Warrior', {1, 11.6, 1}, {})
+      ORDER = {}
+      local realSkip = rttResyncSkip
+      rttResyncSkip = function() ORDER[#ORDER+1] = 'work' return realSkip() end
+      local realTime = Wait.time
+      Wait.time = function(f, t) ORDER[#ORDER+1] = 'watchdog' return realTime(f, t) end
+      pcall(function() rttResyncSweep() end)
+      Wait.time = realTime
+      rttResyncSkip = realSkip
+      FIRST = ORDER[1] or 'nothing'
+    """)
+    assert r3.eval("FIRST") == "watchdog", \
+        ("the sweep started working before arming its watchdog (%s first) -- whatever kills the setup "
+         "would take the watchdog with it" % r3.eval("FIRST"))
+
+
 def t_the_resync_button_asks_nothing_and_destroys_nothing(src):
     """A Resync button in the second row, wired straight to the sweep.
 
@@ -12381,6 +12455,7 @@ CASES = [
     ("an empty seat is pickable",         t_an_empty_seats_board_can_be_picked_by_anyone),
     ("a second click touches nothing dead", t_pressing_a_setup_button_twice_touches_nothing_dead),
     ("resync resends what it may",        t_the_resync_sweep_resends_everything_it_may_touch),
+    ("resync asks for hands that exist",     t_the_resync_never_asks_for_a_hand_that_is_not_there),
     ("resync leaves zones alone",            t_the_resync_sweep_leaves_zones_alone_and_survives_a_bad_object),
     ("resync button asks nothing",        t_the_resync_button_asks_nothing_and_destroys_nothing),
     ("resync survives churn",             t_a_resync_survives_the_table_changing_under_it),

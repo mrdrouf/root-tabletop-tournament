@@ -1888,8 +1888,24 @@ RTT_RESYNC_TOKEN     = 0
 -- that changing RTT_RESYNC_MODE can never quietly break them.
 RTT_RESYNCING        = false
 
--- How many hand zones a seat can have. TTS allows several; this table uses two -- the ordinary hand
--- and, for the Alliance, a second one holding the secret supporters.
+-- Seconds before a sweep that never finished gives the button back. Longer than any real sweep: the
+-- pass itself is a few dozen frames and the card reload a few seconds on top.
+RTT_RESYNC_WATCHDOG  = 60
+
+-- A CAP, NOT A COUNT -- and reading it as a count is what broke the Resync button.
+--
+-- Maintainer, 2026-09-14: "still this error and then after the resynch button does not work anymore."
+-- rttResyncSkip asked every seated colour for the contents of hands 1 THROUGH 4. This table gives
+-- each colour TWO hand zones -- the ordinary hand, and a second one holding the Alliance's secret
+-- supporters -- so hands 3 and 4 do not exist, and Player.getHandObjects on a hand that is not there
+-- is a C# null: not a Lua error, uncatchable by the pcall around it, and it takes the rest of the
+-- call with it. That call is rttResyncSkip, which runs BEFORE the sweep's pump, so the click died
+-- with RTT_RESYNC_BUSY already raised and nothing scheduled to lower it -- the error, and then a
+-- button that does nothing for the rest of the session. Both halves of his report, from one line.
+--
+-- THE HARNESS COULD NOT SEE IT: the stub hands back an empty table for any index, politely, where TTS
+-- nulls. So the count is asked of the game now -- getHandCount() is the number of hand zones that
+-- colour actually owns -- and this constant is only the ceiling on it.
 RTT_HANDS_PER_SEAT = 4
 
 -- What a sweep must not touch. Every one of these is load-bearing.
@@ -1919,7 +1935,13 @@ function rttResyncSkip()
   -- outside any hand zone, in front of everyone. Found by an adversarial review, 2026-09-14.
   pcall(function()
     for _, c in ipairs(getSeatedPlayers()) do
-      for h = 1, RTT_HANDS_PER_SEAT do
+      -- ASKED, NOT ASSUMED. A hand index this colour does not own is a C# null, which ends the whole
+      -- function -- see RTT_HANDS_PER_SEAT above. Falling back to 1 rather than 0 if the count cannot
+      -- be read: a seated colour has its own hand, and skipping none of it is the worse mistake.
+      local hands = 1
+      pcall(function() hands = Player[c].getHandCount() or 1 end)
+      if hands > RTT_HANDS_PER_SEAT then hands = RTT_HANDS_PER_SEAT end
+      for h = 1, hands do
         pcall(function()
           for _, o in ipairs(Player[c].getHandObjects(h) or {}) do
             pcall(function() skip[o.getGUID()] = true end)
@@ -2311,6 +2333,24 @@ function rttResyncSweep(done, retry, withCards)
   end
   RTT_RESYNC_BUSY = true
   RTT_RESYNCING = true
+  -- A SWEEP THAT DIES MID-FLIGHT MUST NOT OWN THE BUTTON FOR THE REST OF THE SESSION.
+  --
+  -- The busy flag is what stops two sweeps overlapping, and it is raised before any of the work --
+  -- so anything that ends this call early leaves it raised with nothing left to lower it, and every
+  -- later press returns false in silence. That is exactly what the maintainer hit: "after the
+  -- resynch button does not work anymore." The hand-count null above was one way in; the next one
+  -- will be something else, so the flag is now on a timer that is armed FIRST, before any object or
+  -- any player is touched. A sweep still running after a minute is not running.
+  RTT_RESYNC_RUN = (RTT_RESYNC_RUN or 0) + 1
+  local run = RTT_RESYNC_RUN
+  Wait.time(function()
+    if RTT_RESYNC_RUN == run and RTT_RESYNC_BUSY then
+      RTT_RESYNC_BUSY = false
+      RTT_RESYNCING = false
+      pcall(function() broadcastToAll("Resync: the last sweep did not finish; the button is free again.",
+                                      { 0.86, 0.72, 0.66 }) end)
+    end
+  end, RTT_RESYNC_WATCHDOG)
   local skip = rttResyncSkip()
   local all, list = {}, {}
   pcall(function() all = getAllObjects() end)
