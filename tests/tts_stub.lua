@@ -28,8 +28,16 @@ function TIMERS()
   for _, e in ipairs(Q) do if not STOPPED[e.id] then n = n + 1 end end
   return n
 end
+-- WHICH FRAME THE HARNESS IS ON. One round of FLUSH is one frame: everything pending runs together,
+-- which is what a frame IS. Tests that care how much lands in a single frame must read THIS and not
+-- count callbacks -- the budget case used to add one to its own counter inside a Wait.frames wrapper,
+-- so two pumps landing on the same frame were booked to two different frames and a burst that would
+-- drop creates for a distant client read as two polite frames. Found by the multi-agent review.
+FRAMENO = 0
+
 function FLUSH(rounds)
   for _ = 1, (rounds or 12) do
+    FRAMENO = FRAMENO + 1
     local batch = Q; Q = {}
     table.sort(batch, function(a,b) return a.at < b.at end)
     for _, e in ipairs(batch) do if not STOPPED[e.id] then pcall(e.f) end end
@@ -43,6 +51,7 @@ end
 -- click and the commit click, and the button was never still armed when the second click arrived.
 function FLUSH_UNTIL(secs, rounds)
   for _ = 1, (rounds or 12) do
+    FRAMENO = FRAMENO + 1
     local due, later = {}, {}
     for _, e in ipairs(Q) do
       -- a cancelled one-shot is DROPPED here rather than deferred: leaving it in `later` would keep
@@ -166,6 +175,26 @@ function MKOBJ(name, pos, tags)
           end
         end
       end
+      -- ...AND THE PROPERTIES, NOT ONLY THE METHODS.
+      --
+      -- TTS does not distinguish them: reading `held_by_color` off a destroyed object is the same C#
+      -- null as calling getPosition on it. This guard only ever replaced FUNCTIONS, so every plain
+      -- field still answered cheerfully -- and the resync sweep, which decides what to touch from
+      -- `o.held_by_color` and `o.resting`, is exactly the code that reads properties off handles it
+      -- has been holding across frames. A test written to catch that read green.
+      --
+      -- Found by the multi-agent review, 2026-09-14. The fields are cleared and a metatable answers
+      -- for anything missing, so a `__`-prefixed field a test uses to inspect the corpse still works.
+      for _, k in ipairs({ "held_by_color", "resting", "spawning", "is_face_down", "tag", "name",
+                           "type", "use_snap_points", "interactable", "loading_custom",
+                           "drag_selectable", "locked" }) do
+        o[k] = nil
+      end
+      setmetatable(o, { __index = function(_, k)
+        if type(k) == "string" and string.sub(k, 1, 2) == "__" then return nil end
+        error("Object reference not set to an instance of an object. (read "
+              .. tostring(k) .. " on a destroyed " .. tostring(o.__name) .. ")", 2)
+      end })
     end
   end
   o.__tint = {r=1, g=1, b=1}

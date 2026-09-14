@@ -23,11 +23,27 @@ OUT = os.path.join(OUT_DIR, "Root_Tournament_Edition.json")
 REFERENCE = os.path.join(os.path.dirname(HERE), "dist", "Root_Tournament_Edition.json")
 
 
-def _set_board_lua(objs, lua):
+def _set_board_lua(objs, lua, _found=None):
+    """Fill the board placeholder, and COUNT how many times it was there.
+
+    @@GLOBAL_LUA@@ has been checked since the recorder shipped; @@BOARD_LUA@@ never was. A save.json
+    that lost it -- a TTS re-export dropped over the file, a bad merge -- built cleanly and shipped a
+    coordinator board with an EMPTY script: no buttons, no setup, no gizmo, and no error anywhere.
+    --verify cannot catch it either, because dist/ is rewritten from that same build on every commit,
+    so the reference it compares against is the broken one. Found by the multi-agent review,
+    2026-09-14.
+
+    Counted rather than merely required, because two boards carrying the placeholder would be just as
+    wrong as none.
+    """
+    if _found is None:
+        _found = [0]
     for o in objs:
         if o.get("LuaScript") == "@@BOARD_LUA@@":
             o["LuaScript"] = lua
-        _set_board_lua(o.get("ContainedObjects", []) or [], lua)
+            _found[0] += 1
+        _set_board_lua(o.get("ContainedObjects", []) or [], lua, _found)
+    return _found[0]
 
 
 def _board_lua():
@@ -261,8 +277,22 @@ def check_calls(logic, save):
 #
 # The trailing \w* catches the smooth/variant spellings too, so setPositionSmooth and setRotationSmooth
 # cannot slip past the plain names.
-OBSERVER_WRITES = ("setLock", "addTag", "removeTag", "setColorTint", "setPosition", "setRotation",
-                   "setScale", "spawnObjectJSON", "destruct", "takeObject")
+# THE WRITES observer.lua may never make. The docstring below promises "fail the build if
+# observer.lua writes to an object", and this list decided what that meant -- it named ten calls and
+# TTS has many more, so destroyObject, putObject, setName, flip, reload, setVar, call and the rest
+# would all have passed. Nothing exploits that today (the recorder contains no write at all), but a
+# guard that promises more than it checks is worth less than no guard. Widened by the multi-agent
+# review, 2026-09-14.
+OBSERVER_WRITES = ("setLock", "addTag", "removeTag", "setTags", "setColorTint", "setPosition",
+                   "setPositionSmooth", "setRotation", "setRotationSmooth", "setScale", "setName",
+                   "setDescription", "setGMNotes", "setValue", "setLuaScript", "setCustomObject",
+                   "setDecals", "setSnapPoints", "setVar", "setTable",
+                   "spawnObject", "spawnObjectJSON", "spawnObjectData",
+                   "destruct", "destroyObject", "takeObject", "putObject", "reload", "clone",
+                   "flip", "randomize", "shuffle", "deal", "dealToColor", "split", "highlightOn",
+                   "highlightOff", "jointTo", "addForce", "addTorque", "createButton",
+                   "editButton", "removeButton", "createInput", "editInput", "removeInput",
+                   "setXml", "setXmlTable", "setAttribute", "setAttributes", "UI")
 
 
 def check_observer_reads_only(observer):
@@ -308,7 +338,14 @@ def build():
     check_ui_ids(logic, save)
     check_calls(logic, save)
     board_lua = _board_lua()
-    _set_board_lua(save["ObjectStates"], board_lua)
+    n_board = _set_board_lua(save["ObjectStates"], board_lua)
+    if n_board != 1:
+        raise SystemExit(
+            "[gen] @@BOARD_LUA@@ appears %d times in gen/src/save.json; it must appear EXACTLY once.\n"
+            "      0 means the coordinator board would ship with an empty script -- no buttons, no\n"
+            "      setup, no gizmo, and no error anywhere to say so. More than 1 means two boards\n"
+            "      would carry the whole 2.8 MB script and fight over the same globals.\n"
+            "      --verify cannot catch either: dist/ is rewritten from this same build." % n_board)
     os.makedirs(OUT_DIR, exist_ok=True)
     with open(OUT, "w", encoding="utf-8", newline="") as f:
         json.dump(save, f, ensure_ascii=False)

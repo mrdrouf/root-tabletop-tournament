@@ -7923,12 +7923,19 @@ def t_nothing_creates_more_than_a_handful_of_objects_a_frame(src):
 
     def worst(code):
         rt = fresh(src)
+        # BOOKED AGAINST THE HARNESS'S OWN FRAME, not a counter this test advances itself.
+        #
+        # It used to wrap Wait.frames and add one per CALLBACK, so two pumps landing on the same frame
+        # were booked to two different frames -- and the burst that actually drops creates for a
+        # distant client (a map drain plus the box score arriving three frames in) read as two polite
+        # frames. FRAMENO is incremented once per FLUSH round, which is what a frame is here.
         rt.execute("""
-          FRAME, PERFRAME = 0, {}
+          PERFRAME = {}
           local _s = spawnObjectJSON
-          spawnObjectJSON = function(p) PERFRAME[FRAME] = (PERFRAME[FRAME] or 0) + 1 return _s(p) end
-          local _wf = Wait.frames
-          Wait.frames = function(f, n) return _wf(function() FRAME = FRAME + (n or 1) f() end, n) end
+          spawnObjectJSON = function(p)
+            PERFRAME[FRAMENO] = (PERFRAME[FRAMENO] or 0) + 1
+            return _s(p)
+          end
         """)
         rt.execute(code + " FLUSH(1400)")
         return rt.eval("function() local m = 0 for _, v in pairs(PERFRAME) do if v > m then m = v end end "

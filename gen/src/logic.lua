@@ -4775,12 +4775,27 @@ function rttSpawnMapExtras()
   rttSpawnPanel()
 end
 
+RTT_PANEL_QUEUED = false   -- a panel is in the paced queue but has not landed yet
+
 function rttSpawnPanel()
-  spawnObjectJSON({
+  -- THROUGH THE PACED QUEUE, for the same reason the box score is.
+  --
+  -- rttSpawnMapExtras is armed three frames into a map's own drain -- 42 to 49 pieces going out six
+  -- a frame -- and this went straight out on top of them. With the sheet paced, the panel was the
+  -- last thing still bypassing both budgets, and the harness measured eight objects on one frame of
+  -- the Gorge map against a budget of six. That overshoot is the thing that loses creates for
+  -- distant clients.
+  --
+  -- The tag test in rttSpawnMapExtras cannot see a panel that is queued but has not landed, so the
+  -- flag closes that window; the callback clears it.
+  if RTT_PANEL_QUEUED then return end
+  RTT_PANEL_QUEUED = true
+  rttSpawnStaggered({ {
     json = RTT_TURN_PANEL_JSON,
     position = RTT_PANEL_POS,
     rotation = RTT_PANEL_ROT,
     callback_function = function(o)
+      RTT_PANEL_QUEUED = false
       pcall(function()
         local t = o.getTags(); table.insert(t, "Map Object"); table.insert(t, RTT_FIXTURE_TAG)
         table.insert(t, RTT_TAG_PANEL)
@@ -4788,7 +4803,7 @@ function rttSpawnPanel()
       end)
       pcall(function() o.setLock(true) end)
     end
-  })
+  } })
 end
 
 -- The turn panel is simply what the table has now. It shipped as an OPTION, with a button that
@@ -7749,7 +7764,30 @@ function rttWhenMapReady(fn, tries)
   Wait.frames(tick, 1)
 end
 
+-- HOLD THIS UNTIL THE MAP HAS FINISHED LANDING.
+--
+-- Every per-map extra -- a landmark, the priority markers, the Marsh's numbers -- used to be armed
+-- with Wait.frames at a fixed offset of two or three frames, which is INSIDE the map's own drain: 42
+-- to 49 pieces going out six a frame over seven or eight frames. So they landed on top of six queued
+-- map tiles, and the harness measured eight objects on one frame of the Mountain map against a
+-- budget of six. An overshoot like that is what loses creates for a distant client, which is the
+-- whole reason the pacing exists. Found by the multi-agent review, 2026-09-14, once the budget test
+-- was fixed to count real frames instead of callbacks.
+--
+-- Queued rather than delayed by a bigger guess: RTT_MAP_AFTER waits for the spawn pump to go idle,
+-- which is the only condition that actually means "nothing else is going out this frame".
+function rttMapAfter(fn)
+  RTT_MAP_AFTER_Q = RTT_MAP_AFTER_Q or {}
+  RTT_MAP_AFTER_Q[#RTT_MAP_AFTER_Q + 1] = fn
+end
+
 function makeMap(player,value,id,keepBoard)
+  -- EMPTIED HERE, AT THE TOP, because rttMapAfter is called further down this very function -- and
+  -- clearing it next to RTT_MAP_AFTER (which is defined after those calls) threw away everything
+  -- that had just been queued: the Mountain's landmark, every map's priority markers, the Marsh's
+  -- numbers. Caught by comparing the spawn set against the previous build, which is the check worth
+  -- keeping in mind: "the budget test passes" is not the same as "everything still spawns".
+  RTT_MAP_AFTER_Q = {}
   -- A HUMAN CLICKING A MAP BUTTON MEANS "GIVE ME THIS MAP, PLAINLY", so it leaves 5-player mode.
   --
   -- RTT_5P_MARSH is the 5-player Marsh variant's mode flag. It was SET by its own two entry points
@@ -7795,13 +7833,13 @@ function makeMap(player,value,id,keepBoard)
   -- is placed, and 5P Setup deliberately leaves it alone. Only by comparing them can anything know
   -- whether the board on the table still fits the game about to be played.
   if id == "Marsh Map" then RTT_MARSH_5P_BUILT = (RTT_5P_MARSH == true) end
-  if id == "Mountain Map" then Wait.frames(function() rttMountainLandmark() end, 2) end
-  if id == "Summer Map" then Wait.frames(function() rttSpawnPriority("Summer Map", RTT_PRIO_SUMMERMAP) end, 2) end
-  if id == "Lake Map" then Wait.frames(function() rttSpawnPriority("Lake Map", RTT_PRIO_LAKEMAP) end, 2) end
-  if id == "Mountain Map" then Wait.frames(function() rttSpawnPriority("Mountain Map", RTT_PRIO_MOUNTAINMAP) end, 2) end
-  if id == "Winter Map" then Wait.frames(function() rttSpawnPriority("Winter Map", RTT_PRIO_WINTERMAP) end, 2) end
-  if id == "Gorge Map" then Wait.frames(function() rttSpawnPriority("Gorge Map", RTT_PRIO_GORGEMAP) end, 2) end
-  if id == "Marsh Map" then Wait.frames(function() rttSpawnMarshNumbers() end, 3) end
+  if id == "Mountain Map" then rttMapAfter(function() rttMountainLandmark() end) end
+  if id == "Summer Map" then rttMapAfter(function() rttSpawnPriority("Summer Map", RTT_PRIO_SUMMERMAP) end) end
+  if id == "Lake Map" then rttMapAfter(function() rttSpawnPriority("Lake Map", RTT_PRIO_LAKEMAP) end) end
+  if id == "Mountain Map" then rttMapAfter(function() rttSpawnPriority("Mountain Map", RTT_PRIO_MOUNTAINMAP) end) end
+  if id == "Winter Map" then rttMapAfter(function() rttSpawnPriority("Winter Map", RTT_PRIO_WINTERMAP) end) end
+  if id == "Gorge Map" then rttMapAfter(function() rttSpawnPriority("Gorge Map", RTT_PRIO_GORGEMAP) end) end
+  if id == "Marsh Map" then rttMapAfter(function() rttSpawnMarshNumbers() end) end
   -- and the Flotilla takes whatever the row leaves it: the near slot on a map with no helper cards of
   -- its own, one step further out for each one that arrives. It is a fixture, so it is still there.
   -- TWICE: once when the board is up, and again after the map's own objects have finished spawning.
@@ -7832,19 +7870,48 @@ function makeMap(player,value,id,keepBoard)
   -- call makeMap directly and so never got one; only the draft's rttPlaceMap did. Tagged "Map Object",
   -- so removeMapItems above clears the previous one and there is never a second. Maintainer 2026-09-04:
   -- "spawn automatically when any map is selected... remove the battle map option button".
-  Wait.frames(function()
-    if rttFixture(RTT_TAG_MAT) == nil then
-      makeSpecialWithTag("Tools", "Battle Mat", 33.17, 1.55, 9.21, "Map Object")
-      Wait.frames(function()
-        for _, o in ipairs(getObjectsWithTag("Map Object")) do
-          pcall(function()
-            if o.getName() == "Battle Mat" then o.addTag(RTT_FIXTURE_TAG) o.addTag(RTT_TAG_MAT) end
-          end)
-        end
-      end, 2)
+  -- THE MAT AND THE EXTRAS WAIT FOR THE MAP TO FINISH LANDING.
+  --
+  -- These were armed at fixed offsets -- two frames and three -- INTO the map's own drain, which is
+  -- 42 to 49 pieces going out six a frame over seven or eight frames. So the battle mat (spawned
+  -- directly by the legacy makeSpecialWithTag, which answers to no budget) and the extras landed on
+  -- top of six queued map tiles: the harness measured EIGHT objects on one frame of the Gorge map
+  -- against a budget of six, and an overshoot like that is what loses creates for a distant client.
+  --
+  -- rttSpawnStaggered already takes a `done`, so the honest answer is to wait for it rather than
+  -- guess a frame count. Nothing visible changes: the map is fully down either way, a few frames
+  -- earlier or later, and nothing here moves afterwards.
+  RTT_MAP_AFTER = function()
+    -- ONE JOB A FRAME. Calling these back to back put the battle mat, the sheet, the panel and the
+    -- first six priority markers on a single frame -- nine objects against a budget of six, which is
+    -- worse than the fixed-offset arming this replaced. Each job either spawns one thing directly or
+    -- hands a batch to the pump, so a frame apart is enough to keep every one of them inside the
+    -- budget; the pump serialises whatever the jobs give it.
+    local jobs = {}
+    jobs[#jobs + 1] = function()
+      if rttFixture(RTT_TAG_MAT) == nil then
+        makeSpecialWithTag("Tools", "Battle Mat", 33.17, 1.55, 9.21, "Map Object")
+        Wait.frames(function()
+          for _, o in ipairs(getObjectsWithTag("Map Object")) do
+            pcall(function()
+              if o.getName() == "Battle Mat" then o.addTag(RTT_FIXTURE_TAG) o.addTag(RTT_TAG_MAT) end
+            end)
+          end
+        end, 2)
+      end
     end
-  end, 2)
-  Wait.frames(function() pcall(function() rttSpawnMapExtras() end) end, 3)   -- timer + counter, with the map
+    jobs[#jobs + 1] = function() pcall(function() rttSpawnMapExtras() end) end
+    for _, fn in ipairs(RTT_MAP_AFTER_Q or {}) do jobs[#jobs + 1] = fn end
+    RTT_MAP_AFTER_Q = {}
+    local i = 0
+    local function step()
+      i = i + 1
+      if jobs[i] == nil then return end
+      pcall(jobs[i])
+      Wait.frames(step, 1)
+    end
+    step()
+  end
   if id == "The Wastelands Map" or id == "The Deep Woods Map" then
     makeMapTool("The Law of Slug")
   end
@@ -7943,6 +8010,21 @@ function makeMap(player,value,id,keepBoard)
   rttSpawnStaggered(mapSpecs, function()
     if id ~= "Marsh Map" then shuffleMaps(id) end
     rttLockRuins()
+    -- ...and only once the table has finished spawning ANYTHING. See RTT_MAP_AFTER above.
+    --
+    -- Not simply here: `done` fires on the frame the batch empties, so the mat would land beside the
+    -- last five map pieces -- and another batch may still be queued behind it (the shuffle, the
+    -- ruins). Waiting for the pump to go idle is the only condition that actually means "nothing
+    -- else is going out this frame", and it costs a frame or two on a map that is already down.
+    if RTT_MAP_AFTER ~= nil then
+      local after = RTT_MAP_AFTER
+      RTT_MAP_AFTER = nil
+      local function whenIdle()
+        if RTT_SPAWN_PUMPING then Wait.frames(whenIdle, 1) return end
+        pcall(after)
+      end
+      Wait.frames(whenIdle, 1)
+    end
   end)
 end
 
