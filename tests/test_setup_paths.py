@@ -11467,10 +11467,36 @@ def t_the_plus_minus_buttons_only_move_the_marker(src):
     assert any("pcall(poll)" in l for l in code), \
         "nudge moves the marker but never asks the poll to look, so the sheet waits out POLL_SECONDS"
 
-    # the readings of row.score that REMAIN are fine: they work out where to move to, not what to write
-    assert any(l.startswith("local base = row.score") for l in code) and \
-           any(l.startswith("local target = row.score") for l in code), \
+    # the readings that REMAIN are fine: they work out where to move to, not what to write
+    assert any("row.score" in l and l.startswith("local cur") for l in code), \
         "nudge no longer reads the current score to work out where to move to"
+
+    # A PRESS COUNTS ON FROM THE LAST PRESS, not from a score that has not caught up yet. Zaandaa,
+    # 2026-09-14: "I want to be able to click the button multiple times in a row much more quickly,
+    # but it won't let me do consecutive presses until a bit after it's done moving." Counting from
+    # row.score alone meant a second press inside those few frames recomputed the same target.
+    assert any("VP_PENDING[row.fac] or row.score" in l for l in code), \
+        "nudge counts from the score alone, so quick consecutive presses recompute the same target"
+    assert any("VP_PENDING[row.fac] = target" in l for l in code), \
+        "nudge does not record where it just sent the marker, so the next press cannot count on"
+    assert "local VP_PENDING = {}" in ls, "the pending aim is not file-local"
+    assert '"vpPending"' not in ls and "row.vpPending" not in ls, \
+        "the in-flight aim was put on the row, where onSave would persist a transient"
+
+    # ...and the aim is forgotten by BOTH readers of the marker, or it would go stale
+    assert ls.count("VP_PENDING[row.fac] = nil") == 2, \
+        ("the aim is cleared in %d place(s); both the poll and the turn-pass read see the marker land"
+         % ls.count("VP_PENDING[row.fac] = nil"))
+
+    # THE PANEL ASKS nudge WHETHER IT WORKED. Zaandaa: "when I click one, it gives the message saying
+    # it can't move (but it does move)" -- it compared row.score before and after, which nudge stopped
+    # writing, so it reported failure on every press.
+    assert "if not nudge(i, tonumber(d.delta) or 0) then" in ls, \
+        "the VP panel still decides success by watching a score nudge does not write"
+    assert "local before = row.score" not in ls, \
+        "the old before/after score comparison is still there"
+    assert any(l == "return true" for l in code), \
+        "nudge never reports success, so the panel cannot tell a real refusal from a move"
 
     # ...and both entry points still go through this one function, so they cannot diverge again
     assert "nudge(i, tonumber(d.delta) or 0)" in ls, \
