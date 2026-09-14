@@ -10910,6 +10910,55 @@ def t_the_supporters_go_to_whoever_is_actually_in_the_seat(src):
     assert "rttPersonIn(seat.color)" in src[i:i + 2000], \
         "rttSpawnFaction no longer checks whether a real person holds the seat"
 
+
+def t_the_box_score_scrolls_past_round_ten(src):
+    """Past round 10 the grid slides one column at a time instead of stopping.
+
+    Maintainer, 2026-09-14: "boxscore should have a way to go past 10, but for example moving the
+    column right by 1 once it reach 11."
+
+    The sheet is a FIXED width on purpose -- growing it with maxLocks "made the sheet widen silently
+    as the game went on" -- so rounds past the tenth were recorded, exported and scored correctly but
+    never drawn, and the gold "you are here" column simply vanished. Worse, the only round headers
+    clickable in EDIT were 1..10, so the obvious way to correct a lock could only declare a round the
+    game had already left.
+
+    Same number of columns, later first column. r stays the TRUE round number, which is what the
+    widget ids carry and what the colh handler reads, so a header still declares the round it prints.
+    """
+    # the sheet is not a json=[[..]] kit entry; it is its own long string in the board script
+    head = "RTT_BOXSCORE_JSON = [====["
+    i = src.index(head)
+    box = json.loads(src[i + len(head):src.index("]====]", i)])["LuaScript"]
+    assert box is not None, "the box score script is not in the build"
+
+    assert "local r0 = math.max(1, lastR - (showR - 2))" in box, \
+        "the sheet no longer computes a scrolled first column"
+    assert box.count("for r = r0, r0 + showR - 2 do") == 2, \
+        ("expected both column loops to run over the sliding window, found %d"
+         % box.count("for r = r0, r0 + showR - 2 do"))
+    assert "for r = 1, showR - 1 do" not in box, \
+        "a column loop still starts at round 1, so it will stop drawing past the last column"
+
+    # the arithmetic itself: fixed width, sliding start
+    rt = lupa.LuaRuntime(unpack_returned_tuples=True)
+    rt.execute("""
+      function win(cols, lastR)
+        local showR = math.min(cols + 1, 41)
+        local r0 = math.max(1, lastR - (showR - 2))
+        return r0, r0 + showR - 2
+      end
+    """)
+    for last, want in ((1, (1, 10)), (10, (1, 10)), (11, (2, 11)), (12, (3, 12)), (20, (11, 20))):
+        a, b = rt.eval("win(10, %d)" % last)
+        assert (a, b) == want, "at round %d the window is %d..%d, expected %d..%d" % (last, a, b, *want)
+        assert b - a + 1 == 10, "the sheet changed width at round %d" % last
+
+    # ...and the current round is always visible, which is the whole point
+    for last in range(1, 30):
+        a, b = rt.eval("win(10, %d)" % last)
+        assert a <= last <= b, "round %d falls outside the drawn window %d..%d" % (last, a, b)
+
 CASES = [
     ("manual path drives the turn system",   t_manual_turn_order),
     ("manual path spawns 4 / 5 boards",      t_boards_spawn),
@@ -11003,6 +11052,7 @@ CASES = [
     ("resync spares every hand",             t_a_resync_never_reaches_into_a_second_hand),
     ("the keyframe survives hand zones",     t_the_keyframe_survives_the_tables_hand_zones),
     ("supporters go to the seat's player",   t_the_supporters_go_to_whoever_is_actually_in_the_seat),
+    ("the box score scrolls past ten",       t_the_box_score_scrolls_past_round_ten),
     ("numpad 2 hands you your token",  t_numpad_two_hands_you_the_token_you_chose),
     ("gizmo default key is numpad 0",         t_gizmo_default_key_is_numpad_zero),
     ("gizmo: warrior to/from supply",         t_gizmo_warrior_to_and_from_supply),
