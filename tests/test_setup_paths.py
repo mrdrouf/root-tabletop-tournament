@@ -10919,7 +10919,7 @@ def t_the_supporters_go_to_whoever_is_actually_in_the_seat(src):
 
 
 def t_the_box_score_scrolls_past_round_ten(src):
-    """Past round 10 the grid slides one column at a time instead of stopping.
+    """Twelve round columns, and past them the grid slides one column at a time instead of stopping.
 
     Maintainer, 2026-09-14: "boxscore should have a way to go past 10, but for example moving the
     column right by 1 once it reach 11."
@@ -10947,6 +10947,16 @@ def t_the_box_score_scrolls_past_round_ten(src):
     assert "for r = 1, showR - 1 do" not in box, \
         "a column loop still starts at round 1, so it will stop drawing past the last column"
 
+    # TWELVE COLUMNS. Maintainer, 2026-09-14: "with the removed column in the boxscore you can take
+    # more space horizontally maybe have 12 turns columns" -- paid for by the +/- chips coming out of
+    # the button column, so the sheet grows only 32 points rather than 88.
+    m = re.search(r"local COLS_DEFAULT\s*=\s*(\d+)", box)
+    assert m, "the sheet no longer names its column count"
+    cols = int(m.group(1))
+    assert cols == 12, "the sheet prints %d round columns, not 12" % cols
+    assert "S.cols = COLS_DEFAULT" in box,         "S.cols is defaulted rather than assigned, so a sheet saved with the old 10 would keep it"
+    assert 'chip("plus_' not in box and '"28"' not in box.split("local btnW")[0][-3000:],         "the +/- chips or their spacers are still taking room in the button column"
+
     # the arithmetic itself: fixed width, sliding start
     rt = lupa.LuaRuntime(unpack_returned_tuples=True)
     rt.execute("""
@@ -10956,14 +10966,14 @@ def t_the_box_score_scrolls_past_round_ten(src):
         return r0, r0 + showR - 2
       end
     """)
-    for last, want in ((1, (1, 10)), (10, (1, 10)), (11, (2, 11)), (12, (3, 12)), (20, (11, 20))):
-        a, b = rt.eval("win(10, %d)" % last)
+    for last, want in ((1, (1, 12)), (12, (1, 12)), (13, (2, 13)), (14, (3, 14)), (20, (9, 20))):
+        a, b = rt.eval("win(%d, %d)" % (cols, last))
         assert (a, b) == want, "at round %d the window is %d..%d, expected %d..%d" % (last, a, b, *want)
-        assert b - a + 1 == 10, "the sheet changed width at round %d" % last
+        assert b - a + 1 == cols, "the sheet changed width at round %d" % last
 
     # ...and the current round is always visible, which is the whole point
     for last in range(1, 30):
-        a, b = rt.eval("win(10, %d)" % last)
+        a, b = rt.eval("win(%d, %d)" % (cols, last))
         assert a <= last <= b, "round %d falls outside the drawn window %d..%d" % (last, a, b)
 
 
