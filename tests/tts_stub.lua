@@ -603,10 +603,19 @@ end
 -- Red SEAT, and who is sitting in it is a property that changes.
 local VIEW = {}
 
+-- STEAM ID, WHICH THE STUB DID NOT CARRY AT ALL -- and its absence was invisible, because `nil` is
+-- also the honest answer for an empty seat. Anything reading pl.steam_id therefore got nil from every
+-- player in every test, so a test could not tell "the code never captured it" from "there was nothing
+-- to capture": the box score's whole Steam-id path was untestable, and the site rejected uploads for
+-- the one field it requires while the suite stayed green.
+--
+-- IT EXISTS ONLY WHILE SOMEBODY IS SEATED, which is TTS's own rule and the reason the mod has to catch
+-- the id at the moment a faction is picked. A person keeps the same id wherever they move.
 local function refresh(c)
   local v, e = VIEW[c], holder(c)
   v.seated     = e ~= nil
   v.steam_name = e and e.name or ("P_" .. c)
+  v.steam_id   = e and (e.steam_id or ("STEAM_" .. tostring(e.name))) or nil
   return v
 end
 
@@ -614,7 +623,7 @@ for _, c in ipairs(COLORS) do
   HANDS[c] = { [1] = {position = vec{-75, 12, -75 + _}, rotation = vec{0,0,0}, scale = vec{10,5,5}},
                [2] = {position = vec{-75, 12, -75 + _}, rotation = vec{0,0,0}, scale = vec{10,5,5}} }
   VIEW[c] = {
-    color = c, seated = false, steam_name = "P_" .. c,
+    color = c, seated = false, steam_name = "P_" .. c, steam_id = nil,
     getHoverObject = function() return HOVER[c] end,
     getPointerPosition = function() return POINTER[c] or {x=0,y=1,z=0} end,
     getHandTransform = function(n) return HANDS[c][n or 1] end,
@@ -679,10 +688,12 @@ function Player.getPlayers()
 end
 function Player.getSpectators() return {} end
 
-function SEAT(c, name)
+-- SEAT(colour, name [, steam_id]) -- the id defaults to one derived from the name, so every seated
+-- person has one without every fixture having to say so.
+function SEAT(c, name, steam)
   local e = holder(c)
-  if e then e.name = name or e.name return end
-  ROSTER[#ROSTER+1] = { name = name or ("P_" .. c), color = c }
+  if e then e.name = name or e.name; e.steam_id = steam or e.steam_id return end
+  ROSTER[#ROSTER+1] = { name = name or ("P_" .. c), color = c, steam_id = steam }
 end
 function HANDOF(c, n) local h = HANDS[c][n]; return {x = h.position.x, z = h.position.z, ry = h.rotation.y} end
 

@@ -6657,6 +6657,95 @@ def t_the_resync_sweep_leaves_zones_alone_and_survives_a_bad_object(src):
          "the pump with nothing scheduled and the busy flag stuck up" % r2.eval("FIRST"))
 
 
+def t_the_steam_id_is_recorded_when_the_faction_is_picked(src):
+    """Whoever picks a faction has their Steam ID written against it, then and there.
+
+    Maintainer, 2026-09-14: "everytime a faction is picked you get the name you should record the steam
+    ID of that player in the boxscore at that time and so if 1 player seat several factions in sequence
+    they would all get the same steam ID."
+
+    WHY IT WAS MISSING BEFORE. The sheet looked an id up by the ROW'S COLOUR -- "who is seated in that
+    colour right now" -- and rows are coloured by SEAT. One person setting up four seats is sitting in
+    exactly one of those four colours, so three rows had nobody to ask and went to the site with
+    nothing, which is the rejection he was getting. The NAME never had this problem because RTT
+    publishes the picker's name per faction and the sheet prefers it; the id simply had no such
+    channel. Now it has the same one.
+
+    TTS gives a steam id for a SEATED player and no other way -- no lookup by name, nothing at all for
+    a colour nobody is in -- so the pick is the only moment it can be caught at all.
+    """
+    # --- RTT's side: the pick records it, and republishes it per faction ---------------------------
+    rt = fresh(src)
+    rt.execute("""
+      SEAT('Red','H1','7656119')
+      pcall(function() setupFactionBoards(nil,nil,nil) end) FLUSH(10)
+      -- ONE player picks three factions in a row, for three different seats
+      pcall(function() rttPlaceFaction('Marquise de Cat',    52, -46, false, 'Red', false, nil, nil, 'Red', nil) end)
+      pcall(function() rttPlaceFaction('Eyrie Dynasties',   -52, -46, false, 'Red', false, nil, nil, 'Red', nil) end)
+      pcall(function() rttPlaceFaction('Woodland Alliance',  52,  46, true,  'Red', false, nil, nil, 'Red', nil) end)
+      FLUSH(60)
+      MAP = Global.getVar('RTT_SEAT_STEAM') or ''
+    """)
+    m = json.loads(rt.eval("MAP") or "{}")
+    got = {k: v for k, v in m.items() if v}
+    assert len(got) == 3, \
+        "three factions were picked by one player; %d of them carry a Steam id: %s" % (len(got), got)
+    assert set(got.values()) == {"7656119"}, \
+        "the three picks did not all record the same picker's id: %s" % got
+
+    # ...and it survives the picker leaving, which is the whole point of catching it at the pick
+    rt.execute("""
+      for _, p in ipairs(Player.getPlayers()) do if p.color == 'Red' then p.seated = false end end
+      pcall(function() rttPublishSeats() end)
+      AFTER = Global.getVar('RTT_SEAT_STEAM') or ''
+    """)
+    after = {k: v for k, v in json.loads(rt.eval("AFTER") or "{}").items() if v}
+    assert after == got, \
+        "the ids were lost when the picker stood up: %s, was %s" % (after, got)
+
+    # --- the sheet's side: what the UPLOAD carries -------------------------------------------------
+    # THE RECORDED ID BEATS THE LIVE ONE. An upload happens after the game, when the people who played
+    # have gone and their colours have often been taken by whoever is still there. Asking the colour at
+    # that moment credits the wrong account -- which is what the payload used to do, since it read the
+    # live lookup first and fell back to the record.
+    sheet = json.loads(re.search(r"RTT_BOXSCORE_JSON = \[====\[(.*?)\]====\]", src, re.S).group(1))["LuaScript"]
+    rt2 = lupa.LuaRuntime(unpack_returned_tuples=True)
+    rt2.execute(open(os.path.join(HERE, "tts_stub.lua"), encoding="utf-8").read())
+    rt2.execute(sheet.replace("!=", "~="))
+    rt2.execute("""
+      self.UI.setXml = function() end
+      SEAT('Red', 'Somebody Else', 'WRONG_ID')      -- a different person, in the row's colour, now
+      Global = { call = function() return true end, getVar = function() return nil end,
+                 setVar = function() end }
+      pcall(function() onLoad(%s) end)
+      FLUSH(40)
+      PAYLOAD = JSON.encode(tournamentPayload())
+    """ % json.dumps(json.dumps({
+        "rows": [{"fac": "Marquise de Cat", "color": "Red", "steamId": "7656119",
+                  "score": 3, "locks": [], "edits": {}}],
+        "meta": {"map": "", "deck": ""}, "active": 1, "round": 2, "started": True,
+    })))
+    ids = [pt.get("player_steam_id") for pt in json.loads(rt2.eval("PAYLOAD"))["participants"]]
+    assert ids == ["7656119"], \
+        ("the upload carries %s -- it must send the id recorded when the faction was picked, not the "
+         "one belonging to whoever is sitting in that colour at upload time" % ids)
+
+    # --- and the wiring that fills the row in the first place --------------------------------------
+    # Pinned on the shipped text rather than driven: the sheet's poll returns at once unless it has
+    # found a score TRACK on the table, and no test in this file stands one up (see the nudge case,
+    # which says the same). What is checked is that the poll consults the map RTT publishes and lets it
+    # win, since that is the whole of the fix on this side.
+    poll = sheet[sheet.index("local function poll()"):]
+    poll = poll[:poll.index("\nend")]
+    assert "rttSeatSteamMap()" in poll, \
+        "the poll no longer reads the picked Steam ids RTT publishes"
+    assert re.search(r"picked ~= nil and picked ~= \"\"", poll), \
+        "the poll no longer prefers the picked id over the colour lookup"
+    refresh = sheet[sheet.index("local sid = steamIdFor(c.color)"):]
+    assert "row.steamId == nil" in refresh[:200], \
+        "the seat refresh overwrites the picked id with whoever is sitting in the colour"
+
+
 def t_the_resync_never_asks_for_a_hand_that_is_not_there(src):
     """The sweep asks each seat how many hands it has, and the button frees itself if a sweep dies.
 
@@ -12524,6 +12613,7 @@ CASES = [
     ("an empty seat is pickable",         t_an_empty_seats_board_can_be_picked_by_anyone),
     ("a second click touches nothing dead", t_pressing_a_setup_button_twice_touches_nothing_dead),
     ("resync resends what it may",        t_the_resync_sweep_resends_everything_it_may_touch),
+    ("steam id recorded at the pick",        t_the_steam_id_is_recorded_when_the_faction_is_picked),
     ("resync asks for hands that exist",     t_the_resync_never_asks_for_a_hand_that_is_not_there),
     ("resync leaves zones alone",            t_the_resync_sweep_leaves_zones_alone_and_survives_a_bad_object),
     ("resync button asks nothing",        t_the_resync_button_asks_nothing_and_destroys_nothing),
