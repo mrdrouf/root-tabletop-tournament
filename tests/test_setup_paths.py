@@ -7436,7 +7436,7 @@ def t_every_board_stands_the_same_height_in_the_same_black(src):
 
 
 def t_no_script_calls_a_local_declared_below_it(src):
-    """No script calls a `local function` from above the line that declares it.
+    """No script uses a file-scope `local` from above the line that declares it.
 
     A Lua `local function` is only in scope AFTER its own line. Above it, the same name compiles to a
     GLOBAL lookup, which is nil -- so the call does not fail to compile, it fails when a player presses
@@ -7494,6 +7494,32 @@ def t_no_script_calls_a_local_declared_below_it(src):
             for i, l in enumerate(lines[:dline - 1]):
                 if re.search(r"(?<![\w.:])%s\s*\(" % re.escape(name), l):
                     out.append("line %d calls %s(), declared local at line %d" % (i + 1, name, dline))
+
+        # ...AND THE SAME RULE FOR A PLAIN local THAT IS A TABLE.
+        #
+        # `local function` was the only shape this checked, and the rule is not about functions: it is
+        # about the word `local`. VP_PENDING was a file-scope `local ... = {}` declared beside the one
+        # thing that WRITES it and read by two functions written five hundred lines above, so both read
+        # a nil global -- "attempt to index a nil value at poll", every poll, for every row, which is
+        # the whole sheet stopping. Maintainer, 2026-09-14, with the console open: "you did not clean
+        # the code properly."
+        #
+        # NARROW ON PURPOSE, to stay a flat rule with no parser to be wrong: only locals declared at
+        # COLUMN 0 (file scope, so the line number really is the scope boundary), and only uses of the
+        # form NAME[ -- indexing is the shape that throws, and it cannot be confused with a new local
+        # of the same name being introduced later inside some function.
+        vdecl = {}
+        for i, l in enumerate(lines):
+            m = re.match(r"local\s+([A-Za-z_]\w*)\s*=", l)
+            if m and m.group(1) not in vdecl and m.group(1) not in decl:
+                vdecl[m.group(1)] = i + 1
+        gset = set(re.findall(r"^([A-Za-z_]\w*)\s*=", code, re.M))
+        for name, dline in vdecl.items():
+            if name in gset or name in glob:
+                continue
+            for i, l in enumerate(lines[:dline - 1]):
+                if re.search(r"(?<![\w.:])%s\s*\[" % re.escape(name), l):
+                    out.append("line %d indexes %s, declared local at line %d" % (i + 1, name, dline))
         return out
 
     scripts = {"the board script": src}
