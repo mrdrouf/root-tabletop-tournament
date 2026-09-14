@@ -8683,6 +8683,19 @@ RTT_HOME_OWN_SPOT = { ["Plot"] = true }
 -- top-left, two per stack.
 RTT_HOME_STACKED = { ["Acclaim"] = 2 }
 
+-- PIECES NUMPAD 0 DOES NOT TOUCH AT ALL. Maintainer, 2026-09-14: "numpad 0 should do nothing with
+-- ruins."
+--
+-- A ruin is not a piece that comes and goes: it is printed into the map's setup, four of them on
+-- whichever map is in play, and it stays where it is put for the whole game. It has no supply to
+-- return to either -- the bag it ships in, "Mighty Multi-State Ruins", is destroyed the moment the
+-- Vagabond kit spawns -- so numpad 0 fell all the way through to the last resort and teleported the
+-- ruin back to the spot it was laid on at setup. That is the one thing nobody wants: a ruin gets
+-- moved on purpose, by the Vagabond clearing it, and the key was undoing that.
+--
+-- Checked BEFORE anything else, so the piece is not even asked about itself.
+RTT_HOME_NEVER = { ["RUIN"] = true }
+
 -- ROWS THAT FILL FROM THE PLAYER'S LEFT instead of their right. Every other row in the game fills
 -- rightmost-empty-first, which is what the maintainer asked for on 2026-09-06 and what the
 -- comparator below does. The Keepers' relic rows are the exception he named on 2026-09-13: "note
@@ -8960,6 +8973,9 @@ function rttGizmoHome(color)
   local locked = false
   pcall(function() locked = (hovered.getLock() == true) end)
   if locked then return end
+
+  -- ...and the kinds the key has no business touching at all. See RTT_HOME_NEVER.
+  if RTT_HOME_NEVER[name] then return end
 
   -- NO PERMISSION CHECK. There was one for a few hours -- "gizmo 0 should not work on other player's
   -- warriors and token buildings" -- and it was removed the same day: "remove the player permission

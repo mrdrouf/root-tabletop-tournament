@@ -10201,6 +10201,47 @@ def t_numpad_zero_never_interrogates_the_piece_it_sends_home(src):
     assert rt.eval("ASKED2") == 0 and rt.eval("RES") is None, \
         "rttRelicKind still asks a piece that is not nicknamed Relic"
 
+
+def t_numpad_zero_leaves_ruins_alone(src):
+    """Numpad 0 does nothing at all to a ruin.
+
+    Maintainer, 2026-09-14: "numpad 0 should do nothing with ruins."
+
+    A ruin is not a piece that comes and goes. Four of them are laid into whichever map is in play
+    and they stay where they are put for the whole game. There is no supply to send one back to
+    either: the bag they ship in, "Mighty Multi-State Ruins", is destroyed the moment the Vagabond
+    kit spawns. So numpad 0 fell all the way through to its last resort -- the piece's own recorded
+    spot -- and teleported the ruin back to where setup laid it, undoing the one thing that legibly
+    moves a ruin, which is the Vagabond clearing it.
+    """
+    rt = fresh(src)
+    assert rt.eval("RTT_HOME_NEVER[ [[RUIN]] ]") is True
+    rt.execute("""
+      RTT_HOME = {} ASKED = 0 PUT = 0
+      R = MKOBJ("RUIN", { 3, 11.6, 3 }, {})
+      R.setRotation({ 0, 45, 0 })
+      R.getCustomObject = function() ASKED = ASKED + 1 return {} end
+      -- it HAS a recorded spot and a bag name, which is exactly how it used to get moved
+      RTT_HOME[R.getGUID()] = { n = "RUIN", f = "Vagabond Layout",
+                                p = { 40, 11.6, -20 }, r = { 0, 0, 0 } }
+      BAG = MKOBJ("Mighty Multi-State Ruins", { 60, 11.5, -40 }, {})
+      BAG.putObject = function(o) PUT = PUT + 1 end
+      HOVER = { Red = R }
+      rttGizmoHome("Red")
+    """)
+    assert abs(rt.eval("R.getPosition().x") - 3) < 0.001 and \
+           abs(rt.eval("R.getPosition().z") - 3) < 0.001, \
+        ("the ruin was moved to (%.1f, %.1f); it should not have been touched"
+         % (rt.eval("R.getPosition().x"), rt.eval("R.getPosition().z")))
+    assert abs(rt.eval("R.getRotation().y") - 45) < 0.001, "the ruin was turned"
+    assert rt.eval("PUT") == 0, "the ruin was put into a bag"
+    assert rt.eval("ASKED") == 0, "the ruin was asked about itself before being left alone"
+
+    # ...and nothing else was swept into the same rule
+    for name in ("Cat Warrior", "Wood", "Relic", "Enclave", "Plot"):
+        assert rt.eval("RTT_HOME_NEVER[ [[%s]] ]" % name) is None, \
+            "%s was added to the list of pieces numpad 0 ignores" % name
+
 CASES = [
     ("manual path drives the turn system",   t_manual_turn_order),
     ("manual path spawns 4 / 5 boards",      t_boards_spawn),
@@ -10281,6 +10322,7 @@ CASES = [
     ("numpad 2 undoes numpad 0",             t_numpad_two_is_numpad_zero_run_backwards),
     ("a warrior goes to its supply",         t_a_warrior_goes_to_its_supply_like_wood_does),
     ("numpad 0 asks a piece nothing",        t_numpad_zero_never_interrogates_the_piece_it_sends_home),
+    ("numpad 0 leaves ruins alone",          t_numpad_zero_leaves_ruins_alone),
     ("numpad 2 hands you your token",  t_numpad_two_hands_you_the_token_you_chose),
     ("gizmo default key is numpad 0",         t_gizmo_default_key_is_numpad_zero),
     ("gizmo: warrior to/from supply",         t_gizmo_warrior_to_and_from_supply),
