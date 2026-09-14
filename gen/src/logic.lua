@@ -8699,10 +8699,26 @@ end
 -- reflects what actually spawned at this table rather than a table that could drift from it.
 function rttHomeSlots(name)
   local out = {}
-  -- ...EXCEPT where the spawn spots are not places the piece belongs. The otters' trade posts spawn
-  -- in a pile beside the seat and score on a track printed across the board; counting both would
-  -- give each of them nine slots it should use and nine it should not.
-  local onlyMeasured = RTT_HOME_EXTRA_ONLY[name]
+  -- ...EXCEPT WHERE A SPAWN SPOT IS NOT A PLACE THE PIECE BELONGS, and then only the MEASURED slots
+  -- -- the ones from RTT_HOME_EXTRA, which somebody put there on purpose -- count. Two cases:
+  --
+  --   * THE OTTERS' TRADE POSTS spawn in a pile beside the seat and score on a track printed across
+  --     the board, so counting both would give each of them nine slots it should use and nine it
+  --     should not. That is RTT_HOME_EXTRA_ONLY.
+  --
+  --   * ANYTHING WITH A SUPPLY BAG. Maintainer, 2026-09-13: "numpad 0 works on token but not on
+  --     warriors now." Eleven of the thirteen warrior types spawn LOOSE as well as living in a bag --
+  --     three cats, six birds, nine lizards, the eight keepers -- so each had a "row" made of the
+  --     spots its starting warriors stand on, and numpad 0 sent a warrior there instead of into its
+  --     supply. The 24 ruins were going the same way.
+  --
+  --     A SPAWN SPOT IS WHERE A PIECE STARTS IN PLAY; it is not where it belongs when it is not in
+  --     play, and for anything with a supply that place is the bag. This is the line the rule "a
+  --     piece with a place on the board belongs on the board" was missing: the relics have a place on
+  --     the board because the maintainer measured one and wrote it down, not because they spawned
+  --     there. Relics keep their rows -- those are measured -- and so does every bagless building and
+  --     token, whose spawn spots ARE its supply row and always were.
+  local onlyMeasured = RTT_HOME_EXTRA_ONLY[name] or (rttBagOfMap()[name] ~= nil)
   for _, h in pairs(RTT_HOME or {}) do
     if h.n == name and (not onlyMeasured or h.x) then out[#out + 1] = h end
   end

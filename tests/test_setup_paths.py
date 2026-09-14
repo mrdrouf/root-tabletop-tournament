@@ -9289,11 +9289,20 @@ def t_a_piece_goes_to_its_board_place_before_any_bag(src):
     This is the ordering, checked on a piece that has both: a home row AND a bag. It must take the
     row. Relics reaching their scoring spaces needs those three positions recorded, which nothing in
     this repo or the archive holds yet -- so it is the order that is pinned here, not the destination.
+
+    REFINED 2026-09-13, after "numpad 0 works on token but not on warriors now": the board place has
+    to be a MEASURED one. Eleven warrior types spawn loose as well as living in a bag, so each had a
+    "row" made of the spots its starting figures stand on, and this rule sent a returning warrior to
+    stand on one instead of into its supply. A spawn spot is where a piece STARTS IN PLAY; it is not
+    where it belongs when it is not. So the slot below carries `x`, the flag rttAddHomeExtras stamps
+    on a position somebody measured and wrote down -- which is what a relic's scoring space is, and
+    what a warrior's starting spot is not.
     """
     rt = fresh(src)
     rt.execute("""
       RTT_HOME = {}
-      RTT_HOME["s1"] = { n = "Relic", f = "Keepers in Iron", p = { 5, 1, 5 }, r = { 0, 0, 0 } }
+      RTT_HOME["s1"] = { n = "Relic", f = "Keepers in Iron", p = { 5, 1, 5 }, r = { 0, 0, 0 },
+                         x = true }                 -- MEASURED, as rttAddHomeExtras records it
       RTT_BAG_OF = { Relic = "Relics" }
       BAG = MKOBJ("Relics", { 80, 1, 80 }, {})
       PUT = 0
@@ -9554,7 +9563,7 @@ def t_a_relic_goes_to_the_left_end_of_its_own_row(src):
       KINDS = { "Figure", "Tablet", "Jewelry" }
       for r, k in ipairs(KINDS) do
         for c = 1, 4 do
-          RTT_HOME["r" .. r .. c] = { n = "Relic", f = "Keepers in Iron", k = k,
+          RTT_HOME["r" .. r .. c] = { n = "Relic", f = "Keepers in Iron", k = k, x = true,
                                       p = { c * 1.7, 1, -40 - r * 1.7 }, r = { 0, 180, 0 } }
         end
       end
@@ -9771,7 +9780,7 @@ def t_a_relic_on_the_board_shows_its_points(src):
     # ...and numpad 0 actually puts the tile that way up
     rt.execute("""
       RTT_HOME = {}
-      RTT_HOME["s1"] = { n = "Relic", f = "Keepers in Iron", k = "Tablet",
+      RTT_HOME["s1"] = { n = "Relic", f = "Keepers in Iron", k = "Tablet", x = true,
                          p = { 5, 11.66, -50 }, r = { 0, 180, 180 } }
       R = MKOBJ("Relic", { 40, 11.6, 40 }, {})
       R.setCustomObject({ image = "https://x/1B21B3A568831670A0934FED30A6BB5E2CBD1DAD/" })
@@ -9804,7 +9813,7 @@ def t_a_relic_dropped_on_the_wrong_row_is_carried_across(src):
       KINDS = { "Figure", "Tablet", "Jewelry" }
       for r, k in ipairs(KINDS) do
         for c = 1, 4 do
-          RTT_HOME["r" .. r .. c] = { n = "Relic", f = "Keepers in Iron", k = k,
+          RTT_HOME["r" .. r .. c] = { n = "Relic", f = "Keepers in Iron", k = k, x = true,
                                       p = { c * 1.7, 11.66, -40 - r * 1.7 }, r = { 0, 180, 180 } }
         end
       end
@@ -10029,6 +10038,87 @@ def t_numpad_two_is_numpad_zero_run_backwards(src):
     assert not list((rt.eval("SAID") or {}).values()), \
         "numpad 2 now talks when no kind has been chosen; he asked for nothing and silence"
 
+
+def t_a_warrior_goes_to_its_supply_like_wood_does(src):
+    """A warrior comes back to its supply bag, exactly as a wood token does.
+
+    Maintainer, 2026-09-13: "numpad 0 works on token but not on warriors now", and then plainly:
+    "warrior all have a supply to come back to ... same as wood tokens."
+
+    ELEVEN OF THE THIRTEEN WARRIOR TYPES SPAWN LOOSE as well as living in a bag -- three cats, six
+    birds, nine lizards, eight keepers -- so the kit recorded a home for each of those starting
+    figures, and numpad 0 read that as a supply ROW and sent a returning warrior to stand on one of
+    them. The 24 ruins were going the same way. Wood and relics never spawn loose, which is exactly
+    why he saw tokens work and warriors not.
+
+    A SPAWN SPOT IS WHERE A PIECE STARTS IN PLAY. It is not where it belongs when it is not in play,
+    and for anything with a supply that place is the bag. That is the line the rule "a piece with a
+    place on the board belongs on the board" was missing: relics have a place on the board because he
+    measured one and wrote it down, not because they spawned there.
+    """
+    rt = fresh(src)
+    rt.execute("""
+      RTT_HOME = {} PUT = 0 PUTR = 0
+      -- the three cats that stand beside the board at setup: real spawn records
+      for i = 1, 3 do
+        RTT_HOME["w" .. i] = { n = "Cat Warrior", f = "Marquise de Cat",
+                               p = { 40 + i * 1.4, 11.6, -50 }, r = { 0, 0, 0 } }
+      end
+      -- ...and the Keepers' twelve measured relic spaces
+      rttAddHomeExtras("Keepers in Iron", -52, -46, false, 0, "Relics", { 0, 0, 0 }, {})
+      BAG  = MKOBJ("Marquise Supply", {  60, 11.5, -40 }, {})
+      BAG.putObject  = function(o) PUT  = PUT  + 1 end
+      RBAG = MKOBJ("Relics",          { -60, 11.5, -40 }, {})
+      RBAG.putObject = function(o) PUTR = PUTR + 1 end
+      WBAG = MKOBJ("Wood Supply",     {  70, 11.5, -40 }, {})
+      PUTW = 0
+      WBAG.putObject = function(o) PUTW = PUTW + 1 end
+    """)
+
+    # THE WARRIOR: into the supply, and nowhere near the setup spots
+    rt.execute('W = MKOBJ("Cat Warrior", { 0, 11.6, 0 }, {}) HOVER = { Red = W } rttGizmoHome("Red")')
+    assert rt.eval("PUT") == 1, \
+        "the warrior did not go into its supply; it was sent to a setup spot instead"
+    assert abs(rt.eval("W.getPosition().x")) < 0.001, \
+        "the warrior was moved to x %.1f on its way; it should go straight into the bag" \
+        % rt.eval("W.getPosition().x")
+    assert rt.eval("#rttHomeSlots([[Cat Warrior]])") == 0, \
+        "a warrior still has a home ROW made of the spots its starting figures stand on"
+
+    # WOOD: the same, which is the behaviour he pointed at as correct
+    rt.execute('D = MKOBJ("Wood", { 0, 11.6, 0 }, {}) HOVER = { Red = D } rttGizmoHome("Red")')
+    assert rt.eval("PUTW") == 1, "a wood token no longer returns to its supply"
+
+    # THE RELIC: still the board, because its row was MEASURED rather than spawned
+    rt.execute("""
+      R = MKOBJ("Relic", { 0, 11.6, 0 }, {})
+      R.setCustomObject({ image = "https://x/1B21B3A568831670A0934FED30A6BB5E2CBD1DAD/" })
+      HOVER = { Red = R } rttGizmoHome("Red")
+    """)
+    assert rt.eval("PUTR") == 0, "the relic was put in the bag instead of on its scoring row"
+    assert rt.eval("R.getPosition().x") < -48, \
+        "the relic did not reach the board row: x %.2f" % rt.eval("R.getPosition().x")
+
+    # ...AND A BAGLESS BUILDING KEEPS THE ROW IT ALWAYS HAD -- its spawn spots ARE its supply row,
+    # which is the whole reason the rule cannot simply be "never use spawn spots".
+    #
+    # A NEAR-ROW SEAT (z negative), so "the player's right" is +x and the free slot is the far one.
+    # On the other side of the table both axes invert and it would be x 11; that is rttHomeSlots
+    # reading the row in the seat's own frame, and it is not what this case is about.
+    rt.execute("""
+      RTT_HOME = {}
+      for i = 1, 3 do
+        RTT_HOME["e" .. i] = { n = "Enclave", f = "Lilypad Diaspora",
+                               p = { 10 + i, 11.6, -10 }, r = { 0, 0, 0 } }
+      end
+      E = MKOBJ("Enclave", { 80, 11.6, 80 }, {}) HOVER = { Red = E } rttGizmoHome("Red")
+    """)
+    assert abs(rt.eval("E.getPosition().x") - 13) < 0.001, \
+        ("a building with no bag lost its row: it landed at x %.2f instead of 13"
+         % rt.eval("E.getPosition().x"))
+    assert rt.eval("#rttHomeSlots([[Enclave]])") == 3, \
+        "a bagless building lost its spawn-recorded row"
+
 CASES = [
     ("manual path drives the turn system",   t_manual_turn_order),
     ("manual path spawns 4 / 5 boards",      t_boards_spawn),
@@ -10107,6 +10197,7 @@ CASES = [
     ("a discard turns over on release",      t_a_discarded_card_turns_over_the_moment_it_is_let_go),
     ("home slots drop, not embed",           t_a_piece_sent_home_lands_on_the_board_not_in_it),
     ("numpad 2 undoes numpad 0",             t_numpad_two_is_numpad_zero_run_backwards),
+    ("a warrior goes to its supply",         t_a_warrior_goes_to_its_supply_like_wood_does),
     ("numpad 2 hands you your token",  t_numpad_two_hands_you_the_token_you_chose),
     ("gizmo default key is numpad 0",         t_gizmo_default_key_is_numpad_zero),
     ("gizmo: warrior to/from supply",         t_gizmo_warrior_to_and_from_supply),
