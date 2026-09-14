@@ -11223,6 +11223,72 @@ def t_two_vagabonds_do_not_share_pieces(src):
     assert quest_pieces(True) == 0, \
         "a second vagabond spawned another Quest deck; the deck is shared by the whole table"
 
+
+def t_a_row_leaving_takes_its_pointers_with_it(src):
+    """When a box-score row goes, everything pointing at it goes too.
+
+    Three findings from the multi-agent review, 2026-09-14, all the same shape: something outlives a
+    row and is held by INDEX or by FACTION.
+
+      * S.active, in the POLL's prune. It only clamped the top, so a row leaving from ABOVE the
+        active one slid S.active down onto the NEXT faction -- END TURN then recorded the wrong row
+        and skipped one. The hand delete had the compensation all along; the poll did not.
+
+      * S.varRow, the row the variant overlay is editing. Delete the row under it and the overlay
+        stayed open still naming that index, silently writing variants onto whichever faction moved
+        into the slot.
+
+      * S.winner, which names a FACTION. If that faction's row leaves, every later lock is refused --
+        lockRow and its two neighbours all open with `if S.winner ~= nil then return end` -- so the
+        sheet stops recording for the rest of the game with nothing on screen to say why.
+
+    Driven against the SHIPPED function text, with the state it actually reads.
+    """
+    head = "RTT_BOXSCORE_JSON = [====["
+    i = src.index(head)
+    ls = json.loads(src[i + len(head):src.index("]====]", i)])["LuaScript"]
+
+    a = ls.index("function rowLeft(row, i)")
+    fn = ls[a:ls.index("\nend", a) + 4]
+    rt = lupa.LuaRuntime(unpack_returned_tuples=True)
+    rt.execute(fn)
+
+    # a row leaving from ABOVE the overlay drags it down; the winning row leaving clears the winner
+    rt.execute("""
+      S = { rows = {{fac="A"},{fac="C"},{fac="D"}}, varRow = 4, overlay = "var", winner = "B" }
+      rowLeft({ fac = "B" }, 2)
+    """)
+    assert rt.eval("S.varRow") == 3 and rt.eval("S.rows[S.varRow].fac") == "D", \
+        "the variant overlay did not follow its row down and now edits a different faction"
+    assert rt.eval("S.winner") is None, \
+        "the winning row left and the winner was kept; every later lock will be refused"
+
+    # the overlay's OWN row leaving closes it
+    rt.execute("""
+      S = { rows = {{fac="A"}}, varRow = 2, overlay = "var", winner = "Z" }
+      rowLeft({ fac = "B" }, 2)
+    """)
+    assert rt.eval("S.varRow") is None and rt.eval("S.overlay") is None, \
+        "deleting the row under the variant overlay left it open on a row that is gone"
+    assert rt.eval("S.winner") == "Z", "an unrelated winner was cleared"
+
+    # a row BELOW changes nothing
+    rt.execute("""
+      S = { rows = {{fac="A"}}, varRow = 1, overlay = "var", winner = "A" }
+      rowLeft({ fac = "B" }, 3)
+    """)
+    assert rt.eval("S.varRow") == 1 and rt.eval("S.winner") == "A", \
+        "a row leaving from below moved pointers it should not touch"
+
+    # ...and all three call sites are wired up in the shipped script
+    assert "rowLeft(r, i)" in ls, "the poll's prune does not tidy up after a row"
+    assert "rowLeft(row, i)" in ls, "the hand delete does not tidy up after a row"
+    assert "rowByFac(S.winner) == nil" in ls, \
+        "lockRow has no backstop against a winner whose row is gone"
+    prune = ls.split('logev("leave", r.fac)')[1][:400]
+    assert "if i < S.active then S.active = S.active - 1 end" in prune, \
+        "the poll's prune still only clamps the top, so END TURN can slide onto the next faction"
+
 CASES = [
     ("manual path drives the turn system",   t_manual_turn_order),
     ("manual path spawns 4 / 5 boards",      t_boards_spawn),
@@ -11321,6 +11387,7 @@ CASES = [
     ("a new setup blocks a double filing",   t_a_new_setup_stops_the_old_game_being_filed_twice),
     ("a prisoner can always stand up",       t_a_prisoner_can_always_be_stood_back_up),
     ("two vagabonds share no pieces",        t_two_vagabonds_do_not_share_pieces),
+    ("a leaving row takes its pointers",     t_a_row_leaving_takes_its_pointers_with_it),
     ("numpad 2 hands you your token",  t_numpad_two_hands_you_the_token_you_chose),
     ("gizmo default key is numpad 0",         t_gizmo_default_key_is_numpad_zero),
     ("gizmo: warrior to/from supply",         t_gizmo_warrior_to_and_from_supply),
