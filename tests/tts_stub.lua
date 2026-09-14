@@ -675,7 +675,11 @@ function Player.getPlayers()
   local r = {}
   for _, e in ipairs(ROSTER) do
     r[#r+1] = setmetatable({
+      -- steam_id belongs to the PERSON, like the name. Falling through to VIEW[colour] made it a
+      -- property of the CHAIR: move to another colour and your id stayed behind for whoever sat down
+      -- next, which is the exact confusion the code under test exists to avoid.
       color = e.color, seated = true, steam_name = e.name,
+      steam_id = e.steam_id or ("STEAM_" .. tostring(e.name)),
       changeColor = function(nc)
         if nc == nil or nc == e.color then return end
         if holder(nc) ~= nil and nc ~= "Grey" and nc ~= "Black" then return end

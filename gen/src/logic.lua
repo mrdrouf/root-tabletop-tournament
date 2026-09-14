@@ -365,6 +365,8 @@ function onLoad(state)
   -- and from here on the map stays locked, whatever anybody does to it
   pcall(function() Wait.time(rttHoldMapLocked, RTT_MAP_LOCK_SECS, -1) end)
   pcall(function() Wait.time(rttFreeUnlockedPrisoners, RTT_MAP_LOCK_SECS, -1) end)
+  -- and a seat with no Steam id keeps looking for its picker while they are still at the table
+  pcall(function() Wait.time(rttSteamTick, RTT_STEAM_TICK_SECS, -1) end)
 
 end
 
@@ -4414,6 +4416,56 @@ function rttSteamIn(color)
   return id
 end
 
+-- THE SAME ID, FOUND BY NAME. Maintainer, 2026-09-14, after the pick-time capture shipped: "I still
+-- get the error that player 2 has no steam ID."
+--
+-- Capturing at the pick does nothing for a game whose factions were picked BEFORE it shipped, and
+-- nothing for a pick made while that player happened to be unseated. But the seat already records WHO
+-- picked it -- their Steam name -- and a name can be matched against the people at the table now, in
+-- whatever colour they have since moved to. That is the one lookup TTS does allow to be done late.
+function rttSteamOf(name)
+  if name == nil or name == "" then return nil end
+  local id = nil
+  pcall(function()
+    for _, pl in ipairs(Player.getPlayers()) do
+      if pl.seated and pl.steam_name == name and pl.steam_id ~= nil and tostring(pl.steam_id) ~= "" then
+        id = tostring(pl.steam_id)
+      end
+    end
+  end)
+  return id
+end
+
+-- FILL IN WHAT THE PICK DID NOT CATCH -- and BY NAME FIRST, which is the whole care in this function.
+--
+-- The seat's colour is the tempting shortcut and it is the thing that was wrong in the first place: a
+-- colour is a chair, and after a game somebody else is often sitting in it. Crediting a game to
+-- whoever is in seat 2's chair now is worse than sending nothing, because nothing is a rejection you
+-- can see and a wrong id is a game filed under a stranger's account. So the colour is used ONLY for a
+-- seat whose picker was never named at all, where there is nothing better to go on.
+--
+-- Returns whether anything changed, so the tick below republishes only when it must.
+function rttFillSeatSteam()
+  local changed = false
+  for _, sIt in ipairs(RTT_SEATS or {}) do
+    if (sIt.steamId == nil or sIt.steamId == "") and sIt.faction ~= nil and sIt.faction ~= "" then
+      local id = rttSteamOf(sIt.owner)
+      if id == nil and (sIt.owner == nil or sIt.owner == "") then id = rttSteamIn(sIt.color) end
+      if id ~= nil and id ~= "" then sIt.steamId = id; changed = true end
+    end
+  end
+  return changed
+end
+
+-- ONE MORE SECOND-HAND TICK, beside the map lock and the prisoner sweep. It exists because a game set
+-- up before this shipped has no event left to hang a fill on: the picks are done, nobody is changing
+-- colour, and nothing else would ever ask again. It publishes only when a fill actually happened.
+RTT_STEAM_TICK_SECS = 3
+
+function rttSteamTick()
+  if rttFillSeatSteam() then pcall(function() rttPublishSeats() end) end
+end
+
 -- THE ONE PLACE A SEAT'S OWNER IS WRITTEN. It was two: the draft's seating loop, which knows the name
 -- it just seated, and the faction pick, which reads it off the colour that clicked. Refreshing rather
 -- than filling a gap is the rule -- a seat kept the first name it ever saw, and the sheet PREFERS this
@@ -4511,6 +4563,7 @@ end
 -- they are now WRITTEN FROM THE ONE RECORD instead of being three independently-derived guesses.
 -- The push is what actually matters: the sheet stores what it is given and stops re-deriving.
 function rttPublishSeats()
+  pcall(function() rttFillSeatSteam() end)   -- anything the pick missed, before the record is built
   local rec = rttSeatRecord()
   local pos, col, own, sid = {}, {}, {}, {}
   for _, e in ipairs(rec.seats) do

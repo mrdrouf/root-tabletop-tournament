@@ -6703,6 +6703,42 @@ def t_the_steam_id_is_recorded_when_the_faction_is_picked(src):
     assert after == got, \
         "the ids were lost when the picker stood up: %s, was %s" % (after, got)
 
+    # --- a game whose factions were picked BEFORE any of this shipped ------------------------------
+    # Maintainer, 2026-09-14, after the pick-time capture shipped: "I still get the error that player 2
+    # has no steam ID." Nothing catches those picks retroactively -- but the seat records who picked
+    # it, and that NAME can still be matched against the people at the table, in whatever colour they
+    # have moved to since. BY NAME, NEVER BY THE CHAIR: crediting a game to whoever sits in seat 2's
+    # colour now is worse than sending nothing, because nothing is a rejection you can see.
+    rt3 = fresh(src)
+    rt3.execute("""
+      SEAT('Red','Alice','ALICE_ID')
+      pcall(function() setupFactionBoards(nil,nil,nil) end) FLUSH(10)
+      pcall(function() rttPlaceFaction('Marquise de Cat', 52, -46, false, 'Red', false, nil, nil, 'Red', nil) end)
+      FLUSH(40)
+      -- ...now pretend that pick happened on the old build: the seat has the name and no id
+      for _, st in ipairs(RTT_SEATS) do st.steamId = nil end
+      -- and Alice has moved to another colour, with a stranger in the one she picked from
+      Player['Red'].changeColor('Green')
+      SEAT('Red','Mallory','MALLORY_ID')
+      -- the tick is called straight out rather than waited for: it is armed in onLoad as a
+      -- REPEATING timer, and the stub's Wait.time has no repeat, so the one firing it gets is
+      -- long spent by the time a test starts. The arming itself is checked below.
+      rttSteamTick()
+      OUT = ''
+      for _, st in ipairs(RTT_SEATS) do
+        if st.faction == 'Marquise de Cat' then OUT = tostring(st.steamId) end
+      end
+    """)
+    assert rt3.eval("OUT") == "ALICE_ID", \
+        ("the seat filled in %s -- it must find the picker by the NAME it recorded, never the person "
+         "now sitting in that colour" % rt3.eval("OUT"))
+
+    # ...and that tick has to actually be armed: for a game already in progress nothing else would
+    # ever ask again -- the picks are done and nobody is changing colour.
+    assert "Wait.time(rttSteamTick, RTT_STEAM_TICK_SECS, -1)" in src, \
+        "the Steam-id tick is never armed, so a game set up before this shipped stays empty forever"
+    assert re.search(r"RTT_STEAM_TICK_SECS = [1-9]", src), "the tick has no interval"
+
     # --- the sheet's side: what the UPLOAD carries -------------------------------------------------
     # THE RECORDED ID BEATS THE LIVE ONE. An upload happens after the game, when the people who played
     # have gone and their colours have often been taken by whoever is still there. Asking the colour at
