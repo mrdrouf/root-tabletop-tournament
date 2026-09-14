@@ -1878,6 +1878,10 @@ RTT_RESYNC_TOKEN     = 0
 -- that changing RTT_RESYNC_MODE can never quietly break them.
 RTT_RESYNCING        = false
 
+-- How many hand zones a seat can have. TTS allows several; this table uses two -- the ordinary hand
+-- and, for the Alliance, a second one holding the secret supporters.
+RTT_HANDS_PER_SEAT = 4
+
 -- What a sweep must not touch. Every one of these is load-bearing.
 function rttResyncSkip()
   local skip = {}
@@ -1891,13 +1895,21 @@ function rttResyncSkip()
   end
   -- and anything sitting in somebody's hand. A card in a hand belongs to that player's zone; never
   -- reach into one.
+  -- EVERY HAND, NOT JUST THE FIRST. getHandObjects() with no argument reads hand ONE, and this table
+  -- gives some seats a second hand: the Alliance's three SECRET SUPPORTERS live in hand 2. So a
+  -- resync destroyed and respawned them -- the exact thing the comment above forbids -- and because
+  -- the supporters are dealt face UP (a card left face down in the Alliance's own hand is worse), for
+  -- the frames between the respawn and the zone re-claiming them three face-up secret cards existed
+  -- outside any hand zone, in front of everyone. Found by an adversarial review, 2026-09-14.
   pcall(function()
     for _, c in ipairs(getSeatedPlayers()) do
-      pcall(function()
-        for _, o in ipairs(Player[c].getHandObjects()) do
-          pcall(function() skip[o.getGUID()] = true end)
-        end
-      end)
+      for h = 1, RTT_HANDS_PER_SEAT do
+        pcall(function()
+          for _, o in ipairs(Player[c].getHandObjects(h) or {}) do
+            pcall(function() skip[o.getGUID()] = true end)
+          end
+        end)
+      end
     end
   end)
   return skip

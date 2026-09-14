@@ -10774,6 +10774,90 @@ def t_a_renamed_vagabond_vp_keeps_its_spot(src):
     assert "rttKitPos(cx, cz, flip, rotationY, v.move_to)" in src, \
         "the kit placement no longer reads v.move_to; re-check the renaming branch"
 
+
+def t_a_resync_never_reaches_into_a_second_hand(src):
+    """The Alliance's secret supporters live in hand 2, and a resync must not touch them.
+
+    rttResyncSkip protected everything in a seated player's hand -- by calling getHandObjects() with
+    no argument, which reads hand ONE. This table gives some seats a second hand: the Alliance's
+    three supporters sit there. So a resync destroyed and respawned all three, which is exactly what
+    the comment above that block forbids: "A card in a hand belongs to that player's zone; never
+    reach into one."
+
+    AND THE HARM IS A LEAK, not just churn. The supporters are dealt face UP on purpose -- a card
+    left face down in the Alliance's own hand is a worse outcome -- and a reload is a destroy plus a
+    create, so for the frames between the respawn and the zone re-claiming them, three face-up secret
+    cards exist outside any hand zone, in front of the whole table.
+
+    The stub used to ignore the hand index, so the harness could not see this class of bug at all.
+    """
+    rt = fresh(src)
+    rt.execute("""
+      SEATED = { "Red" }
+      getSeatedPlayers = function() return SEATED end
+      H1 = MKOBJ("Ambush", { 1, 1, 1 }, {})
+      S1 = MKOBJ("Fox Supporter", { 2, 1, 2 }, {})
+      S2 = MKOBJ("Mouse Supporter", { 3, 1, 3 }, {})
+      S3 = MKOBJ("Rabbit Supporter", { 4, 1, 4 }, {})
+      HANDCARDS = { Red = { H1 }, ["Red#2"] = { S1, S2, S3 } }
+      SKIP = rttResyncSkip()
+    """)
+    assert rt.eval("SKIP[H1.getGUID()] == true") is True, \
+        "the sweep no longer protects an ordinary card in hand 1"
+    for s in ("S1", "S2", "S3"):
+        assert rt.eval("SKIP[%s.getGUID()] == true" % s) is True, \
+            "a secret supporter in hand 2 is not protected from the resync sweep"
+
+    # the stub must actually distinguish the hands, or this test proves nothing
+    rt.execute('N1 = #Player["Red"].getHandObjects() N2 = #Player["Red"].getHandObjects(2)')
+    assert rt.eval("N1") == 1 and rt.eval("N2") == 3, \
+        "the harness cannot tell the two hands apart, so this test is blind"
+
+
+def t_the_keyframe_survives_the_tables_hand_zones(src):
+    """The recorder must not ask a hand zone for its custom object.
+
+    getCustomObject() answers a C# null on an object with no custom data, and a C# null is not a Lua
+    error: pcall does NOT catch it and it takes the rest of the calling function with it. obsStatic
+    asked it of every object with an EMPTY NICKNAME -- and getAllObjects hands back the table's
+    twenty hand zones, every one of them unnamed.
+
+    So obsKeyframe died inside its own loop at the first hand zone, before it ever appended the
+    snapshot. OBS.snap stayed empty for the whole game and the archive shipped a movement log with no
+    board states in it, which reads downstream as a successful recording rather than as a failure.
+
+    The harness cannot reproduce an uncatchable null, so this pins the property that makes it
+    unreachable: the zone is never ASKED.
+    """
+    rt = lupa.LuaRuntime(unpack_returned_tuples=True)
+    rt.execute(open(os.path.join(HERE, "tts_stub.lua"), encoding="utf-8").read())
+    rt.execute(observer_lua().replace("!=", "~="))
+    rt.execute("""
+      ASKED_ZONE = 0 ASKED_TILE = 0
+      Z = MKOBJ("", { 0, 0, 0 }, {})
+      Z.type = "Hand" Z.tag = "Hand" Z.name = "HandTrigger"
+      Z.getCustomObject = function() ASKED_ZONE = ASKED_ZONE + 1 error("C# null") end
+      T = MKOBJ("", { 1, 1, 1 }, {})
+      T.type = "Tile" T.tag = "Tile"
+      T.getCustomObject = function() ASKED_TILE = ASKED_TILE + 1 return { image = "https://x/ABCDEFGHIJ/" } end
+      OBJS = { Z, T }
+      getAllObjects = function() return OBJS end
+      -- obsKeyframe is a local; obsTurnWork is the public way in, and it takes a keyframe
+      OBS_ENABLED = true
+      pcall(rttRecordStart)
+      OK, ERR = pcall(function() obsTurnWork("Red", "Yellow") end)
+      SNAPS = 0
+      pcall(function() SNAPS = #OBS.snap end)
+    """)
+    assert rt.eval("OK") is True, \
+        "the recorder threw while walking the table: %s" % rt.eval("ERR")
+    assert rt.eval("SNAPS") > 0, \
+        "the turn produced no board snapshot at all, which is the symptom this guards"
+    assert rt.eval("ASKED_ZONE") == 0, \
+        "the recorder asked a hand zone for its custom object; in TTS that answer is a C# null"
+    assert rt.eval("ASKED_TILE") == 1, \
+        "the recorder no longer reads the art tail off unnamed cardboard, which is what it is for"
+
 CASES = [
     ("manual path drives the turn system",   t_manual_turn_order),
     ("manual path spawns 4 / 5 boards",      t_boards_spawn),
@@ -10864,6 +10948,8 @@ CASES = [
     ("numpad 2 hands out wood",              t_numpad_two_hands_out_wood),
     ("two vagabonds are two rows",           t_two_vagabonds_never_share_an_ordinal),
     ("a renamed vagabond VP keeps its spot", t_a_renamed_vagabond_vp_keeps_its_spot),
+    ("resync spares every hand",             t_a_resync_never_reaches_into_a_second_hand),
+    ("the keyframe survives hand zones",     t_the_keyframe_survives_the_tables_hand_zones),
     ("numpad 2 hands you your token",  t_numpad_two_hands_you_the_token_you_chose),
     ("gizmo default key is numpad 0",         t_gizmo_default_key_is_numpad_zero),
     ("gizmo: warrior to/from supply",         t_gizmo_warrior_to_and_from_supply),

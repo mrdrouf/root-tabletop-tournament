@@ -545,7 +545,23 @@ local function obsStatic(o, g, hands)
   -- the box score's own ITEMS table does, and live.lua only pays for getCustomObject when the
   -- nickname is empty, because that is the only case where it tells you anything.
   local art = ""
-  if nm == "" then
+  -- ...AND ONLY OF SOMETHING THAT CAN ANSWER.
+  --
+  -- getCustomObject() answers a C# NULL on an object that has no custom data, and a C# null is not a
+  -- Lua error: pcall does NOT catch it, and it takes the rest of the calling function with it. This
+  -- ran on every object with an empty nickname -- and getAllObjects hands back the table's TWENTY
+  -- HAND ZONES, every one of them unnamed. So obsKeyframe died inside its own loop at the first hand
+  -- zone it reached, before it ever appended the snapshot: OBS.snap stayed EMPTY FOR THE WHOLE GAME
+  -- and the archive shipped a movement log with no board states in it, which reads downstream as a
+  -- successful recording rather than as a failure. Found by an adversarial review, 2026-09-14.
+  --
+  -- AN ALLOW LIST, NOT A DENY LIST. The art tail exists for the unnamed CARDBOARD -- item tokens,
+  -- priority markers, plots -- so asking only tiles, tokens and cards covers everything it was for,
+  -- and cannot reach a zone, a block or a plain bag. Both spellings are listed because TTS reports
+  -- the short type ("Tile") where the harness reports the class ("Custom_Tile").
+  local OBS_ART_OK = { Tile = true, Custom_Tile = true, Token = true, Custom_Token = true,
+                       Card = true, CardCustom = true }
+  if nm == "" and OBS_ART_OK[ty] then
     pcall(function()
       local co = o.getCustomObject()
       if co ~= nil then

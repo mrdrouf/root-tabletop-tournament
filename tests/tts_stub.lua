@@ -605,7 +605,15 @@ for _, c in ipairs(COLORS) do
     -- was untestable -- the resync sweep has skipped hand objects since v1.154 and the harness could
     -- not tell that apart from not skipping them. A test fills HANDS[colour] with objects.
     -- refresh() rebuilds this table on every Player[c] access, so the store has to live outside it.
-    getHandObjects = function() return HANDCARDS[c] or {} end,
+    -- PER HAND INDEX. This ignored its argument entirely and always answered hand ONE, so the harness
+      -- could not see a bug that only touches a second hand -- and there is one: the Alliance's three
+      -- secret supporters live in hand 2, and the resync sweep read hand 1 only. HANDCARDS[c] still
+      -- means hand 1 so every existing fixture is unchanged; HANDCARDS[c .. "#2"] is the second.
+      getHandObjects = function(i)
+        i = i or 1
+        if i == 1 then return HANDCARDS[c] or {} end
+        return HANDCARDS[c .. "#" .. tostring(i)] or {}
+      end,
     print = function() end, broadcast = function() end,
   }
 end
