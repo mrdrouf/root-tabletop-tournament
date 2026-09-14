@@ -7268,9 +7268,15 @@ RTT_CROW_PLOT_Y   = 0.35
 RTT_CROW_HZ_FLOOR = 11.56   -- the table surface. The box stands ON it and grows upward from it,
                             -- which is why its height can change without the plots leaving it.
 RTT_CROW_HZ_SX = 12.523570  -- his own box's footprint, on the board's axes
-RTT_CROW_HZ_SY = 1.275      -- "also reduce the height of the hidden box by 4": a quarter of the 5.10
-                            -- he had in the save, and "keep the height you did in the previous one
-                            -- that was good" -- so the height does NOT come from the save any more.
+RTT_CROW_HZ_SY = 2.125      -- THE HEIGHT IS NOT FROM THE SAVE. His box is 5.10 in both of them; this
+                            -- is his three instructions about it in order: "cut the actual height by
+                            -- half" (2.55), "reduce the height of the hidden box by 4" (1.275), "keep
+                            -- the height you did in the previous one that was good" (kept through a
+                            -- re-measured position), and now "add 2/3 height to the crow hidden box
+                            -- it s too low" -- 1.275 plus two thirds of itself, 2.125. It grows off
+                            -- the TOP: the floor stays on the table, which is the whole point of
+                            -- RTT_CROW_HZ_FLOOR, so a taller box hides a tile held higher above the
+                            -- plots and the plots themselves never leave it.
 RTT_CROW_HZ_SZ = 7.284424
 
 RTT_CROW_HZ_JSON = [==[{"GUID":"8719cd","Name":"FogOfWarTrigger","Transform":{"posX":-27.8318653,"posY":14.1115437,"posZ":-46.7588654,"rotX":0.0,"rotY":359.8908,"rotZ":0.0,"scaleX":14.3045025,"scaleY":5.1,"scaleZ":12.5832348},"Nickname":"","Description":"","GMNotes":"","AltLookAngle":{"x":0.0,"y":0.0,"z":0.0},"ColorDiffuse":{"r":1.0,"g":1.0,"b":1.0,"a":0.25},"LayoutGroupSortIndex":0,"Value":0,"Locked":true,"Grid":true,"Snap":true,"IgnoreFoW":false,"MeasureMovement":false,"DragSelectable":true,"Autoraise":true,"Sticky":true,"Tooltip":true,"GridProjection":false,"HideWhenFaceDown":false,"Hands":false,"FogColor":"White","FogHidePointers":false,"FogReverseHiding":false,"FogSeethrough":true,"LuaScript":"","LuaScriptState":"","XmlUI":""}]==]

@@ -11691,8 +11691,8 @@ def t_the_crows_box_supply_and_warriors_come_from_the_save(src):
     different seat, so the expectations below are one measurement checked from two places.
 
     The HEIGHT is deliberately not from the save. "keep the height you did in the previous one that was
-    good" -- his box is 5.10 in both saves; the mod's is a quarter of that. t_the_crow_box_stands_on_
-    the_table_a_quarter_as_tall owns it.
+    good" -- his box is 5.10 in both saves and the mod's height is set by hand, separately.
+    t_the_crow_box_stands_on_the_table owns it.
 
     ONE SPOT, NOT TWO, is the part that is easy to lose. The box used to be mirrored to the player's
     left or right with a different magnitude on each side; his new spot is above his own board, which
@@ -11877,14 +11877,18 @@ def t_a_reset_takes_the_crows_hidden_box_with_it(src):
         "the hidden box is not on RTT_SPAWNED, so a tag sweep that cannot see zones would leave it"
 
 
-def t_the_crow_box_stands_on_the_table_a_quarter_as_tall(src):
-    """The box is a quarter of the height he saved -- and still standing ON the table, not over it.
+def t_the_crow_box_stands_on_the_table(src):
+    """The box grows off its TOP, and its floor never leaves the table.
 
-    Maintainer, 2026-09-14: "also reduce the height of the hidden box by 4." The box in his save is
-    5.10 tall, so this is 1.275 -- and when he re-measured the box's POSITION a save later, he kept
-    this height: "keep the height you did in the previous one that was good". So the height is the one
-    number here that does not come from the save, and a later re-measurement must not quietly restore
-    his 5.10 along with the rest.
+    The height is the one number in this box that does not come from the maintainer's save -- his is
+    5.10 in both of them -- because he has set it four times by hand, 2026-09-14, in this order:
+    "cut the actual height by half" (2.55), "reduce the height of the hidden box by 4" (1.275), "keep
+    the height you did in the previous one that was good" (kept through a re-measured position), and
+    "add 2/3 height to the crow hidden box it s too low at the moment" -- 1.275 plus two thirds of
+    itself, 2.125.
+
+    So a re-measurement must not quietly restore his 5.10 along with the position, and every one of
+    those changes has to come off the TOP, which is what this really guards.
 
     THE TRAP IS THAT A TTS ZONE IS POSITIONED BY ITS CENTRE. His box is 5.10 tall centred at 14.1115,
     which puts its floor at 11.56 -- the table. Changing the height alone leaves the centre where it is
@@ -11897,9 +11901,10 @@ def t_the_crow_box_stands_on_the_table_a_quarter_as_tall(src):
     HIS_SY, HIS_CENTRE = 5.10, 14.111544       # his box, in both saves
     FLOOR = 11.56                              # his box's floor, and the table surface
     PLOTS = 11.91                              # where the plots have always rested
+    WANT_SY = 1.275 * 5 / 3                    # 1.275, plus two thirds of itself
 
     sy = rt.eval("RTT_CROW_HZ_SY")
-    assert abs(sy - HIS_SY / 4) < 1e-6, "the box is %s tall; a quarter of %s is %s" % (sy, HIS_SY, HIS_SY / 4)
+    assert abs(sy - WANT_SY) < 1e-6, "the box is %s tall; 1.275 plus two thirds of itself is %s" % (sy, WANT_SY)
     assert abs((HIS_CENTRE - HIS_SY / 2) - FLOOR) < 0.01, \
         "his own box did not stand on %s; this test's floor is wrong" % FLOOR
 
@@ -11923,7 +11928,7 @@ def t_the_crow_box_stands_on_the_table_a_quarter_as_tall(src):
           PY = HZ and HZ.y or 0
         """ % (cx, cz, ry, cx, cz))
         zy, zh, py = r.eval("ZY"), r.eval("ZH"), r.eval("PY")
-        assert abs(zh - HIS_SY / 4) < 1e-6, "the %s seat's box is %.3f tall, not %.3f" % (label, zh, HIS_SY / 4)
+        assert abs(zh - WANT_SY) < 1e-6, "the %s seat's box is %.3f tall, not %.3f" % (label, zh, WANT_SY)
         assert abs((zy - zh / 2) - FLOOR) < 1e-6, \
             "the %s seat's box floats: its floor is %.3f, the table is %.3f" % (label, zy - zh / 2, FLOOR)
         assert abs(py - PLOTS) < 1e-6, \
@@ -12161,7 +12166,7 @@ CASES = [
     ("variant picks are capped",             t_a_faction_cannot_be_given_more_options_than_it_has),
     ("5p gives the middle board room",       t_five_players_give_the_middle_board_room),
     ("the crow kit comes from the save",     t_the_crows_box_supply_and_warriors_come_from_the_save),
-    ("the crow box stands on the table",     t_the_crow_box_stands_on_the_table_a_quarter_as_tall),
+    ("the crow box stands on the table",     t_the_crow_box_stands_on_the_table),
     ("a reset erases the crow box",          t_a_reset_takes_the_crows_hidden_box_with_it),
     ("the mole board steps off the monger",  t_the_mole_board_steps_away_from_the_monger),
     ("numpad 2 hands you your token",  t_numpad_two_hands_you_the_token_you_chose),
