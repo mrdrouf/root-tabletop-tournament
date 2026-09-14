@@ -5333,7 +5333,11 @@ function rttSpawnFaction(faction, cx, cz, flip, category, rotationY, opts)
         if g ~= opts.vpKeep then
           isDice = true                       -- reuse the skip flag; this piece is not spawned
         elseif opts.vpName ~= nil and opts.vpName ~= "Vagabond VP" then
-          piece = { json = (v.json:gsub('"Nickname": "Vagabond VP"',
+          -- move_to CARRIED ACROSS. This table replaces `v` for the rest of the spawn, and the
+          -- placement below reads `v.move_to` -- so renaming the second vagabond's VP tile used to
+          -- drop its offset and land it on the seat's centre instead of its spot on the kit.
+          piece = { move_to = v.move_to,
+                    json = (v.json:gsub('"Nickname": "Vagabond VP"',
                                         '"Nickname": "' .. opts.vpName .. '"', 1)) }
         end
       end
@@ -5745,14 +5749,29 @@ end
 
 -- How many vagabond seats already hold one, counting only seats BEFORE this one so the answer does
 -- not change when a later seat is filled.
+-- THE LOWEST NUMBER NO OTHER VAGABOND SEAT IS USING.
+--
+-- This used to count vagabonds at LOWER seat indices only -- an ordinal by seat order, which is only
+-- right if every seat has already picked. It has not: seats record their faction as they SPAWN. So
+-- if seat 2 took a vagabond first it got 1 (seat 1 was still empty and was not counted), and when
+-- seat 1 then took one it counted nothing above it either and got 1 as well. Two seats both keyed
+-- "Vagabond", both spawning a marker called "Vagabond VP": one box-score row for two players, and
+-- the score readings collapsing onto each other.
+--
+-- Counting ALL other vagabonds instead would still collide after a clear -- seats holding 1 and 2,
+-- clear the first, and the next arrival counts one and takes 2 again. Asking for the lowest free
+-- number cannot collide however the seats come and go, and it leaves an existing seat's number
+-- alone, which matters because its marker has already been spawned under that name.
 function rttVagabondOrdinal(si)
-  local n = 0
+  local used = {}
   for i, s in ipairs(RTT_SEATS or {}) do
-    if i ~= si and s ~= nil and s.faction ~= nil and isVagabond(s.faction) then
-      if i < si then n = n + 1 end
+    if i ~= si and s ~= nil and s.faction ~= nil and isVagabond(s.faction) and s.vagN ~= nil then
+      used[s.vagN] = true
     end
   end
-  return n + 1
+  local n = 1
+  while used[n] do n = n + 1 end
+  return n
 end
 
 -- "Vagabond" for the first, "Vagabond 2" for the second. This is the seat's published key AND the

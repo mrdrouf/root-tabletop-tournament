@@ -10702,6 +10702,78 @@ def t_numpad_two_hands_out_wood(src):
     assert rt.eval('RTT_TOKEN_PICK["Red"]') == "Wood", \
         "holding numpad 2 on a wood token no longer chooses it"
 
+
+def t_two_vagabonds_never_share_an_ordinal(src):
+    """Two vagabonds at the table are two rows, whatever order they arrive in.
+
+    The ordinal used to count vagabonds at LOWER seat indices only -- an ordinal by seat order, which
+    is only right if every seat has already picked. It has not: a seat records its faction as it
+    SPAWNS. So if seat 2 took a vagabond first it got 1 (seat 1 was empty and uncounted), and when
+    seat 1 then took one it counted nothing above it either and got 1 as well. Two seats keyed
+    "Vagabond", two markers both called "Vagabond VP": one box-score row for two players, and their
+    scores read onto each other.
+
+    Counting ALL other vagabonds would still collide after a clear -- seats holding 1 and 2, clear
+    the first, and the next arrival counts one and takes 2 again. The lowest FREE number cannot
+    collide however seats come and go, and it leaves an existing seat's number alone, which matters
+    because its marker has already spawned under that name.
+    """
+    rt = fresh(src)
+    rt.execute("""
+      RTT_SEATS = { { pos = { 52, -46 } }, { pos = { -52, -46 } }, { pos = { 52, 46 } } }
+      RTT_SEATS[2].faction = 'Thief'   RTT_SEATS[2].vagN = rttVagabondOrdinal(2)
+      RTT_SEATS[1].faction = 'Tinker'  RTT_SEATS[1].vagN = rttVagabondOrdinal(1)
+    """)
+    a, b = rt.eval("RTT_SEATS[1].vagN"), rt.eval("RTT_SEATS[2].vagN")
+    assert a != b, "two vagabonds both took ordinal %s when the later seat picked first" % a
+    ka = rt.eval("rttVagabondKey(RTT_SEATS[1].vagN)")
+    kb = rt.eval("rttVagabondKey(RTT_SEATS[2].vagN)")
+    assert ka != kb, "both vagabond seats publish the key %r" % ka
+
+    # the seat that arrived first keeps its number -- its marker already exists under that name
+    assert b == 1, "the first vagabond to arrive was renumbered to %s" % b
+
+    # ...and a clear does not free a number onto a seat that is still using it
+    rt.execute("""
+      RTT_SEATS[2].faction = nil  RTT_SEATS[2].vagN = nil
+      RTT_SEATS[3].faction = 'Ranger'  RTT_SEATS[3].vagN = rttVagabondOrdinal(3)
+    """)
+    assert rt.eval("RTT_SEATS[1].vagN") != rt.eval("RTT_SEATS[3].vagN"), \
+        "after a clear, a new vagabond took a number another seat still holds"
+
+    # three at once are still three distinct rows
+    rt.execute("""
+      RTT_SEATS[2].faction = 'Thief'  RTT_SEATS[2].vagN = rttVagabondOrdinal(2)
+      OUT = tostring(RTT_SEATS[1].vagN) .. ',' .. tostring(RTT_SEATS[2].vagN)
+            .. ',' .. tostring(RTT_SEATS[3].vagN)
+    """)
+    got = sorted(rt.eval("OUT").split(","))
+    assert got == ["1", "2", "3"], "three vagabonds got ordinals %s" % got
+
+
+def t_a_renamed_vagabond_vp_keeps_its_spot(src):
+    """Renaming the second vagabond's VP tile must not cost it its place in the kit.
+
+    The kit is walked as a list of { move_to, json } entries, and the renaming branch built a
+    REPLACEMENT table holding only the json. The placement a few lines later reads `v.move_to` off
+    whatever is in the list -- so the renamed tile arrived with no offset at all and landed on the
+    seat's centre instead of its spot on the board.
+
+    Checked against the BUILT script, because that is the copy that ships.
+    """
+    # anchored on opts.vpName, which appears only in this branch -- the nickname string itself also
+    # occurs in the blueprint DATA that is concatenated ahead of our code
+    i = src.index("opts.vpName ~= nil")
+    branch = src[i:i + 900]
+    assert "piece = {" in branch, "the vagabond VP renaming branch has moved; this test needs updating"
+    body = branch[branch.index("piece = {"):]
+    assert "move_to" in body[:400], \
+        "the renamed vagabond VP tile is built without its move_to, so it lands on the seat centre"
+
+    # and the placement really does read move_to off the list entry, which is why it matters
+    assert "rttKitPos(cx, cz, flip, rotationY, v.move_to)" in src, \
+        "the kit placement no longer reads v.move_to; re-check the renaming branch"
+
 CASES = [
     ("manual path drives the turn system",   t_manual_turn_order),
     ("manual path spawns 4 / 5 boards",      t_boards_spawn),
@@ -10790,6 +10862,8 @@ CASES = [
     ("warriors home with the map broken",    t_a_warrior_reaches_its_supply_with_the_bag_map_broken),
     ("unlocking a prisoner restores it",     t_unlocking_a_prisoner_always_restores_it),
     ("numpad 2 hands out wood",              t_numpad_two_hands_out_wood),
+    ("two vagabonds are two rows",           t_two_vagabonds_never_share_an_ordinal),
+    ("a renamed vagabond VP keeps its spot", t_a_renamed_vagabond_vp_keeps_its_spot),
     ("numpad 2 hands you your token",  t_numpad_two_hands_you_the_token_you_chose),
     ("gizmo default key is numpad 0",         t_gizmo_default_key_is_numpad_zero),
     ("gizmo: warrior to/from supply",         t_gizmo_warrior_to_and_from_supply),
