@@ -11361,6 +11361,59 @@ def t_the_sweep_and_its_timers_respect_what_changed_since(src):
     assert "Wait.time(function() rttPlaceVPRetry" not in src, \
         "the VP retry timer is still armed without the run guard"
 
+
+def t_the_cats_wait_for_their_supply(src):
+    """The Marquise's map cats retry instead of giving up on a fixed deadline.
+
+    Found by the multi-agent review, 2026-09-14. rttMarquiseCats is armed half a second after the
+    faction is asked for, and it needs two things that may not have arrived yet: the current map, and
+    the Marquise Supply bag. Both come out of the SHARED paced spawn queue, so on a table also laying
+    a map -- 42 to 49 pieces at six a frame -- or several kits at once, half a second is a guess. When
+    it was wrong the function returned silently and the twelve cats never went onto the map at all.
+
+    Retried rather than given a longer deadline, because a longer guess is still a guess; and through
+    rttAfterTime, so an abandoned run's retries die with it rather than placing cats for a game that
+    has been cleared.
+    """
+    rt = fresh(src)
+    rt.execute("""
+      RTT_CURRENT_MAP = "Gorge Map"
+      TAKEN = 0 OBJS = {}
+      getAllObjects = function() return OBJS end
+      rttMarquiseCats(52, -46, false)
+      FLUSH(3)
+      EARLY = TAKEN
+      BAG = MKOBJ("Marquise Supply", { 60, 11.5, -40 }, {})
+      BAG.takeObject = function(p)
+        TAKEN = TAKEN + 1
+        if p.callback_function then p.callback_function(MKOBJ("Cat Warrior", { 0, 0, 0 }, {})) end
+      end
+      OBJS = { BAG }
+      FLUSH(600)
+      LATE = TAKEN
+    """)
+    assert rt.eval("EARLY") == 0, "cats were placed before the supply bag existed"
+    assert rt.eval("LATE") == 12, \
+        ("the supply arrived late and only %s cats went out; the map should get all twelve"
+         % rt.eval("LATE"))
+
+    # ...and a run that has been abandoned places nothing
+    rt = fresh(src)
+    rt.execute("""
+      RTT_CURRENT_MAP = "Gorge Map"
+      TAKEN = 0 OBJS = {}
+      getAllObjects = function() return OBJS end
+      rttMarquiseCats(52, -46, false)
+      FLUSH(3)
+      RTT_RUN_ID = RTT_RUN_ID + 1        -- somebody pressed a setup button
+      BAG = MKOBJ("Marquise Supply", { 60, 11.5, -40 }, {})
+      BAG.takeObject = function(p) TAKEN = TAKEN + 1 end
+      OBJS = { BAG }
+      FLUSH(600)
+    """)
+    assert rt.eval("TAKEN") == 0, \
+        "an abandoned run still placed cats once the supply turned up"
+
 CASES = [
     ("manual path drives the turn system",   t_manual_turn_order),
     ("manual path spawns 4 / 5 boards",      t_boards_spawn),
@@ -11461,6 +11514,7 @@ CASES = [
     ("two vagabonds share no pieces",        t_two_vagabonds_do_not_share_pieces),
     ("a leaving row takes its pointers",     t_a_row_leaving_takes_its_pointers_with_it),
     ("the sweep re-asks before it touches",  t_the_sweep_and_its_timers_respect_what_changed_since),
+    ("the cats wait for their supply",       t_the_cats_wait_for_their_supply),
     ("numpad 2 hands you your token",  t_numpad_two_hands_you_the_token_you_chose),
     ("gizmo default key is numpad 0",         t_gizmo_default_key_is_numpad_zero),
     ("gizmo: warrior to/from supply",         t_gizmo_warrior_to_and_from_supply),

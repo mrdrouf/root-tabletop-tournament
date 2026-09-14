@@ -324,6 +324,11 @@ function MKOBJ(name, pos, tags)
   -- which is the case the mod now guards against -- has to say so by overriding this.
   function o.putObject(x)
     if x == nil then return x end
+    -- __contents is nil until a test gives the bag some, so this has to start the list rather than
+    -- index a nil. Without it, every fixture that built a plain bag and let the mod put something in
+    -- threw -- which the mod's own pcall then swallowed, so the test saw "nothing happened" and could
+    -- not tell that from the thing it was actually checking.
+    o.__contents = o.__contents or {}
     o.__contents[#o.__contents + 1] = { guid = x.getGUID(), nickname = x.getName() }
     pcall(function() x.destruct() end)
     return o

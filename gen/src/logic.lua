@@ -6476,7 +6476,26 @@ end
 -- up, and a piece let go from much higher bounces and can come down on its side.
 RTT_CAT_DROP = 13.6
 
-function rttMarquiseCats(cx, cz, flip)
+-- How many more times to look for what this needs before giving up, and how long between tries.
+RTT_CATS_TRIES = 8
+RTT_CATS_WAIT  = 0.5
+
+function rttMarquiseCats(cx, cz, flip, tries)
+  tries = tries or RTT_CATS_TRIES
+  -- ONE SHOT AT A FIXED DEADLINE WAS NOT ENOUGH. This is armed half a second after the faction is
+  -- asked for, and it needs two things that may not have arrived yet: the current map, and the
+  -- Marquise Supply bag. Both come out of the SHARED paced spawn queue, so on a table also laying a
+  -- map (42-49 pieces at six a frame) or several kits at once, half a second is a guess -- and when
+  -- it was wrong this returned silently and the cats never went out onto the map at all. Found by
+  -- the multi-agent review, 2026-09-14.
+  --
+  -- Retried rather than given a longer deadline, because a longer guess is still a guess; and
+  -- through rttAfterTime, so an abandoned run's retries die with it.
+  local function later()
+    if tries > 0 then
+      rttAfterTime(function() rttMarquiseCats(cx, cz, flip, tries - 1) end, RTT_CATS_WAIT)
+    end
+  end
   -- resolve the current map (same fallback chain as rttBadgerRelics: clone -> main board bab7e1)
   local mapId = RTT_CURRENT_MAP or (RTT_PICKED or {}).map
   if mapId == nil then
@@ -6487,12 +6506,12 @@ function rttMarquiseCats(cx, cz, flip)
     end
   end
   local centres = RTT_CLEARING_CENTRES[mapId]
-  if centres == nil then return end
+  if centres == nil then later() return end
   local bag = nil
   for _, o in ipairs(getAllObjects()) do
     if (o.getName() or "") == "Marquise Supply" then bag = o break end
   end
-  if bag == nil then return end
+  if bag == nil then later() return end
   -- Marsh clearings depend on player count: 4-player floods 3 clearings (skip them -> 12 cats);
   -- 5-player has no floods, all 15 clearings are active (place 15). Every other map is 12.
   local excl = {}
