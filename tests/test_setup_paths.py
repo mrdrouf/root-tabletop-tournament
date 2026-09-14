@@ -10959,6 +10959,74 @@ def t_the_box_score_scrolls_past_round_ten(src):
         a, b = rt.eval("win(10, %d)" % last)
         assert a <= last <= b, "round %d falls outside the drawn window %d..%d" % (last, a, b)
 
+
+def t_a_waystation_row_reads_the_same_way_as_every_other(src):
+    """The Keepers' three waystations fill from the player's right, and numpad 2 can take one back.
+
+    TWO BUGS IN ONE ROW, both found by the multi-agent review, 2026-09-14.
+
+    FILL DIRECTION. rttHomeFamilySlots had its own two-line sort on RAW TABLE x -- which is the
+    player's right on one side of the table and their left on the other -- so the one family in the
+    game filled backwards at every near-row seat while every other piece obeyed the rule, because
+    every other piece went through rttHomeSlots. Maintainer, 2026-09-06: "everything is always
+    referenced with respect to the vision of the player otherwise instructions would change
+    depending on seat which makes no sense."
+
+    RETRIEVAL. Numpad 0 asked for the row by FAMILY and numpad 2 asked by exact NAME, so a
+    waystation numpad 0 had just filed could not be fetched back: numpad 2 looked only at the single
+    slot that piece happened to spawn on, and the piece was on a different slot of the family row.
+    One lookup now serves both keys.
+    """
+    NAMES = ["Tablet/Figure Waystation", "Jewelry/Tablet Waystation", "Figure/Jewelry Waystation"]
+
+    def row(z):
+        rt = fresh(src)
+        rt.execute("""
+          RTT_HOME = {}
+          NAMES = { "%s", "%s", "%s" }
+          for i, n in ipairs(NAMES) do
+            RTT_HOME["w" .. i] = { n = n, f = "Keepers in Iron",
+                                   p = { 50 + i * 1.8, 11.6, %d }, r = { 0, 0, 0 } }
+          end
+          OUT = {}
+          for _, sl in ipairs(rttSlotsFor(NAMES[1])) do OUT[#OUT + 1] = sl.p[1] end
+        """ % (NAMES[0], NAMES[1], NAMES[2], z))
+        return [rt.eval("OUT[%d]" % i) for i in (1, 2, 3)]
+
+    near = row(-46)
+    assert abs(near[0] - 55.4) < 0.01, \
+        ("on the near row the waystations fill from x %.1f; the player's right is the LARGEST x "
+         "(55.4), which is how every other row in the game fills" % near[0])
+    far = row(46)
+    assert abs(far[0] - 51.8) < 0.01, \
+        ("on the far row the waystations fill from x %.1f; that seat is turned 180 so the player's "
+         "right is the SMALLEST x (51.8)" % far[0])
+    assert near == list(reversed(far)), "the two rows are not mirror images of each other"
+
+    # ...and numpad 2 finds one that numpad 0 filed onto a slot that is not its own spawn spot
+    rt = fresh(src)
+    rt.execute("""
+      RTT_HOME = {}
+      NAMES = { "%s", "%s", "%s" }
+      for i, n in ipairs(NAMES) do
+        RTT_HOME["w" .. i] = { n = n, f = "Keepers in Iron",
+                               p = { 50 + i * 1.8, 11.6, -46 }, r = { 0, 0, 0 } }
+      end
+      A = MKOBJ(NAMES[1], { 55.4, 11.6, -46 }, {})
+      RTT_TOKEN_PICK = { Red = NAMES[1] }
+      POINTER = { Red = Vector({ 5, 11.6, 5 }) }
+      rttGizmoToken("Red")
+      FLUSH(10)
+    """ % (NAMES[0], NAMES[1], NAMES[2]))
+    assert abs(rt.eval("A.getPosition().x") - 5) < 0.01, \
+        "numpad 2 could not retrieve a waystation that numpad 0 had filed on the family row"
+
+    # the two keys must be asking the same question
+    assert "rttSlotsFor" in src, "the shared row lookup is gone"
+    assert src.count("local slots = rttSlotsFor(name)") == 2, \
+        ("numpad 0 and numpad 2 no longer share one row lookup (%d call sites)"
+         % src.count("local slots = rttSlotsFor(name)"))
+
 CASES = [
     ("manual path drives the turn system",   t_manual_turn_order),
     ("manual path spawns 4 / 5 boards",      t_boards_spawn),
@@ -11053,6 +11121,7 @@ CASES = [
     ("the keyframe survives hand zones",     t_the_keyframe_survives_the_tables_hand_zones),
     ("supporters go to the seat's player",   t_the_supporters_go_to_whoever_is_actually_in_the_seat),
     ("the box score scrolls past ten",       t_the_box_score_scrolls_past_round_ten),
+    ("a waystation row reads like the rest", t_a_waystation_row_reads_the_same_way_as_every_other),
     ("numpad 2 hands you your token",  t_numpad_two_hands_you_the_token_you_chose),
     ("gizmo default key is numpad 0",         t_gizmo_default_key_is_numpad_zero),
     ("gizmo: warrior to/from supply",         t_gizmo_warrior_to_and_from_supply),

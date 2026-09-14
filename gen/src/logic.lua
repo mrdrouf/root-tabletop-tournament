@@ -8993,6 +8993,20 @@ function rttHomeSlots(name)
     if h.n == name and (not onlyMeasured or h.x) then out[#out + 1] = h end
   end
   if #out == 0 then return out end
+  return rttOrderSlots(out, name)
+end
+
+-- THE FILL ORDER OF A ROW, given the slots in it. Split out of rttHomeSlots so that
+-- rttHomeFamilySlots uses the SAME one.
+--
+-- Maintainer, 2026-09-06: "everything is always referenced with respect to the vision of the player
+-- otherwise instructions would change depending on seat which makes no sense" -- and rows fill from
+-- the player's right. rttHomeFamilySlots had its own two-line sort on RAW TABLE x, which is the
+-- player's right on one side of the table and their left on the other, so the Keepers' three
+-- waystations -- the one family in the game -- filled backwards at every near-row seat. Every other
+-- piece obeyed the rule because every other piece came through here. Found by the multi-agent
+-- review, 2026-09-14.
+function rttOrderSlots(out, name)
   -- The PARKED ODD ONE OUT. Several types keep one piece well away from the neat group -- a roost at
   -- x -17.5 against a row at 3.7..11.7, an enclave at -3.0 against a grid at -16..-19. The maintainer
   -- has not said what those spots are yet and asked that nothing be sent there meanwhile, so they are
@@ -9110,11 +9124,23 @@ function rttHomeFamilySlots(fam)
       out[#out + 1] = h
     end
   end
-  table.sort(out, function(a, b)
-    if a.p[1] ~= b.p[1] then return a.p[1] < b.p[1] end
-    return a.p[3] < b.p[3]
-  end)
-  return out
+  if #out == 0 then return out end
+  -- ...AND ORDERED THE SAME WAY EVERY OTHER ROW IS. This used to sort on raw table x, which reads
+  -- the row backwards for half the seats; see rttOrderSlots.
+  return rttOrderSlots(out, fam)
+end
+
+-- THE ROW A PIECE BELONGS TO, family and all. ONE lookup, so numpad 0 and numpad 2 cannot disagree
+-- about what a row even is.
+--
+-- They did: numpad 0 asked by FAMILY and numpad 2 asked by exact NAME, so a waystation numpad 0 had
+-- just filed could not be fetched back -- numpad 2 looked for a row belonging to "Tablet/Figure
+-- Waystation" alone, found the one slot that piece happened to spawn on, and if another waystation
+-- was sitting there it gave up. Found by the multi-agent review, 2026-09-14.
+function rttSlotsFor(name)
+  local fam = rttHomeFamily(name)
+  if fam == name then return rttHomeSlots(name) end
+  return rttHomeFamilySlots(fam)
 end
 
 -- `name` is matched through rttHomeFamily, so a shared row is full when a slot holds ANY member of
@@ -9271,8 +9297,7 @@ function rttGizmoHome(color)
   -- 3. the rightmost empty slot of its kind
   -- THE ROW, WHICH MAY BE SHARED. rttHomeFamily is the name itself for everything except the
   -- Keepers' waystations, so this is the old behaviour for every other piece in the game.
-  local fam = rttHomeFamily(name)
-  local slots = (fam == name) and rttHomeSlots(name) or rttHomeFamilySlots(fam)
+  local slots = rttSlotsFor(name)
 
   -- ...AND THE ROW WITHIN IT, for a piece whose name does not say which row it belongs to. All
   -- twelve relics are called "Relic" and they score on three separate rows, one per kind, so
@@ -9700,7 +9725,7 @@ function rttTokenEligible(name)
   if name == nil or name == "" then return false end
   if string.find(name, "Warrior", 1, true) ~= nil then return false end
   if rttSupplyForPiece(name) ~= nil then return true end
-  return #rttHomeSlots(name) > 0
+  return #rttSlotsFor(name) > 0
 end
 
 -- the piece sitting on a given home slot, if there is one
@@ -9749,7 +9774,8 @@ function rttGizmoToken(color)
 
   -- 1. off the END of its row. rttHomeSlots hands back the fill order, so walking it backwards
   --    empties the row from the far end -- the exact mirror of numpad 0 filling it.
-  local slots = rttHomeSlots(name)
+  -- the SAME row numpad 0 fills, family and all -- see rttSlotsFor
+  local slots = rttSlotsFor(name)
   local ytol = rttHomeYTol(slots)
   for i = #slots, 1, -1 do
     local o = rttPieceOnSlot(slots[i], name, ytol)
