@@ -8372,6 +8372,18 @@ RTT_HOME_EXTRA = {
 -- up to 0.05 from a perfect grid. Rounding them onto one would look no different on the table and
 -- would put my arithmetic between him and the spots he chose, so they are copied across as measured.
 --
+-- THE HEIGHT IS THE ONE NUMBER THAT IS NOT HIS, AND MUST NOT BE. Maintainer, 2026-09-13: "some
+-- relics get inside the cardboard you missed the right calibration." His save records where a relic
+-- COMES TO REST -- 11.656, which is the board's own surface -- and a home move is a teleport with
+-- collisions off, so aiming there puts the lower half of the tile inside the board and leaves
+-- physics to shove it out. Sometimes it does. Hence "some".
+--
+-- Every piece in this game is aimed ABOVE where it rests and allowed to fall: the waystations from
+-- +0.16, the trade posts from +0.10. So relics are aimed from the waystations' own blueprint height,
+-- 0.3548 -- the same faction, the same board, and those two rest at 11.6525 and 11.6575 against the
+-- relics' 11.6564, so it is the identical surface. A measured drop height, not a chosen one.
+RTT_BOARD_DROP_Y = 0.3548
+--
 -- WHICH KIND IS WHICH COMES FROM THE FACE, NOT THE NAME. All twelve are nicknamed "Relic". The four
 -- copies of a kind share one ImageURL, and that is the only thing distinguishing them, so the kind is
 -- read from getCustomObject().image at the moment numpad 0 is pressed -- see RTT_RELIC_IMG.
@@ -8410,7 +8422,7 @@ do
   local out = {}
   for _, row in ipairs(RTT_RELIC_ROWS) do
     for _, xz in ipairs(row[2]) do
-      out[#out + 1] = { "Relic", { xz[1], 0.2, xz[2] }, on = "Relics", k = row[1],
+      out[#out + 1] = { "Relic", { xz[1], RTT_BOARD_DROP_Y, xz[2] }, on = "Relics", k = row[1],
                         ry = 180, rz = 180 }
     end
   end
@@ -8435,6 +8447,11 @@ end
 -- Three names, three slots each, so the rows sort themselves out by name alone -- no equivalent of
 -- the relics' kind lookup is needed. Fill order is the ordinary rightmost-empty-first; he asked for
 -- the leftmost only on the relics.
+--
+-- THE HEIGHT IS THEIR OWN BLUEPRINT'S, for the reason spelled out above the relics. His save has
+-- them resting at 11.6115; the nine spawn from move_to y 0.246 to 0.257, which is 0.10 higher, and
+-- that is the number to aim at. Reading the resting height off the save instead aimed 0.0015 BELOW
+-- the board -- worse than the relics, and the same bug waiting to be noticed.
 RTT_RIVERFOLK_POSTS = {
   { "Fox Trade Post",    { { -19.2249, -8.6793 },  { -17.6238, -8.6150 },  { -15.9991, -8.5867 } } },
   { "Rabbit Trade Post", { { -19.2479, -10.2654 }, { -17.6375, -10.2110 }, { -15.9973, -10.2104 } } },
@@ -8450,7 +8467,7 @@ do
   for _, row in ipairs(RTT_RIVERFOLK_POSTS) do
     RTT_HOME_EXTRA_ONLY[row[1]] = true
     for _, xz in ipairs(row[2]) do
-      out[#out + 1] = { row[1], { xz[1], 0.15, xz[2] } }
+      out[#out + 1] = { row[1], { xz[1], 0.25, xz[2] } }
     end
   end
   RTT_HOME_EXTRA["Riverfolk Company"] = out

@@ -9905,6 +9905,51 @@ def t_a_discarded_card_turns_over_the_moment_it_is_let_go(src):
     # dealt, scripted, knocked over -- is still turned up a second later.
     assert "item.flip()" in holder, "the sweep's own face-up flip was removed along with the delay"
 
+
+def t_a_piece_sent_home_lands_on_the_board_not_in_it(src):
+    """A home slot is a height to drop FROM, never the height the piece ends up at.
+
+    Maintainer, 2026-09-13: "some relics get inside the cardboard you missed the right calibration."
+
+    A SAVE RECORDS WHERE A PIECE COMES TO REST, and that is the board's own surface. Numpad 0 is a
+    teleport with collisions off, so aiming at the resting height puts the lower half of the tile
+    inside the board and leaves physics to shove it back out -- which it does sometimes and not
+    others. Hence "some".
+
+    Every piece in this game is aimed ABOVE where it rests and allowed to fall: the waystations from
+    +0.16, the trade posts from +0.10, the badger's relics onto the map from higher still. So the two
+    grids read off his saves take a measured drop height rather than the measured resting height --
+    the waystations' own for the relics (same faction, same board, and the two rest within 0.005 of
+    a relic, so it is the identical surface) and the trade posts' own blueprint for theirs.
+
+    The resting heights below are his; they are what this test exists to keep clear of.
+    """
+    RESTS = {"Relic": 11.6564, "Fox Trade Post": 11.6115,
+             "Rabbit Trade Post": 11.6115, "Mouse Trade Post": 11.6115}
+    CLEAR = 0.05          # a relic tile is ~0.07 thick at its scale; half of it must be above
+
+    rt = fresh(src)
+    rt.execute("""
+      RTT_HOME = {}
+      rttAddHomeExtras("Keepers in Iron", -52, -46, false, 0, "Relics", { 0, 0, 0 }, {})
+      for _, n in ipairs({"Fox Trade Post","Rabbit Trade Post","Mouse Trade Post"}) do
+        rttAddHomeExtras("Riverfolk Company", 52, -46, false, 0, n, { 0, 180, 0 }, {})
+      end
+      LOW = {}
+      for _, h in pairs(RTT_HOME) do
+        if LOW[h.n] == nil or h.p[2] < LOW[h.n] then LOW[h.n] = h.p[2] end
+      end
+    """)
+    for name, rest in sorted(RESTS.items()):
+        low = rt.eval("LOW[ [[%s]] ]" % name)
+        assert low is not None, "no home slot was recorded for %s" % name
+        assert low >= rest + CLEAR, \
+            ("%s is aimed at y %.4f and rests at %.4f -- only %+.4f clear, so it is set down inside "
+             "the board rather than dropped onto it" % (name, low, rest, low - rest))
+        # ...and not so high that it is thrown at the board from the ceiling
+        assert low <= rest + 0.35, \
+            "%s is aimed %.2f above the board; it would bounce off the row" % (name, low - rest)
+
 CASES = [
     ("manual path drives the turn system",   t_manual_turn_order),
     ("manual path spawns 4 / 5 boards",      t_boards_spawn),
@@ -9981,6 +10026,7 @@ CASES = [
     ("a relic on the board shows points",    t_a_relic_on_the_board_shows_its_points),
     ("a hand-dropped relic finds its row",   t_a_relic_dropped_on_the_wrong_row_is_carried_across),
     ("a discard turns over on release",      t_a_discarded_card_turns_over_the_moment_it_is_let_go),
+    ("home slots drop, not embed",           t_a_piece_sent_home_lands_on_the_board_not_in_it),
     ("numpad 2 hands you your token",  t_numpad_two_hands_you_the_token_you_chose),
     ("gizmo default key is numpad 0",         t_gizmo_default_key_is_numpad_zero),
     ("gizmo: warrior to/from supply",         t_gizmo_warrior_to_and_from_supply),
