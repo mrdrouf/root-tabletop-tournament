@@ -11802,6 +11802,96 @@ def t_the_crows_box_supply_and_warriors_come_from_the_save(src):
             "a kit piece at (%.3f, %.3f) stands inside the hidden box" % (x, z)
 
 
+def t_the_vagabonds_marker_and_quest_board_come_from_the_save(src):
+    """The vagabond's VP marker, Quest board and quest deck are where the save "vagabond" put them.
+
+    Maintainer, 2026-09-14: "check save vagabond for slight adjustment of initial vp marker spawn and
+    the differrent board positions. don t break anything though."
+
+    Diffing his save (TS_Save_47, three factions at the near row) against a spawn of the same three
+    kits, exactly three pieces had moved, all at his vagabond seat:
+
+        VP marker   16.677, 7.191  ->  17.622, 11.277   (clear of the VP panel, which ends at z 9.47)
+        Quest board  1.690, 11.759 ->   1.202, 11.586
+        quest deck  -7.207, 10.947 ->  -7.695, 10.774
+
+    The board and the deck moved by the same -0.488, -0.173, which is what a two-piece drag looks
+    like, and they are the pair that carries the kit's "Quest" tag. Everything else -- both faction
+    boards, all three crafted boards, the eleven relationship markers, the Corvid and Duchy kits
+    entire -- came back off his table at the spot the mod already spawns it, so nothing else moved.
+
+    THE SECOND VAGABOND'S MARKER TAKES THE SAME STEP rather than the same spot. Only one vagabond was
+    in his save, and the two markers (white for the first, black for the second) are 2.156 apart in
+    the blueprint; the draft path spawns the kit with no vpKeep, so BOTH land at one seat, and giving
+    them one position would stack them. That gap is asserted below for exactly that reason.
+    """
+    CX, CZ = 0.0, -46.0                                   # his vagabond's seat
+    VP     = (17.621838, 11.276810)                       # from the save
+    QUEST  = (1.202339, 11.585625)
+    DECK   = (-7.694546, 10.773514)
+
+    def kit(call):
+        rt = fresh(src)
+        rt.execute("""
+          GOT = {}
+          local real = spawnObjectJSON
+          spawnObjectJSON = function(p)
+            local j = (type(p.json) == "string") and p.json or ""
+            GOT[#GOT+1] = string.format("%s|%s|%f|%f",
+              j:match('"Nickname":%s*"([^"]*)"') or "", j:match('"scaleX":%s*([%d.]+)') or "0",
+              (p.position.x or p.position[1]) - (""" + str(CX) + """),
+              (p.position.z or p.position[3]) - (""" + str(CZ) + """))
+            return real(p)
+          end
+        """)
+        rt.execute(call + " FLUSH(200)")
+        out = []
+        for r in list(rt.eval("GOT").values()):
+            nick, sc, x, z = r.split("|")
+            out.append((nick, float(sc), float(x), float(z)))
+        return out
+
+    # --- the Quest board and its deck, in the Vagabond Layout ------------------------------------
+    layout = kit("pcall(function() rttSpawnFaction('Vagabond Layout', %s, %s, false, 'Standard', nil) end)"
+                 % (CX, CZ))
+    quest = [(x, z) for nick, sc, x, z in layout if abs(sc - 5.37) < 0.02]
+    deck  = [(x, z) for nick, sc, x, z in layout if abs(sc - 2.33) < 0.02]
+    assert len(quest) == 1, "expected one Quest board, spawned %d" % len(quest)
+    assert len(deck) == 1, "expected one quest deck, spawned %d" % len(deck)
+    for got, want, what in ((quest[0], QUEST, "Quest board"), (deck[0], DECK, "quest deck")):
+        assert abs(got[0] - want[0]) < 0.005 and abs(got[1] - want[1]) < 0.005, \
+            "the %s spawns at (%.4f, %.4f); he left it at (%.4f, %.4f)" % ((what,) + got + want)
+
+    # the pair moved TOGETHER in his save, and has to stay together: same offset between them
+    assert abs((quest[0][0] - deck[0][0]) - (QUEST[0] - DECK[0])) < 0.005 and \
+           abs((quest[0][1] - deck[0][1]) - (QUEST[1] - DECK[1])) < 0.005, \
+        "the Quest board and its deck no longer sit at the same offset from each other"
+
+    # --- the VP marker the first vagabond actually gets -------------------------------------------
+    one = kit("""pcall(function()
+        local tint = RTT_VAGABOND_VP_ORDER[1]
+        rttSpawnFaction('Vagabond Dice and VP', %s, %s, false, 'Standard', nil,
+          { vpKeep = RTT_VAGABOND_VP[tint], vpName = rttVPName(rttVagabondKey(1)) })
+      end)""" % (CX, CZ))
+    marks = [(x, z) for nick, sc, x, z in one if nick.startswith("Vagabond") and abs(sc - 0.649) < 0.01]
+    assert len(marks) == 1, "the first vagabond got %d VP markers, expected 1" % len(marks)
+    assert abs(marks[0][0] - VP[0]) < 0.005 and abs(marks[0][1] - VP[1]) < 0.005, \
+        "the VP marker spawns at (%.4f, %.4f); he left it at (%.4f, %.4f)" % (marks[0] + VP)
+
+    # --- and the draft path, which keeps neither, must not stack the two --------------------------
+    both = kit("pcall(function() rttSpawnFaction('Vagabond Dice and VP', %s, %s, false, 'Standard', nil) end)"
+               % (CX, CZ))
+    pair = sorted((x, z) for nick, sc, x, z in both if nick.startswith("Vagabond") and abs(sc - 0.649) < 0.01)
+    assert len(pair) == 2, "the kit holds %d VP markers, expected 2 (white and black)" % len(pair)
+    apart = max(abs(pair[0][0] - pair[1][0]), abs(pair[0][1] - pair[1][1]))
+    assert apart > 1.0, \
+        ("the two vagabond VP markers are %.3f apart -- the draft path spawns both at one seat and "
+         "would stack them" % apart)
+    assert abs(pair[0][1] - pair[1][1]) < 0.01, \
+        "the second vagabond's marker did not take the same step as the first: z %.4f against %.4f" \
+        % (pair[0][1], pair[1][1])
+
+
 def t_a_reset_takes_the_crows_hidden_box_with_it(src):
     """A reset erases the crows' hidden box, even when the box refuses to be locked.
 
@@ -12168,6 +12258,7 @@ CASES = [
     ("the crow kit comes from the save",     t_the_crows_box_supply_and_warriors_come_from_the_save),
     ("the crow box stands on the table",     t_the_crow_box_stands_on_the_table),
     ("a reset erases the crow box",          t_a_reset_takes_the_crows_hidden_box_with_it),
+    ("the vagabond kit comes from the save", t_the_vagabonds_marker_and_quest_board_come_from_the_save),
     ("the mole board steps off the monger",  t_the_mole_board_steps_away_from_the_monger),
     ("numpad 2 hands you your token",  t_numpad_two_hands_you_the_token_you_chose),
     ("gizmo default key is numpad 0",         t_gizmo_default_key_is_numpad_zero),
