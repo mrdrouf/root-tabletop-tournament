@@ -6532,6 +6532,69 @@ def t_the_resync_sweep_resends_everything_it_may_touch(src):
 
 
 
+def t_the_resync_sweep_leaves_zones_alone_and_survives_a_bad_object(src):
+    """The sweep skips zones, and no single object can end it.
+
+    Maintainer, 2026-09-14: "was clicking around and resync button gave a lua error ... I get the same
+    error if I just load a fresh save and click it" -- "<rttResyncClick>: Object reference not set to
+    an instance of an object".
+
+    A FRESH TABLE IS 31 OBJECTS AND TWENTY OF THEM ARE HAND ZONES. The sweep asked each one to unlock
+    and lock again. A zone has no lock to take and TTS answers that with a C# null, which is not a Lua
+    error: the pcall around the touch cannot catch it and it takes the rest of the call with it. So
+    the first hand zone ended the click -- on an empty table, with nothing else to blame.
+
+    THE SECOND HALF IS THE ONE THAT MATTERS LONGER. When that null landed it killed the pump with the
+    next frame never scheduled and RTT_RESYNC_BUSY still up, so the sweep stopped half-done and every
+    later press returned false in silence until the game was reloaded. The pump now moves its cursor
+    past the batch and arms the next step BEFORE touching anything, so the worst any object can cost
+    is the rest of one batch.
+
+    That ordering is what is asserted here, because a C# null cannot be reproduced in Lua -- pcall
+    catches everything the harness can throw. So this watches the order of events instead: the first
+    thing the sweep does must be to arm its continuation, not to touch an object.
+    """
+    rt = fresh(src)
+    rt.execute("""
+      PLAIN = MKOBJ('Warrior', {1, 11.6, 1}, {})
+      HAND  = MKOBJ('HandTrigger', {2, 11.6, 2}, {})
+      FOG   = MKOBJ('FogOfWarTrigger', {3, 11.6, 3}, {})
+    """)
+    locked = lambda o: rt.eval("function() return %s.getLock() end" % o)()
+    before = {o: locked(o) for o in ("PLAIN", "HAND", "FOG")}
+
+    assert rt.eval("function() return rttResyncSweep() end")() is True, "the sweep refused to run"
+    assert locked("PLAIN") != before["PLAIN"], "the sweep skipped an ordinary object"
+    assert locked("HAND") == before["HAND"], \
+        "the sweep tried to lock a HAND ZONE -- that is the C# null that killed the button"
+    assert locked("FOG") == before["FOG"], \
+        "the sweep tried to lock a FOG zone -- the crows' hidden box is one of those"
+    rt.execute("FLUSH(30)")
+    assert rt.eval("RTT_RESYNC_BUSY") is not True, "the sweep never cleared its busy flag"
+
+    # ...and the continuation is armed before any object is touched, so a null costs one batch and
+    # not the whole sweep plus a button that never works again
+    r2 = fresh(src)
+    r2.execute("""
+      for i = 1, 8 do MKOBJ('Warrior', { i, 11.6, 0 }, {}) end
+      ORDER = {}
+      local realTouch = rttResyncTouch
+      rttResyncTouch = function(o) ORDER[#ORDER+1] = 'touch' return realTouch(o) end
+      local realFrames = Wait.frames
+      Wait.frames = function(f, n) ORDER[#ORDER+1] = 'arm' return realFrames(f, n) end
+      pcall(function() rttResyncSweep() end)
+      Wait.frames = realFrames
+      rttResyncTouch = realTouch
+      FIRST = ORDER[1] or 'nothing'
+      TOUCHES = 0
+      for _, e in ipairs(ORDER) do if e == 'touch' then TOUCHES = TOUCHES + 1 end end
+    """)
+    assert r2.eval("TOUCHES") > 0, "the sweep touched nothing at all; this check proves nothing"
+    assert r2.eval("FIRST") == "arm", \
+        ("the sweep touched an object before arming its next step (%s first) -- one C# null would end "
+         "the pump with nothing scheduled and the busy flag stuck up" % r2.eval("FIRST"))
+
+
 def t_the_resync_button_asks_nothing_and_destroys_nothing(src):
     """A Resync button in the second row, wired straight to the sweep.
 
@@ -12318,6 +12381,7 @@ CASES = [
     ("an empty seat is pickable",         t_an_empty_seats_board_can_be_picked_by_anyone),
     ("a second click touches nothing dead", t_pressing_a_setup_button_twice_touches_nothing_dead),
     ("resync resends what it may",        t_the_resync_sweep_resends_everything_it_may_touch),
+    ("resync leaves zones alone",            t_the_resync_sweep_leaves_zones_alone_and_survives_a_bad_object),
     ("resync button asks nothing",        t_the_resync_button_asks_nothing_and_destroys_nothing),
     ("resync survives churn",             t_a_resync_survives_the_table_changing_under_it),
     ("a faction spawns a few at a time",  t_a_faction_spawns_a_few_pieces_at_a_time),

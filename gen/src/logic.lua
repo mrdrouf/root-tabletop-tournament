@@ -2272,6 +2272,38 @@ end
 --
 -- The frame waits here are BARE Wait.frames, not rttAfterFrames: a sweep is not part of a setup
 -- chain, and one abandoned half-way would leave RTT_RESYNC_BUSY true for the rest of the session.
+-- A ZONE IS NOT A PIECE, AND ASKING ONE FOR ITS LOCK IS HOW RESYNC DIED.
+--
+-- Maintainer, 2026-09-14: "was clicking around and resync button gave a lua error ... I get the same
+-- error if I just load a fresh save and click it" -- "<rttResyncClick>: Object reference not set to an
+-- instance of an object". A fresh table is 31 objects and TWENTY OF THEM ARE HAND ZONES. The sweep
+-- walked them like anything else and asked each one to unlock and lock again; a zone has no lock to
+-- take, and TTS answers that with a C# null, which is not a Lua error -- the pcall wrapped round the
+-- touch cannot catch it and it takes the rest of the call with it. So the very first hand zone ended
+-- the click, which is why it fired on an empty table with nothing else to blame.
+--
+-- Nothing is lost by skipping them: a zone has no position anybody can see go wrong. The check reads
+-- every name TTS might answer with -- `type` and `tag` carry the broad kind ("Hand", "Fog") and `name`
+-- the internal one ("HandTrigger") -- because which of them is populated is not worth a round trip to
+-- the table to find out, and matching all three costs one table lookup.
+RTT_RESYNC_ZONE = {
+  ["Hand"] = true, ["HandTrigger"] = true,
+  ["Fog"] = true, ["FogOfWarTrigger"] = true,
+  ["Scripting"] = true, ["ScriptingTrigger"] = true,
+  ["Layout"] = true, ["LayoutZone"] = true,
+  ["Randomize"] = true, ["RandomizeTrigger"] = true,
+}
+
+function rttIsZone(o)
+  if o == nil then return false end
+  local a, b, c = nil, nil, nil
+  pcall(function() a = o.type end)
+  pcall(function() b = o.tag end)
+  pcall(function() c = o.name end)
+  return RTT_RESYNC_ZONE[a or ""] == true or RTT_RESYNC_ZONE[b or ""] == true
+      or RTT_RESYNC_ZONE[c or ""] == true
+end
+
 function rttResyncSweep(done, retry, withCards)
   if RTT_RESYNC_BUSY then
     if retry == true then Wait.time(function() rttResyncSweep(done, false, withCards) end, 1.0) end
@@ -2291,16 +2323,47 @@ function rttResyncSweep(done, retry, withCards)
     local take, guid = false, nil
     pcall(function()
       guid = o.getGUID()
-      take = (o.held_by_color == nil) and (skip[guid] ~= true)
+      take = (o.held_by_color == nil) and (skip[guid] ~= true) and not rttIsZone(o)
     end)
     if take and guid ~= nil then list[#list + 1] = guid end
   end
-  local i = 1
+  local i, touched = 1, 0
+  -- WHAT HAPPENS WHEN THE LIST RUNS OUT, as its own function so the pump can arm it before it starts
+  -- touching anything. See the pump for why that ordering is the point.
+  local function finish()
+    -- THE CARDS COME AFTER, not alongside. Two bursts in the same frames is the thing this whole
+    -- file is built to avoid, and the busy flag has to stay up across both or a second press lands
+    -- in the middle of the reloads. rttResyncCardsSettle owns clearing it from here on.
+    if withCards == true and RTT_RESYNC_CARDS == true then
+      rttResyncReloadCards(function(nc, lostc, waited)
+        if done ~= nil then done(touched, nc, lostc, waited) end
+      end)
+      return
+    end
+    RTT_RESYNCING = false
+    RTT_RESYNC_BUSY = false
+    if done ~= nil then done(touched, 0, 0, false) end
+  end
   local function pump()
-    local n = 0
-    while i <= #list and n < RTT_RESYNC_PER_FRAME do
+    local from = i
+    local to = math.min(i + RTT_RESYNC_PER_FRAME - 1, #list)
+    -- THE CURSOR MOVES PAST THIS BATCH AND THE NEXT STEP IS ARMED **BEFORE** ANY OBJECT IS TOUCHED,
+    -- and that ordering is the only thing standing between one bad object and a dead button. A C#
+    -- null takes the rest of the calling function with it, so a touch that falls over used to end the
+    -- pump with the next frame never scheduled AND RTT_RESYNC_BUSY still up -- the sweep stopped
+    -- half-done and every later press returned false, silently, until the game was reloaded. Armed
+    -- first, the worst a null can cost is the rest of ONE batch: the sweep carries on, finishes, and
+    -- clears its own flag. Moving the cursor first matters for the same reason -- left where it was,
+    -- the next frame would retry the object that just killed the batch, and so would every frame after.
+    i = to + 1
+    if i <= #list then
+      Wait.frames(pump, 1)
+    else
+      Wait.frames(finish, RTT_RESYNC_HOLD + 2)
+    end
+    for k = from, to do
       local o = nil
-      pcall(function() o = getObjectFromGUID(list[i]) end)
+      pcall(function() o = getObjectFromGUID(list[k]) end)
       -- ASKED AGAIN, NOW. The list is built in one pass and drained over many frames, so "nobody is
       -- holding it" and "it has come to rest" were answers from seconds earlier. A piece picked up,
       -- or still gliding home from numpad 0, was swept anyway. Both are cheap to re-ask and the
@@ -2311,27 +2374,10 @@ function rttResyncSweep(done, retry, withCards)
           ok = (o.held_by_color == nil) and (o.resting ~= false) and (o.spawning ~= true)
         end)
       end
-      if ok then rttResyncTouch(o) end
-      i = i + 1
-      n = n + 1
-    end
-    if i <= #list then
-      Wait.frames(pump, 1)
-    else
-      Wait.frames(function()
-        -- THE CARDS COME AFTER, not alongside. Two bursts in the same frames is the thing this whole
-        -- file is built to avoid, and the busy flag has to stay up across both or a second press lands
-        -- in the middle of the reloads. rttResyncCardsSettle owns clearing it from here on.
-        if withCards == true and RTT_RESYNC_CARDS == true then
-          rttResyncReloadCards(function(nc, lostc, waited)
-            if done ~= nil then done(#list, nc, lostc, waited) end
-          end)
-          return
-        end
-        RTT_RESYNCING = false
-        RTT_RESYNC_BUSY = false
-        if done ~= nil then done(#list, 0, 0, false) end
-      end, RTT_RESYNC_HOLD + 2)
+      if ok then
+        rttResyncTouch(o)
+        touched = touched + 1
+      end
     end
   end
   pump()
