@@ -9519,6 +9519,222 @@ def t_the_log_never_reaches_the_hosts_disk(src):
         assert leak not in (saved or ""), "the save carries %r" % leak
 
 
+
+def t_a_relic_goes_to_the_left_end_of_its_own_row(src):
+    """The Keepers' twelve relics fill three rows, one per kind, from the player's LEFT.
+
+    Maintainer, 2026-09-13: "in the save keeper you will find the default position of all relics when
+    pressing numpad 0. note that they need to be set on the leftmost empty slot. there is 3 types of
+    relics and they need to be on their correct row. also if someone puts a relic on the wrong row by
+    mistake, move it to the correct row with a move."
+
+    TWO THINGS THE REST OF THE MOD HAS NEVER NEEDED. Every other row fills from the player's RIGHT,
+    which is what he asked for in September and what RTT_HOME_LEFT_FIRST now makes an exception to.
+    And every other row can be found by NAME -- all twelve relics are called "Relic", and only the
+    face tells a Figure from a Tablet from an acorn on a cord, so the row comes from
+    getCustomObject().image.
+
+    The third sentence needs no code of its own: a relic is never asked where it is, only which row is
+    its row, so one sitting on the wrong one is carried across exactly like one coming off the map.
+    """
+    rt = fresh(src)
+    assert rt.eval("RTT_HOME_LEFT_FIRST[ [[Relic]] ]") is True
+    # the three faces, and a stranger
+    for img, want in (("87A3E507CAEC4A4083EC8AD3998E20A5EB4597A5", "Figure"),
+                      ("1B21B3A568831670A0934FED30A6BB5E2CBD1DAD", "Tablet"),
+                      ("B1F1B0FA14BB5C5824F490D642A15F92F8068ED5", "Jewelry")):
+        got = rt.eval('(function() local o = MKOBJ("Relic", {0,0,0}, {}) '
+                      'o.setCustomObject({ image = "https://x/%s/" }) return rttRelicKind(o) end)()' % img)
+        assert got == want, "the %s face read as %r" % (want, got)
+
+    # A ROW OF FOUR PER KIND, laid out the way the spawn lays them: x ascending is the player's right,
+    # so the left end of each row is the smallest x.
+    rt.execute("""
+      RTT_HOME = {}
+      KINDS = { "Figure", "Tablet", "Jewelry" }
+      for r, k in ipairs(KINDS) do
+        for c = 1, 4 do
+          RTT_HOME["r" .. r .. c] = { n = "Relic", f = "Keepers in Iron", k = k,
+                                      p = { c * 1.7, 1, -40 - r * 1.7 }, r = { 0, 180, 0 } }
+        end
+      end
+      IMG = { Figure  = "87A3E507CAEC4A4083EC8AD3998E20A5EB4597A5",
+              Tablet  = "1B21B3A568831670A0934FED30A6BB5E2CBD1DAD",
+              Jewelry = "B1F1B0FA14BB5C5824F490D642A15F92F8068ED5" }
+      function RELIC(kind, pos)
+        local o = MKOBJ("Relic", pos, {})
+        o.setCustomObject({ image = "https://steamusercontent-a.akamaihd.net/ugc/1/" .. IMG[kind] .. "/" })
+        return o
+      end
+      -- a Tablet off on the map, and nothing home yet
+      T1 = RELIC("Tablet", { 80, 1, 80 })
+      HOVER = { Red = T1 }
+      rttGizmoHome("Red")
+    """)
+    x, z = rt.eval("T1.getPosition().x"), rt.eval("T1.getPosition().z")
+    assert abs(x - 1.7) < 0.001, "the first Tablet did not take the left end of its row: x %.2f" % x
+    assert abs(z - (-43.4)) < 0.001, \
+        "the Tablet landed on z %.2f; the Tablet row is -43.4 and the Figure row is -41.7" % z
+
+    # the SECOND Tablet takes the next slot along, not the first one again
+    rt.execute('T2 = RELIC("Tablet", { 80, 1, 80 }) HOVER = { Red = T2 } rttGizmoHome("Red")')
+    assert abs(rt.eval("T2.getPosition().x") - 3.4) < 0.001, \
+        "the second Tablet stacked on the first: x %.2f" % rt.eval("T2.getPosition().x")
+
+    # A FIGURE IS NOT BLOCKED BY THE TABLETS, because it reads a different row entirely.
+    rt.execute('F1 = RELIC("Figure", { 80, 1, 80 }) HOVER = { Red = F1 } rttGizmoHome("Red")')
+    assert abs(rt.eval("F1.getPosition().x") - 1.7) < 0.001 and \
+           abs(rt.eval("F1.getPosition().z") - (-41.7)) < 0.001, \
+        ("a Figure went to (%.2f, %.2f) instead of the left end of the Figure row (1.70, -41.70)"
+         % (rt.eval("F1.getPosition().x"), rt.eval("F1.getPosition().z")))
+
+    # ...AND ONE PUT DOWN ON THE WRONG ROW IS CARRIED ACROSS. This Jewelry is sitting in the Figure
+    # row's third slot; numpad 0 must move it to the Jewelry row, not leave it where it is.
+    rt.execute('J1 = RELIC("Jewelry", { 5.1, 1, -41.7 }) HOVER = { Red = J1 } rttGizmoHome("Red")')
+    jz = rt.eval("J1.getPosition().z")
+    assert abs(jz - (-45.1)) < 0.001, \
+        "a Jewelry left on the Figure row stayed at z %.2f instead of moving to its own row" % jz
+    assert abs(rt.eval("J1.getPosition().x") - 1.7) < 0.001, \
+        "the rescued Jewelry did not take the left end of its row"
+
+
+def t_the_keepers_kit_records_its_relic_rows(src):
+    """The twelve slots have to be recorded from a piece that is NOT a relic.
+
+    A relic never spawns loose: the twelve arrive inside a bag nicknamed "Relics" and rttBadgerRelics
+    deals them onto the map's forests. So nothing named "Relic" is ever handed to rttAddHomeExtras,
+    and an entry keyed on its own name would never fire -- the slots would exist in the table and
+    never reach RTT_HOME. `on` names the bag instead.
+
+    Checked against the real seat transform, because that is where a coordinate frame goes wrong:
+    the maintainer's numbers were read at a seat with no rotation, and the far-row seats are turned
+    180.
+    """
+    rt = fresh(src)
+    rt.execute("""
+      RTT_HOME = {}
+      DONE = {}
+      -- his own seat: centre (-52, -46), no rotation
+      rttAddHomeExtras("Keepers in Iron", -52, -46, false, 0, "Relics", { 0, 0, 0 }, DONE)
+    """)
+    slots = rt.eval("(function() local n = 0 for _, h in pairs(RTT_HOME) do "
+                    "if h.n == 'Relic' then n = n + 1 end end return n end)()")
+    assert slots == 12, "the Keepers' spawn recorded %d relic slots, not 12" % slots
+
+    kinds = rt.eval("(function() local m = {} for _, h in pairs(RTT_HOME) do "
+                    "if h.n == 'Relic' then m[h.k] = (m[h.k] or 0) + 1 end end "
+                    "return m.Figure .. '/' .. m.Tablet .. '/' .. m.Jewelry end)()")
+    assert kinds == "4/4/4", "the twelve slots split %s across the three kinds, not 4/4/4" % kinds
+
+    # the maintainer's own Tablet row, in world coordinates: x -53.997..-48.949 at z -52.2
+    got = rt.eval("(function() local lo, hi, z = 1e9, -1e9, nil for _, h in pairs(RTT_HOME) do "
+                  "if h.k == 'Tablet' then lo = math.min(lo, h.p[1]) hi = math.max(hi, h.p[1]) "
+                  "z = h.p[3] end end return string.format('%.2f %.2f %.2f', lo, hi, z) end)()")
+    lo, hi, z = (float(v) for v in got.split())
+    assert abs(lo - -53.997) < 0.01 and abs(hi - -48.949) < 0.01, \
+        "the Tablet row spans x %.2f..%.2f; his save has -54.00..-48.95" % (lo, hi)
+    assert -52.3 < z < -52.1, "the Tablet row sits at z %.2f; his save has -52.2" % z
+    # face the player, not the way the Relics BAG happens to be turned (270 in the blueprint)
+    ry = rt.eval("(function() for _, h in pairs(RTT_HOME) do if h.n == 'Relic' then "
+                 "return h.r[2] end end end)()")
+    assert abs(ry - 180) < 0.01, "a relic slot faces %.1f, not 180" % ry
+
+    # ...and the far row turns with the seat
+    rt.execute("RTT_HOME = {} rttAddHomeExtras('Keepers in Iron', -52, 46, false, 180, 'Relics', "
+               "{ 0, 0, 0 }, {})")
+    ry = rt.eval("(function() for _, h in pairs(RTT_HOME) do if h.n == 'Relic' then "
+                 "return h.r[2] end end end)()")
+    assert abs(ry) < 0.01 or abs(ry - 360) < 0.01, \
+        "a far-row relic slot faces %.1f; the seat is turned 180 so the tile should be too" % ry
+
+
+def t_a_crow_plot_goes_back_to_its_own_square(src):
+    """Every crow plot is nicknamed "Plot", so without its own spot they would shuffle themselves.
+
+    Maintainer, 2026-09-13: "crow plots are not set to come back to initial spawn position either on
+    numpad 0. you should have all items set to return."
+
+    THEY HAD NO HOME AT ALL. The twelve are laid out by rttCrowsPlots, not by the kit spawn, and that
+    callback only locked and tagged them -- so RTT_HOME never learned where any of them was and
+    numpad 0 fell through every branch to nothing. Recording it there is the fix; the second half is
+    RTT_HOME_OWN_SPOT, because the grid is four KINDS in four columns and the ordinary
+    rightmost-empty-first rule would read it as one row of twelve and mix them up.
+    """
+    rt = fresh(src)
+    assert rt.eval("RTT_HOME_OWN_SPOT[ [[Plot]] ]") is True, \
+        "a plot still fills a row instead of returning to its own square"
+
+    rt.execute("""
+      RTT_HOME = {}
+      -- the grid as rttCrowsPlots lays it: 4 columns x 3 rows
+      P = {}
+      for c = 1, 4 do
+        for r = 1, 3 do
+          local o = MKOBJ("Plot", { 20 + c * 1.6, 12, -40 + r * 1.6 }, {})
+          o.setRotation({ 0, 90, 0 })
+          rttRecordHome(o, "Corvid Conspiracy")
+          P[#P + 1] = o
+        end
+      end
+      -- one of them goes out on the map, face down, and is sent home
+      VICTIM = P[7]
+      VICTIM.setPosition({ 0, 12, 0 })
+      VICTIM.setRotation({ 0, 0, 180 })
+      HOVER = { Red = VICTIM }
+      rttGizmoHome("Red")
+    """)
+    x, z = rt.eval("VICTIM.getPosition().x"), rt.eval("VICTIM.getPosition().z")
+    assert abs(x - 24.8) < 0.001 and abs(z - (-38.4)) < 0.001, \
+        "the plot went to (%.2f, %.2f); its own square is (24.80, -38.40)" % (x, z)
+    assert abs(rt.eval("VICTIM.getRotation().y") - 90) < 0.001 and \
+           abs(rt.eval("VICTIM.getRotation().z")) < 0.001, \
+        "the plot came back turned the wrong way"
+    # nothing else was disturbed: the other eleven are still on their own squares
+    moved = rt.eval("(function() local n = 0 for i, o in ipairs(P) do if o ~= VICTIM then "
+                    "local p = o.getPosition() "
+                    "if math.abs(p.x - (20 + (math.floor((i-1)/3)+1) * 1.6)) > 0.001 then n = n + 1 end "
+                    "end end return n end)()")
+    assert moved == 0, "%d other plots were moved when one was sent home" % moved
+
+
+def t_a_trade_post_returns_to_the_board_not_the_pile(src):
+    """The otters' nine trade posts belong on the printed track, not where they spawn.
+
+    Maintainer, 2026-09-13: "for otters tradepost should not come back to their spawn positions. look
+    at the save otters for the position where they should go instead with numpad 0."
+
+    THIS IS THE FIRST PIECE IN THE GAME WHOSE SPAWN SPOT IS NOT A HOME. Everywhere else the two are
+    the same thing or the measured slots are extra ones, and both count. Here they must not: the nine
+    spawn stacked to the RIGHT of the seat and the track he wants them on is to the LEFT, so counting
+    both would give each trade post nine slots it belongs on and nine it does not -- and the spawn
+    pile is nearer the front of the fill order.
+    """
+    rt = fresh(src)
+    assert rt.eval("RTT_HOME_EXTRA_ONLY[ [[Fox Trade Post]] ]") is True
+    assert rt.eval("RTT_HOME_EXTRA_ONLY[ [[Enclave]] ]") is None, \
+        "a piece that is not a trade post lost its spawn spots"
+
+    rt.execute("""
+      RTT_HOME = {}
+      -- the spawn, which records nine pile spots...
+      for i = 1, 3 do
+        local o = MKOBJ("Fox Trade Post", { 55 + i, 11.7, -55 }, {})
+        rttRecordHome(o, "Riverfolk Company")
+      end
+      -- ...and the kit's own callback, which records the measured track
+      rttAddHomeExtras("Riverfolk Company", 52, -46, false, 0, "Fox Trade Post", { 0, 180, 0 }, {})
+      POST = MKOBJ("Fox Trade Post", { 0, 11.7, 0 }, {})
+      HOVER = { Red = POST }
+      rttGizmoHome("Red")
+    """)
+    x, z = rt.eval("POST.getPosition().x"), rt.eval("POST.getPosition().z")
+    assert x < 40, "the trade post went back to the spawn pile at x %.2f, not the board track" % x
+    # his save: the Fox row runs x 32.78..36.00 at z -54.6, and it fills from the player's right
+    assert abs(x - 36.0009) < 0.01, \
+        "the trade post landed at x %.2f; the right end of his Fox row is 36.00" % x
+    assert abs(z - (-54.5867)) < 0.01, \
+        "the trade post landed at z %.2f; his Fox row is at -54.59" % z
+
 CASES = [
     ("manual path drives the turn system",   t_manual_turn_order),
     ("manual path spawns 4 / 5 boards",      t_boards_spawn),
@@ -9588,6 +9804,10 @@ CASES = [
     ("a dead handle cannot crash us",       t_a_destroyed_object_cannot_crash_the_map_scan),
     ("map buttons warn before wiping",       t_map_buttons_warn_before_wiping),
     ("numpad 0 leaves locked alone",  t_numpad_zero_leaves_locked_pieces_alone),
+    ("a relic fills its row from the left",  t_a_relic_goes_to_the_left_end_of_its_own_row),
+    ("the keepers record their relic rows",  t_the_keepers_kit_records_its_relic_rows),
+    ("a crow plot returns to its square",    t_a_crow_plot_goes_back_to_its_own_square),
+    ("a trade post returns to the board",    t_a_trade_post_returns_to_the_board_not_the_pile),
     ("numpad 2 hands you your token",  t_numpad_two_hands_you_the_token_you_chose),
     ("gizmo default key is numpad 0",         t_gizmo_default_key_is_numpad_zero),
     ("gizmo: warrior to/from supply",         t_gizmo_warrior_to_and_from_supply),

@@ -6387,7 +6387,11 @@ function rttCrowsPlots(cx, cz, flip, isDraft, board)
       json = blob,
       position = { w.x, w.y, w.z },
       rotation = { 0, ry, rz },
-      callback_function = function(o) o.setLock(false) o.addTag("RTT Faction") end   -- cleared with the faction
+      -- cleared with the faction, and its own spot remembered so numpad 0 brings it back to the grid
+      callback_function = function(o)
+        o.setLock(false) o.addTag("RTT Faction")
+        rttRecordHome(o, "Corvid Conspiracy")
+      end
     }
   end
   rttSpawnStaggered(plotSpecs)
@@ -8351,6 +8355,134 @@ RTT_HOME_EXTRA = {
   ["Underground Duchy"] = { { "Tunnel",        {  10.107, 0.1,  8.586 } } },
 }
 
+-- ---- THE KEEPERS' TWELVE RELICS, and the three rows they score on -----------------------------
+--
+-- Maintainer, 2026-09-13: "in the save keeper you will find the default position of all relics when
+-- pressing numpad 0. note that they need to be set on the leftmost empty slot. there is 3 types of
+-- relics and they need to be on their correct row. also if someone puts a relic on the wrong row by
+-- mistake, move it to the correct row with a move."
+--
+-- READ OFF HIS OWN SAVE, "43 - keeper". The twelve sit in a 3x4 grid on the Keepers' board, one row
+-- per kind. His seat centre is (-52, -46) with no rotation, which his three waystations confirm to
+-- four decimals -- each one's world position minus its blueprint move_to lands on exactly that -- so
+-- the numbers below ARE the move_to frame every other entry in this table is written in, with no
+-- conversion to get wrong.
+--
+-- HIS NUMBERS, NOT A TIDIED VERSION OF THEM. Tiles settle where they land, so the twelve scatter by
+-- up to 0.05 from a perfect grid. Rounding them onto one would look no different on the table and
+-- would put my arithmetic between him and the spots he chose, so they are copied across as measured.
+--
+-- WHICH KIND IS WHICH COMES FROM THE FACE, NOT THE NAME. All twelve are nicknamed "Relic". The four
+-- copies of a kind share one ImageURL, and that is the only thing distinguishing them, so the kind is
+-- read from getCustomObject().image at the moment numpad 0 is pressed -- see RTT_RELIC_IMG.
+-- Each row left to right in the player's view, as { x, z }. Board-local, seat-centre frame.
+RTT_RELIC_ROWS = {
+  { "Figure",  { { -1.9724, -4.5100 }, { -0.3143, -4.4606 }, { 1.3684, -4.5094 }, { 3.0510, -4.4846 } } },
+  { "Tablet",  { { -1.9966, -6.1926 }, { -0.3140, -6.2414 }, { 1.3686, -6.2166 }, { 3.0513, -6.2163 } } },
+  { "Jewelry", { { -1.9718, -7.9489 }, { -0.3137, -7.9731 }, { 1.3689, -7.9729 }, { 3.0516, -7.9726 } } },
+}
+
+-- The face of each kind, by the hash in its ImageURL. Confirmed by looking at the three: a stone
+-- idol, an inscribed tablet, an acorn pendant on a cord.
+RTT_RELIC_IMG = {
+  ["87A3E507CAEC4A4083EC8AD3998E20A5EB4597A5"] = "Figure",
+  ["1B21B3A568831670A0934FED30A6BB5E2CBD1DAD"] = "Tablet",
+  ["B1F1B0FA14BB5C5824F490D642A15F92F8068ED5"] = "Jewelry",
+}
+
+-- Built rather than typed out, so the grid is visible as a grid and a row cannot drift a column out
+-- of line. `on = "Relics"` because a relic never spawns loose -- the twelve arrive inside a bag of
+-- that name and rttBadgerRelics deals them onto the map -- so the BAG's landing is the moment these
+-- slots can be recorded. `ry = 180` because the same reason means there is no relic to copy a facing
+-- from; 180 is how the tile sits on the board, turned with the seat.
+do
+  local out = {}
+  for _, row in ipairs(RTT_RELIC_ROWS) do
+    for _, xz in ipairs(row[2]) do
+      out[#out + 1] = { "Relic", { xz[1], 0.2, xz[2] }, on = "Relics", k = row[1], ry = 180 }
+    end
+  end
+  RTT_HOME_EXTRA["Keepers in Iron"] = out
+end
+
+-- ---- THE OTTERS' NINE TRADE POSTS: the board track, NOT the pile they spawn in -----------------
+--
+-- Maintainer, 2026-09-13: "for otters tradepost should not come back to their spawn positions. look
+-- at the save otters for the position where they should go instead with numpad 0."
+--
+-- They spawn stacked out to the RIGHT of the seat (blueprint move_to x +3.5 to +6.8) and he has
+-- moved all nine to the LEFT (x -19.2 to -16.0), onto the nine spaces printed on the Riverfolk
+-- board. Read off his save "otters", seat centre (52, -46) with no rotation -- his Riverfolk VP
+-- marker lands on that to four decimals against its own blueprint move_to.
+--
+-- REPLACING, WHICH NO OTHER ENTRY IN THIS TABLE DOES. Everywhere else these extras are spots the
+-- spawn did not provide and both count; here the spawn spots must stop counting, or a trade post
+-- would have eighteen slots and half of them the pile he is moving them out of. That is what
+-- RTT_HOME_EXTRA_ONLY below says.
+--
+-- Three names, three slots each, so the rows sort themselves out by name alone -- no equivalent of
+-- the relics' kind lookup is needed. Fill order is the ordinary rightmost-empty-first; he asked for
+-- the leftmost only on the relics.
+RTT_RIVERFOLK_POSTS = {
+  { "Fox Trade Post",    { { -19.2249, -8.6793 },  { -17.6238, -8.6150 },  { -15.9991, -8.5867 } } },
+  { "Rabbit Trade Post", { { -19.2479, -10.2654 }, { -17.6375, -10.2110 }, { -15.9973, -10.2104 } } },
+  { "Mouse Trade Post",  { { -19.1759, -11.8857 }, { -17.5670, -11.8347 }, { -15.9216, -11.8441 } } },
+}
+
+-- Names whose ONLY home slots are the ones in RTT_HOME_EXTRA: where a piece spawned is not a place
+-- it belongs. See the trade posts above; nothing else in the game is in here.
+RTT_HOME_EXTRA_ONLY = {}
+
+do
+  local out = {}
+  for _, row in ipairs(RTT_RIVERFOLK_POSTS) do
+    RTT_HOME_EXTRA_ONLY[row[1]] = true
+    for _, xz in ipairs(row[2]) do
+      out[#out + 1] = { row[1], { xz[1], 0.15, xz[2] } }
+    end
+  end
+  RTT_HOME_EXTRA["Riverfolk Company"] = out
+end
+
+-- The kind of relic a tile is, or nil for anything that is not one.
+function rttRelicKind(o)
+  local img = nil
+  pcall(function() img = (o.getCustomObject() or {}).image end)
+  if type(img) ~= "string" then return nil end
+  for hash, kind in pairs(RTT_RELIC_IMG) do
+    if string.find(img, hash, 1, true) then return kind end
+  end
+  return nil
+end
+
+-- WHERE A PIECE SPAWNED OUTSIDE rttSpawnFaction BELONGS.
+--
+-- Maintainer, 2026-09-13: "crow plots are not set to come back to initial spawn position either on
+-- numpad 0. you should have all items set to return."
+--
+-- rttSpawnFaction's own callback records RTT_HOME for every piece of a kit, which is why numpad 0
+-- works on buildings and tokens. The crows' twelve plots are laid out by their OWN spawn helper
+-- instead, and that callback only locked and tagged them, so RTT_HOME never learned where any of
+-- them was and the key did nothing on one.
+--
+-- THE KNAVES' CAPTAIN ITEMS, MEEPLES AND WARRIORS HAVE THE SAME GAP AND ARE DELIBERATELY NOT FIXED
+-- HERE. Their names are not their own: "Knaves Warrior" is also all ten warriors in the supply, and
+-- "Sword" and "Crossbow" appear elsewhere in the content file too. Giving the captain's copy a home
+-- row would therefore give EVERY piece of that name one, and a warrior that should go back to its
+-- supply bag would be sent to a captain's slot instead. Naming those spots needs the maintainer to
+-- say where they are, the way he did for the relics and the trade posts.
+--
+-- Called from inside the spawn callback, the one moment a piece's real position and facing are
+-- known. Takes the object, not a position, for the same reason the kit's callback does: a piece
+-- rotated after spawning would otherwise be recorded facing a way it never faced.
+function rttRecordHome(o, faction)
+  pcall(function()
+    local p, r = o.getPosition(), o.getRotation()
+    RTT_HOME[o.getGUID()] = { n = o.getName() or "", f = faction,
+                              p = { p.x, p.y, p.z }, r = { r.x, r.y, r.z } }
+  end)
+end
+
 -- Add a faction's extra return slots -- the spots the maintainer measured that are NOT spawn
 -- positions -- transformed exactly as rttSpawnFaction transforms a piece's move_to.
 --
@@ -8363,8 +8495,13 @@ function rttAddHomeExtras(faction, cx, cz, flip, rotationY, name, rot, done)
   if list == nil or name == nil or name == "" or rot == nil then return end
   done = done or {}
   local scale = rttPlaceScale()
+  -- the half-turn (or the angle) this spawn applied, rebuilt exactly as rttSpawnFaction builds it
+  local spawnRy = rotationY or (flip and 180 or 0)
   for i, e in ipairs(list) do
-    if e[1] == name and not done[i] then
+    -- `on` names the piece whose landing records this slot, when that is NOT a piece of the slot's
+    -- own kind. The twelve relics need it: they arrive inside the "Relics" bag and never spawn
+    -- loose, so nothing named "Relic" is ever handed to this function.
+    if (e.on or e[1]) == name and not done[i] then
       done[i] = true
       local vec = Vector(e[2]) * scale
       if rotationY ~= nil then
@@ -8375,10 +8512,19 @@ function rttAddHomeExtras(faction, cx, cz, flip, rotationY, name, rot, done)
       else
         vec = vec * Vector(15.5, 1, 15.5)
       end
+      -- FACING: copied from the piece that landed, unless the entry states its own. An entry that
+      -- uses `on` has no such piece to copy from -- the relics would take the Relics BAG's 270 and
+      -- lie sideways on the board -- so `ry` gives the facing in the seat's own frame and the
+      -- seat's own rotation is added back here.
+      local r = { rot[1], rot[2], rot[3] }
+      if e.ry ~= nil then r = { 0, (e.ry + spawnRy) % 360, 0 } end
+      -- `x = true` marks this as a MEASURED slot rather than a spawn record. The two are otherwise
+      -- indistinguishable once they are both in RTT_HOME, and RTT_HOME_EXTRA_ONLY needs to tell them
+      -- apart to drop the spawn spots of a piece whose real place is elsewhere.
       RTT_HOME["x" .. faction .. e[1] .. i] = {
-        n = e[1], f = faction,
+        n = e[1], f = faction, k = e.k, x = true,
         p = { cx + vec.x, 11.56 + vec.y - 0.1, cz + vec.z },
-        r = { rot[1], rot[2], rot[3] },
+        r = r,
       }
     end
   end
@@ -8405,11 +8551,24 @@ RTT_HOME_RIGHT_IS_PLUS_X = true
 -- filled like one: "fill the stack of tunnels with the lowest first." The ordinary comparator does
 -- that already -- all three share a column within its 0.2 tolerance, so z decides, read in the
 -- seat's own frame so "lowest" means lowest to the player rather than lowest on the table.
-RTT_HOME_OWN_SPOT = {}
+--
+-- THE CROWS' PLOTS ARE HERE. Maintainer, 2026-09-13: "crow plots are not set to come back to initial
+-- spawn position either on numpad 0." Twelve tiles, all nicknamed "Plot", laid in a 4x3 grid inside
+-- the crow player's hidden zone -- four kinds, three of each, one kind per column. The ordinary
+-- rightmost-empty-first rule would read that grid as one row of twelve and send a returning plot to
+-- whichever slot happened to be free, mixing the columns up; and "initial spawn position" is what he
+-- asked for anyway. Each plot has a slot of its own, so its own spot is never contended.
+RTT_HOME_OWN_SPOT = { ["Plot"] = true }
 
 -- Acclaim fills stack by stack, in the maintainer's order: bottom-right, bottom-left, top-right,
 -- top-left, two per stack.
 RTT_HOME_STACKED = { ["Acclaim"] = 2 }
+
+-- ROWS THAT FILL FROM THE PLAYER'S LEFT instead of their right. Every other row in the game fills
+-- rightmost-empty-first, which is what the maintainer asked for on 2026-09-06 and what the
+-- comparator below does. The Keepers' relic rows are the exception he named on 2026-09-13: "note
+-- that they need to be set on the leftmost empty slot."
+RTT_HOME_LEFT_FIRST = { ["Relic"] = true }
 
 -- PIECES THAT SHARE A ROW EVEN THOUGH THEIR NAMES DIFFER, keyed on the last word of the name.
 --
@@ -8439,8 +8598,12 @@ end
 -- reflects what actually spawned at this table rather than a table that could drift from it.
 function rttHomeSlots(name)
   local out = {}
+  -- ...EXCEPT where the spawn spots are not places the piece belongs. The otters' trade posts spawn
+  -- in a pile beside the seat and score on a track printed across the board; counting both would
+  -- give each of them nine slots it should use and nine it should not.
+  local onlyMeasured = RTT_HOME_EXTRA_ONLY[name]
   for _, h in pairs(RTT_HOME or {}) do
-    if h.n == name then out[#out + 1] = h end
+    if h.n == name and (not onlyMeasured or h.x) then out[#out + 1] = h end
   end
   if #out == 0 then return out end
   -- The PARKED ODD ONE OUT. Several types keep one piece well away from the neat group -- a roost at
@@ -8495,13 +8658,17 @@ function rttHomeSlots(name)
   for _, h in ipairs(out) do sz = sz + h.p[3] end
   local s = (sz > 0) and -1 or 1
   local per = RTT_HOME_STACKED[name]
+  -- ...and which end of the row is filled first. -1 reads the row the other way round; see
+  -- RTT_HOME_LEFT_FIRST. It rides on the same seat sign, so "left" stays the player's left on both
+  -- rows of the table.
+  local lf = RTT_HOME_LEFT_FIRST[name] and -1 or 1
   table.sort(out, function(a, b)
     if per ~= nil then                       -- stacks: nearest row first, then right to left, then up
       if math.abs(a.p[3] - b.p[3]) > 0.2 then return a.p[3] * s < b.p[3] * s end
       if math.abs(a.p[1] - b.p[1]) > 0.2 then return a.p[1] * s > b.p[1] * s end
       return a.p[2] < b.p[2]
     end
-    if math.abs(a.p[1] - b.p[1]) > 0.2 then return a.p[1] * s > b.p[1] * s end
+    if math.abs(a.p[1] - b.p[1]) > 0.2 then return a.p[1] * s * lf > b.p[1] * s * lf end
     if math.abs(a.p[3] - b.p[3]) > 0.2 then return a.p[3] * s < b.p[3] * s end
     return a.p[2] < b.p[2]
   end)
@@ -8682,6 +8849,24 @@ function rttGizmoHome(color)
   -- Keepers' waystations, so this is the old behaviour for every other piece in the game.
   local fam = rttHomeFamily(name)
   local slots = (fam == name) and rttHomeSlots(name) or rttHomeFamilySlots(fam)
+
+  -- ...AND THE ROW WITHIN IT, for a piece whose name does not say which row it belongs to. All
+  -- twelve relics are called "Relic" and they score on three separate rows, one per kind, so
+  -- without this the first free slot of all twelve would do -- which is how a relic ends up on the
+  -- wrong row. Narrowing to the matching kind is also the whole of the maintainer's "if someone
+  -- puts a relic on the wrong row by mistake, move it to the correct row with a move": the piece is
+  -- not asked where it currently is, only which row is ITS row, so a misplaced one is picked up and
+  -- carried across exactly like one coming off the map.
+  --
+  -- If nothing is recorded with a kind, this narrows to nothing and the unfiltered list stands --
+  -- an older bake with no relic slots behaves as it did.
+  local kind = rttRelicKind(hovered)
+  if kind ~= nil then
+    local only = {}
+    for _, sl in ipairs(slots) do if sl.k == kind then only[#only + 1] = sl end end
+    if #only > 0 then slots = only end
+  end
+
   local ytol = rttHomeYTol(slots)
   for _, sl in ipairs(slots) do
     if not rttHomeSlotTaken(sl, name, hovered, ytol) then

@@ -347,8 +347,14 @@ function MKOBJ(name, pos, tags)
     o.__rot = vec{ o.__rot.x, o.__rot.y, o.is_face_down and 180 or 0 }
     return o
   end
-  function o.getDescription() return "" end function o.getCustomObject() return {} end
-  function o.setCustomObject() end function o.getLuaScript() return "" end
+  function o.getDescription() return "" end
+  -- THE FACE, which is the only thing that tells two pieces of the same NAME apart. All twelve of
+  -- the Keepers' relics are called "Relic" and nothing but getCustomObject().image says which of the
+  -- three kinds a tile is, so a stub that always answered {} could not express the case at all.
+  o.__custom = {}
+  function o.getCustomObject() return o.__custom end
+  function o.setCustomObject(t) o.__custom = t or {} end
+  function o.getLuaScript() return "" end
   function o.setLuaScript() end function o.getGMNotes() return "" end
   function o.setGMNotes() end function o.getValue() return 0 end function o.setValue() end
   -- THE OBJECT'S OWN XML UI, AND WHAT IS IN IT. TTS throws "Object reference not set to an instance
