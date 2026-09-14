@@ -5554,6 +5554,23 @@ function rttPlaceFaction(faction, cx, cz, flip, color, isDraft, category, rotati
   -- his -- and the hand, being owned by that colour, was invisible to him. His report: "sometimes it
   -- looks like I cannot see the card in the supporter area, even though I'm seated there".
   local supColor = pickerColor or color
+  -- ...UNLESS SOMEBODY ELSE IS ACTUALLY SITTING IN THIS SEAT.
+  --
+  -- The rule above holds because whoever picks a faction takes that seat -- maintainer, 2026-09-14:
+  -- "If I am alone and select the WA I should be seated there and considered that player. then if I
+  -- pick another faction I take that other color and seat." That is the solo and debugging case and
+  -- it must keep working exactly as it does.
+  --
+  -- What broke the premise is that picking on an UNOCCUPIED seat was later allowed, so a pick can now
+  -- be made on a seat whose colour a DIFFERENT HUMAN is sitting in. Then the supporters are theirs,
+  -- not the clicker's, and handing them to the clicker puts three secret cards in the wrong person's
+  -- hand. A real person in the chair is the only thing that overrides the picker -- an empty colour
+  -- never does, which is what keeps solo untouched.
+  pcall(function()
+    if seat.color ~= nil and seat.color ~= supColor and rttPersonIn(seat.color) ~= nil then
+      supColor = seat.color
+    end
+  end)
   if faction == "Woodland Alliance" and supColor ~= nil then
     -- Capture where hand 2 is BEFORE moving it. setHandTransform is not instant, so "has it moved yet?"
     -- is the only exact readiness test -- and until it has, the zone is still parked at x=-75, which is

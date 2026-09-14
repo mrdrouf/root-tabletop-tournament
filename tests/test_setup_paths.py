@@ -10858,6 +10858,58 @@ def t_the_keyframe_survives_the_tables_hand_zones(src):
     assert rt.eval("ASKED_TILE") == 1, \
         "the recorder no longer reads the art tail off unnamed cardboard, which is what it is for"
 
+
+def t_the_supporters_go_to_whoever_is_actually_in_the_seat(src):
+    """The Alliance's secret supporters follow the picker -- unless a real person holds that seat.
+
+    Maintainer, 2026-09-14: "If I am alone and select the WA I should be seated there and considered
+    that player. then if I pick another faction I take that other color and seat and can select
+    another faction. doing this though is for debugging. in normal games there is only 1 faction per
+    player."
+
+    So the picker taking the seat is CORRECT and must keep working: solo, he clicks a faction on any
+    seat and the supporters are his. The rule that justified it -- "you can only pick on your own
+    seat" -- stopped being true when picking on an unoccupied seat was allowed, and a pick can now
+    land on a seat whose colour a DIFFERENT human is sitting in. Then the supporters are theirs, and
+    handing them to the clicker puts three secret cards in the wrong person's hand.
+
+    A real person in the chair is the only thing that overrides the picker. An empty colour never
+    does, which is exactly what keeps the solo and debugging case untouched.
+    """
+    def who(seat_color, person_in, picker):
+        rt = fresh(src)
+        rt.execute("""
+          GOT = nil
+          rttPersonIn = function(c) if c == %s then return "Somebody" end return nil end
+          local pickerColor, color, seat = %s, "Blue", { color = %s }
+          local supColor = pickerColor or color
+          pcall(function()
+            if seat.color ~= nil and seat.color ~= supColor and rttPersonIn(seat.color) ~= nil then
+              supColor = seat.color
+            end
+          end)
+          GOT = supColor
+        """ % (("'%s'" % person_in) if person_in else "nil",
+               ("'%s'" % picker) if picker else "nil",
+               ("'%s'" % seat_color) if seat_color else "nil"))
+        return rt.eval("GOT")
+
+    # SOLO / DEBUGGING: the seat's colour belongs to nobody, so the clicker keeps the hand
+    assert who("Yellow", None, "Red") == "Red", \
+        "solo, the supporters went to a colour nobody is sitting in -- his original complaint"
+    # A REAL GAME: somebody is in that chair, so they get their own supporters
+    assert who("Yellow", "Yellow", "Red") == "Yellow", \
+        "a pick made on another player's seat put their secret supporters in the clicker's hand"
+    # THE ORDINARY CASE: you pick on your own seat
+    assert who("Red", "Red", "Red") == "Red", "picking on your own seat no longer gives you the hand"
+    # and a seat with no colour at all falls back to the picker
+    assert who(None, None, "Red") == "Red", "a seat with no colour lost the picker fallback"
+
+    # the live code really does carry this guard, not just this fixture
+    i = src.index("local supColor = pickerColor or color")
+    assert "rttPersonIn(seat.color)" in src[i:i + 900], \
+        "rttSpawnFaction no longer checks whether a real person holds the seat"
+
 CASES = [
     ("manual path drives the turn system",   t_manual_turn_order),
     ("manual path spawns 4 / 5 boards",      t_boards_spawn),
@@ -10950,6 +11002,7 @@ CASES = [
     ("a renamed vagabond VP keeps its spot", t_a_renamed_vagabond_vp_keeps_its_spot),
     ("resync spares every hand",             t_a_resync_never_reaches_into_a_second_hand),
     ("the keyframe survives hand zones",     t_the_keyframe_survives_the_tables_hand_zones),
+    ("supporters go to the seat's player",   t_the_supporters_go_to_whoever_is_actually_in_the_seat),
     ("numpad 2 hands you your token",  t_numpad_two_hands_you_the_token_you_chose),
     ("gizmo default key is numpad 0",         t_gizmo_default_key_is_numpad_zero),
     ("gizmo: warrior to/from supply",         t_gizmo_warrior_to_and_from_supply),
