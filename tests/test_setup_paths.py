@@ -11027,6 +11027,74 @@ def t_a_waystation_row_reads_the_same_way_as_every_other(src):
         ("numpad 0 and numpad 2 no longer share one row lookup (%d call sites)"
          % src.count("local slots = rttSlotsFor(name)"))
 
+
+def t_a_new_setup_stops_the_old_game_being_filed_twice(src):
+    """EXPORT must not file a finished game under an id it mints on the spot.
+
+    Found by the multi-agent review, 2026-09-14. The sequence is one the code's own flow invites:
+
+      the marker hits 30 and the game is archived under id A with its whole event log; the host
+      presses EXPORT and leaves TTS to fetch the one-time upload token; the table, not waiting,
+      presses 4-Player Setup for game two, so the run id moves and the recorder discards the log;
+      the host comes back, pastes the token and presses UPLOAD -- and the sheet still holds GAME
+      ONE while the board is GAME TWO.
+
+    Arming inside the send minted a brand new id and filed game one's box score under it, with game
+    two's seats, game two's map and clearings, and no events at all. The corpus gained a permanent
+    second row for one game, and since nothing ever sends under that id again it could not be
+    repaired from this end.
+
+    Refusing is the whole fix. A visible "not sent" beats a silent wrong record.
+    """
+    def send_after(drop_the_log):
+        rt = lupa.LuaRuntime(unpack_returned_tuples=True)
+        rt.execute(open(os.path.join(HERE, "tts_stub.lua"), encoding="utf-8").read())
+        rt.execute(observer_lua().replace("!=", "~="))
+        rt.execute("""
+          SENT = 0
+          WebRequest = { post = function() SENT = SENT + 1 return {} end,
+                         custom = function() SENT = SENT + 1 return {} end }
+          OBS_ENABLED = true
+          RUN = 7
+          -- the recorder reads the run id off the coordinator board, by GUID
+          BOARD = REGUID(MKOBJ("Faction Selection", { 0, 1, 0 }, {}), OBS_BOARD)
+          BOARD.getVar = function(k) if k == "RTT_RUN_ID" then return RUN end return nil end
+          pcall(rttRecordStart)
+          ARMED = OBS.id
+          -- the marker hits 30: game one is archived under its own id
+          pcall(function() rttArchiveGame({ box = '{"rows":[]}' }) end)
+          FLUSH(20)
+          FIRST = SENT
+          OBS.sending = false           -- the stubbed request never calls back; the real one does
+          if %s then RUN = 8 end        -- somebody pressed a setup button for game two
+          -- the host comes back from fetching the token and presses UPLOAD
+          pcall(function() rttArchiveGame({ box = '{"rows":[]}' }) end)
+          FLUSH(20)
+          SECOND = SENT - FIRST
+        """ % ("true" if drop_the_log else "false"))
+        return rt
+
+    # the ordinary case: both sends go, under the same id
+    rt = send_after(False)
+    assert rt.eval("ARMED") is not None, "the recorder never armed on START"
+    assert rt.eval("FIRST") >= 1, "the finished game was not archived at all"
+    assert rt.eval("SECOND") >= 1, "a second EXPORT on the same game no longer sends"
+
+    # ...and with a setup click in between, the second one refuses, out loud
+    rt = send_after(True)
+    assert rt.eval("FIRST") >= 1, "the finished game was not archived at all"
+    assert rt.eval("SECOND") == 0, \
+        "the finished game was filed a SECOND time under a freshly minted id after a new setup"
+    st = rt.eval("OBS.status") or ""
+    assert "START" in st, \
+        "the refusal says nothing the host can act on: %r" % st
+
+    # and the guard is where it should be: no arm inside a send that follows a discarded log
+    obs = observer_lua()
+    i = obs.index("if OBS.id == nil and OBS.dropped then")
+    j = obs.index('if OBS.id == nil then obsArm("export") end')
+    assert i < j, "the refusal must come before the arm, or the arm wins"
+
 CASES = [
     ("manual path drives the turn system",   t_manual_turn_order),
     ("manual path spawns 4 / 5 boards",      t_boards_spawn),
@@ -11122,6 +11190,7 @@ CASES = [
     ("supporters go to the seat's player",   t_the_supporters_go_to_whoever_is_actually_in_the_seat),
     ("the box score scrolls past ten",       t_the_box_score_scrolls_past_round_ten),
     ("a waystation row reads like the rest", t_a_waystation_row_reads_the_same_way_as_every_other),
+    ("a new setup blocks a double filing",   t_a_new_setup_stops_the_old_game_being_filed_twice),
     ("numpad 2 hands you your token",  t_numpad_two_hands_you_the_token_you_chose),
     ("gizmo default key is numpad 0",         t_gizmo_default_key_is_numpad_zero),
     ("gizmo: warrior to/from supply",         t_gizmo_warrior_to_and_from_supply),

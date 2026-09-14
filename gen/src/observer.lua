@@ -920,6 +920,10 @@ local function obsNewGameCheck()
     log("RTT archive: RTT run " .. tostring(OBS.run) .. " -> " .. tostring(run) .. ", new game")
     obsResetLog()
     OBS.run = run
+    -- ...AND REMEMBER THAT WE JUST THREW A GAME'S RECORDING AWAY. See obsArchive: a send arriving
+    -- after this point is carrying a box score from the game that was discarded, and it must not be
+    -- filed under an id minted on the spot.
+    OBS.dropped = true
   end
 end
 
@@ -1503,6 +1507,31 @@ local function obsArchive(params)
   -- Pressing EXPORT on a table the recorder never saw arm (it was switched on mid-game, or the game
   -- was set up before the save was loaded) still produces a document: the box score is the valuable
   -- half and it is right there in the caller's hand.
+  -- NEVER MINT A GAME ID INSIDE A SEND THAT FOLLOWS A DISCARDED LOG.
+  --
+  -- Arming here is right when the recorder simply never saw this table -- switched on mid-game, or
+  -- the game set up before the save was loaded -- and the box score in the caller's hand is the
+  -- valuable half. It is WRONG in one specific, reachable sequence, which the multi-agent review
+  -- found on 2026-09-14:
+  --
+  --   the marker hits 30, the game is archived under id A with its whole event log; the host presses
+  --   EXPORT and leaves TTS to fetch the one-time upload token; the table, not waiting, presses
+  --   4-Player Setup for game two, so RTT_RUN_ID moves and obsNewGameCheck above discards the log;
+  --   the host comes back, pastes the token and presses UPLOAD -- and the sheet still holds GAME
+  --   ONE, while the board is GAME TWO.
+  --
+  -- Arming there minted a brand new id and filed game one's box score under it, with game two's
+  -- seats, game two's map and clearings and no events at all. The corpus gained a permanent second
+  -- row for one game, and because nothing will ever send under that id again it could not be
+  -- repaired from this end.
+  --
+  -- Refusing is the whole fix: a visible "not sent" beats a silent wrong record, and the host can
+  -- press START for game two and export game one from the sheet afterwards.
+  if OBS.id == nil and OBS.dropped then
+    OBS.status = "a new setup cleared this recording -- press START, then export again"
+    log("RTT archive: refusing to send; the log was discarded by a new run and OBS.id is nil")
+    return
+  end
   if OBS.id == nil then obsArm("export") end
 
   -- A LAST KEYFRAME, on the button press. The contract does not ask for one, but the end-of-game
@@ -1603,6 +1632,7 @@ function rttRecordStart()
   local ok = pcall(function()
     obsResetLog()
     obsArm("start button")
+    OBS.dropped = false      -- this table has a recording of its own again
   end)
   return ok
 end
