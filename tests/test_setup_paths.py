@@ -9484,6 +9484,41 @@ def t_the_discard_sweep_never_takes_from_the_draw_pile(src):
     assert err == "", "the deck holder's script no longer parses: %s" % err
 
 
+def t_the_log_never_reaches_the_hosts_disk(src):
+    """The recorder writes nothing into the save file, whatever it is holding.
+
+    Maintainer, 2026-09-13: "that log should not be a file written on the machine of the host."
+
+    onSave's return value is stored by TTS in the save file, and the save file is a file on whoever is
+    hosting. It used to return the whole running log -- every object named, every event, every
+    snapshot -- so a game in progress sat on disk and grew as it went. Since the recorder began
+    keeping hidden information that log names cards in hands and face-down pieces, which makes the
+    save a document nobody at the table should be able to open.
+
+    Returning nothing is what stops it being written, rather than trusting nobody looks. The log lives
+    in memory and leaves the machine once, over HTTPS, when the game is won or exported.
+
+    DRIVEN WITH A FULL LOG, not an empty one: the failure this guards is a save that carries the
+    record, so a recorder with nothing in it would pass while proving nothing.
+    """
+    rt = fresh_observer()
+    rt.execute("SEAT('Red', 'MrDrouf') SEAT('Blue', 'Someone')")
+    _a_game_is_on(rt)
+    rt.execute("""
+      HANDCARDS['Red'] = { MKOBJ('Ambush!', {40, 1, 40}, {}) }
+      for i = 1, 6 do OBJ_DROP('Red', MKOBJ('Cat Warrior', {i, 1, i}, {'RTT Faction'})) end
+      OBJ_DROP('Red', HANDCARDS['Red'][1])
+      Turns.enable = true Turns.order = {'Red', 'Blue'} TURN_SET('Red') FLUSH(10)
+    """)
+    assert rt.eval("#OBS.ev") > 0 and rt.eval("#OBS.snap") > 0, \
+        "the recorder holds nothing, so this proves nothing about what it would save"
+    saved = rt.eval("onSave()")
+    assert saved == "", \
+        "the recorder wrote %d characters into the save file" % len(saved or "")
+    for leak in ("Ambush!", "Cat Warrior", "HEAD", "SNAP"):
+        assert leak not in (saved or ""), "the save carries %r" % leak
+
+
 CASES = [
     ("manual path drives the turn system",   t_manual_turn_order),
     ("manual path spawns 4 / 5 boards",      t_boards_spawn),
@@ -9633,6 +9668,7 @@ CASES = [
     ("the flush drains and dies",       t_the_flush_writes_its_queue_and_lets_the_timer_die),
     ("EXPORT sends without a sheet",    t_export_without_a_box_score_still_sends_a_document),
     ("everything is recorded",         t_the_payload_never_carries_a_hand),
+    ("nothing is saved to disk",      t_the_log_never_reaches_the_hosts_disk),
     ("card backs are backs, not blanks", t_every_card_back_is_a_back_and_not_a_blank),
     ("the clock fits 10:00",           t_the_clock_has_room_for_a_two_digit_minute),
     ("torn boards are cut torn",      t_the_torn_boards_are_cut_where_the_art_is_torn),

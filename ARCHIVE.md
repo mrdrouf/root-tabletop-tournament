@@ -150,10 +150,22 @@ the draws were the one thing invisible. Hand *sizes* were recorded, but only in 
 snapshots happen at turn changes, roughly once every four minutes, so most changes fell between
 samples entirely.
 
-**The cost is at the table, not in the archive.** `onSave` writes the log into the SAVE FILE on every
-autosave, so a card in somebody's hand is named in a file on the host's disk while the game is still
-being played. Anyone who can open that save mid-game can read hands. That is the trade, made
-knowingly.
+### ...and nothing is written to the host's disk
+
+Maintainer, on being told the log lived in the save file: *"that log should not be a file written on
+the machine of the host."*
+
+`onSave` returns `""`. It used to return the whole running log, which TTS stores in the save file --
+so a game in progress sat on disk and grew as it went, and once the log began naming cards in hands
+that save became a document nobody at the table should be able to open. Returning nothing is what
+stops it being written, rather than trusting nobody looks.
+
+The log lives in memory and leaves the machine exactly once: over HTTPS, when the game is won or
+EXPORT is pressed.
+
+**What that costs:** a TTS crash or a reload mid-game loses the record so far. The recorder comes back
+empty and starts again at the next START, under a new `game_id`. The old behaviour bought
+crash-resistance with a file on the host's disk, and that is the trade being refused.
 
 ## 2. The trigger
 

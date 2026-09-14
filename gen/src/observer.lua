@@ -1747,30 +1747,24 @@ end
 -- escapes every control character, so no row can contain the newline that separates two of them.
 local OBS_SEP = "\n~~~\n"
 
+-- NOTHING IS WRITTEN TO THE HOST'S DISK. Maintainer, 2026-09-13: "that log should not be a file
+-- written on the machine of the host."
+--
+-- onSave's return value is stored by TTS in the save file, and the save file is a file on whoever is
+-- hosting. This used to return the whole running log -- every object it had named, every event, every
+-- snapshot -- so the record of a game in progress sat on disk and grew as the game went on. Since
+-- 2026-09-13 that log names cards in hands and face-down pieces, which made the save a document
+-- nobody at the table should be able to open. Returning nothing is what stops it being written at
+-- all, rather than trusting that nobody looks.
+--
+-- SO THE LOG LIVES ONLY IN MEMORY, and it leaves the machine exactly once: when the game is won or
+-- EXPORT is pressed, straight to the archive over HTTPS.
+--
+-- WHAT THAT COSTS, plainly: a TTS crash or a reload mid-game loses the record so far. The recorder
+-- comes back empty and starts again at the next START, with a new game_id. The old behaviour bought
+-- crash-resistance with a file on the host's disk, and that is the trade being refused here.
 function onSave()
-  local out = ""
-  pcall(function()
-    if OBS.id == nil then return end
-    local head = table.concat({ OBS_STATE_VER, OBS.id, math.floor(OBS.started or 0),
-                                string.format("%.1f", obsNow()), OBS.seq, OBS.run or 0,
-                                OBS.truncated and 1 or 0 }, "\t")
-    local frags = {}
-    for _, f in pairs(OBS.objs) do frags[#frags + 1] = f end
-    -- ONLY THE GUIDS `OBJ` DOES NOT ALREADY CARRY. `seen` is every GUID this log has described and
-    -- `objs` is the subset it could describe in words, so the difference is the face-down pieces --
-    -- a handful of decks, plots and a dominance card, six bytes each. Writing the whole set instead
-    -- would duplicate a hundred-odd GUIDs in every autosave for nothing.
-    local extra = {}
-    for g, _ in pairs(OBS.seen) do
-      if OBS.objs[g] == nil then extra[#extra + 1] = g end
-    end
-    out = table.concat({ "HEAD\n" .. head,
-                         "OBJ\n" .. table.concat(frags, "\n"),
-                         "SEEN\n" .. table.concat(extra, "\n"),
-                         "EV\n" .. table.concat(OBS.ev, "\n"),
-                         "SNAP\n" .. table.concat(OBS.snap, "\n") }, OBS_SEP)
-  end)
-  return out
+  return ""
 end
 
 function onLoad(state)
