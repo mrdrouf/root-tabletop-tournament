@@ -10602,6 +10602,106 @@ def t_a_warrior_reaches_its_supply_with_the_bag_map_broken(src):
         ("with no supply findable the warrior was moved to x %.1f; it must be left alone rather "
          "than sent back to its spawn spot" % rt.eval("W.getPosition().x"))
 
+
+def t_unlocking_a_prisoner_always_restores_it(src):
+    """A warrior unlocked by hand gets its colour and its highlight back, every time.
+
+    Maintainer, 2026-09-14: "unlocking a warrior on which one did numpad 3 should restore the color
+    and highlight of the piece completely."
+
+    THE RACE. rttGizmoMark writes the record at once but finishes the job two frames later, because
+    the bounds are only real once TTS has applied the rotation -- and rttFreeUnlockedPrisoners runs
+    once a SECOND and frees anything in RTT_LAID it finds unlocked. A tick landing in that two-frame
+    gap saw a recorded piece that was not locked yet and "freed" it: record gone, highlight off, tint
+    restored. Two frames later the rest of the mark went on regardless -- locked, lit and faded --
+    and the piece was stuck that way for good, because unlocking it had nothing left to restore from.
+
+    About a 3% chance per press, one tick a second against two frames, which is why it read as
+    intermittent rather than broken.
+    """
+    RED = [0.85, 0.1, 0.09]
+
+    def run(tick_mid_mark):
+        rt = fresh(src)
+        rt.execute("""
+          RTT_LAID = {} RTT_MARKING = {}
+          W = MKOBJ('Cat Warrior', { 30, 1, 30 }, {})
+          W.setColorTint({ %f, %f, %f })
+          Global.setVar("RTT_SEAT_COLOR", JSON.encode({ ["Marquise de Cat"] = "Red" }))
+          HOVER = { Red = W }
+          onScriptingButtonDown(3, 'Red')
+        """ % (RED[0], RED[1], RED[2]))
+        if tick_mid_mark:
+            rt.execute("pcall(rttFreeUnlockedPrisoners)")
+        rt.execute("FLUSH(10)")
+        return rt
+
+    for tick_mid_mark in (False, True):
+        what = "with a tick landing mid-mark" if tick_mid_mark else "undisturbed"
+        rt = run(tick_mid_mark)
+        assert rt.eval("W.__locked") is True, "the mark did not lock the piece (%s)" % what
+        assert rt.eval("RTT_LAID[W.getGUID()] ~= nil") is True, \
+            "the prisoner lost its record while the mark was still landing (%s)" % what
+        tint = [round(rt.eval("W.getColorTint().%s" % c), 3) for c in "rgb"]
+        assert tint != RED, "the prisoner was never faded (%s)" % what
+
+        # ...and now the player unlocks it by hand
+        rt.execute("W.setLock(false) pcall(rttFreeUnlockedPrisoners) FLUSH(10)")
+        back = [round(rt.eval("W.getColorTint().%s" % c), 3) for c in "rgb"]
+        assert back == RED, \
+            "unlocking left the warrior tinted %s instead of its own %s (%s)" % (back, RED, what)
+        assert rt.eval("W.__glow") is None, "unlocking left the warrior lit (%s)" % what
+        assert rt.eval("RTT_LAID[W.getGUID()]") is None, \
+            "the freed prisoner is still on the record (%s)" % what
+        assert rt.eval("RTT_MARKING[W.getGUID()]") is None, \
+            "the in-flight guard was never cleared (%s)" % what
+
+    # numpad 3 pressed again still frees it the ordinary way, standing it back up
+    rt = run(False)
+    rt.execute("onScriptingButtonDown(3, 'Red') FLUSH(10)")
+    back = [round(rt.eval("W.getColorTint().%s" % c), 3) for c in "rgb"]
+    assert back == RED and rt.eval("W.__glow") is None, \
+        "numpad 3 no longer restores the piece it marked: tint %s" % back
+
+
+def t_numpad_two_hands_out_wood(src):
+    """Numpad 2 reaches wood even when the blueprint map cannot name its supply.
+
+    Maintainer, 2026-09-14: "numpad 2 should also work on wood."
+
+    This key read the big cached blueprint map DIRECTLY, so it went quiet on wood for exactly the
+    reason numpad 0 did for two days: when that map fails to name "Wood Supply" there is nothing to
+    take from, and an unset-looking key is the result. It now asks rttSupplyForPiece, the same
+    three-way lookup numpad 0 uses -- the map, then the way numpad 1 asks, then plain text.
+    """
+    rt = fresh(src)
+    rt.execute("""
+      RTT_BAG_OF = {} RTT_SUPPLY_OF = {} RTT_HOME = {} TOOK = 0
+      BAG = MKOBJ("Wood Supply", { 60, 11.5, -40 }, {})
+      BAG.getQuantity = function() return 8 end
+      BAG.takeObject = function(p)
+        TOOK = TOOK + 1
+        if p.callback_function then p.callback_function(MKOBJ("Wood", { 0, 0, 0 }, {})) end
+      end
+      POINTER = { Red = Vector({ 30, 11.6, 30 }) }
+      RTT_TOKEN_PICK = { Red = "Wood" }
+      rttGizmoToken("Red")
+      FLUSH(10)
+    """)
+    assert rt.eval('rttTokenEligible([[Wood]])') is True, \
+        "wood cannot even be chosen for numpad 2 with the map broken"
+    assert rt.eval("TOOK") == 1, "numpad 2 took nothing from the Wood Supply with the map broken"
+
+    # and holding the key on a wood token still sets it as the kind
+    rt.execute("""
+      RTT_TOKEN_PICK = {}
+      D = MKOBJ("Wood", { 5, 11.6, 5 }, {})
+      HOVER = { Red = D }
+      rttKey2Down("Red") FLUSH(200)
+    """)
+    assert rt.eval('RTT_TOKEN_PICK["Red"]') == "Wood", \
+        "holding numpad 2 on a wood token no longer chooses it"
+
 CASES = [
     ("manual path drives the turn system",   t_manual_turn_order),
     ("manual path spawns 4 / 5 boards",      t_boards_spawn),
@@ -10688,6 +10788,8 @@ CASES = [
     ("a partial supply map is not cached",   t_a_half_built_supply_map_is_never_cached),
     ("both slot builders agree",             t_both_slot_builders_ignore_spawn_spots_the_same_way),
     ("warriors home with the map broken",    t_a_warrior_reaches_its_supply_with_the_bag_map_broken),
+    ("unlocking a prisoner restores it",     t_unlocking_a_prisoner_always_restores_it),
+    ("numpad 2 hands out wood",              t_numpad_two_hands_out_wood),
     ("numpad 2 hands you your token",  t_numpad_two_hands_you_the_token_you_chose),
     ("gizmo default key is numpad 0",         t_gizmo_default_key_is_numpad_zero),
     ("gizmo: warrior to/from supply",         t_gizmo_warrior_to_and_from_supply),

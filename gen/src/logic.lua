@@ -6656,7 +6656,8 @@ function rttFreeUnlockedPrisoners()
     local o = getObjectFromGUID(guid)
     if o == nil then
       RTT_LAID[guid] = nil
-    else
+      RTT_MARKING[guid] = nil
+    elseif not RTT_MARKING[guid] then            -- a mark still landing is not an unlocked prisoner
       local locked = false
       pcall(function() locked = (o.getLock() == true) end)
       -- unlocked BY HAND: clear the mark, leave the piece lying where it is (standUp = false)
@@ -9396,6 +9397,22 @@ RTT_PLAYER_RGB = {
 }
 RTT_LAID = {}      -- [guid] = { rot = {x,y,z}, pos = {x,y,z}, who = <colour> } as it stood before the key
 
+-- MARKS STILL BEING APPLIED, which the unlock tick must not judge.
+--
+-- Maintainer, 2026-09-14: "unlocking a warrior on which one did numpad 3 should restore the color and
+-- highlight of the piece completely."
+--
+-- THE RACE. rttGizmoMark writes the record at once but finishes the job two frames later, because the
+-- bounds are only real after TTS has applied the rotation -- and rttFreeUnlockedPrisoners runs once a
+-- SECOND and frees anything in RTT_LAID it finds unlocked. A tick landing in that two-frame gap saw a
+-- recorded piece that was not locked yet, so it "freed" it: record gone, highlight off, tint restored.
+-- Two frames later the rest of the mark went on regardless -- locked, lit and faded -- and the piece
+-- was then stuck that way for good, because unlocking it had nothing left to restore from.
+--
+-- About a 3% chance per press at one tick a second against two frames, which is why it looked
+-- intermittent rather than broken.
+RTT_MARKING = {}
+
 -- Is this piece down? The RECORD says so, and the record is in onSave, so it survives a reload. The
 -- tint used to be the answer; it cannot be any more, because the piece keeps its own colour now.
 function rttIsLaid(o)
@@ -9494,6 +9511,7 @@ function rttGizmoMark(color)
   pcall(function() tint = hovered.getColorTint() end)
   RTT_LAID[guid] = { rot = { r.x, r.y, r.z }, pos = { p.x, p.y, p.z }, who = color,
                      tint = (tint ~= nil) and { tint.r, tint.g, tint.b } or nil }
+  RTT_MARKING[guid] = true                       -- hands off until the mark below has landed
   pcall(function() hovered.setRotation({ 90, r.y, r.z }) end)   -- tips forward, away from the player
   -- The bounds only report the new shape once TTS has applied the rotation, so the drop and the lock
   -- wait a frame. Locking before that is what pinned it mid-air.
@@ -9516,6 +9534,7 @@ function rttGizmoMark(color)
       local faded = rttFaded(hovered.getColorTint())
       if faded ~= nil then hovered.setColorTint(faded) end
     end)
+    RTT_MARKING[guid] = nil                      -- the mark has landed; the tick may judge it now
   end, 2)
 end
 
@@ -9542,7 +9561,7 @@ RTT_KEY2 = {}                    -- the press in flight: its 2-second timer, and
 function rttTokenEligible(name)
   if name == nil or name == "" then return false end
   if string.find(name, "Warrior", 1, true) ~= nil then return false end
-  if rttBagOfMap()[name] ~= nil then return true end
+  if rttSupplyForPiece(name) ~= nil then return true end
   return #rttHomeSlots(name) > 0
 end
 
@@ -9604,7 +9623,11 @@ function rttGizmoToken(color)
 
   -- 2. ...and only then out of the bag, if that is where its kind lives -- the same route numpad 1
   --    takes for a warrior.
-  local bag = rttFindByName(rttBagOfMap()[name])
+  -- THE SAME THREE-WAY LOOKUP NUMPAD 0 USES. Maintainer, 2026-09-14: "numpad 2 should also work on
+  -- wood." It reads the big blueprint map directly, so when that map fails to name "Wood Supply" --
+  -- the failure that kept numpad 0 broken for two days -- this key goes quiet on wood for exactly the
+  -- same reason. rttSupplyForPiece asks the map, then the way numpad 1 asks, then by plain text.
+  local bag = rttFindByName(rttSupplyForPiece(name))
   if bag ~= nil then
     local n = 0
     pcall(function() n = bag.getQuantity() end)
