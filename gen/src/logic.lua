@@ -96,13 +96,17 @@ function onLoad(state)
     addHotkey("Move a warrior from own supply to cursor", function(color) rttGizmoTake(color) end)
     -- HELD, exactly like numpad 2. addHotkey takes a triggerOnKeyUp flag and hands the callback an
     -- isKeyUp, so a named hotkey runs the same press-and-hold this key is built on -- tap to take
-    -- one, hold two seconds on a piece to choose the kind. It briefly had a second hotkey for
-    -- choosing, on the belief that a named key could not be held; it can.
+    -- one, hold on a piece to choose the kind. It briefly had a second hotkey for choosing, on the
+    -- belief that a named key could not be held; it can.
     --
     -- THE LABEL SAYS HOW TO SET IT, in the maintainer's own words. A key whose whole behaviour
-    -- depends on a two-second hold cannot have that left off the one line a player ever reads:
+    -- depends on a hold cannot have that left off the one line a player ever reads:
     -- nothing else in the game would tell them, and an unset key is silent by design.
-    addHotkey("Move any token to cursor; set type by holding numpad 2 for 2 seconds",
+    -- the seconds come from RTT_KEY2_HOLD itself, so the label cannot drift from the key. (`or 1`
+    -- only so a nil could never take the other three hotkeys down with it.)
+    local hold = RTT_KEY2_HOLD or 1
+    addHotkey("Move any token to cursor; set type by holding numpad 2 for "
+              .. tostring(hold) .. ((hold == 1) and " second" or " seconds"),
               function(color, _, _, isKeyUp)
       if isKeyUp then rttKey2Up(color) else rttKey2Down(color) end
     end, true)
@@ -10180,7 +10184,8 @@ function rttGizmoWarrior(color) rttGizmoTake(color) end
 -- NUMPAD 2 -- TAKE A TOKEN OR BUILDING to your cursor, of whichever kind you chose. Maintainer,
 -- 2026-09-09: "move current numpad 2 option to numpad 3. then create new numpad 2 option. move any
 -- building/token to cursor position. to set which type of token building, presse numpad 2 for 2 full
--- seconds on a token or building then it will be set to that one for that player."
+-- seconds on a token or building then it will be set to that one for that player." The two seconds
+-- became one on 2026-09-14 -- see RTT_KEY2_HOLD.
 --
 -- The kind is PER PLAYER and sticks until they change it, so the common case -- dropping sympathy
 -- after sympathy, or roost after roost -- is one key with nothing to aim at. It is set by holding the
@@ -10190,7 +10195,13 @@ function rttGizmoWarrior(color) rttGizmoTake(color) end
 -- maintainer: "nothing happens and silence". A key that explains itself every time you brush it is
 -- worse than one that waits.
 RTT_TOKEN_PICK = {}              -- player colour -> the piece name their numpad 2 hands them
-RTT_KEY2 = {}                    -- the press in flight: its 2-second timer, and whether it fired
+RTT_KEY2 = {}                    -- the press in flight: its hold timer, and whether it fired
+
+-- HOW LONG THE HOLD IS. Two seconds when it was built, one since the maintainer asked on 2026-09-14:
+-- "set numpad 2 setting time to 1 second instead of 2". ONE number, read by the timer below and by
+-- the hotkey's own label in onLoad, because a label that disagrees with the key is worse than none:
+-- the hold is the only way to set this key up and the label is the one line a player ever reads.
+RTT_KEY2_HOLD = 1
 
 -- Warriors are numpad 1's job, so they are not offered here; anything else that has a supply to come
 -- from -- a bag of its kind, or a row of home slots -- can be chosen.
@@ -10297,7 +10308,7 @@ function rttGizmoToken(color)
 end
 
 -- The hold. Two seconds on a piece CHOOSES it; a shorter press takes one. The timer does the
--- choosing so it happens on the two-second mark rather than on release, and the release then knows
+-- choosing so it happens on the hold's own mark rather than on release, and the release then knows
 -- to keep quiet because the press has already been spent.
 --
 -- BOTH KEYBOARDS GET THE SAME GESTURE. This is written as a down/up pair rather than as one action
@@ -10320,7 +10331,7 @@ function rttKey2Down(color)
         broadcastToColor("Numpad 2 now hands you a " .. name .. ".", color,
                          { r = 0.7, g = 1, b = 0.7 })
       end)
-    end, 2)
+    end, RTT_KEY2_HOLD)
   end
 end
 

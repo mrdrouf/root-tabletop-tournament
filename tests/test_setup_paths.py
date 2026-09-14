@@ -1385,14 +1385,18 @@ def t_gizmo_default_key_is_numpad_zero(src):
     # hands the callback an isKeyUp, so the same press-and-hold works without a numpad -- tap to take
     # one, hold to choose the kind. There was briefly a SECOND hotkey for choosing, on the belief
     # that a named key could not be held. It can, and one gesture on both keyboards is the point.
-    TOK = "Move any token to cursor; set type by holding numpad 2 for 2 seconds"
+    TOK = "Move any token to cursor; set type by holding numpad 2 for 1 second"
     rt = wired()
     assert rt.eval("HOTKEY_HOLDS(%r)" % TOK) is True, \
         "the token hotkey is not registered to fire on key up, so it cannot be held"
-    # ...and its label has to SAY so. The hold is the only way to set the key up, an unset key is
-    # silent by design, and nothing else in the game would tell a player how.
-    assert "holding" in TOK and "2 seconds" in TOK, \
-        "the token key's label no longer explains how to set its type"
+    # ...and its label has to SAY so, with the RIGHT number. The hold is the only way to set the key
+    # up, an unset key is silent by design, and nothing else in the game would tell a player how. The
+    # seconds in the label come from RTT_KEY2_HOLD itself, so this checks the label the game actually
+    # registered against the timer the key actually uses -- they were two literals once, and the
+    # maintainer has now changed the hold twice.
+    hold = rt.eval("RTT_KEY2_HOLD")
+    assert "holding" in TOK and ("%g second" % hold) in TOK, \
+        "the token key's label says %r; the hold is %g seconds" % (TOK, hold)
     assert rt.eval("PRESS(%r, 'Red')" % TOK) is True, "no hotkey registered as %r" % TOK
     assert sum(counts(rt).values()) == 0, "the token hotkey handed one over on the way down"
     rt.eval("PRESS(%r, 'Red', true)" % TOK)
@@ -1494,17 +1498,18 @@ def t_numpad_two_hands_you_the_token_you_chose(src):
     assert moved is False, "numpad 2 moved a token before anything was chosen"
     assert int(rt.eval("SAID")) == 0, "numpad 2 said something when it should have kept quiet"
 
-    # 2. A SHORT PRESS ON ONE DOES NOT CHOOSE IT -- it has to be held for the full two seconds.
+    # 2. A SHORT PRESS ON ONE DOES NOT CHOOSE IT -- it has to be held for the whole RTT_KEY2_HOLD,
+    #    which the maintainer set to one second on 2026-09-14, down from two.
     rt.execute("HOVER['Red'] = A  onScriptingButtonDown(2, 'Red')")
-    rt.execute("FLUSH_UNTIL(1)")
+    rt.execute("FLUSH_UNTIL(0.5)")
     rt.execute("onScriptingButtonUp(2, 'Red')")
     assert rt.eval("RTT_TOKEN_PICK['Red']") is None, \
-        "a one-second press chose a kind; it takes two"
+        "half a second chose a kind; it takes the full hold"
 
-    # 3. HELD FOR TWO SECONDS: that kind is now this player's, and the press is spent -- releasing
+    # 3. HELD FOR THE FULL SECOND: that kind is now this player's, and the press is spent -- releasing
     #    afterwards must not also hand one over.
     rt.execute("onScriptingButtonDown(2, 'Red')")
-    rt.execute("FLUSH_UNTIL(2)")
+    rt.execute("FLUSH_UNTIL(RTT_KEY2_HOLD)")
     assert str(rt.eval("RTT_TOKEN_PICK['Red']")) == "Sympathy", \
         "holding numpad 2 on a Sympathy did not choose it"
     rt.execute("onScriptingButtonUp(2, 'Red')")
