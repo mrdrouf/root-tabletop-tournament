@@ -7197,6 +7197,12 @@ def t_every_faction_gets_a_vp_panel_above_its_crafted_board(src):
             wx, wz = (float(v) for v in at.split("|"))
         else:
             wx, wz = float(cx), float(cz) + dz
+        if kit == "Underground Duchy":
+            # The whole Duchy kit -- its crafted board, and this panel with it -- steps one card
+            # width away from the Mole Monger. The seat centre used here has cx 0, which is a centre
+            # seat: the Monger sits on the player's left there, so the kit steps to their right,
+            # and on a near-row seat that is +x.
+            wx += rt.eval("RTT_HELPER_TOWN_W")
         assert abs(px - wx) < 0.001, \
             "%s: the panel is at x %.4f, expected %.4f" % (kit, px, wx)
         assert abs(pz - (-20 + wz)) < 0.001, \
@@ -10803,9 +10809,13 @@ def t_a_renamed_vagabond_vp_keeps_its_spot(src):
     assert "move_to" in body[:400], \
         "the renamed vagabond VP tile is built without its move_to, so it lands on the seat centre"
 
-    # and the placement really does read move_to off the list entry, which is why it matters
-    assert "rttKitPos(cx, cz, flip, rotationY, v.move_to)" in src, \
-        "the kit placement no longer reads v.move_to; re-check the renaming branch"
+    # And the placement really does read move_to off the list entry, which is why it matters. It
+    # reaches rttKitPos through `mt` now -- the same offset, plus the Duchy's step away from the Mole
+    # Monger -- so this follows it there rather than pinning the old one-liner.
+    assert "{ v.move_to[1] + kitDX, v.move_to[2], v.move_to[3] } or v.move_to" in src, \
+        "the kit placement no longer builds its offset from v.move_to; re-check the renaming branch"
+    assert "rttKitPos(cx, cz, flip, rotationY, mt)" in src, \
+        "the kit placement no longer passes that offset on to rttKitPos"
 
 
 def t_a_resync_never_reaches_into_a_second_hand(src):
@@ -11680,8 +11690,9 @@ def t_the_crow_hidden_box_shrank_away_from_the_board(src):
     table instead of two thirds of one. Caught by rendering the zone at all five seat positions and
     diffing against the previous build.
 
-    The HEIGHT is deliberately untouched: SY is how tall the fog column stands, and shortening that
-    would let people see over the plots rather than make the box smaller.
+    The HEIGHT was left alone by THIS change and halved by the next one the maintainer asked for;
+    t_the_crow_hidden_box_is_half_as_tall owns it, and this case only checks the footprint it was
+    about.
     """
     rt = fresh(src)
     S = 8.82                                   # the crow rules board's own scale
@@ -11693,8 +11704,6 @@ def t_the_crow_hidden_box_shrank_away_from_the_board(src):
         "the box width is %s; 10%% off %s is %s" % (now["sx"], WAS["sx"], WAS["sx"] * 0.9)
     assert abs(now["sz"] - WAS["sz"] * 0.9) < 1e-6, \
         "the box depth is %s; 10%% off %s is %s" % (now["sz"], WAS["sz"], WAS["sz"] * 0.9)
-    assert abs(now["sy"] - WAS["sy"]) < 1e-9, \
-        "the fog column's HEIGHT changed; only the footprint was meant to shrink"
 
     # the edge nearest the faction board must not move, on either side
     for side, key in (("right", "lx"), ("left", "lxl")):
@@ -11750,6 +11759,160 @@ def t_the_crow_hidden_box_shrank_away_from_the_board(src):
     gap = rt.eval("RTT_CROW_PLOT_GAP")
     assert 4 * gap < now["sx"] and 3 * gap < now["sz"], \
         "the plots (%.1f x %.1f) no longer fit the box" % (4 * gap, 3 * gap)
+
+def t_the_crow_hidden_box_is_half_as_tall(src):
+    """The crows' fog box is half its old height -- and still standing on the table.
+
+    Maintainer, 2026-09-14, after the footprint came in 10%: "if you can also cut the actual height
+    (actual 3D height) of the hidden box by half for the crow if possible not sure."
+
+    THE TRAP IS THAT A TTS ZONE IS POSITIONED BY ITS CENTRE. The box was 5.10 tall centred at 14.11,
+    which puts its floor at 11.56 -- the table. Halving the height alone leaves the centre where it
+    is and lifts the floor to 12.835, so the plots would lie UNDERNEATH the box, visible to the whole
+    table: the fog would hide nothing and nobody would see why. So the floor is what is pinned, the
+    box grows upward from it, and the plots rest at their own height above that same floor instead of
+    at an offset from a centre that moves.
+
+    Checked against the numbers the old build produced -- floor 11.56, plots at 11.91 -- not against
+    the new constants, which would only be checking the arithmetic against itself.
+    """
+    rt = fresh(src)
+    WAS_SY, WAS_CENTRE = 5.10, 14.11
+    FLOOR = WAS_CENTRE - WAS_SY / 2          # 11.56, the table surface the old box stood on
+    PLOTS = WAS_CENTRE - 2.20                # 11.91, where the plots have always rested
+
+    sy = rt.eval("RTT_CROW_HZ_SY")
+    assert abs(sy - WAS_SY / 2) < 1e-9, "the box is %s tall; half of %s is %s" % (sy, WAS_SY, WAS_SY / 2)
+
+    # ...and the box that actually spawns stands on the table, at every seat and on both rows
+    for label, cx, cz, ry in (("near right", 52, -46, 180), ("near left", -52, -46, 180),
+                              ("near centre", 0, -46, 180), ("far right", 52, 46, 0),
+                              ("far left", -52, 46, 0)):
+        r = fresh(src)
+        r.execute("""
+          SP = nil
+          local real = spawnObjectJSON
+          spawnObjectJSON = function(p)
+            if type(p.json) == "string" and p.json:find("FogOfWarTrigger", 1, true) then SP = p end
+            return real(p)
+          end
+          B = MKOBJ("Crow Board", { %f, 11.6, %f }, {})
+          B.setRotation({ 0, %d, 0 })  B.__scale = Vector({ 8.82, 1, 8.82 })
+          HZ = rttCrowsHiddenZone(B, %f, %f, false)
+          FLUSH(20)
+          ZY = SP and (SP.position.y or SP.position[2]) or 0
+          ZH = SP and SP.scale[2] or 0
+          PY = HZ and HZ.y or 0
+        """ % (cx, cz, ry, cx, cz))
+        zy, zh, py = r.eval("ZY"), r.eval("ZH"), r.eval("PY")
+        assert abs(zh - WAS_SY / 2) < 1e-9, "the %s seat's box is %.3f tall, not %.3f" % (label, zh, WAS_SY / 2)
+        assert abs((zy - zh / 2) - FLOOR) < 1e-6, \
+            "the %s seat's box floats: its floor is %.3f, the table is %.3f" % (label, zy - zh / 2, FLOOR)
+        assert abs(py - PLOTS) < 1e-6, \
+            "the %s seat's plots moved to %.3f; they have always rested at %.3f" % (label, py, PLOTS)
+        assert FLOOR <= py <= zy + zh / 2, \
+            "the %s seat's plots at %.3f are outside a box running %.3f to %.3f" \
+            % (label, py, zy - zh / 2, zy + zh / 2)
+
+
+def t_the_mole_board_steps_away_from_the_monger(src):
+    """The Duchy's kit moves a card width AWAY from whichever hand the Mole Monger sits by.
+
+    Maintainer, 2026-09-14: "move the mole faction board by a card width to the left when the mole
+    manager is to the right and vice versa when it s to the left."
+
+    WHAT MOVES IS THE WHOLE KIT, not the board tile on its own. Nine crowns, the markets, the
+    citadels and the two tunnels are laid out ON that board; sliding the tile out from under them
+    would leave them hanging over the table. So the step is applied to the kit-local offset, before
+    anything is placed, and every piece of the kit takes it together. The Monger does NOT take it --
+    it is the thing being made room from -- so the gap between it and the board grows by exactly the
+    card width asked for.
+
+    This is checked by DIFFING TWO SPAWNS of the same seat, one with the step neutralised, rather
+    than by asserting coordinates: coordinates would pin the blueprint's numbers, and what the
+    maintainer asked for is a relative move. The diff also proves the kit kept its shape, since every
+    piece has to have moved by the same amount.
+
+    DIRECTION IS IN THE PLAYER'S FRAME, and it has to be: kit-local +x is the seated player's right
+    on both rows (rttKitPos mirrors x and z together for a far-row seat, which is turned half a
+    circle to match), so one rule covers all six seats -- including the two centre ones, which have
+    no side of the table and take the same offset as a right-hand seat.
+    """
+    W = fresh(src).eval("RTT_HELPER_TOWN_W")          # the maintainer's measured card width
+    BOARD  = "B8AC776D9A0834C541CE5BA4617071B0A7526F33"   # the Duchy faction board's own face
+    MONGER = "DC51B16F8C7B99B4A3D13D834A504D33AC8F9550"   # the Mole Monger's
+
+    def spawn(cx, cz, flip, neutral):
+        rt = fresh(src)
+        if neutral:
+            rt.execute("rttMoleKitDX = function() return 0 end")   # the build before this change
+        rt.execute("""
+          SPAWNS = {}
+          local real = spawnObjectJSON
+          spawnObjectJSON = function(p)
+            local j = (type(p.json) == "string") and p.json or ""
+            local what = "piece"
+            if j:find("%s", 1, true) then what = "monger"
+            elseif j:find("%s", 1, true) then what = "board" end
+            SPAWNS[#SPAWNS + 1] = string.format("%%s|%%f|%%f", what,
+              p.position.x or p.position[1], p.position.z or p.position[3])
+            return real(p)
+          end
+          pcall(function() rttSpawnFaction("Underground Duchy", %f, %f, %s, nil, nil) end)
+          FLUSH(80)
+          local h = RTT_HOME["xUnderground DuchyTunnel1"]
+          TUNNEL = h and string.format("%%f|%%f", h.p[1], h.p[3]) or ""
+        """ % (MONGER, BOARD, cx, cz, "true" if flip else "false"))
+        rows = [r.split("|") for r in list(rt.eval("SPAWNS").values())]
+        return ([(w, float(x), float(z)) for w, x, z in rows],
+                [float(v) for v in (rt.eval("TUNNEL") or "").split("|") if v != ""])
+
+    for label, cx, cz, flip in (("seat 1", 52, -46, False), ("seat 2", -52, -46, False),
+                                ("seat 3", 52, 46, True),   ("seat 4", -52, 46, True),
+                                ("5p centre near", 0, -46, False), ("5p centre far", 0, 46, True)):
+        was, was_tunnel = spawn(cx, cz, flip, True)
+        now, now_tunnel = spawn(cx, cz, flip, False)
+        assert len(was) == len(now) and len(was) > 20, \
+            "%s spawned %d pieces before and %d after -- the kit itself changed" % (label, len(was), len(now))
+        assert was_tunnel and now_tunnel, "%s recorded no third-Tunnel return slot" % label
+
+        s = -1.0 if flip else 1.0                      # world -> the seat's own frame
+        monger = [p for p in now if p[0] == "monger"]
+        board  = [p for p in now if p[0] == "board"]
+        assert len(monger) == 1, "%s spawned %d Mole Mongers" % (label, len(monger))
+        assert len(board) == 1, "%s spawned %d Duchy boards" % (label, len(board))
+
+        on_right = (monger[0][1] - cx) * s > 0          # kit-local +x is the player's right
+        want = -W if on_right else W
+        # the side rule the Monger's own two measured spots encode, stated independently
+        assert on_right == ((cx < 0 and cz < 0) or (cx > 0 and cz > 0)), \
+            "%s: the Monger landed on the player's %s, against its own seat rule" \
+            % (label, "right" if on_right else "left")
+
+        for i, ((w0, x0, z0), (w1, x1, z1)) in enumerate(zip(was, now)):
+            assert w0 == w1, "%s: piece %d changed identity between the two spawns" % (label, i)
+            got = (x1 - x0) * s
+            if w1 == "monger":
+                assert abs(x1 - x0) < 1e-9 and abs(z1 - z0) < 1e-9, \
+                    "%s: the Mole Monger moved %.3f; it is what the board makes room from" % (label, x1 - x0)
+                continue
+            assert abs(got - want) < 1e-6, \
+                ("%s: piece %d (%s) stepped %.4f in the player's frame, wanted %.4f -- the kit must "
+                 "move as one" % (label, i, w1, got, want))
+            assert abs(z1 - z0) < 1e-9, "%s: piece %d moved %.4f along z; only x was asked for" % (label, i, z1 - z0)
+
+        moved = (now_tunnel[0] - was_tunnel[0]) * s
+        assert abs(moved - want) < 1e-6, \
+            "%s: the third Tunnel's return slot stepped %.4f, wanted %.4f -- it would be left behind" \
+            % (label, moved, want)
+        assert abs(now_tunnel[1] - was_tunnel[1]) < 1e-9, "%s: the Tunnel slot moved along z" % label
+
+        # and the board is now a full card width further from the Monger than it was
+        was_gap = abs([p for p in was if p[0] == "board"][0][1] - [p for p in was if p[0] == "monger"][0][1])
+        now_gap = abs(board[0][1] - monger[0][1])
+        assert abs((now_gap - was_gap) - W) < 1e-6, \
+            "%s: the board-to-Monger gap grew %.4f, not one card width (%.4f)" % (label, now_gap - was_gap, W)
+
 
 CASES = [
     ("manual path drives the turn system",   t_manual_turn_order),
@@ -11856,6 +12019,8 @@ CASES = [
     ("variant picks are capped",             t_a_faction_cannot_be_given_more_options_than_it_has),
     ("5p gives the middle board room",       t_five_players_give_the_middle_board_room),
     ("the crow box shrank inward",           t_the_crow_hidden_box_shrank_away_from_the_board),
+    ("the crow box is half as tall",         t_the_crow_hidden_box_is_half_as_tall),
+    ("the mole board steps off the monger",  t_the_mole_board_steps_away_from_the_monger),
     ("numpad 2 hands you your token",  t_numpad_two_hands_you_the_token_you_chose),
     ("gizmo default key is numpad 0",         t_gizmo_default_key_is_numpad_zero),
     ("gizmo: warrior to/from supply",         t_gizmo_warrior_to_and_from_supply),

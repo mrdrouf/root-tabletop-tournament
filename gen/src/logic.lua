@@ -5550,8 +5550,14 @@ function rttSpawnFaction(faction, cx, cz, flip, category, rotationY, opts)
   -- are exactly what the plain loop built -- the rats' mood cards still spawn from the rats board's
   -- own callback, so the board has a collider under them first.
   local specs = {}
+  -- The Duchy's whole kit steps a card width away from the Mole Monger. It is applied HERE, to the
+  -- kit-local offset, rather than to the board afterwards: every piece takes the same step in the
+  -- same frame, so the crowns, the buildings and the tunnels stay on the board they sit on. The
+  -- Monger itself is spawned from its own measured spots and does not move (rttMoleKitDX).
+  local kitDX = (faction == "Underground Duchy") and rttMoleKitDX(cx, cz) or 0
   for _, v in ipairs(objects) do
-    local new_pos = rttKitPos(cx, cz, flip, rotationY, v.move_to)
+    local mt = (kitDX ~= 0) and { v.move_to[1] + kitDX, v.move_to[2], v.move_to[3] } or v.move_to
+    local new_pos = rttKitPos(cx, cz, flip, rotationY, mt)
     -- Knaves: this piece IS the rules board (its blueprint json carries the board image). Spawn the
     -- Captains board FROM this exact board -> correct seat, same spawn flow, cleared with the faction.
     -- Detected on the blueprint DATA (deterministic), not a runtime getCustomObject (timing-safe).
@@ -5579,9 +5585,11 @@ function rttSpawnFaction(faction, cx, cz, flip, category, rotationY, opts)
       -- the default is the crafted board's own x, one gap above it; a faction in RTT_VP_PANEL_AT says
       -- where it wants its panel instead, in the same kit-local frame
       local at = RTT_VP_PANEL_AT[faction]
-      local vpAtX = at and at[1] or v.move_to[1]
-      local vpAtZ = at and at[2] or (v.move_to[3] + RTT_VP_PANEL_DZ)
-      local vpPos = rttKitPos(cx, cz, flip, rotationY, { vpAtX, v.move_to[2], vpAtZ })
+      -- mt already carries the Duchy's step; a faction that names its own spot gets it added, since
+      -- RTT_VP_PANEL_AT is written in the same kit frame.
+      local vpAtX = at and (at[1] + kitDX) or mt[1]
+      local vpAtZ = at and at[2] or (mt[3] + RTT_VP_PANEL_DZ)
+      local vpPos = rttKitPos(cx, cz, flip, rotationY, { vpAtX, mt[2], vpAtZ })
       local vpRow = (opts ~= nil and opts.row ~= nil) and opts.row or rttVPRow(rttFactionKey(faction))
       local prev = myCb
       myCb = function(o) prev(o); rttSpawnVPPanel(vpPos, vpRow, spawnRy) end
@@ -6441,8 +6449,32 @@ function rttSeatOffset(cx, cz, flip, rotationY, ox, oz)
   return cx + ox * s, cz + oz * s
 end
 
+-- WHICH HAND THE MONGER SITS BY -- asked once, answered in one place, because TWO things now depend
+-- on it and a second copy of the rule is a second thing to get wrong.
+--
+-- True means the Monger goes to the seated player's RIGHT. That is RTT_MONGER_LEFT, whose name is
+-- about the seat's side of the TABLE, not the player's hand: a left-hand seat puts the Monger to its
+-- own right. Kit-local +x is the player's right on BOTH rows -- rttKitPos mirrors x and z together
+-- for a far-row seat, and that seat is turned half a circle to match -- so the two agree everywhere.
+function rttMongerOnPlayersRight(cx, cz)
+  return (cx < 0 and cz < 0) or (cx > 0 and cz > 0)
+end
+
+-- HOW FAR THE DUCHY'S KIT STEPS ASIDE, and which way.
+--
+-- Maintainer, 2026-09-14: "move the mole faction board by a card width to the left when the mole
+-- manager is to the right and vice versa when it s to the left."
+--
+-- The Monger is the one piece that does NOT take this step -- it is what the board is making room
+-- from -- so it keeps its two measured spots and everything else in the kit moves the other way.
+-- Kit-local, so it rotates and mirrors with the seat like every other kit offset, and a card width
+-- is read at call time: RTT_HELPER_TOWN_W is declared further down the file and would be nil here.
+function rttMoleKitDX(cx, cz)
+  return rttMongerOnPlayersRight(cx, cz) and -RTT_HELPER_TOWN_W or RTT_HELPER_TOWN_W
+end
+
 function rttMongerSpot(cx, cz, flip, rotationY)
-  local o = ((cx < 0 and cz < 0) or (cx > 0 and cz > 0)) and RTT_MONGER_LEFT or RTT_MONGER_RIGHT
+  local o = rttMongerOnPlayersRight(cx, cz) and RTT_MONGER_LEFT or RTT_MONGER_RIGHT
   local x, z = rttSeatOffset(cx, cz, flip, rotationY, o[1], o[3])
   return { x, o[2], z }
 end
@@ -6729,7 +6761,7 @@ function rttCrowsHiddenZone(board, cx, cz, isDraft)
   local blob = string.gsub(RTT_CROW_HZ_JSON, '"FogColor":"White"', '"FogColor":"' .. color .. '"')
   spawnObjectJSON({
     json = blob,
-    position = { w.x, 14.11, w.z },
+    position = { w.x, RTT_CROW_HZ_FLOOR + RTT_CROW_HZ_SY / 2, w.z },
     rotation = { 0, board.getRotation().y, 0 },        -- straightened: aligned to the crow board
     scale = { RTT_CROW_HZ_SX, RTT_CROW_HZ_SY, RTT_CROW_HZ_SZ },  -- uniform dimensions for every seat
     callback_function = function(o) o.setLock(true) o.addTag("RTT Faction") end
@@ -6738,7 +6770,7 @@ function rttCrowsHiddenZone(board, cx, cz, isDraft)
   -- caller recompute the same arithmetic is what keeps the two in step: if the zone is moved -- and the
   -- maintainer has asked Zaandaa whether this spot is right -- only RTT_CROW_HZ_LX/_LZ change, and the
   -- plots follow on the next spawn with nothing else to update.
-  return { x = w.x, y = 14.11 + RTT_CROW_PLOT_Y, z = w.z }
+  return { x = w.x, y = RTT_CROW_HZ_FLOOR + RTT_CROW_PLOT_Y, z = w.z }
 end
 
 -- ---- Lizard Cult ----------------------------------------------------------
@@ -7189,9 +7221,14 @@ RTT_CROW_PLOTS = {
 -- it was caught by rendering the zone for all five seat positions and diffing against the build
 -- before, which is the only way a change expressed in one frame and applied in another gets checked.
 --
--- THE HEIGHT (SY, 5.10) IS DELIBERATELY UNCHANGED. "Height and width" reads as the two dimensions of
--- the rectangle on the table; SY is how tall the fog column stands, and shortening that would let
--- people see over the plots rather than make the box smaller.
+-- THE HEIGHT CAME DOWN SEPARATELY. The 10% was the footprint; the maintainer then asked for "the
+-- actual 3D height of the hidden box" halved, so SY is 2.55 where it was 5.10.
+--
+-- IT IS HALVED FROM THE TABLE, NOT ABOUT ITS CENTRE. A TTS zone's position is its CENTRE, so halving
+-- the height alone would have lifted the floor from 11.56 to 12.835 and left the plots lying UNDER
+-- the box, in plain sight of the table. The floor is the fixed thing and the constants say so: the
+-- box stands on RTT_CROW_HZ_FLOOR and reaches half its own height above it, and the plots rest at
+-- their own small height above that same floor rather than at an offset from a centre that moves.
 RTT_CROW_HZ_LX = 2.99866 -- board-local X magnitude on the RIGHT side (seats 2 & 4) -- clears the crafted.
                           -- was 3.074, less 0.07534 -- half the width taken off the far side, in board-local units
 RTT_CROW_HZ_LX_LEFT = 2.18466 -- LEFT side (seats 1 & 3): closer to the faction board by the crafted board's
@@ -7201,13 +7238,15 @@ RTT_CROW_HZ_LZ = -0.61885-- board-local Z: was -0.565, less half the depth taken
                           -- Board-local +z is toward the PLAYER on both rows -- the crow board carries
                           -- rotY 180 on the near row and 0 on the far one -- so this is the edge
                           -- nearest them that comes in, and the far edge stays put.
--- plot layout INSIDE the hidden zone: world-unit spacing, and how far above the zone's own y they
--- sit so they rest visibly in it rather than at its floor.
+-- plot layout INSIDE the hidden zone: world-unit spacing, and how far above the box's FLOOR they
+-- rest. 0.35 is the height they have always sat at (the old -2.20 from a centre of 14.11); written
+-- from the floor it no longer moves when the box's height changes.
 RTT_CROW_PLOT_GAP = 1.60
-RTT_CROW_PLOT_Y   = -2.20
+RTT_CROW_PLOT_Y   = 0.35
+RTT_CROW_HZ_FLOOR = 11.56 -- the table surface. The box stands ON it and grows upward from it.
 RTT_CROW_HZ_SX = 11.961   -- uniform box dimensions for every seat; his hand-placed 13.29 x 9.50 less
-RTT_CROW_HZ_SY = 5.10     -- 10%, with the height left alone. The 4x3 plot grid inside is 6.4 x 4.8
-RTT_CROW_HZ_SZ = 8.55     -- world units and stays centred, so it still sits well clear of every edge.
+RTT_CROW_HZ_SY = 2.55     -- 10%. The height is half his 5.10, taken off the top. The 4x3 plot grid
+RTT_CROW_HZ_SZ = 8.55     -- inside is 6.4 x 4.8 world units and stays centred, well clear of every edge.
 
 RTT_CROW_HZ_JSON = [==[{"GUID":"8719cd","Name":"FogOfWarTrigger","Transform":{"posX":-27.8318653,"posY":14.1115437,"posZ":-46.7588654,"rotX":0.0,"rotY":359.8908,"rotZ":0.0,"scaleX":14.3045025,"scaleY":5.1,"scaleZ":12.5832348},"Nickname":"","Description":"","GMNotes":"","AltLookAngle":{"x":0.0,"y":0.0,"z":0.0},"ColorDiffuse":{"r":1.0,"g":1.0,"b":1.0,"a":0.25},"LayoutGroupSortIndex":0,"Value":0,"Locked":true,"Grid":true,"Snap":true,"IgnoreFoW":false,"MeasureMovement":false,"DragSelectable":true,"Autoraise":true,"Sticky":true,"Tooltip":true,"GridProjection":false,"HideWhenFaceDown":false,"Hands":false,"FogColor":"White","FogHidePointers":false,"FogReverseHiding":false,"FogSeethrough":true,"LuaScript":"","LuaScriptState":"","XmlUI":""}]==]
 
@@ -9119,7 +9158,15 @@ function rttAddHomeExtras(faction, cx, cz, flip, rotationY, name, rot, done)
     -- loose, so nothing named "Relic" is ever handed to this function.
     if (e.on or e[1]) == name and not done[i] then
       done[i] = true
-      local vec = Vector(e[2]) * scale
+      -- The Duchy's kit steps a card width away from the Mole Monger, and these slots are written in
+      -- that same kit frame -- so they take the step too, or the third Tunnel is left behind beside
+      -- a board that has moved out from under it.
+      local ex = e[2]
+      if faction == "Underground Duchy" then
+        local mdx = rttMoleKitDX(cx, cz)
+        if mdx ~= 0 then ex = { ex[1] + mdx, ex[2], ex[3] } end
+      end
+      local vec = Vector(ex) * scale
       if rotationY ~= nil then
         vec = vec * Vector(15.5, 1, 15.5)
         vec:rotateOver("y", rotationY)

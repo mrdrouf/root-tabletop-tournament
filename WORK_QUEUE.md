@@ -196,6 +196,7 @@ Nothing below is implemented. The maintainer asked to be consulted before each c
 
 ## NOTES DO NOT TOUCH
 
-rotate the 4 player setup art by 90 degrees so it s similar to the 5 player setup art
+there are also some Homeland assets we don't have yet like the Gladiator meeple and the assembly and acclaim tokens (both sides each) are outdated
+Ultimate mod doesn't use the actual assets for those
 
-remove the little stem pointing out of the frog mount it s background in the 3 player draft art
+what actions to automate like produce wood and recruit.
