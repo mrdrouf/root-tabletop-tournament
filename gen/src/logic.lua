@@ -8471,7 +8471,11 @@ function rttWarriorSupplyMap()
   for nick, bag in pairs(rttBagOfMap()) do
     if nick:match("Warrior$") then m[nick] = bag end
   end
-  RTT_WARRIOR_SUPPLY = m
+  -- ...AND THE SAME RULE AS rttBagOfMap: an empty answer is a FAILED answer, not a fact, so it is
+  -- not remembered. This is derived from that map, so it inherits its bad moments -- and caching an
+  -- empty one here would quietly outlive the fix there, leaving numpad 1 unable to name any supply
+  -- for the rest of the session even after the underlying scan had recovered.
+  if next(m) ~= nil then RTT_WARRIOR_SUPPLY = m end
   return m
 end
 
