@@ -5550,10 +5550,10 @@ function rttSpawnFaction(faction, cx, cz, flip, category, rotationY, opts)
   -- are exactly what the plain loop built -- the rats' mood cards still spawn from the rats board's
   -- own callback, so the board has a collider under them first.
   local specs = {}
-  -- The Duchy's whole kit steps a card width away from the Mole Monger. It is applied HERE, to the
-  -- kit-local offset, rather than to the board afterwards: every piece takes the same step in the
-  -- same frame, so the crowns, the buildings and the tunnels stay on the board they sit on. The
-  -- Monger itself is spawned from its own measured spots and does not move (rttMoleKitDX).
+  -- The Duchy's whole area steps a card width toward the side its Mole Monger is NOT on. It is
+  -- applied HERE, to the kit-local offset, rather than to the board afterwards: every piece takes the
+  -- same step in the same frame, so the crowns, the buildings and the tunnels stay on the board they
+  -- sit on. The Monger takes it too, in rttMongerSpot, so it keeps touching the board's edge.
   local kitDX = (faction == "Underground Duchy") and rttMoleKitDX(cx, cz) or 0
   for _, v in ipairs(objects) do
     local mt = (kitDX ~= 0) and { v.move_to[1] + kitDX, v.move_to[2], v.move_to[3] } or v.move_to
@@ -6465,8 +6465,13 @@ end
 -- Maintainer, 2026-09-14: "move the mole faction board by a card width to the left when the mole
 -- manager is to the right and vice versa when it s to the left."
 --
--- The Monger is the one piece that does NOT take this step -- it is what the board is making room
--- from -- so it keeps its two measured spots and everything else in the kit moves the other way.
+-- THE MONGER TAKES THE STEP TOO. It was left out of the first cut, on the reading that the board was
+-- making room FROM it -- and the maintainer, seeing it at the table: "you forgot to move the mole
+-- monger it s now not closely next to the faction board." The Monger's measured spot has it touching
+-- the board's edge, and that is the point of the spot: the two are read together. So what moves is
+-- the Duchy's whole area, Monger included, which shifts a lopsided seat back over its own chair
+-- without changing anything INSIDE it.
+--
 -- Kit-local, so it rotates and mirrors with the seat like every other kit offset, and a card width
 -- is read at call time: RTT_HELPER_TOWN_W is declared further down the file and would be nil here.
 function rttMoleKitDX(cx, cz)
@@ -6475,7 +6480,9 @@ end
 
 function rttMongerSpot(cx, cz, flip, rotationY)
   local o = rttMongerOnPlayersRight(cx, cz) and RTT_MONGER_LEFT or RTT_MONGER_RIGHT
-  local x, z = rttSeatOffset(cx, cz, flip, rotationY, o[1], o[3])
+  -- the same step the rest of the kit takes, so the Monger stays exactly where it was measured
+  -- against the board -- against its EDGE, on the left-hand spot
+  local x, z = rttSeatOffset(cx, cz, flip, rotationY, o[1] + rttMoleKitDX(cx, cz), o[3])
   return { x, o[2], z }
 end
 

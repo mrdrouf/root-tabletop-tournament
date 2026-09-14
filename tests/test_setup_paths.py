@@ -11821,12 +11821,16 @@ def t_the_mole_board_steps_away_from_the_monger(src):
     Maintainer, 2026-09-14: "move the mole faction board by a card width to the left when the mole
     manager is to the right and vice versa when it s to the left."
 
-    WHAT MOVES IS THE WHOLE KIT, not the board tile on its own. Nine crowns, the markets, the
+    WHAT MOVES IS THE WHOLE AREA, not the board tile on its own. Nine crowns, the markets, the
     citadels and the two tunnels are laid out ON that board; sliding the tile out from under them
     would leave them hanging over the table. So the step is applied to the kit-local offset, before
-    anything is placed, and every piece of the kit takes it together. The Monger does NOT take it --
-    it is the thing being made room from -- so the gap between it and the board grows by exactly the
-    card width asked for.
+    anything is placed, and every piece takes it together.
+
+    THE MONGER MOVES WITH IT. The first cut left it out, reading the request as the board making room
+    FROM it, and the maintainer said at the table: "you forgot to move the mole monger it s now not
+    closely next to the faction board." Its measured spot has it against the board's edge, so the two
+    are one thing to him: everything inside the Duchy's area holds still relative to everything else,
+    and the area as a whole slides a card width off the side the Monger is on.
 
     This is checked by DIFFING TWO SPAWNS of the same seat, one with the step neutralised, rather
     than by asserting coordinates: coordinates would pin the blueprint's numbers, and what the
@@ -11892,10 +11896,6 @@ def t_the_mole_board_steps_away_from_the_monger(src):
         for i, ((w0, x0, z0), (w1, x1, z1)) in enumerate(zip(was, now)):
             assert w0 == w1, "%s: piece %d changed identity between the two spawns" % (label, i)
             got = (x1 - x0) * s
-            if w1 == "monger":
-                assert abs(x1 - x0) < 1e-9 and abs(z1 - z0) < 1e-9, \
-                    "%s: the Mole Monger moved %.3f; it is what the board makes room from" % (label, x1 - x0)
-                continue
             assert abs(got - want) < 1e-6, \
                 ("%s: piece %d (%s) stepped %.4f in the player's frame, wanted %.4f -- the kit must "
                  "move as one" % (label, i, w1, got, want))
@@ -11907,11 +11907,13 @@ def t_the_mole_board_steps_away_from_the_monger(src):
             % (label, moved, want)
         assert abs(now_tunnel[1] - was_tunnel[1]) < 1e-9, "%s: the Tunnel slot moved along z" % label
 
-        # and the board is now a full card width further from the Monger than it was
+        # ...and NOTHING inside the area moved relative to anything else: the Monger is still exactly
+        # as close to the board as it was measured to be, which is what the maintainer noticed missing
         was_gap = abs([p for p in was if p[0] == "board"][0][1] - [p for p in was if p[0] == "monger"][0][1])
         now_gap = abs(board[0][1] - monger[0][1])
-        assert abs((now_gap - was_gap) - W) < 1e-6, \
-            "%s: the board-to-Monger gap grew %.4f, not one card width (%.4f)" % (label, now_gap - was_gap, W)
+        assert abs(now_gap - was_gap) < 1e-6, \
+            ("%s: the board-to-Monger gap changed from %.4f to %.4f -- the Monger must ride along and "
+             "stay against the board's edge" % (label, was_gap, now_gap))
 
 
 CASES = [
