@@ -10558,6 +10558,35 @@ def t_a_warrior_reaches_its_supply_with_the_bag_map_broken(src):
         assert r2.eval("PUT") == 1, \
             "%s did not reach %s with the bag map broken" % (war, sup)
 
+    # THE MARQUISE'S WOOD, same shape and same guarantee. Maintainer, 2026-09-14: "you need to apply
+    # the same to the wood and wood supply of the cat." It lives in a bag and nowhere else, has no
+    # board row, and never spawns loose -- so with the big map broken the key used to do nothing at
+    # all. Tier 2 cannot answer for wood (it reports the bag holding a faction's WARRIOR, which for
+    # the cats is Marquise Supply -- lumber out of the wrong bag), so the plain-text tier does.
+    rt = fresh(src)
+    rt.execute("""
+      RTT_BAG_OF = {} RTT_SUPPLY_OF = {}
+      RTT_HOME = {} PUT = 0
+      BAG = MKOBJ("Wood Supply", { 60, 11.5, -40 }, {})
+      BAG.putObject = function(o) PUT = PUT + 1 o.destruct() end
+      W = MKOBJ("Wood", { 3, 11.6, 3 }, {})
+      HOVER = { Red = W } rttGizmoHome("Red") FLUSH(20)
+    """)
+    assert rt.eval('rttSupplyForPiece([[Wood]])') == "Wood Supply", \
+        ("wood resolved to %r with the map broken; it must be Wood Supply, never the warriors' bag"
+         % rt.eval('rttSupplyForPiece([[Wood]])'))
+    assert rt.eval("PUT") == 1, "wood did not reach its supply with the bag map broken"
+
+    # ...AND A BAGLESS BUILDING STILL HAS NO SUPPLY, so its spawn row is left alone. The last-resort
+    # scan must not hand a building somebody else's bag just because the word "Bag" appears nearby.
+    rt = fresh(src)
+    rt.execute("RTT_BAG_OF = {} RTT_SUPPLY_OF = {}")
+    for name in ("Enclave", "Roost", "Saw Mill", "Sympathy"):
+        got = rt.eval('rttSupplyForPiece([[%s]])' % name)
+        assert got is None, "%s was given a supply it does not have: %r" % (name, got)
+        assert rt.eval('rttHomeMeasuredOnly([[%s]])' % name) is False, \
+            "%s lost its spawn row" % name
+
     # AND WITH NO SUPPLY FINDABLE AT ALL: nothing happens. It is NOT put back where it started.
     rt = fresh(src)
     rt.execute("""

@@ -8326,34 +8326,53 @@ end
 -- "numpad 1 works numpad 0 does not". rttPieceNamesFromDef reads a kit with simple patterns only --
 -- no backtracking, no cache, no whole-table sweep -- and finds the bag that CONTAINS the warrior.
 -- Asking the working question is better than auditing the broken one.
+-- Per-name memo, so the last-resort scan below runs at most once for each piece in a session.
+RTT_SUPPLY_OF = {}
+
 function rttSupplyForPiece(name)
+  if name == nil or name == "" then return nil end
+  local memo = RTT_SUPPLY_OF[name]
+  if memo ~= nil then
+    if memo == false then return nil end
+    return memo
+  end
+
   local viaMap = nil
   pcall(function() viaMap = rttBagOfMap()[name] end)
-  if viaMap ~= nil then return viaMap end
-  if not rttIsWarrior(name) then return nil end
+  if viaMap ~= nil then RTT_SUPPLY_OF[name] = viaMap return viaMap end
+
   local found = nil
-  pcall(function()
-    for _, cat in pairs(EVERYTHING or {}) do
-      for _, def in pairs(cat) do
-        if found == nil and type(def) == "table" and def['data'] ~= nil then
-          local sup, war = rttPieceNamesFromDef(def)
-          if war == name and sup ~= nil then found = sup end
+  -- TIER 2 IS WARRIORS ONLY, because it answers "which bag holds THIS FACTION'S WARRIOR" -- ask it
+  -- about wood and it hands back the warriors' bag, which is how lumber used to come out of the
+  -- Marquise Supply.
+  if rttIsWarrior(name) then
+    pcall(function()
+      for _, cat in pairs(EVERYTHING or {}) do
+        for _, def in pairs(cat) do
+          if found == nil and type(def) == "table" and def['data'] ~= nil then
+            local sup, war = rttPieceNamesFromDef(def)
+            if war == name and sup ~= nil then found = sup end
+          end
         end
       end
-    end
-  end)
-  if found ~= nil then return found end
+    end)
+  end
+  if found ~= nil then RTT_SUPPLY_OF[name] = found return found end
 
-  -- THIRD AND LAST: the one kit blob that both looks like a container and names this piece, found by
-  -- PLAIN TEXT SEARCH -- string.find with the plain flag, no pattern engine involved at all.
+  -- THIRD AND LAST, AND FOR ANY PIECE, NOT JUST A WARRIOR: the one kit blob that is a container and
+  -- names this piece, found by PLAIN TEXT SEARCH -- string.find with the plain flag, no pattern
+  -- engine involved at all.
   --
-  -- The tier above only knows bags whose nickname ends in "Supply", because that is all numpad 1
-  -- ever needed; the Dark Deck's infected warriors live in one called "RODENT ZERO". This tier has
-  -- no such assumption, and nothing in it can misbehave differently under TTS's MoonSharp, which is
-  -- the whole reason there is a third tier at all.
+  -- Maintainer, 2026-09-14: "you need to apply the same to the wood and wood supply of the cat." The
+  -- Marquise's wood has exactly the same shape as a warrior -- it lives in a bag and nowhere else,
+  -- it has no board row of its own, and it never spawns loose -- so if the big map fails to name
+  -- "Wood Supply" the key simply does nothing. Tier 2 cannot answer for it (see above), so this tier
+  -- does, and it has no assumption about the bag being called "... Supply" either: the Dark Deck's
+  -- infected warriors live in one called "RODENT ZERO".
   --
   -- The container's own nickname is the FIRST one in a blueprint and its contents follow, which is
-  -- the same fact rttBagOfMap is built on.
+  -- the same fact rttBagOfMap is built on. The blob must actually BE a container -- matching on the
+  -- bare word "Bag" would let a card called "Bag" or the Knaves' Bag item answer for a building.
   pcall(function()
     for _, cat in pairs(EVERYTHING or {}) do
       for _, def in pairs(cat) do
@@ -8361,7 +8380,9 @@ function rttSupplyForPiece(name)
           for _, v in ipairs(def['data']) do
             if found == nil and type(v.json) == "string"
                and string.find(v.json, '"Nickname": "' .. name .. '"', 1, true) ~= nil
-               and string.find(v.json, "Bag", 1, true) ~= nil then
+               and (string.find(v.json, '"Name": "Custom_Model_Bag"', 1, true) ~= nil
+                    or string.find(v.json, '"Name": "Bag"', 1, true) ~= nil
+                    or string.find(v.json, '"Name": "Infinite_Bag"', 1, true) ~= nil) then
               local first = string.match(v.json, '"Nickname":%s*"([^"]*)"')
               if first ~= nil and first ~= "" and first ~= name then found = first end
             end
@@ -8370,6 +8391,13 @@ function rttSupplyForPiece(name)
       end
     end
   end)
+
+  -- Remember the answer, including "there is no bag" -- but only once there was something to look
+  -- through, so a lookup made while the kits are not loaded is not cached as a permanent no.
+  local ready = false
+  pcall(function() ready = (next(EVERYTHING or {}) ~= nil) end)
+  if found ~= nil then RTT_SUPPLY_OF[name] = found
+  elseif ready then RTT_SUPPLY_OF[name] = false end
   return found
 end
 
