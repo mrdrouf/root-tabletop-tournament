@@ -206,6 +206,91 @@ def check_ui_ids(logic, save):
 CALL_TARGET_OK = set()
 
 
+def _blank_comments_and_strings(code):
+    """Blank out comments and string bodies, keeping every line number intact."""
+    out, i, n = [], 0, len(code)
+    while i < n:
+        if code.startswith("--[[", i):
+            j = code.find("]]", i)
+            j = n if j < 0 else j + 2
+            out.append(re.sub(r"[^\n]", " ", code[i:j])); i = j
+        elif code.startswith("--", i):
+            j = code.find("\n", i)
+            j = n if j < 0 else j
+            out.append(" " * (j - i)); i = j
+        elif code[i] in "'\"":
+            q, j = code[i], i + 1
+            while j < n and code[j] != q:
+                j += 2 if code[j] == "\\" else 1
+            j = min(j + 1, n)
+            out.append(re.sub(r"[^\n]", " ", code[i:j])); i = j
+        else:
+            out.append(code[i]); i += 1
+    return "".join(out)
+
+
+def check_local_order(scripts):
+    """Fail the build if a script uses a file-scope `local` from above the line that declares it.
+
+    A Lua `local` is only in scope AFTER its own line. Above it the same name compiles to a GLOBAL
+    lookup, which is nil -- so nothing fails to load, and nothing fails until a player does the thing
+    that runs that line. It has cost this repo four rounds now:
+
+        steamIdFor   called before its declaration in the box score
+        slug         called by deckSlug fifteen lines early -- latent, only reached by an odd deck name
+        nudge        called by rttNudge two hundred lines early: "attempt to call a nil value"
+        VP_PENDING   a plain `local ... = {}` put beside the one function that WRITES it, and read by
+                     two written five hundred lines above: "attempt to index a nil value at poll",
+                     every poll, for every row, which is the whole sheet stopping
+
+    THIS IS A BUILD FAILURE AND NOT A TEST, for the reason check_calls is: the suite reads dist/, so
+    it only sees this after a rebuild -- and the broken build above went out precisely because the
+    suite was run BEFORE the rebuild and passed against the previous one. The build reads gen/src
+    every time, and the pre-commit hook runs the build, so this cannot be committed.
+
+    Deliberately narrow, so it stays a flat rule with no parser to be wrong: declarations at column 0
+    only (file scope, so the line number really is the scope boundary), a call `name(` for a
+    `local function`, and an index `name[` for a plain local -- indexing being the shape that throws.
+    A name that is also defined as a global somewhere is exempt, since the early reference finds that.
+    """
+    bad = []
+    for label, code in scripts.items():
+        code = _blank_comments_and_strings(code)
+        lines = code.split("\n")
+        glob = set(re.findall(r"^\s*function\s+([A-Za-z_]\w*)\s*\(", code, re.M))
+        glob |= set(re.findall(r"^([A-Za-z_]\w*)\s*=", code, re.M))
+
+        fns, vars_ = {}, {}
+        for i, l in enumerate(lines):
+            m = re.match(r"local function\s+([A-Za-z_]\w*)", l)
+            if m and m.group(1) not in fns:
+                fns[m.group(1)] = i + 1
+                continue
+            m = re.match(r"local\s+([A-Za-z_]\w*)\s*=", l)
+            if m and m.group(1) not in vars_:
+                vars_[m.group(1)] = i + 1
+
+        for name, dline in fns.items():
+            if name in glob:
+                continue
+            for i, l in enumerate(lines[:dline - 1]):
+                if re.search(r"(?<![\w.:])%s\s*\(" % re.escape(name), l):
+                    bad.append("%s line %d calls %s(), declared local at %d" % (label, i + 1, name, dline))
+        for name, dline in vars_.items():
+            if name in glob or name in fns:
+                continue
+            for i, l in enumerate(lines[:dline - 1]):
+                if re.search(r"(?<![\w.:])%s\s*\[" % re.escape(name), l):
+                    bad.append("%s line %d indexes %s, declared local at %d" % (label, i + 1, name, dline))
+
+    if bad:
+        raise SystemExit(
+            "[gen] A LOCAL IS USED ABOVE THE LINE THAT DECLARES IT.\n"
+            "      Lua resolves those to a nil global, so the script loads and then throws the moment\n"
+            "      a player reaches that line. Move the declaration above its first reader.\n\n      "
+            + "\n      ".join(bad))
+
+
 def check_calls(logic, save):
     """Fail the build if the board calls a function the target script does not define.
 
@@ -335,6 +420,17 @@ def build():
     # the save's top-level LuaScript, and it can only do that once the real recorder is sitting there.
     _set_global_lua(save, global_lua)
     check_spawn_tagging(logic)
+    # the board script plus every script it spawns -- a local out of order in any of them is the
+    # same nil at a real table. See check_local_order.
+    embedded = {"the board script": logic}
+    for name in ("RTT_BOXSCORE_JSON", "RTT_TURN_PANEL_JSON", "RTT_VP_PANEL_JSON"):
+        m = re.search(r"%s = \[=+\[(.*?)\]=+\]" % name, logic, re.S)
+        if m:
+            try:
+                embedded[name] = json.loads(m.group(1))["LuaScript"]
+            except Exception:
+                pass
+    check_local_order(embedded)
     check_ui_ids(logic, save)
     check_calls(logic, save)
     board_lua = _board_lua()
