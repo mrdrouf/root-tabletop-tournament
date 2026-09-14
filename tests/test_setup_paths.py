@@ -10384,6 +10384,102 @@ def t_a_warrior_reaches_its_supply_even_if_the_put_is_refused(src):
     assert rt.eval("ASKED") == 0, \
         "the absorbed warrior was asked its position after being destroyed"
 
+
+def t_a_half_built_supply_map_is_never_cached(src):
+    """If the blueprint scan fails, the map is rebuilt next time instead of being wrong all game.
+
+    THE ONLY WAY the current code can still send a warrior to its spawn position is for
+    rttBagOfMap()["Cat Warrior"] to come back nil -- and the one mechanism that produces that is this
+    cache. The scan is wrapped in a single pcall covering 63 kits and nearly two megabytes of string
+    matching, and its result used to be discarded, with the map cached whatever happened. One throw
+    anywhere left a PARTIAL map cached for the rest of the session: every piece whose kit had not
+    been reached yet simply had no supply, for the whole game, with no retry.
+
+    `pairs` has no defined order and TTS runs MoonSharp rather than the Lua this harness runs, so
+    WHICH kits survived a partial scan would differ between the table and every test here -- which is
+    exactly the shape of "it works on wood but not on warriors, and it changes between sessions".
+    """
+    rt = fresh(src)
+
+    # a scan that finds nothing must NOT be remembered
+    rt.execute("RTT_BAG_OF = nil KEEP = EVERYTHING EVERYTHING = {} M = rttBagOfMap()")
+    assert rt.eval("next(M) == nil") is True, "the empty scan somehow produced entries"
+    assert rt.eval("RTT_BAG_OF == nil") is True, \
+        "an empty supply map was cached; every piece in the game would have no supply all session"
+
+    # ...and the very next call, with the kits back, builds the real thing
+    rt.execute("EVERYTHING = KEEP M2 = rttBagOfMap()")
+    assert rt.eval('M2[ [[Cat Warrior]] ]') == "Marquise Supply", \
+        "the map did not recover after a failed scan: %r" % rt.eval('M2[ [[Cat Warrior]] ]')
+    assert rt.eval("RTT_BAG_OF ~= nil") is True, "a good map was not cached"
+
+    # and a warrior sent home on that recovered map reaches its supply, not its spawn spot
+    rt.execute("""
+      RTT_HOME = {} PUT = 0
+      for i = 1, 3 do
+        RTT_HOME["w" .. i] = { n = "Cat Warrior", f = "Marquise de Cat",
+                               p = { 40 + i, 11.6, -50 }, r = { 0, 0, 0 } }
+      end
+      BAG = MKOBJ("Marquise Supply", { 60, 11.5, -40 }, {})
+      BAG.putObject = function(o) PUT = PUT + 1 o.destruct() end
+      W = MKOBJ("Cat Warrior", { 3, 11.6, 3 }, {})
+      RTT_HOME[W.getGUID()] = { n = "Cat Warrior", f = "Marquise de Cat",
+                                p = { 99, 11.6, -99 }, r = { 0, 0, 0 } }
+      HOVER = { Red = W } rttGizmoHome("Red") FLUSH(20)
+    """)
+    assert rt.eval("PUT") == 1, "the warrior did not reach its supply"
+
+
+def t_both_slot_builders_ignore_spawn_spots_the_same_way(src):
+    """A shared row must not become a loophole back into the spawn-spot bug.
+
+    rttGizmoHome picks its slot list from ONE of two builders: rttHomeSlots for an ordinary name, and
+    rttHomeFamilySlots when the name belongs to a family (the Keepers' three waystations). Only the
+    first applied the rule that a piece with a supply ignores the spots it spawned on.
+
+    So the day "Warrior" were added to RTT_HOME_FAMILY -- exactly the edit somebody makes to group a
+    faction's warriors together -- every warrior in the game would get a phantom row of its own spawn
+    spots back and numpad 0 would start returning warriors to their starting positions again. That is
+    the bug of 2026-09-14, reachable by a one-word change. Both builders now share the rule.
+    """
+    rt = fresh(src)
+    rt.execute("""
+      RTT_HOME = {}
+      for i = 1, 3 do
+        RTT_HOME["w" .. i] = { n = "Cat Warrior", f = "Marquise de Cat",
+                               p = { 40 + i, 11.6, -50 }, r = { 0, 0, 0 } }
+      end
+      -- the loophole: warriors grouped into a family
+      RTT_HOME_FAMILY["Warrior"] = true
+      FAM = rttHomeFamily("Cat Warrior")
+      N = #rttHomeFamilySlots("Warrior")
+    """)
+    assert rt.eval("FAM") == "Warrior", "the family lookup did not group the warriors"
+    assert rt.eval("N") == 0, \
+        ("a grouped warrior row still contains its %d spawn spots; numpad 0 would send warriors back "
+         "to where they started" % rt.eval("N"))
+
+    # a MEASURED slot is still kept by the family builder -- that is what it is for
+    rt.execute("""
+      RTT_HOME["m1"] = { n = "Cat Warrior", f = "Marquise de Cat", x = true,
+                         p = { 70, 11.6, -50 }, r = { 0, 0, 0 } }
+      N2 = #rttHomeFamilySlots("Warrior")
+      RTT_HOME_FAMILY["Warrior"] = nil
+    """)
+    assert rt.eval("N2") == 1, "the family builder dropped a measured slot as well"
+
+    # ...and the waystations, the real reason the family builder exists, are untouched
+    rt.execute("""
+      RTT_HOME = {}
+      NAMES = { "Tablet/Figure Waystation", "Jewelry/Tablet Waystation", "Figure/Jewelry Waystation" }
+      for i, n in ipairs(NAMES) do
+        RTT_HOME["w" .. i] = { n = n, f = "Keepers in Iron", p = { 10 + i, 1, 10 }, r = { 0, 0, 0 } }
+      end
+      W3 = #rttHomeFamilySlots("Waystation")
+    """)
+    assert rt.eval("W3") == 3, \
+        "the waystations lost their shared row: %d slots" % rt.eval("W3")
+
 CASES = [
     ("manual path drives the turn system",   t_manual_turn_order),
     ("manual path spawns 4 / 5 boards",      t_boards_spawn),
@@ -10467,6 +10563,8 @@ CASES = [
     ("numpad 0 leaves ruins alone",          t_numpad_zero_leaves_ruins_alone),
     ("a supply is final",                    t_a_piece_with_a_supply_goes_there_and_nowhere_else),
     ("a refused put still reaches home",     t_a_warrior_reaches_its_supply_even_if_the_put_is_refused),
+    ("a partial supply map is not cached",   t_a_half_built_supply_map_is_never_cached),
+    ("both slot builders agree",             t_both_slot_builders_ignore_spawn_spots_the_same_way),
     ("numpad 2 hands you your token",  t_numpad_two_hands_you_the_token_you_chose),
     ("gizmo default key is numpad 0",         t_gizmo_default_key_is_numpad_zero),
     ("gizmo: warrior to/from supply",         t_gizmo_warrior_to_and_from_supply),

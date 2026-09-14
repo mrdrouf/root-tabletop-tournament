@@ -284,7 +284,21 @@ function MKOBJ(name, pos, tags)
       o.__contents[i], o.__contents[j] = o.__contents[j], o.__contents[i]
     end
   end
-  function o.putObject(x) return x end
+  -- A CONTAINER THAT ACTUALLY SWALLOWS WHAT IT IS GIVEN.
+  --
+  -- This returned the object untouched, so a test could only ever prove putObject was CALLED -- never
+  -- that it WORKED. That was a blind spot with teeth once the mod grew a fallback that fires exactly
+  -- when a put does not take (rttGizmoHome / RTT_SUPPLY_CHECK): against a no-op stub EVERY test
+  -- silently ran the failure path and still went green.
+  --
+  -- A test that wants the REFUSED case -- TTS quietly declining to put a piece into a locked bag,
+  -- which is the case the mod now guards against -- has to say so by overriding this.
+  function o.putObject(x)
+    if x == nil then return x end
+    o.__contents[#o.__contents + 1] = { guid = x.getGUID(), nickname = x.getName() }
+    pcall(function() x.destruct() end)
+    return o
+  end
   -- A REAL transform: scale, then rotate about Y, then translate. These returned the local vector
   -- UNCHANGED, so every world position derived from a board -- the crow plots, the crow hidden zone,
   -- the Knaves captains board -- came out as raw board-local numbers and no test could check where

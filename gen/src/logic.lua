@@ -8291,7 +8291,20 @@ function rttBagOfMap()
       end
     end
   end)
-  RTT_BAG_OF = m
+  -- CACHE ONLY A MAP THAT WAS ACTUALLY BUILT.
+  --
+  -- The pcall above wraps the WHOLE scan -- 63 kits, 700 blueprints, nearly two megabytes of string
+  -- matching -- and its result used to be thrown away, with `m` cached whatever happened. So one
+  -- throw anywhere in that sweep left a PARTIAL map cached for the rest of the session, with no
+  -- retry and no way to notice: every piece whose kit had not been reached yet simply had no supply
+  -- for the rest of the game. `pairs` has no defined order, and TTS's Lua is MoonSharp rather than
+  -- the Lua this repo's harness runs, so which kits survived would differ between the table and
+  -- every test.
+  --
+  -- An empty map counts as a failure too: it means EVERYTHING was not ready. Not caching lets the
+  -- next press rebuild it, so a bad moment costs one keypress instead of the whole session.
+  local ok = pcall(function() return next(m) end)
+  if ok and next(m) ~= nil then RTT_BAG_OF = m end
   return m
 end
 
@@ -8733,6 +8746,21 @@ end
 
 -- Every home slot recorded for one piece NAME, most-preferred first. Built from RTT_HOME, so it
 -- reflects what actually spawned at this table rather than a table that could drift from it.
+-- Are the spots this kind SPAWNED on a home row, or only the ones somebody measured?
+--
+-- Only measured, when the kind has a supply to go back to (a warrior, wood) or when the maintainer
+-- recorded its real row himself (the otters' trade posts). A spawn spot is where a piece STARTS IN
+-- PLAY; it is not where it belongs when it is not in play.
+--
+-- PULLED OUT SO BOTH SLOT BUILDERS SHARE IT. rttHomeSlots applied this rule and rttHomeFamilySlots
+-- did not, so the day "Warrior" were ever added to RTT_HOME_FAMILY -- which is exactly the kind of
+-- edit somebody makes to group a faction's warriors -- every warrior in the game would silently get
+-- a phantom row of its own spawn spots back, which is the bug of 2026-09-14 all over again.
+function rttHomeMeasuredOnly(name)
+  if RTT_HOME_EXTRA_ONLY[name] then return true end
+  return rttBagOfMap()[name] ~= nil
+end
+
 function rttHomeSlots(name)
   local out = {}
   -- ...EXCEPT WHERE A SPAWN SPOT IS NOT A PLACE THE PIECE BELONGS, and then only the MEASURED slots
@@ -8754,7 +8782,7 @@ function rttHomeSlots(name)
   --     the board because the maintainer measured one and wrote it down, not because they spawned
   --     there. Relics keep their rows -- those are measured -- and so does every bagless building and
   --     token, whose spawn spots ARE its supply row and always were.
-  local onlyMeasured = RTT_HOME_EXTRA_ONLY[name] or (rttBagOfMap()[name] ~= nil)
+  local onlyMeasured = rttHomeMeasuredOnly(name)
   for _, h in pairs(RTT_HOME or {}) do
     if h.n == name and (not onlyMeasured or h.x) then out[#out + 1] = h end
   end
@@ -8840,7 +8868,10 @@ end
 function rttHomeFamilySlots(fam)
   local out = {}
   for _, h in pairs(RTT_HOME or {}) do
-    if rttHomeFamily(h.n) == fam then out[#out + 1] = h end
+    -- the SAME rule rttHomeSlots applies; see rttHomeMeasuredOnly for why this must not drift
+    if rttHomeFamily(h.n) == fam and (h.x or not rttHomeMeasuredOnly(h.n)) then
+      out[#out + 1] = h
+    end
   end
   table.sort(out, function(a, b)
     if a.p[1] ~= b.p[1] then return a.p[1] < b.p[1] end
