@@ -9735,6 +9735,176 @@ def t_a_trade_post_returns_to_the_board_not_the_pile(src):
     assert abs(z - (-54.5867)) < 0.01, \
         "the trade post landed at z %.2f; his Fox row is at -54.59" % z
 
+
+def t_a_relic_on_the_board_shows_its_points(src):
+    """A relic scoring on the Keepers' board lies on its VALUE side, not the side it spawns as.
+
+    Maintainer, 2026-09-13: "a relic should always be on its flipped side when it s on the faction
+    board not the side it spawns as."
+
+    THE TWO FACES ARE NOT ART AND A BLANK BACK. The side a relic spawns as is the relic alone -- a
+    stone idol, an inscribed tablet, an acorn on a cord -- and the other side is that same relic with
+    its VICTORY POINT VALUE printed beside it. On the map the art is what identifies it; on the
+    scoring row the number is the whole point, and a relic delivered face-as-spawned hides it.
+
+    180 about Z is the local-Z half-turn -- what flipping means throughout TTS and this mod, where a
+    face-down card reads rotZ 180 and the deck holder's own rot_offset is {0, 0, 180}. The seat's
+    rotation rides on Y, so the two compose without turning the tile in the plane of the board.
+    """
+    rt = fresh(src)
+    rt.execute("RTT_HOME = {} rttAddHomeExtras('Keepers in Iron', -52, -46, false, 0, 'Relics', "
+               "{ 0, 0, 0 }, {})")
+    rots = rt.eval("(function() local m = {} for _, h in pairs(RTT_HOME) do if h.n == 'Relic' then "
+                   "m[string.format('%d/%d', h.r[2], h.r[3])] = true end end "
+                   "local o = {} for k in pairs(m) do o[#o+1] = k end table.sort(o) "
+                   "return table.concat(o, ' ') end)()")
+    assert rots == "180/180", \
+        "the relic slots face %s; they should all be y 180 (the seat) and z 180 (turned over)" % rots
+
+    # the far row turns with the seat and stays turned over
+    rt.execute("RTT_HOME = {} rttAddHomeExtras('Keepers in Iron', -52, 46, false, 180, 'Relics', "
+               "{ 0, 0, 0 }, {})")
+    rz = rt.eval("(function() for _, h in pairs(RTT_HOME) do if h.n == 'Relic' then "
+                 "return h.r[3] end end end)()")
+    assert abs(rz - 180) < 0.01, "a far-row relic slot is not turned over: z %.1f" % rz
+
+    # ...and numpad 0 actually puts the tile that way up
+    rt.execute("""
+      RTT_HOME = {}
+      RTT_HOME["s1"] = { n = "Relic", f = "Keepers in Iron", k = "Tablet",
+                         p = { 5, 11.66, -50 }, r = { 0, 180, 180 } }
+      R = MKOBJ("Relic", { 40, 11.6, 40 }, {})
+      R.setCustomObject({ image = "https://x/1B21B3A568831670A0934FED30A6BB5E2CBD1DAD/" })
+      R.setRotation({ 0, 180, 0 })                 -- the side it spawns as
+      HOVER = { Red = R }
+      rttGizmoHome("Red")
+    """)
+    assert abs(rt.eval("R.getRotation().z") - 180) < 0.01, \
+        "numpad 0 laid the relic on the board still showing the side it spawns as"
+
+
+def t_a_relic_dropped_on_the_wrong_row_is_carried_across(src):
+    """Putting a relic down by hand on the wrong row moves it to its own.
+
+    Maintainer, 2026-09-13: "add that if a relic is moved manually in the wrong row it goes back to
+    the correct row."
+
+    NUMPAD 0 WAS NEVER HOW A RELIC GOT ONTO THE WRONG ROW. Sending one home already picks the right
+    one. Somebody CARRIES it there and lets go, and nothing was watching -- so the drop is the moment
+    to catch, and a safe one: a drop is a deliberate release, never a piece in flight from a script.
+
+    ON THE GRID OR NOT AT ALL. A relic let go on the map, over a hand or anywhere else on the table
+    is untouched. Only the twelve printed spaces are watched, and only the row is corrected: a relic
+    on the RIGHT row is not nudged onto the centre of its space, because where on the space the
+    player put it is their business.
+    """
+    rt = fresh(src)
+    rt.execute("""
+      RTT_HOME = {}
+      KINDS = { "Figure", "Tablet", "Jewelry" }
+      for r, k in ipairs(KINDS) do
+        for c = 1, 4 do
+          RTT_HOME["r" .. r .. c] = { n = "Relic", f = "Keepers in Iron", k = k,
+                                      p = { c * 1.7, 11.66, -40 - r * 1.7 }, r = { 0, 180, 180 } }
+        end
+      end
+      IMG = { Figure  = "87A3E507CAEC4A4083EC8AD3998E20A5EB4597A5",
+              Tablet  = "1B21B3A568831670A0934FED30A6BB5E2CBD1DAD",
+              Jewelry = "B1F1B0FA14BB5C5824F490D642A15F92F8068ED5" }
+      function RELIC(kind, pos)
+        local o = MKOBJ("Relic", pos, {})
+        o.setCustomObject({ image = "https://x/" .. IMG[kind] .. "/" })
+        o.setRotation({ 0, 180, 0 })
+        return o
+      end
+      -- a Jewelry put down by hand on the FIGURE row, third space along
+      J = RELIC("Jewelry", { 5.1, 11.66, -41.7 })
+      onObjectDrop("Red", J)
+    """)
+    z = rt.eval("J.getPosition().z")
+    assert abs(z - (-45.1)) < 0.001, \
+        "the Jewelry stayed on the Figure row (z %.2f); its own row is -45.10" % z
+    assert abs(rt.eval("J.getPosition().x") - 1.7) < 0.001, \
+        "the rescued Jewelry did not take the left end of its own row"
+    assert abs(rt.eval("J.getRotation().z") - 180) < 0.01, \
+        "the rescued relic is not showing its value side"
+
+    # ON ITS OWN ROW: left where it was put, but turned over.
+    rt.execute('T = RELIC("Tablet", { 5.15, 11.66, -43.42 }) onObjectDrop("Red", T)')
+    assert abs(rt.eval("T.getPosition().x") - 5.15) < 0.001 and \
+           abs(rt.eval("T.getPosition().z") - (-43.42)) < 0.001, \
+        "a relic put down on its own row was shoved onto the centre of the space"
+    assert abs(rt.eval("T.getRotation().z") - 180) < 0.01, \
+        "a relic put down on its own row was left showing the side it spawns as"
+
+    # OFF THE GRID: not our business. A relic on the map stays exactly where it was dropped.
+    rt.execute('M = RELIC("Jewelry", { 80, 11.66, 80 }) onObjectDrop("Red", M)')
+    assert abs(rt.eval("M.getPosition().x") - 80) < 0.001 and \
+           abs(rt.eval("M.getRotation().z")) < 0.01, \
+        "a relic dropped out on the map was moved or turned over"
+
+    # and nothing that is not a relic is touched, whatever it is dropped on
+    rt.execute('W = MKOBJ("Fox Trade Post", { 1.7, 11.66, -45.1 }, {}) onObjectDrop("Red", W)')
+    assert abs(rt.eval("W.getPosition().x") - 1.7) < 0.001, \
+        "a piece that is not a relic was moved by the relic drop handler"
+
+
+def t_a_discarded_card_turns_over_the_moment_it_is_let_go(src):
+    """A card dropped on the discard is face up at once, not a second later.
+
+    Maintainer, 2026-09-13: "the flip face up in the discard happens a bit too late needs to be
+    faster."
+
+    IT WAS ONLY EVER DONE BY THE ONCE-A-SECOND SWEEP, and that sweep must wait for a card to come to
+    REST before it touches anything, or it snatches cards merely flying over the discard on their way
+    to a hand. So a card discarded face down landed, settled, and only then turned over.
+
+    A drop is not a deal, which is the same distinction that made the dominance card snappy the day
+    before: nobody releases a card that is being dealt. The sweep stays exactly as it is and remains
+    the backstop for a card that arrives any other way -- which the last assertion holds.
+    """
+    holder = rt_holder = None
+    for mm in re.finditer(r"json=\[\[(.*?)\]\]", src, re.S):
+        try:
+            d = json.loads(mm.group(1))
+        except ValueError:
+            continue
+        if d.get("GUID") == "aa1464":
+            holder = d["LuaScript"]
+            break
+    assert holder is not None, "the deck holder is not in the build"
+
+    def drop(dx, face_down=True, tag="Card", name="Ambush"):
+        rt = lupa.LuaRuntime(unpack_returned_tuples=True)
+        rt.execute(open(os.path.join(HERE, "tts_stub.lua"), encoding="utf-8").read())
+        rt.execute("""
+          self.positionToWorld = function(p) return { x = p[1]*3.38, y = p[2], z = p[3]*3.38 } end
+          CARD = MKOBJ(%r, {0,1,0}, {})
+          CARD.name = %r CARD.tag = %r
+          CARD.getDescription = function() return 'fox' end
+          CARD.resting = false
+          CARD.is_face_down = %s
+          CARD.getPosition = function() return { x = -0.957*3.38 + %f, y = 2, z = 0.222*3.38 } end
+          Physics = { cast = function() return {} end }
+        """ % (name, tag, tag, "true" if face_down else "false", dx))
+        rt.execute(holder.replace("!=", "~="))
+        rt.execute("pcall(function() onLoad('') end) "
+                   "pcall(function() onObjectDrop('Red', CARD) end)")
+        return rt.eval("function() return CARD.is_face_down end")()
+
+    assert drop(0.0) is False, \
+        "a card let go face down on the discard is still waiting for the sweep to turn it over"
+    assert drop(0.0, face_down=False) is False, \
+        "a card already face up was turned over"
+    assert drop(6.47) is True, \
+        "a card dropped on the DRAW pile was turned face up; the drop radius reaches too far"
+    assert drop(0.0, tag="Deck", name="Deck") is True, \
+        "a whole deck set down on the discard was turned over, revealing every card in it"
+
+    # THE SWEEP IS STILL THE BACKSTOP. Nothing here removes it: a card that arrives any other way --
+    # dealt, scripted, knocked over -- is still turned up a second later.
+    assert "item.flip()" in holder, "the sweep's own face-up flip was removed along with the delay"
+
 CASES = [
     ("manual path drives the turn system",   t_manual_turn_order),
     ("manual path spawns 4 / 5 boards",      t_boards_spawn),
@@ -9808,6 +9978,9 @@ CASES = [
     ("the keepers record their relic rows",  t_the_keepers_kit_records_its_relic_rows),
     ("a crow plot returns to its square",    t_a_crow_plot_goes_back_to_its_own_square),
     ("a trade post returns to the board",    t_a_trade_post_returns_to_the_board_not_the_pile),
+    ("a relic on the board shows points",    t_a_relic_on_the_board_shows_its_points),
+    ("a hand-dropped relic finds its row",   t_a_relic_dropped_on_the_wrong_row_is_carried_across),
+    ("a discard turns over on release",      t_a_discarded_card_turns_over_the_moment_it_is_let_go),
     ("numpad 2 hands you your token",  t_numpad_two_hands_you_the_token_you_chose),
     ("gizmo default key is numpad 0",         t_gizmo_default_key_is_numpad_zero),
     ("gizmo: warrior to/from supply",         t_gizmo_warrior_to_and_from_supply),

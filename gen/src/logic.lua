@@ -8395,11 +8395,23 @@ RTT_RELIC_IMG = {
 -- that name and rttBadgerRelics deals them onto the map -- so the BAG's landing is the moment these
 -- slots can be recorded. `ry = 180` because the same reason means there is no relic to copy a facing
 -- from; 180 is how the tile sits on the board, turned with the seat.
+--
+-- `rz = 180` TURNS IT OVER. Maintainer, 2026-09-13: "a relic should always be on its flipped side
+-- when it s on the faction board not the side it spawns as." The two faces are not a front and a
+-- blank back: the side it spawns as is the relic alone, and the other side is the same relic with
+-- its VICTORY POINT VALUE printed beside it. On the map the art is what matters; on the scoring
+-- board the number is, and a relic delivered face-as-spawned hides the very thing the row is for.
+--
+-- 180 about Z is the local-Z half-turn, which is what flipping means everywhere in TTS and in this
+-- mod -- a face-down card reads rotZ 180, and the deck holder's own rot_offset is {0, 0, 180}. The
+-- seat's rotation goes on Y as always, so the two compose: {0, 180 + seat, 180} is exactly the
+-- spawned tile turned over, with nothing rotated in the plane of the board.
 do
   local out = {}
   for _, row in ipairs(RTT_RELIC_ROWS) do
     for _, xz in ipairs(row[2]) do
-      out[#out + 1] = { "Relic", { xz[1], 0.2, xz[2] }, on = "Relics", k = row[1], ry = 180 }
+      out[#out + 1] = { "Relic", { xz[1], 0.2, xz[2] }, on = "Relics", k = row[1],
+                        ry = 180, rz = 180 }
     end
   end
   RTT_HOME_EXTRA["Keepers in Iron"] = out
@@ -8442,6 +8454,78 @@ do
     end
   end
   RTT_HOME_EXTRA["Riverfolk Company"] = out
+end
+
+-- ---- A RELIC PUT DOWN BY HAND ------------------------------------------------------------------
+--
+-- Maintainer, 2026-09-13: "add that if a relic is moved manually in the wrong row it goes back to
+-- the correct row."
+--
+-- NOT NUMPAD 0'S JOB, which is the point of this. Sending a relic home already picks the right row,
+-- so the key was never the way a relic ended up on the wrong one: somebody CARRIES it there and lets
+-- go, and nothing was watching. A drop is the only moment that can be caught -- and it is a safe one,
+-- because a drop is a player's deliberate release, not a piece in flight from a script.
+--
+-- ON THE GRID OR NOT AT ALL. A relic dropped on the map, in a hand, or anywhere else on the table is
+-- left entirely alone; only one let go over the twelve printed spaces is touched, and only then. The
+-- nearest space decides which row it landed on -- that is a genuine "which space did you drop it on"
+-- question, not a guess at where a piece belongs, which the board already says.
+RTT_RELIC_DROP_R = 1.2   -- a space is 1.68 from the next, so this covers the grid without overlap
+RTT_RELIC_DROP_Y = 3.0   -- ...and the height a piece can be released from and still land on it
+
+-- The printed space a point is over, or nil for anywhere else.
+function rttRelicSlotUnder(p, slots)
+  local best, bestd = nil, RTT_RELIC_DROP_R * RTT_RELIC_DROP_R
+  for _, sl in ipairs(slots) do
+    local dx, dz = p.x - sl.p[1], p.z - sl.p[3]
+    local d = dx * dx + dz * dz
+    if d <= bestd and math.abs(p.y - sl.p[2]) <= RTT_RELIC_DROP_Y then best, bestd = sl, d end
+  end
+  return best
+end
+
+function rttRelicDropped(o)
+  if o == nil then return end
+  local name = nil
+  pcall(function() name = o.getName() end)
+  if name ~= "Relic" then return end
+  local kind = rttRelicKind(o)
+  if kind == nil then return end
+  -- No grid recorded on THIS board -- the Keepers are not in play, or this is a selector clone with
+  -- its own empty globals. Either way there is nothing to correct against.
+  local slots = rttHomeSlots("Relic")
+  if #slots == 0 then return end
+  local p = nil
+  pcall(function() p = o.getPosition() end)
+  if p == nil then return end
+  local on = rttRelicSlotUnder(p, slots)
+  if on == nil then return end
+
+  -- THE RIGHT ROW: nothing to move, but it still has to be the right way up. Its place on the grid
+  -- is where the player put it, so it is not nudged onto the centre of the space -- only turned over.
+  if on.k == kind then
+    pcall(function() o.setRotation({ on.r[1], on.r[2], on.r[3] }) end)
+    return
+  end
+
+  -- THE WRONG ROW: the leftmost empty space of its own, exactly as numpad 0 would choose it.
+  local ytol = rttHomeYTol(slots)
+  for _, sl in ipairs(slots) do
+    if sl.k == kind and not rttHomeSlotTaken(sl, "Relic", o, ytol) then
+      pcall(function()
+        o.setPositionSmooth({ sl.p[1], sl.p[2], sl.p[3] }, false, true)
+        o.setRotation({ sl.r[1], sl.r[2], sl.r[3] })
+      end)
+      return
+    end
+  end
+  -- its own row is full: leave it where it was put rather than stack it on somebody
+end
+
+-- TTS calls this on every object script, not only on Global, which is how the deck holder already
+-- catches a discarded dominance card the instant it is let go.
+function onObjectDrop(color, o)
+  pcall(function() rttRelicDropped(o) end)
 end
 
 -- The kind of relic a tile is, or nil for anything that is not one.
@@ -8517,7 +8601,7 @@ function rttAddHomeExtras(faction, cx, cz, flip, rotationY, name, rot, done)
       -- lie sideways on the board -- so `ry` gives the facing in the seat's own frame and the
       -- seat's own rotation is added back here.
       local r = { rot[1], rot[2], rot[3] }
-      if e.ry ~= nil then r = { 0, (e.ry + spawnRy) % 360, 0 } end
+      if e.ry ~= nil then r = { 0, (e.ry + spawnRy) % 360, e.rz or 0 } end
       -- `x = true` marks this as a MEASURED slot rather than a spawn record. The two are otherwise
       -- indistinguishable once they are both in RTT_HOME, and RTT_HOME_EXTRA_ONLY needs to tell them
       -- apart to drop the spawn spots of a piece whose real place is elsewhere.
