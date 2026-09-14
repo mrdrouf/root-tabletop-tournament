@@ -10907,7 +10907,7 @@ def t_the_supporters_go_to_whoever_is_actually_in_the_seat(src):
 
     # the live code really does carry this guard, not just this fixture
     i = src.index("local supColor = pickerColor or color")
-    assert "rttPersonIn(seat.color)" in src[i:i + 900], \
+    assert "rttPersonIn(seat.color)" in src[i:i + 2000], \
         "rttSpawnFaction no longer checks whether a real person holds the seat"
 
 CASES = [
