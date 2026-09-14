@@ -9320,29 +9320,28 @@ function rttGizmoToken(color)
   if pos == nil then return end
   local to = { pos.x, pos.y + 1.5, pos.z }
 
-  -- 1. out of a bag, if that is where its kind lives -- the same route numpad 1 takes for a warrior
-  local bag = rttFindByName(rttBagOfMap()[name])
-  if bag ~= nil then
-    local n = 0
-    pcall(function() n = bag.getQuantity() end)
-    if n <= 0 then return end
-    local bp = bag.getPosition()
-    local ry = 0
-    pcall(function() ry = bag.getRotation().y or 0 end)
-    pcall(function()
-      bag.takeObject({
-        position = { bp.x, bp.y + 1.2, bp.z }, rotation = { 0, ry, 0 }, smooth = false,
-        callback_function = function(o)
-          pcall(function() o.addTag("RTT Faction") end)
-          pcall(function() o.setPositionSmooth(to, false, true) end)
-        end
-      })
-    end)
-    return
-  end
+  -- THIS KEY IS NUMPAD 0 RUN BACKWARDS, AND IT HAS TO SEARCH IN THE SAME ORDER.
+  --
+  -- Maintainer, 2026-09-13: "I think that numpad 2 sometimes bugs after it has been set on some
+  -- things. then also numpad 0 is buggy after setting numpad 2 on some tokens."
+  --
+  -- THE BAG USED TO BE FIRST HERE while numpad 0 puts the board row first, and two keys that are
+  -- each other's undo cannot disagree about which store is the real one. Two faults came out of it:
+  --
+  --   * A KIND WHOSE BAG IS EMPTIED AT SETUP WAS UNREACHABLE FOREVER. The twelve relics are dealt
+  --     onto the map's forests the moment the Keepers arrive, so the Relics bag is empty for the
+  --     whole game -- and this found it, read a quantity of zero and RETURNED, never looking at the
+  --     eleven relics sitting on the scoring rows. Numpad 2 on a relic did nothing at all, silently,
+  --     which is exactly what he reported.
+  --
+  --   * AND ON A KIND THAT HAS BOTH, THE PAIR DRIFTED. Numpad 2 took from the bag and numpad 0 put
+  --     it back on the row, so working the two keys slowly emptied a supply onto a row that should
+  --     never hold it -- numpad 0 "buggy after setting numpad 2 on some tokens".
+  --
+  -- Row first, then bag: the same order, so whatever numpad 0 does, this undoes.
 
-  -- 2. otherwise off the END of its row. rttHomeSlots hands back the fill order, so walking it
-  --    backwards empties the row from the far end -- the exact mirror of numpad 0 filling it.
+  -- 1. off the END of its row. rttHomeSlots hands back the fill order, so walking it backwards
+  --    empties the row from the far end -- the exact mirror of numpad 0 filling it.
   local slots = rttHomeSlots(name)
   local ytol = rttHomeYTol(slots)
   for i = #slots, 1, -1 do
@@ -9353,7 +9352,38 @@ function rttGizmoToken(color)
     end
   end
 
-  -- nothing of that kind left in its supply: nothing happens, and nothing is said
+  -- 2. ...and only then out of the bag, if that is where its kind lives -- the same route numpad 1
+  --    takes for a warrior.
+  local bag = rttFindByName(rttBagOfMap()[name])
+  if bag ~= nil then
+    local n = 0
+    pcall(function() n = bag.getQuantity() end)
+    if n > 0 then
+      local bp = bag.getPosition()
+      local ry = 0
+      pcall(function() ry = bag.getRotation().y or 0 end)
+      pcall(function()
+        bag.takeObject({
+          position = { bp.x, bp.y + 1.2, bp.z }, rotation = { 0, ry, 0 }, smooth = false,
+          callback_function = function(o)
+            pcall(function() o.addTag("RTT Faction") end)
+            pcall(function() o.setPositionSmooth(to, false, true) end)
+          end
+        })
+      end)
+      return
+    end
+  end
+
+  -- NONE LEFT ANYWHERE, AND IT SAYS SO. Silence is the right answer when NOTHING HAS BEEN CHOSEN --
+  -- "nothing happens and silence" -- but that is a key nobody has aimed yet. Having chosen a kind and
+  -- found none of it left is a different answer to a real question, and numpad 1 has always said it
+  -- out loud ("The supply is empty."). This one said nothing, so an empty supply and a broken key
+  -- looked identical from the table, which is most of why this took a report to find.
+  pcall(function()
+    broadcastToColor("No " .. tostring(name) .. " left to hand out.", color,
+                     { r = 1, g = 0.6, b = 0.2 })
+  end)
 end
 
 -- The hold. Two seconds on a piece CHOOSES it; a shorter press takes one. The timer does the

@@ -9950,6 +9950,85 @@ def t_a_piece_sent_home_lands_on_the_board_not_in_it(src):
         assert low <= rest + 0.35, \
             "%s is aimed %.2f above the board; it would bounce off the row" % (name, low - rest)
 
+
+def t_numpad_two_is_numpad_zero_run_backwards(src):
+    """The two keys are each other's undo, so they must search the same stores in the same order.
+
+    Maintainer, 2026-09-13: "I think that numpad 2 sometimes bugs after it has been set on some
+    things. then also numpad 0 is buggy after setting numpad 2 on some tokens."
+
+    THE BAG USED TO BE FIRST in the take while numpad 0 puts the board row first, and two keys that
+    undo each other cannot disagree about which store is the real one. Two faults fell out of it:
+
+      * A KIND WHOSE BAG IS EMPTIED AT SETUP WAS UNREACHABLE FOREVER. All twelve relics are dealt
+        onto the map's forests the moment the Keepers arrive, so the Relics bag is empty for the rest
+        of the game -- and the take read a quantity of zero and RETURNED, never looking at the relics
+        sitting on the scoring rows. Numpad 2 on a relic did nothing at all, and said nothing.
+
+      * AND ON A KIND WITH BOTH, THE PAIR DRIFTED: numpad 2 took from the bag, numpad 0 put it back
+        on the row, so working the keys emptied a supply onto a row that should never hold it.
+
+    An empty supply also speaks now. Silence is right for a key NOBODY HAS AIMED YET -- "nothing
+    happens and silence" -- but having chosen a kind and found none left is a real answer to a real
+    question, and numpad 1 has always given it. While this one stayed quiet, an empty supply and a
+    broken key looked identical from the table, which is most of why it took a report to find.
+    """
+    def table(bag_qty):
+        rt = fresh(src)
+        rt.execute("""
+          RTT_HOME = {} TOOK = 0 SAID = {}
+          rttAddHomeExtras("Keepers in Iron", -52, -46, false, 0, "Relics", { 0, 0, 0 }, {})
+          BAG = MKOBJ("Relics", { -60, 11.5, -40 }, {})
+          BAG.getQuantity = function() return %d end
+          BAG.takeObject  = function(p) TOOK = TOOK + 1 end
+          broadcastToColor = function(m) SAID[#SAID+1] = m end
+          POINTER = { Red = Vector({ 5, 11.6, 5 }) }
+          RTT_TOKEN_PICK = { Red = "Relic" }
+          function RELIC(p)
+            local o = MKOBJ("Relic", p, {})
+            o.setCustomObject({ image = "https://x/1B21B3A568831670A0934FED30A6BB5E2CBD1DAD/" })
+            return o
+          end
+        """ % bag_qty)
+        return rt
+
+    # A RELIC SENT HOME COMES BACK. The bag is empty, as it is for the whole of every real game.
+    rt = table(0)
+    rt.execute('R = RELIC({ 0, 11.6, 0 }) HOVER = { Red = R } rttGizmoHome("Red") FLUSH(10)')
+    onrow = rt.eval("R.getPosition().x")
+    assert onrow < -48, "numpad 0 did not put the relic on the board row: x %.2f" % onrow
+    rt.execute('rttGizmoToken("Red") FLUSH(10)')
+    assert abs(rt.eval("R.getPosition().x") - 5) < 0.01, \
+        ("numpad 2 left the relic on the row at x %.2f; the empty bag stopped it before it ever "
+         "looked there" % rt.eval("R.getPosition().x"))
+
+    # THE ROW WINS OVER A STOCKED BAG, so the pair cannot drift a supply onto a row.
+    rt = table(8)
+    rt.execute('R = RELIC({ 0, 11.6, 0 }) HOVER = { Red = R } rttGizmoHome("Red") FLUSH(10) '
+               'rttGizmoToken("Red") FLUSH(10)')
+    assert rt.eval("TOOK") == 0, \
+        "numpad 2 reached into the bag while a relic was sitting on the row"
+    assert abs(rt.eval("R.getPosition().x") - 5) < 0.01, \
+        "numpad 2 did not take the relic off the row"
+
+    # ...and the bag is still the fallback when the row is bare
+    rt = table(8)
+    rt.execute('rttGizmoToken("Red") FLUSH(10)')
+    assert rt.eval("TOOK") == 1, "with an empty row, numpad 2 no longer reaches the bag"
+
+    # NONE ANYWHERE: it says so rather than doing nothing in silence
+    rt = table(0)
+    rt.execute('rttGizmoToken("Red") FLUSH(10)')
+    said = list((rt.eval("SAID") or {}).values())
+    assert said and "Relic" in said[0], \
+        "an empty supply is still silent, so it cannot be told apart from a broken key: %r" % said
+
+    # ...but a key nobody has aimed yet stays silent, which is what he asked for
+    rt = table(0)
+    rt.execute('RTT_TOKEN_PICK = {} rttGizmoToken("Red") FLUSH(10)')
+    assert not list((rt.eval("SAID") or {}).values()), \
+        "numpad 2 now talks when no kind has been chosen; he asked for nothing and silence"
+
 CASES = [
     ("manual path drives the turn system",   t_manual_turn_order),
     ("manual path spawns 4 / 5 boards",      t_boards_spawn),
@@ -10027,6 +10106,7 @@ CASES = [
     ("a hand-dropped relic finds its row",   t_a_relic_dropped_on_the_wrong_row_is_carried_across),
     ("a discard turns over on release",      t_a_discarded_card_turns_over_the_moment_it_is_let_go),
     ("home slots drop, not embed",           t_a_piece_sent_home_lands_on_the_board_not_in_it),
+    ("numpad 2 undoes numpad 0",             t_numpad_two_is_numpad_zero_run_backwards),
     ("numpad 2 hands you your token",  t_numpad_two_hands_you_the_token_you_chose),
     ("gizmo default key is numpad 0",         t_gizmo_default_key_is_numpad_zero),
     ("gizmo: warrior to/from supply",         t_gizmo_warrior_to_and_from_supply),
