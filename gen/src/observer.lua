@@ -124,6 +124,22 @@ OBS_TURN_WAIT_MAX = 30
 --
 -- A host can still silence one table for a session with `OBS_ENABLED = false` in the Execute Lua
 -- Code box; every handler re-reads the flag.
+-- RECORD EVERYTHING, HIDDEN INFORMATION INCLUDED. Maintainer, 2026-09-13: "I told you to record
+-- EVERYTHING even hidden information."
+--
+-- This file was built the other way round and argues for it at length: hands were subtracted from
+-- every path during play, a face-down object was recorded as a position and a flag but never a name,
+-- and only obsReveal at EXPORT was allowed to read a hand. That was a design decision, and it is the
+-- maintainer's to overrule on his own mod and his own server.
+--
+-- WHAT IT COSTS, written down rather than discovered later: onSave puts the log into the SAVE FILE on
+-- every autosave. With this true, a card sitting in somebody's hand is NAMED in a file on the host's
+-- disk while the game is still being played -- so the exposure is no longer about the archive, it is
+-- about the table. Anyone who can open the host's save mid-game can read hands.
+--
+-- Set this false for the old behaviour; all four exclusions read it.
+OBS_RECORD_HIDDEN = true
+
 OBS_ENABLED = true
 
 -- THE ENDPOINT IS A CONSTANT, for the same reason the Root Database's URL is one in the box score:
@@ -504,7 +520,7 @@ end
 --     which is the moment it stops being hidden.
 local function obsStatic(o, g, hands)
   if OBS.objs[g] ~= nil then return end
-  if hands[g] then return end
+  if hands[g] and not OBS_RECORD_HIDDEN then return end
   -- SEEN, EVEN WHEN NOTHING IS EMITTED. `OBS.objs` cannot answer "has this log met this GUID
   -- before" because the next line is a deliberate refusal to describe a face-down object, so the
   -- draw deck, the discard, every Corvid plot and a dominance card played face down never get an
@@ -520,7 +536,7 @@ local function obsStatic(o, g, hands)
   OBS.seen[g] = true
   local down = false
   pcall(function() down = (o.is_face_down == true) end)
-  if down then return end
+  if down and not OBS_RECORD_HIDDEN then return end
   local nm = ""
   local ty = ""
   pcall(function() nm = o.getName() or "" end)
@@ -980,7 +996,7 @@ function obsFlush()
   for i = 1, #q do
     local e = q[i]
     local o = getObjectFromGUID(e.g)
-    if o ~= nil and not hands[e.g] then
+    if o ~= nil and (OBS_RECORD_HIDDEN or not hands[e.g]) then
       -- A PIECE HELD BY A PLAYER IS MID-DRAG: its position is meaningless and will change again next
       -- frame. Skipped and re-queued ONCE -- `e.rq` is what keeps that from becoming a heartbeat,
       -- because an entry can buy at most one extra 0.4 s and then it is written with whatever it
@@ -1051,7 +1067,7 @@ local function obsKeyframe(turnColor)
     -- A card in a hand is skipped ENTIRELY -- not even a position. See obsHands: `getAllObjects`
     -- returns hand cards exactly like table cards, and a row per hand card would leak hand size,
     -- ordering and (through the static map) identity.
-    if g ~= nil and g ~= "" and not hands[g] then
+    if g ~= nil and g ~= "" and (OBS_RECORD_HIDDEN or not hands[g]) then
       -- SEEN, WHATEVER HAPPENS NEXT. `seen` answers "is this object still on the table", and the
       -- difference between that and "did we write a row for it" is what the `gone` list is built
       -- out of -- mark it later and a piece somebody happened to be holding at a turn change would

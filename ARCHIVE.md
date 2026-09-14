@@ -126,6 +126,31 @@ worth that.
 maintainer, so a game archived at 22:25 read as 19:25 — the page was quietly wrong about when his own
 evening happened. One constant, one edit if he moves.
 
+## 1c. It records everything, hidden information included (2026-09-13)
+
+Maintainer: *"I told you to record EVERYTHING even hidden information."*
+
+`OBS_RECORD_HIDDEN` is **true**. One switch, and all four exclusions read it:
+
+| where | what it used to drop |
+|---|---|
+| `obsStatic` | a card in a hand got no entry, so never a name |
+| `obsStatic` | a face-down object got no name either -- its art IS the secret |
+| `obsFlush` | a queued event was discarded if the object had reached a hand |
+| `obsKeyframe` | hand objects were skipped in the table walk |
+
+**Why this had to change to find a bug.** The maintainer reported cards appearing in a player's hand
+while only pieces were being moved, and the archive could not answer it: a card dealt into a hand was
+dropped from the log by rule, so the draws were the one thing invisible. Hand *sizes* were recorded,
+but only in snapshots -- and snapshots happen at turn changes, roughly once every four minutes, so
+most changes fell between samples entirely.
+
+**The cost, which is at the table rather than in the archive.** `onSave` writes the log into the SAVE
+FILE on every autosave. With this on, a card in somebody's hand is named in a file on the host's disk
+while the game is still being played. Anyone who can open that save mid-game can read hands. Set
+`OBS_RECORD_HIDDEN = false` for the old behaviour -- the suite drives both directions, because an off
+switch that only half works is worse than none.
+
 ## 2. The trigger
 
 `uiExport` in the box score is the moment the maintainer declares the game finished — it writes the

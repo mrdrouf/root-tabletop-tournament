@@ -8578,76 +8578,65 @@ def t_export_without_a_box_score_still_sends_a_document(src):
 
 
 def t_the_payload_never_carries_a_hand(src):
-    """Hand SIZES are public and are recorded. Hand CONTENTS never are, until the game is declared over.
+    """OBS_RECORD_HIDDEN decides whether hands are recorded, and it is on.
 
-    PERCEPTION_SPEC.md section 3.4 and ARCHIVE.md section 3: this is the four-line whitelist that
-    separates a study tool from a cheat tool, and the Global script is where it has to hold, because a
-    Global script running on the host can read every player's hand. getAllObjects returns a card held
-    in a hand zone exactly like a card on the table, so without the exclusion set those cards get a
-    static entry (with their NAME), an event row and a snapshot row.
+    Maintainer, 2026-09-13: "I told you to record EVERYTHING even hidden information."
 
-    Three ways in are closed here and all three are checked against the bytes that were going to leave
-    the table: the static map, the event queue -- a hand card dropped INTO the hand is still a drop --
-    and the keyframe, which walks the whole board and is the greediest of the three.
+    THIS CASE USED TO ASSERT THE OPPOSITE and was right to, under the rule the recorder was built
+    on: hands subtracted from every path during play, a face-down object recorded as a position and
+    a flag but never a name, and only the export allowed to read a hand. That was a design decision
+    and the maintainer has overruled it for his own mod and his own server. So what is pinned here is
+    no longer "nothing hidden is recorded" -- it is that ONE SWITCH decides, and that every path
+    obeys it. A rule with three of four exclusions honouring it is worse than no rule.
 
-    The face-down tile is the same rule one step further on. A face-down Corvid plot is a Tile whose
-    ART IS THE SECRET, and it still answers getName(); it is recorded as a position and a faceDown
-    flag and never as a name.
+    THE COST IS REAL AND IS WHY BOTH DIRECTIONS ARE DRIVEN. onSave writes the log into the SAVE FILE
+    on every autosave, so with this on, a card in somebody's hand is named in a file on the host's
+    disk while the game is still being played -- the exposure is at the table, not in the archive.
+    Turning the switch off has to genuinely restore the old behaviour, or it is not an off switch.
     """
-    rt = fresh_observer()
-    rt.execute("SEAT('Red', 'MrDrouf') SEAT('Blue', 'Someone')")
-    _a_game_is_on(rt)
-    rt.execute("""
-      HANDCARDS['Red'] = { MKOBJ('Ambush!', {40, 1, 40}, {}),
-                           MKOBJ('Favor of the Mice', {41, 1, 41}, {}) }
-      PLOT = MKOBJ('Custom_Tile', {6, 1, 6}, {})
-      PLOT.is_face_down = true
-    """)
-    secrets = [rt.eval("HANDCARDS['Red'][%d].getGUID()" % i) for i in (1, 2)]
+    def run(hidden):
+        rt = fresh_observer()
+        rt.execute("OBS_RECORD_HIDDEN = %s" % ("true" if hidden else "false"))
+        rt.execute("SEAT('Red', 'MrDrouf') SEAT('Blue', 'Someone')")
+        _a_game_is_on(rt)
+        rt.execute("""
+          HANDCARDS['Red'] = { MKOBJ('Ambush!', {40, 1, 40}, {}),
+                               MKOBJ('Favor of the Mice', {41, 1, 41}, {}) }
+          PLOT = MKOBJ('Custom_Tile', {6, 1, 6}, {})
+          PLOT.is_face_down = true
+          OBJ_DROP('Red', HANDCARDS['Red'][1]) FLUSH(1)
+          Turns.enable = true Turns.order = {'Red', 'Blue'} TURN_SET('Red') FLUSH(10)
+          Global.call('rttArchiveGame', nil)
+        """)
+        guid = rt.eval("HANDCARDS['Red'][1].getGUID()")
+        return rt, rt.eval("WEBREQ[#WEBREQ].body"), guid
 
-    # the queue is not a way round the whitelist: a card dropped while it is in a hand is still skipped
-    rt.execute("OBJ_DROP('Red', HANDCARDS['Red'][1]) FLUSH(1)")
-    assert rt.eval("#OBS.ev") == 0, "a hand card was written into the event log"
-
-    # a turn change walks the whole table -- the greediest read the recorder ever does
-    # FLUSH after every turn change: onPlayerTurn hands its body to Wait.frames now, so that RTT's
-    # setup churn is over before the recorder walks the table. Nothing it does is synchronous.
-    rt.execute("Turns.enable = true Turns.order = {'Red', 'Blue'} TURN_SET('Red') FLUSH(10)")
-    rt.execute("Global.call('rttArchiveGame', nil)")
-    body = rt.eval("WEBREQ[#WEBREQ].body")
-
+    # ON: the hand is in the record, which is what was asked for
+    rt, body, hand_guid = run(True)
     doc = json.loads(body)
+    live = json.dumps({k: doc[k] for k in ("objects", "events", "snapshots")})
+    assert "Ambush!" in live, \
+        "OBS_RECORD_HIDDEN is on and a hand card is still missing from the live record"
+    assert hand_guid in live, \
+        "the hand card's own drop is still missing from the live record"
 
-    # NOT "absent from the payload" -- absent from the THREE SECTIONS THE GAME IS PLAYED THROUGH.
-    # This used to search the whole body and it went red the day obsReveal landed, which is the
-    # feature working rather than the whitelist failing: the maintainer, 2026-09-12, "there is no
-    # cheating problem since it's at the moment of the export". A blanket search cannot tell a hand
-    # recorded DURING PLAY -- the thing that would make this a cheat tool -- from one recorded at the
-    # moment the game is declared over, and it is only the first that matters. So the assertion is
-    # the separation obsReveal's own header argues for, section by section.
-    during_play = {k: json.dumps(doc[k]) for k in ("objects", "events", "snapshots")}
+    # OFF: the old behaviour, whole
+    rt2, body2, hand_guid2 = run(False)
+    doc2 = json.loads(body2)
+    live2 = json.dumps({k: doc2[k] for k in ("objects", "events", "snapshots")})
     for name in ("Ambush!", "Favor of the Mice"):
-        for sect, blob in during_play.items():
-            assert name not in blob, "%s names a card in a hand: %r" % (sect, name)
-    for g in secrets:
-        for sect, blob in during_play.items():
-            assert g not in blob, "%s carries the GUID of a card in a hand: %r" % (sect, g)
-    assert all(g not in doc["objects"] for g in secrets), "a hand card got a static entry"
+        assert name not in live2, \
+            "with the switch off, %r still reaches the live record -- an exclusion is not reading it" % name
+    # counted on the CARD, not on the event total: a turn change is an event too, and it is public
+    assert hand_guid2 not in live2, \
+        "with the switch off, the hand card still appears in the live record by GUID"
 
-    # ...and the reveal DOES carry them, which is the other half: a test that only proved the three
-    # live sections were clean would also pass if the export had quietly stopped recording anything.
-    shown = json.dumps(doc.get("reveal"))
-    for name in ("Ambush!", "Favor of the Mice"):
-        assert name in shown, "the export's reveal lost the hand it exists to record: %r" % name
-    # the SIZE is public -- everyone at a Root table can count the cards in a hand -- and is kept
+    # ...and either way the hand SIZE is kept, which is what the box score and this suite read
     assert doc["snapshots"][-1]["hands"]["Red"] == 2, \
-        "hand sizes were lost with the contents: %r" % doc["snapshots"][-1].get("hands")
+        "hand sizes were lost: %r" % doc["snapshots"][-1].get("hands")
 
-    plot = rt.eval("PLOT.getGUID()")
-    assert plot not in doc["objects"], "a face-down tile was described by name in the payload"
-    rows = [r for s in doc["snapshots"] for r in s["rows"] if r[0] == plot]
-    assert rows, "the face-down tile was dropped from the board entirely, not recorded as hidden"
-    assert rows[0][6] == 1, "the face-down tile is recorded face up: %s" % rows[0]
+    # the export's reveal is unchanged by any of this
+    assert "Ambush!" in json.dumps(doc.get("reveal")), "the export's reveal lost the hand it records"
 
 
 def t_a_second_game_is_not_appended_to_the_first(src):
@@ -9647,7 +9636,7 @@ CASES = [
     ("a drop arms one timer, once",     t_a_drop_arms_one_timer_and_a_second_drop_adds_none),
     ("the flush drains and dies",       t_the_flush_writes_its_queue_and_lets_the_timer_die),
     ("EXPORT sends without a sheet",    t_export_without_a_box_score_still_sends_a_document),
-    ("a hand leaves only at export",    t_the_payload_never_carries_a_hand),
+    ("one switch decides on hands",    t_the_payload_never_carries_a_hand),
     ("card backs are backs, not blanks", t_every_card_back_is_a_back_and_not_a_blank),
     ("the clock fits 10:00",           t_the_clock_has_room_for_a_two_digit_minute),
     ("torn boards are cut torn",      t_the_torn_boards_are_cut_where_the_art_is_torn),
