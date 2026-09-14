@@ -10242,6 +10242,83 @@ def t_numpad_zero_leaves_ruins_alone(src):
         assert rt.eval("RTT_HOME_NEVER[ [[%s]] ]" % name) is None, \
             "%s was added to the list of pieces numpad 0 ignores" % name
 
+
+def t_a_piece_with_a_supply_goes_there_and_nowhere_else(src):
+    """A supply is final. A warrior goes into it however it got onto the table, or the key says why.
+
+    Maintainer, 2026-09-14: "numpad 0 on warriors spawning at faction spawn returns them to initial
+    position. while doing that on warriors from the warriors supply does nothing ... warriors should
+    always return to supply with numpad 0. you implemented something I never asked for warriors. Also
+    because wood has a supply wood should go back to supply."
+
+    HIS TWO SYMPTOMS ARE ONE CAUSE. The supply step was not final: if it did not put the piece away,
+    the function walked on. A warrior that spawned WITH ITS FACTION has a recorded spot, so it fell to
+    the last resort and was teleported back to where it started -- "returns them to initial
+    position". One taken OUT of the supply has no recorded spot, so there was nothing to fall to and
+    the key did nothing at all. Two faces of the same missing rule, and neither is behaviour anybody
+    asked for.
+
+    So: a piece whose kind lives in a supply goes there, and if the supply is not on the table the key
+    SAYS so and stops. It must never walk on to a row or to where the piece happened to start, because
+    neither of those is its home. Relics are the one exception in the game and never reach that step:
+    their scoring row is a measured place on the board and is taken first.
+    """
+    def go(with_bag=True, with_record=True, name="Cat Warrior", supply="Marquise Supply"):
+        rt = fresh(src)
+        rt.execute("""
+          RTT_HOME = {} PUT = 0 SAID = {}
+          broadcastToColor = function(m) SAID[#SAID + 1] = m end
+          if %s then
+            BAG = MKOBJ("%s", { 60, 11.5, -40 }, {})
+            BAG.putObject = function(o) PUT = PUT + 1 end
+          end
+          W = MKOBJ("%s", { 3, 11.6, 3 }, {})
+          if %s then
+            RTT_HOME[W.getGUID()] = { n = "%s", f = "Marquise de Cat",
+                                      p = { 40, 11.6, -20 }, r = { 0, 0, 0 } }
+          end
+          HOVER = { Red = W }
+          rttGizmoHome("Red")
+        """ % ("true" if with_bag else "false", supply, name,
+               "true" if with_record else "false", name))
+        return (rt.eval("PUT"), abs(rt.eval("W.getPosition().x") - 3) > 0.01,
+                list((rt.eval("SAID") or {}).values()))
+
+    # HIS FIRST CASE: spawned with the faction, so it has a recorded spot to be dragged back to
+    put, moved, _ = go(with_record=True)
+    assert put == 1, "a warrior that spawned with its faction did not go into the supply"
+    assert not moved, "it was moved back to its initial position instead of going into the supply"
+
+    # HIS SECOND CASE: taken out of the supply, so it has no recorded spot and used to do nothing
+    put, moved, _ = go(with_record=False)
+    assert put == 1, "a warrior taken from the supply did nothing when sent home"
+    assert not moved, "it was moved somewhere instead of going into the supply"
+
+    # WOOD, for the same reason he gave: it has a supply, so that is where it goes
+    put, moved, _ = go(name="Wood", supply="Wood Supply", with_record=True)
+    assert put == 1 and not moved, "wood did not go back to its supply"
+
+    # NO SUPPLY ON THE TABLE: say so, and do NOT fall back to where the piece started
+    put, moved, said = go(with_bag=False, with_record=True)
+    assert put == 0 and not moved, \
+        "with no supply on the table the warrior was teleported to its initial position anyway"
+    assert said and "Marquise Supply" in said[0], \
+        "the key failed silently instead of saying the supply is missing: %r" % said
+
+    # ...AND THE ONE EXCEPTION: a relic has a supply too, and still takes its measured scoring row.
+    rt = fresh(src)
+    rt.execute("""
+      RTT_HOME = {} PUT = 0
+      rttAddHomeExtras("Keepers in Iron", -52, -46, false, 0, "Relics", { 0, 0, 0 }, {})
+      BAG = MKOBJ("Relics", { 60, 11.5, -40 }, {})
+      BAG.putObject = function(o) PUT = PUT + 1 end
+      R = MKOBJ("Relic", { 3, 11.6, 3 }, {})
+      R.setCustomObject({ image = "https://x/1B21B3A568831670A0934FED30A6BB5E2CBD1DAD/" })
+      HOVER = { Red = R } rttGizmoHome("Red")
+    """)
+    assert rt.eval("PUT") == 0, "the relic was put in its bag instead of on its scoring row"
+    assert rt.eval("R.getPosition().x") < -48, "the relic never reached its scoring row"
+
 CASES = [
     ("manual path drives the turn system",   t_manual_turn_order),
     ("manual path spawns 4 / 5 boards",      t_boards_spawn),
@@ -10323,6 +10400,7 @@ CASES = [
     ("a warrior goes to its supply",         t_a_warrior_goes_to_its_supply_like_wood_does),
     ("numpad 0 asks a piece nothing",        t_numpad_zero_never_interrogates_the_piece_it_sends_home),
     ("numpad 0 leaves ruins alone",          t_numpad_zero_leaves_ruins_alone),
+    ("a supply is final",                    t_a_piece_with_a_supply_goes_there_and_nowhere_else),
     ("numpad 2 hands you your token",  t_numpad_two_hands_you_the_token_you_chose),
     ("gizmo default key is numpad 0",         t_gizmo_default_key_is_numpad_zero),
     ("gizmo: warrior to/from supply",         t_gizmo_warrior_to_and_from_supply),

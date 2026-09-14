@@ -9043,13 +9043,39 @@ function rttGizmoHome(color)
   --    with a place on the board belongs on the board, and the bag is only what is left when it has
   --    none. Nothing that has a home row reaches this line, so for every piece that already had one
   --    this changes nothing at all.
-  local bag = rttFindByName(rttBagOfMap()[name])
-  if bag ~= nil then
-    pcall(function() bag.putObject(hovered) end)
+  -- 4. ITS SUPPLY, AND THAT IS THE END OF IT.
+  --
+  -- Maintainer, 2026-09-14: "warriors should always return to supply with numpad 0. you implemented
+  -- something I never asked for warriors. Also because wood has a supply wood should go back to
+  -- supply."
+  --
+  -- A PIECE WITH A SUPPLY HAS NOWHERE ELSE TO GO, and the two symptoms he described were both this
+  -- rule missing: a warrior that spawned with its faction fell past the bag to step 5 and was
+  -- teleported back to the spot it started on ("returns them to initial position"), and one taken out
+  -- of the supply had no recorded spot to fall to, so the key did nothing at all. Same cause, two
+  -- faces of it, and neither is a thing anybody asked for.
+  --
+  -- So the supply is final: found, the piece goes in; NOT found, the key says so and stops. It must
+  -- never walk on to a row or to where the piece happened to start, because those are not its home.
+  -- Relics never reach this line -- their scoring row is a MEASURED place on the board and step 3
+  -- takes it -- which is the one and only exception in the game.
+  local bagName = rttBagOfMap()[name]
+  if bagName ~= nil then
+    local bag = rttFindByName(bagName)
+    if bag ~= nil then
+      pcall(function() bag.putObject(hovered) end)
+      return
+    end
+    -- OUT LOUD, because the alternative is a key that looks broken. If this ever fires, the supply is
+    -- genuinely not on the table and the answer is on screen instead of in a guess.
+    pcall(function()
+      broadcastToColor("The " .. tostring(bagName) .. " is not on the table.", color,
+                       { r = 1, g = 0.6, b = 0.2 })
+    end)
     return
   end
 
-  -- 5. its own recorded spot, if it has one and every slot was full
+  -- 5. its own recorded spot -- only for a piece with NO supply at all, and every slot full
   if home ~= nil then
     pcall(function()
       hovered.setPositionSmooth({ home.p[1], home.p[2], home.p[3] }, false, true)
