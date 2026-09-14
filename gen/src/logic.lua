@@ -8666,12 +8666,6 @@ function rttGizmoHome(color)
   -- worse than moving somebody else's warrior to its own supply. The PIECE chooses its destination
   -- again, so being wrong about the player costs nothing.
 
-  -- 1. does it live in a bag?
-  local bag = rttFindByName(rttBagOfMap()[name])
-  if bag ~= nil then
-    pcall(function() bag.putObject(hovered) end)
-    return
-  end
 
   -- 2. its own spot, for the types that have no row
   local home = (RTT_HOME or {})[hovered.getGUID()]
@@ -8699,7 +8693,23 @@ function rttGizmoHome(color)
     end
   end
 
-  -- 4. its own recorded spot, if it has one and every slot was full
+  -- 4. ...and ONLY THEN the bag it came out of. Maintainer, 2026-09-13: "When setting up numpad, you
+  --    need to recognize the item, and then know where is the default position of this family of
+  --    items ... When numpad 0 on a relic it needs to go on its right position on the board for
+  --    scoring."
+  --
+  --    THE BAG USED TO BE CHECKED FIRST, so anything that came out of a container went straight back
+  --    into it and its board position was never even looked for. That is the wrong order: a piece
+  --    with a place on the board belongs on the board, and the bag is only what is left when it has
+  --    none. Nothing that has a home row reaches this line, so for every piece that already had one
+  --    this changes nothing at all.
+  local bag = rttFindByName(rttBagOfMap()[name])
+  if bag ~= nil then
+    pcall(function() bag.putObject(hovered) end)
+    return
+  end
+
+  -- 5. its own recorded spot, if it has one and every slot was full
   if home ~= nil then
     pcall(function()
       hovered.setPositionSmooth({ home.p[1], home.p[2], home.p[3] }, false, true)
@@ -9057,39 +9067,7 @@ function rttGizmoToken(color)
     end
   end
 
-  -- NOTHING LEFT AT HOME, SO TAKE THE NEAREST ONE TO HOME. Maintainer, 2026-09-13: numpad 2 "did not
-  -- work with enclave when set on an enclave off initial position ... it should work with
-  -- everything."
-  --
-  -- The loop above only ever finds a piece still SITTING on one of its home slots, which is the
-  -- supply row. Move every enclave out onto the map and that row is empty, so the key went dead --
-  -- silently, which reads as broken rather than as "the supply is empty".
-  --
-  -- WHICH PIECE, and why not simply the first found: the nearest to a home slot is the one least
-  -- likely to be doing a job. A piece two units off its own row is one somebody just took out; a
-  -- piece across the table is on a clearing, and taking that would undo a move nobody asked to undo.
-  -- When every copy is genuinely in play there is no right answer and this returns the least wrong.
-  --
-  -- HELD AND LOCKED ARE LEFT ALONE, the same two exclusions the rest of this file uses: never reach
-  -- into a hand, and a lock is a player saying this piece stays put.
-  local best, bestD = nil, nil
-  pcall(function()
-    for _, o in ipairs(getAllObjects()) do
-      local ok = false
-      pcall(function()
-        ok = ((o.getName() or "") == name) and (o.held_by_color == nil) and (o.getLock() ~= true)
-      end)
-      if ok then
-        local p = o.getPosition()
-        for _, h in ipairs(slots) do
-          local dx, dy, dz = p.x - h.p[1], p.y - h.p[2], p.z - h.p[3]
-          local d = dx * dx + dy * dy + dz * dz
-          if bestD == nil or d < bestD then best, bestD = o, d end
-        end
-      end
-    end
-  end)
-  if best ~= nil then pcall(function() best.setPositionSmooth(to, false, true) end) end
+  -- nothing of that kind left in its supply: nothing happens, and nothing is said
 end
 
 -- The hold. Two seconds on a piece CHOOSES it; a shorter press takes one. The timer does the

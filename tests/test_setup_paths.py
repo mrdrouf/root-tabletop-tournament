@@ -9270,7 +9270,8 @@ def t_numpad_two_reaches_every_kind_of_piece(src):
       end
       -- all three are away on the map, none on a slot
       FAR = MKOBJ("Enclave", { 60, 1, 60 }, {})
-      NEAR = MKOBJ("Enclave", { 12.4, 1, 10.2 }, {})
+      -- clear of every slot: the row's tolerance is 0.6 units, so 2 away is genuinely off it
+      NEAR = MKOBJ("Enclave", { 14, 1, 10 }, {})
       RTT_TOKEN_PICK["Red"] = "Enclave"
       POINTER = { Red = Vector({ 30, 1, 30 }) }
     """)
@@ -9278,11 +9279,57 @@ def t_numpad_two_reaches_every_kind_of_piece(src):
         "an enclave with a recorded home cannot be chosen"
     # every enclave is in play: the supply row is empty, and the key must still hand one over
     rt.execute('rttGizmoToken("Red")')
-    moved = rt.eval("NEAR.getPosition().x")
-    assert abs(moved - 30) < 0.001, \
-        ("the nearest-to-home enclave was not fetched: it is at x %.2f, the cursor is at 30" % moved)
+    # AN EMPTY SUPPLY HANDS OUT NOTHING, and that is the right answer rather than a clever one.
+    # A first version reached for whichever copy sat nearest its own row -- maintainer, 2026-09-13:
+    # "Not assign the position to the nearest one that is insane!" He is right, and it is the same
+    # mistake as the draw pile picking the biggest deck: guessing at which object is meant, when the
+    # game already says where things belong. If every enclave is in play there is no enclave to give.
+    assert abs(rt.eval("NEAR.getPosition().x") - 14) < 0.001, \
+        "a piece already in play was dragged to the cursor: numpad 2 takes from the supply, not the map"
     assert abs(rt.eval("FAR.getPosition().x") - 60) < 0.001, \
-        "the enclave across the table was taken instead of the one beside its own row"
+        "a piece across the table was moved"
+
+
+def t_a_piece_goes_to_its_board_place_before_any_bag(src):
+    """Numpad 0 looks for where a piece BELONGS before it considers putting it in a bag.
+
+    Maintainer, 2026-09-13: "When setting up numpad, you need to recognize the item, and then know
+    where is the default position of this family of items ... When numpad 0 on a relic it needs to go
+    on its right position on the board for scoring."
+
+    The bag was checked FIRST, so anything that came out of a container went straight back into it and
+    its board position was never even looked for. A piece with a place on the board belongs on the
+    board; the bag is what is left when it has none.
+
+    This is the ordering, checked on a piece that has both: a home row AND a bag. It must take the
+    row. Relics reaching their scoring spaces needs those three positions recorded, which nothing in
+    this repo or the archive holds yet -- so it is the order that is pinned here, not the destination.
+    """
+    rt = fresh(src)
+    rt.execute("""
+      RTT_HOME = {}
+      RTT_HOME["s1"] = { n = "Relic", f = "Keepers in Iron", p = { 5, 1, 5 }, r = { 0, 0, 0 } }
+      RTT_BAG_OF = { Relic = "Relics" }
+      BAG = MKOBJ("Relics", { 80, 1, 80 }, {})
+      PUT = 0
+      BAG.putObject = function(o) PUT = PUT + 1 end
+      R = MKOBJ("Relic", { 40, 1, 40 }, {})
+      HOVER = { Red = R }
+      rttGizmoHome("Red")
+    """)
+    assert rt.eval("PUT") == 0, "the relic went into the bag while a board place was free"
+    assert abs(rt.eval("R.getPosition().x") - 5) < 0.001, \
+        "the relic did not go to its board place: x %.2f" % rt.eval("R.getPosition().x")
+
+    # ...and with no board place at all, the bag is still the fallback rather than nothing happening
+    rt.execute("""
+      RTT_HOME = {}
+      R2 = MKOBJ("Relic", { 40, 1, 40 }, {})
+      HOVER = { Red = R2 }
+      PUT = 0
+      rttGizmoHome("Red")
+    """)
+    assert rt.eval("PUT") == 1, "with no board place recorded, the piece was not returned to its bag"
 
 
 def t_a_shared_row_fills_without_stacking(src):
@@ -9609,6 +9656,7 @@ CASES = [
     ("draw one takes the draw pile",  t_draw_one_takes_from_the_draw_pile_not_the_discard),
     ("off-turn points land in round", t_an_off_turn_point_lands_in_the_round_it_happened_in),
     ("numpad 2 reaches everything",    t_numpad_two_reaches_every_kind_of_piece),
+    ("board place beats the bag",      t_a_piece_goes_to_its_board_place_before_any_bag),
     ("a shared row does not stack",    t_a_shared_row_fills_without_stacking),
     ("dealing five again asks",        t_dealing_five_again_asks_first),
     ("the sweep spares the draw pile", t_the_discard_sweep_never_takes_from_the_draw_pile),
