@@ -4799,6 +4799,8 @@ RTT_FAC_CURRENT = {}
 -- spawn the Root Box Score sheet at the maintainer's placed spot (read from his TTS save),
 -- rotated 270 to face the camera, sized to fill the board-design rectangle (scale up
 -- ~1.3x wide / ~1.1x tall baked into _boxscore.json), locked to the table.
+RTT_BOXSCORE_QUEUED = false   -- a sheet is in the paced queue but has not landed yet
+
 function rttSpawnBoxScore()
   -- A SHEET ON THE TABLE IS ALWAYS KEPT. It is the same object whatever map is down and whatever game
   -- is being played, it carries the recorded game in its own state, and it is the one object on the
@@ -4806,15 +4808,38 @@ function rttSpawnBoxScore()
   -- especially when spawning factions or new maps." A new game empties it through uiReset instead;
   -- this function only ever fills an absence.
   if #getObjectsWithTag(RTT_BOXSCORE_TAG) > 0 then return end
+  -- ...AND NOT ONE ALREADY ON ITS WAY. The spawn below goes through the paced queue now, so for a
+  -- few frames the sheet is neither on the table nor visible to the tag test above -- and a second
+  -- call landing in that window would queue a second sheet. The flag closes that window; the
+  -- callback clears it.
+  if RTT_BOXSCORE_QUEUED then return end
+  RTT_BOXSCORE_QUEUED = true
   -- tell the box score how many player rows to pre-format for (4 ranked / 5 for 5p Marsh); it reads
   -- this Global each rebuild and grows past it only if more players are added.
   Global.setVar("RTT_BOXSCORE_MIN", (RTT_DN or 5) - 1)
-  spawnObjectJSON({
+  -- THROUGH THE PACED QUEUE, NOT STRAIGHT OUT.
+  --
+  -- This sheet is 211 KB in one object -- by a distance the largest single thing the mod spawns --
+  -- and it went out with a direct spawnObjectJSON that answered to neither of the pacing budgets. A
+  -- map click queues 42-49 map pieces through the shared pump, which drains six a frame, and this
+  -- was armed to land three frames into that drain: eight or nine objects and about 245 KB on one
+  -- frame, against budgets of six objects and 48 KB. That is precisely the burst the pacing exists
+  -- to prevent, and the one the play-tester's missing pieces were traced to.
+  --
+  -- A single object larger than the byte budget still goes out whole -- the pump only refuses to ADD
+  -- to a frame that already has something on it -- so the sheet now gets a frame to itself instead
+  -- of sharing one with six map tiles. Maintainer, 2026-09-14: "you can force this to be lower only
+  -- if it does not introduce some lag or staggered effect." It costs a few frames at setup, on an
+  -- object nobody is watching for, and nothing moves afterwards.
+  rttSpawnStaggered({ {
     json = RTT_BOXSCORE_JSON,
     position = { -58.36, 11.652, -0.05 },   -- centre of the maintainer's 4-card box-score rectangle
     rotation = { 0, 270, 0 },
-    callback_function = function(o) o.addTag(RTT_BOXSCORE_TAG) o.addTag(RTT_FIXTURE_TAG) o.setLock(true) end
-  })
+    callback_function = function(o)
+      RTT_BOXSCORE_QUEUED = false
+      o.addTag(RTT_BOXSCORE_TAG) o.addTag(RTT_FIXTURE_TAG) o.setLock(true)
+    end
+  } })
 end
 
 function rttStartFactionDraft()
