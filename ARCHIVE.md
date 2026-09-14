@@ -126,11 +126,13 @@ worth that.
 maintainer, so a game archived at 22:25 read as 19:25 — the page was quietly wrong about when his own
 evening happened. One constant, one edit if he moves.
 
-## 1c. It records everything, hidden information included (2026-09-13)
+## 1c. It records everything, and that is not a setting (2026-09-13)
 
-Maintainer: *"I told you to record EVERYTHING even hidden information."*
+Maintainer: *"I told you to record EVERYTHING even hidden information"*, and then, of the constant
+that briefly let it be turned off: *"The option to not record everything should never be on false it
+will never be an option."*
 
-`OBS_RECORD_HIDDEN` is **true**. One switch, and all four exclusions read it:
+So there is no flag. The three exclusions are **deleted**, not made conditional:
 
 | where | what it used to drop |
 |---|---|
@@ -139,17 +141,19 @@ Maintainer: *"I told you to record EVERYTHING even hidden information."*
 | `obsFlush` | a queued event was discarded if the object had reached a hand |
 | `obsKeyframe` | hand objects were skipped in the table walk |
 
-**Why this had to change to find a bug.** The maintainer reported cards appearing in a player's hand
-while only pieces were being moved, and the archive could not answer it: a card dealt into a hand was
-dropped from the log by rule, so the draws were the one thing invisible. Hand *sizes* were recorded,
-but only in snapshots -- and snapshots happen at turn changes, roughly once every four minutes, so
-most changes fell between samples entirely.
+A switch nobody may set leaves branches that read as if the old behaviour were still reachable, so
+they are gone entirely and the suite asserts the constant does not come back.
 
-**The cost, which is at the table rather than in the archive.** `onSave` writes the log into the SAVE
-FILE on every autosave. With this on, a card in somebody's hand is named in a file on the host's disk
-while the game is still being played. Anyone who can open that save mid-game can read hands. Set
-`OBS_RECORD_HIDDEN = false` for the old behaviour -- the suite drives both directions, because an off
-switch that only half works is worse than none.
+**Why it had to change to find a bug.** Cards appearing in a player's hand while only pieces were
+being moved could not be investigated: a card dealt into a hand was dropped from the log by rule, so
+the draws were the one thing invisible. Hand *sizes* were recorded, but only in snapshots -- and
+snapshots happen at turn changes, roughly once every four minutes, so most changes fell between
+samples entirely.
+
+**The cost is at the table, not in the archive.** `onSave` writes the log into the SAVE FILE on every
+autosave, so a card in somebody's hand is named in a file on the host's disk while the game is still
+being played. Anyone who can open that save mid-game can read hands. That is the trade, made
+knowingly.
 
 ## 2. The trigger
 

@@ -124,21 +124,22 @@ OBS_TURN_WAIT_MAX = 30
 --
 -- A host can still silence one table for a session with `OBS_ENABLED = false` in the Execute Lua
 -- Code box; every handler re-reads the flag.
--- RECORD EVERYTHING, HIDDEN INFORMATION INCLUDED. Maintainer, 2026-09-13: "I told you to record
--- EVERYTHING even hidden information."
+-- RECORD EVERYTHING, HIDDEN INFORMATION INCLUDED, AND THERE IS NO SWITCH.
 --
--- This file was built the other way round and argues for it at length: hands were subtracted from
--- every path during play, a face-down object was recorded as a position and a flag but never a name,
--- and only obsReveal at EXPORT was allowed to read a hand. That was a design decision, and it is the
--- maintainer's to overrule on his own mod and his own server.
+-- Maintainer, 2026-09-13: "I told you to record EVERYTHING even hidden information", and then, of the
+-- constant that briefly let it be turned off: "The option to not record everything should never be on
+-- false it will never be an option."
 --
--- WHAT IT COSTS, written down rather than discovered later: onSave puts the log into the SAVE FILE on
--- every autosave. With this true, a card sitting in somebody's hand is NAMED in a file on the host's
--- disk while the game is still being played -- so the exposure is no longer about the archive, it is
--- about the table. Anyone who can open the host's save mid-game can read hands.
+-- So it is not a setting. This file was built the other way round and argues for the opposite at
+-- length -- hands subtracted from every path during play, a face-down object recorded as a position
+-- and a flag but never a name, and only the export allowed to read a hand. That was a design
+-- decision, it is the maintainer's to overrule on his own mod and his own server, and he has. The
+-- three exclusions that enforced it are gone rather than made conditional: a flag nobody may set
+-- leaves dead branches that read as if the old behaviour were still reachable.
 --
--- Set this false for the old behaviour; all four exclusions read it.
-OBS_RECORD_HIDDEN = true
+-- WHAT IT COSTS, so it is on the record: onSave puts the log into the SAVE FILE on every autosave, so
+-- a card in somebody's hand is named in a file on the host's disk while the game is still being
+-- played. The exposure is at the table, not in the archive.
 
 OBS_ENABLED = true
 
@@ -520,7 +521,6 @@ end
 --     which is the moment it stops being hidden.
 local function obsStatic(o, g, hands)
   if OBS.objs[g] ~= nil then return end
-  if hands[g] and not OBS_RECORD_HIDDEN then return end
   -- SEEN, EVEN WHEN NOTHING IS EMITTED. `OBS.objs` cannot answer "has this log met this GUID
   -- before" because the next line is a deliberate refusal to describe a face-down object, so the
   -- draw deck, the discard, every Corvid plot and a dominance card played face down never get an
@@ -536,7 +536,7 @@ local function obsStatic(o, g, hands)
   OBS.seen[g] = true
   local down = false
   pcall(function() down = (o.is_face_down == true) end)
-  if down and not OBS_RECORD_HIDDEN then return end
+  -- a face-down object's name used to stop here: its art IS the secret. Recorded now.
   local nm = ""
   local ty = ""
   pcall(function() nm = o.getName() or "" end)
@@ -996,7 +996,7 @@ function obsFlush()
   for i = 1, #q do
     local e = q[i]
     local o = getObjectFromGUID(e.g)
-    if o ~= nil and (OBS_RECORD_HIDDEN or not hands[e.g]) then
+    if o ~= nil then
       -- A PIECE HELD BY A PLAYER IS MID-DRAG: its position is meaningless and will change again next
       -- frame. Skipped and re-queued ONCE -- `e.rq` is what keeps that from becoming a heartbeat,
       -- because an entry can buy at most one extra 0.4 s and then it is written with whatever it
@@ -1067,7 +1067,7 @@ local function obsKeyframe(turnColor)
     -- A card in a hand is skipped ENTIRELY -- not even a position. See obsHands: `getAllObjects`
     -- returns hand cards exactly like table cards, and a row per hand card would leak hand size,
     -- ordering and (through the static map) identity.
-    if g ~= nil and g ~= "" and (OBS_RECORD_HIDDEN or not hands[g]) then
+    if g ~= nil and g ~= "" then
       -- SEEN, WHATEVER HAPPENS NEXT. `seen` answers "is this object still on the table", and the
       -- difference between that and "did we write a row for it" is what the `gone` list is built
       -- out of -- mark it later and a piece somebody happened to be holding at a turn change would

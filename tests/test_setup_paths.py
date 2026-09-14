@@ -8578,65 +8578,61 @@ def t_export_without_a_box_score_still_sends_a_document(src):
 
 
 def t_the_payload_never_carries_a_hand(src):
-    """OBS_RECORD_HIDDEN decides whether hands are recorded, and it is on.
+    """Everything is recorded, hands and face-down pieces included, and it cannot be turned off.
 
-    Maintainer, 2026-09-13: "I told you to record EVERYTHING even hidden information."
+    Maintainer, 2026-09-13: "I told you to record EVERYTHING even hidden information", and then, of
+    the constant that briefly let it be switched off: "The option to not record everything should
+    never be on false it will never be an option."
 
-    THIS CASE USED TO ASSERT THE OPPOSITE and was right to, under the rule the recorder was built
-    on: hands subtracted from every path during play, a face-down object recorded as a position and
-    a flag but never a name, and only the export allowed to read a hand. That was a design decision
-    and the maintainer has overruled it for his own mod and his own server. So what is pinned here is
-    no longer "nothing hidden is recorded" -- it is that ONE SWITCH decides, and that every path
-    obeys it. A rule with three of four exclusions honouring it is worse than no rule.
+    THIS CASE USED TO ASSERT THE OPPOSITE, and was right to under the rule the recorder was built on:
+    hands subtracted from every path during play, a face-down object recorded as a position and a flag
+    but never a name, and only the export allowed to read a hand. That was a design decision and the
+    maintainer has overruled it. There is no flag now -- the three exclusions are deleted rather than
+    made conditional, because a switch nobody may set leaves branches that read as if the old
+    behaviour were still reachable.
 
-    THE COST IS REAL AND IS WHY BOTH DIRECTIONS ARE DRIVEN. onSave writes the log into the SAVE FILE
-    on every autosave, so with this on, a card in somebody's hand is named in a file on the host's
-    disk while the game is still being played -- the exposure is at the table, not in the archive.
-    Turning the switch off has to genuinely restore the old behaviour, or it is not an off switch.
+    So what is pinned is the new contract, in the three places that each used to drop something: the
+    static map (the card's NAME), the event queue (the drop that put it there), and the keyframe (the
+    table walk). A face-down tile is named too -- its art is the secret and that is recorded as well.
+
+    Hand SIZES are still kept, because the box score and this suite read them, and the export's own
+    reveal is untouched.
     """
-    def run(hidden):
-        rt = fresh_observer()
-        rt.execute("OBS_RECORD_HIDDEN = %s" % ("true" if hidden else "false"))
-        rt.execute("SEAT('Red', 'MrDrouf') SEAT('Blue', 'Someone')")
-        _a_game_is_on(rt)
-        rt.execute("""
-          HANDCARDS['Red'] = { MKOBJ('Ambush!', {40, 1, 40}, {}),
-                               MKOBJ('Favor of the Mice', {41, 1, 41}, {}) }
-          PLOT = MKOBJ('Custom_Tile', {6, 1, 6}, {})
-          PLOT.is_face_down = true
-          OBJ_DROP('Red', HANDCARDS['Red'][1]) FLUSH(1)
-          Turns.enable = true Turns.order = {'Red', 'Blue'} TURN_SET('Red') FLUSH(10)
-          Global.call('rttArchiveGame', nil)
-        """)
-        guid = rt.eval("HANDCARDS['Red'][1].getGUID()")
-        return rt, rt.eval("WEBREQ[#WEBREQ].body"), guid
+    rt = fresh_observer()
+    rt.execute("SEAT('Red', 'MrDrouf') SEAT('Blue', 'Someone')")
+    _a_game_is_on(rt)
+    rt.execute("""
+      HANDCARDS['Red'] = { MKOBJ('Ambush!', {40, 1, 40}, {}),
+                           MKOBJ('Favor of the Mice', {41, 1, 41}, {}) }
+      PLOT = MKOBJ('Corvid Plot', {6, 1, 6}, {})
+      PLOT.is_face_down = true
+      OBJ_DROP('Red', HANDCARDS['Red'][1]) FLUSH(1)
+      Turns.enable = true Turns.order = {'Red', 'Blue'} TURN_SET('Red') FLUSH(10)
+      Global.call('rttArchiveGame', nil)
+    """)
+    hand_guid = rt.eval("HANDCARDS['Red'][1].getGUID()")
+    plot_guid = rt.eval("PLOT.getGUID()")
+    doc = json.loads(rt.eval("WEBREQ[#WEBREQ].body"))
 
-    # ON: the hand is in the record, which is what was asked for
-    rt, body, hand_guid = run(True)
-    doc = json.loads(body)
-    live = json.dumps({k: doc[k] for k in ("objects", "events", "snapshots")})
-    assert "Ambush!" in live, \
-        "OBS_RECORD_HIDDEN is on and a hand card is still missing from the live record"
-    assert hand_guid in live, \
-        "the hand card's own drop is still missing from the live record"
+    assert hand_guid in doc["objects"], "a card in a hand still gets no entry, so never a name"
+    assert doc["objects"][hand_guid].get("n") == "Ambush!", \
+        "the hand card is recorded without its name: %r" % doc["objects"][hand_guid]
+    assert "Ambush!" in json.dumps(doc["events"]) or hand_guid in json.dumps(doc["events"]), \
+        "the drop that put the card in the hand was still thrown away"
+    assert hand_guid in json.dumps(doc["snapshots"]), \
+        "the table walk still skips hand objects"
+    assert plot_guid in doc["objects"] and doc["objects"][plot_guid].get("n") == "Corvid Plot", \
+        "a face-down piece is still recorded without its name"
 
-    # OFF: the old behaviour, whole
-    rt2, body2, hand_guid2 = run(False)
-    doc2 = json.loads(body2)
-    live2 = json.dumps({k: doc2[k] for k in ("objects", "events", "snapshots")})
-    for name in ("Ambush!", "Favor of the Mice"):
-        assert name not in live2, \
-            "with the switch off, %r still reaches the live record -- an exclusion is not reading it" % name
-    # counted on the CARD, not on the event total: a turn change is an event too, and it is public
-    assert hand_guid2 not in live2, \
-        "with the switch off, the hand card still appears in the live record by GUID"
-
-    # ...and either way the hand SIZE is kept, which is what the box score and this suite read
+    # ...and the things that were always right are unchanged
     assert doc["snapshots"][-1]["hands"]["Red"] == 2, \
         "hand sizes were lost: %r" % doc["snapshots"][-1].get("hands")
-
-    # the export's reveal is unchanged by any of this
     assert "Ambush!" in json.dumps(doc.get("reveal")), "the export's reveal lost the hand it records"
+
+    # and nothing left behind that reads as an off switch
+    src_obs = observer_lua()
+    assert "OBS_RECORD_HIDDEN" not in src_obs, \
+        "a switch to stop recording is back; it will never be an option"
 
 
 def t_a_second_game_is_not_appended_to_the_first(src):
@@ -9636,7 +9632,7 @@ CASES = [
     ("a drop arms one timer, once",     t_a_drop_arms_one_timer_and_a_second_drop_adds_none),
     ("the flush drains and dies",       t_the_flush_writes_its_queue_and_lets_the_timer_die),
     ("EXPORT sends without a sheet",    t_export_without_a_box_score_still_sends_a_document),
-    ("one switch decides on hands",    t_the_payload_never_carries_a_hand),
+    ("everything is recorded",         t_the_payload_never_carries_a_hand),
     ("card backs are backs, not blanks", t_every_card_back_is_a_back_and_not_a_blank),
     ("the clock fits 10:00",           t_the_clock_has_room_for_a_two_digit_minute),
     ("torn boards are cut torn",      t_the_torn_boards_are_cut_where_the_art_is_torn),
