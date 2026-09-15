@@ -4999,8 +4999,31 @@ function rttOtterSlots()
   return out
 end
 
+-- A SLOT IS TAKEN THE MOMENT IT IS CHOSEN, not when the card gets there.
+--
+-- Maintainer, 2026-09-15: "good with the otters but if I draw too fast it stacks the cards." The card
+-- travels to its slot as a smooth move, which takes about a second; asking the table what is on the
+-- board during that second finds nothing there yet, so two quick presses both picked the rightmost
+-- free slot and the second card landed on the first -- and TTS merges two cards lying on the same spot
+-- into a deck, so it is not even a tidy mistake.
+--
+-- Claims are held for three seconds and then dropped, by which time the card itself is standing on the
+-- slot and the ordinary look at the table answers. The claim is cleared by its own timer rather than
+-- by watching the card land: nothing here can tell "the card arrived" from "the card was picked up
+-- again by somebody", and a claim that outlives its card would strand the slot for the rest of the
+-- game. Three seconds of a slot being skipped is the worst this can cost, and it self-heals.
+RTT_OTTER_CLAIM = {}
+RTT_OTTER_CLAIM_SECS = 3
+
+function rttOtterClaim(sl)
+  local key = string.format("%.2f,%.2f", sl.x, sl.z)
+  RTT_OTTER_CLAIM[key] = true
+  Wait.time(function() RTT_OTTER_CLAIM[key] = nil end, RTT_OTTER_CLAIM_SECS)
+end
+
 -- The first of those with no card on it. A card already lying there is any Card or Deck within half a
--- column of the spot -- the same "is this slot taken" question the gizmo's home rows ask.
+-- column of the spot -- the same "is this slot taken" question the gizmo's home rows ask -- or a card
+-- that is on its way to it.
 function rttOtterFreeSlot()
   local slots = rttOtterSlots()
   if #slots == 0 then return nil end
@@ -5015,11 +5038,13 @@ function rttOtterFreeSlot()
     end
   end
   for _, sl in ipairs(slots) do
-    local taken = false
-    for _, p in ipairs(cards) do
-      if (p.x - sl.x) ^ 2 + (p.z - sl.z) ^ 2 <= RTT_OTTER_TAKEN_R * RTT_OTTER_TAKEN_R then
-        taken = true
-        break
+    local taken = RTT_OTTER_CLAIM[string.format("%.2f,%.2f", sl.x, sl.z)] == true
+    if not taken then
+      for _, p in ipairs(cards) do
+        if (p.x - sl.x) ^ 2 + (p.z - sl.z) ^ 2 <= RTT_OTTER_TAKEN_R * RTT_OTTER_TAKEN_R then
+          taken = true
+          break
+        end
       end
     end
     if not taken then return sl end
@@ -5137,6 +5162,7 @@ function rttVPClick(args)
         end)
       end
       if not dealt then say("That card would not go to the otters' board.") return end
+      rttOtterClaim(slot)     -- held until the card is actually standing there
     else
       if row == RTT_OTTER_ROW then
         say("The otters' open board is full; the card goes to your hand.")

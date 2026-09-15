@@ -9773,6 +9773,37 @@ def t_the_otters_draw_lands_on_their_open_board(src):
         "the card went to (%.3f, %.3f); the rightmost free slot is (%.3f, %.3f)" % (x, z, slots[0][0], slots[0][1])
     assert ry == 180, "the card was not laid facing the player"
 
+    # TWO PRESSES IN A ROW GO TO TWO SLOTS. Maintainer, 2026-09-15: "good with the otters but if I
+    # draw too fast it stacks the cards." The card travels as a smooth move, so for about a second the
+    # table still shows the slot empty -- and two cards on one spot is not a tidy mistake, TTS merges
+    # them into a deck. A slot is claimed the moment it is chosen.
+    rtq = fresh(src)
+    rtq.execute("""
+      RTT_SEATS = { { pos = { 0, -46 }, faction = 'Riverfolk Company', color = 'Red' } }
+      HOLDER = REGUID(MKOBJ('Custom_Token', { 63.9, 1, 24.0 }, { 'Deck Object' }), 'aa1464')
+      DRAWPOS = HOLDER.positionToWorld(Vector({  0.957, 0.178, 0.222 }))
+      DECK = MKOBJ('Deck', DRAWPOS, { 'Deck Object' })
+      DECK.getQuantity = function() return 40 end
+      TOOK = {}
+      -- nothing arrives: the cards are still in the air, which is the whole point
+      DECK.takeObject = function(p)
+        TOOK[#TOOK+1] = string.format('%.2f,%.2f', p.position[1], p.position[3])
+      end
+      SEAT('Red','Alice')
+      for i = 1, 4 do rttVPClick({ color = 'Red', id = 'vpDraw', row = 'Riverfolk' }) end
+      OUT = table.concat(TOOK, ';')
+    """)
+    spots = [p for p in rtq.eval("OUT").split(";") if p]
+    assert len(spots) == 4, "four presses drew %d cards" % len(spots)
+    assert len(set(spots)) == 4, \
+        "four quick presses used %d distinct slots -- the cards stack: %s" % (len(set(spots)), spots)
+
+    # ...and the claim lets go, so the slot is judged by the table again once the card has landed
+    rtq.execute("FLUSH_UNTIL(5, 40) TOOK = {} rttVPClick({ color = 'Red', id = 'vpDraw', row = 'Riverfolk' }) AFTER = TOOK[1] or ''")
+    assert rtq.eval("AFTER") == spots[0], \
+        ("once the claims expire the board is read from the table again, and with nothing actually on "
+         "it the rightmost slot is free once more")
+
     # every other faction's panel still deals into the hand
     rt2 = fresh(src)
     rt2.execute("""
