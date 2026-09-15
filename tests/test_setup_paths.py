@@ -8118,6 +8118,89 @@ def t_the_box_score_columns_fit_what_goes_in_them(src):
         "the sheet's width is no longer computed from its columns"
 
 
+def t_the_lost_souls_flips_and_snaps_like_the_discard(src):
+    """A card let go on the Lost Souls turns face up and lands on the pile, exactly as on the discard.
+
+    Maintainer, 2026-09-15: "the lost souls should behave like the discard cfr flip and snap."
+
+    The Lost Souls is the lizard wizard's pile -- or the lizard board's, when no wizard is out, which
+    is the same pair the discard key already uses and calls by that name in what it prints. Before
+    this, a card dropped there did nothing at all: the drop handler only knew about the discard.
+    """
+    m = None
+    for mm in re.finditer(r"json=\[\[(.*?)\]\]", src, re.S):
+        try:
+            d = json.loads(mm.group(1))
+        except ValueError:
+            continue
+        if d.get("GUID") == "aa1464":
+            m = d
+            break
+    assert m is not None, "the Refill Card blueprint is not in the build"
+    script = m["LuaScript"]
+
+    def drop_on(guid, loc, name="Ambush"):
+        """Drop a face-down card on the object with this guid, at its own card location."""
+        rt = lupa.LuaRuntime(unpack_returned_tuples=True)
+        rt.execute(open(os.path.join(HERE, "tts_stub.lua"), encoding="utf-8").read())
+        rt.execute("""
+          MOVED, FLIPPED = {}, 0
+          self.positionToWorld = function(p) return { x = p[1]*3.38, y = p[2], z = p[3]*3.38 } end
+          HOST = REGUID(MKOBJ('Custom_Tile', { 100, 1, 100 }, {}), %r)
+          HOST.positionToWorld = function(p) return { x = 100 + p[1], y = p[2], z = 100 + p[3] } end
+          CARD = MKOBJ(%r, {0,1,0}, {})
+          CARD.name = 'Card' CARD.tag = 'Card'
+          CARD.getDescription = function() return '' end
+          CARD.is_face_down = true
+          CARD.flip = function() FLIPPED = FLIPPED + 1 end
+          CARD.getPosition = function() return { x = 100 + %f, y = 2, z = 100 + %f } end
+          CARD.setPositionSmooth = function(p)
+            MOVED[#MOVED+1] = string.format("%%.2f,%%.2f", p.x or p[1], p.z or p[3])
+          end
+          CARD.setRotationSmooth = function() end
+          Physics = { cast = function() return {} end }
+        """ % (guid, name, loc[0], loc[2]))
+        rt.execute(script.replace("!=", "~="))
+        rt.execute("pcall(function() onLoad('') end) "
+                   "pcall(function() onObjectDrop('Red', CARD) end) FLUSH(20)")
+        n = rt.eval("function() return #MOVED end")()
+        return (rt.eval("FLIPPED"),
+                [rt.eval("function() return MOVED[%d] end" % (i + 1))() for i in range(n)])
+
+    # the lizard wizard's pile -- lizardWizardLoc in the card's own script
+    flipped, moves = drop_on("dc029b", (0.484, 1.00, -0.01))
+    assert flipped == 1, "a card dropped face down on the Lost Souls was not turned over"
+    assert moves and abs(float(moves[0].split(",")[0]) - 100.484) < 0.01, \
+        "the card was not snapped onto the Lost Souls: %s" % moves
+
+    # ...and with no wizard out, the lizard BOARD is the Lost Souls -- lizardBoardLoc
+    flipped, moves = drop_on("6a1fe4", (-0.905, 1.00, 0.5))
+    assert flipped == 1, "with no wizard out, a card dropped on the lizard board was not turned over"
+    assert moves and abs(float(moves[0].split(",")[0]) - 99.095) < 0.01, \
+        "the card was not snapped onto the lizard board's pile: %s" % moves
+
+    # A FROG CARD IS NOT SNAPPED. It belongs on the pond, and the sweep carries it there; snapping it
+    # onto the pile first would merge it into that deck for the sweep to dig back out.
+    rt = lupa.LuaRuntime(unpack_returned_tuples=True)
+    rt.execute(open(os.path.join(HERE, "tts_stub.lua"), encoding="utf-8").read())
+    rt.execute("""
+      MOVED = {}
+      self.positionToWorld = function(p) return { x = p[1]*3.38, y = p[2], z = p[3]*3.38 } end
+      POND = REGUID(MKOBJ('Custom_Tile', { 50, 1, 50 }, {}), '347917')
+      CARD = MKOBJ('Swamp', {0,1,0}, {})
+      CARD.name = 'Card' CARD.tag = 'Card'
+      CARD.getDescription = function() return 'Frog' end
+      CARD.getPosition = function() return { x = -0.957*3.38, y = 2, z = 0.222*3.38 } end
+      CARD.setPositionSmooth = function(p) MOVED[#MOVED+1] = 'moved' end
+      CARD.setRotationSmooth = function() end
+      Physics = { cast = function() return {} end }
+    """)
+    rt.execute(script.replace("!=", "~="))
+    rt.execute("pcall(function() onLoad('') end) "
+               "pcall(function() onObjectDrop('Red', CARD) end) FLUSH(20)")
+    assert rt.eval("function() return #MOVED end")() == 0, \
+        "a frog card dropped on the discard was snapped onto it; it belongs on the pond"
+
 def t_the_discard_sweep_only_takes_cards_that_have_landed(src):
     """A dominance card flying over the discard is not snatched onto the dominance track.
 
@@ -8197,20 +8280,40 @@ def t_the_discard_sweep_only_takes_cards_that_have_landed(src):
           CARD.getDescription = function() return 'fox' end
           CARD.resting = false
           CARD.getPosition = function() return { x = -0.957*3.38 + %f, y = 2, z = 0.222*3.38 } end
-          CARD.setPositionSmooth = function(p) MOVED[#MOVED+1] = 'smooth' end
+          CARD.setPositionSmooth = function(p)
+            MOVED[#MOVED+1] = string.format("%%.2f,%%.2f", p.x or p[1], p.z or p[3])
+          end
+          CARD.setRotationSmooth = function() end
           Physics = { cast = function() return {} end }
         """ % (name, dx))
         rt.execute(script.replace("!=", "~="))
         rt.execute("pcall(function() onLoad('') end) "
                    "pcall(function() onObjectDrop('Red', CARD) end) FLUSH(20)")
-        return rt.eval("function() return #MOVED end")() > 0
+        n = rt.eval("function() return #MOVED end")()
+        return [rt.eval("function() return MOVED[%d] end" % (i + 1))() for i in range(n)]
 
-    assert dropped(0.0), \
-        "a dominance card released over the discard is left to land and moved a second later"
+    # the discard's own spot in this fixture's coordinates: pos_discard_top through the stubbed
+    # positionToWorld above
+    DISC = (-0.957 * 3.38, 0.222 * 3.38)
+
+    def near_discard(where):
+        x, z = (float(v) for v in where.split(","))
+        return abs(x - DISC[0]) < 1.0 and abs(z - DISC[1]) < 1.0
+
+    moves = dropped(0.0)
+    assert moves, "a dominance card released over the discard is left to land and moved a second later"
+    assert any(not near_discard(w) for w in moves), \
+        "a dominance card was only tidied onto the discard; it belongs on the track"
     assert not dropped(6.47), \
         "a dominance card dropped on the DRAW pile is taken; the drop radius reaches too far"
-    assert not dropped(0.0, name="Ambush"), \
-        "an ordinary card dropped on the discard is being sent to the dominance track"
+
+    # AN ORDINARY CARD IS MOVED TOO NOW -- but onto the pile, not to the track. Maintainer,
+    # 2026-09-15: "the discard pile when a card is automatically flipped face up it does not snap back
+    # to the right slot." So "did it move at all" no longer separates the two cases; where it went does.
+    plain = dropped(0.0, name="Ambush")
+    assert plain, "an ordinary card dropped on the discard was left lying where the hand let it go"
+    assert all(near_discard(w) for w in plain), \
+        "an ordinary card dropped on the discard is being sent somewhere else: %s" % plain
 
     # AND IT GOES OVER THE TABLE, NOT THROUGH IT. Maintainer: "the movement of the dominance card ...
     # goes through the board that holds the decks." It crosses about 110 units to reach its slot -- the
@@ -9580,6 +9683,57 @@ def t_draw_one_takes_from_the_draw_pile_not_the_discard(src):
     rt.execute("HOLDER.destruct() GOT2 = rttFindDrawDeck()")
     assert rt.eval("GOT2 ~= nil"), "with no holder out, DRAW ONE found no deck at all"
 
+
+def t_the_frogs_shuffle_into_the_deck_on_the_slot(src):
+    """The frogs' cards go into the deck on the draw slot, not into whatever pile is biggest.
+
+    Maintainer, 2026-09-15: "frog cards when spawned are not shuffled on the deck slot they are
+    shuffled in the largest deck wherever it is."
+
+    rttFindMainDeck took the first deck of 20 or more that was not all frogs -- which is the DISCARD as
+    often as not. By the middle of a game the discard is the bigger of the two and sits no further down
+    the object list, so the frogs went in there and stayed out of play until somebody refilled. The
+    holder knows which slot is which; that is what it is for.
+
+    Size is not asked for on the slot, deliberately: late in a game the draw pile is small, and that is
+    exactly when getting this right matters. Only "not ENTIRELY frog cards" is still asked, or the
+    frogs' own deck sitting on the slot would be taken for the shared one.
+    """
+    rt = fresh(src)
+    rt.execute("""
+      HOLDER = REGUID(MKOBJ('Custom_Token', { 63.9, 1, 24.0 }, { 'Deck Object' }), 'aa1464')
+      DRAWPOS = HOLDER.positionToWorld(Vector({  0.957, 0.178, 0.222 }))
+      DISCPOS = HOLDER.positionToWorld(Vector({ -0.957, 0.178, 0.222 }))
+      -- the end of a game: 8 cards left to draw, 46 in the discard
+      DRAW = MKOBJ('Deck', DRAWPOS, { 'Deck Object' })
+      DRAW.getQuantity = function() return 8 end
+      DRAW.getObjects = function()
+        local t = {} for i = 1, 8 do t[i] = { description = '', guid = 'd' .. i } end return t
+      end
+      DISCARD = MKOBJ('Deck', DISCPOS, { 'Deck Object' })
+      DISCARD.getQuantity = function() return 46 end
+      DISCARD.getObjects = function()
+        local t = {} for i = 1, 46 do t[i] = { description = '', guid = 'x' .. i } end return t
+      end
+      GOT = rttFindMainDeck()
+    """)
+    got = rt.eval("GOT and GOT.getGUID() or ''")
+    assert got == rt.eval("DRAW.getGUID()"), \
+        ("the frogs would be shuffled into the %s -- the shared deck is the one on the draw slot"
+         % ("discard" if got == rt.eval("DISCARD.getGUID()") else "wrong pile"))
+
+    # ...and the frogs' OWN deck on the slot is not mistaken for the shared one
+    rt.execute("""
+      DRAW.destruct()
+      FROGS = MKOBJ('Deck', DRAWPOS, {})
+      FROGS.getQuantity = function() return 13 end
+      FROGS.getObjects = function()
+        local t = {} for i = 1, 13 do t[i] = { description = 'Frog', guid = 'f' .. i } end return t
+      end
+      GOT2 = rttFindMainDeck()
+    """)
+    assert rt.eval("GOT2 and GOT2.getGUID() or ''") == rt.eval("DISCARD.getGUID()"), \
+        "a deck of nothing but frog cards on the slot was taken for the shared deck"
 
 def t_draw_one_finds_the_last_card_when_the_deck_is_gone(src):
     """DRAW ONE still finds the pile when one card is left -- because then there is no pile.
@@ -12674,6 +12828,7 @@ CASES = [
     ("panel flashes past 20 minutes",      t_the_panel_flashes_after_twenty_minutes),
     ("box score builds its own face",  t_the_box_score_builds_its_own_face),
     ("box score columns fit",         t_the_box_score_columns_fit_what_goes_in_them),
+    ("lost souls flips and snaps",    t_the_lost_souls_flips_and_snaps_like_the_discard),
     ("discard sweep takes only landed", t_the_discard_sweep_only_takes_cards_that_have_landed),
     ("map helper card ships on the row", t_a_maps_helper_card_ships_where_the_row_puts_it),
     ("landmark card spawns on the row", t_a_landmark_card_spawns_on_the_row),
@@ -12854,6 +13009,7 @@ CASES = [
     ("torn boards are cut torn",      t_the_torn_boards_are_cut_where_the_art_is_torn),
     ("a won game archives twice",     t_a_won_game_archives_itself_once),
     ("nothing runs before START",     t_the_recorder_does_nothing_until_start_is_pressed),
+    ("frogs shuffle into the slot deck", t_the_frogs_shuffle_into_the_deck_on_the_slot),
     ("draw one finds the last card",  t_draw_one_finds_the_last_card_when_the_deck_is_gone),
     ("draw one refills on the last card", t_the_draw_button_refills_the_deck_on_the_last_card),
     ("draw one takes the draw pile",  t_draw_one_takes_from_the_draw_pile_not_the_discard),

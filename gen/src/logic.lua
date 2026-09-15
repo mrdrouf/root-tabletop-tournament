@@ -7162,6 +7162,27 @@ end
 -- were in play NOTHING matched: the Alliance supporters draw found no deck and silently dealt nothing
 -- (maintainer: "supporters fail to draft when there are the frogs card on top").
 function rttFindMainDeck()
+  -- THE DECK ON THE DRAW SLOT IS THE SHARED DECK. Maintainer, 2026-09-15: "frog cards when spawned
+  -- are not shuffled on the deck slot they are shuffled in the largest deck wherever it is."
+  --
+  -- The scan below takes the first deck of 20 or more that is not all frogs, which is the DISCARD as
+  -- often as not: by the middle of a game the discard is the bigger of the two, and it is no further
+  -- down the object list than the draw pile. So the frogs went into the discard and stayed out of
+  -- play until somebody refilled. The holder knows which slot is which -- that is what it is for --
+  -- so ask it first and keep the scan for a table with no holder out.
+  --
+  -- Size is not asked for on the slot: late in a game the draw pile is small, and small is exactly
+  -- when it matters that this is right. What IS still asked is that the deck is not ENTIRELY frog
+  -- cards, or the frogs' own deck sitting on the slot would be mistaken for the shared one.
+  local slot = rttFindDrawDeck()
+  if slot ~= nil then
+    local isDeck = false
+    pcall(function() isDeck = (slot.name == "Deck" or slot.name == "DeckCustom") end)
+    if isDeck then
+      local frog, total = rttFrogCount(slot)
+      if total > 0 and frog < total then return slot end
+    end
+  end
   for _, o in ipairs(getAllObjects()) do
     if o.name == "Deck" then
       local frog, total = rttFrogCount(o)
