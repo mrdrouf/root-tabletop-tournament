@@ -7352,7 +7352,30 @@ function rttRemoveFrogsFromDeck()
   pull(1)
 end
 
-function rttShuffleFrogsIntoDeck()
+-- ...AND IT WAITS FOR THE SLOT RATHER THAN SETTLING FOR THE BIGGEST PILE.
+--
+-- Maintainer, 2026-09-15, after the deck-on-the-slot fix shipped: "the frog deck still goes to the
+-- largest deck in stead of the actual deck slot when frogs spawn." Against his own table's geometry --
+-- the Refill Card at (-31.244, -0.015), turned 90 and scaled 3.38, with an untagged deck on the slot
+-- and a fatter pile beside it -- the fix does put them on the slot. What it cannot do is find a deck
+-- that is not there YET: this runs half a second after the faction lands, and if the shared deck is
+-- still being built, dealt or shuffled at that moment, the slot is bare and the old scan takes over,
+-- which is the biggest pile on the table. That is the one road left to exactly the symptom he
+-- reported, so it is closed by waiting instead of guessing.
+--
+-- Only while a holder is out: with none, the scan IS the answer and there is nothing to wait for.
+RTT_FROG_TRIES = 6
+RTT_FROG_WAIT  = 1.0
+
+function rttShuffleFrogsIntoDeck(tries)
+  tries = tries or 0
+  local holderOut, onSlot = false, nil
+  pcall(function() holderOut = (getObjectFromGUID(RTT_HOLDER_GUID) ~= nil) end)
+  pcall(function() onSlot = rttFindDrawDeck() end)
+  if holderOut and onSlot == nil and tries < RTT_FROG_TRIES then
+    Wait.time(function() rttShuffleFrogsIntoDeck(tries + 1) end, RTT_FROG_WAIT)
+    return
+  end
   local mainDeck, frogObjs = rttFindMainDeck(), {}
   for _, o in ipairs(getAllObjects()) do
     local nm = o.name

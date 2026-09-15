@@ -9860,6 +9860,68 @@ def t_the_frogs_shuffle_into_the_deck_on_the_slot(src):
         ("the frogs would be shuffled into the %s -- the shared deck is the one on the draw slot"
          % ("discard" if got == rt.eval("DISCARD.getGUID()") else "wrong pile"))
 
+    # HIS OWN TABLE'S GEOMETRY, from TS_Save_48: the Refill Card at (-31.244, -0.015), turned 90 and
+    # scaled 3.38, its deck untagged and sitting 0.05 from the slot, with a fatter pile beside it.
+    # Written out because a rotated, scaled holder is the case an axis-aligned fixture cannot fail on.
+    rth = fresh(src)
+    rth.execute("""
+      HOLDER = REGUID(MKOBJ('Custom_Token', { -31.244, 1, -0.015 }, {}), 'aa1464')
+      HOLDER.__scale = Vector({ 3.38, 1, 3.38 })
+      HOLDER.setRotation({ 0, 90, 0 })
+      DRAWPOS = HOLDER.positionToWorld(Vector({  0.957, 0.178, 0.222 }))
+      DISCPOS = HOLDER.positionToWorld(Vector({ -0.957, 0.178, 0.222 }))
+      DRAW = MKOBJ('Deck', DRAWPOS, {})
+      DRAW.getQuantity = function() return 12 end
+      DRAW.getObjects = function() local t={} for i=1,12 do t[i]={description='',guid='d'..i} end return t end
+      DISCARD = MKOBJ('Deck', DISCPOS, {})
+      DISCARD.getQuantity = function() return 42 end
+      DISCARD.getObjects = function() local t={} for i=1,42 do t[i]={description='',guid='x'..i} end return t end
+      FROGS = MKOBJ('Deck', { -31.0, 1, 24.8 }, {})
+      FROGS.getQuantity = function() return 13 end
+      FROGS.getObjects = function() local t={} for i=1,13 do t[i]={description='Frog',guid='f'..i} end return t end
+      PUT = ''
+      DRAW.putObject    = function() PUT = PUT .. 'draw;' end
+      DISCARD.putObject = function() PUT = PUT .. 'discard;' end
+      rttFrogsSetup()
+      FLUSH_UNTIL(2, 20)
+    """)
+    assert rth.eval("PUT") == "draw;", \
+        "on his own table's geometry the frogs went to %r" % rth.eval("PUT")
+
+    # AND IT WAITS FOR A DECK THAT IS NOT THERE YET. This runs half a second after the faction lands,
+    # so a shared deck still being built or shuffled leaves the slot bare -- and the old scan, which is
+    # "the biggest pile on the table", is exactly the reported symptom. With a holder out it waits.
+    rtw = fresh(src)
+    rtw.execute("""
+      HOLDER = REGUID(MKOBJ('Custom_Token', { -31.244, 1, -0.015 }, {}), 'aa1464')
+      HOLDER.__scale = Vector({ 3.38, 1, 3.38 })
+      DRAWPOS = HOLDER.positionToWorld(Vector({  0.957, 0.178, 0.222 }))
+      BIG = MKOBJ('Deck', { 10, 1, 10 }, {})       -- the only deck out, and nowhere near the slot
+      BIG.getQuantity = function() return 42 end
+      BIG.getObjects = function() local t={} for i=1,42 do t[i]={description='',guid='x'..i} end return t end
+      FROGS = MKOBJ('Deck', { -31.0, 1, 24.8 }, {})
+      FROGS.getQuantity = function() return 13 end
+      FROGS.getObjects = function() local t={} for i=1,13 do t[i]={description='Frog',guid='f'..i} end return t end
+      PUT = ''
+      BIG.putObject = function() PUT = PUT .. 'big;' end
+      rttShuffleFrogsIntoDeck()
+      -- three ROUNDS, not three seconds: the stub's Wait.time has no cumulative clock, so every retry
+      -- re-arms at the same 1.0 and a generous FLUSH_UNTIL would drain all six in one go and let the
+      -- scan take over -- which is the very thing this is watching for.
+      FLUSH_UNTIL(2, 3)
+      EARLY = PUT
+      -- the shared deck finally lands on the slot
+      LATE = MKOBJ('Deck', DRAWPOS, {})
+      LATE.getQuantity = function() return 12 end
+      LATE.getObjects = function() local t={} for i=1,12 do t[i]={description='',guid='d'..i} end return t end
+      LATE.putObject = function() PUT = PUT .. 'slot;' end
+      FLUSH_UNTIL(8, 60)
+    """)
+    assert rtw.eval("EARLY") == "", \
+        "the frogs were dumped in the biggest pile while the slot was still empty: %r" % rtw.eval("EARLY")
+    assert "slot;" in (rtw.eval("PUT") or ""), \
+        "the frogs never arrived once the deck reached the slot: %r" % rtw.eval("PUT")
+
     # ...and the frogs' OWN deck on the slot is not mistaken for the shared one
     rt.execute("""
       DRAW.destruct()
