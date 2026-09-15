@@ -4864,6 +4864,24 @@ RTT_HOLDER_DISCARD = { -0.957, 0.178, 0.222 }
 --
 -- THE OLD RULE IS KEPT AS A FALLBACK, for a table with no holder out -- the flotilla and hireling
 -- kits both put decks out without one -- and it is only reached when the holder cannot be found.
+-- A DECK OF ONE CARD IS NOT A DECK.
+--
+-- Zaandaa, 2026-09-15: "draw button didn't work when there was one frog card left in the deck (may or
+-- may not be related to it being frog or just the last card)" -- just the last card. TTS collapses a
+-- pile to its final CARD: the Deck object is destroyed and what remains is a Card/CardCustom. This
+-- function only ever looked at Deck and DeckCustom, so it found nothing and DRAW ONE answered "There
+-- is no draw deck on the table" -- for the last card of every game, whatever was printed on it.
+--
+-- AND THE SURVIVOR CARRIES NO TAG EITHER. "Deck Object" is put on the DECK as it spawns; the cards
+-- inside the base deck have no tags of their own, so the last one is untagged as well as un-decked and
+-- carries nothing to recognise it by. What identifies it is WHERE IT IS -- on the holder's draw slot --
+-- which is how rttPondPile has always found the pond's pile, single card and all.
+--
+-- A REAL DECK STILL OUTRANKS A LOOSE CARD, so a card is only taken when nothing else is on the slot.
+-- Two of the four decks DO tag every card (Squires and Disciples, the Dark Deck), and for those the
+-- fallback below finds the survivor by its tag with no holder needed.
+RTT_DRAW_SLOT_R = 3.0    -- the same tolerance the pond uses for its own single card location
+
 function rttFindDrawDeck()
   local holder = getObjectFromGUID(RTT_HOLDER_GUID)
   if holder ~= nil then
@@ -4873,20 +4891,35 @@ function rttFindDrawDeck()
       disc = holder.positionToWorld(RTT_HOLDER_DISCARD)
     end)
     if draw ~= nil and disc ~= nil then
-      local best, bestD = nil, nil
+      local best, bestD = nil, nil       -- a real deck on the draw slot
+      local lone, loneD = nil, nil       -- ...or the single card one has been reduced to
       for _, o in ipairs(getAllObjects()) do
-        local dd, xd = nil, nil
+        local dd, xd, isDeck, isCard = nil, nil, false, false
         pcall(function()
-          if (o.name == "Deck" or o.name == "DeckCustom") and o.hasTag("Deck Object") then
+          isDeck = (o.name == "Deck" or o.name == "DeckCustom") and o.hasTag("Deck Object")
+          -- a held card is on its way somewhere, not sitting on the slot
+          isCard = (o.name == "Card" or o.name == "CardCustom") and o.held_by_color == nil
+          if isDeck or isCard then
             local p = o.getPosition()
             dd = math.sqrt((p.x - draw.x) ^ 2 + (p.z - draw.z) ^ 2)
             xd = math.sqrt((p.x - disc.x) ^ 2 + (p.z - disc.z) ^ 2)
           end
         end)
         -- nearer the discard slot than the draw slot: that IS the discard, whatever it holds
-        if dd ~= nil and dd < xd and (bestD == nil or dd < bestD) then best, bestD = o, dd end
+        if dd ~= nil and dd < xd then
+          if isDeck then
+            if bestD == nil or dd < bestD then best, bestD = o, dd end
+          elseif dd <= RTT_DRAW_SLOT_R and (loneD == nil or dd < loneD) then lone, loneD = o, dd end
+        end
       end
       if best ~= nil then return best end
+      if lone ~= nil then return lone end
+      -- AND NO FALLING THROUGH. With the holder on the table its two slots are the whole truth, so a
+      -- bare draw slot means the draw pile is spent -- not "go and find the biggest pile anywhere",
+      -- which is the discard by definition at that point in a game. That fall-through is how the old
+      -- build answered the last-card report: it found nothing on the slot, dropped to the rule below,
+      -- and dealt from a 44-card discard. Saying the pile is empty is the honest answer.
+      return nil, "empty"
     end
   end
   -- no holder on the table: the old rule, which is right when there is only one pile out
@@ -4894,8 +4927,12 @@ function rttFindDrawDeck()
   for _, o in ipairs(getAllObjects()) do
     local n = nil
     pcall(function()
-      if (o.name == "Deck" or o.name == "DeckCustom") and o.hasTag("Deck Object") then
-        n = o.getQuantity()
+      local isDeck = (o.name == "Deck" or o.name == "DeckCustom")
+      local isCard = (o.name == "Card" or o.name == "CardCustom")
+      if (isDeck or isCard) and o.hasTag("Deck Object") then
+        -- a card answers -1 to getQuantity, which loses to every deck AND to nothing at all; it is
+        -- one card, and the last card of a tagged deck is exactly what this has to be able to find
+        n = isDeck and o.getQuantity() or 1
       end
     end)
     if n ~= nil and n > bestN then best, bestN = o, n end
@@ -4945,8 +4982,11 @@ function rttVPClick(args)
   elseif id == "vpDraw" then
     -- "whoever clicked the draw button" -- the card goes to the person who pressed it, whoever they
     -- are and whichever faction's panel they pressed. No ownership check, by his instruction.
-    local deck = rttFindDrawDeck()
-    if deck == nil then say("There is no draw deck on the table.") return end
+    local deck, why = rttFindDrawDeck()
+    if deck == nil then
+      say((why == "empty") and "The draw pile is empty." or "There is no draw deck on the table.")
+      return
+    end
     local dealt = false
     pcall(function() deck.deal(1, who) dealt = true end)
     if not dealt then say("That deck would not deal -- you may have no hand at this seat.") end

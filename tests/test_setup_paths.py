@@ -9507,6 +9507,84 @@ def t_draw_one_takes_from_the_draw_pile_not_the_discard(src):
     assert rt.eval("GOT2 ~= nil"), "with no holder out, DRAW ONE found no deck at all"
 
 
+def t_draw_one_finds_the_last_card_when_the_deck_is_gone(src):
+    """DRAW ONE still finds the pile when one card is left -- because then there is no pile.
+
+    Zaandaa, 2026-09-15: "draw button didn't work when there was one frog card left in the deck (may
+    or may not be related to it being frog or just the last card)". Just the last card.
+
+    TTS COLLAPSES A DECK OF ONE. The Deck object is destroyed and what remains on the slot is a
+    Card/CardCustom, and the finder only ever looked at Deck and DeckCustom -- so it found nothing and
+    DRAW ONE said "There is no draw deck on the table" for the last card of every game.
+
+    AND THE SURVIVOR CARRIES NO TAG. "Deck Object" goes on the DECK at spawn; the base deck's cards
+    have no tags of their own, so the last one is untagged as well as un-decked, with nothing on it to
+    recognise. What identifies it is where it is: on the holder's draw slot, which is how the pond's
+    pile has always been found. Two of the four decks DO tag every card, and for those the no-holder
+    fallback finds it by tag -- both roads are checked here.
+    """
+    rt = fresh(src)
+    rt.execute("""
+      HOLDER = REGUID(MKOBJ('Custom_Token', { 63.9, 1, 24.0 }, { 'Deck Object' }), 'aa1464')
+      DRAWPOS = HOLDER.positionToWorld(Vector({  0.957, 0.178, 0.222 }))
+      DISCPOS = HOLDER.positionToWorld(Vector({ -0.957, 0.178, 0.222 }))
+      -- the end of a game: one untagged card left on the draw slot, a fat discard beside it
+      LAST = MKOBJ('Card', DRAWPOS, {})
+      DISCARD = MKOBJ('Deck', DISCPOS, { 'Deck Object' })
+      DISCARD.getQuantity = function() return 44 end
+      GOT = rttFindDrawDeck()
+    """)
+    got = rt.eval("GOT and GOT.getGUID() or ''")
+    assert got == rt.eval("LAST.getGUID()"), \
+        ("DRAW ONE found %s with one card left on the draw slot"
+         % ("the discard" if got == rt.eval("DISCARD.getGUID()") else "nothing" if got == "" else "something else"))
+
+    # a real deck still outranks a loose card: a card is only taken when nothing else is on the slot
+    rt.execute("""
+      REAL = MKOBJ('Deck', DRAWPOS, { 'Deck Object' })
+      REAL.getQuantity = function() return 6 end
+      GOT2 = rttFindDrawDeck()
+    """)
+    assert rt.eval("GOT2 and GOT2.getGUID() or ''") == rt.eval("REAL.getGUID()"), \
+        "a loose card beat an actual deck on the same slot"
+
+    # a card on the DISCARD slot is the discard, exactly as a deck there would be
+    rt2 = fresh(src)
+    rt2.execute("""
+      HOLDER = REGUID(MKOBJ('Custom_Token', { 63.9, 1, 24.0 }, { 'Deck Object' }), 'aa1464')
+      DISCPOS = HOLDER.positionToWorld(Vector({ -0.957, 0.178, 0.222 }))
+      STRAY = MKOBJ('Card', DISCPOS, {})
+      GOT = rttFindDrawDeck()
+    """)
+    assert rt2.eval("GOT == nil"), "DRAW ONE took a card off the DISCARD slot"
+
+    # AND IT DOES NOT GO LOOKING ELSEWHERE. With the holder out, its two slots are the whole truth: a
+    # bare draw slot means the pile is spent. The old build fell through to "the biggest tagged pile on
+    # the table", which at that point in a game is the discard -- so the last-card report was not only
+    # a button that did nothing, it was a button that would deal from the discard.
+    rt4 = fresh(src)
+    rt4.execute("""
+      HOLDER = REGUID(MKOBJ('Custom_Token', { 63.9, 1, 24.0 }, { 'Deck Object' }), 'aa1464')
+      DISCPOS = HOLDER.positionToWorld(Vector({ -0.957, 0.178, 0.222 }))
+      DISCARD = MKOBJ('Deck', DISCPOS, { 'Deck Object' })
+      DISCARD.getQuantity = function() return 44 end
+      GOT, WHY = rttFindDrawDeck()
+    """)
+    assert rt4.eval("GOT == nil"), \
+        "with the draw slot bare, DRAW ONE fell back to the biggest pile -- which is the discard"
+    assert rt4.eval("WHY") == "empty", \
+        "the empty draw pile is not reported as empty, so the player is told there is no deck at all"
+
+    # ...and with no holder out, the decks that tag every card are found by that tag
+    rt3 = fresh(src)
+    rt3.execute("""
+      LAST = MKOBJ('Card', { 10, 1, 10 }, { 'Deck Object' })
+      GOT = rttFindDrawDeck()
+    """)
+    assert rt3.eval("GOT and GOT.getGUID() or ''") == rt3.eval("LAST.getGUID()"), \
+        "with no holder out, the last tagged card of a deck was not found"
+
+
 def t_an_off_turn_point_lands_in_the_round_it_happened_in(src):
     """A point scored on somebody else's turn corrects this round's box, not next round's.
 
@@ -12680,6 +12758,7 @@ CASES = [
     ("torn boards are cut torn",      t_the_torn_boards_are_cut_where_the_art_is_torn),
     ("a won game archives twice",     t_a_won_game_archives_itself_once),
     ("nothing runs before START",     t_the_recorder_does_nothing_until_start_is_pressed),
+    ("draw one finds the last card",  t_draw_one_finds_the_last_card_when_the_deck_is_gone),
     ("draw one takes the draw pile",  t_draw_one_takes_from_the_draw_pile_not_the_discard),
     ("off-turn points land in round", t_an_off_turn_point_lands_in_the_round_it_happened_in),
     ("numpad 2 reaches everything",    t_numpad_two_reaches_every_kind_of_piece),
