@@ -9457,6 +9457,80 @@ def t_the_recorder_does_nothing_until_start_is_pressed(src):
     assert rt.eval("#OBS.ev") > 0, "nothing was recorded after START"
 
 
+def t_the_draw_button_refills_the_deck_on_the_last_card(src):
+    """DRAW ONE refills the deck when it deals the last card -- and only DRAW ONE does.
+
+    Maintainer, 2026-09-15: "trigger the deck refill whenever a player draws the last card of the deck;
+    but only when using the draw card button not when doing it manually."
+
+    HOW IT KNOWS IT WAS THE LAST. A pile of one card is not a Deck in TTS, it is a Card -- so dealing
+    from a Card IS "the deck has just run out", and no counting is needed. A Deck always holds two or
+    more, so drawing from one always leaves something behind.
+
+    IT RUNS THE CARD'S OWN REFILL rather than a second copy of it, so whatever the button sweeps in by
+    hand it sweeps in here -- and it PROBES FIRST: obj.call into a name the target does not define is
+    a C# null, which pcall does not catch and which would take the rest of the click with it.
+
+    Nothing hooks a card taken by hand, deliberately: picking the last card up yourself is usually the
+    start of doing something with the pile, and a refill going off under your cursor would be the mod
+    taking the table over.
+    """
+    def table_with(last_is_card):
+        rt = fresh(src)
+        rt.execute("""
+          HOLDER = REGUID(MKOBJ('Custom_Token', { 63.9, 1, 24.0 }, { 'Deck Object' }), 'aa1464')
+          HOLDER.getVar = function(k) return (k == 'RTT_REFILL_API') and true or nil end
+          REFILLED = 0
+          HOLDER.call = function(fn) if fn == 'click_refillDeck' then REFILLED = REFILLED + 1 end end
+          DRAWPOS = HOLDER.positionToWorld(Vector({  0.957, 0.178, 0.222 }))
+          PILE = MKOBJ(%s, DRAWPOS, { 'Deck Object' })
+          PILE.getQuantity = function() return %d end
+          DEALT = 0
+          PILE.deal = function(n, c) DEALT = DEALT + 1 end
+          SEAT('Red','Alice')
+          rttVPClick({ color = 'Red', id = 'vpDraw', row = 'Cats' })
+          FLUSH_UNTIL(3, 40)
+        """ % (("'Card'", 1) if last_is_card else ("'Deck'", 6)))
+        return rt.eval("DEALT"), rt.eval("REFILLED")
+
+    dealt, refilled = table_with(True)
+    assert dealt == 1, "DRAW ONE did not deal the last card at all"
+    assert refilled == 1, \
+        "the last card was dealt and the deck was not refilled (%s refills)" % refilled
+
+    dealt, refilled = table_with(False)
+    assert dealt == 1, "DRAW ONE did not deal from a full deck"
+    assert refilled == 0, \
+        "the deck was refilled while %d cards were still in it" % 6
+
+    # an older Refill Card, which knows nothing of this, must be left alone rather than called into
+    rt = fresh(src)
+    rt.execute("""
+      HOLDER = REGUID(MKOBJ('Custom_Token', { 63.9, 1, 24.0 }, { 'Deck Object' }), 'aa1464')
+      HOLDER.getVar = function() return nil end          -- no sentinel: an older bake
+      CALLED = 0
+      HOLDER.call = function() CALLED = CALLED + 1 end
+      DRAWPOS = HOLDER.positionToWorld(Vector({  0.957, 0.178, 0.222 }))
+      PILE = MKOBJ('Card', DRAWPOS, { 'Deck Object' })
+      PILE.deal = function() end
+      SEAT('Red','Alice')
+      rttVPClick({ color = 'Red', id = 'vpDraw', row = 'Cats' })
+      FLUSH_UNTIL(3, 40)
+    """)
+    assert rt.eval("CALLED") == 0, \
+        "an older Refill Card with no sentinel was called into anyway -- that is the C# null"
+
+    # and the pond's pile, which is its own deck, is equally down to one card at the end
+    rt2 = fresh(src)
+    rt2.execute("""
+      POND = MKOBJ('Custom_Tile', { 20, 1, 20 }, { 'RTT Pond' })
+      LAST = MKOBJ('Card', { 20.2, 1.2, 20.1 }, {})
+      P, PILE = rttPondPile()
+      OK = (P ~= nil) and (PILE ~= nil) and (PILE.getGUID() == LAST.getGUID())
+    """)
+    assert rt2.eval("OK") is True, \
+        "the pond's last card was not found -- the frogs' deck collapses to a card like any other"
+
 def t_draw_one_takes_from_the_draw_pile_not_the_discard(src):
     """DRAW ONE takes the pile on the holder's draw slot, however small it has got.
 
@@ -9574,6 +9648,28 @@ def t_draw_one_finds_the_last_card_when_the_deck_is_gone(src):
         "with the draw slot bare, DRAW ONE fell back to the biggest pile -- which is the discard"
     assert rt4.eval("WHY") == "empty", \
         "the empty draw pile is not reported as empty, so the player is told there is no deck at all"
+
+    # AN UNTAGGED DECK ON THE SLOT IS STILL THE DRAW PILE. Maintainer, 2026-09-15: "when the deck of
+    # frogs cards is put on the deck slot with no other cards it seems to assume that it is empty and
+    # does not draw". "Deck Object" is put on what the deck builder spawns; the frogs' 13 cards arrive
+    # with the Lilypad kit and carry no tags at all. On the holder the SLOT is the identity.
+    rtf = fresh(src)
+    rtf.execute("""
+      HOLDER = REGUID(MKOBJ('Custom_Token', { 63.9, 1, 24.0 }, { 'Deck Object' }), 'aa1464')
+      DRAWPOS = HOLDER.positionToWorld(Vector({  0.957, 0.178, 0.222 }))
+      FROGS = MKOBJ('Deck', DRAWPOS, {})            -- no tags, like the Lilypad kit's deck
+      FROGS.getQuantity = function() return 13 end
+      FAR = MKOBJ('Deck', { -40, 1, 40 }, { 'Deck Object' })   -- a tagged deck elsewhere on the table
+      FAR.getQuantity = function() return 66 end
+      GOT = rttFindDrawDeck()
+    """)
+    assert rtf.eval("GOT and GOT.getGUID() or ''") == rtf.eval("FROGS.getGUID()"), \
+        "an untagged deck sitting on the draw slot was not recognised as the draw pile"
+
+    # ...and the radius is what keeps that far-off tagged deck out of it now the tag is not required
+    rtf.execute("FROGS.destruct() GOT2 = rttFindDrawDeck()")
+    assert rtf.eval("GOT2 == nil"), \
+        "with the slot bare, a deck across the table was taken as the draw pile"
 
     # ...and with no holder out, the decks that tag every card are found by that tag
     rt3 = fresh(src)
@@ -12759,6 +12855,7 @@ CASES = [
     ("a won game archives twice",     t_a_won_game_archives_itself_once),
     ("nothing runs before START",     t_the_recorder_does_nothing_until_start_is_pressed),
     ("draw one finds the last card",  t_draw_one_finds_the_last_card_when_the_deck_is_gone),
+    ("draw one refills on the last card", t_the_draw_button_refills_the_deck_on_the_last_card),
     ("draw one takes the draw pile",  t_draw_one_takes_from_the_draw_pile_not_the_discard),
     ("off-turn points land in round", t_an_off_turn_point_lands_in_the_round_it_happened_in),
     ("numpad 2 reaches everything",    t_numpad_two_reaches_every_kind_of_piece),

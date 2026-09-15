@@ -203,7 +203,13 @@ def check_ui_ids(logic, save):
 
 
 # Functions called across a script boundary that this check cannot resolve. Keep it empty if you can.
-CALL_TARGET_OK = set()
+# Names the check below must let through, with the reason each one is safe.
+#
+# click_refillDeck: defined in the REFILL CARD's own baked script (aa1464, the deck holder), which
+# this check does not scan -- it reads the board script and the three RTT-authored ones. The call is
+# probed first: the board script only calls it after reading the sentinel RTT_REFILL_API off that
+# object, so an older Refill Card with no such function is never called into.
+CALL_TARGET_OK = {"click_refillDeck"}
 
 
 def _blank_comments_and_strings(code):

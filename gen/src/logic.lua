@@ -4896,7 +4896,14 @@ function rttFindDrawDeck()
       for _, o in ipairs(getAllObjects()) do
         local dd, xd, isDeck, isCard = nil, nil, false, false
         pcall(function()
-          isDeck = (o.name == "Deck" or o.name == "DeckCustom") and o.hasTag("Deck Object")
+          -- NO TAG IS ASKED FOR ON THE SLOT, and that is the second half of the same report.
+          -- Maintainer, 2026-09-15: "when the deck of frogs cards is put on the deck slot with no
+          -- other cards it seems to assume that it is empty and does not draw". "Deck Object" is put
+          -- on whatever the DECK BUILDER spawns; the frogs' 13 cards come with the Lilypad kit and
+          -- carry no tags at all, so a perfectly real deck sitting on the slot was invisible here.
+          -- On the holder, WHERE IT IS is the identity -- that is the whole point of the slots -- so
+          -- the tag is only asked for in the no-holder fallback below, where position says nothing.
+          isDeck = (o.name == "Deck" or o.name == "DeckCustom")
           -- a held card is on its way somewhere, not sitting on the slot
           isCard = (o.name == "Card" or o.name == "CardCustom") and o.held_by_color == nil
           if isDeck or isCard then
@@ -4905,11 +4912,13 @@ function rttFindDrawDeck()
             xd = math.sqrt((p.x - disc.x) ^ 2 + (p.z - disc.z) ^ 2)
           end
         end)
-        -- nearer the discard slot than the draw slot: that IS the discard, whatever it holds
-        if dd ~= nil and dd < xd then
+        -- nearer the discard slot than the draw slot: that IS the discard, whatever it holds. And ON
+        -- the slot, not merely on its side of the table: without the tag to narrow things, the radius
+        -- is what keeps a landmark deck or a captains deck across the table out of it.
+        if dd ~= nil and dd < xd and dd <= RTT_DRAW_SLOT_R then
           if isDeck then
             if bestD == nil or dd < bestD then best, bestD = o, dd end
-          elseif dd <= RTT_DRAW_SLOT_R and (loneD == nil or dd < loneD) then lone, loneD = o, dd end
+          elseif loneD == nil or dd < loneD then lone, loneD = o, dd end
         end
       end
       if best ~= nil then return best end
@@ -4938,6 +4947,40 @@ function rttFindDrawDeck()
     if n ~= nil and n > bestN then best, bestN = o, n end
   end
   return best
+end
+
+-- REFILL WHEN THE DRAW PILE RUNS OUT -- FROM THE BUTTON ONLY.
+--
+-- Maintainer, 2026-09-15: "trigger the deck refill whenever a player draws the last card of the deck;
+-- but only when using the draw card button not when doing it manually."
+--
+-- So this hangs off DRAW ONE and nothing else. There is no hook on cards leaving a deck by hand, and
+-- there deliberately is not: picking the last card up yourself is often the start of doing something
+-- with the pile, and a refill firing under your cursor would be the mod taking the table over.
+--
+-- IT IS THE SAME REFILL THE CARD'S OWN BUTTON RUNS, not a second implementation of it -- whatever
+-- click_refillDeck sweeps in by hand, it sweeps in here. PROBED FIRST, because obj.call into a name
+-- the target does not define is TTS's C# null: not a Lua error, uncatchable by the pcall around it,
+-- and it would take the rest of this function with it. An older Refill Card answers nil and is left
+-- alone rather than crashing the click.
+--
+-- A BEAT LATER, so the card that was just dealt is out of the pile and on its way to a hand before
+-- the discard lands on the same spot.
+RTT_REFILL_DELAY = 0.7
+
+function rttRefillAfterLastCard(who)
+  Wait.time(function()
+    local holder = getObjectFromGUID(RTT_HOLDER_GUID)
+    if holder == nil then return end
+    local api = false
+    pcall(function() api = (holder.getVar("RTT_REFILL_API") == true) end)
+    if not api then return end
+    pcall(function() holder.call("click_refillDeck") end)
+    pcall(function()
+      broadcastToAll("That was the last card -- the deck is being refilled from the discard.",
+                     { 0.86, 0.86, 0.66 })
+    end)
+  end, RTT_REFILL_DELAY)
 end
 
 -- The pile sitting on the pond. The pond is a mat with exactly one card location -- its single
@@ -4987,9 +5030,15 @@ function rttVPClick(args)
       say((why == "empty") and "The draw pile is empty." or "There is no draw deck on the table.")
       return
     end
+    -- WAS THAT THE LAST ONE. A pile of one card is not a Deck in TTS -- it is a Card -- so dealing
+    -- from a Card is exactly "the deck has just run out", and it is the only case that needs asking.
+    -- A Deck always has two or more in it, so drawing from one always leaves something behind.
+    local last = false
+    pcall(function() last = (deck.name == "Card" or deck.name == "CardCustom") end)
     local dealt = false
     pcall(function() deck.deal(1, who) dealt = true end)
-    if not dealt then say("That deck would not deal -- you may have no hand at this seat.") end
+    if not dealt then say("That deck would not deal -- you may have no hand at this seat.") return end
+    if last then rttRefillAfterLastCard(who) end
 
   elseif id == "vpPond" then
     local pond, pile = rttPondPile()
