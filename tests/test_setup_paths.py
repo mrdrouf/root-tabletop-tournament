@@ -9684,6 +9684,113 @@ def t_draw_one_takes_from_the_draw_pile_not_the_discard(src):
     assert rt.eval("GOT2 ~= nil"), "with no holder out, DRAW ONE found no deck at all"
 
 
+def t_the_otters_draw_lands_on_their_open_board(src):
+    """DRAW ONE on the otters' panel puts the card face up on their open board, rightmost first.
+
+    Maintainer, 2026-09-15: "when the otter faction use the draw 1 card button, put the cards face up
+    on the open card board of the otters... fill the cards to the rightmost empty first. when there are
+    more than 5 cards you can continue on a row above as I did in the save. the positions are not
+    precise it was done manually so correct that the second row on top should be exactly aligned with
+    the row below and using similar vertical space as I did there."
+
+    THE GRID IS HIS, REGULARISED. From TS_Save_48 ("otter"), seat (0, -46): three of the four gaps in
+    his lower row are 5.862 and the fourth is 5.783, so 5.862 is the spacing he meant; his middle card
+    sits 0.055 off the board's own centre, so the row is centred on the board. The upper row is the
+    lower one plus his own 7.8867, with the SAME columns -- the correction he asked for, since he
+    placed that row by hand and its columns wander by up to a fifth of a card.
+
+    Everything is kit-local, so it mirrors for a far-row seat with nothing here knowing which seat the
+    otters took -- which is why the far-row case is checked too.
+    """
+    SAVE_LOWER = [-13.009, -7.148, -1.286, 4.497, 10.358]   # his own row, as placed
+    SAVE_LOWER_Z, SAVE_ROW_DZ = 11.1255, 7.8867
+
+    def board(cx, cz, flip):
+        rt = fresh(src)
+        rt.execute("""
+          RTT_SEATS = { { pos = { %f, %f }, faction = 'Riverfolk Company', color = 'Red' } }
+          OUT = ''
+          for _, sl in ipairs(rttOtterSlots()) do
+            OUT = OUT .. string.format('%%.4f,%%.4f,%%.0f;', sl.x, sl.z, sl.ry)
+          end
+        """ % (cx, cz))
+        out = [p.split(",") for p in rt.eval("OUT").split(";") if p]
+        return [(float(x), float(z), float(ry)) for x, z, ry in out]
+
+    slots = board(0, -46, False)
+    assert len(slots) == 10, "the otters' board has %d slots, expected 5 x 2" % len(slots)
+
+    # kit-local, at his own seat, is just the world value less the seat centre
+    lx = [x for x, z, _ in slots]
+    lz = [z + 46 for _, z, _ in slots]
+
+    # RIGHTMOST FIRST: the first slot is the largest x, then leftward, then the row above
+    assert lx[0] > lx[4], "the fill order starts at the left of the board"
+    assert all(lx[i] > lx[i + 1] for i in range(4)), "the lower row is not filled right to left"
+    assert lz[5] > lz[0] + 1, "the sixth card does not go to the row above"
+    assert all(abs(lx[i] - lx[i + 5]) < 1e-6 for i in range(5)), \
+        "the upper row's columns are not exactly aligned with the lower row's"
+    assert abs((lz[5] - lz[0]) - SAVE_ROW_DZ) < 1e-3, \
+        "the rows are %.3f apart; he left %.3f between them" % (lz[5] - lz[0], SAVE_ROW_DZ)
+
+    # ...and it is HIS row, not a new one: every column within a tenth of a card of where he put it
+    for got in sorted(lx[:5]):
+        near = min(abs(got - w) for w in SAVE_LOWER)
+        assert near < 0.1, "a column landed %.3f from any card he placed (%.3f)" % (near, got)
+    for z in lz[:5]:
+        assert abs(z - SAVE_LOWER_Z) < 0.01, "the lower row is at %.3f; his is at %.3f" % (z, SAVE_LOWER_Z)
+    assert all(ry == 180 for _, _, ry in slots), "the cards do not face the near-row player"
+
+    # THE FAR ROW MIRRORS, with nothing in this code knowing about rows
+    far = board(0, 46, True)
+    assert all(abs(far[i][0] + slots[i][0]) < 1e-6 for i in range(10)), \
+        "the far-row seat's board is not the mirror of the near-row one"
+    assert all(ry == 0 for _, _, ry in far), "the far-row cards face the wrong way"
+
+    # --- and the draw button actually uses it -----------------------------------------------------
+    rt = fresh(src)
+    rt.execute("""
+      RTT_SEATS = { { pos = { 0, -46 }, faction = 'Riverfolk Company', color = 'Red' } }
+      HOLDER = REGUID(MKOBJ('Custom_Token', { 63.9, 1, 24.0 }, { 'Deck Object' }), 'aa1464')
+      DRAWPOS = HOLDER.positionToWorld(Vector({  0.957, 0.178, 0.222 }))
+      DECK = MKOBJ('Deck', DRAWPOS, { 'Deck Object' })
+      DECK.getQuantity = function() return 40 end
+      TOOK, DEALT = {}, 0
+      DECK.takeObject = function(p)
+        TOOK[#TOOK+1] = string.format('%.4f,%.4f,%.0f', p.position[1], p.position[3], p.rotation[2])
+      end
+      DECK.deal = function() DEALT = DEALT + 1 end
+      SEAT('Red','Alice')
+      rttVPClick({ color = 'Red', id = 'vpDraw', row = 'Riverfolk' })
+      FLUSH(10)
+      OUT = TOOK[1] or ''
+    """)
+    assert rt.eval("DEALT") == 0, "the otters' card was dealt into a hand instead of onto their board"
+    took = rt.eval("OUT")
+    assert took, "the otters' panel drew nothing at all"
+    x, z, ry = (float(v) for v in took.split(","))
+    assert abs(x - slots[0][0]) < 1e-3 and abs(z - slots[0][1]) < 1e-3, \
+        "the card went to (%.3f, %.3f); the rightmost free slot is (%.3f, %.3f)" % (x, z, slots[0][0], slots[0][1])
+    assert ry == 180, "the card was not laid facing the player"
+
+    # every other faction's panel still deals into the hand
+    rt2 = fresh(src)
+    rt2.execute("""
+      RTT_SEATS = { { pos = { 0, -46 }, faction = 'Riverfolk Company', color = 'Red' } }
+      HOLDER = REGUID(MKOBJ('Custom_Token', { 63.9, 1, 24.0 }, { 'Deck Object' }), 'aa1464')
+      DRAWPOS = HOLDER.positionToWorld(Vector({  0.957, 0.178, 0.222 }))
+      DECK = MKOBJ('Deck', DRAWPOS, { 'Deck Object' })
+      DECK.getQuantity = function() return 40 end
+      TOOK, DEALT = 0, 0
+      DECK.takeObject = function() TOOK = TOOK + 1 end
+      DECK.deal = function() DEALT = DEALT + 1 end
+      SEAT('Red','Alice')
+      rttVPClick({ color = 'Red', id = 'vpDraw', row = 'Marquise' })
+      FLUSH(10)
+    """)
+    assert rt2.eval("DEALT") == 1 and rt2.eval("TOOK") == 0, \
+        "a card drawn from another faction's panel was put on the otters' board"
+
 def t_the_frogs_shuffle_into_the_deck_on_the_slot(src):
     """The frogs' cards go into the deck on the draw slot, not into whatever pile is biggest.
 
@@ -13009,6 +13116,7 @@ CASES = [
     ("torn boards are cut torn",      t_the_torn_boards_are_cut_where_the_art_is_torn),
     ("a won game archives twice",     t_a_won_game_archives_itself_once),
     ("nothing runs before START",     t_the_recorder_does_nothing_until_start_is_pressed),
+    ("otters draw onto their board",  t_the_otters_draw_lands_on_their_open_board),
     ("frogs shuffle into the slot deck", t_the_frogs_shuffle_into_the_deck_on_the_slot),
     ("draw one finds the last card",  t_draw_one_finds_the_last_card_when_the_deck_is_gone),
     ("draw one refills on the last card", t_the_draw_button_refills_the_deck_on_the_last_card),

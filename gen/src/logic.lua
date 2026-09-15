@@ -4949,6 +4949,84 @@ function rttFindDrawDeck()
   return best
 end
 
+-- ---- The Riverfolk's open card board ---------------------------------------------------------
+--
+-- Maintainer, 2026-09-15: "when the otter faction use the draw 1 card button, put the cards face up
+-- on the open card board of the otters. look at the save otter to see where I positioned the card...
+-- fill the cards to the rightmost empty first. when there are more than 5 cards you can continue on a
+-- row above as I did in the save. the positions are not precise it was done manually so correct that
+-- the second row on top should be exactly aligned with the row below and using similar vertical space
+-- as I did there."
+--
+-- READ OUT OF TS_Save_48 ("otter"), his seat at (0, -46), and then REGULARISED as he asked. Three of
+-- the four gaps in his lower row are 5.862 apart and the fourth is 5.783, so 5.862 is the spacing he
+-- was aiming at; his middle card sits 0.055 from the board's own centre, so the row is centred on the
+-- board. The upper row is written as the lower one plus his own vertical gap, 7.8867, with identical
+-- columns -- which is the correction he asked for, since he placed that row by hand and its columns
+-- wander by up to a fifth of a card.
+--
+-- EVERYTHING IS KIT-LOCAL, like every other seat-relative thing here, so it mirrors for a far-row seat
+-- and turns with an angled one without this code knowing which seat the otters took.
+RTT_OTTER_ROW    = "Riverfolk"     -- the box score row their VP panel carries; the panel that presses
+RTT_OTTER_CARD_X = -1.340          -- the open board's own x: the middle column
+RTT_OTTER_CARD_DX = 5.862          -- his spacing, the value three of his four gaps agree on
+RTT_OTTER_ROW_Z  = 11.126          -- the lower row, 0.864 toward the player from the board's centre
+RTT_OTTER_ROW_DZ = 7.8867          -- his own gap to the row above
+RTT_OTTER_CARD_Y = 0.29            -- kit-local height: 11.75 world, a touch above where they rest
+RTT_OTTER_COLS   = 5
+RTT_OTTER_ROWS   = 2
+RTT_OTTER_TAKEN_R = 2.5            -- half the column spacing: a card is on a slot or it is not
+
+-- The slots of the otters' open board, in FILL ORDER: rightmost first, then leftward, then the row
+-- above. Kit-local +x is the seated player's right on both rows, so "rightmost" needs no special case.
+function rttOtterSlots()
+  local seat = nil
+  for _, st in ipairs(RTT_SEATS or {}) do
+    if st.faction == "Riverfolk Company" and st.pos ~= nil then seat = st end
+  end
+  if seat == nil then return {} end
+  local cx, cz = seat.pos[1], seat.pos[2]
+  local flip = (cz > 0)
+  local out = {}
+  for r = 1, RTT_OTTER_ROWS do
+    for c = RTT_OTTER_COLS, 1, -1 do
+      local lx = RTT_OTTER_CARD_X + (c - (RTT_OTTER_COLS + 1) / 2) * RTT_OTTER_CARD_DX
+      local lz = RTT_OTTER_ROW_Z + (r - 1) * RTT_OTTER_ROW_DZ
+      local w = rttKitPos(cx, cz, flip, nil, { lx, RTT_OTTER_CARD_Y, lz })
+      out[#out + 1] = { x = w.x, y = w.y, z = w.z, ry = flip and 0 or 180 }
+    end
+  end
+  return out
+end
+
+-- The first of those with no card on it. A card already lying there is any Card or Deck within half a
+-- column of the spot -- the same "is this slot taken" question the gizmo's home rows ask.
+function rttOtterFreeSlot()
+  local slots = rttOtterSlots()
+  if #slots == 0 then return nil end
+  local cards = {}
+  for _, o in ipairs(getAllObjects()) do
+    local kind = nil
+    pcall(function() kind = o.name end)
+    if kind == "Card" or kind == "CardCustom" or kind == "Deck" or kind == "DeckCustom" then
+      local p = nil
+      pcall(function() p = o.getPosition() end)
+      if p ~= nil then cards[#cards + 1] = p end
+    end
+  end
+  for _, sl in ipairs(slots) do
+    local taken = false
+    for _, p in ipairs(cards) do
+      if (p.x - sl.x) ^ 2 + (p.z - sl.z) ^ 2 <= RTT_OTTER_TAKEN_R * RTT_OTTER_TAKEN_R then
+        taken = true
+        break
+      end
+    end
+    if not taken then return sl end
+  end
+  return nil
+end
+
 -- REFILL WHEN THE DRAW PILE RUNS OUT -- FROM THE BUTTON ONLY.
 --
 -- Maintainer, 2026-09-15: "trigger the deck refill whenever a player draws the last card of the deck;
@@ -5035,9 +5113,37 @@ function rttVPClick(args)
     -- A Deck always has two or more in it, so drawing from one always leaves something behind.
     local last = false
     pcall(function() last = (deck.name == "Card" or deck.name == "CardCustom") end)
+    -- THE OTTERS' CARD GOES FACE UP ON THEIR OPEN BOARD, not into a hand -- see rttOtterSlots. Only
+    -- from their own panel: the button belongs to the panel that carries their row, and the rest of
+    -- this function has never cared who pressed it.
+    local slot = (row == RTT_OTTER_ROW) and rttOtterFreeSlot() or nil
     local dealt = false
-    pcall(function() deck.deal(1, who) dealt = true end)
-    if not dealt then say("That deck would not deal -- you may have no hand at this seat.") return end
+    if slot ~= nil then
+      if last then
+        -- the pile IS the card: there is nothing to take it out of, so it goes itself
+        pcall(function()
+          deck.setPositionSmooth({ slot.x, slot.y, slot.z }, false, true)
+          deck.setRotationSmooth({ 0, slot.ry, 0 }, false, true)
+          dealt = true
+        end)
+      else
+        pcall(function()
+          deck.takeObject({
+            position = { slot.x, slot.y, slot.z },
+            rotation = { 0, slot.ry, 0 },        -- rotZ 0 is face up; the deck lies face down
+            smooth   = true,
+          })
+          dealt = true
+        end)
+      end
+      if not dealt then say("That card would not go to the otters' board.") return end
+    else
+      if row == RTT_OTTER_ROW then
+        say("The otters' open board is full; the card goes to your hand.")
+      end
+      pcall(function() deck.deal(1, who) dealt = true end)
+      if not dealt then say("That deck would not deal -- you may have no hand at this seat.") return end
+    end
     if last then rttRefillAfterLastCard(who) end
 
   elseif id == "vpPond" then

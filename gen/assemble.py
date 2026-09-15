@@ -102,6 +102,10 @@ UNTAGGED_SPAWN_OK = {
     "spawnTournamentDraftFaction",
     "rttSpawnHootDraft",           # a reference aid like the other tools: survives a new game
     "rttRemoveFrogsFromDeck",       # takes frog cards OUT of the deck and destructs them on arrival
+    # takeObject on the draw pile: a card already in the game, moved out of the deck onto the otters'
+    # open board. Nothing is created, so there is nothing new to tag -- and a game card must NOT carry
+    # a teardown tag or a new game would destroy cards belonging to the deck it deliberately spares.
+    "rttVPClick",
     # THE PUMP, NOT A SPAWN SITE. It hands over specs its caller built, callback and all, so the tag
     # lives in the caller's own callback_function -- where this check reads it, in the caller.
     "rttSpawnStaggered",
