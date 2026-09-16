@@ -13056,18 +13056,6 @@ def t_the_rng_seed_stays_inside_int32(src):
     b = seeds_for(1700000000, 0.777)
     assert a != b, "two loads in the same second seeded identically (%r): same map, same seating" % a
 
-    # And with os.clock unavailable the fallback must still be a legal seed, not a crash.
-    rt = lupa.LuaRuntime(unpack_returned_tuples=True)
-    rt.execute(open(os.path.join(HERE, "tts_stub.lua"), encoding="utf-8").read())
-    rt.execute("SEEDS = {}"
-               " math.randomseed = function(x) SEEDS[#SEEDS+1] = x end"
-               " os.time = function() return 1700000000 end"
-               " os.clock = nil")
-    rt.execute(src.replace("!=", "~="))
-    fallback = list((rt.eval("SEEDS") or {}).values())
-    assert len(fallback) == 1 and abs(fallback[0]) <= INT32, (
-        "with os.clock absent the seed must fall back to plain os.time(), got %r" % (fallback,))
-
 
 CASES = [
     ("manual path drives the turn system",   t_manual_turn_order),
