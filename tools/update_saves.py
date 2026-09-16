@@ -28,9 +28,34 @@ import glob, json, os, re, shutil, sys, time
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 BUILT = os.path.join(REPO, "dist", "Root_Tournament_Edition.json")
-SAVES = os.path.expanduser("~/Library/Tabletop Simulator/Saves")
+# WHERE TTS KEEPS ITS SAVES, ON WHICHEVER MACHINE THIS IS RUN FROM.
+#
+# This was one hardcoded macOS path, and on 2026-09-16 that quietly made the whole script a no-op on
+# the Windows box: it looked in ~/Library, found nothing, reported nothing missing, and the save the
+# maintainer actually loads sat a day stale while the build said it was current. A tool whose failure
+# mode is silence is worse than one that errors.
+#
+# The candidates are tried in order and the first that EXISTS wins, so a machine with both (a synced
+# home directory, say) still resolves to the real one rather than to whichever was written first here.
+def _tts_home():
+    here = [
+        "~/Library/Tabletop Simulator",                     # macOS
+        "~/Documents/My Games/Tabletop Simulator",          # Windows
+        "~/OneDrive/Documents/My Games/Tabletop Simulator", # Windows with OneDrive redirection
+        "~/.local/share/Tabletop Simulator",                # Linux
+    ]
+    for c in here:
+        d = os.path.expanduser(c)
+        if os.path.isdir(os.path.join(d, "Saves")):
+            return d
+    # nothing found: fall back to the platform's usual spot so the error names a real path
+    return os.path.expanduser(here[1] if sys.platform.startswith("win") else here[0])
+
+
+TTS_HOME = _tts_home()
+SAVES = os.path.join(TTS_HOME, "Saves")
 # NOT inside Saves/: TTS scans that folder, and it must not find our copies
-BACKUPS = os.path.expanduser("~/Library/Tabletop Simulator/RTT_save_backups")
+BACKUPS = os.path.join(TTS_HOME, "RTT_save_backups")
 KEEP_SETS = 2
 BASE_SAVE = "Root_Tournament_Edition.json"   # the only save this touches by default
 BOARD = "bab7e1"
