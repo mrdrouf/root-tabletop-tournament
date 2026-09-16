@@ -13168,6 +13168,55 @@ def t_a_superseded_map_build_stops_spawning(src):
             % (frames, got, clean))
 
 
+def t_a_vp_panel_is_never_placed_under_the_map(src):
+    """A VP panel that lands inside the map footprint is refused, because there it is invisible AND live.
+
+    The panels stand at kit height: rttKitPos returns 11.46 and the slab is 0.1 thick, so its top is
+    11.51, while anything resting ON a map board sits at 11.61 or above -- measured, by driving a Marsh
+    build in this harness. So a panel whose x/z fall inside the board is about a tenth of a unit UNDER
+    the surface. Completely hidden, and still working: rttHoldMapLocked holds the map non-interactable,
+    and a pointer ray passes straight through a non-interactable object to whatever is behind it.
+
+    WHAT THAT COSTS, if it ever happens. The panel's buttons are the only mouse-reachable path in the
+    mod that deals exactly one card to exactly the clicking player (vpDraw -> rttFindDrawDeck ->
+    deck.deal(1, who)), and its minus button moves a faction's score down through the box score. A
+    player clicking the clearing above it would find the piece there hard to pick up -- his clicks are
+    being taken by a button he cannot see -- while cards arrived in his hand and somebody else's score
+    slid down. That is the shape of a report this repo has open, and whether or not it turns out to be
+    the cause, an object that can do all three while invisible should not be constructible.
+
+    A MISSING PANEL IS THE BETTER FAILURE and is what this chooses. Maintainer, 2026-09-16: "that would
+    be so strange we should notice a missing draw card board". Exactly so -- a panel that is absent is
+    noticed and is harmless, where a panel that is hidden is neither.
+
+    Both directions are checked, because a guard that refuses everything would also pass a one-sided
+    test: a spot outside the footprint must still produce a panel.
+    """
+    rt = fresh(src)
+    rt.execute("SEAT('Purple','H1')")
+    rt.execute("pcall(function() makeMap(Player['Purple'],'','Marsh Map') end) FLUSH(400)")
+
+    def panels():
+        return rt.eval("function() local n = 0 "
+                       "for _, o in ipairs(getAllObjects()) do "
+                       "if tostring(o.getName()) == 'VP Panel' then n = n + 1 end end "
+                       "return n end")()
+
+    before = panels()
+
+    # dead centre of the board, the worst case: hidden under the middle clearings
+    rt.execute("pcall(function() rttSpawnVPPanel({0, 11.46, 0}, 'Marquise', 0) end) FLUSH(200)")
+    assert panels() == before, (
+        "a VP panel was placed at the centre of the map, where it is hidden under the board and its "
+        "DRAW and minus buttons still take clicks")
+
+    # and somewhere plainly off the board, which must still work
+    rt.execute("pcall(function() rttSpawnVPPanel({0, 11.46, 60}, 'Marquise', 0) end) FLUSH(200)")
+    assert panels() == before + 1, (
+        "the guard refused a VP panel at (0, 60), which is nowhere near the map; it is rejecting "
+        "legitimate placements")
+
+
 CASES = [
     ("manual path drives the turn system",   t_manual_turn_order),
     ("manual path spawns 4 / 5 boards",      t_boards_spawn),
@@ -13383,6 +13432,7 @@ CASES = [
     ("the RNG seed fits in int32",     t_the_rng_seed_stays_inside_int32),
     ("a piece is recorded before its art", t_the_recorder_records_a_piece_before_it_asks_for_its_art),
     ("a replaced map build stops",     t_a_superseded_map_build_stops_spawning),
+    ("no VP panel under the map",      t_a_vp_panel_is_never_placed_under_the_map),
 ]
 
 

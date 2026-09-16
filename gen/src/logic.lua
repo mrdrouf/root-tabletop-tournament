@@ -5219,8 +5219,48 @@ RTT_VP_PANEL_DZ  = 19.033528 / 2 + RTT_VP_PANEL_GAP + RTT_VP_PANEL_DEPTH / 2   -
 
 -- Spawn one, at a position already worked out in the kit's frame by rttKitPos -- so a far-row seat
 -- mirrors it and an angled seat turns it exactly as every other piece of the kit is turned.
+-- IS THIS SPOT UNDER THE MAP? Used to refuse a panel that would be invisible and still clickable.
+--
+-- The panels stand at kit height -- rttKitPos returns 11.46, and the slab is 0.1 thick, so its top is
+-- 11.51 -- while anything resting ON a map board sits at 11.61 or above. A panel whose x/z land inside
+-- the board's footprint is therefore about a tenth of a unit BELOW the surface: completely hidden, and
+-- still live, because rttHoldMapLocked holds the map non-interactable and a pointer ray goes straight
+-- through it to whatever is underneath. Its DRAW button deals a card to whoever clicked and its minus
+-- button moves a faction's score down, so the failure is silent and looks like the table misbehaving.
+--
+-- Bounds first, a fixed box only as a fallback: the maps differ in size and a constant that fits the
+-- Marsh would be wrong for the Gorge. 25 x 23 is larger than any of them, which is the safe direction
+-- to be wrong in for a refusal.
+function rttUnderMap(x, z)
+  local inside = nil
+  pcall(function()
+    local m = rttFindMapObject()
+    if m == nil then return end
+    local b = m.getBounds()
+    if b == nil or b.center == nil or b.size == nil then return end
+    inside = math.abs(x - b.center.x) <= b.size.x / 2 and math.abs(z - b.center.z) <= b.size.z / 2
+  end)
+  if inside ~= nil then return inside end
+  return math.abs(x) <= 25 and math.abs(z) <= 23
+end
+
 function rttSpawnVPPanel(pos, row, spawnRy)
   if row == nil or row == "" then return end
+  -- NOT UNDER THE MAP, EVER. A panel here is invisible and its buttons still work, which is the one
+  -- way this object can do damage nobody can see. If the arithmetic that placed it has gone wrong,
+  -- the honest outcome is a MISSING panel -- which somebody notices, and which cannot deal a card or
+  -- move a score on its own -- rather than a hidden one that can. Maintainer, 2026-09-16, on exactly
+  -- this trade: "that would be so strange we should notice a missing draw card board". Quite.
+  local px, pz = nil, nil
+  pcall(function() px, pz = pos.x or pos[1], pos.z or pos[3] end)
+  if px ~= nil and pz ~= nil and rttUnderMap(px, pz) then
+    log(string.format("RTT: refused a VP panel for %s at (%.2f, %.2f) -- that is inside the map "
+                      .. "footprint, where it would be hidden under the board and still clickable.",
+                      tostring(row), px, pz))
+    broadcastToAll("A VP panel was about to be placed under the map and has been left out. "
+                   .. "Please report this.", { r = 1, g = 0.6, b = 0.2 })
+    return
+  end
   local json = RTT_VP_PANEL_JSON
   -- the row name is carried in the object's own saved state, not gsub'd into its script: a script
   -- edited at spawn is frozen at the version the game started on, and LuaScriptState survives a
