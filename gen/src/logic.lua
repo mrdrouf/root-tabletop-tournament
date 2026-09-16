@@ -6617,22 +6617,38 @@ end
 
 
 -- ===== RTT per-faction setup extras =====
--- THE ONLY PLACE THE RNG IS SEEDED. Seeded once, at load; every draw after that just advances the
--- stream -- floods, the seat shuffle, the landmark, the draft. Never re-seed per action: that made
--- same-second clicks collide (see rtt-rng-bug).
+-- THE ONLY PLACE THE RNG IS SEEDED. Once, at load; every draw after that just advances the stream --
+-- floods, the seat shuffle, the landmark, the draft. Never re-seed per action: that made same-second
+-- clicks collide (see rtt-rng-bug).
 --
--- os.time() ALONE IS NOT ENOUGH, and this is the measured half: it counts WHOLE SECONDS, so two
--- loads inside the same second get the IDENTICAL seed and therefore replay the identical stream --
--- the same flooded clearings, the same seating, every time. os.clock() is fractional, so folding it
--- in separates two loads that os.time() cannot tell apart. The 40-draw warm-up is the unmeasured
--- half: cheap insurance against near seeds correlating in TTS's older Lua, which the test harness
--- (Lua 5.5) cannot reproduce. Maintainer, 2026-09-16, after a Marsh and a seating order each
--- repeated across reloads: "clean the messy code make sure it s random".
-local _t = os.time()
-local _c = 0
-pcall(function() _c = math.floor(((os.clock() or 0) % 1) * 1000000) end)
-math.randomseed(_t * 1000003 + _c)
-for _rw = 1, 40 do math.random() end
+-- THE SEED MUST STAY INSIDE INT32, and this is not a style preference. TTS runs MoonSharp, not
+-- PUC-Lua, and its math.randomseed is literally
+--     SetRandom(script, new Random((int)arg.Number));
+-- an unchecked C# cast of a double to a 32-bit int. A seed outside +/-2147483647 does NOT wrap: the
+-- x86 cvttsd2si instruction returns the "integer indefinite" constant for anything out of range, so
+-- every such load seeds from the SAME number and replays the SAME stream forever. Measured on .NET
+-- x64: (int)1.77e15, (int)1.8e15 and (int)2147483648 all give -2147483648, and all three then draw
+-- 0.726243 / 0.817325 / 0.768023. This block briefly shipped as os.time() * 1000003 + micros, which
+-- is ~1.77e15 -- the line written to add entropy was the line that removed all of it. Multiplying by
+-- a prime is a hash-function move that assumes something downstream folds the high bits back in;
+-- randomseed does not, it truncates. Plain os.time() (~1.77e9) was always in range and always fine.
+--
+-- os.time() alone still counts WHOLE SECONDS, so two loads in the same second seed identically --
+-- the same flooded clearings, the same seating. The sub-second part of os.clock() separates them.
+-- 1000 and 1000000 below are decimal digit positions, not magic: six digits of seconds with three
+-- of milliseconds appended, max 999999999. Milliseconds, not micros, because MoonSharp's os.clock
+-- rides DateTime.UtcNow and resolves to about 1-16 ms -- asking it for six digits just pads zeros.
+-- The pcall means that if os.clock ever goes away we fall back to plain os.time(), never to broken.
+--
+-- There is no warm-up loop. There was one, and it was measured: .NET's legacy Random is linear in
+-- its seed, so consecutive seeds differ by a fixed constant at EVERY draw index. Discarding draws
+-- only chooses which constant you get, and at 60 draws that constant is 0.014 -- adjacent seeds
+-- nearly identical. It cannot decorrelate anything. Maintainer, 2026-09-16: "os.time()*1000003 whqt
+-- s this insane coding practice".
+local _secs = math.floor(os.time()) % 1000000                        -- 0..999999
+local _ms   = 0
+pcall(function() _ms = math.floor((os.clock() % 1) * 1000) end)      -- 0..999, or 0 if unavailable
+math.randomseed(_secs * 1000 + _ms)
 RTT_FOREST_UV = {
   ["Summer Map"] = { {-0.0119,0.3133}, {-0.2622,0.1541}, {0.1303,0.0818}, {0.0918,-0.1710}, {0.2914,-0.1245}, {-0.3226,-0.0941}, {-0.1570,-0.2591} },
   ["Winter Map"] = { {-0.0014,0.2102}, {-0.2874,0.1472}, {-0.2859,-0.0771}, {0.3033,0.0681}, {0.1848,-0.1880}, {-0.2064,-0.2222}, {-0.0119,-0.1395}, {0.2912,-0.1394} },

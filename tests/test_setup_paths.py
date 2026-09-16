@@ -13009,6 +13009,66 @@ def t_the_mole_board_steps_away_from_the_monger(src):
              "stay against the board's edge" % (label, was_gap, now_gap))
 
 
+def t_the_rng_seed_stays_inside_int32(src):
+    """The seed handed to math.randomseed must fit in a 32-bit int, or the RNG becomes a constant.
+
+    TTS does not run PUC-Lua. It runs MoonSharp, whose math.randomseed is one line:
+
+        SetRandom(script, new Random((int)arg.Number));
+
+    That is an UNCHECKED C# cast of a double to Int32. A value outside +/-2147483647 does not wrap and
+    does not throw -- on x86/x64 the cvttsd2si instruction returns the "integer indefinite" constant --
+    so EVERY out-of-range seed collapses to the same number and the mod replays one fixed stream on
+    every load. Measured on .NET 4.8 x64: (int)1.77e15, (int)1.8e15 and (int)2147483648 all yield
+    -2147483648, and all three then draw 0.726243 / 0.817325 / 0.768023.
+
+    This is not hypothetical. The block briefly shipped as `math.randomseed(os.time() * 1000003 + c)`,
+    which is about 1.77e15 -- written to ADD entropy, it removed all of it, and no test caught it
+    because the harness runs Lua 5.5, whose randomseed accepts the full double range happily. That is
+    the trap this case exists to close: the harness is more forgiving than the game, so the bound has
+    to be asserted rather than observed.
+
+    So: exactly one seeding site, in range even at a far-future clock, and two loads inside one second
+    must not seed alike -- which is the whole reason os.clock is folded in at all.
+    """
+    INT32 = 2147483647
+
+    def seeds_for(t, c):
+        rt = lupa.LuaRuntime(unpack_returned_tuples=True)
+        rt.execute(open(os.path.join(HERE, "tts_stub.lua"), encoding="utf-8").read())
+        rt.execute("SEEDS = {}"
+                   " math.randomseed = function(x) SEEDS[#SEEDS+1] = x end"
+                   " os.time = function() return %d end"
+                   " os.clock = function() return %r end" % (t, c))
+        rt.execute(src.replace("!=", "~="))
+        return list((rt.eval("SEEDS") or {}).values())
+
+    # A far-future clock (1 Jan 2100) and the worst sub-second value, so the bound is not merely true
+    # today. Anything that multiplies os.time() up fails right here.
+    got = seeds_for(4102444800, 0.999)
+    assert len(got) == 1, "expected exactly one math.randomseed call in the board script, got %d" % len(got)
+    seed = got[0]
+    assert abs(seed) <= INT32, (
+        "seed %r is outside int32; MoonSharp casts it to a constant and the mod stops being random" % seed)
+
+    # Two loads in the same wall-clock second. os.time() cannot tell them apart; os.clock() must.
+    a = seeds_for(1700000000, 0.111)
+    b = seeds_for(1700000000, 0.777)
+    assert a != b, "two loads in the same second seeded identically (%r): same map, same seating" % a
+
+    # And with os.clock unavailable the fallback must still be a legal seed, not a crash.
+    rt = lupa.LuaRuntime(unpack_returned_tuples=True)
+    rt.execute(open(os.path.join(HERE, "tts_stub.lua"), encoding="utf-8").read())
+    rt.execute("SEEDS = {}"
+               " math.randomseed = function(x) SEEDS[#SEEDS+1] = x end"
+               " os.time = function() return 1700000000 end"
+               " os.clock = nil")
+    rt.execute(src.replace("!=", "~="))
+    fallback = list((rt.eval("SEEDS") or {}).values())
+    assert len(fallback) == 1 and abs(fallback[0]) <= INT32, (
+        "with os.clock absent the seed must fall back to plain os.time(), got %r" % (fallback,))
+
+
 CASES = [
     ("manual path drives the turn system",   t_manual_turn_order),
     ("manual path spawns 4 / 5 boards",      t_boards_spawn),
@@ -13221,6 +13281,7 @@ CASES = [
     ("dealing five again asks",        t_dealing_five_again_asks_first),
     ("the sweep spares the draw pile", t_the_discard_sweep_never_takes_from_the_draw_pile),
     ("game two is not game one",        t_a_second_game_is_not_appended_to_the_first),
+    ("the RNG seed fits in int32",     t_the_rng_seed_stays_inside_int32),
 ]
 
 
