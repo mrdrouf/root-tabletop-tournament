@@ -561,7 +561,49 @@ local function obsStatic(o, g, hands)
   -- the short type ("Tile") where the harness reports the class ("Custom_Tile").
   local OBS_ART_OK = { Tile = true, Custom_Tile = true, Token = true, Custom_Token = true,
                        Card = true, CardCustom = true }
-  if nm == "" and OBS_ART_OK[ty] then
+
+  -- THE ENTRY IS WRITTEN BEFORE THE ART IS READ, AND THAT ORDER IS THE WHOLE FIX.
+  --
+  -- It used to be written last, after getCustomObject(). A C# null unwinds the function, so the write
+  -- never happened -- and the early return at the top of obsStatic keys on OBS.objs[g], so the piece
+  -- was never remembered and the SAME call threw again on its next drop, and the one after, forever.
+  -- Maintainer, 2026-09-16, with a screenshot of the chat filling up: "the error pops EVERY TIME
+  -- SOMEONE MOVES AN ACTUAL PIECE". Not a timer and not intermittent -- one unnamed piece with no
+  -- custom data, moved repeatedly, is an error per move for the rest of the game.
+  --
+  -- Writing it first bounds the damage to ONE failure per piece even if the read still throws: the
+  -- second drop returns at the top. The art is folded in afterwards by rewriting the entry, so a
+  -- successful read costs one extra string and a failed one costs nothing.
+  local base = '"' .. g .. '":{"n":' .. obsStr(nm) .. ',"t":' .. obsStr(ty) .. "}"
+  OBS.objs[g] = base
+  OBS.bobj = OBS.bobj + #base
+
+  -- ...AND ONLY OF SOMETHING THAT CARRIES CUSTOM DATA AT ALL.
+  --
+  -- The allow list above is not enough on its own, and this is what the maintainer's errors were.
+  -- getCustomObject() answers a C# null on an object that HAS no custom data, and TTS reports the
+  -- SHORT type for both -- a Custom_Tile and a plain Tile are both "Tile" -- so `ty` cannot tell them
+  -- apart and every plain unnamed token walked straight into the null. `o.name` is the internal class
+  -- and does distinguish them: "Custom_Tile" against "Tile", "DeckCustom" against "Deck". This file's
+  -- neighbour already relies on exactly that (rttFindDrawDeck asks o.name == "Deck"), so it is the
+  -- established way to ask this question in this codebase rather than a new idea.
+  --
+  -- THE HARNESS CANNOT MODEL THIS FAITHFULLY, which is why the test below it is shaped the way it is:
+  -- tts_stub keeps one field for both the class and the nickname (setName overwrites it), so an
+  -- unnamed piece there reports an empty class. Anything that treated an unknown class as "plain"
+  -- would therefore stop describing cardboard in the harness and quietly change what the recorder
+  -- writes. Hence the test below, not a positive list.
+  --
+  -- A DENY LIST HERE, DELIBERATELY, WHERE THE ONE ABOVE IS AN ALLOW LIST. The two are doing different
+  -- jobs. The type gate asks "is this the kind of thing an art tail is FOR", and must be conservative.
+  -- This one asks "is this object POSITIVELY KNOWN to have no custom data", and must not be: an object
+  -- whose class we cannot read is still asked, exactly as before, so nothing that used to be described
+  -- silently stops being described. Only the four spellings that certainly carry no custom data are
+  -- skipped, and those are precisely the ones that answer a C# null.
+  local cls = ""
+  pcall(function() cls = tostring(o.name or "") end)
+  local OBS_PLAIN = { Tile = true, Token = true, Card = true, Deck = true }
+  if nm == "" and OBS_ART_OK[ty] and not OBS_PLAIN[cls] then
     pcall(function()
       local co = o.getCustomObject()
       if co ~= nil then
@@ -570,11 +612,12 @@ local function obsStatic(o, g, hands)
       end
     end)
   end
-  local frag = '"' .. g .. '":{"n":' .. obsStr(nm) .. ',"t":' .. obsStr(ty)
-  if art ~= "" then frag = frag .. ',"a":' .. obsStr(art) end
-  frag = frag .. "}"
-  OBS.objs[g] = frag
-  OBS.bobj = OBS.bobj + #frag
+  if art ~= "" then
+    local full = '"' .. g .. '":{"n":' .. obsStr(nm) .. ',"t":' .. obsStr(ty)
+                 .. ',"a":' .. obsStr(art) .. "}"
+    OBS.bobj = OBS.bobj - #base + #full
+    OBS.objs[g] = full
+  end
 end
 
 ------------------------------------------------------------------- RTT's own setup facts --

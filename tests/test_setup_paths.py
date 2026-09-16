@@ -13057,6 +13057,117 @@ def t_the_rng_seed_stays_inside_int32(src):
     assert a != b, "two loads in the same second seeded identically (%r): same map, same seating" % a
 
 
+def t_the_recorder_records_a_piece_before_it_asks_for_its_art(src):
+    """The recorder must write a piece's entry BEFORE it asks TTS what the piece looks like.
+
+    obsStatic asks getCustomObject() for the art tail of unnamed cardboard. That call answers a C#
+    NULL on an object that has no custom data, and a C# null is not a Lua error -- pcall does not
+    catch it and it unwinds the rest of the function. The entry write, OBS.objs[g], used to sit AFTER
+    that call, and the early return at the top of obsStatic keys on exactly that entry. So a piece
+    that threw was never recorded, which means it was never skipped either: the same call threw again
+    on its next drop, and the one after, for the rest of the game.
+
+    Maintainer, 2026-09-16, with a screenshot of the chat log filling up: "the error pops EVERY TIME
+    SOMEONE MOVES AN ACTUAL PIECE". An actual piece, not a card -- because cards carry names and the
+    art read only runs on something unnamed. That is the whole signature of this defect.
+
+    TWO THINGS ARE ASSERTED, and the order one is the load-bearing half. Writing the entry first
+    bounds the damage to one failure per piece even if the read still throws, because the second drop
+    returns at the top. Second, the read is now gated on the object's INTERNAL CLASS (o.name, which
+    says "Custom_Tile" against "Tile") and not only on its short type, because TTS reports the short
+    type identically for custom and plain cardboard -- which is how plain tokens reached the null in
+    the first place.
+
+    THE HARNESS CANNOT RAISE A C# NULL; that is a TTS behaviour and lupa has no equivalent. So this is
+    a source-order assertion rather than a behavioural one, which is the only honest way to guard it
+    -- and it is the same shape as the panel-call guard already in this file. It runs against the
+    BUILT save, so it fails if the fix is edited out of the source and not rebuilt.
+    """
+    # THE SAME SAVE THE RUNNER IS READING, INCLUDING UNDER --old. The runner hands every case the
+    # BOARD script, and this one needs the GLOBAL script, so it has to fetch the save itself -- and a
+    # first version of this fetched dist/ from disk unconditionally. That quietly made the case
+    # meaningless under --old: it checked the fixed build in both modes and passed in both, which is
+    # the exact failure mode a regression guard must not have.
+    if "--old" in sys.argv:
+        raw = subprocess.run(["git", "-C", REPO, "show", "main:dist/Root_Tournament_Edition.json"],
+                             capture_output=True, text=True).stdout
+    else:
+        raw = open(os.path.join(REPO, "dist", "Root_Tournament_Edition.json"), encoding="utf-8").read()
+    glob = json.loads(raw)["LuaScript"]
+    assert "obsStatic" in glob, "the built save's Global script has no obsStatic"
+
+    start = glob.index("local function obsStatic")
+    end = glob.index("\nend", glob.index("OBS.bobj", start))
+    fn = glob[start:end]
+
+    # COMMENTS ARE STRIPPED FIRST. This function documents the hazard it guards against at length, so
+    # a naive search finds "getCustomObject" in the prose long before the call, and the guard passes
+    # or fails on where the comment sits rather than where the code does.
+    code = chr(10).join(l for l in fn.split(chr(10)) if not l.strip().startswith("--"))
+
+    assert "getCustomObject" in code, "obsStatic no longer reads the art; this guard needs rewriting"
+    memo = code.index("OBS.objs[g] =")
+    risky = code.index("getCustomObject")
+    assert memo < risky, (
+        "obsStatic asks getCustomObject() at offset %d before recording the piece at %d. A C# null "
+        "there unwinds the function, the entry is never written, and the same piece throws again on "
+        "every later drop." % (risky, memo))
+
+    # and the read is gated on the internal class, not only the short type
+    assert "o.name" in code, (
+        "the art read is not gated on the object's internal class; TTS reports the short type the "
+        "same for a Custom_Tile and a plain Tile, so plain cardboard reaches the C# null")
+    # the gate is a DENY list: the classes that certainly carry no custom data, and so answer a C#
+    # null. An object whose class cannot be read is still asked, which is what keeps the harness -- it
+    # has no separate class field -- describing cardboard exactly as it did before.
+    for spelling in ("Tile", "Token", "Card", "Deck"):
+        assert ("%s = true" % spelling) in code, "the plain-class deny list does not name %s" % spelling
+
+
+def t_a_superseded_map_build_stops_spawning(src):
+    """A map build that has been replaced must stop, and must not finish landing on top of its successor.
+
+    The spawn pump has always taken an `alive` predicate and dropped a batch whose owner has gone --
+    and nothing in the mod ever passed one, so the parameter was dead at all ten call sites. It was
+    not needed for a NEW GAME: the pump's own RTT_RUN_ID check flushes the whole queue there. It is
+    needed for two map clicks inside ONE run, where the run id never moves, so the tail of the first
+    build sits queued behind the second's and lands AFTER the wipe that was supposed to remove it.
+
+    THE BATTLE MAT IS THE ONE THAT SURVIVES LONGEST, and it is why this case drives several
+    interruption points rather than one. The mat is not spawned from the batch; it hangs off a hook
+    that waits for the pump to go idle, so the batch predicate cannot reach it and it needed the same
+    generation check of its own. Before that, an interrupted Marsh build left the table with TWO mats
+    and nothing afterwards removes the extra one.
+
+    RTT_MAP_GEN is the counter used throughout -- it already existed for the deferred landmark hook,
+    which had this same shape of bug and was fixed the same way.
+
+    Driven at every interruption point from one frame to twelve, because the window is only a few
+    frames wide and a single sample lands outside it as often as in: pre-fix, four frames left two
+    extra pieces and five frames left one, while three and six were clean by luck.
+    """
+    def objects_after(interrupt_frames):
+        rt = fresh(src)
+        rt.execute("SEAT('Purple','H1')")
+        rt.execute("pcall(function() makeMap(Player['Purple'],'','Marsh Map') end) FLUSH(%d)"
+                   % interrupt_frames)
+        rt.execute("pcall(function() makeMap(Player['Purple'],'','Marsh Map') end) FLUSH(400)")
+        return rt.eval("function() local n = 0 "
+                       "for _, o in ipairs(getAllObjects()) do "
+                       "if o.hasTag and o.hasTag('Map Object') then n = n + 1 end end "
+                       "return n end")()
+
+    clean = objects_after(400)
+    assert clean > 0, "an uninterrupted Marsh build put no map objects on the table at all"
+
+    for frames in (1, 2, 3, 4, 5, 6, 7, 8, 10, 12):
+        got = objects_after(frames)
+        assert got == clean, (
+            "a Marsh build interrupted after %d frame(s) and replaced left %d map objects where a "
+            "clean build leaves %d: the superseded build kept spawning past the wipe"
+            % (frames, got, clean))
+
+
 CASES = [
     ("manual path drives the turn system",   t_manual_turn_order),
     ("manual path spawns 4 / 5 boards",      t_boards_spawn),
@@ -13270,6 +13381,8 @@ CASES = [
     ("the sweep spares the draw pile", t_the_discard_sweep_never_takes_from_the_draw_pile),
     ("game two is not game one",        t_a_second_game_is_not_appended_to_the_first),
     ("the RNG seed fits in int32",     t_the_rng_seed_stays_inside_int32),
+    ("a piece is recorded before its art", t_the_recorder_records_a_piece_before_it_asks_for_its_art),
+    ("a replaced map build stops",     t_a_superseded_map_build_stops_spawning),
 ]
 
 

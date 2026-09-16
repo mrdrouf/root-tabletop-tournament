@@ -3872,6 +3872,11 @@ end
 function rttSpawnPriority(id, jsons)
   if RTT_PRIO_MAP == id then return end
   rttClearPriority()
+  -- SUPERSEDED BY A NEWER MAP, like makeMap's own batch. This is armed through rttMapAfter from
+  -- makeMap, so a second map click can leave these twelve markers queued for a board that is already
+  -- gone. Captured here rather than read in the predicate: the point is the generation THIS call
+  -- belongs to.
+  local gen = RTT_MAP_GEN
   -- THROUGH THE QUEUE, like everything else. Twelve markers in one frame, landing two frames after a
   -- map's own pieces, is exactly the burst the maintainer's play-tester described: "often clearing
   -- markers/stuff floated".
@@ -3886,7 +3891,7 @@ function rttSpawnPriority(id, jsons)
       end
     }
   end
-  rttSpawnStaggered(specs)
+  rttSpawnStaggered(specs, nil, function() return RTT_MAP_GEN == gen end)
   RTT_PRIO_MAP = id
 end
 
@@ -3931,6 +3936,7 @@ RTT_MARSH_RANK = {
 
 function rttSpawnMarshNumbers()
   rttClearPriority()                    -- Marsh ALWAYS re-places: the flood shifts which clearings get a number
+  local gen = RTT_MAP_GEN               -- dropped if a newer map build starts; see rttSpawnPriority
   local excl = RTT_MARSH_EXCLUDED or {}
   local numSpecs = {}
   local n = 0
@@ -3959,7 +3965,7 @@ function rttSpawnMarshNumbers()
       end
     end
   end
-  rttSpawnStaggered(numSpecs)
+  rttSpawnStaggered(numSpecs, nil, function() return RTT_MAP_GEN == gen end)
   RTT_PRIO_MAP = "Marsh Map"
 end
 
@@ -8644,6 +8650,13 @@ function makeMap(player,value,id,keepBoard)
   -- That is the burst Zaandaa was describing: "often clearing markers/stuff floated, and a few times
   -- the map itself floated ... then I reloaded the map multiple times and that very often didn't
   -- work." The map, not the factions -- the one path that was never paced.
+  -- ...AND IT STOPS IF A NEWER MAP HAS STARTED. The pump takes an `alive` predicate and drops a batch
+  -- whose owner has gone; nothing in this file ever passed one, so the parameter was dead in all ten
+  -- call sites. It matters most here. RTT_RUN_ID -- the pump's own generation guard -- only flushes
+  -- the queue when a NEW GAME starts, so two map clicks inside ONE run leave the tail of the first
+  -- build queued behind the second's, and those pieces land after the wipe that was meant to remove
+  -- them. RTT_MAP_GEN already counts map builds for exactly this reason (it guards the deferred
+  -- landmark hook at the top of this function), so the predicate is free.
   rttSpawnStaggered(mapSpecs, function()
     if id ~= "Marsh Map" then shuffleMaps(id) end
     rttLockRuins()
@@ -8658,11 +8671,18 @@ function makeMap(player,value,id,keepBoard)
       RTT_MAP_AFTER = nil
       local function whenIdle()
         if RTT_SPAWN_PUMPING then Wait.frames(whenIdle, 1) return end
+        -- ...AND NOT IF A NEWER MAP HAS STARTED SINCE. This waits for the pump to go idle, which is a
+        -- deferred hook and not a queued batch -- so the `alive` predicate on the batch above cannot
+        -- reach it. Two map clicks in one run therefore armed two of these, and the first one's mat
+        -- landed AFTER the second build's wipe had already run: a second Battle Mat, on the table,
+        -- that nothing afterwards removes. Reproduced in the harness -- interrupt a Marsh build five
+        -- frames in, start another, and the table ends with two mats where a clean build has one.
+        if RTT_MAP_GEN ~= gen then return end
         pcall(after)
       end
       Wait.frames(whenIdle, 1)
     end
-  end)
+  end, function() return RTT_MAP_GEN == gen end)
 end
 
 -- EVERY MAP'S RUINS, LOCKED, however they were placed. Maintainer, 2026-09-07: "looks like Marsh is
