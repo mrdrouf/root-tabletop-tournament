@@ -5115,10 +5115,54 @@ function rttPondPile()
   return pond, best and best.o or nil
 end
 
+-- WHICH SEAT A VP PANEL BELONGS TO, by the row name baked into the panel itself.
+--
+-- The row is rttVPRow(rttFactionKey(faction)) -- the same expression rttSpawnFaction used when it made
+-- the panel -- so recomputing it per seat is how a panel is matched back to its owner without storing
+-- a second copy of the mapping that could drift.
+--
+-- Returns nil when nothing matches, which is not the same as "nobody owns it": a table this board did
+-- not lay out has no seat records at all. The caller treats nil as "cannot tell" and allows the press,
+-- because dead buttons on somebody else's table would be worse than the thing this guards against.
+function rttVPSeatColor(row)
+  if row == nil or row == "" then return nil end
+  for _, s in ipairs(RTT_SEATS or {}) do
+    if s ~= nil and s.faction ~= nil and s.color ~= nil then
+      local r = nil
+      pcall(function() r = rttVPRow(rttFactionKey(s.faction)) end)
+      if r == row then return s.color end
+    end
+  end
+  return nil
+end
+
 function rttVPClick(args)
   args = args or {}
   local who, id, row = args.color, tostring(args.id or ""), tostring(args.row or "")
   local function say(msg) if who ~= nil and who ~= "" then printToColor(msg, who) end end
+
+  -- YOUR OWN PANEL ONLY. Maintainer, 2026-09-16: "implement that another player cannot press the draw
+  -- card and vp movement button on the draw board of another player."
+  --
+  -- This REVERSES a standing instruction, deliberately and on his say-so. The draw used to be open to
+  -- anyone on purpose -- "the card goes to the person who pressed it, whoever they are and whichever
+  -- faction's panel they pressed" -- which was a convenience while a stray press could only ever help
+  -- someone. It stopped being a convenience once a press could take a card the presser was not entitled
+  -- to and drag another faction's score down with it.
+  --
+  -- ALL FOUR BUTTONS, not just the draw. The plus and minus move somebody else's score, which is the
+  -- half of this that alters the game state rather than just handing out a card.
+  --
+  -- UNKNOWN OWNERSHIP IS ALLOWED THROUGH. rttVPSeatColor answers nil on a table with no seat records --
+  -- one this board did not set up, or a game resumed before seats were published -- and refusing there
+  -- would leave every panel inert with no explanation. The check only ever fires when the mod KNOWS
+  -- the panel belongs to a different colour.
+  local owner = nil
+  pcall(function() owner = rttVPSeatColor(row) end)
+  if owner ~= nil and who ~= nil and who ~= "" and owner ~= who then
+    say("That is " .. row .. "'s panel. You can only use your own.")
+    return
+  end
 
   if id == "vpPlus" or id == "vpMinus" then
     local sheet = (getObjectsWithTag("RTT BoxScore") or {})[1]

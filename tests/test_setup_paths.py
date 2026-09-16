@@ -13217,6 +13217,49 @@ def t_a_vp_panel_is_never_placed_under_the_map(src):
         "legitimate placements")
 
 
+def t_a_vp_panel_only_answers_its_own_seat(src):
+    """A VP panel's buttons work for the faction that owns it and for nobody else.
+
+    This REVERSES an earlier standing instruction, on the maintainer's own say-so. The draw was open to
+    anyone deliberately -- "the card goes to the person who pressed it, whoever they are and whichever
+    faction's panel they pressed" -- which was a convenience while a stray press could only ever help
+    somebody. Maintainer, 2026-09-16: "implement that another player cannot press the draw card and vp
+    movement button on the draw board of another player."
+
+    ALL FOUR BUTTONS ARE GATED, not just the draw, because plus and minus move another faction's score
+    and that alters the game rather than merely handing out a card.
+
+    UNKNOWN OWNERSHIP STILL PASSES, and that is asserted here too. A table this board did not lay out
+    has no seat records, so the panel cannot be matched to a colour; refusing there would leave every
+    button inert with nothing to explain why. The guard fires only when the mod KNOWS the panel belongs
+    to a different colour -- so the test covers all three cases: owner, stranger, and nobody knows.
+    """
+    rt = fresh(src)
+    rt.execute("SAID = {} printToColor = function(m, c) SAID[#SAID+1] = tostring(c) .. ':' .. tostring(m) end")
+
+    # a table with no seat records: the panel cannot be placed, so the press must go through
+    rt.execute("RTT_SEATS = {} SAID = {} pcall(function() "
+               "rttVPClick({ color = 'Blue', id = 'vpPlus', row = 'Marquise' }) end)")
+    said = list((rt.eval("SAID") or {}).values())
+    assert not any("only use your own" in m for m in said), (
+        "with no seat records the mod cannot know who owns the panel, and refused anyway: %s" % said)
+
+    # now a real seat: Red owns the Marquise panel
+    rt.execute("RTT_SEATS = { { color = 'Red', faction = 'Marquise de Cat', pos = { 0, 0 } } }")
+    row = rt.eval("function() return rttVPRow(rttFactionKey('Marquise de Cat')) end")()
+
+    for colour, allowed in (("Red", True), ("Blue", False)):
+        for button in ("vpPlus", "vpMinus", "vpDraw", "vpPond"):
+            rt.execute("SAID = {} pcall(function() rttVPClick({ color = '%s', id = '%s', row = '%s' }) end)"
+                       % (colour, button, row))
+            said = list((rt.eval("SAID") or {}).values())
+            refused = any("only use your own" in m for m in said)
+            if allowed:
+                assert not refused, "%s owns that panel and was refused %s: %s" % (colour, button, said)
+            else:
+                assert refused, "%s is not %s and was allowed to press %s: %s" % (colour, row, button, said)
+
+
 CASES = [
     ("manual path drives the turn system",   t_manual_turn_order),
     ("manual path spawns 4 / 5 boards",      t_boards_spawn),
@@ -13433,6 +13476,7 @@ CASES = [
     ("a piece is recorded before its art", t_the_recorder_records_a_piece_before_it_asks_for_its_art),
     ("a replaced map build stops",     t_a_superseded_map_build_stops_spawning),
     ("no VP panel under the map",      t_a_vp_panel_is_never_placed_under_the_map),
+    ("a VP panel is yours alone",       t_a_vp_panel_only_answers_its_own_seat),
 ]
 
 
