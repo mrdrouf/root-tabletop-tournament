@@ -9804,10 +9804,17 @@ def t_the_otters_draw_lands_on_their_open_board(src):
         ("once the claims expire the board is read from the table again, and with nothing actually on "
          "it the rightmost slot is free once more")
 
-    # every other faction's panel still deals into the hand
+    # ANOTHER FACTION'S DRAW STILL DEALS INTO A HAND -- pressed by its OWN player.
+    #
+    # This arm used to have the otters' own player press the Marquise panel, because a draw was open to
+    # anyone. Maintainer, 2026-09-16: "implement that another player cannot press the draw card and vp
+    # movement button on the draw board of another player", so that press is now refused and the case
+    # had to be restated rather than deleted: what it is really checking is that the otters' BOARD is
+    # only used for the otters' own draw, and that everybody else's still goes to a hand.
     rt2 = fresh(src)
     rt2.execute("""
-      RTT_SEATS = { { pos = { 0, -46 }, faction = 'Riverfolk Company', color = 'Red' } }
+      RTT_SEATS = { { pos = { 0, -46 }, faction = 'Riverfolk Company', color = 'Red' },
+                    { pos = { 0,  46 }, faction = 'Marquise de Cat',   color = 'Blue' } }
       HOLDER = REGUID(MKOBJ('Custom_Token', { 63.9, 1, 24.0 }, { 'Deck Object' }), 'aa1464')
       DRAWPOS = HOLDER.positionToWorld(Vector({  0.957, 0.178, 0.222 }))
       DECK = MKOBJ('Deck', DRAWPOS, { 'Deck Object' })
@@ -9816,7 +9823,8 @@ def t_the_otters_draw_lands_on_their_open_board(src):
       DECK.takeObject = function() TOOK = TOOK + 1 end
       DECK.deal = function() DEALT = DEALT + 1 end
       SEAT('Red','Alice')
-      rttVPClick({ color = 'Red', id = 'vpDraw', row = 'Marquise' })
+      SEAT('Blue','Bob')
+      rttVPClick({ color = 'Blue', id = 'vpDraw', row = 'Marquise' })
       FLUSH(10)
     """)
     assert rt2.eval("DEALT") == 1 and rt2.eval("TOOK") == 0, \
@@ -13259,23 +13267,54 @@ def t_a_vp_panel_only_answers_its_own_seat(src):
             else:
                 assert refused, "%s is not %s and was allowed to press %s: %s" % (colour, row, button, said)
 
-    # AND THE SAME AFTER A SEAT CHANGE, which is the case that caught the first version out.
-    # Maintainer, 2026-09-16: "you don t see to understand which seat I have when I change seat for the
-    # vp board." The seat still records Red and still records Alice; Alice is now sitting in Blue and
-    # Bob has taken Red. Ownership follows the PERSON, so Alice keeps her panel and Bob does not get it
-    # -- exactly the rule rttMyFaction applies to the gizmo keys, and for the same reason.
-    rt.execute("RTT_SEATS = { { color = 'Red', owner = 'Alice', faction = 'Marquise de Cat', pos = { 0, 0 } } }")
+    # THE PANEL AGREES WITH THE NUMPAD KEYS, ALWAYS. Maintainer, 2026-09-16: "Most recent pick only --
+    # matches the numpad keys", and "there should be a global function that keeps track of that properly".
+    # So the assertion is not a hand-written table of who may press what -- it is that the panel's answer
+    # and rttMyFaction's answer are the same answer, whatever the seating has been through. A first
+    # version of this case asserted its own expectations instead and disagreed with the mod's own design
+    # in two places.
+    #
+    # The seating here is the awkward one: Alice picked the Marquise while she was Red, then moved to
+    # Blue, and Bob took the Red seat she left.
+    rt.execute("RTT_SEATS = { { color = 'Red', owner = 'Alice', faction = 'Marquise de Cat',"
+               " pickedAt = 1, pos = { 0, 0 } } }")
     rt.execute("SEAT('Blue', 'Alice') SEAT('Red', 'Bob')")
 
-    rt.execute("SAID = {} pcall(function() rttVPClick({ color = 'Blue', id = 'vpDraw', row = '%s' }) end)" % row)
+    for colour in ("Blue", "Red", "Green"):
+        expect = rt.eval("function()"
+                         "  local f = rttMyFaction('%s')"
+                         "  if f == nil or f == '' then return '' end"
+                         "  return rttVPRow(rttFactionKey(f))"
+                         "end" % colour)()
+        rt.execute("SAID = {} pcall(function() rttVPClick({ color = '%s', id = 'vpDraw', row = '%s' }) end)"
+                   % (colour, row))
+        said = list((rt.eval("SAID") or {}).values())
+        refused = any("only use your own" in m for m in said)
+        assert refused == (expect != row), (
+            "%s: the numpad keys say their faction is %r, so the %s panel should be %s -- got %s"
+            % (colour, expect, row, "theirs" if expect == row else "refused",
+               "refused" if refused else "allowed"))
+
+    # ONE FACTION EACH, EVEN SOLO. Maintainer, 2026-09-16: "obviously you owned only 1 faction." A solo
+    # player picking two factions used to work both panels, because the check asked "any seat you own".
+    # It now asks rttMyFaction, which has always meant YOUR MOST RECENT PICK -- so the panels agree with
+    # the numpad keys instead of contradicting them.
+    rt.execute("RTT_SEATS = {"
+               " { color = 'Red',  owner = 'Solo', faction = 'Marquise de Cat', pickedAt = 1, pos = { 0, 0 } },"
+               " { color = 'Blue', owner = 'Solo', faction = 'Eyrie Dynasties', pickedAt = 2, pos = { 0, 0 } } }")
+    rt.execute("SEAT('Red', 'Solo')")
+    first  = rt.eval("function() return rttVPRow(rttFactionKey('Marquise de Cat')) end")()
+    latest = rt.eval("function() return rttVPRow(rttFactionKey('Eyrie Dynasties')) end")()
+
+    rt.execute("SAID = {} pcall(function() rttVPClick({ color = 'Red', id = 'vpDraw', row = '%s' }) end)" % latest)
     said = list((rt.eval("SAID") or {}).values())
     assert not any("only use your own" in m for m in said), (
-        "Alice moved from Red to Blue and was locked out of her own panel: %s" % said)
+        "the solo player's most recent pick was refused its own panel: %s" % said)
 
-    rt.execute("SAID = {} pcall(function() rttVPClick({ color = 'Red', id = 'vpDraw', row = '%s' }) end)" % row)
+    rt.execute("SAID = {} pcall(function() rttVPClick({ color = 'Red', id = 'vpDraw', row = '%s' }) end)" % first)
     said = list((rt.eval("SAID") or {}).values())
     assert any("only use your own" in m for m in said), (
-        "Bob took Red after Alice left it and inherited her panel: %s" % said)
+        "after picking a second faction the solo player could still work the first one's panel: %s" % said)
 
 
 CASES = [

@@ -5117,35 +5117,31 @@ end
 
 -- IS THIS PANEL THE PRESSING PLAYER'S OWN? true, false, or nil for "cannot tell".
 --
--- MATCHED ON THE PERSON, NOT THE COLOUR, which is the whole subtlety. Maintainer, 2026-09-16: "you
--- don t see to understand which seat I have when I change seat for the vp board." Quite -- a first
--- version of this compared the pressing colour with the seat's colour, and a player who changed seat
--- was locked out of his own panel while whoever took his old colour inherited it.
+-- ONE SOURCE OF TRUTH, WHICH IS rttMyFaction. Maintainer, 2026-09-16: "there should be a global
+-- function that keeps track of that properly and obvioulsy you owned only 1 faction." This function
+-- used to walk RTT_SEATS itself and answer "any seat you own", which let a solo player who had picked
+-- two factions work both panels -- and disagreed with the numpad keys, which have always meant YOUR
+-- MOST RECENT PICK. Now there is one definition of "mine" and both read it.
 --
--- The mod deliberately does not chase a player who moves: the seat keeps its faction, its cards and
--- its turn slot, and identity lives in the seat's `owner` (a steam name). rttMyFaction already resolves
--- "mine" that way, and this follows it exactly -- person where both sides know one, colour only as the
--- fallback for hotseat and for tables nobody has joined, where the pressing colour is the only identity
--- there is.
+-- rttMyFaction already does the hard parts: it matches on the PERSON so a colour changing hands does
+-- not carry the old claim, it returns the newest pick when somebody has made several, and it refuses
+-- to answer for a seat somebody else owns.
 --
--- nil, not false, when no seat matches the row: a table this board did not lay out has no seat records
--- at all, and refusing there would leave every panel inert with nothing to explain why.
+-- nil, not false, when it cannot answer: a table this board did not lay out has no seat records, and
+-- refusing there would leave every panel inert with nothing to explain why.
 function rttVPPanelIsMine(row, color)
   if row == nil or row == "" then return nil end
-  local seat = nil
-  for _, s in ipairs(RTT_SEATS or {}) do
-    if s ~= nil and s.faction ~= nil and s.faction ~= "" then
-      local r = nil
-      pcall(function() r = rttVPRow(rttFactionKey(s.faction)) end)
-      if r == row then seat = s end
-    end
-  end
-  if seat == nil then return nil end
-  local who = rttPersonIn(color)
-  if who ~= nil and seat.owner ~= nil and seat.owner ~= "" then
-    return seat.owner == who        -- both sides name a person: that is the answer
-  end
-  return seat.color == color        -- hotseat, or nobody seated: colour is the only identity
+  -- NO SEATS AT ALL means a table this board did not lay out, and nothing can be said about who owns
+  -- what. Every other case has an answer, including "you hold no faction, so no panel is yours".
+  local seats = RTT_SEATS or {}
+  if #seats == 0 then return nil end
+  local faction = nil
+  pcall(function() faction = rttMyFaction(color) end)
+  if faction == nil or faction == "" then return false end
+  local mine = nil
+  pcall(function() mine = rttVPRow(rttFactionKey(faction)) end)
+  if mine == nil then return false end
+  return mine == row
 end
 
 function rttVPClick(args)
