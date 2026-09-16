@@ -6617,11 +6617,22 @@ end
 
 
 -- ===== RTT per-faction setup extras =====
--- Seed the RNG ONCE at load. Everything random (floods, landmark, draft) then just advances this
--- stream per call, so rapid re-clicks always differ. Never re-seed with os.time() per action —
--- that made same-second clicks collide (see rtt-rng-bug).
-math.randomseed(os.time())
-for _rw = 1, 5 do math.random() end
+-- THE ONLY PLACE THE RNG IS SEEDED. Seeded once, at load; every draw after that just advances the
+-- stream -- floods, the seat shuffle, the landmark, the draft. Never re-seed per action: that made
+-- same-second clicks collide (see rtt-rng-bug).
+--
+-- os.time() ALONE IS NOT ENOUGH, and this is the measured half: it counts WHOLE SECONDS, so two
+-- loads inside the same second get the IDENTICAL seed and therefore replay the identical stream --
+-- the same flooded clearings, the same seating, every time. os.clock() is fractional, so folding it
+-- in separates two loads that os.time() cannot tell apart. The 40-draw warm-up is the unmeasured
+-- half: cheap insurance against near seeds correlating in TTS's older Lua, which the test harness
+-- (Lua 5.5) cannot reproduce. Maintainer, 2026-09-16, after a Marsh and a seating order each
+-- repeated across reloads: "clean the messy code make sure it s random".
+local _t = os.time()
+local _c = 0
+pcall(function() _c = math.floor(((os.clock() or 0) % 1) * 1000000) end)
+math.randomseed(_t * 1000003 + _c)
+for _rw = 1, 40 do math.random() end
 RTT_FOREST_UV = {
   ["Summer Map"] = { {-0.0119,0.3133}, {-0.2622,0.1541}, {0.1303,0.0818}, {0.0918,-0.1710}, {0.2914,-0.1245}, {-0.3226,-0.0941}, {-0.1570,-0.2591} },
   ["Winter Map"] = { {-0.0014,0.2102}, {-0.2874,0.1472}, {-0.2859,-0.0771}, {0.3033,0.0681}, {0.1848,-0.1880}, {-0.2064,-0.2222}, {-0.0119,-0.1395}, {0.2912,-0.1394} },
@@ -9003,7 +9014,10 @@ end
 
 
 
-math.randomseed( os.time() )  -- Seed the pseudo-random number generator
+-- (base mod) THE RE-SEED THAT WAS HERE IS GONE. It ran AFTER the seeding above, so it was the one
+-- that actually took effect -- and it discarded the warm-up that guards against adjacent os.time()
+-- seeds. That is the defect behind a Marsh and a seating order repeating across reloads. shuffle()
+-- below stays: it is still called (~L8721, ~L8744). Only the re-seed is removed.
 
 function shuffle( t )
   if type(t) ~= "table" then return false end
