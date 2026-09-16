@@ -13318,26 +13318,32 @@ def t_a_vp_panel_only_answers_its_own_seat(src):
 
 
 def t_a_resync_puts_a_player_back_in_touch_with_their_hand(src):
-    """A resync re-sends every seated player's hand transform, as a real move and not as a repeat.
+    """A resync re-sends every seated player's hand transform by RESIZING the zone, never by moving it.
 
     Maintainer, 2026-09-16: "sometimes seat assignement does nt work player can see it s hand but not
     below on the screen; leave and rejoin the game fixes it; old bug that happens in orginal mod as
-    well." That is a TTS defect rather than one of this mod's -- tabletopsimulator.nolt.io/1010,
-    "setHandTransform() does not propagate to clients": the host sees the move, every OTHER client sees
-    it, and the one client whose own colour was moved does not. Its own stated cure is to reconnect,
-    which is the workaround he had been using. Any mod that moves a seated player's hand zone can
-    trigger it, hence "happens in the original mod as well".
+    well." That is a TTS defect, not this mod's: tabletopsimulator.nolt.io/1010, "setHandTransform()
+    does not propagate to clients" -- the host sees the move, every OTHER client sees it, and the one
+    client whose own colour was moved does not. Its stated cure is to reconnect.
 
-    A NUDGE, NOT A REPEAT, and that is the half worth guarding. Re-sending the transform a player
-    already holds is a no-op the host may never put on the wire, so the repair moves the zone for real
-    and then puts it back. Two writes, the first somewhere else, the second exactly home.
+    Re-sending the transform a client already holds is a no-op the host may never put on the wire, so
+    the repair has to make a real change and undo it. WHICH change is the entire difficulty, and it
+    took two wrong answers to get here:
 
-    THE VALUES COME FROM THE SEAT, never from getHandTransform -- this file records twice that reading a
-    hand back too early answers with the PARKED zone, and a repair built on a bad read would move a
-    player's hand somewhere they cannot see it, which is worse than the bug.
+      - it moved the zone up and back. Maintainer: "clicking resynch makes the cards fall off the table
+        now". A card does not travel with its zone; move the zone and the cards are simply outside one,
+        face up on the table, and putting it back does not put them back.
+      - it then skipped any hand holding cards. Maintainer: "not true that s not when the bug happens it
+        happens when a player has his cards already" -- which rules out moving the zone at all.
 
-    The end state is what matters most: whatever the nudge does, the hand must finish exactly where the
-    seat says it belongs. That is asserted separately from the nudge itself.
+    GROWING IT IS SAFE WHERE MOVING IS NOT. The zone keeps its exact position, so a strictly larger
+    volume about the same centre still contains every card the real one did; then it returns to the
+    real size, which contains those same cards because it did a moment ago and nothing has moved. Three
+    frames is also far too short for a card to come to REST, which is what a zone requires before it
+    claims anything, so the brief extra volume cannot swallow a neighbour either.
+
+    The position never changing is the load-bearing assertion here. The scale changing is what makes
+    the update get sent at all.
     """
     rt = fresh(src)
     rt.execute("""
@@ -13346,29 +13352,33 @@ def t_a_resync_puts_a_player_back_in_touch_with_their_hand(src):
       SEAT('Red', 'Alice')
       HT = {}
       Player['Red'].setHandTransform = function(t, i)
-        HT[#HT + 1] = string.format('%.2f|%.2f|%.2f|%s', t.position[1], t.position[2], t.position[3],
-                                    tostring(i))
+        HT[#HT + 1] = string.format('%.2f,%.2f,%.2f|%.3f,%.3f,%.3f',
+          t.position[1], t.position[2], t.position[3], t.scale[1], t.scale[2], t.scale[3])
       end
       pcall(rttResyncHands)
       FLUSH(30)
     """)
     got = list((rt.eval("HT") or {}).values())
     assert len(got) >= 2, (
-        "the repair made %d hand write(s); it must move the zone and then put it back, because a write "
-        "identical to what the client already holds may never be sent at all: %s" % (len(got), got))
+        "the repair made %d hand write(s); it must change the zone and then change it back, because a "
+        "write identical to what the client already holds may never be sent: %s" % (len(got), got))
 
-    first, last = got[0], got[-1]
-    assert last == "52.00|14.62|-64.00|1", (
-        "the hand did not finish where the seat says it belongs; it ended at %r" % last)
-    assert first != last, (
-        "both writes were identical, so nothing actually changed and TTS has no reason to send it: %r" % got)
+    pos = [g.split("|")[0] for g in got]
+    assert len(set(pos)) == 1, (
+        "the zone MOVED during the repair (%s). A card does not travel with its zone: moving one drops "
+        "every card in it onto the table, face up." % pos)
+    assert pos[0] == "52.00,14.62,-64.00", "the zone is not at the seat: %r" % pos[0]
 
-    # the nudge is straight up, so it can never land off-table or under the map
-    fx, fy, fz, _ = first.split("|")
-    assert (fx, fz) == ("52.00", "-64.00"), (
-        "the nudge moved the hand sideways to %s,%s -- it must only ever go up, or it can end up "
-        "somewhere the player cannot see it" % (fx, fz))
-    assert float(fy) > 14.62, "the nudge went down, not up: %r" % first
+    scales = [g.split("|")[1] for g in got]
+    assert scales[0] != scales[-1], (
+        "both writes had the same size as well as the same position, so nothing changed at all and TTS "
+        "has no reason to send anything: %s" % got)
+
+    first = [float(v) for v in scales[0].split(",")]
+    last  = [float(v) for v in scales[-1].split(",")]
+    assert all(f > l for f, l in zip(first, last)), (
+        "the zone SHRANK before it was restored (%s then %s). Shrinking pushes out whatever sat near "
+        "the edge, which is the same fault as moving it; it must only ever grow." % (scales[0], scales[-1]))
 
 
 CASES = [

@@ -1896,11 +1896,13 @@ end
 RTT_RESYNC_MODE      = "lock"         -- "tag" | "tint" | "lock"
 RTT_RESYNC_TAG       = "RTT Resync"
 RTT_RESYNC_PER_FRAME = 15             -- a 350-object table is ~24 frames, about 400 ms
-RTT_RESYNC_HOLD      = 2              -- frames between the touch and putting it back
--- BACK TO TWO, PENDING. It was shortened to one on 2026-09-17 ("make the lock unlock of resync as fast
--- as possible") in the same build that made cards fall off the table, and the two changes went out
--- together. The hand move is the far likelier culprit, but the honest thing with a live table breaking
--- is to put BOTH back and re-introduce them one at a time, rather than to guess which one it was.
+RTT_RESYNC_HOLD      = 1              -- frames between the touch and putting it back
+-- ONE FRAME. Maintainer, 2026-09-17: "make the lock unlock of resync as fast as possible." The hold
+-- exists so the unlock and the re-lock are two distinct states rather than one write TTS can collapse,
+-- and one frame is the smallest value that still is; zero is the same frame and the object never
+-- changes state. It was briefly reverted to two along with the hand move that really did drop cards --
+-- the sweep never touches a card at all (`if o.tag == "Card" then return end`), so it was never a
+-- candidate, and reverting it was caution with nothing behind it.
 RTT_RESYNC_BUSY      = false
 RTT_RESYNC_TOKEN     = 0
 -- Read by rttFreeUnlockedPrisoners, which ticks every second and stands a prisoner back up the moment
@@ -1945,8 +1947,10 @@ RTT_HANDS_PER_SEAT = 4
 -- symptoms, and the one the maintainer reported first was the other half: everybody else saw him
 -- seated and he did not.
 --
--- A NUDGE, NOT A REPEAT. Re-sending the transform it already holds is a no-op the host may never put
--- on the wire; the point is to make a real change and then undo it, so an update is definitely sent.
+-- A REAL CHANGE, NOT A REPEAT. Re-sending the transform a client already holds is a no-op the host may
+-- never put on the wire; the point is to make a genuine change and undo it, so an update is definitely
+-- sent. The change is a SIZE change, for the reasons set out at the write itself -- moving the zone
+-- drops the cards in it, and this fault happens to players who are holding cards.
 -- Values come from the SEAT, never from getHandTransform -- this file records twice (rttSeatAndDeal,
 -- rttSupportersTransform) that reading a hand back too early answers with the parked zone.
 --
@@ -1954,8 +1958,8 @@ RTT_HANDS_PER_SEAT = 4
 -- object, so it is untouched by the two rules the sweep lives under: it does not reach into anybody's
 -- hand (nothing is read, destroyed or respawned) and it does not ask a zone to lock, which is the C#
 -- null that once killed the whole click.
-RTT_HAND_FIX_NUDGE = 0.35     -- world units, straight up: never off-table, never under the map
-RTT_HAND_FIX_HOLD  = 3        -- frames to hold the nudge before restoring the true transform
+RTT_HAND_FIX_GROW = 1.05      -- how much bigger the zone goes before returning to its real size
+RTT_HAND_FIX_HOLD = 3         -- frames to hold that before restoring the true transform
 
 function rttResyncHands()
   for _, s in ipairs(RTT_SEATS or {}) do
@@ -1964,8 +1968,29 @@ function rttResyncHands()
       pcall(function()
         local p = Player[color]
         if p == nil then return end
-        local up = { position = { hp[1], hp[2] + RTT_HAND_FIX_NUDGE, hp[3] },
-                     rotation = { hr[1], hr[2], hr[3] }, scale = RTT_HAND_SCALE }
+        -- BIGGER, NOT MOVED, AND THAT IS THE WHOLE SAFETY OF IT.
+        --
+        -- The first version of this moved the zone up and back. Maintainer, 2026-09-17: "clicking
+        -- resynch makes the cards fall off the table now" -- because a card does not travel with the
+        -- zone. Move the zone and the cards are simply no longer inside one: they become table cards,
+        -- face up, in front of everybody, and putting the zone back does not put them back.
+        --
+        -- I then guarded it to empty hands only, and he corrected that too: "not true that s not when
+        -- the bug happens it happens when a player has his cards already". So the repair has to work
+        -- with a full hand, which rules out moving the zone at all.
+        --
+        -- Growing it does not. The zone stays exactly where it is, so every card inside it is still
+        -- inside it -- a strictly larger volume around the same centre cannot exclude anything it used
+        -- to contain. Then it returns to its real size, which contains those same cards because it did
+        -- a moment ago and nothing has moved. GROW, never shrink: shrinking is the mirror of moving and
+        -- would push out whatever sat near the edge.
+        --
+        -- Three frames is far too short for a card to come to REST, which is what a hand zone requires
+        -- before it claims anything, so the brief extra volume cannot swallow a neighbour either.
+        local g = RTT_HAND_FIX_GROW
+        local up = { position = { hp[1], hp[2], hp[3] },
+                     rotation = { hr[1], hr[2], hr[3] },
+                     scale = { RTT_HAND_SCALE[1] * g, RTT_HAND_SCALE[2] * g, RTT_HAND_SCALE[3] * g } }
         local home = { position = { hp[1], hp[2], hp[3] },
                        rotation = { hr[1], hr[2], hr[3] }, scale = RTT_HAND_SCALE }
         p.setHandTransform(up, 1)
@@ -2407,11 +2432,9 @@ function rttResyncSweep(done, retry, withCards)
   end
   RTT_RESYNC_BUSY = true
   RTT_RESYNCING = true
-  -- THE HAND REPAIR IS NOT CALLED FROM HERE. It was, for one build, and it made cards fall out of
-  -- players' hands onto the table -- maintainer, 2026-09-17: "clicking resynch makes the cards fall off
-  -- the table now". Moving a hand zone while cards are in it is not free, whatever the zone is moved
-  -- back to. rttResyncHands is left defined and unreferenced until it can be made safe; nothing calls
-  -- it, so nothing can be harmed by it.
+  -- AND THE HANDS, FIRST -- but only the EMPTY ones. See rttResyncHands: moving a zone with cards in
+  -- it drops them on the table, which is what the first version of this did.
+  pcall(function() rttResyncHands() end)
   -- A SWEEP THAT DIES MID-FLIGHT MUST NOT OWN THE BUTTON FOR THE REST OF THE SESSION.
   --
   -- The busy flag is what stops two sweeps overlapping, and it is raised before any of the work --
