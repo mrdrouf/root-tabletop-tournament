@@ -2432,9 +2432,12 @@ function rttResyncSweep(done, retry, withCards)
   end
   RTT_RESYNC_BUSY = true
   RTT_RESYNCING = true
-  -- AND THE HANDS, FIRST -- but only the EMPTY ones. See rttResyncHands: moving a zone with cards in
-  -- it drops them on the table, which is what the first version of this did.
-  pcall(function() rttResyncHands() end)
+  -- THE HAND REPAIR IS NOT CALLED FROM HERE, AGAIN. Maintainer, 2026-09-17: "pressing everything makes
+  -- the card fall down". Growing the zone instead of moving it was supposed to make that impossible --
+  -- a larger volume about the same centre cannot exclude a card the real one held -- and it evidently
+  -- is not enough. Until there is a way to make TTS re-send a hand transform that does not disturb the
+  -- zone AT ALL, this stays unhooked: a resync that drops somebody's hand is worse than the fault it
+  -- was meant to repair. rttResyncHands is left defined and unreferenced.
   -- A SWEEP THAT DIES MID-FLIGHT MUST NOT OWN THE BUTTON FOR THE REST OF THE SESSION.
   --
   -- The busy flag is what stops two sweeps overlapping, and it is raised before any of the work --
