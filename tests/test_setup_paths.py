@@ -13317,6 +13317,60 @@ def t_a_vp_panel_only_answers_its_own_seat(src):
         "after picking a second faction the solo player could still work the first one's panel: %s" % said)
 
 
+def t_a_resync_puts_a_player_back_in_touch_with_their_hand(src):
+    """A resync re-sends every seated player's hand transform, as a real move and not as a repeat.
+
+    Maintainer, 2026-09-16: "sometimes seat assignement does nt work player can see it s hand but not
+    below on the screen; leave and rejoin the game fixes it; old bug that happens in orginal mod as
+    well." That is a TTS defect rather than one of this mod's -- tabletopsimulator.nolt.io/1010,
+    "setHandTransform() does not propagate to clients": the host sees the move, every OTHER client sees
+    it, and the one client whose own colour was moved does not. Its own stated cure is to reconnect,
+    which is the workaround he had been using. Any mod that moves a seated player's hand zone can
+    trigger it, hence "happens in the original mod as well".
+
+    A NUDGE, NOT A REPEAT, and that is the half worth guarding. Re-sending the transform a player
+    already holds is a no-op the host may never put on the wire, so the repair moves the zone for real
+    and then puts it back. Two writes, the first somewhere else, the second exactly home.
+
+    THE VALUES COME FROM THE SEAT, never from getHandTransform -- this file records twice that reading a
+    hand back too early answers with the PARKED zone, and a repair built on a bad read would move a
+    player's hand somewhere they cannot see it, which is worse than the bug.
+
+    The end state is what matters most: whatever the nudge does, the hand must finish exactly where the
+    seat says it belongs. That is asserted separately from the nudge itself.
+    """
+    rt = fresh(src)
+    rt.execute("""
+      RTT_SEATS = { { color = 'Red', pos = { 52, -46 },
+                      hand = { pos = { 52, 14.62, -64 }, rot = { 0, 0, 0 } } } }
+      SEAT('Red', 'Alice')
+      HT = {}
+      Player['Red'].setHandTransform = function(t, i)
+        HT[#HT + 1] = string.format('%.2f|%.2f|%.2f|%s', t.position[1], t.position[2], t.position[3],
+                                    tostring(i))
+      end
+      pcall(rttResyncHands)
+      FLUSH(30)
+    """)
+    got = list((rt.eval("HT") or {}).values())
+    assert len(got) >= 2, (
+        "the repair made %d hand write(s); it must move the zone and then put it back, because a write "
+        "identical to what the client already holds may never be sent at all: %s" % (len(got), got))
+
+    first, last = got[0], got[-1]
+    assert last == "52.00|14.62|-64.00|1", (
+        "the hand did not finish where the seat says it belongs; it ended at %r" % last)
+    assert first != last, (
+        "both writes were identical, so nothing actually changed and TTS has no reason to send it: %r" % got)
+
+    # the nudge is straight up, so it can never land off-table or under the map
+    fx, fy, fz, _ = first.split("|")
+    assert (fx, fz) == ("52.00", "-64.00"), (
+        "the nudge moved the hand sideways to %s,%s -- it must only ever go up, or it can end up "
+        "somewhere the player cannot see it" % (fx, fz))
+    assert float(fy) > 14.62, "the nudge went down, not up: %r" % first
+
+
 CASES = [
     ("manual path drives the turn system",   t_manual_turn_order),
     ("manual path spawns 4 / 5 boards",      t_boards_spawn),
@@ -13534,6 +13588,7 @@ CASES = [
     ("a replaced map build stops",     t_a_superseded_map_build_stops_spawning),
     ("no VP panel under the map",      t_a_vp_panel_is_never_placed_under_the_map),
     ("a VP panel is yours alone",       t_a_vp_panel_only_answers_its_own_seat),
+    ("resync repairs your hand",       t_a_resync_puts_a_player_back_in_touch_with_their_hand),
 ]
 
 
