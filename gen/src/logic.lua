@@ -1896,12 +1896,11 @@ end
 RTT_RESYNC_MODE      = "lock"         -- "tag" | "tint" | "lock"
 RTT_RESYNC_TAG       = "RTT Resync"
 RTT_RESYNC_PER_FRAME = 15             -- a 350-object table is ~24 frames, about 400 ms
-RTT_RESYNC_HOLD      = 1              -- frames between the touch and putting it back; see below
--- ONE FRAME, NOT TWO. Maintainer, 2026-09-17: "make the lock unlock of resync as fast as possible."
--- The hold exists so the unlock and the re-lock are two distinct states rather than one write TTS can
--- collapse; one frame is the smallest value that still is. It cannot go to zero -- that is the same
--- frame, and the object never changes state at all. Everything the put-back does was already written
--- to survive the object being destroyed in the gap, so shortening it removes no protection.
+RTT_RESYNC_HOLD      = 2              -- frames between the touch and putting it back
+-- BACK TO TWO, PENDING. It was shortened to one on 2026-09-17 ("make the lock unlock of resync as fast
+-- as possible") in the same build that made cards fall off the table, and the two changes went out
+-- together. The hand move is the far likelier culprit, but the honest thing with a live table breaking
+-- is to put BOTH back and re-introduce them one at a time, rather than to guess which one it was.
 RTT_RESYNC_BUSY      = false
 RTT_RESYNC_TOKEN     = 0
 -- Read by rttFreeUnlockedPrisoners, which ticks every second and stands a prisoner back up the moment
@@ -2408,13 +2407,11 @@ function rttResyncSweep(done, retry, withCards)
   end
   RTT_RESYNC_BUSY = true
   RTT_RESYNCING = true
-  -- AND THE HANDS, FIRST. Maintainer, 2026-09-17: "yes make it part of resync". It runs here, ahead of
-  -- the object sweep, for two reasons: it is the repair a stuck player is pressing the button FOR, so
-  -- it should not wait behind four hundred objects; and it is independent of the sweep, so nothing it
-  -- does can be undone by one. It touches no object and reads no hand -- see rttResyncHands -- so the
-  -- two rules the sweep lives under, never reach into a hand and never ask a zone to lock, do not
-  -- apply to it.
-  pcall(function() rttResyncHands() end)
+  -- THE HAND REPAIR IS NOT CALLED FROM HERE. It was, for one build, and it made cards fall out of
+  -- players' hands onto the table -- maintainer, 2026-09-17: "clicking resynch makes the cards fall off
+  -- the table now". Moving a hand zone while cards are in it is not free, whatever the zone is moved
+  -- back to. rttResyncHands is left defined and unreferenced until it can be made safe; nothing calls
+  -- it, so nothing can be harmed by it.
   -- A SWEEP THAT DIES MID-FLIGHT MUST NOT OWN THE BUTTON FOR THE REST OF THE SESSION.
   --
   -- The busy flag is what stops two sweeps overlapping, and it is raised before any of the work --
