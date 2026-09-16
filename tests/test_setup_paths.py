@@ -13259,6 +13259,24 @@ def t_a_vp_panel_only_answers_its_own_seat(src):
             else:
                 assert refused, "%s is not %s and was allowed to press %s: %s" % (colour, row, button, said)
 
+    # AND THE SAME AFTER A SEAT CHANGE, which is the case that caught the first version out.
+    # Maintainer, 2026-09-16: "you don t see to understand which seat I have when I change seat for the
+    # vp board." The seat still records Red and still records Alice; Alice is now sitting in Blue and
+    # Bob has taken Red. Ownership follows the PERSON, so Alice keeps her panel and Bob does not get it
+    # -- exactly the rule rttMyFaction applies to the gizmo keys, and for the same reason.
+    rt.execute("RTT_SEATS = { { color = 'Red', owner = 'Alice', faction = 'Marquise de Cat', pos = { 0, 0 } } }")
+    rt.execute("SEAT('Blue', 'Alice') SEAT('Red', 'Bob')")
+
+    rt.execute("SAID = {} pcall(function() rttVPClick({ color = 'Blue', id = 'vpDraw', row = '%s' }) end)" % row)
+    said = list((rt.eval("SAID") or {}).values())
+    assert not any("only use your own" in m for m in said), (
+        "Alice moved from Red to Blue and was locked out of her own panel: %s" % said)
+
+    rt.execute("SAID = {} pcall(function() rttVPClick({ color = 'Red', id = 'vpDraw', row = '%s' }) end)" % row)
+    said = list((rt.eval("SAID") or {}).values())
+    assert any("only use your own" in m for m in said), (
+        "Bob took Red after Alice left it and inherited her panel: %s" % said)
+
 
 CASES = [
     ("manual path drives the turn system",   t_manual_turn_order),
