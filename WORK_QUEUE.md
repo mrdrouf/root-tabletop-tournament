@@ -200,3 +200,9 @@ there are also some Homeland assets we don't have yet like the Gladiator meeple 
 Ultimate mod doesn't use the actual assets for those
 
 what actions to automate like produce wood and recruit.
+
+sometimes assignement does nto work player can see it s hand but not below on the screen; leave and rejoin the game fixes it; oild bug that happens in orginal mod as well
+
+is march flooded clearing properly randomised got the same map twice ibn two consecutive games
+
+also got same seating precisely the same with only same players what is going on
