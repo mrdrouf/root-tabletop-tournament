@@ -11528,25 +11528,32 @@ function rttKey2Up(color)
   pcall(function() rttGizmoToken(color) end)
 end
 
--- NUMPAD 1 AND 2 DO NOTHING OVER A DECK. Maintainer, 2026-09-18: "prevent numpad 1 and numpad 2 from
--- doing anything when the mouse is hovering on top of any deck, maybe locate the pond area and the
--- deck area." A warrior or token taken at the pointer over the draw pile lands on the deck and goes
--- with the next draw. So: hovering a deck or a card, the deck holder or the pond -- or pointing
--- anywhere inside the holder's or the pond's footprint -- and the key stays quiet.
+-- NUMPAD 1 AND 2 DO NOTHING IN THE DECK POSITIONS. Maintainer, 2026-09-18: "prevent numpad 1 and
+-- numpad 2 from doing anything when the mouse is hovering on top of any deck, maybe locate the pond
+-- area and the deck area" -- then, on a first cut that also blocked loose cards: "only in the deck
+-- positions so the deck holder and the pond should do nothing, the rest like loose cards is fine."
+-- A warrior or token taken at the pointer over the draw pile lands on the deck and goes with the
+-- next draw. So: pointing anywhere inside the deck holder's or the pond's footprint (a hovered deck
+-- standing on either counts by its position), and the key stays quiet; a card lying elsewhere on the
+-- table is nobody's business here.
 RTT_DECK_AREA_PAD = 1.0   -- how far past the holder's and the pond's edges the quiet zone reaches
 
 function rttPointerOverDeckArea(color)
   local hovered, pos = nil, nil
   pcall(function() hovered = Player[color].getHoverObject() end)
   pcall(function() pos = Player[color].getPointerPosition() end)
+  -- the holder and the pond themselves, hovered, need no arithmetic
   if hovered ~= nil then
-    local tag, name, deckish = nil, nil, false
+    local onArea = false
+    pcall(function() onArea = (hovered.hasTag("Deck Object") or hovered.hasTag("RTT Pond")) end)
+    if onArea then return true end
+    -- a deck is where it stands; ask the footprints about ITS spot rather than the pointer's
+    local tag, name = nil, nil
     pcall(function() tag = hovered.tag end)
     pcall(function() name = hovered.name end)
-    if tag == "Deck" or tag == "Card" or name == "Deck" or name == "DeckCustom"
-       or name == "Card" or name == "CardCustom" then return true end
-    pcall(function() deckish = (hovered.hasTag("Deck Object") or hovered.hasTag("RTT Pond")) end)
-    if deckish then return true end
+    if tag == "Deck" or name == "Deck" or name == "DeckCustom" then
+      pcall(function() pos = hovered.getPosition() end)
+    end
   end
   if pos == nil then return false end
   local areas = {}

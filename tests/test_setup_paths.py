@@ -13939,15 +13939,18 @@ def t_a_resync_leaves_hand_zones_alone(src):
     assert not calls, "rttResyncHands is called from the board script again: %s" % calls
 
 def t_numpad_one_and_two_are_quiet_over_a_deck(src):
-    """Numpad 1 and 2 do nothing while the pointer hovers a deck or a card, or points at the holder or the pond.
+    """Numpad 1 and 2 do nothing in the deck positions -- the holder's and the pond's footprints -- and
+    work everywhere else, loose cards included.
 
     Maintainer, 2026-09-18: "prevent numpad 1 and numpad 2 from doing anything when the mouse is
-    hovering on top of any deck, maybe locate the pond area and the deck area."
+    hovering on top of any deck, maybe locate the pond area and the deck area", then "only in the deck
+    positions so the deck holder and the pond should do nothing, the rest like loose cards is fine."
     """
     rt = fresh(src)
     rt.execute("""
       SEAT('Red', 'Alice')
       DECK = MKOBJ('Deck', { -30, 12, -3 }, { 'Deck Object' })
+      STRAY = MKOBJ('Deck', { 30, 12, 30 }, {})         -- a deck somebody left out on the table
       HOLDER = REGUID(MKOBJ('Custom_Token', { -31.2, 11.7, 0 }, { 'Deck Object' }), 'aa1464')
       HOLDER.__bounds = { size = { x = 8, y = 0.3, z = 6 }, center = { x = -31.2, y = 11.7, z = 0 } }
       POND = MKOBJ('Custom_Tile', { -30.9, 11.6, 10.7 }, { 'RTT Pond' })
@@ -13973,12 +13976,13 @@ def t_numpad_one_and_two_are_quiet_over_a_deck(src):
         took, pressed = rt.eval("TRY(%s, %s, %s)" % (hover, px, pz))
         assert took == want and pressed == want, (
             "%s: numpad 1 ran=%s, numpad 2 registered=%s; expected both %s" % (label, took, pressed, want))
-    case("hovering the deck",              "DECK",    -30,   -3, False)
-    case("hovering a loose card",          "CARD",     20,   20, False)
-    case("pointing inside the holder",     "nil",     -29,    1, False)
-    case("pointing at the pond",           "nil",     -31,   11, False)
-    case("hovering a warrior on the map",  "WARRIOR",  10,   10, True)
-    case("pointing at open table",         "nil",      40,  -40, True)
+    case("hovering the deck on the holder", "DECK",    -30,   -3, False)
+    case("pointing inside the holder",      "nil",     -29,    1, False)
+    case("pointing at the pond",            "nil",     -31,   11, False)
+    case("hovering a loose card",           "CARD",     20,   20, True)
+    case("hovering a stray deck elsewhere", "STRAY",    30,   30, True)
+    case("hovering a warrior on the map",   "WARRIOR",  10,   10, True)
+    case("pointing at open table",          "nil",      40,  -40, True)
 
 
 def t_the_resync_sweep_never_touches_the_table(src):
