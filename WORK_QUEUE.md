@@ -248,6 +248,13 @@ Diagnosed first, then the maintainer said "fix all the other things as well". On
       and locked, the box rewritten off-colour, the cards dealt back once the player is home (the hop,
       not the write, is what left his cards faceless: "not able to see any card face even after
       flipping"). Not yet confirmed in TTS.
+- [x] **Two colours' hand boxes on one seat -- the "no face however I flip" bug.** v1.448. Maintainer:
+      "the issue seem to be that you are spawning then two hand zones!" A colour kept its box wherever
+      the last game put it, and the seats change colours between layouts (Teal at pos4 in 5P, Orange in
+      4P), so one box lay over another and a card inside two colours' boxes is hidden from both. RULE:
+      a seat colour's box is behind its seat this game or at its HOME on the table edge
+      (RTT_HAND1_HOME), moved only off-colour; a new game parks the unowned, the draft and a manual pick
+      clear their seats (rttEvictStrayHands), Resync clears every seat and says how many it parked.
 - [x] **Numpad 1 and 2 do nothing in the deck positions.** v1.445, narrowed in v1.446: pointing inside
       the deck holder's or the pond's footprint (or hovering a deck standing there) and the key is
       quiet; loose cards and a deck elsewhere are fine ("the rest like loose cards is fine"). If yes, the hop reaches them and the bar is

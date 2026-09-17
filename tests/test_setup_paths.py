@@ -1791,6 +1791,64 @@ def t_the_draft_moves_the_hand_boxes_while_nobody_owns_them(src):
         assert x < -60, "%s's second box was placed at x=%.1f although nobody uses it; it should stay parked" % (c, x)
 
 
+def t_no_two_colours_hand_boxes_share_a_seat(src):
+    """After a five-player game and then a four-player one, no two seat colours' boxes stand on one seat.
+
+    Maintainer, 2026-09-18: "the issue seem to be that you are spawning then two hand zones! make sure
+    that it never happens even after several changes of positions and resynch." Teal sits at the far
+    left corner in a five-player layout and Orange in a four-player one; a colour kept its box wherever
+    the last game put it, so the next game laid one box over another and the cards in both went
+    faceless. Green's player is still seated when the four-player game starts and Green is not a seat
+    colour in it, so this also covers a stray box whose owner has to be stepped off for the move.
+    """
+    rt = fresh(src)
+    _seat_ranked(rt, ["Red", "Yellow", "Orange", "Teal", "Green"], ["H1", "H2", "H3", "H4", "H5"])
+    rt.execute("pcall(function() rttNewGame(4) end) FLUSH(10)")
+    _seat_ranked(rt, ["Red", "Yellow", "Orange", "Teal"], ["H1", "H2", "H3", "H4"])
+    centres = {}
+    for c in ("Red", "Yellow", "Orange", "Teal", "Green", "Brown"):
+        centres[c] = dict(rt.eval("function() local h = Player['%s'].getHandTransform(1) return { x = h.position.x, z = h.position.z } end" % c)())
+    near = rt.eval("RTT_HAND_STRAY_NEAR")
+    cols = list(centres)
+    for i in range(len(cols)):
+        for j in range(i + 1, len(cols)):
+            a, b = centres[cols[i]], centres[cols[j]]
+            assert abs(a["x"] - b["x"]) >= near or abs(a["z"] - b["z"]) >= near, (
+                "%s's and %s's boxes stand on one spot: (%.1f, %.1f) and (%.1f, %.1f)"
+                % (cols[i], cols[j], a["x"], a["z"], b["x"], b["z"]))
+    g = centres["Green"]
+    assert abs(g["x"] + 77.5) < 1 and abs(g["z"] - 25) < 1, "Green's box did not go home: (%.1f, %.1f)" % (g["x"], g["z"])
+    assert rt.eval("Player['Green'].steam_name") == "H5", "H5 lost Green while Green's box was parked"
+    for c, nm in (("Red", "H1"), ("Yellow", "H2"), ("Orange", "H3"), ("Teal", "H4")):
+        assert rt.eval("Player['%s'].steam_name" % c) == nm, "%s is not on %s after the second game" % (nm, c)
+
+
+def t_resync_parks_a_stray_hand_box(src):
+    """Resync sends another colour's box off a seated player's seat, and says so.
+
+    The same fault mid-game: a box left on a seat by an earlier layout. Resync knows the seats
+    (RTT_SEATS) and clears each of them of every other seat colour's box.
+    """
+    rt = fresh(src)
+    rt.execute("""
+      SEATED = { 'Red' }
+      getSeatedPlayers = function() return SEATED end
+      SEAT('Red', 'Alice')
+      RTT_SEATS = { { color = 'Red', hand = RTT_SEAT_HAND[1], pos = { 52, -46 } } }
+      Player['Red'].setHandTransform({ position = RTT_SEAT_HAND[1].pos, rotation = RTT_SEAT_HAND[1].rot, scale = RTT_HAND_SCALE }, 1)
+      Player['Teal'].setHandTransform({ position = { 52, 14.62, -63 }, rotation = { 0, 0, 0 }, scale = RTT_HAND_SCALE }, 1)
+      MSG = {} broadcastToAll = function(m) MSG[#MSG + 1] = tostring(m) end
+      rttResyncClick(Player['Red'], '', 'rttResyncBtn')
+      FLUSH(400)
+    """)
+    teal = dict(rt.eval("function() local h = Player['Teal'].getHandTransform(1) return { x = h.position.x, z = h.position.z } end")())
+    assert abs(teal["x"] + 77.5) < 1 and abs(teal["z"] - 14) < 1, "Teal's stray box was not parked: (%.1f, %.1f)" % (teal["x"], teal["z"])
+    red = dict(rt.eval("function() local h = Player['Red'].getHandTransform(1) return { x = h.position.x, z = h.position.z } end")())
+    assert abs(red["x"] - 52) < 1 and abs(red["z"] + 64) < 1, "Red's own box moved: (%.1f, %.1f)" % (red["x"], red["z"])
+    msg = list(dict(rt.eval("MSG") or {}).values())
+    assert any("1 stray hand box(es) parked" in m for m in msg), "the message does not say a stray box was parked: %s" % msg
+
+
 def t_seat_colour_is_the_turn_order(src):
     """A seat's colour IS its turn-order number, and the player is recoloured into it.
 
@@ -14484,6 +14542,8 @@ CASES = [
     ("the resync sweep never touches the table", t_the_resync_sweep_never_touches_the_table),
     ("resync re-sends every seat in turn", t_a_resync_re_sends_every_seat_in_turn),
     ("the draft moves the boxes while nobody owns them", t_the_draft_moves_the_hand_boxes_while_nobody_owns_them),
+    ("no two colours' hand boxes share a seat", t_no_two_colours_hand_boxes_share_a_seat),
+    ("resync parks a stray hand box",       t_resync_parks_a_stray_hand_box),
     ("winged menace hand from the seat", t_the_winged_menace_hand_is_built_from_the_seat_not_read_back),
 ]
 

@@ -2802,6 +2802,9 @@ function rttResyncClick(player, value, id)
     local seats = 0
     pcall(function() seats = rttResyncReseatAll(nil) end)
     if seats > 0 then msg = msg .. "; " .. tostring(seats) .. " hand(s) re-placed" end
+    local strays = 0
+    pcall(function() strays = rttEvictAllStrayHands() end)
+    if strays > 0 then msg = msg .. "; " .. tostring(strays) .. " stray hand box(es) parked" end
     -- the cards it would not touch, said out loud: the next "it did nothing to my card" report can
     -- then say whether the card was counted here, which is the difference between a skip and a bug
     if (skipped or 0) > 0 then
@@ -3120,6 +3123,7 @@ end
 function rttNewGame(seats)
   rttClearGameObjects()                            -- objects, hand zones, run-id bump
   rttResetRunState()                               -- everything teardown cannot see
+  pcall(function() rttParkStrayHands() end)        -- boxes of colours nobody sits in go home
   -- HOW MANY SEATS THIS GAME HAS. RTT_DN was written in exactly one place -- rttSetup, the ranked
   -- path -- so a manual game inherited whatever the last draft left: 5P Draft then 4-Player Setup
   -- gave a box score pre-formatted for FIVE rows in a four-player game, and 5P Setup from a cold
@@ -3551,6 +3555,7 @@ function makeFaction(player,value,id,source)
   else
     rttPlaceHandsAround(pc, { pos = seatHand.position, rot = seatHand.rotation })
   end
+  pcall(function() rttEvictStrayHands(seatHand.position, pc) end)   -- nobody else's box on this seat
 
   -- Hand the seat DOWN rather than letting rttPlaceFaction read it back: same values, but now the
   -- result no longer depends on whether hand 1 has finished moving.
@@ -3881,11 +3886,12 @@ function rttWriteSeatHand(color, hand, jog)
   pcall(function() Player[color].setHandTransform(h1, 1) end)
 end
 
--- The same, for a colour somebody is SITTING in: off to Grey, placed, straight back. The three land in
--- one frame on the host and in that order on every client, so no client owns the colour while the box
--- moves. The hand is empty at a pick, so nobody loses a card. The player is found again by identity
--- for the way back, because a Player handle is stale after the first change.
-function rttPlaceHandsAround(color, hand, jog)
+-- RUN `fn` WHILE NOBODY OWNS THE COLOUR: the player sitting in it is stepped off to Grey, fn runs, and
+-- they are stepped straight back. The three land in one frame on the host and in that order on every
+-- client, so no client owns the colour while a hand box moves. The player is found again by identity
+-- for the way back, because a Player handle is stale after the first change. A colour nobody sits in
+-- simply runs fn.
+function rttWithColorFree(color, fn)
   if color == nil or color == "Grey" or color == "Black" then return end
   local p, seated, id, name = nil, false, nil, nil
   pcall(function()
@@ -3893,10 +3899,10 @@ function rttPlaceHandsAround(color, hand, jog)
     seated = (p ~= nil and p.seated == true)
     if seated then id, name = p.steam_id, p.steam_name end
   end)
-  if not seated then rttPlaceSeatHands(color, hand, jog) return end
+  if not seated then pcall(fn) return end
   local off = false
   pcall(function() p.changeColor("Grey"); off = true end)
-  rttPlaceSeatHands(color, hand, jog)
+  pcall(fn)
   if not off then return end
   local back = nil
   pcall(function()
@@ -3905,6 +3911,108 @@ function rttPlaceHandsAround(color, hand, jog)
     end
   end)
   if back ~= nil then pcall(function() back.changeColor(color) end) end
+end
+
+-- A seat's box for a colour somebody is sitting in: see rttWithColorFree. The hand is empty at a
+-- pick, so nobody loses a card.
+function rttPlaceHandsAround(color, hand, jog)
+  rttWithColorFree(color, function() rttPlaceSeatHands(color, hand, jog) end)
+end
+
+-- ---- ONE PLACE PER HAND BOX, OR HOME ---------------------------------------------------------------
+-- Maintainer, 2026-09-18: "the issue seem to be that you are spawning then two hand zones! make sure
+-- that it never happens even after several changes of positions and resynch." Not two boxes of one
+-- colour: two COLOURS' boxes on one seat. A colour keeps its box wherever the last game put it, and
+-- the seats change colours between layouts -- Teal sits at the far-left corner in a five-player game
+-- and Orange sits there in a four-player one -- so the next game laid Orange's box exactly over Teal's
+-- stale one (his 2026-09-17 save has both at (-52, 64)). A card inside two colours' boxes is hidden
+-- from both owners: his cards showed no face however he flipped them.
+--
+-- THE RULE: a seat colour's box is in exactly one of two places -- behind the seat it wears this game,
+-- or at HOME, the table-edge spot the blueprint gives it (RTT_HAND1_HOME) -- and it goes home the
+-- moment it is not a seat's. Every move is made while nobody owns the colour: a new game parks the
+-- boxes of colours nobody sits in; the draft parks in its Grey window and then clears every seat of
+-- other colours' boxes; a manual pick clears its seat; Resync clears every seat it knows.
+RTT_HAND1_HOME = {
+  Red    = { pos = { -77.5, 14.62, -36 }, rot = { 0, 90, 0 } },
+  Yellow = { pos = { -77.5, 14.62, -25 }, rot = { 0, 90, 0 } },
+  Orange = { pos = { -77.5, 14.62, -14 }, rot = { 0, 90, 0 } },
+  Teal   = { pos = { -77.5, 14.62,  14 }, rot = { 0, 90, 0 } },
+  Green  = { pos = { -77.5, 14.62,  25 }, rot = { 0, 90, 0 } },
+  Brown  = { pos = { -77.5, 14.62,  36 }, rot = { 0, 90, 0 } },
+}
+RTT_HAND1_HOME_SCALE = { 10, 6, 4 }
+RTT_HAND_STRAY_NEAR  = 6       -- two boxes closer than this, centre to centre, stand on one seat
+
+-- Where a colour's box is right now, in world x/z, or nil.
+function rttHandCentre(color)
+  local px, pz = nil, nil
+  pcall(function()
+    local h = Player[color].getHandTransform(1)
+    local p = h and h.position
+    if p ~= nil then px, pz = (p.x or p[1]), (p.z or p[3]) end
+  end)
+  if px == nil or pz == nil then return nil end
+  return { x = px, z = pz }
+end
+
+-- Send a seat colour's box home. The caller makes sure nobody owns the colour at this moment; a box
+-- already home is left alone, and a hand with cards in it stays where it is (rttHandHasCards).
+function rttParkHand(color)
+  local home = RTT_HAND1_HOME[color]
+  if home == nil then return false end
+  local c = rttHandCentre(color)
+  if c ~= nil and math.abs(c.x - home.pos[1]) < 1 and math.abs(c.z - home.pos[3]) < 1 then return false end
+  if rttHandHasCards(color) then return false end
+  local ok = false
+  pcall(function()
+    Player[color].setHandTransform({ position = home.pos, rotation = home.rot, scale = RTT_HAND1_HOME_SCALE }, 1)
+    ok = true
+  end)
+  return ok
+end
+
+-- A NEW GAME: every seat colour nobody owns goes home. Owned ones are handled when their player is
+-- seated (the draft) or picks (the manual path), off the colour.
+function rttParkStrayHands()
+  local n = 0
+  for color, _ in pairs(RTT_HAND1_HOME) do
+    local owned = false
+    pcall(function() owned = (Player[color] ~= nil and Player[color].seated == true) end)
+    if not owned and rttParkHand(color) then n = n + 1 end
+  end
+  return n
+end
+
+-- CLEAR A SEAT: every OTHER seat colour whose box stands on `pos` (world) goes home -- its owner, if
+-- it has one, stepped off for the frame it takes (rttWithColorFree). Returns how many went.
+function rttEvictStrayHands(pos, keep)
+  if pos == nil then return 0 end
+  local sx, sz = (pos.x or pos[1]), (pos.z or pos[3])
+  if sx == nil or sz == nil then return 0 end
+  local n = 0
+  for color, _ in pairs(RTT_HAND1_HOME) do
+    if color ~= keep then
+      local c = rttHandCentre(color)
+      if c ~= nil and math.abs(c.x - sx) < RTT_HAND_STRAY_NEAR and math.abs(c.z - sz) < RTT_HAND_STRAY_NEAR then
+        local went = false
+        rttWithColorFree(color, function() went = rttParkHand(color) end)
+        if went then n = n + 1 end
+      end
+    end
+  end
+  return n
+end
+
+-- Every seat the table knows, cleared: the Resync pass.
+function rttEvictAllStrayHands()
+  local n = 0
+  for _, seat in ipairs(RTT_SEATS or {}) do
+    if seat ~= nil and seat.color ~= nil and seat.hand ~= nil and seat.hand.pos ~= nil then
+      n = n + rttEvictStrayHands(seat.hand.pos, seat.color)
+    end
+  end
+  return n
 end
 
 -- Marker for the test harness: this build takes the seat explicitly.
@@ -5192,6 +5300,11 @@ function rttSeatPlayers()
   for i, seat in ipairs(RTT_SEATS or {}) do
     -- (a hand that still holds cards is left where it is -- rttPlaceSeatHands asks)
     if seat ~= nil and seat.hand ~= nil then rttPlaceSeatHands(RTT_SETUP_COLORS[i], seat.hand) end
+  end
+  -- ...AND NO OTHER COLOUR'S BOX MAY STAND ON A SEAT (rttEvictStrayHands): a layout change leaves last
+  -- game's boxes where its seats were, and two colours' boxes on one seat hide the cards from both.
+  for i, seat in ipairs(RTT_SEATS or {}) do
+    if seat ~= nil and seat.hand ~= nil then rttEvictStrayHands(seat.hand.pos, RTT_SETUP_COLORS[i]) end
   end
   -- ...AND ONLY NOW DOES ANYBODY SIT DOWN, found again by identity: a Player handle is stale after
   -- the change that parked it.
