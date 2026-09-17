@@ -2702,7 +2702,7 @@ end
 -- after the card pass, so no hand is outside the sweep's exclusion list while cards are reloaded; the
 -- way back finds the player by Steam id, because the handle is stale after the first change.
 -- Spectators (Grey, Black) and a colour the table did not seat are left alone. A row still missing
--- after this needs a rejoin, and the message says so.
+-- after this needs a rejoin.
 RTT_RESEAT_TRIES  = 12    -- frames to keep trying to put a player back on their colour
 RTT_REHAND_FRAMES = 2     -- frames the player stays off the colour after the boxes are written
 
@@ -2782,9 +2782,7 @@ function rttResyncClick(player, value, id)
     if (nc or 0) > 0 then msg = msg .. ", " .. tostring(nc) .. " cards and tokens reloaded" end
     local seats = 0
     pcall(function() seats = rttResyncReseatAll(nil) end)
-    if seats > 0 then
-      msg = msg .. "; " .. tostring(seats) .. " hand(s) re-placed -- a hand row still missing after this needs a rejoin"
-    end
+    if seats > 0 then msg = msg .. "; " .. tostring(seats) .. " hand(s) re-placed" end
     -- the cards it would not touch, said out loud: the next "it did nothing to my card" report can
     -- then say whether the card was counted here, which is the difference between a skip and a bug
     if (skipped or 0) > 0 then

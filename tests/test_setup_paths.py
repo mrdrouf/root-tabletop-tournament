@@ -13990,8 +13990,7 @@ def t_a_resync_re_sends_every_seat_in_turn(src):
     assert rt.eval("function() return Player['Red'].steam_name end")() == "Alice", "Alice did not get Red back"
     assert rt.eval("function() return Player['Blue'].steam_name end")() == "Ben", "Ben did not get Blue back"
     msg = list(dict(rt.eval("MSG") or {}).values())
-    assert any("2 hand(s) re-placed" in m and "rejoin" in m for m in msg), (
-        "the message does not count the hands re-placed and say what to do if a row is still missing: %s" % msg)
+    assert any("2 hand(s) re-placed" in m for m in msg), "the message does not count the hands re-placed: %s" % msg
 
     # a spectator pressing it is left where they are; a seated player whose colour has no seat record too
     rt = fresh(src)
