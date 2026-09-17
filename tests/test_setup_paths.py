@@ -2757,6 +2757,44 @@ def t_clear_all_resets_run_state(src):
     assert rt.eval("GVGET('RTT_SEAT_COLOR')") == "{}", "the published seat map survived Clear All"
 
 
+def t_clear_all_forgets_the_map_and_the_cats_stay_in_the_supply(src):
+    """Clear All destroys the map, so it must forget the map; and cats never go out onto bare felt.
+
+    Maintainer, 2026-09-17: "cats spawned on the board while map was not there while because we
+    cleared all items first but the cats spawn still think that a map is there; so some part of
+    memory not cleared". RTT_CURRENT_MAP is the table's, not a run's, so rttResetRunState leaves it
+    alone -- and Clear All, which destroys the map itself, called only that. rttMarquiseCats read the
+    stale name and dropped twelve cats on RTT_CLEARING_CENTRES of a board that was not there.
+
+    Two halves. Clear All forgets the map (and the Marsh variant flag with it, or a later setup would
+    rebuild a five-player Marsh nobody has). And the cats ask for the BOARD, not only its name: a save
+    made before this fix still carries the name, so the name alone cannot be trusted.
+    """
+    rt = fresh(src)
+    rt.execute("""
+      RTT_CURRENT_MAP = "Mountain Map" RTT_MARSH_5P_BUILT = true
+      MAP = MKOBJ("Mountain", { 0, 11.5, 0 }, { "Map Object" })
+      MAP.__snaps = {} for i = 1, 40 do MAP.__snaps[i] = { position = { 0, 0, 0 } } end
+      pcall(function() clearAll() end) FLUSH(8)
+    """)
+    assert rt.eval("RTT_CURRENT_MAP") is None, (
+        "Clear All destroyed the map and still remembers %r" % rt.eval("RTT_CURRENT_MAP"))
+    assert rt.eval("RTT_MARSH_5P_BUILT") is False, "the Marsh variant flag survived Clear All"
+    assert rt.eval("#getObjectsWithTag('Map Object')") == 0, "the map survived Clear All"
+
+    # an older save: the name is remembered, the board is gone -- the cats stay in the supply
+    rt.execute("""
+      RTT_CURRENT_MAP = "Mountain Map"
+      TAKEN = 0 MSG = {} broadcastToAll = function(m) MSG[#MSG + 1] = tostring(m) end
+      BAG = MKOBJ("Marquise Supply", { 60, 11.5, -40 }, {})
+      BAG.takeObject = function(p) TAKEN = TAKEN + 1 end
+      rttMarquiseCats(52, -46, false) FLUSH(600)
+    """)
+    assert rt.eval("TAKEN") == 0, "%d cats went out onto a table with no map" % rt.eval("TAKEN")
+    msg = list(dict(rt.eval("MSG") or {}).values())
+    assert any("no map" in m for m in msg), "the cats stayed in the supply without saying why: %s" % msg
+
+
 def t_destroying_priority_markers_forgets_their_map(src):
     """RTT_PRIO_MAP means "which map's markers are ON THE TABLE", so destroying them ends its life.
 
@@ -12504,6 +12542,8 @@ def t_the_cats_wait_for_their_supply(src):
     rt = fresh(src)
     rt.execute("""
       RTT_CURRENT_MAP = "Gorge Map"
+      MAP = MKOBJ("Gorge", { 0, 11.5, 0 }, { "Map Object" })
+      MAP.__snaps = {} for i = 1, 40 do MAP.__snaps[i] = { position = { 0, 0, 0 } } end
       TAKEN = 0 OBJS = {}
       getAllObjects = function() return OBJS end
       rttMarquiseCats(52, -46, false)
@@ -12527,6 +12567,8 @@ def t_the_cats_wait_for_their_supply(src):
     rt = fresh(src)
     rt.execute("""
       RTT_CURRENT_MAP = "Gorge Map"
+      MAP = MKOBJ("Gorge", { 0, 11.5, 0 }, { "Map Object" })
+      MAP.__snaps = {} for i = 1, 40 do MAP.__snaps[i] = { position = { 0, 0, 0 } } end
       TAKEN = 0 OBJS = {}
       getAllObjects = function() return OBJS end
       rttMarquiseCats(52, -46, false)
@@ -13831,6 +13873,7 @@ CASES = [
     ("a leaving row takes its pointers",     t_a_row_leaving_takes_its_pointers_with_it),
     ("the sweep re-asks before it touches",  t_the_sweep_and_its_timers_respect_what_changed_since),
     ("the cats wait for their supply",       t_the_cats_wait_for_their_supply),
+    ("clear all forgets the map",            t_clear_all_forgets_the_map_and_the_cats_stay_in_the_supply),
     ("+/- only moves the VP marker",         t_the_plus_minus_buttons_only_move_the_marker),
     ("variant picks are capped",             t_a_faction_cannot_be_given_more_options_than_it_has),
     ("5p gives the middle board room",       t_five_players_give_the_middle_board_room),

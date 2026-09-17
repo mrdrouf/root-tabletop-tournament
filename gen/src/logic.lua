@@ -1156,6 +1156,15 @@ function clearAll()
   end
   pcall(function() rttResetRunState() end)
   pcall(function() rttClearPriority() end)   -- the markers are gone; drop the flag and the handles
+  -- THE MAP WENT WITH EVERYTHING ELSE, SO FORGET IT. RTT_CURRENT_MAP is the table's, not a run's --
+  -- rttResetRunState leaves it alone on purpose, since a setup button must not forget a map that is
+  -- still standing -- but Clear All destroys the map itself, and the name lived on. rttMarquiseCats
+  -- reads that name and dropped twelve cats on RTT_CLEARING_CENTRES of a board that was not there.
+  -- Maintainer, 2026-09-17: "cats spawned on the board while map was not there ... some part of
+  -- memory not cleared". The Marsh variant flag goes with it, or a 4-player setup after Clear All
+  -- would rebuild the Marsh on its own to "fix" a five-player board that no longer exists.
+  RTT_CURRENT_MAP = nil
+  RTT_MARSH_5P_BUILT = false
 end
 
 redTaken = false
@@ -7434,6 +7443,19 @@ function rttMarquiseCats(cx, cz, flip, tries)
   end
   local centres = RTT_CLEARING_CENTRES[mapId]
   if centres == nil then later() return end
+  -- ...AND THE BOARD ITSELF, not only its name. A save can remember a map it no longer has (the name
+  -- is in the board's saved state, and Clear All did not forget it until 2026-09-17), and the centres
+  -- above are fixed world coordinates that are just as happy to drop cats on bare felt. A map still
+  -- coming out of the paced queue is the same wait as the bag below; a map that never comes is said
+  -- out loud, since the cats staying in the supply is otherwise silent.
+  if rttMapBoardTagged() == nil then
+    if tries > 0 then later() return end
+    pcall(function()
+      broadcastToAll("Marquise: there is no map on the table, so the cats stay in the supply. "
+                     .. "Place the map first.", { 1, 0.6, 0.2 })
+    end)
+    return
+  end
   local bag = nil
   for _, o in ipairs(getAllObjects()) do
     if (o.getName() or "") == "Marquise Supply" then bag = o break end
