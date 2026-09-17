@@ -8755,21 +8755,61 @@ def t_the_card_restack_leaves_alone_what_it_must(src):
       card("held").held_by_color = "Red"
       card("moving").__moving = true
       card("still spawning").spawning = true
-      local s = card("scripted") s.getLuaScript = function() return "function onLoad() end" end
+      local s = card("scripted") s.getLuaScript = function() return "function onLoad() self.createButton({ label = 'x' }) end" end
       card("with buttons").createButton({ label = "x" })
       SPARED["a deck"] = MKOBJ("Deck", { 40, 1, 9 }, {})
       TAKEN = { MKOBJ("Card", { 40, 1, 18 }, {}), MKOBJ("Card", { 40, 1, 27 }, {}) }   -- the controls
+      -- ...AND A CARD WHOSE SCRIPT DOES NOTHING IS NOT "SCRIPTED". 108 shared-deck cards shipped with
+      -- exactly this empty onLoad, and skipping them left every drawn card on the table untouched.
+      TAKEN[3] = MKOBJ("Card", { 40, 1, 36 }, {})
+      TAKEN[3].getLuaScript = function() return "function onLoad()" .. string.char(13, 10) .. "    end" end
       rttResyncReloadCards(function() end)
       FLUSH(60)
       local R = REPAIRED_SET()
       STACKED = {}
       for kind, o in pairs(SPARED) do STACKED[kind] = (R[o.__guid] == true) or (getObjectFromGUID(o.__guid) == nil) end
       CONTROL = (R[TAKEN[1].__guid] == true) and (R[TAKEN[2].__guid] == true)
+      EMPTYSCRIPT = (R[TAKEN[3].__guid] == true)
     """)
     stacked = [k for k, v in dict(rt.eval("STACKED")).items() if v]
     assert not stacked, "the pass stacked what it must not touch: %s" % ", ".join(sorted(stacked))
     assert rt.eval("CONTROL") is True, (
         "the control cards were not stacked either, so this test would pass on a pass that does nothing")
+    assert rt.eval("EMPTYSCRIPT") is True, (
+        "a card whose only script is an empty onLoad was skipped as scripted; that is a third of the "
+        "shared deck, and every drawn card on the table")
+
+
+def t_no_deck_card_in_the_build_carries_a_script(src):
+    """No card inside any deck blueprint carries a script, because the card pass skips scripted cards.
+
+    108 cards of the shared deck shipped with `function onLoad() end` -- an empty body doing nothing --
+    and rttResyncCardOK skipped every one of them, so the resync restacked cards on faction boards and
+    left the cards players had drawn and played exactly as they were. Maintainer, 2026-09-17: "I see
+    something happening for cards on faction cardboard but not for cards left on table." The gate now
+    ignores a do-nothing script for cards already on old tables; the blueprint carries none at all.
+    """
+    board = src                       # the build under test, so --old shows the bug
+    scripted = []
+    def walk(o, deck):
+        if not isinstance(o, dict):
+            return
+        nm = o.get("Name")
+        if nm in ("Card", "CardCustom") and deck and (o.get("LuaScript") or "").strip():
+            scripted.append("%s card %s in %s: %r" % (nm, o.get("CardID"), deck, (o.get("LuaScript") or "")[:40]))
+        for c in o.get("ContainedObjects") or []:
+            walk(c, deck or (o.get("Nickname") or nm) if nm in ("Deck", "DeckCustom") else deck)
+    seen = 0
+    for m in re.finditer(r"json=\[\[(.*?)\]\]", board, re.S):
+        try:
+            d = json.loads(m.group(1))
+        except ValueError:
+            continue
+        seen += 1
+        walk(d, None)
+    assert seen > 0, "no blueprints were found in the board script"
+    assert not scripted, "%d deck cards carry a script and would be skipped by the restack: %s" % (
+        len(scripted), scripted[:4])
 
 
 def t_a_card_the_stack_loses_is_put_back(src):
@@ -13934,6 +13974,7 @@ CASES = [
     ("the card restack is paced",       t_the_card_restack_is_paced_like_a_spawn),
     ("a restacked card comes back whole", t_a_restacked_card_comes_back_whole),
     ("the restack spares what it must", t_the_card_restack_leaves_alone_what_it_must),
+    ("deck cards carry no script",      t_no_deck_card_in_the_build_carries_a_script),
     ("a lost card is put back",         t_a_card_the_stack_loses_is_put_back),
     ("mid-deal resync frees itself",   t_a_resync_pressed_while_the_draft_deals_frees_itself),
     ("the deal survives a card going",  t_the_draft_deal_survives_a_card_going),

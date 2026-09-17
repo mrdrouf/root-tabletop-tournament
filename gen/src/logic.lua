@@ -2151,6 +2151,13 @@ RTT_RESYNC_CARD_SETTLE     = 6     -- frames before the accounting pass: a respa
                                    -- only "assigned correctly once the spawning member becomes false"
 RTT_RESYNC_CARD_EPS        = 0.05  -- how near its old spot a card must be to BE the card that was there
 
+-- Whether a card's script does anything at all. Whitespace is ignored, and an onLoad with an empty
+-- body counts as no script: it registers nothing, so re-running it on a respawn changes nothing.
+function rttCardIsScripted(script)
+  local bare = ((script or ""):gsub("%s+", ""))
+  return bare ~= "" and bare ~= "functiononLoad()end"
+end
+
 -- WHAT MAY BE RELOADED. Every one of these costs something real if it is skipped wrongly and costs
 -- something worse if it is not skipped at all.
 function rttResyncCardOK(o, skip)
@@ -2167,7 +2174,13 @@ function rttResyncCardOK(o, skip)
     -- A SCRIPTED CARD RESTARTS ITS SCRIPT. onLoad runs again on the respawn, which would re-register
     -- everything it registers. The Refill Card is a Custom_Token so it is already out of scope, but
     -- this keeps that true if a scripted card is ever added.
-    if (o.getLuaScript() or "") ~= "" then return end
+    --
+    -- ...BUT A SCRIPT THAT DOES NOTHING IS NOT A SCRIPT. 108 cards of the shared deck shipped with an
+    -- empty `function onLoad() end` in their blueprint, and this line skipped every one of them -- the
+    -- cards players draw and leave on the table, which is exactly where the maintainer saw nothing
+    -- happen (2026-09-17: "I see something happening for cards on faction cardboard but not for cards
+    -- left on table"). The blueprint is fixed; this keeps cards from older saves eligible too.
+    if rttCardIsScripted(o.getLuaScript()) then return end
     -- ...AND BUTTONS DO NOT SURVIVE. createButton is runtime-only, so a respawned card comes back
     -- bare. Nothing in the mod puts buttons on a card today; if anything ever does, it keeps them.
     local b = o.getButtons()
