@@ -12526,6 +12526,67 @@ def t_the_sweep_and_its_timers_respect_what_changed_since(src):
         "the VP retry timer is still armed without the run guard"
 
 
+def t_the_pond_ping_leaves_a_panel_still_spawning_alone(src):
+    """The pond tells every finished VP panel to redraw, and never calls into one still being born.
+
+    Maintainer, 2026-09-17, from Zaandaa's test: badgers picked, frogs picked two seconds later,
+    "[VP Panel - 3e5d6a] Lua Error <vpRefresh>: Object reference not set to an instance of an
+    object" -- the frogs' OWN panel. The pond and that panel come out of the same kit; the pond's
+    callback pinged every panel by tag, and a call into an object that has not finished spawning
+    ends inside that object's script with the C# null pcall cannot catch. A panel still spawning has
+    its own refreshes ahead of it (onLoad, then 10, 40 and 120 frames later), so it is simply left
+    alone. The pond itself still arrives, a couple of frames after the frog cards are merged into the
+    deck rather than in the same call.
+    """
+    rt = fresh(src)
+    rt.execute("""
+      CALLED = {}
+      READY = MKOBJ("VP Panel", { 40, 1, 38 }, { "RTT VP Panel" })
+      READY.call = function(fn) CALLED[#CALLED + 1] = "ready:" .. tostring(fn) end
+      BORN = MKOBJ("VP Panel", { -64, 1, 38 }, { "RTT VP Panel" })
+      BORN.spawning = true
+      BORN.call = function(fn) CALLED[#CALLED + 1] = "born:" .. tostring(fn) end
+      rttFrogsSetup()
+      AT_ONCE = #getObjectsWithTag("RTT Pond")
+      FLUSH(30)
+    """)
+    called = list(dict(rt.eval("CALLED") or {}).values())
+    assert "ready:vpRefresh" in called, "the finished panel was not told about the pond: %s" % called
+    assert not any(c.startswith("born:") for c in called), (
+        "the pond called into a panel that had not finished spawning: %s" % called)
+    assert rt.eval("AT_ONCE") == 0, "the pond was spawned in the same call as the deck merge"
+    assert rt.eval("#getObjectsWithTag('RTT Pond')") == 1, "the pond never arrived"
+
+
+def t_the_board_remembers_each_vp_marker_by_guid(src):
+    """A kit's VP marker is written down by guid at spawn, found by guid afterwards, and forgotten with the game.
+
+    The VP panel and rttPlaceVP both used to find the marker by walking getAllObjects() and asking
+    every object its name -- which is how the panel died on 2026-09-17 when the walk met a piece
+    being destroyed in that frame. A guid looked up with getObjectFromGUID answers nil for anything
+    gone. The record must follow a Resync re-create (the marker is loose cardboard now) and must not
+    outlive its game.
+    """
+    rt = fresh(src)
+    rt.execute("pcall(function() rttSpawnFaction('Underground Duchy', 0, -20, false) end) FLUSH(400)")
+    got = rt.eval("""function()
+      local g = RTT_VP_MARKER['Duchy VP']
+      local o = g and getObjectFromGUID(g) or nil
+      local found = rttFindVPMarker('Underground Duchy')
+      return { guid = g or '', name = o and o.getName() or '',
+               api = rttVPMarkerGuid({ row = 'Duchy' }) or '',
+               found = found and found.getGUID() or '' }
+    end""")()
+    assert got["guid"] != "", "the kit did not write its VP marker down"
+    assert got["name"] == "Duchy VP", "the guid written down is not the marker's: %r" % got["name"]
+    assert got["api"] == got["guid"], "the panel's lookup answers %r, not the marker" % got["api"]
+    assert got["found"] == got["guid"], "rttPlaceVP's search did not take the marker by guid"
+    rt.execute("rttResyncSwapGuid(RTT_VP_MARKER['Duchy VP'], 'fresh1')")
+    assert rt.eval("RTT_VP_MARKER['Duchy VP']") == "fresh1", "the record did not follow a re-create"
+    rt.execute("rttResetRunState()")
+    assert rt.eval("RTT_VP_MARKER['Duchy VP']") is None, "last game's marker outlived the game"
+
+
 def t_the_cats_wait_for_their_supply(src):
     """The Marquise's map cats retry instead of giving up on a fixed deadline.
 
@@ -13873,6 +13934,8 @@ CASES = [
     ("a leaving row takes its pointers",     t_a_row_leaving_takes_its_pointers_with_it),
     ("the sweep re-asks before it touches",  t_the_sweep_and_its_timers_respect_what_changed_since),
     ("the cats wait for their supply",       t_the_cats_wait_for_their_supply),
+    ("the pond leaves a panel still spawning alone", t_the_pond_ping_leaves_a_panel_still_spawning_alone),
+    ("the board remembers each vp marker",   t_the_board_remembers_each_vp_marker_by_guid),
     ("clear all forgets the map",            t_clear_all_forgets_the_map_and_the_cats_stay_in_the_supply),
     ("+/- only moves the VP marker",         t_the_plus_minus_buttons_only_move_the_marker),
     ("variant picks are capped",             t_a_faction_cannot_be_given_more_options_than_it_has),
