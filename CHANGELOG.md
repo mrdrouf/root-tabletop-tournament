@@ -157,3 +157,4 @@ setup board's top right corner, and goes up on every commit.
 - One list names every table keyed by an object's guid; a Resync re-create and a new game both walk it.
 - Review fixes: a kit's bag is tagged before the callback that may destroy it, the VP marker record survives a reload, the pond waits for the frog-deck merge that actually happens, and the score track is read off the map.
 - A seat's hand box only ever moves while nobody owns its colour: the draft parks, places every seat's hand, then seats; a manual pick hops the picker off and back; Resync re-places the box the same way. The Alliance and bat second boxes are untouched.
+- A hand that holds cards is never moved, hopped or rewritten, by the draft, a pick or Resync; the Resync sweep never touches the table itself.

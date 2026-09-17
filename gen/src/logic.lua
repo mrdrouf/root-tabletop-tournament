@@ -2084,6 +2084,19 @@ function rttResyncSkip()
   -- unlocked, then stripped the mark while the deferred half was still on its way. Found by the
   -- multi-agent review, 2026-09-14.
   for guid in pairs(RTT_MARKING or {}) do skip[guid] = true end
+  -- THE TABLE ITSELF: the felt and the pieces everything stands on, and the control that moves them.
+  -- Maintainer, 2026-09-17: "exclude the table itself ... it s too dangerous to touch that." Clear All
+  -- has always spared exactly these (rttClearAllTakes); the sweep now does too.
+  pcall(function()
+    for _, o in ipairs(getObjectsWithTag("Table Piece") or {}) do
+      pcall(function() skip[o.getGUID()] = true end)
+    end
+  end)
+  pcall(function()
+    for _, o in ipairs(getAllObjects()) do
+      if rttNameOf(o) == "Flex Table Control" then pcall(function() skip[o.getGUID()] = true end) end
+    end
+  end)
   -- and anything sitting in somebody's hand. A card in a hand belongs to that player's zone; never
   -- reach into one.
   -- EVERY HAND, NOT JUST THE FIRST. getHandObjects() with no argument reads hand ONE, and this table
@@ -2720,6 +2733,9 @@ function rttResyncReseatOne(color, id, name, next)
     if sr ~= nil and sr.color == color and sr.hand ~= nil then seat = sr end
   end
   if seat == nil then return false end
+  -- ...AND A HAND WITH CARDS IN IT IS LEFT ALONE, hop and all (rttHandHasCards): the maintainer's
+  -- cards came back face down to him after another player's press.
+  if rttHandHasCards(color) then return false end
   local function me()
     local found = nil
     pcall(function()
@@ -3527,7 +3543,11 @@ function makeFaction(player,value,id,source)
   -- drops that move on the owner's client, see rttPlaceSeatHands -- so the picker is parked in Grey
   -- for the frame it takes, the hand is placed from this seat, and the picker sits back down.
   local pc = player.color
-  rttPlaceHandsAround(pc, { pos = seatHand.position, rot = seatHand.rotation })
+  if rttHandHasCards(pc) then
+    pcall(function() printToColor("Your hand was left where it is: it holds cards.", pc) end)
+  else
+    rttPlaceHandsAround(pc, { pos = seatHand.position, rot = seatHand.rotation })
+  end
 
   -- Hand the seat DOWN rather than letting rttPlaceFaction read it back: same values, but now the
   -- result no longer depends on whether hand 1 has finished moving.
@@ -3782,9 +3802,20 @@ end
 -- `jog`: first a real change (the box 5% larger, about the same centre), then the exact box, so a
 -- client whose copy is stale definitely receives an update -- a write the host sees as no change may
 -- never go on the wire. Growing then returning cannot push out a card the box held.
+-- Does this colour's own hand hold anything? A HAND WITH CARDS IN IT IS NEVER MOVED, HOPPED OR
+-- REWRITTEN. Maintainer, 2026-09-17, after somebody else pressed Resync while he held cards: "I could
+-- not see the face up of my cards in my hands" -- the cards came back showing their backs to their
+-- owner. Nothing here can repair a hand with cards in it; it is left exactly as it is.
+function rttHandHasCards(color)
+  local n = 0
+  pcall(function() n = #(Player[color].getHandObjects(1) or {}) end)
+  return n > 0
+end
+
 function rttPlaceSeatHands(color, hand, jog)
   if color == nil or color == "Grey" or color == "Black" then return end
   if hand == nil or hand.pos == nil then return end
+  if rttHandHasCards(color) then return end
   local h1 = { position = hand.pos, rotation = hand.rot or { 0, 0, 0 }, scale = RTT_HAND_SCALE }
   if jog then
     local g = RTT_HAND_FIX_GROW
@@ -5105,6 +5136,7 @@ function rttSeatPlayers()
   end
   -- THE BOXES, while nobody owns them: seat N wears colour N, so its hand goes behind seat N.
   for i, seat in ipairs(RTT_SEATS or {}) do
+    -- (a hand that still holds cards is left where it is -- rttPlaceSeatHands asks)
     if seat ~= nil and seat.hand ~= nil then rttPlaceSeatHands(RTT_SETUP_COLORS[i], seat.hand) end
   end
   -- ...AND ONLY NOW DOES ANYBODY SIT DOWN, found again by identity: a Player handle is stale after

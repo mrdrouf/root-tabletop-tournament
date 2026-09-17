@@ -241,7 +241,10 @@ Diagnosed first, then the maintainer said "fix all the other things as well". On
       picker off, places, hops back; Resync does the same as a repair (a real change, then the exact
       box, while the player is off). Hand 2 (Alliance, bats) is left exactly as it was -- v1.441 gave
       every seat a supporters box ("the supporter box spawned on the eyrie faction spawn ??!!"), undone
-      in v1.443: "there is never an issue with that alliance box". Not yet confirmed in TTS. If yes, the hop reaches them and the bar is
+      in v1.443: "there is never an issue with that alliance box". v1.444: a hand that HOLDS CARDS is
+      never hopped, moved or rewritten anywhere ("I could not see the face up of my cards in my hands"
+      after another player's Resync), and the sweep never touches the table itself (Table Piece, Flex
+      Table Control). Not yet confirmed in TTS. If yes, the hop reaches them and the bar is
       the zone object (no script lever found short of recreating the zone, which is only safe when
       the hand is empty). If no, the hop is not reaching that client at all.
 - [x] **Resync does not heal the crow plots.** v1.433 (ca9a547): the reload pass takes every loose tile and token. The plots are ordinary unlocked tiles inside the

@@ -13938,6 +13938,33 @@ def t_a_resync_leaves_hand_zones_alone(src):
              and not l.strip().startswith("--") and "function rttResyncHands" not in l]
     assert not calls, "rttResyncHands is called from the board script again: %s" % calls
 
+def t_the_resync_sweep_never_touches_the_table(src):
+    """The felt, the table pieces and the Flex Table Control are never locked, unlocked or moved by a sweep.
+
+    Maintainer, 2026-09-17: "exclude the table itself. so the brown felt the actual table on which
+    everything is spawned. it s too dangerous to touch that." Clear All has always spared exactly
+    these; the sweep's lock toggle did not.
+    """
+    rt = fresh(src)
+    rt.execute("""
+      TOUCHED = {}
+      local function watch(o, label)
+        o.setLock = function(v) TOUCHED[#TOUCHED + 1] = label .. ":lock" end
+        o.setPosition = function(p) TOUCHED[#TOUCHED + 1] = label .. ":pos" end
+      end
+      FELT = MKOBJ('Custom_Model', { 0, 1.1, 0 }, { 'Table Piece' }) FELT.setLock(true) watch(FELT, 'felt')
+      LEG  = MKOBJ('Custom_Assetbundle', { -57.6, 1.2, -45 }, { 'Table Piece' }) LEG.setLock(true) watch(LEG, 'leg')
+      FTC  = MKOBJ('Flex Table Control', { 76.8, 9.9, -67.1 }, {}) FTC.setLock(true) watch(FTC, 'control')
+      PIECE = MKOBJ('Custom_Model', { 10, 12, 10 }, { 'RTT Faction' }) watch(PIECE, 'piece')
+      rttResyncClick(Player['Red'], '', 'rttResyncBtn')
+      FLUSH(200)
+    """)
+    touched = list(dict(rt.eval("TOUCHED") or {}).values())
+    assert not any(x.startswith(("felt", "leg", "control")) for x in touched), (
+        "the sweep touched the table: %s" % touched)
+    assert any(x.startswith("piece") for x in touched), "the sweep touched nothing at all, so this proves nothing"
+
+
 def t_a_resync_re_sends_every_seat_in_turn(src):
     """Resync steps every seated player off their colour, re-places their hand box from the seat while
     nobody owns the colour, and steps them back -- one at a time, after the card pass.
@@ -14004,6 +14031,25 @@ def t_a_resync_re_sends_every_seat_in_turn(src):
     """)
     hops = rt.eval("function() return table.concat(REC.colors, '|') end")()
     assert hops == "Red -> Grey|Grey -> Red", "with a spectator pressing, the colour changes were: %r" % hops
+
+    # a player HOLDING CARDS is left entirely alone -- no hop, no write. Maintainer, 2026-09-17, after
+    # another player's press: "I could not see the face up of my cards in my hands."
+    rt = fresh(src)
+    rt.execute("""
+      SEATED = { 'Red' }
+      getSeatedPlayers = function() return SEATED end
+      SEAT('Red', 'Alice')
+      RTT_SEATS = { { color = 'Red', hand = RTT_SEAT_HAND[1], pos = { 52, -46 } } }
+      HANDCARDS['Red'] = { MKOBJ('Card', { 52, 15, -64 }, {}) }
+      REC.colors = {}
+      HT = 0
+      Player['Red'].setHandTransform = function(tr, n) HT = HT + 1 end
+      rttResyncClick(Player['Red'], '', 'rttResyncBtn')
+      FLUSH(400)
+    """)
+    assert rt.eval("function() return table.concat(REC.colors, '|') end")() == "", \
+        "a player holding cards was stepped off their colour"
+    assert rt.eval("HT") == 0, "a hand holding cards was rewritten %d time(s)" % rt.eval("HT")
 
 def t_the_winged_menace_hand_is_built_from_the_seat_not_read_back(src):
     """The Winged Menace's second hand is placed from the seat's OWN hand transform, never read back.
@@ -14283,6 +14329,7 @@ CASES = [
     ("no VP panel under the map",      t_a_vp_panel_is_never_placed_under_the_map),
     ("a VP panel is yours alone",       t_a_vp_panel_only_answers_its_own_seat),
     ("resync leaves hands alone",      t_a_resync_leaves_hand_zones_alone),
+    ("the resync sweep never touches the table", t_the_resync_sweep_never_touches_the_table),
     ("resync re-sends every seat in turn", t_a_resync_re_sends_every_seat_in_turn),
     ("the draft moves the boxes while nobody owns them", t_the_draft_moves_the_hand_boxes_while_nobody_owns_them),
     ("winged menace hand from the seat", t_the_winged_menace_hand_is_built_from_the_seat_not_read_back),
