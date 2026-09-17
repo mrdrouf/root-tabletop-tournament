@@ -1659,6 +1659,52 @@ RTT_SLOTS = {{63.9,11.6,-14},{63.9,11.6,-7},{63.9,11.6,0},{63.9,11.6,7},{63.9,11
 -- the cards, but not stranded far out.
 RTT_DECK = {63.9,11.6,24}
 RTT_SPAWNED = {}
+
+-- EVERY TABLE KEYED BY AN OBJECT'S GUID, IN ONE PLACE. Maintainer, 2026-09-17: "any general rule?"
+-- Two things must know about all of them and kept missing one: a Resync re-create, after which the
+-- guid may be new (rttResyncSwapGuid), and a new game, after which the objects are gone
+-- (rttResetRunState). Each entry says how the guids sit in the table and whether a new game empties
+-- it -- the map's own lists belong to the map and stay, and RTT_SPAWNED is emptied by the teardown
+-- sweep itself, which reads it first.
+--   key   -- the guid IS the key:              RTT_HOME[guid], RTT_LAID[guid], RTT_MARKING[guid]
+--   list  -- the guids are an array's values:  RTT_SPAWNED, RTT_MTN_LM_PIECES, RTT_MARSH_PIECES
+--   value -- the guids are a map's values:     RTT_VP_MARKER[name] = guid
+-- A new registry goes HERE, not into either of the two functions.
+RTT_GUID_REGISTRIES = {
+  { var = "RTT_HOME",          shape = "key",   run = true  },   -- where every piece spawned (numpad 0)
+  { var = "RTT_VP_MARKER",     shape = "value", run = true  },   -- each kit's VP marker, by its name
+  { var = "RTT_SPAWNED",       shape = "list",  run = false },   -- the teardown's own list; it clears it
+  { var = "RTT_LAID",          shape = "key",   run = false },   -- laid prisoners: saved state, kept by its tick
+  { var = "RTT_MARKING",       shape = "key",   run = false },   -- a mark still landing: two frames long
+  { var = "RTT_MTN_LM_PIECES", shape = "list",  run = false },   -- the Mountain's landmark: the map's
+  { var = "RTT_MARSH_PIECES",  shape = "list",  run = false },   -- the Marsh's pieces: the map's
+}
+
+-- An object came back under a new guid: every registry that named the old one names the new one.
+function rttSwapGuidEverywhere(old, new)
+  if old == nil or new == nil or old == new then return end
+  for _, r in ipairs(RTT_GUID_REGISTRIES) do
+    local t = _G[r.var]
+    if type(t) == "table" then
+      if r.shape == "key" then
+        if t[old] ~= nil then t[new] = t[old]; t[old] = nil end
+      else
+        for k, g in pairs(t) do if g == old then t[k] = new end end
+      end
+    end
+  end
+  -- a laid prisoner's record also names the disc that marks it
+  for _, was in pairs(RTT_LAID or {}) do
+    if type(was) == "table" and was.disc == old then was.disc = new end
+  end
+end
+
+-- A new game: every registry that belongs to a run is emptied.
+function rttForgetRunGuids()
+  for _, r in ipairs(RTT_GUID_REGISTRIES) do
+    if r.run then _G[r.var] = {} end
+  end
+end
 -- CardID -> faction name (matches EVERYTHING['Standard'][name]); used by the faction draft
 RTT_CARD_FACTION = {
   [300]="Marquise de Cat", [301]="Eyrie Dynasties", [307]="Underground Duchy",
@@ -2239,19 +2285,7 @@ end
 -- draft card it puts out -- and a reload can hand back a different one. Miss this and Clear All walks
 -- straight past a reloaded card, which is the "old seat number cards remain" bug in a new costume.
 function rttResyncSwapGuid(old, new)
-  if old == new or new == nil then return end
-  for i, g in ipairs(RTT_SPAWNED or {}) do
-    if g == old then RTT_SPAWNED[i] = new end
-  end
-  -- ...and the home record numpad 0 sends a piece back by, now that tokens are re-created too: a
-  -- plot that came back under a new guid would otherwise have no way home.
-  if RTT_HOME ~= nil and RTT_HOME[old] ~= nil then
-    RTT_HOME[new] = RTT_HOME[old]
-    RTT_HOME[old] = nil
-  end
-  for k, g in pairs(RTT_VP_MARKER or {}) do
-    if g == old then RTT_VP_MARKER[k] = new end
-  end
+  rttSwapGuidEverywhere(old, new)                -- every guid registry, from the one list
 end
 
 -- WHAT WAS THERE BEFORE, kept whole, so nothing depends on the reload having carried it. TTS documents
@@ -2985,14 +3019,13 @@ function rttResetRunState()
   RTT_TRACK          = nil
   RTT_MANUAL_PICKING = {}
   RTT_VP_PENDING     = {}
-  RTT_VP_MARKER      = {}      -- last game's markers are gone with its objects
   RTT_ALLY_SUP_DONE  = {}
   RTT_CAP_SPAWNED    = {}
   RTT_CAP_SLOT       = {}
   RTT_CAP_SPAWN_N    = 0
   RTT_CAP_ITEM_N     = 0
   RTT_CAP_WARRIOR_N  = 0
-  RTT_HOME           = {}      -- where every faction piece spawned; a new game re-records it
+  rttForgetRunGuids()          -- RTT_HOME, RTT_VP_MARKER, ...: every guid registry marked `run`
   RTT_PRIO_MAP       = nil     -- "which map's priority markers are out"; a new game holds none
   RTT_PRIO_PIECES    = {}
   -- What the LAST draft offered. rttCaptainsAreDrafted reads this, and rttSpawnFaction filters the
@@ -7028,8 +7061,8 @@ end
 -- time. Now an unplaced marker stays pending and makeMap finishes the job when a track appears.
 RTT_VP_PENDING = {}
 -- Every kit's VP marker by the name the panels and rttPlaceVP look for ("Duchy VP"), written at spawn
--- (see the kit callback in rttSpawnFaction), followed through a Resync re-create by
--- rttResyncSwapGuid, forgotten by rttResetRunState.
+-- (see the kit callback in rttSpawnFaction). Listed in RTT_GUID_REGISTRIES, which is what follows it
+-- through a Resync re-create and empties it for a new game.
 RTT_VP_MARKER = {}
 
 function rttPlaceVPRetry(faction, n, tries)

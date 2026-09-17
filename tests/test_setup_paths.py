@@ -12692,6 +12692,54 @@ def t_supply_bags_are_found_by_tag_and_names_are_read_guarded(src):
     assert rt.eval("rttFindBag('') == nil and rttFindBag(nil) == nil")
 
 
+def t_every_guid_registry_follows_a_re_create_and_forgets_with_the_game(src):
+    """Every table keyed by a guid is on one list; a re-create updates all of them and a new game empties the run's.
+
+    Maintainer, 2026-09-17: "any general rule?" About ten tables held guids and only three were told
+    when Resync re-created an object; the new-game reset kept its own copy of the list. Now
+    RTT_GUID_REGISTRIES is the one list, rttSwapGuidEverywhere and rttForgetRunGuids walk it, and a
+    registry added to the list is covered by both without touching either.
+    """
+    rt = fresh(src)
+    rt.execute("""
+      RTT_HOME = { old1 = { n = "Plot" } }
+      RTT_VP_MARKER = { ["Duchy VP"] = "old1" }
+      RTT_SPAWNED = { "x", "old1" }
+      RTT_LAID = { old1 = { disc = "old2" }, old2 = { disc = "" } }
+      RTT_MARKING = { old1 = true }
+      RTT_MTN_LM_PIECES = { "old1" }
+      RTT_MARSH_PIECES = { "old1" }
+      rttResyncSwapGuid("old1", "new1")
+      rttResyncSwapGuid("old2", "new2")
+    """)
+    got = rt.eval("""function() return {
+      home = RTT_HOME.new1 ~= nil and RTT_HOME.old1 == nil,
+      vp = RTT_VP_MARKER["Duchy VP"] == "new1",
+      spawned = RTT_SPAWNED[2] == "new1",
+      laid = RTT_LAID.new1 ~= nil and RTT_LAID.old1 == nil and RTT_LAID.new1.disc == "new2",
+      marking = RTT_MARKING.new1 == true and RTT_MARKING.old1 == nil,
+      mtn = RTT_MTN_LM_PIECES[1] == "new1",
+      marsh = RTT_MARSH_PIECES[1] == "new1",
+    } end""")()
+    for k, ok in dict(got).items():
+        assert ok, "%s did not follow the re-created object to its new guid" % k
+
+    # a new game empties what belongs to a run, and leaves the map's and the teardown's own lists alone
+    rt.execute("rttResetRunState()")
+    after = rt.eval("""function() return {
+      home = next(RTT_HOME) == nil, vp = next(RTT_VP_MARKER) == nil,
+      spawned = #RTT_SPAWNED == 2, mtn = #RTT_MTN_LM_PIECES == 1, marsh = #RTT_MARSH_PIECES == 1,
+      laid = RTT_LAID.new1 ~= nil,
+    } end""")()
+    for k, ok in dict(after).items():
+        assert ok, "%s: a new game handled this registry wrongly" % k
+
+    # and every registry on the list exists as a table, so a typo in the list cannot hide
+    names = [r["var"] for r in dict(rt.eval("RTT_GUID_REGISTRIES")).values()]
+    for n in names:
+        assert rt.eval("type(%s)" % n) == "table", "%s is on the registry list but is not a table" % n
+
+
 def t_the_cats_wait_for_their_supply(src):
     """The Marquise's map cats retry instead of giving up on a fixed deadline.
 
@@ -14068,6 +14116,7 @@ CASES = [
     ("the cats wait for their supply",       t_the_cats_wait_for_their_supply),
     ("the pond leaves a panel still spawning alone", t_the_pond_ping_leaves_a_panel_still_spawning_alone),
     ("the board remembers each vp marker",   t_the_board_remembers_each_vp_marker_by_guid),
+    ("one list of guid registries",          t_every_guid_registry_follows_a_re_create_and_forgets_with_the_game),
     ("supply bags are found by tag",         t_supply_bags_are_found_by_tag_and_names_are_read_guarded),
     ("clear all forgets the map",            t_clear_all_forgets_the_map_and_the_cats_stay_in_the_supply),
     ("the map is read off the table",        t_the_map_is_read_off_the_table_not_remembered),
