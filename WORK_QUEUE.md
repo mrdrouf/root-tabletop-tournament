@@ -244,7 +244,12 @@ Diagnosed first, then the maintainer said "fix all the other things as well". On
       in v1.443: "there is never an issue with that alliance box". v1.444: a hand that HOLDS CARDS is
       never hopped, moved or rewritten anywhere ("I could not see the face up of my cards in my hands"
       after another player's Resync), and the sweep never touches the table itself (Table Piece, Flex
-      Table Control). Not yet confirmed in TTS. If yes, the hop reaches them and the bar is
+      Table Control). v1.445: Resync repairs a hand WITH cards too -- the cards are lifted out face down
+      and locked, the box rewritten off-colour, the cards dealt back once the player is home (the hop,
+      not the write, is what left his cards faceless: "not able to see any card face even after
+      flipping"). Not yet confirmed in TTS.
+- [x] **Numpad 1 and 2 do nothing over a deck.** v1.445. Hovering a deck or a card, the deck holder or
+      the pond, or pointing inside the holder's or the pond's footprint, and the key is quiet. If yes, the hop reaches them and the bar is
       the zone object (no script lever found short of recreating the zone, which is only safe when
       the hand is empty). If no, the hop is not reaching that client at all.
 - [x] **Resync does not heal the crow plots.** v1.433 (ca9a547): the reload pass takes every loose tile and token. The plots are ordinary unlocked tiles inside the

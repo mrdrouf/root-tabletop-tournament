@@ -13938,6 +13938,49 @@ def t_a_resync_leaves_hand_zones_alone(src):
              and not l.strip().startswith("--") and "function rttResyncHands" not in l]
     assert not calls, "rttResyncHands is called from the board script again: %s" % calls
 
+def t_numpad_one_and_two_are_quiet_over_a_deck(src):
+    """Numpad 1 and 2 do nothing while the pointer hovers a deck or a card, or points at the holder or the pond.
+
+    Maintainer, 2026-09-18: "prevent numpad 1 and numpad 2 from doing anything when the mouse is
+    hovering on top of any deck, maybe locate the pond area and the deck area."
+    """
+    rt = fresh(src)
+    rt.execute("""
+      SEAT('Red', 'Alice')
+      DECK = MKOBJ('Deck', { -30, 12, -3 }, { 'Deck Object' })
+      HOLDER = REGUID(MKOBJ('Custom_Token', { -31.2, 11.7, 0 }, { 'Deck Object' }), 'aa1464')
+      HOLDER.__bounds = { size = { x = 8, y = 0.3, z = 6 }, center = { x = -31.2, y = 11.7, z = 0 } }
+      POND = MKOBJ('Custom_Tile', { -30.9, 11.6, 10.7 }, { 'RTT Pond' })
+      POND.__bounds = { size = { x = 4, y = 0.3, z = 4 }, center = { x = -30.9, y = 11.6, z = 10.7 } }
+      CARD = MKOBJ('Card', { 20, 12, 20 }, {})
+      WARRIOR = MKOBJ('Custom_Model', { 10, 12, 10 }, { 'RTT Faction' }) WARRIOR.setName('Eyrie Warrior')
+      ASKED = 0
+      rttMySupplyBag = function(c) ASKED = ASKED + 1 return nil, 'probe' end
+      broadcastToColor = function() end
+      function TRY(hover, px, pz)
+        HOVER['Red'] = hover
+        POINTER['Red'] = { x = px, y = 12, z = pz }
+        local before = ASKED
+        onScriptingButtonDown(1, 'Red')
+        local took = (ASKED > before)
+        onScriptingButtonDown(2, 'Red')
+        local pressed = (RTT_KEY2['Red'] ~= nil)
+        onScriptingButtonUp(2, 'Red')
+        return took, pressed
+      end
+    """)
+    def case(label, hover, px, pz, want):
+        took, pressed = rt.eval("TRY(%s, %s, %s)" % (hover, px, pz))
+        assert took == want and pressed == want, (
+            "%s: numpad 1 ran=%s, numpad 2 registered=%s; expected both %s" % (label, took, pressed, want))
+    case("hovering the deck",              "DECK",    -30,   -3, False)
+    case("hovering a loose card",          "CARD",     20,   20, False)
+    case("pointing inside the holder",     "nil",     -29,    1, False)
+    case("pointing at the pond",           "nil",     -31,   11, False)
+    case("hovering a warrior on the map",  "WARRIOR",  10,   10, True)
+    case("pointing at open table",         "nil",      40,  -40, True)
+
+
 def t_the_resync_sweep_never_touches_the_table(src):
     """The felt, the table pieces and the Flex Table Control are never locked, unlocked or moved by a sweep.
 
@@ -14032,24 +14075,45 @@ def t_a_resync_re_sends_every_seat_in_turn(src):
     hops = rt.eval("function() return table.concat(REC.colors, '|') end")()
     assert hops == "Red -> Grey|Grey -> Red", "with a spectator pressing, the colour changes were: %r" % hops
 
-    # a player HOLDING CARDS is left entirely alone -- no hop, no write. Maintainer, 2026-09-17, after
-    # another player's press: "I could not see the face up of my cards in my hands."
+    # a player HOLDING CARDS: the cards are lifted out, face down and locked, BEFORE the hop; the box
+    # is rewritten while the player is off; the cards are dealt back into their own hand once home.
+    # Maintainer, 2026-09-18: cards left in the hand through the hop came back with no readable face
+    # ("not able to see any card face even after flipping them in my hand"), and "I want you to still
+    # fix the box hand for players with cards on hand."
     rt = fresh(src)
     rt.execute("""
       SEATED = { 'Red' }
       getSeatedPlayers = function() return SEATED end
       SEAT('Red', 'Alice')
       RTT_SEATS = { { color = 'Red', hand = RTT_SEAT_HAND[1], pos = { 52, -46 } } }
-      HANDCARDS['Red'] = { MKOBJ('Card', { 52, 15, -64 }, {}) }
+      CARD = MKOBJ('Card', { 52, 15, -64 }, {})
+      HANDCARDS['Red'] = { CARD }
       REC.colors = {}
-      HT = 0
-      Player['Red'].setHandTransform = function(tr, n) HT = HT + 1 end
+      LOG = {}
+      CARD.deal = function(n, c, h) LOG[#LOG + 1] = 'deal:' .. tostring(c) .. ':' .. tostring(h) .. '@' .. table.concat(REC.colors, '|') end
+      local sl = CARD.setLock
+      CARD.setLock = function(v)
+        LOG[#LOG + 1] = 'lock:' .. tostring(v) .. '@' .. table.concat(REC.colors, '|')
+        if v then HANDCARDS['Red'] = {} end   -- lifted and locked: out of the box, as TTS would soon agree
+        return sl(v)
+      end
+      local sh = Player['Red'].setHandTransform
+      Player['Red'].setHandTransform = function(tr, n)
+        LOG[#LOG + 1] = 'hand' .. tostring(n) .. '@' .. table.concat(REC.colors, '|')
+        return sh(tr, n)
+      end
       rttResyncClick(Player['Red'], '', 'rttResyncBtn')
       FLUSH(400)
     """)
-    assert rt.eval("function() return table.concat(REC.colors, '|') end")() == "", \
-        "a player holding cards was stepped off their colour"
-    assert rt.eval("HT") == 0, "a hand holding cards was rewritten %d time(s)" % rt.eval("HT")
+    log = list(dict(rt.eval("LOG") or {}).values())
+    assert "lock:true@" in log, "the card was not lifted and locked before the hop: %s" % log
+    assert any(x.startswith("hand1@Red -> Grey") and "Grey -> Red" not in x for x in log), (
+        "the box was not rewritten while Alice was off Red: %s" % log)
+    assert any(x.startswith("deal:Red:1@") and "Grey -> Red" in x for x in log), (
+        "the card was not dealt back into Alice's hand once she was home: %s" % log)
+    assert any(x.startswith("lock:false@") for x in log), "the card was dealt back still locked: %s" % log
+    y = rt.eval("CARD.getPosition().y")
+    assert y > 20, "the lifted card was not moved clear of the box (y=%.1f)" % y
 
 def t_the_winged_menace_hand_is_built_from_the_seat_not_read_back(src):
     """The Winged Menace's second hand is placed from the seat's OWN hand transform, never read back.
@@ -14329,6 +14393,7 @@ CASES = [
     ("no VP panel under the map",      t_a_vp_panel_is_never_placed_under_the_map),
     ("a VP panel is yours alone",       t_a_vp_panel_only_answers_its_own_seat),
     ("resync leaves hands alone",      t_a_resync_leaves_hand_zones_alone),
+    ("numpad 1 and 2 are quiet over a deck", t_numpad_one_and_two_are_quiet_over_a_deck),
     ("the resync sweep never touches the table", t_the_resync_sweep_never_touches_the_table),
     ("resync re-sends every seat in turn", t_a_resync_re_sends_every_seat_in_turn),
     ("the draft moves the boxes while nobody owns them", t_the_draft_moves_the_hand_boxes_while_nobody_owns_them),

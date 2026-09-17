@@ -158,3 +158,5 @@ setup board's top right corner, and goes up on every commit.
 - Review fixes: a kit's bag is tagged before the callback that may destroy it, the VP marker record survives a reload, the pond waits for the frog-deck merge that actually happens, and the score track is read off the map.
 - A seat's hand box only ever moves while nobody owns its colour: the draft parks, places every seat's hand, then seats; a manual pick hops the picker off and back; Resync re-places the box the same way. The Alliance and bat second boxes are untouched.
 - A hand that holds cards is never moved, hopped or rewritten, by the draft, a pick or Resync; the Resync sweep never touches the table itself.
+- Resync repairs a hand that holds cards: the cards are lifted out face down and locked, the box is rewritten while the player is off the colour, and the cards are dealt back once the player is home.
+- Numpad 1 and 2 do nothing while the pointer is over a deck, a card, the deck holder or the pond.

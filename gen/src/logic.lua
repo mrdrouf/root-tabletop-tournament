@@ -2733,9 +2733,6 @@ function rttResyncReseatOne(color, id, name, next)
     if sr ~= nil and sr.color == color and sr.hand ~= nil then seat = sr end
   end
   if seat == nil then return false end
-  -- ...AND A HAND WITH CARDS IN IT IS LEFT ALONE, hop and all (rttHandHasCards): the maintainer's
-  -- cards came back face down to him after another player's press.
-  if rttHandHasCards(color) then return false end
   local function me()
     local found = nil
     pcall(function()
@@ -2745,24 +2742,30 @@ function rttResyncReseatOne(color, id, name, next)
     end)
     return found
   end
+  -- THE CARDS COME OUT FIRST (rttLiftHandCards) and go back in once the player is home; a hop that
+  -- cannot even start puts them straight back.
+  local lifted = rttLiftHandCards(color)
   local stepped = false
   pcall(function() p.changeColor("Grey") stepped = true end)
-  if not stepped then return false end
-  rttPlaceSeatHands(color, seat.hand, true)                -- the hand box, while nobody owns the colour
+  if not stepped then rttDealBackCards(color, lifted) return false end
+  rttWriteSeatHand(color, seat.hand, true)                 -- the hand box, while nobody owns the colour
+  local function home()
+    Wait.frames(function() rttDealBackCards(color, lifted) next() end, 1)
+  end
   local tries = 0
   local function back()
     tries = tries + 1
     local q = me()
-    if q == nil or q.color == color then return next() end       -- gone, or already home
+    if q == nil or q.color == color then return home() end       -- gone, or already home
     pcall(function() q.changeColor(color) end)
     q = me()
-    if q == nil or q.color == color then return next() end
+    if q == nil or q.color == color then return home() end
     if tries < RTT_RESEAT_TRIES then return Wait.frames(back, 1) end
     pcall(function()
       broadcastToAll(tostring(name) .. ": Resync could not put you back on " .. color ..
                      "; pick it again from the seat menu.", { 1, 0.6, 0.2 })
     end)
-    next()
+    home()
   end
   Wait.frames(back, RTT_REHAND_FRAMES)
   return true
@@ -3812,10 +3815,61 @@ function rttHandHasCards(color)
   return n > 0
 end
 
+-- ...EXCEPT BY RESYNC, WHICH LIFTS THE CARDS OUT FIRST AND DEALS THEM BACK. Maintainer, 2026-09-18:
+-- "I want you to still fix the box hand for players with cards on hand." What broke his cards was
+-- not the write but the HOP: cards left sitting in the hand while their owner passed through Grey
+-- came back with no readable face for him ("not able to see any card face even after flipping them
+-- in my hand"). A card DEALT into the hand once the player is home enters it afresh, as the owner's,
+-- which is what a normal draw is. So every card in every hand of the colour is set down face down
+-- and locked just above its box, the box is rewritten while nobody owns the colour, and the cards
+-- are dealt back into their own hand once the player is seated again.
+RTT_LIFT_Y = 6            -- straight up out of the box, which is six tall
+
+function rttLiftHandCards(color)
+  local out = {}
+  local hands = 1
+  pcall(function() hands = Player[color].getHandCount() or 1 end)
+  if hands > RTT_HANDS_PER_SEAT then hands = RTT_HANDS_PER_SEAT end
+  for h = 1, hands do
+    local cards = {}
+    pcall(function() cards = Player[color].getHandObjects(h) or {} end)
+    for _, c in ipairs(cards) do
+      pcall(function()
+        local g = c.getGUID()
+        local p, r = c.getPosition(), c.getRotation()
+        c.setPosition({ p.x, p.y + RTT_LIFT_Y, p.z })
+        c.setRotation({ 0, r.y, 180 })                       -- face down while it waits
+        c.setLock(true)
+        out[#out + 1] = { guid = g, hand = h }
+      end)
+    end
+  end
+  return out
+end
+
+function rttDealBackCards(color, lifted)
+  for _, e in ipairs(lifted or {}) do
+    pcall(function()
+      local c = getObjectFromGUID(e.guid)
+      if c == nil then return end
+      c.setLock(false)
+      c.deal(1, color, e.hand)
+    end)
+  end
+end
+
 function rttPlaceSeatHands(color, hand, jog)
   if color == nil or color == "Grey" or color == "Black" then return end
   if hand == nil or hand.pos == nil then return end
   if rttHandHasCards(color) then return end
+  rttWriteSeatHand(color, hand, jog)
+end
+
+-- The writes themselves, no questions asked -- for a caller that has already lifted the cards out
+-- (rttResyncReseatOne): a card set down outside the box is still counted in the hand until the zone
+-- has had a frame to notice, so asking again here would refuse the very write the lift was for.
+function rttWriteSeatHand(color, hand, jog)
+  if color == nil or hand == nil or hand.pos == nil then return end
   local h1 = { position = hand.pos, rotation = hand.rot or { 0, 0, 0 }, scale = RTT_HAND_SCALE }
   if jog then
     local g = RTT_HAND_FIX_GROW
@@ -11000,6 +11054,7 @@ end
 -- was hovering nothing; now it is its own key and does NOT care what the pointer is over.
 -- Which supply is yours comes from where you are SEATED, so a mis-hover cannot take somebody else's.
 function rttGizmoTake(color)
+  if rttPointerOverDeckArea(color) then return end     -- over a deck: nothing, silently
   local bag, why = rttMySupplyBag(color)
   if bag == nil then
     broadcastToColor((why or "Could not tell which supply is yours."), color,
@@ -11444,6 +11499,7 @@ end
 -- isKeyUp, so a Mac without a numpad holds the same way. A second hotkey was briefly added for
 -- choosing the kind, on the belief that a named key could not be held -- it can.
 function rttKey2Down(color)
+  if rttPointerOverDeckArea(color) then return end     -- over a deck: nothing, silently (Up finds no press)
   local hovered = nil
   pcall(function() hovered = Player[color].getHoverObject() end)
   local name = ""
@@ -11470,6 +11526,43 @@ function rttKey2Up(color)
   if st.id ~= nil then pcall(function() Wait.stop(st.id) end) end
   if st.set then return end                          -- the hold already chose; the press is spent
   pcall(function() rttGizmoToken(color) end)
+end
+
+-- NUMPAD 1 AND 2 DO NOTHING OVER A DECK. Maintainer, 2026-09-18: "prevent numpad 1 and numpad 2 from
+-- doing anything when the mouse is hovering on top of any deck, maybe locate the pond area and the
+-- deck area." A warrior or token taken at the pointer over the draw pile lands on the deck and goes
+-- with the next draw. So: hovering a deck or a card, the deck holder or the pond -- or pointing
+-- anywhere inside the holder's or the pond's footprint -- and the key stays quiet.
+RTT_DECK_AREA_PAD = 1.0   -- how far past the holder's and the pond's edges the quiet zone reaches
+
+function rttPointerOverDeckArea(color)
+  local hovered, pos = nil, nil
+  pcall(function() hovered = Player[color].getHoverObject() end)
+  pcall(function() pos = Player[color].getPointerPosition() end)
+  if hovered ~= nil then
+    local tag, name, deckish = nil, nil, false
+    pcall(function() tag = hovered.tag end)
+    pcall(function() name = hovered.name end)
+    if tag == "Deck" or tag == "Card" or name == "Deck" or name == "DeckCustom"
+       or name == "Card" or name == "CardCustom" then return true end
+    pcall(function() deckish = (hovered.hasTag("Deck Object") or hovered.hasTag("RTT Pond")) end)
+    if deckish then return true end
+  end
+  if pos == nil then return false end
+  local areas = {}
+  pcall(function() areas[#areas + 1] = getObjectFromGUID(RTT_HOLDER_GUID) end)
+  pcall(function() for _, o in ipairs(getObjectsWithTag("RTT Pond") or {}) do areas[#areas + 1] = o end end)
+  for _, o in ipairs(areas) do
+    local inside = false
+    pcall(function()
+      if o == nil then return end
+      local b = o.getBounds()
+      inside = math.abs(pos.x - b.center.x) <= b.size.x / 2 + RTT_DECK_AREA_PAD
+           and math.abs(pos.z - b.center.z) <= b.size.z / 2 + RTT_DECK_AREA_PAD
+    end)
+    if inside then return true end
+  end
+  return false
 end
 
 function onScriptingButtonDown(idx, color)
