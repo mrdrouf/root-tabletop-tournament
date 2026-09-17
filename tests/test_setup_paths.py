@@ -13598,6 +13598,55 @@ def t_a_resync_leaves_hand_zones_alone(src):
     assert not calls, "rttResyncHands is called from the board script again: %s" % calls
 
 
+def t_a_resync_re_sends_the_pressers_seat(src):
+    """Resync steps the player who pressed it off their colour and straight back, once the sweep is done.
+
+    The missing hand bar (TTS bug 1010) is cured by a reconnect, and what a reconnect does for the hand
+    is re-run the colour assignment on that client. Stepping the presser to Grey and back does the
+    same without leaving: the hand and its cards belong to the colour, so nothing is lost. Only the
+    presser -- they are the one who can see the bar is missing -- and only after the card pass, so
+    their hand cards are never outside the sweep's exclusion list while cards are being restacked.
+    A spectator pressing it is not stepped anywhere.
+    """
+    rt = fresh(src)
+    rt.execute("""
+      SEATED = { 'Red', 'Blue' }
+      getSeatedPlayers = function() return SEATED end
+      SEAT('Red', 'Alice') SEAT('Blue', 'Ben')
+      for i = 1, 3 do MKOBJ("Card", { 70 + i, 1, 0 }, {}) end
+      REC.colors = {}
+      HOP_BUSY = nil
+      local hop = Player['Red'].changeColor
+      Player['Red'].changeColor = function(nc) if HOP_BUSY == nil then HOP_BUSY = RTT_RESYNC_BUSY end return hop(nc) end
+      MSG = {} broadcastToAll = function(m) MSG[#MSG+1] = tostring(m) end
+      rttResyncClick(Player['Red'], '', 'rttResyncBtn')
+      FLUSH(400)
+    """)
+    hops = rt.eval("function() return table.concat(REC.colors, '|') end")()
+    assert hops == "Red -> Grey|Grey -> Red", (
+        "the presser should step to Grey and straight back, nobody else; the colour changes were: %r" % hops)
+    assert rt.eval("HOP_BUSY") is False, (
+        "the presser was stepped off their colour while the sweep was still running (busy=%r); their hand "
+        "cards were outside the exclusion list at that moment" % rt.eval("HOP_BUSY"))
+    assert rt.eval("function() return Player['Red'].steam_name end")() == "Alice", "Alice did not get Red back"
+    assert rt.eval("function() return Player['Blue'].steam_name end")() == "Ben", "Ben was moved"
+    msg = list(dict(rt.eval("MSG") or {}).values())
+    assert any("seat re-sent" in m for m in msg), "the message does not say the seat was re-sent: %s" % msg
+
+    # a spectator pressing it is left where they are
+    rt = fresh(src)
+    rt.execute("""
+      SEATED = { 'Red' }
+      getSeatedPlayers = function() return SEATED end
+      SEAT('Red', 'Alice')
+      REC.colors = {}
+      rttResyncClick(Player['Grey'], '', 'rttResyncBtn')
+      FLUSH(400)
+    """)
+    hops = rt.eval("function() return table.concat(REC.colors, '|') end")()
+    assert hops == "", "a spectator pressing Resync was moved: %r" % hops
+
+
 def t_the_winged_menace_hand_is_built_from_the_seat_not_read_back(src):
     """The Winged Menace's second hand is placed from the seat's OWN hand transform, never read back.
 
@@ -14004,6 +14053,7 @@ CASES = [
     ("no VP panel under the map",      t_a_vp_panel_is_never_placed_under_the_map),
     ("a VP panel is yours alone",       t_a_vp_panel_only_answers_its_own_seat),
     ("resync leaves hands alone",      t_a_resync_leaves_hand_zones_alone),
+    ("resync re-sends the presser's seat", t_a_resync_re_sends_the_pressers_seat),
     ("winged menace hand from the seat", t_the_winged_menace_hand_is_built_from_the_seat_not_read_back),
     ("resync restacks each card in place", t_a_resync_restacks_every_loose_card_with_its_own_copy),
 ]

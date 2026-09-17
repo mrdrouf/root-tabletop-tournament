@@ -2236,9 +2236,11 @@ end
 -- guid; the teardown list learns the new guid through rttResyncCardRestore.
 --
 -- PACED. One card starts every RTT_RESTACK_EVERY frames; a card is one create for the copy, one for
--- the pile, one for the take and one for the collapse, so two frames apart is about the same wire
--- load as the old two reloads a frame. Cards overlap in flight, which is what keeps it quick.
-RTT_RESTACK_EVERY    = 2      -- frames between two cards starting
+-- the pile, one for the take and one for the collapse. Cards overlap in flight, which is what keeps
+-- it quick. ONE A FRAME since 2026-09-17 (maintainer: "can it happen faster?") -- twice the wire load
+-- of the old two reloads a frame. If objects start going missing on other clients after a Resync,
+-- this is the number to put back to 2.
+RTT_RESTACK_EVERY    = 1      -- frames between two cards starting
 RTT_RESTACK_PATIENCE = 30     -- frames any one step may wait before the card is rolled back
 RTT_RESTACK_LIFT     = 0.5    -- how far above the card its copy is spawned
 RTT_RESTACK_NEAR     = 0.3    -- how close a same-named loose card must stand to count as "on the spot"
@@ -2857,10 +2859,67 @@ end
 -- dropped at a moment nobody spawned anything -- and one person pressing a button beats the whole
 -- table logging out. It destroys nothing, so it carries no warning and is not in RTT_WIPE_BTN; the
 -- debounce is the sweep's own busy flag, so a player mashing it cannot stack sweeps.
+-- YOUR OWN SEAT, RE-SENT. The hand bar at the bottom of the screen goes missing for one player now
+-- and then -- they see their hand zone on the table and no cards along the bottom -- and only a
+-- reconnect brought it back (TTS bug 1010: a hand zone's update is not delivered to the client that
+-- owns it). Every write to the hand ZONE was tried and every one dropped the cards in it on the table.
+--
+-- What a reconnect actually does for the hand is re-run the colour assignment on that client, and
+-- that can be done without leaving: step the player off their colour and straight back onto it. The
+-- hand, the cards in it and the turn slot belong to the COLOUR, not the player (see rttSeatPlayers),
+-- so nothing is taken from anyone; the base mod's own kick-to-Grey used the same fact. Only the
+-- player who PRESSED the button is stepped, because they are the one who can tell it is needed, and
+-- only once the card pass has finished, so their hand is never out of the sweep's "in a hand" list
+-- while cards are being restacked. Their own Player ref is stale after the first change, so the way
+-- back finds them again by Steam id.
+RTT_RESEAT_TRIES = 12     -- frames to keep trying to put the presser back on their colour
+
+function rttResyncReseat(color)
+  if color == nil or color == "Grey" or color == "Black" then return false end
+  local p = nil
+  pcall(function() p = Player[color] end)
+  if p == nil or p.seated ~= true then return false end
+  local id, name = nil, nil
+  pcall(function() id = p.steam_id name = p.steam_name end)
+  local function me()
+    local found = nil
+    pcall(function()
+      for _, q in ipairs(Player.getPlayers()) do
+        if (id ~= nil and q.steam_id == id) or (id == nil and q.steam_name == name) then found = q end
+      end
+    end)
+    return found
+  end
+  local stepped = false
+  pcall(function() p.changeColor("Grey") stepped = true end)
+  if not stepped then return false end
+  local tries = 0
+  local function back()
+    tries = tries + 1
+    local q = me()
+    if q == nil or q.color == color then return end       -- gone, or already home
+    pcall(function() q.changeColor(color) end)
+    q = me()
+    if q == nil or q.color == color then return end
+    if tries < RTT_RESEAT_TRIES then return Wait.frames(back, 1) end
+    pcall(function()
+      broadcastToAll(tostring(name) .. ": Resync could not put you back on " .. color ..
+                     "; pick it again from the seat menu.", { 1, 0.6, 0.2 })
+    end)
+  end
+  Wait.frames(back, 1)
+  return true
+end
+
 function rttResyncClick(player, value, id)
+  local who = nil
+  pcall(function() who = player.color end)
   local ran = rttResyncSweep(function(n, nc, lostc, waited, skipped)
     local msg = "Resync: " .. tostring(n) .. " objects re-sent"
     if (nc or 0) > 0 then msg = msg .. ", " .. tostring(nc) .. " cards restacked" end
+    local reseated = false
+    pcall(function() reseated = rttResyncReseat(who) end)
+    if reseated then msg = msg .. "; " .. tostring(who) .. "'s seat re-sent (hand bar)" end
     -- the cards it would not touch, said out loud: the next "it did nothing to my card" report can
     -- then say whether the card was counted here, which is the difference between a skip and a bug
     if (skipped or 0) > 0 then
