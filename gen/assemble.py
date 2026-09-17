@@ -106,11 +106,6 @@ UNTAGGED_SPAWN_OK = {
     # open board. Nothing is created, so there is nothing new to tag -- and a game card must NOT carry
     # a teardown tag or a new game would destroy cards belonging to the deck it deliberately spares.
     "rttVPClick",
-    # RESTACKED WITH ITS OWN COPY. rttResyncSelfStack spawns a copy of a card from that card's own
-    # snapshot JSON, groups the two and takes the original back out by guid -- the copy is destroyed
-    # a few frames later, and the card it puts back IS the game's card, so there is nothing new to tag.
-    # Its rollback respawns the card from the same snapshot; rttResyncCardRestore re-applies the tags.
-    "rttResyncSelfStack",
     # THE PUMP, NOT A SPAWN SITE. It hands over specs its caller built, callback and all, so the tag
     # lives in the caller's own callback_function -- where this check reads it, in the caller.
     "rttSpawnStaggered",

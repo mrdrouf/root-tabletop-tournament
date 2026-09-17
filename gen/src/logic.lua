@@ -2121,25 +2121,34 @@ function rttResyncTouch(o)
   end
 end
 
--- CARDS ARE RESTACKED WITH A COPY OF THEMSELVES, BECAUSE NOTHING ELSE REACHES THEM -------------------
+-- CARDS ARE RELOADED, BECAUSE NOTHING ELSE REACHES THEM ---------------------------------------------
 --
 -- The sweep above cannot help a card and says so at its own `if o.tag == "Card" then return end`.
 -- Zaandaa, 2026-09-12: "sometimes you can't see what cards are, like only seeing the back of a card",
 -- and "fixing that involves stacking them". A card showing its back is a client that HAS the object
--- with stale state: a property write applies and changes nothing. Stacking is a DESTROY plus a
--- CREATE from the pile's contained state, and that is what rebuilds the card on every client.
+-- with stale state: a property write applies and changes nothing. What stacking does is DESTROY the
+-- card and CREATE a new one, and a create carries the whole object definition over the wire again.
 --
--- reload() was tried first -- one call, no partner -- and did not cure it (2026-09-17: the reload ran
--- on every eligible card and the cards stayed blank). Pairs of table cards were tried next and did,
--- but a card then formed its pile on its partner's spot, blinked across the table and back, and an
--- odd card needed a donor. Maintainer, the same day: "copy each card and each card gets restacked
--- with its own copy, cards should not move anymore." So that is the repair: rttResyncSelfStack.
+-- reload() IS THAT, WITHOUT THE STACK. The API: "causes the Object to be deleted and respawned
+-- instantly to refresh it, so its old Object reference will no longer be valid." One call per card,
+-- no partner, no copy, no pile, and the card comes back where it stood.
 --
--- BUTTON ONLY. Nothing arms this automatically. A restack is far heavier than a lock toggle, and the
+-- HISTORY, because this went round once. The reload shipped on the 12th and the report came back that
+-- blank cards stayed blank while stacking by hand cured them, so a stack-and-split was built in its
+-- place -- first pairing table cards, then stacking each card with a copy of itself. Then the real
+-- fault turned up: 108 cards of the shared deck carried an empty `function onLoad() end`, and the
+-- pass skipped any scripted card, so the reload had NEVER TOUCHED the dealt cards -- which are the
+-- ones that go blank. Stacking by hand worked because it was done on the blank card itself. With
+-- that gate fixed (rttCardIsScripted) the reload reaches every card, and the maintainer chose it
+-- back, 2026-09-17: "maybe a shortcut would be to destroy the card ourselves directly and respawn
+-- it then?" -- "yes go". The stacking version is one commit back if a table proves this wrong.
+--
+-- BUTTON ONLY. Nothing arms this automatically. A reload is far heavier than a lock toggle, and the
 -- lesson written at the bottom of MULTIPLAYER_SYNC.md is that a repair which floods a client is worse
 -- than the drop it repairs -- "only sometimes the button works" is what v1.155 looked like. So it runs
 -- when a person asks for it and at no other time, even if RTT_RESYNC_AUTO is ever turned on.
 RTT_RESYNC_CARDS           = true
+RTT_RESYNC_CARDS_PER_FRAME = 2     -- a reload is a destroy+create; the lock toggle's 15 would be a burst
 RTT_RESYNC_CARD_SETTLE     = 6     -- frames before the accounting pass: a respawned object's GUID is
                                    -- only "assigned correctly once the spawning member becomes false"
 RTT_RESYNC_CARD_EPS        = 0.05  -- how near its old spot a card must be to BE the card that was there
@@ -2207,299 +2216,6 @@ end
 -- WHAT WAS THERE BEFORE, kept whole, so nothing depends on the reload having carried it. TTS documents
 -- neither whether the respawned card keeps its guid nor whether it keeps its tags, and the mod's
 -- teardown is TAG-driven -- a card that comes back untagged is a card that never gets cleared.
--- RESTACKED WITH ITS OWN COPY ------------------------------------------------------------------------
---
--- Each card is repaired on its own, on its own spot, with nobody else's card involved:
---
---   1. snapshot the card; spawn a COPY of it from that snapshot, a little above it
---   2. when the copy has spawned: arm step 3, then group({card, copy}) -- both are destroyed and a
---      two-card pile appears where the card was; lock the pile
---   3. next frame: arm step 4, then take the ORIGINAL back out of the pile BY GUID onto its exact
---      spot, no animation. The pile is down to one card, so TTS collapses it into the copy.
---   4. when the original is back and the pile is gone: destroy the copy, put the card's lock, tags,
---      scale and facing back exactly. Done.
---
--- The card is destroyed and re-created twice over (the pile, then the take) and never leaves its
--- spot. The copy exists for a handful of frames, directly on top of the card, and is the one thing
--- the mod spawns only to destroy -- the maintainer asked for exactly this shape here, and nowhere
--- else does it apply.
---
--- EVERY CONTINUATION IS ARMED BEFORE THE CALL THAT COULD KILL IT. A C# null inside group(),
--- takeObject() or a restore ends the current callback in a way pcall cannot see; the next step is
--- already on the frame queue, re-resolves everything by guid, and carries on. That is also why a
--- card's completion is counted exactly once, in ssCardDone, and the pass finishes when every card
--- started has been counted -- a chain that dies cannot leave the button dead.
---
--- NEVER A DUPLICATE. A card is respawned from its snapshot only when it answers to no guid, no card
--- of the same name stands on its spot, and no pile holds it. If the original never comes back but
--- the copy does, the copy IS the card -- same face, same everything -- and is adopted under its own
--- guid; the teardown list learns the new guid through rttResyncCardRestore.
---
--- PACED. One card starts every RTT_RESTACK_EVERY frames; a card is one create for the copy, one for
--- the pile, one for the take and one for the collapse. Cards overlap in flight, which is what keeps
--- it quick. ONE A FRAME since 2026-09-17 (maintainer: "can it happen faster?") -- twice the wire load
--- of the old two reloads a frame. If objects start going missing on other clients after a Resync,
--- this is the number to put back to 2.
-RTT_RESTACK_EVERY    = 1      -- frames between two cards starting
-RTT_RESTACK_PATIENCE = 30     -- frames any one step may wait before the card is rolled back
-RTT_RESTACK_LIFT     = 0.5    -- how far above the card its copy is spawned
-RTT_RESTACK_NEAR     = 0.3    -- how close a same-named loose card must stand to count as "on the spot"
-
-function rttResyncSelfStack(list, skip, gen, onDone)
-  local i, inflight, done_recs, finished = 1, 0, {}, false
-
-  local function ssFinishIfDone()
-    if finished then return end
-    if i > #list and inflight == 0 then
-      finished = true
-      onDone(done_recs)
-    end
-  end
-
-  -- exactly once per card started, whatever happened to it
-  local function ssCardDone(st)
-    if st.done then return end
-    st.done = true
-    inflight = inflight - 1
-    done_recs[#done_recs + 1] = st.rec
-    ssFinishIfDone()
-  end
-
-  -- a spawned, unheld object under this guid, or nil
-  local function ssLoose(guid)
-    if guid == nil then return nil end
-    local o = getObjectFromGUID(guid)
-    if o == nil then return nil end
-    local ok = false
-    pcall(function() ok = (o.spawning ~= true) and (o.held_by_color == nil) end)
-    if ok then return o end
-    return nil
-  end
-
-  -- a loose Card of the snapshot's name standing on its spot, other than `notGuid`, or nil
-  local function ssLooseAt(rec, notGuid)
-    local found = nil
-    pcall(function()
-      for _, o in ipairs(getAllObjects()) do
-        if found == nil and o.tag == "Card" and o.getGUID() ~= notGuid and o.spawning ~= true
-           and o.held_by_color == nil and (o.getName() or "") == (rec.nick or "") then
-          local p = o.getPosition()
-          local dx, dy, dz = p.x - rec.pos.x, p.y - rec.pos.y, p.z - rec.pos.z
-          if (dx * dx + dy * dy + dz * dz) <= RTT_RESTACK_NEAR * RTT_RESTACK_NEAR then found = o end
-        end
-      end
-    end)
-    return found
-  end
-
-  -- the pile holding this guid, if any (group() may hand its pile back a frame late)
-  local function ssPileHolding(guid)
-    local found = nil
-    pcall(function()
-      for _, o in ipairs(getAllObjects()) do
-        if found == nil and o.tag == "Deck" then
-          for _, c in ipairs(o.getObjects() or {}) do
-            if c.guid == guid then found = o break end
-          end
-        end
-      end
-    end)
-    return found
-  end
-
-  local function ssDestroyCopy(st)
-    local c = ssLoose(st.copy)
-    if c ~= nil then pcall(function() c.destruct() end) end
-  end
-
-  local function ssRestore(st, guid)
-    pcall(function() rttResyncCardRestore(st.rec, guid) end)
-  end
-
-  -- The card did not come back the ordinary way. Put ONE card there, whichever instance survives.
-  local function ssRollback(st, why)
-    log("RTT resync: restack rolled back (" .. tostring(why) .. ") for " .. st.rec.guid)
-    local pile = (st.pile ~= nil) and getObjectFromGUID(st.pile) or nil
-    if pile ~= nil then pcall(function() if pile.held_by_color == nil then pile.destruct() end end) end
-    Wait.frames(function()
-      local rec = st.rec
-      if ssLoose(rec.guid) ~= nil then                 -- the original is there after all
-        ssDestroyCopy(st)
-        ssRestore(st, rec.guid)
-        return ssCardDone(st)
-      end
-      local other = ssLooseAt(rec, st.copy)             -- the original under a new guid
-      if other ~= nil then
-        pcall(function() rec.newguid = other.getGUID() end)
-        ssDestroyCopy(st)
-        ssRestore(st, rec.newguid)
-        return ssCardDone(st)
-      end
-      local copy = ssLoose(st.copy)                     -- the copy is the card now
-      if copy ~= nil then
-        rec.newguid = st.copy
-        ssRestore(st, st.copy)
-        return ssCardDone(st)
-      end
-      if ssPileHolding(rec.guid) ~= nil then return ssCardDone(st) end   -- still in a pile: leave it
-      pcall(function()
-        spawnObjectJSON({ json = rec.json, position = { rec.pos.x, rec.pos.y, rec.pos.z },
-                          rotation = { rec.rot.x, rec.rot.y, rec.rot.z }, smooth = false,
-                          callback_function = function(o)
-                            pcall(function() rec.newguid = o.getGUID() end)
-                            ssRestore(st, rec.newguid)
-                          end })
-      end)
-      ssCardDone(st)
-    end, 2)
-  end
-
-  -- 4. the original is back and the pile is gone: destroy the copy, restore exactly
-  local function ssSettle(st)
-    if RTT_RUN_ID ~= gen then return ssCardDone(st) end
-    local rec = st.rec
-    local orig = ssLoose(rec.guid)
-    if orig == nil then
-      local other = ssLooseAt(rec, st.copy)
-      if other ~= nil then pcall(function() rec.newguid = other.getGUID() end) orig = other end
-    end
-    local pileGone = (st.pile == nil) or (getObjectFromGUID(st.pile) == nil)
-    local copy = (st.copy ~= nil) and getObjectFromGUID(st.copy) or nil
-    local copySpawning = false
-    if copy ~= nil then pcall(function() copySpawning = (copy.spawning == true) end) end
-    if orig ~= nil and pileGone and not copySpawning then
-      if copy ~= nil then pcall(function() copy.destruct() end) end
-      ssRestore(st, rec.newguid or rec.guid)
-      return ssCardDone(st)
-    end
-    st.waited = st.waited + 1
-    if st.waited > RTT_RESTACK_PATIENCE then return ssRollback(st, "the card did not come back") end
-    Wait.frames(function() ssSettle(st) end, 1)
-  end
-
-  -- 3. the pile exists: take the original back out by guid, onto its own spot
-  local function ssSplit(st)
-    if RTT_RUN_ID ~= gen then return ssCardDone(st) end
-    local rec = st.rec
-    local pile = (st.pile ~= nil) and getObjectFromGUID(st.pile) or nil
-    if pile == nil then
-      pile = ssPileHolding(rec.guid)
-      if pile ~= nil then pcall(function() st.pile = pile.getGUID() end) end
-    end
-    if pile == nil then
-      if ssLoose(rec.guid) ~= nil then                 -- group() declined: both still loose
-        ssDestroyCopy(st)
-        ssRestore(st, rec.guid)
-        return ssCardDone(st)
-      end
-      st.waited = st.waited + 1
-      if st.waited > RTT_RESTACK_PATIENCE then return ssRollback(st, "no pile after group()") end
-      return Wait.frames(function() ssSplit(st) end, 1)
-    end
-    local held = false
-    pcall(function() held = (pile.held_by_color ~= nil) end)
-    if held then                                        -- somebody grabbed it: wait, do not fight
-      st.waited = st.waited + 1
-      if st.waited > RTT_RESTACK_PATIENCE then return ssRollback(st, "pile held") end
-      return Wait.frames(function() ssSplit(st) end, 1)
-    end
-    st.waited = 0
-    Wait.frames(function() ssSettle(st) end, 1)        -- armed BEFORE the take
-    pcall(function()
-      pile.setLock(false)
-      pile.takeObject({ guid = rec.guid, smooth = false,
-                        position = { rec.pos.x, rec.pos.y, rec.pos.z },
-                        rotation = { rec.rot.x, rec.rot.y, rec.rot.z } })
-    end)
-  end
-
-  -- 2. the copy is on the table: stack the two
-  local function ssStack(st)
-    if RTT_RUN_ID ~= gen then ssDestroyCopy(st) return ssCardDone(st) end
-    local rec = st.rec
-    local copy = getObjectFromGUID(st.copy)
-    if copy == nil then                                 -- the copy never made it: leave the card as it is
-      ssRestore(st, rec.guid)
-      return ssCardDone(st)
-    end
-    local copySpawning = false
-    pcall(function() copySpawning = (copy.spawning == true) end)
-    if copySpawning then
-      st.waited = st.waited + 1
-      if st.waited > RTT_RESTACK_PATIENCE then ssDestroyCopy(st) return ssCardDone(st) end
-      return Wait.frames(function() ssStack(st) end, 1)
-    end
-    local orig = ssLoose(rec.guid)
-    if orig == nil then                                 -- somebody picked the card up meanwhile
-      ssDestroyCopy(st)
-      return ssCardDone(st)
-    end
-    st.waited = 0
-    Wait.frames(function() ssSplit(st) end, 1)         -- armed BEFORE group()
-    local made = nil
-    pcall(function()
-      pcall(function() if orig.getLock() == true then orig.setLock(false) end end)
-      pcall(function() if copy.getLock() == true then copy.setLock(false) end end)
-      made = group({ orig, copy })
-    end)
-    for _, pile in ipairs(made or {}) do                -- our pile: lock it, remember it
-      local has = false
-      pcall(function()
-        for _, c in ipairs(pile.getObjects() or {}) do if c.guid == rec.guid then has = true end end
-      end)
-      if has then
-        pcall(function() pile.setLock(true) end)
-        pcall(function() st.pile = pile.getGUID() end)
-        break
-      end
-    end
-  end
-
-  -- 1. one card: snapshot, spawn its copy just above it
-  local function ssStart(rec)
-    local st = { rec = rec, copy = nil, pile = nil, waited = 0, started = false, done = false }
-    inflight = inflight + 1
-    local function onCopy(c)
-      if st.started then return end
-      st.started = true
-      pcall(function() st.copy = c.getGUID() end)
-      Wait.frames(function() ssStack(st) end, 1)
-    end
-    -- if the spawn never calls back, the card is left exactly as it is
-    Wait.frames(function()
-      if st.started then return end
-      st.started = true
-      ssRestore(st, rec.guid)
-      ssCardDone(st)
-    end, RTT_RESTACK_PATIENCE)
-    pcall(function()
-      spawnObjectJSON({ json = rec.json,
-                        position = { rec.pos.x, rec.pos.y + RTT_RESTACK_LIFT, rec.pos.z },
-                        rotation = { rec.rot.x, rec.rot.y, rec.rot.z }, smooth = false,
-                        callback_function = onCopy })
-    end)
-  end
-
-  -- the pump: one card every RTT_RESTACK_EVERY frames, re-checked the moment it starts
-  local function ssPump()
-    if RTT_RUN_ID ~= gen or RTT_BUSY == true then i = #list + 1 return ssFinishIfDone() end
-    while i <= #list do
-      local o = getObjectFromGUID(list[i])
-      i = i + 1
-      if o ~= nil and rttResyncCardOK(o, skip) then
-        local rec = rttResyncCardSnapshot(o)
-        if rec ~= nil then
-          Wait.frames(ssPump, RTT_RESTACK_EVERY)         -- armed BEFORE the spawn
-          ssStart(rec)
-          return
-        end
-      end
-    end
-    ssFinishIfDone()
-  end
-
-  ssPump()
-end
 
 function rttResyncCardSnapshot(o)
   local rec = nil
@@ -2676,13 +2392,42 @@ function rttResyncReloadCards(done)
       end)
     end
   end
-  -- RESTACKED, EACH WITH ITS OWN COPY -- see rttResyncSelfStack. The settle pass runs afterwards as
-  -- the final accounting over the records the pass hands back.
-  rttResyncSelfStack(list, skip, gen, function(done_recs)
-    Wait.frames(function()
-      rttResyncCardsSettle(done_recs, function(nc, lostc, waited) done(nc, lostc, waited, skipped) end, gen)
-    end, RTT_RESYNC_CARD_SETTLE)
-  end)
+  local i, done_recs = 1, {}
+  local function pump()
+    -- asked every frame, not once: a deal that starts under the pass stops it where it stands
+    if RTT_RUN_ID ~= gen or RTT_BUSY == true then i = #list + 1 end
+    local n = 0
+    while i <= #list and n < RTT_RESYNC_CARDS_PER_FRAME do
+      local o = nil
+      pcall(function() o = getObjectFromGUID(list[i]) end)
+      -- ASKED AGAIN, not once when the list was built: a card picked up, dealt into a hand or
+      -- destroyed since then must not be reloaded now.
+      if o ~= nil and rttResyncCardOK(o, skip) then
+        -- SNAPSHOT HERE, not when the list was built. getJSON serialises the whole card, and doing
+        -- forty of them in the frame that builds the list is its own little burst -- the one thing
+        -- this pass must not be. Taken the instant before the destroy, it is also the freshest
+        -- possible copy of what has to come back.
+        local rec = rttResyncCardSnapshot(o)
+        if rec ~= nil then
+          local new = nil
+          pcall(function() new = o.reload() end)
+          pcall(function() if new ~= nil then rec.newguid = new.getGUID() end end)
+          done_recs[#done_recs + 1] = rec
+        end
+      end
+      i = i + 1
+      n = n + 1
+    end
+    if i <= #list then
+      Wait.frames(pump, 1)
+    else
+      -- the accounting pass, once every respawn has had time to settle
+      Wait.frames(function()
+        rttResyncCardsSettle(done_recs, function(nc, lostc, waited) done(nc, lostc, waited, skipped) end, gen)
+      end, RTT_RESYNC_CARD_SETTLE)
+    end
+  end
+  pump()
 end
 
 -- One pass over everything on the table, staggered like the spawns for the same reason: un-staggered
@@ -2874,7 +2619,7 @@ end
 -- stepped off, so at no moment is more than one colour free -- nobody can land on somebody else's
 -- colour by accident, and a hop that fails strands one player, not the table. It runs only once the
 -- card pass has finished, so no hand is ever outside the sweep's "in a hand" list while cards are
--- being restacked. A Player ref is stale after the first change, so the way back finds the player
+-- being reloaded. A Player ref is stale after the first change, so the way back finds the player
 -- again by Steam id. Spectators (Grey, Black) are never moved.
 RTT_RESEAT_TRIES = 12     -- frames to keep trying to put a player back on their colour
 
@@ -2943,7 +2688,7 @@ end
 function rttResyncClick(player, value, id)
   local ran = rttResyncSweep(function(n, nc, lostc, waited, skipped)
     local msg = "Resync: " .. tostring(n) .. " objects re-sent"
-    if (nc or 0) > 0 then msg = msg .. ", " .. tostring(nc) .. " cards restacked" end
+    if (nc or 0) > 0 then msg = msg .. ", " .. tostring(nc) .. " cards reloaded" end
     local seats = 0
     pcall(function() seats = rttResyncReseatAll(nil) end)
     if seats > 0 then msg = msg .. "; " .. tostring(seats) .. " seat(s) re-sent (hand bar)" end
