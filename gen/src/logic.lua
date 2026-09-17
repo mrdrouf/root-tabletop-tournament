@@ -3050,8 +3050,9 @@ end
 -- flag, not the button: rttFivePStart sets it after rttSetup returns, which is why this runs a frame
 -- late.
 function rttFixMarshVariant()
-  if RTT_CURRENT_MAP ~= "Marsh Map" then return end
-  if (RTT_5P_MARSH == true) == (RTT_MARSH_5P_BUILT == true) then return end
+  local _, cur, fivep = rttMap()                 -- what is STANDING, off the board itself
+  if cur ~= "Marsh Map" then return end
+  if (RTT_5P_MARSH == true) == (fivep == true) then return end
   if EVERYTHING["Maps"] == nil or EVERYTHING["Maps"]["Marsh Map"] == nil then return end
   makeMap("", "", "Marsh Map", true)              -- "" = internal path, so it never clears RTT_5P_MARSH
 end
@@ -3136,13 +3137,13 @@ function rttLoseableMapItems()
 end
 
 function rttMapWouldChange(d)
-  local cur = RTT_CURRENT_MAP
+  local _, cur, fivep = rttMap()                 -- what is STANDING, off the board itself
   local target = d.map or d.places
   if target ~= nil and target ~= "" then
     -- A MAP BUTTON. Placing a map is its whole job, so the question is only whether the board that
     -- comes back differs from the one standing.
-    -- SOMETHING IS DOWN THAT THIS BOARD DID NOT PLACE -- an old save from before the id was
-    -- persisted, or a board dragged out by hand. The id is unknown, so it may well go.
+    -- SOMETHING IS DOWN THAT THIS BUILD CANNOT NAME -- a board from an old save that was never tagged
+    -- and that this board does not remember placing, or one dragged out by hand. It may well go.
     if cur == nil or cur == "" then return rttLoseableMapItems() > 0 end
     if target ~= cur then return true end
     return RTT_MAP_REROLLS[target] == true
@@ -3151,7 +3152,7 @@ function rttMapWouldChange(d)
   -- the Marsh has to swap boards for the number of players about to sit down, which is the one case
   -- where a setup click really does change the map.
   if cur ~= "Marsh Map" or d.wants5p == nil then return false end
-  return (d.wants5p == true) ~= (RTT_MARSH_5P_BUILT == true)
+  return (d.wants5p == true) ~= (fivep == true)
 end
 
 -- WARN ABOUT WHAT THE CLICK ACTUALLY DOES. Maintainer, 2026-09-07: "if factions would be wiped, warn
@@ -5606,7 +5607,7 @@ function rttUnderMap(x, z)
   -- answer is false; and the fallback box, when bounds cannot be read, sits on the map's own position
   -- rather than on the origin, so a moved map is measured where it is.
   local m = nil
-  pcall(function() m = rttMapBoardTagged() end)
+  pcall(function() m = rttMap() end)
   if m == nil then return false end
   local inside = nil
   pcall(function()
@@ -7480,23 +7481,14 @@ function rttMarquiseCats(cx, cz, flip, tries)
       rttAfterTime(function() rttMarquiseCats(cx, cz, flip, tries - 1) end, RTT_CATS_WAIT)
     end
   end
-  -- resolve the current map (same fallback chain as rttBadgerRelics: clone -> main board bab7e1)
-  local mapId = RTT_CURRENT_MAP or (RTT_PICKED or {}).map
-  if mapId == nil then
-    local mb = getObjectFromGUID("bab7e1")
-    if mb ~= nil then
-      local ok, mid = pcall(function() return mb.call("rttGetCurrentMap") end)
-      if ok and type(mid) == "string" then mapId = mid end
-    end
-  end
-  local centres = RTT_CLEARING_CENTRES[mapId]
-  if centres == nil then later() return end
-  -- ...AND THE BOARD ITSELF, not only its name. A save can remember a map it no longer has (the name
-  -- is in the board's saved state, and Clear All did not forget it until 2026-09-17), and the centres
-  -- above are fixed world coordinates that are just as happy to drop cats on bare felt. A map still
-  -- coming out of the paced queue is the same wait as the bag below; a map that never comes is said
-  -- out loud, since the cats staying in the supply is otherwise silent.
-  if rttMapBoardTagged() == nil then
+  -- THE MAP, OFF THE TABLE (rttMap), not a remembered name. The clearing centres are fixed world
+  -- coordinates, as happy to drop cats on bare felt as on a board, and a name that outlived its board
+  -- (Clear All, an old save) did exactly that on 2026-09-17. A map still coming out of the paced queue
+  -- is the same wait as the bag below; one that never comes is said out loud, since the cats staying
+  -- in the supply is otherwise silent.
+  local board, mapId, fivep = rttMap()
+  local centres = (mapId ~= nil) and RTT_CLEARING_CENTRES[mapId] or nil
+  if board == nil or centres == nil then
     if tries > 0 then later() return end
     pcall(function()
       broadcastToAll("Marquise: there is no map on the table, so the cats stay in the supply. "
@@ -7513,14 +7505,7 @@ function rttMarquiseCats(cx, cz, flip, tries)
   -- 5-player has no floods, all 15 clearings are active (place 15). Every other map is 12.
   local excl = {}
   if mapId == "Marsh Map" then
-    local is5p = RTT_5P_MARSH
-    if is5p == nil then
-      local mb = getObjectFromGUID("bab7e1")
-      if mb ~= nil then
-        local ok, v = pcall(function() return mb.call("rttGet5pMarsh") end)
-        if ok then is5p = v end
-      end
-    end
+    local is5p = fivep                             -- which Marsh board is STANDING, off the board itself
     if not is5p then                               -- 4-player: skip the 3 flooded clearing centres
       excl = RTT_MARSH_EXCLUDED
       if excl == nil then
@@ -7875,6 +7860,61 @@ end
 -- grid) or a faction board instead, so badger relics / forest centres landed on the wrong board (audit).
 -- The map board among the objects TAGGED as map pieces: the one with the most snap points. Cheap --
 -- it looks at a handful of objects -- and safe to call repeatedly, which rttWhenMapReady does.
+-- ---- THE MAP, READ OFF THE TABLE ----------------------------------------------------------------
+-- Maintainer, 2026-09-17, after the cats went out onto bare felt: "any general rule?" This is it.
+-- Which map is standing is a fact about the TABLE, and the table is where it is read: the board
+-- carries "RTT Map", "RTT Map: <name>" and, for the five-player Marsh, "RTT Map 5P" from the frame it
+-- is placed, so Clear All, a reload or an old save cannot disagree with it. RTT_CURRENT_MAP and
+-- RTT_MARSH_5P_BUILT are only what this board last PLACED -- kept for the saved state -- and no piece
+-- is positioned from them any more. Everything that wants the map asks rttMap() and nothing else.
+RTT_MAP_TAG       = "RTT Map"
+RTT_MAP_NAME_TAG  = "RTT Map: "
+RTT_MAP_5P_TAG    = "RTT Map 5P"
+RTT_MAP_MIN_SNAPS = 40       -- a board carries a score track's worth; a ruin or a marker a handful
+
+function rttTagMap(board, name, fivep)
+  if board == nil then return end
+  pcall(function()
+    local tags = {}
+    for _, t in ipairs(board.getTags() or {}) do
+      if t ~= RTT_MAP_TAG and t ~= RTT_MAP_5P_TAG
+         and string.sub(t, 1, #RTT_MAP_NAME_TAG) ~= RTT_MAP_NAME_TAG then tags[#tags + 1] = t end
+    end
+    tags[#tags + 1] = RTT_MAP_TAG
+    if name ~= nil and name ~= "" then tags[#tags + 1] = RTT_MAP_NAME_TAG .. name end
+    if fivep == true then tags[#tags + 1] = RTT_MAP_5P_TAG end
+    board.setTags(tags)
+  end)
+end
+
+-- The board, its name and whether it is the five-player Marsh -- or nil, nil, false when there is no
+-- map. The name is nil for a board this build cannot name.
+function rttMap()
+  local board = nil
+  pcall(function() board = (getObjectsWithTag(RTT_MAP_TAG) or {})[1] end)
+  if board == nil then
+    -- AN OLDER TABLE: a board placed by a build that did not tag it. Adopted on first sight -- named
+    -- from what this board last placed, if it still knows -- so the guess runs once and the table is
+    -- the truth from then on. A REAL board is asked for, a score track's worth of snap points: during
+    -- a build the first ruin to land is also a "Map Object" with a snap point or two.
+    local cand, n = rttMapBoardTagged(), 0
+    pcall(function() n = #(cand.getSnapPoints() or {}) end)
+    if cand == nil or n < RTT_MAP_MIN_SNAPS then return nil, nil, false end
+    rttTagMap(cand, RTT_CURRENT_MAP, RTT_MARSH_5P_BUILT == true)
+    board = cand
+  end
+  local name, fivep = nil, false
+  pcall(function()
+    for _, t in ipairs(board.getTags() or {}) do
+      if t == RTT_MAP_5P_TAG then fivep = true
+      elseif string.sub(t, 1, #RTT_MAP_NAME_TAG) == RTT_MAP_NAME_TAG then
+        name = string.sub(t, #RTT_MAP_NAME_TAG + 1)
+      end
+    end
+  end)
+  return board, name, fivep
+end
+
 function rttMapBoardTagged()
   local best, bestN = nil, 0
   for _, o in ipairs(getObjectsWithTag("Map Object")) do
@@ -7884,25 +7924,12 @@ function rttMapBoardTagged()
   return best
 end
 
+-- The board, or nil. This used to fall back to a scan of every object for "the most snap points",
+-- which during a teardown was anything at all and with no map on the table was a faction board or the
+-- pond -- the relics were placed against it. The table's own tag answers now; see rttMap.
 function rttFindMapObject()
-  local best = rttMapBoardTagged()
-  if best ~= nil then return best end
-  -- FALLBACK, for a table this board did not lay out: scan everything. Only reachable when no tagged
-  -- map piece has snap points, which also means it runs during a map TEARDOWN, when removeMapItems has
-  -- just destroyed them all. getGUID was called bare here, and a handle that getAllObjects returned a
-  -- moment before can be gone by the time it is asked -- "Object reference not set to an instance of an
-  -- object", which the maintainer hit once just after a button press on 2026-09-06. Every call to a
-  -- possibly-dead object is protected now.
-  local bestN = 0
-  for _, o in ipairs(getAllObjects()) do
-    local guid = nil
-    pcall(function() guid = o.getGUID() end)
-    if guid ~= nil and guid ~= "bab7e1" then   -- exclude the coordinator/score board
-      local ok, sp = pcall(function() return o.getSnapPoints() end)
-      if ok and sp and #sp > bestN then best, bestN = o, #sp end
-    end
-  end
-  return best
+  local board = rttMap()
+  return board
 end
 
 -- THE MAP CANNOT BE LEFT UNLOCKED. Maintainer, 2026-09-09: "can you also make sure that a map can
@@ -7977,7 +8004,7 @@ function rttHoldMapLocked()
   if RTT_MAP_LOCK_GUID ~= nil then pcall(function() m = getObjectFromGUID(RTT_MAP_LOCK_GUID) end) end
   if m == nil then
     pcall(function()
-      m = rttMapBoardTagged()
+      m = rttMap()
       RTT_MAP_LOCK_GUID = (m ~= nil) and m.getGUID() or nil
     end)
   end
@@ -8008,24 +8035,23 @@ end
 -- the map buttons + makeMap live on the MAIN board (bab7e1); clones (the solo/standard faction
 -- selectors) have their own Lua globals, so a clone's RTT_CURRENT_MAP is nil. This getter lets
 -- any clone read the main board's current map by GUID.
-function rttGetCurrentMap() return RTT_CURRENT_MAP end
+function rttGetCurrentMap() local _, name = rttMap() return name end
 
 function rttGetMarshExcluded() return RTT_MARSH_EXCLUDED end
 function rttGet5pMarsh() return RTT_5P_MARSH end
 
 function rttBadgerRelics()
-  -- RTT_PICKED.map is only set by the ranked-draft coordinator; on the solo/standard faction
-  -- board it is nil. Fall back to RTT_CURRENT_MAP (this board's last makeMap); and if THIS
-  -- object is a selector clone (its own RTT_CURRENT_MAP is nil), read the main board bab7e1.
-  local mapId = RTT_CURRENT_MAP or (RTT_PICKED or {}).map
-  if mapId == nil then
-    local mb = getObjectFromGUID("bab7e1")
-    if mb ~= nil then
-      local ok, mid = pcall(function() return mb.call("rttGetCurrentMap") end)
-      if ok and type(mid) == "string" then mapId = mid end
-    end
+  -- THE MAP, OFF THE TABLE (rttMap). The relics go into the map's forests, so no map means no relics
+  -- -- said out loud, where it used to return in silence -- and never relics placed against whatever
+  -- object happened to have the most snap points, which is what the old search did with no map out.
+  local m, mapId = rttMap()
+  if m == nil or mapId == nil then
+    pcall(function()
+      broadcastToAll("Keepers: there is no map on the table, so the relics stay in their bag. "
+                     .. "Place the map first.", { 1, 0.6, 0.2 })
+    end)
+    return
   end
-  if mapId == nil then return end
   local bag = nil
   for _, o in ipairs(getAllObjects()) do
     if o.name == "Bag" and (o.getName() or "") == "Relics" then bag = o break end
@@ -8034,8 +8060,6 @@ function rttBadgerRelics()
   local targets = {}
   local recorded = RTT_RELIC_POS[mapId]
   if recorded ~= nil then                          -- the maintainer's exact per-map spots (map-local)
-    local m = rttFindMapObject()
-    if m == nil then return end
     for _, lc in ipairs(recorded) do
       local w = m.positionToWorld({ lc[1], 0.05, lc[2] })
       targets[#targets + 1] = { w.x, w.z }
@@ -8944,6 +8968,9 @@ function makeMap(player,value,id,keepBoard)
   -- is placed, and 5P Setup deliberately leaves it alone. Only by comparing them can anything know
   -- whether the board on the table still fits the game about to be played.
   if id == "Marsh Map" then RTT_MARSH_5P_BUILT = (RTT_5P_MARSH == true) end
+  -- what the board about to stand IS, for its own tags (rttTagMap below): read now, not in a callback
+  -- frames later when a click may have changed the mode
+  local fivep = (id == "Marsh Map" and RTT_5P_MARSH == true)
   if id == "Mountain Map" then rttMapAfter(function() rttMountainLandmark() end) end
   if id == "Summer Map" then rttMapAfter(function() rttSpawnPriority("Summer Map", RTT_PRIO_SUMMERMAP) end) end
   if id == "Lake Map" then rttMapAfter(function() rttSpawnPriority("Lake Map", RTT_PRIO_LAKEMAP) end) end
@@ -8976,6 +9003,7 @@ function makeMap(player,value,id,keepBoard)
   local RTT_KEEP_BOARD = nil
   if keepBoard then pcall(function() RTT_KEEP_BOARD = rttFindMapObject() end) end
   removeMapItems(RTT_KEEP_BOARD)
+  rttTagMap(RTT_KEEP_BOARD, id, fivep)          -- a kept board carries the NEW build's facts
   Wait.time(function() pcall(function() rttPlaceUnplacedVPs() end) end, 2.0)  -- markers that had no track yet
   -- The battle mat belongs to the map, so it spawns HERE, with every map placement -- the map BUTTONS
   -- call makeMap directly and so never got one; only the draft's rttPlaceMap did. Tagged "Map Object",
@@ -9055,14 +9083,14 @@ function makeMap(player,value,id,keepBoard)
   if id == "Mountain Map" then RTT_OV = rttMountainPlan(objects) end
   local scale = rttPlaceScale()
 
-  local boardIdx = (RTT_KEEP_BOARD ~= nil) and rttMapBoardIndex(objects) or nil
+  local boardIdx = rttMapBoardIndex(objects)   -- the board: the blueprint piece with the most snap points
   local mapSpecs = {}
   for idx,v in ipairs(objects) do
     local rtt_rot = nil
     local rtt_ov = false
     local new_pos
     local ovJson = nil
-    local skip = (boardIdx ~= nil and idx == boardIdx)   -- the board is already on the table
+    local skip = (RTT_KEEP_BOARD ~= nil and idx == boardIdx)   -- the board is already on the table
     if RTT_OV ~= nil and RTT_OV[idx] ~= nil then
       skip = skip or (RTT_OV[idx].skip == true)   -- `or`: never un-skip the board we kept
       ovJson = RTT_OV[idx].json
@@ -9093,6 +9121,8 @@ function makeMap(player,value,id,keepBoard)
           spawned_object.addTag("Map Object")
           end
         spawned_object.addTag("Map Object")
+        -- THE BOARD SAYS WHICH MAP IT IS, from the frame it lands: see rttMap
+        if idx == boardIdx then rttTagMap(spawned_object, id, fivep) end
         -- A CARD THAT COMES WITH A MAP STANDS IN THE HELPER ROW. The Marsh ships a rules card of its
         -- own (CardID 73300) and the Flotilla did not make way for it, because only the 5-player
         -- town cards were tagged: "does not move to the left when helper cards are spawned with maps

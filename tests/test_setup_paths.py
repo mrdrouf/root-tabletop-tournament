@@ -2795,6 +2795,81 @@ def t_clear_all_forgets_the_map_and_the_cats_stay_in_the_supply(src):
     assert any("no map" in m for m in msg), "the cats stayed in the supply without saying why: %s" % msg
 
 
+def t_the_map_is_read_off_the_table_not_remembered(src):
+    """Which map is standing is read off the board's own tags; memory is never asked.
+
+    Maintainer, 2026-09-17: "from these bugs any general rule?" -- the cats read a remembered map name
+    after Clear All had destroyed the map; the relics did the same and then took "the object with the
+    most snap points" for the board, which with no map out is a faction board or the pond. So the board
+    is tagged with its name (and 5P for the five-player Marsh) the frame it is placed, rttMap() reads
+    that and nothing else, and the old fallback search is gone. An older table's untagged board is
+    adopted once, named from the saved state, and only a real board -- a score track's worth of snap
+    points -- is ever adopted, never the first ruin to land.
+    """
+    rt = fresh(src)
+    rt.execute("SEAT('Red') pcall(function() makeMap(Player['Red'], '', 'Summer Map') end) FLUSH(80)")
+    got = rt.eval("""function()
+      local b, n, f = rttMap()
+      return { has = b ~= nil, name = n or '', fivep = f,
+               tagged = (b ~= nil) and b.hasTag('RTT Map: Summer Map') or false,
+               snaps = (b ~= nil) and #b.getSnapPoints() or 0 }
+    end""")()
+    assert got["has"], "the map that was just placed is not found by its tag"
+    assert got["name"] == "Summer Map", "the board is named %r" % got["name"]
+    assert got["tagged"] and got["fivep"] is False, "the board carries the wrong tags"
+    assert got["snaps"] >= 40, "the tagged object is not the board (%d snap points)" % got["snaps"]
+
+    # memory lies; the table wins
+    rt.execute("RTT_CURRENT_MAP = 'Mountain Map'")
+    assert rt.eval("function() local _, n = rttMap() return n end")() == "Summer Map", \
+        "rttMap answered from memory, not from the board"
+    assert rt.eval("rttGetCurrentMap()") == "Summer Map", "the getter answered from memory"
+
+    # the board goes, and the answer goes with it -- no fallback to whatever has the most snap points
+    rt.execute("for _, o in ipairs(getObjectsWithTag('RTT Map')) do o.destruct() end")
+    assert rt.eval("function() return rttMap() == nil end")(), "a destroyed map is still 'on the table'"
+    assert rt.eval("rttFindMapObject()") is None, "rttFindMapObject fell back to some other object"
+
+    # an older table: a ruin is not a board; an untagged board is adopted once and tagged from the state
+    rt.execute("""
+      RTT_CURRENT_MAP = 'Gorge Map' RTT_MARSH_5P_BUILT = false
+      RUIN = MKOBJ('RUIN', { 1, 11.6, 1 }, { 'Map Object' }) RUIN.__snaps = { { position = { 0, 0, 0 } } }
+      A1 = rttMap()
+      OLD = MKOBJ('Gorge', { 0, 11.5, 0 }, { 'Map Object' })
+      OLD.__snaps = {} for i = 1, 45 do OLD.__snaps[i] = { position = { 0, 0, 0 } } end
+      B, N = rttMap()
+    """)
+    assert rt.eval("A1") is None, "a ruin with one snap point was adopted as the map"
+    assert rt.eval("B == OLD"), "the untagged board was not adopted"
+    assert rt.eval("N") == "Gorge Map", "the adopted board was named %r" % rt.eval("N")
+    assert rt.eval("OLD.hasTag('RTT Map') and OLD.hasTag('RTT Map: Gorge Map')"), \
+        "the adopted board was not tagged, so the guess would run again"
+
+
+def t_the_marsh_variant_is_read_off_the_board(src):
+    """Whether the five-player Marsh is standing is read off the board, so a stale flag cannot rebuild it.
+
+    rttFixMarshVariant compared the mode about to be played with RTT_MARSH_5P_BUILT, a remembered
+    flag; Clear All used to leave it set with no board at all. The board carries "RTT Map 5P" now.
+    """
+    rt = fresh(src)
+    rt.execute("""
+      MM = {}
+      makeMap = function(p, v, id, keep) MM[#MM + 1] = tostring(id) .. '|' .. tostring(keep) end
+      RTT_5P_MARSH = false
+      RTT_MARSH_5P_BUILT = true          -- memory says five-player...
+      MAPB = PUT_MAP('Marsh Map', false) -- ...the board says four
+      rttFixMarshVariant()
+      A = #MM
+      MAPB.destruct() MAPB = PUT_MAP('Marsh Map', true)
+      RTT_MARSH_5P_BUILT = false         -- memory says four-player, the board says five
+      rttFixMarshVariant()
+      B = MM[#MM] or ''
+    """)
+    assert rt.eval("A") == 0, "a four-player board was rebuilt on the word of a stale flag"
+    assert rt.eval("B") == "Marsh Map|true", "the five-player board was not rebuilt for a four-player game: %r" % rt.eval("B")
+
+
 def t_destroying_priority_markers_forgets_their_map(src):
     """RTT_PRIO_MAP means "which map's markers are ON THE TABLE", so destroying them ends its life.
 
@@ -5506,7 +5581,7 @@ def t_a_warning_describes_what_the_click_really_does(src):
 
     # THE REPORT. A map is down and a setup button is pressed: the same map goes straight back, so
     # there is nothing to warn about and the click must simply run.
-    rt.execute("RTT_CURRENT_MAP = 'Summer Map'")
+    rt.execute("MAPB = PUT_MAP('Summer Map')")
     assert warn(setup) is False, \
         "a setup button warned about a map it is about to put back exactly as it was"
     # ...and the same map asked for again is not a reset either
@@ -5520,13 +5595,13 @@ def t_a_warning_describes_what_the_click_really_does(src):
     # NOT EVEN ON THE MAPS THAT RE-ROLL. A setup click no longer re-places the map at all, so the
     # Marsh keeps the flooding the table set up and the Mountain keeps its lost city.
     for mid in ("Marsh Map", "Mountain Map"):
-        rt.execute("RTT_CURRENT_MAP = %r RTT_MARSH_5P_BUILT = false" % mid)
+        rt.execute("MAPB.destruct() MAPB = PUT_MAP(%r, false)" % mid)
         assert warn(setup) is False, \
             "4-Player Setup warned about the %s, which it no longer touches" % mid
 
     # THE ONE CASE A SETUP BUTTON DOES CHANGE THE MAP: the Marsh's two boards. A four-player game
     # cannot be played on the five-player board, so starting one rebuilds it -- and says so.
-    rt.execute("RTT_CURRENT_MAP = 'Marsh Map' RTT_MARSH_5P_BUILT = true")
+    rt.execute("MAPB.destruct() MAPB = PUT_MAP('Marsh Map', true)")
     assert warn(setup) is True, \
         "4-Player Setup on the FIVE-player Marsh must rebuild the board and warn that it will"
     # startswith, not equality: the same wording ships square and wide, and a button that changes rows
@@ -5537,10 +5612,10 @@ def t_a_warning_describes_what_the_click_really_does(src):
     # ...and the five-player buttons are the mirror image
     five = rt.eval("RTT_WIPE_BTN['Marsh5P']")
     assert warn(five) is False, "5-Player Draft warned about a five-player board it is happy with"
-    rt.execute("RTT_MARSH_5P_BUILT = false")
+    rt.execute("MAPB.destruct() MAPB = PUT_MAP('Marsh Map', false)")
     assert warn(five) is True, "5-Player Draft on the FOUR-player Marsh did not warn"
     assert warn(setup) is False, "4-Player Setup warned about the board it already wants"
-    rt.execute("RTT_CURRENT_MAP = 'Summer Map'")
+    rt.execute("MAPB.destruct() MAPB = PUT_MAP('Summer Map')")
 
     # A FACTION OUTRANKS EITHER. It is the bigger loss and it is what a setup button is for.
     rt.execute("MKOBJ('Eyrie Warrior', {2,1,2}, {'RTT Faction'})")
@@ -13964,6 +14039,8 @@ CASES = [
     ("the pond leaves a panel still spawning alone", t_the_pond_ping_leaves_a_panel_still_spawning_alone),
     ("the board remembers each vp marker",   t_the_board_remembers_each_vp_marker_by_guid),
     ("clear all forgets the map",            t_clear_all_forgets_the_map_and_the_cats_stay_in_the_supply),
+    ("the map is read off the table",        t_the_map_is_read_off_the_table_not_remembered),
+    ("the marsh variant is read off the board", t_the_marsh_variant_is_read_off_the_board),
     ("+/- only moves the VP marker",         t_the_plus_minus_buttons_only_move_the_marker),
     ("variant picks are capped",             t_a_faction_cannot_be_given_more_options_than_it_has),
     ("5p gives the middle board room",       t_five_players_give_the_middle_board_room),

@@ -449,6 +449,17 @@ function getObjectsWithTag(t)
   for _, o in pairs(LIVE) do if not o.__dead and o.hasTag(t) then r[#r+1] = o end end
   return r
 end
+-- A MAP BOARD AS THE MOD TAGS ONE when it places it: "Map Object", a score track's worth of snap
+-- points, and the RTT Map tags rttMap() reads. `fivep` marks the five-player Marsh board.
+function PUT_MAP(name, fivep)
+  local m = MKOBJ(name or "Map", { 0, 11.5, 0 }, { "Map Object", "RTT Map" })
+  if name ~= nil then m.addTag("RTT Map: " .. name) end
+  if fivep == true then m.addTag("RTT Map 5P") end
+  m.__snaps = {}
+  for i = 1, 40 do m.__snaps[i] = { position = { 0, 0, 0 } } end
+  m.setLock(true)
+  return m
+end
 -- the gizmo asks who you are hovering and where you are pointing
 HOVER = {}
 POINTER = {}
