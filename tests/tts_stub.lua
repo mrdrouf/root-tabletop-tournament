@@ -537,11 +537,16 @@ end
 -- which pairs were stacked and that every card it meant to reach was reached.
 GROUPED = {}
 REPAIRED = {}
+GROUPED_AT = {}                                  -- where each pile formed: the FIRST object's spot, as in TTS
 
 function group(objs)
   objs = objs or {}
   if #objs < 2 then return {} end                -- TTS will not make a pile out of one card
   local pile = MKDECK({})
+  local at = nil
+  pcall(function() at = objs[1].getPosition() end)
+  if at ~= nil then pile.setPosition(at) end
+  GROUPED_AT[#GROUPED_AT + 1] = at
   local note = {}
   for _, o in ipairs(objs) do
     local g, nick, desc, fd = nil, "card", "", false

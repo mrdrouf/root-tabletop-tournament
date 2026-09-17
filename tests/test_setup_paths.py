@@ -8667,12 +8667,12 @@ def t_the_resync_button_restacks_the_cards_on_the_table(src):
 
 
 def t_the_card_restack_is_paced_like_a_spawn(src):
-    """The card pass goes one pair a frame at most, and finishes every pair it starts.
+    """The card pass starts one card a frame at most, and finishes every card it starts.
 
-    A stack is a destroy AND a create for both cards, which is heavier than anything else the sweep
-    does -- and the whole reason this file staggers is that a burst of create messages is what loses
-    objects in the first place. Twelve cards is six piles; never two in one frame, and all twelve loose
-    again at the end.
+    A restack is four creates per card, which is heavier than anything else the sweep does -- and the
+    whole reason this file staggers is that a burst of create messages is what loses objects in the
+    first place. Twelve cards is twelve piles; never two starting in one frame, and exactly twelve
+    loose cards at the end -- no copy left behind.
     """
     rt = fresh(src)
     _card_probe(rt)
@@ -8681,17 +8681,18 @@ def t_the_card_restack_is_paced_like_a_spawn(src):
       for i = 1, 12 do DECK[i] = MKOBJ("Card", { 10 + i, 1, 0 }, {}) end
       rttResyncReloadCards(function() end)
     """)
-    assert rt.eval("function() return #GROUPED end")() == 1, (
-        "the first frame started %d pairs, not one" % rt.eval("function() return #GROUPED end")())
+    rt.execute("FLUSH(2)")
+    early = rt.eval("function() return #GROUPED end")()
+    assert 1 <= early <= 2, "two frames in, %d piles exist: the pass did not start at once, or burst" % early
     per_frame = []
     for _ in range(120):
         a = rt.eval("function() return #GROUPED end")()
         rt.execute("FLUSH(1)")
         per_frame.append(rt.eval("function() return #GROUPED end")() - a)
     assert max(per_frame) <= 1, "a frame started more than one pair: %s" % [n for n in per_frame if n]
-    assert rt.eval("function() return #GROUPED end")() == 6, (
-        "twelve cards should be six piles; %d were made" % rt.eval("function() return #GROUPED end")())
-    assert rt.eval("CARDN()") == 12, "only %d of the 12 cards are loose again" % rt.eval("CARDN()")
+    assert rt.eval("function() return #GROUPED end")() == 12, (
+        "twelve cards should be twelve piles, one each; %d were made" % rt.eval("function() return #GROUPED end")())
+    assert rt.eval("CARDN()") == 12, "%d loose cards where there were 12: a copy was left or a card lost" % rt.eval("CARDN()")
 
 
 def t_a_restacked_card_comes_back_whole(src):
@@ -8733,6 +8734,7 @@ def t_a_restacked_card_comes_back_whole(src):
         "the card is at %.3f,%.3f,%.3f, not where it stood" % (got["x"], got["y"], got["z"]))
     spawned = list(dict(rt.eval("RTT_SPAWNED") or {}).values())
     assert rt.eval("OLD") in spawned, "RTT_SPAWNED no longer names the card, so Clear All would leave it"
+    assert rt.eval("CARDN()") == 2, "%d loose cards where there were 2: a copy was left behind" % rt.eval("CARDN()")
 
 
 def t_the_card_restack_leaves_alone_what_it_must(src):
@@ -8778,6 +8780,8 @@ def t_the_card_restack_leaves_alone_what_it_must(src):
     assert rt.eval("EMPTYSCRIPT") is True, (
         "a card whose only script is an empty onLoad was skipped as scripted; that is a third of the "
         "shared deck, and every drawn card on the table")
+    # nine loose cards went in (six spared, three controls); nine come out -- no copy left behind
+    assert rt.eval("CARDN()") == 9, "%d loose cards where there were 9" % rt.eval("CARDN()")
 
 
 def t_no_deck_card_in_the_build_carries_a_script(src):
@@ -8813,20 +8817,18 @@ def t_no_deck_card_in_the_build_carries_a_script(src):
 
 
 def t_a_card_the_stack_loses_is_put_back(src):
-    """If a pile ever swallows a card, the pass spawns it again from the blueprint it kept.
+    """If a pile ever swallows the original, the table still ends with exactly one such card, restored.
 
-    THE ONE WAY THIS REPAIR COULD COST SOMETHING. group() destroys both cards before the pile exists,
-    and takeObject is a create -- a failure between the two leaves nothing, and a vanished card is a
-    worse outcome than a card showing its back, which is the whole complaint. So every card is
-    snapshotted before it is touched (its JSON, its tags, its lock, where it stood); a pile that does
-    not give both cards back within RTT_STACK_PATIENCE frames is rolled back -- the pile destroyed,
-    the missing card respawned from its snapshot -- and the accounting pass at the end puts back
-    anything still unaccounted for.
+    THE ONE WAY THIS REPAIR COULD COST SOMETHING. group() destroys the card and its copy before the
+    pile exists, and takeObject is a create -- a failure between the two leaves nothing, and a vanished
+    card is a worse outcome than a card showing its back. So every card is snapshotted before it is
+    touched; a pile that does not give the original back within RTT_RESTACK_PATIENCE frames is rolled
+    back, and the rollback keeps whichever instance survives -- the copy is the same card, and is
+    adopted -- or respawns from the snapshot when nothing did.
 
     AND IT MUST NOT PUT BACK WHAT IS STILL THERE. Spawning a duplicate is the mirror-image bug, so a
-    card counts as absent only when it answers to neither guid, nothing stands within a whisker of
-    where it was, and nobody at the table is mid-drag with a card that could be it. The second half of
-    this test is the ordinary case, where the stack works and the count must not grow.
+    card is respawned only when it answers to no guid, no card of its name stands on its spot, and no
+    pile holds it. The second half of this test is the ordinary case, where the count must not grow.
     """
     rt = fresh(src)
     _card_probe(rt)
@@ -13645,31 +13647,23 @@ def t_the_winged_menace_hand_is_built_from_the_seat_not_read_back(src):
         "spawnWingedMenaceExtraHand is called without the seat's hand: %s" % calls)
 
 
-def t_a_resync_stacks_and_splits_every_loose_card(src):
-    """A resync repairs a table card by stacking it with a partner and taking both back out, exactly.
+def t_a_resync_restacks_every_loose_card_with_its_own_copy(src):
+    """A resync repairs each loose card by stacking it with a copy of itself, on its own spot, exactly.
 
-    Maintainer, 2026-09-17: "puting a card on top of another like stacking the; does make a card
-    appear" -- a card a client draws blank is cured by a NEW object instance, and stacking two cards
-    into a pile is one. reload() is also a destroy plus a create, and the code's own comment reasoned
-    the two were equivalent; the table says they are not: the reload ran (4 of 4 eligible cards, in
-    this harness) and the cards stayed blank. So the repair is now the real thing.
+    Maintainer, 2026-09-17: "do copy each card and each card gets restacked with its own copy, cards
+    should not move anymore." Pairs of table cards were the first version and made a card blink across
+    the table to its partner's spot; this version never involves another card at all.
 
-    WHAT IS PROVED, and it is the list a design review asked for:
-      - every eligible card goes through a pile, ODD COUNTS INCLUDED -- five cards, five repaired, the
-        odd one partnered with a card already done rather than left as broken as it started;
+    WHAT IS PROVED:
+      - every eligible card goes through a pile, and ONE pile each: five cards, five piles, and each
+        pile held exactly that card plus one other object (its copy);
+      - every pile formed ON THE CARD'S OWN SPOT, which is what "cards should not move" means;
       - each card comes back under ITS OWN guid, at its exact position and rotation -- a face-down
-        card in each role (the one taken out, and the one left to collapse) stays face down;
-      - tags, lock and a non-unit scale are restored;
-      - NO PILE IS LEFT: at the end no Deck holds any repaired guid;
-      - a card in a hand and a held card are never touched and never appear in REPAIRED;
-      - real decks are untouched;
-      - it is paced: never more than one pair (two cards) starts in any frame;
+        card stays face down; tags, lock and a non-unit scale are restored;
+      - NO COPY IS LEFT and NO PILE IS LEFT: the table holds exactly the loose cards it held before;
+      - a card in a hand and a held card are never touched; a real deck is untouched;
+      - it is paced: never more than one card starts in any frame;
       - the busy flags end down.
-
-    The stub's group() and its collapsing takeObject are what make this a behavioural test rather than
-    a source-order one: MKDECK.takeObject destroys the pile when the second-last card leaves and spawns
-    the last one loose under the guid it had inside, which is exactly the branch the first version of
-    this repair got wrong.
     """
     rt = fresh(src)
     rt.execute("""
@@ -13711,35 +13705,38 @@ def t_a_resync_stacks_and_splits_every_loose_card(src):
       DECK.setPosition({ 60, 1, 0 })
       DECKGUID = DECK.getGUID()
       DECKN = DECK.getQuantity()
-
-      GROUPED = {}; REPAIRED = {}
-      -- pacing: count group() calls per FLUSH step
-      STEPS = {}
-      local realGroup = group
-      group = function(objs) STEPS[#STEPS + 1] = #GROUPED return realGroup(objs) end
+      function CARDN() local n = 0
+        for _, o in ipairs(getAllObjects()) do if o.tag == 'Card' then n = n + 1 end end return n end
+      BEFORE = CARDN()
+      GROUPED = {}; REPAIRED = {}; GROUPED_AT = {}
       OK = rttResyncSweep(nil, false, true)
     """)
     assert rt.eval("OK") is True, "the sweep refused to start"
-    # drive frames one at a time and watch how many pairs start per frame
     starts_per_frame = []
-    for _ in range(120):
+    for _ in range(160):
         before = rt.eval("function() return #GROUPED end")()
         rt.execute("FLUSH(1)")
-        after = rt.eval("function() return #GROUPED end")()
-        starts_per_frame.append(after - before)
+        starts_per_frame.append(rt.eval("function() return #GROUPED end")() - before)
     assert max(starts_per_frame) <= 1, (
-        "more than one pair started in a single frame: %s" % [n for n in starts_per_frame if n])
+        "more than one card started in a single frame: %s" % [n for n in starts_per_frame if n])
 
-    repaired = set((rt.eval("REPAIRED") or {}).values())
-    want = set(rt.eval("function() local t = {} for i, c in ipairs(CARDS) do t[i] = c.guid end return t end")().values())
-    assert want <= repaired, (
-        "not every loose card went through a pile; missing %s" % sorted(want - repaired))
-    assert rt.eval("function() return #GROUPED end")() == 3, (
-        "five cards should be three pairs (the odd card partnered with a done one); got %d"
-        % rt.eval("function() return #GROUPED end")())
+    n_groups = rt.eval("function() return #GROUPED end")()
+    assert n_groups == 5, "five cards should be five piles, one each; got %d" % n_groups
+    for i in range(1, 6):
+        g = rt.eval("function() return CARDS[%d].guid end" % i)()
+        entries = [rt.eval("function() return GROUPED[%d] end" % k)() for k in range(1, n_groups + 1)]
+        mine = [e for e in entries if g in e.split(",")]
+        assert len(mine) == 1, "card %d went through %d piles, not one: %s" % (i, len(mine), mine)
+        assert len(mine[0].split(",")) == 2, "card %d's pile held %s, not the card and its copy" % (i, mine[0])
+        k = entries.index(mine[0]) + 1
+        ax, az = rt.eval("function() return GROUPED_AT[%d].x, GROUPED_AT[%d].z end" % (k, k))()
+        wx, wz = rt.eval("function() return CARDS[%d].pos[1], CARDS[%d].pos[3] end" % (i, i))()
+        assert abs(ax - wx) < 0.01 and abs(az - wz) < 0.01, (
+            "card %d's pile formed at (%.2f, %.2f), not on the card's own spot (%.2f, %.2f)" % (i, ax, az, wx, wz))
 
     held = rt.eval("function() return HELD.getGUID() end")()
     inhand = rt.eval("function() return INHAND.getGUID() end")()
+    repaired = set((rt.eval("REPAIRED") or {}).values())
     assert held not in repaired, "a held card was stacked"
     assert inhand not in repaired, "a card in a hand was stacked"
 
@@ -13768,23 +13765,22 @@ def t_a_resync_stacks_and_splits_every_loose_card(src):
             has = rt.eval("function() return getObjectFromGUID(CARDS[%d].guid).hasTag('%s') end" % (i, t))()
             assert has, "card %d lost its tag %r" % (i, t)
 
-    # no pile left holding any repaired card; the real deck untouched
+    # no copy left, no pile left, the real deck untouched
+    after = rt.eval("CARDN()")
+    before = rt.eval("BEFORE")
+    assert after == before, "the table holds %d loose cards where it held %d: a copy was left behind" % (after, before)
     leftover = rt.eval("""function()
       local n = 0
       for _, o in ipairs(getAllObjects()) do
-        if o.tag == 'Deck' and o.getGUID() ~= DECKGUID then
-          for _, c in ipairs(o.getObjects() or {}) do
-            for _, k in ipairs(CARDS) do if c.guid == k.guid then n = n + 1 end end
-          end
-        end
+        if o.tag == 'Deck' and o.getGUID() ~= DECKGUID then n = n + 1 end
       end
       return n
     end""")()
-    assert leftover == 0, "%d repaired card(s) are still inside a pile" % leftover
-    assert rt.eval("function() local d = getObjectFromGUID(DECKGUID) return d ~= nil and d.getQuantity() == DECKN end")(), \
-        "the real deck was changed"
-    assert rt.eval("RTT_RESYNC_BUSY") is False and rt.eval("RTT_RESYNCING") is False, \
-        "the sweep left its busy flags up"
+    assert leftover == 0, "%d pile(s) are still on the table after the sweep" % leftover
+    assert rt.eval("function() local d = getObjectFromGUID(DECKGUID) return d ~= nil and d.getQuantity() == DECKN end")(), (
+        "the real deck was changed")
+    assert rt.eval("RTT_RESYNC_BUSY") is False and rt.eval("RTT_RESYNCING") is False, (
+        "the sweep left its busy flags up")
 
 
 CASES = [
@@ -14009,7 +14005,7 @@ CASES = [
     ("a VP panel is yours alone",       t_a_vp_panel_only_answers_its_own_seat),
     ("resync leaves hands alone",      t_a_resync_leaves_hand_zones_alone),
     ("winged menace hand from the seat", t_the_winged_menace_hand_is_built_from_the_seat_not_read_back),
-    ("resync stacks and splits cards",  t_a_resync_stacks_and_splits_every_loose_card),
+    ("resync restacks each card in place", t_a_resync_restacks_every_loose_card_with_its_own_copy),
 ]
 
 
