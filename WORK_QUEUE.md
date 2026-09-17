@@ -237,10 +237,11 @@ Diagnosed first, then the maintainer said "fix all the other things as well". On
       FOUND, v1.441: the blueprint keeps every seat colour's boxes at the table's long edges and every
       game moved them behind the seats AFTER seating -- the exact move TTS drops on the owner's client.
       THE RULE NOW (rttPlaceSeatHands): a hand box only moves while nobody owns its colour. The draft
-      parks everyone in a seat colour, places every seat's hand 1 and hand 2, then seats; a manual pick
-      hops the picker off, places, hops back; Resync does the same as a repair (a real change, then the
-      exact box, while the player is off). The bats' second hand shares the supporters spot. A row
-      still missing after Resync needs a rejoin, and the message says so. Not yet confirmed in TTS. If yes, the hop reaches them and the bar is
+      parks everyone in a seat colour, places every seat's hand, then seats; a manual pick hops the
+      picker off, places, hops back; Resync does the same as a repair (a real change, then the exact
+      box, while the player is off). Hand 2 (Alliance, bats) is left exactly as it was -- v1.441 gave
+      every seat a supporters box ("the supporter box spawned on the eyrie faction spawn ??!!"), undone
+      in v1.443: "there is never an issue with that alliance box". Not yet confirmed in TTS. If yes, the hop reaches them and the bar is
       the zone object (no script lever found short of recreating the zone, which is only safe when
       the hand is empty). If no, the hop is not reaching that client at all.
 - [x] **Resync does not heal the crow plots.** v1.433 (ca9a547): the reload pass takes every loose tile and token. The plots are ordinary unlocked tiles inside the

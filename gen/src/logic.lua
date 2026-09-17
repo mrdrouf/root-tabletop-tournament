@@ -2695,7 +2695,7 @@ end
 -- "changing colors does not help"), which re-read nothing; and writing the box while the player sat
 -- in it, which is the very write the client drops.
 --
--- THIS ONE FOLLOWS THE RULE (rttPlaceSeatHands): the player is stepped off, BOTH boxes are written
+-- THIS ONE FOLLOWS THE RULE (rttPlaceSeatHands): the player is stepped off, the hand box is written
 -- from the seat record while nobody owns the colour -- a real change first, then the exact box -- and
 -- the player is stepped back. The hand, its cards and the turn slot belong to the COLOUR, so nothing
 -- is taken from anyone. Strictly one player at a time, so no two colours are ever free at once; only
@@ -2732,7 +2732,7 @@ function rttResyncReseatOne(color, id, name, next)
   local stepped = false
   pcall(function() p.changeColor("Grey") stepped = true end)
   if not stepped then return false end
-  rttPlaceSeatHands(color, seat.hand, true)                -- both boxes, while nobody owns the colour
+  rttPlaceSeatHands(color, seat.hand, true)                -- the hand box, while nobody owns the colour
   local tries = 0
   local function back()
     tries = tries + 1
@@ -3525,7 +3525,7 @@ function makeFaction(player,value,id,source)
   }
   -- OFF, PLACED, BACK. The picker's own boxes may not move while the picker owns the colour -- TTS
   -- drops that move on the owner's client, see rttPlaceSeatHands -- so the picker is parked in Grey
-  -- for the frame it takes, both boxes are placed from this seat, and the picker sits back down.
+  -- for the frame it takes, the hand is placed from this seat, and the picker sits back down.
   local pc = player.color
   rttPlaceHandsAround(pc, { pos = seatHand.position, rot = seatHand.rotation })
 
@@ -3713,10 +3713,30 @@ end
 -- cards into the old supporter area"); this twin never got the fix. hand1 is optional so any older
 -- caller still works, but the one caller passes it.
 function spawnWingedMenaceExtraHand(color, hand1)
-  -- SHARES THE SUPPORTERS SPOT since 2026-09-17. Hand 2 is placed for every seat while nobody owns the
-  -- colour (rttPlaceSeatHands), and one second-hand spot per seat is what makes that possible; the
-  -- bats' own spot and size went with it. This is the fallback for a seat this build did not place.
-  spawnSupportersHand(color, hand1)
+  hand1 = hand1 or Player[color].getHandTransform(1)
+  -- BOTH SHAPES, like rttSupportersTransform: a transform read back from TTS carries Vectors (.x .y .z)
+  -- while the seat's own seatHand is built with a plain {0, y, 0} array for its rotation. Indexing only
+  -- one of them is a nil in arithmetic on the other -- the harness caught exactly that on the first
+  -- version of this fix, with a fixture shaped like the real seatHand.
+  local pos = hand1.position or {}
+  local rot = hand1.rotation or {}
+  local angleY = rot.y or rot[2] or 0
+  local posX = pos.x or pos[1] or 0
+  local posZ = pos.z or pos[3] or 0
+
+  local angle = 1.07 * 2 * math.pi/6 - (math.pi/180 * angleY)
+
+  local offsetX = math.cos(angle) * 13.53
+  local offsetZ = math.sin(angle) * 13.53
+
+  local posy = Vector({posX + offsetX,12.56,posZ + offsetZ})
+  local roty = rot
+
+  Player[color].setHandTransform({
+      position = posy,
+      rotation = roty,
+      scale    = {5.99, 5.4, 5.50},
+  }, 2)
 end
 
 -- Where the supporters zone (hand 2) sits for a seat whose MAIN hand is `hand1`. A PURE function of
@@ -3750,39 +3770,36 @@ end
 -- applies the move; every other client does, and only a reconnect repairs it. So that client's row at
 -- the bottom stays empty while everybody else sees them seated with cards.
 --
--- THE RULE: a hand box is only ever moved while nobody owns its colour. The draft parks everyone in
--- Grey, places every seat's boxes, THEN seats (rttSeatPlayers); a manual pick hops the picker off,
--- places, hops back (rttPlaceHandsAround); Resync does the same as a repair (rttResyncReseatOne).
--- Hand 1 is the seat's own hand; hand 2 goes to the seat's supporters spot for EVERY seat, so the
--- Alliance -- and the bats, who share that spot now -- need no move of their own when picked.
+-- THE RULE: a seat's hand box is only ever moved while nobody owns its colour. The draft parks
+-- everyone in Grey, places every seat's box, THEN seats (rttSeatPlayers); a manual pick hops the
+-- picker off, places, hops back (rttPlaceHandsAround); Resync does the same as a repair
+-- (rttResyncReseatOne).
+-- HAND 1 ONLY. Hand 2 -- the Alliance's supporters box, the bats' Winged Menace box -- is placed by
+-- those factions exactly as it always was and is not touched here. Maintainer, 2026-09-17, on a build
+-- that gave every seat a supporters box ("the supporter box spawned on the eyrie faction spawn ??!!"):
+-- "there is never an issue with that alliance box so leave it out of the fix."
 --
--- `jog`: first a real change (both boxes 5% larger, about the same centre), then the exact boxes, so
--- a client whose copy is stale definitely receives an update -- a write the host sees as no change
--- may never go on the wire. Growing then returning cannot push out a card the box held.
+-- `jog`: first a real change (the box 5% larger, about the same centre), then the exact box, so a
+-- client whose copy is stale definitely receives an update -- a write the host sees as no change may
+-- never go on the wire. Growing then returning cannot push out a card the box held.
 function rttPlaceSeatHands(color, hand, jog)
   if color == nil or color == "Grey" or color == "Black" then return end
   if hand == nil or hand.pos == nil then return end
   local h1 = { position = hand.pos, rotation = hand.rot or { 0, 0, 0 }, scale = RTT_HAND_SCALE }
-  local h2 = rttSupportersTransform(h1)
   if jog then
     local g = RTT_HAND_FIX_GROW
     pcall(function()
       Player[color].setHandTransform({ position = h1.position, rotation = h1.rotation,
         scale = { RTT_HAND_SCALE[1] * g, RTT_HAND_SCALE[2] * g, RTT_HAND_SCALE[3] * g } }, 1)
     end)
-    pcall(function()
-      Player[color].setHandTransform({ position = h2.position, rotation = h2.rotation,
-        scale = { h2.scale[1] * g, h2.scale[2] * g, h2.scale[3] * g } }, 2)
-    end)
   end
   pcall(function() Player[color].setHandTransform(h1, 1) end)
-  pcall(function() Player[color].setHandTransform(h2, 2) end)
 end
 
 -- The same, for a colour somebody is SITTING in: off to Grey, placed, straight back. The three land in
--- one frame on the host and in that order on every client, so no client owns the colour while the
--- boxes move. The hand is empty at a pick, so nobody loses a card. The player is found again by
--- identity for the way back, because a Player handle is stale after the first change.
+-- one frame on the host and in that order on every client, so no client owns the colour while the box
+-- moves. The hand is empty at a pick, so nobody loses a card. The player is found again by identity
+-- for the way back, because a Player handle is stale after the first change.
 function rttPlaceHandsAround(color, hand, jog)
   if color == nil or color == "Grey" or color == "Black" then return end
   local p, seated, id, name = nil, false, nil, nil
@@ -5086,7 +5103,7 @@ function rttSeatPlayers()
       pcall(function() p.changeColor("Grey") end)
     end
   end
-  -- THE BOXES, while nobody owns them: seat N wears colour N, so its two boxes are colour N's.
+  -- THE BOXES, while nobody owns them: seat N wears colour N, so its hand goes behind seat N.
   for i, seat in ipairs(RTT_SEATS or {}) do
     if seat ~= nil and seat.hand ~= nil then rttPlaceSeatHands(RTT_SETUP_COLORS[i], seat.hand) end
   end

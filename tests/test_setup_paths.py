@@ -1771,8 +1771,10 @@ def t_the_draft_moves_the_hand_boxes_while_nobody_owns_them(src):
     assert wrote, "no hand box was placed at all"
     for c in ("Red", "Yellow"):
         mine = [w for w in wrote if w.startswith(c)]
-        assert any(w.startswith(c + "1@") for w in mine) and any(w.startswith(c + "2@") for w in mine), (
-            "%s's two boxes were not both placed: %s" % (c, mine))
+        assert any(w.startswith(c + "1@") for w in mine), "%s's hand box was not placed: %s" % (c, mine)
+        assert not any(w.startswith(c + "2@") for w in mine), (
+            "%s's second box was touched; the maintainer: 'there is never an issue with that alliance "
+            "box so leave it out of the fix': %s" % (c, mine))
         for w in mine:
             at = w.split("@", 1)[1]
             assert ("%s -> Grey" % c) in at, "%s's box moved before %s was off the colour: %s" % (c, c, w)
@@ -1783,13 +1785,10 @@ def t_the_draft_moves_the_hand_boxes_while_nobody_owns_them(src):
     assert rt.eval("Player['Red'].steam_name") == "Alice" and rt.eval("Player['Yellow'].steam_name") == "Ben", \
         "the players did not end up back on their colours"
     assert rt.eval("Player['Grey'].steam_name") not in ("Alice", "Ben"), "somebody was left in Grey"
-    # hand 2 stands at the seat's supporters spot for BOTH seats, Alliance or not
-    for n, c in ((1, "Red"), (2, "Yellow")):
-        got = rt.eval("function() local h = Player['%s'].getHandTransform(2) return { x = h.position.x, z = h.position.z } end" % c)()
-        want = rt.eval("function() local h = rttSupportersTransform({ position = RTT_SEATS[%d].hand.pos, rotation = RTT_SEATS[%d].hand.rot }) return { x = h.position.x, z = h.position.z } end" % (n, n))()
-        assert abs(got["x"] - want["x"]) < 0.01 and abs(got["z"] - want["z"]) < 0.01, (
-            "%s's second box is at (%.1f, %.1f), not the seat's supporters spot (%.1f, %.1f)"
-            % (c, got["x"], got["z"], want["x"], want["z"]))
+    # hand 2 stays PARKED: a build that gave every seat a supporters box put one beside the Eyrie
+    for c in ("Red", "Yellow"):
+        x = rt.eval("function() return Player['%s'].getHandTransform(2).position.x end" % c)()
+        assert x < -60, "%s's second box was placed at x=%.1f although nobody uses it; it should stay parked" % (c, x)
 
 
 def t_seat_colour_is_the_turn_order(src):
@@ -13940,7 +13939,7 @@ def t_a_resync_leaves_hand_zones_alone(src):
     assert not calls, "rttResyncHands is called from the board script again: %s" % calls
 
 def t_a_resync_re_sends_every_seat_in_turn(src):
-    """Resync steps every seated player off their colour, re-places BOTH hand boxes from the seat while
+    """Resync steps every seated player off their colour, re-places their hand box from the seat while
     nobody owns the colour, and steps them back -- one at a time, after the card pass.
 
     The missing hand row is TTS's own defect (nolt 1010): a hand-box move is dropped by the client that
@@ -13981,8 +13980,8 @@ def t_a_resync_re_sends_every_seat_in_turn(src):
     wrote = list(dict(rt.eval("WROTE") or {}).values())
     for c in ("Red", "Blue"):
         mine = [w for w in wrote if w.startswith(c)]
-        assert any(w.startswith(c + "1@") for w in mine) and any(w.startswith(c + "2@") for w in mine), (
-            "%s's two boxes were not both written: %s" % (c, mine))
+        assert any(w.startswith(c + "1@") for w in mine), "%s's hand box was not written: %s" % (c, mine)
+        assert not any(w.startswith(c + "2@") for w in mine), "%s's second box was touched: %s" % (c, mine)
         for w in mine:
             at = w.split("@", 1)[1]
             assert ("%s -> Grey" % c) in at and ("Grey -> %s" % c) not in at, (

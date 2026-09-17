@@ -156,4 +156,4 @@ setup board's top right corner, and goes up on every commit.
 - Supply bags are tagged at spawn and found by tag; every remaining name search reads through one guard.
 - One list names every table keyed by an object's guid; a Resync re-create and a new game both walk it.
 - Review fixes: a kit's bag is tagged before the callback that may destroy it, the VP marker record survives a reload, the pond waits for the frog-deck merge that actually happens, and the score track is read off the map.
-- Hand boxes only ever move while nobody owns their colour: the draft parks, places every seat's two boxes, then seats; a manual pick hops the picker off and back; Resync re-places the boxes the same way. The bats' second hand shares the supporters spot.
+- A seat's hand box only ever moves while nobody owns its colour: the draft parks, places every seat's hand, then seats; a manual pick hops the picker off and back; Resync re-places the box the same way. The Alliance and bat second boxes are untouched.
