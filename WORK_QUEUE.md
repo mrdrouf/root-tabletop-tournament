@@ -247,6 +247,29 @@ Diagnosed first, then the maintainer said "fix all the other things as well". On
       unlocked, no script, twelve objects), or more generally every loose unlocked faction token.
       Whether the crow player or the others saw the bad plots decides which client dropped them.
 
+## STRUCTURAL -- the three rules from the 2026-09-17 bugs (built v1.437-1.439, not yet confirmed in TTS)
+
+Maintainer: "from these bugs any general rule or other mechanisms to reshape like what happens to the
+relics etc" -- then "go ahead all of it". Each rule is one commit and one harness case.
+
+- [x] **Ask the table, never memory.** v1.437 (cd028f7). The map board is tagged `RTT Map`,
+      `RTT Map: <name>` and `RTT Map 5P` the frame it is placed; `rttMap()` reads those and nothing
+      else, and every reader of the map goes through it (cats, relics, Marsh variant, the map-change
+      warning, the under-map refusal, the map lock). `rttFindMapObject`'s fallback to "the object
+      with the most snap points" is gone -- it was placing the relics against a faction board or the
+      pond when no map was out. An untagged board from an old save is adopted once (>= 40 snap points).
+      `RTT_CURRENT_MAP` / `RTT_MARSH_5P_BUILT` are only the saved-state cache now.
+- [x] **Find by tag or guid, never by walking names.** v1.438 (1874662). Kits tag every bag
+      `RTT Bag: <nickname>`; `rttFindBag` answers by tag with a guarded walk for old saves; the eight
+      remaining name walks read through `rttNameOf`, which answers "" for an object that cannot.
+- [x] **One list of guid registries.** v1.439 (see git log). `RTT_GUID_REGISTRIES` names every table
+      keyed by an object's guid with its shape and whether a new game empties it;
+      `rttSwapGuidEverywhere` (after a Resync re-create) and `rttForgetRunGuids` (new game) walk it.
+      A registry added to the list is covered by both. Today's reset behaviour is preserved exactly.
+
+STILL BY MEMORY, on purpose: `RTT_PRIO_MAP` (which map's priority markers are out -- rttClearPriority
+owns it), `RTT_TRACK` (the score track, re-found by guid and re-detected when gone).
+
 ## NOTES DO NOT TOUCH
 
 there are also some Homeland assets we don't have yet like the Gladiator meeple and the assembly and acclaim tokens (both sides each) are outdated

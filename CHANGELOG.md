@@ -152,3 +152,7 @@ setup board's top right corner, and goes up on every commit.
 - Clear All forgets the map it destroyed; the cats stay in the supply and say so when there is no map.
 - The frogs' VP panel no longer dies when the frogs are picked right behind another faction: markers are found by guid, and the pond leaves a panel still spawning alone.
 - Resync holds a player in Grey for half a second before seating them again (hand-bar experiment).
+- Which map is standing is read off the board's own tags; nothing positions a piece from a remembered map name any more, and the relics no longer take a faction board for the map.
+- Supply bags are tagged at spawn and found by tag; every remaining name search reads through one guard.
+- One list names every table keyed by an object's guid; a Resync re-create and a new game both walk it.
+- Review fixes: a kit's bag is tagged before the callback that may destroy it, the VP marker record survives a reload, the pond waits for the frog-deck merge that actually happens, and the score track is read off the map.

@@ -50,6 +50,10 @@ function onSave()
                          -- the key on a piece, so losing it to a reload means every player silently
                          -- discovering their key does nothing and having to set it again.
                          pick = RTT_TOKEN_PICK or {},
+                         -- vpm: each kit's VP marker by guid (RTT_VP_MARKER). Guids survive a save,
+                         -- so the panels keep finding their marker by guid after a reload instead of
+                         -- falling back to a walk over a table that is still loading.
+                         vpm = RTT_VP_MARKER or {},
                          order = RTT_ORDER or {} })
   end)
   if ok then return enc end
@@ -89,6 +93,7 @@ function onLoad(state)
     if type(d.map) == "string" and d.map ~= "" then RTT_CURRENT_MAP = d.map end
     if d.marsh5p ~= nil then RTT_MARSH_5P_BUILT = (d.marsh5p == true) end
     if type(d.pick) == "table" then RTT_TOKEN_PICK = d.pick end
+    if type(d.vpm) == "table" then RTT_VP_MARKER = d.vpm end
     if #RTT_SEATS > 0 then rttPublishSeats() end
   end)
   pcall(function() rttSnapshotHand2() end)  -- parked hand-2 transforms, restored on every new game
@@ -6469,9 +6474,13 @@ function rttSpawnFaction(faction, cx, cz, flip, category, rotationY, opts)
     -- by walking names. Decided from the blueprint like the boards above: the outer object's "Name"
     -- comes first in a TTS blob, and it is the type, not the nickname.
     local ty = string.match(v.json, '"Name":%s*"([%w_]+)"') or ""
-    if ty == "Bag" or ty == "Custom_Model_Bag" or ty == "Custom_Model_Infinite_Bag" then
+    if (ty == "Bag" or ty == "Custom_Model_Bag" or ty == "Custom_Model_Infinite_Bag")
+        and string.find(v.json, '"Ruin Set"', 1, true) == nil then
+      -- TAGGED FIRST, and never the ruins bag: cb destroys the Vagabond's Mighty Multi-State Ruins on
+      -- arrival and returns, and a destroyed object answers a tag with the C# null. Found by the
+      -- independent review, 2026-09-17.
       local prevBag = myCb
-      myCb = function(o) prevBag(o); pcall(function() o.addTag("RTT Bag: " .. (o.getName() or "")) end) end
+      myCb = function(o) pcall(function() o.addTag("RTT Bag: " .. (o.getName() or "")) end); prevBag(o) end
     end
     if isKnaveBoard then myCb = function(o) cb(o); rttSpawnCaptainsFor(o) end
     elseif isCrowBoard then myCb = function(o) cb(o); Wait.frames(function() rttCrowsPlots(cx, cz, flip, false, o) end, 1) end
@@ -6966,17 +6975,15 @@ function rttFindScoreTrack()
     if o ~= nil then return o end
     RTT_TRACK = nil
   end
-  local best, bestSnaps = nil, 0
-  for _, o in ipairs(getAllObjects()) do
-    local ok, sp = pcall(function() return o.getSnapPoints() end)
-    if ok and sp and #sp >= 40 and #sp > bestSnaps then
-      local t = rttDetectTrackOn(o)
-      if t then best, bestSnaps = t, #sp end
-    end
-  end
-  RTT_TRACK = best
-  if best == nil then return nil end
-  return getObjectFromGUID(best.guid)
+  -- THE MAP, OFF THE TABLE (rttMap), and the track read off it. This used to scan every object for
+  -- a track-shaped snap layout, which is the "most snap points" fallback in another form: with no
+  -- map out, anything that qualified became the track and the VP markers walked onto it.
+  local board = rttMap()
+  if board == nil then return nil end
+  local t = rttDetectTrackOn(board)
+  RTT_TRACK = t
+  if t == nil then return nil end
+  return getObjectFromGUID(t.guid)
 end
 
 function rttZeroColumnSlots()
@@ -7743,11 +7750,11 @@ end
 
 -- ---- Lilypad Diaspora (frogs) --------------------------------------------
 function rttFrogsSetup()
-  rttShuffleFrogsIntoDeck()
-  -- A COUPLE OF FRAMES APART. The merge above destroys the frogs' own deck, and the pond's callback,
-  -- which asks every VP panel to redraw, used to fire while that corpse could still be in
-  -- getAllObjects(). Through rttAfterFrames, so an abandoned run spawns no pond.
-  rttAfterFrames(rttSpawnPond, 2)
+  -- A COUPLE OF FRAMES AFTER THE MERGE, whenever the merge actually is. It destroys the frogs' own
+  -- deck, and the pond's callback, which asks every VP panel to redraw, used to fire while that
+  -- corpse could still be in getAllObjects(). Through rttAfterFrames, so an abandoned run spawns no
+  -- pond.
+  rttShuffleFrogsIntoDeck(0, function() rttAfterFrames(rttSpawnPond, 2) end)
 end
 
 -- The Pond is MAP-relative (a fixed world spot, independent of the frog's seat), so it can't be a
@@ -7868,13 +7875,18 @@ end
 RTT_FROG_TRIES = 6
 RTT_FROG_WAIT  = 1.0
 
-function rttShuffleFrogsIntoDeck(tries)
+-- `after` is called ONCE, on the frame this call is done touching the table: after the merge, or at
+-- once when nothing is merged now (no deck, or a retry armed for later). rttFrogsSetup hangs the pond
+-- on it, since what the pond must not share a frame with is the frogs' deck being destroyed.
+function rttShuffleFrogsIntoDeck(tries, after)
   tries = tries or 0
+  local function merged() if after ~= nil then local f = after; after = nil; f() end end
   local holderOut, onSlot = false, nil
   pcall(function() holderOut = (getObjectFromGUID(RTT_HOLDER_GUID) ~= nil) end)
   pcall(function() onSlot = rttFindDrawDeck() end)
   if holderOut and onSlot == nil and tries < RTT_FROG_TRIES then
     Wait.time(function() rttShuffleFrogsIntoDeck(tries + 1) end, RTT_FROG_WAIT)
+    merged()                                     -- nothing dies this frame; the retry is on its own
     return
   end
   local mainDeck, frogObjs = rttFindMainDeck(), {}
@@ -7887,9 +7899,10 @@ function rttShuffleFrogsIntoDeck(tries)
       frogObjs[#frogObjs + 1] = o
     end
   end
-  if mainDeck == nil then return end
+  if mainDeck == nil then merged() return end
   for _, f in ipairs(frogObjs) do pcall(function() mainDeck.putObject(f) end) end
   Wait.time(function() if mainDeck ~= nil then pcall(function() mainDeck.shuffle() end) end end, 1.0)
+  merged()
 end
 
 -- ---- Keepers in Iron (badgers): relics onto the maintainer's recorded per-map spots -----------
@@ -7968,7 +7981,13 @@ end
 -- read the name through this and nothing else.
 function rttNameOf(o)
   local n = ""
-  pcall(function() n = o.getName() or "" end)
+  pcall(function()
+    if o == nil then return end
+    -- asked first where the API has it: a destroyed handle answers isDestroyed() without a null,
+    -- where getName() on it may not be caught by the pcall at all
+    if o.isDestroyed ~= nil and o.isDestroyed() == true then return end
+    n = o.getName() or ""
+  end)
   return n
 end
 
@@ -9091,7 +9110,7 @@ function makeMap(player,value,id,keepBoard)
         Wait.frames(function()
           for _, o in ipairs(getObjectsWithTag("Map Object")) do
             pcall(function()
-              if o.getName() == "Battle Mat" then o.addTag(RTT_FIXTURE_TAG) o.addTag(RTT_TAG_MAT) end
+              if rttNameOf(o) == "Battle Mat" then o.addTag(RTT_FIXTURE_TAG) o.addTag(RTT_TAG_MAT) end
             end)
           end
         end, 2)
