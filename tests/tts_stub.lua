@@ -525,6 +525,41 @@ function spawnObject(p)
   return o
 end
 
+-- group(objects) -- TTS's own stacking, which is a DESTROY plus a CREATE.
+--
+-- Modelled because the resync's card repair depends on the distinction: reload() re-creates a card and
+-- does NOT cure one that a client is drawing wrongly, while stacking two cards does. Maintainer,
+-- 2026-09-17: "puting a card on top of another like stacking the; does make a card appear". Without
+-- this the harness cannot drive that repair at all.
+--
+-- The cards keep their GUIDs inside the pile, because that is how they are taken back out. GROUPED[]
+-- records every call and REPAIRED[] every card that passed through one, so a test can assert both
+-- which pairs were stacked and that every card it meant to reach was reached.
+GROUPED = {}
+REPAIRED = {}
+
+function group(objs)
+  objs = objs or {}
+  if #objs < 2 then return {} end                -- TTS will not make a pile out of one card
+  local pile = MKDECK({})
+  local note = {}
+  for _, o in ipairs(objs) do
+    local g, nick, desc, fd = nil, "card", "", false
+    pcall(function() g = o.getGUID() end)
+    pcall(function() nick = o.getName() or "card" end)
+    pcall(function() desc = o.getDescription() or "" end)
+    pcall(function() fd = (o.is_face_down == true) end)
+    if g ~= nil then
+      pile.__cards[#pile.__cards + 1] = { guid = g, nickname = nick, description = desc, face_down = fd }
+      note[#note + 1] = g
+      REPAIRED[#REPAIRED + 1] = g
+    end
+    pcall(function() o.destruct() end)
+  end
+  GROUPED[#GROUPED + 1] = table.concat(note, ",")
+  return { pile }
+end
+
 -- A deck whose contents the mod can inspect and draw from. `specs` is a list of {desc}, top first.
 function MKDECK(specs)
   local o = MKOBJ("Deck", {0, 2, 0}, {"Deck Object"})
@@ -558,6 +593,10 @@ function MKDECK(specs)
     local c = table.remove(o.__cards, idx)
     if c == nil then return nil end
     local t = MKOBJ(c.nickname, p.position, {})
+    -- ...AND IT KEEPS THE GUID IT HAD IN THE PILE, which is how TTS behaves and what any stack-and-split
+    -- repair relies on: it puts a pair into a pile and asks for each one BACK by guid. A stub that
+    -- minted a fresh guid here made that look like the cards had been lost.
+    if c.guid ~= nil then REGUID(t, c.guid) end
     t.name = "Card"
     t.tag  = "Card"
     t.__desc = c.description
