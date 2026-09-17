@@ -297,7 +297,7 @@ relics etc" -- then "go ahead all of it". Each rule is one commit and one harnes
 STILL BY MEMORY, on purpose: `RTT_PRIO_MAP` (which map's priority markers are out -- rttClearPriority
 owns it), `RTT_TRACK` (the score track, re-found by guid and re-detected when gone).
 
-## Knaves stash, 2026-09-18 (built v1.447, not yet confirmed in TTS)
+## Knaves stash, 2026-09-18 (built v1.447, confirmed in TTS 2026-09-18: "it works", fourth captain included)
 
 - [x] **Snap points on the fifteen stash cells** of the Knaves rules board, read off the maintainer's
       `items` save (five columns by three rows, board-local RTT_STASH_COL x RTT_STASH_ROW), baked into
