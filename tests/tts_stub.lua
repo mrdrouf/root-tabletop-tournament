@@ -692,9 +692,18 @@ local function refresh(c)
   return v
 end
 
-for _, c in ipairs(COLORS) do
-  HANDS[c] = { [1] = {position = vec{-75, 12, -75 + _}, rotation = vec{0,0,0}, scale = vec{10,5,5}},
-               [2] = {position = vec{-75, 12, -75 + _}, rotation = vec{0,0,0}, scale = vec{10,5,5}} }
+-- WHERE THE BLUEPRINT KEEPS EACH COLOUR'S BOXES: hand 1 at the table's long edges, eleven units
+-- apart, hand 2 parked at x=-75. The stub used to stand every hand 1 on one spot -- (-75, -75+i), a
+-- unit apart -- which a test of "two boxes on one seat" could not tell from the real fault.
+local HAND1_HOME = {
+  Red = { -77.5, 14.62, -36 }, Yellow = { -77.5, 14.62, -25 }, Orange = { -77.5, 14.62, -14 },
+  Teal = { -77.5, 14.62, 14 }, Green = { -77.5, 14.62, 25 }, Brown = { -77.5, 14.62, 36 },
+  Blue = { 77.5, 14.62, -26 }, White = { 77.5, 14.62, -37 }, Purple = { 77.5, 14.62, 26 }, Pink = { 77.5, 14.62, 37 },
+}
+for i, c in ipairs(COLORS) do
+  local h = HAND1_HOME[c] or { -75, 12, -75 + i }
+  HANDS[c] = { [1] = {position = vec(h), rotation = vec{0, (h[1] > 0) and 270 or 90, 0}, scale = vec{10,6,4}},
+               [2] = {position = vec{-75, 5, -5 + i}, rotation = vec{0,0,0}, scale = vec{1,1,1}} }
   VIEW[c] = {
     color = c, seated = false, steam_name = "P_" .. c, steam_id = nil,
     getHoverObject = function() return HOVER[c] end,

@@ -255,6 +255,10 @@ Diagnosed first, then the maintainer said "fix all the other things as well". On
       a seat colour's box is behind its seat this game or at its HOME on the table edge
       (RTT_HAND1_HOME), moved only off-colour; a new game parks the unowned, the draft and a manual pick
       clear their seats (rttEvictStrayHands), Resync clears every seat and says how many it parked.
+      v1.449: ONE primitive for every box move (rttMoveHand: cards lifted out, owner stepped off, box
+      written, owner back, cards dealt back), so no move is ever refused -- a hand holding cards was
+      the last thing that could leave a box behind. Resync leaves hands alone while a setup is seating.
+      Harness: 3P -> 5P -> 4P with a card left in a hand, then Resync; never two boxes on a seat.
 - [x] **Numpad 1 and 2 do nothing in the deck positions.** v1.445, narrowed in v1.446: pointing inside
       the deck holder's or the pond's footprint (or hovering a deck standing there) and the key is
       quiet; loose cards and a deck elsewhere are fine ("the rest like loose cards is fine"). If yes, the hop reaches them and the bar is

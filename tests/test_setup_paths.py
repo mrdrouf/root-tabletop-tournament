@@ -1823,6 +1823,69 @@ def t_no_two_colours_hand_boxes_share_a_seat(src):
         assert rt.eval("Player['%s'].steam_name" % c) == nm, "%s is not on %s after the second game" % (nm, c)
 
 
+def t_hand_boxes_survive_any_sequence_of_layouts(src):
+    """Three-player, then five, then four, with a hand still holding a card: never two colours' boxes on
+    one seat, every box behind its seat or at home, and the card back in its hand.
+
+    Maintainer, 2026-09-18: "make sure that you never make it happen that two boxes are seated so you
+    neeed to review all the logic and especially different sequences of seating factions and clicking
+    on buttons build a robust code." The one refusal left in the box moves was a hand holding cards;
+    rttMoveHand lifts them out and deals them back, so no sequence can leave a box behind.
+    """
+    rt = fresh(src)
+    rt.execute("DEALT = {}")
+
+    def invariant(step):
+        centres = {}
+        for c in ("Red", "Yellow", "Orange", "Teal", "Green", "Brown"):
+            centres[c] = dict(rt.eval("function() local h = Player['%s'].getHandTransform(1) return { x = h.position.x, z = h.position.z } end" % c)())
+        near = rt.eval("RTT_HAND_STRAY_NEAR")
+        cols = list(centres)
+        for i in range(len(cols)):
+            for j in range(i + 1, len(cols)):
+                a, b = centres[cols[i]], centres[cols[j]]
+                assert abs(a["x"] - b["x"]) >= near or abs(a["z"] - b["z"]) >= near, (
+                    "%s: %s's and %s's boxes stand on one spot (%.1f, %.1f)" % (step, cols[i], cols[j], a["x"], a["z"]))
+        # every seat colour's box is behind a seat it wears, or at its home
+        seats = dict(rt.eval("function() local out = {} for i, s in ipairs(RTT_SEATS) do if s.color then out[s.color] = { x = s.hand.pos[1], z = s.hand.pos[3] } end end return out end")())
+        for c, p in centres.items():
+            home = dict(rt.eval("function() return { x = RTT_HAND1_HOME['%s'].pos[1], z = RTT_HAND1_HOME['%s'].pos[3] } end" % (c, c))())
+            at_home = abs(p["x"] - home["x"]) < 1 and abs(p["z"] - home["z"]) < 1
+            at_seat = c in seats and abs(p["x"] - dict(seats[c])["x"]) < 1 and abs(p["z"] - dict(seats[c])["z"]) < 1
+            assert at_home or at_seat, "%s: %s's box is at (%.1f, %.1f), neither its seat nor its home" % (step, c, p["x"], p["z"])
+
+    _seat_ranked(rt, ["Red", "Yellow", "Orange"], ["H1", "H2", "H3"])
+    invariant("after the three-player draft")
+    rt.execute("pcall(function() rttNewGame(5) end) FLUSH(10)")
+    _seat_ranked(rt, ["Red", "Yellow", "Orange", "Teal", "Green"], ["H1", "H2", "H3", "H4", "H5"])
+    invariant("after the five-player draft")
+    # H4 keeps a card in Teal's hand, and Teal changes corner in the four-player layout
+    rt.execute("""
+      CARD = MKOBJ('Card', { -52, 15, 64 }, {})
+      HANDCARDS['Teal'] = { CARD }
+      CARD.deal = function(n, c, h) DEALT[#DEALT + 1] = tostring(c) .. ':' .. tostring(h) HANDCARDS['Teal'] = { CARD } end
+      local sl = CARD.setLock
+      CARD.setLock = function(v) if v then HANDCARDS['Teal'] = {} end return sl(v) end
+      pcall(function() rttNewGame(4) end) FLUSH(10)
+    """)
+    _seat_ranked(rt, ["Red", "Yellow", "Orange", "Teal"], ["H1", "H2", "H3", "H4"])
+    invariant("after the four-player draft")
+    teal = dict(rt.eval("function() local h = Player['Teal'].getHandTransform(1) return { x = h.position.x, z = h.position.z } end")())
+    assert abs(teal["x"] - 52) < 1 and abs(teal["z"] - 64) < 1, "Teal's box did not follow Teal to its four-player seat: (%.1f, %.1f)" % (teal["x"], teal["z"])
+    dealt = list(dict(rt.eval("DEALT") or {}).values())
+    assert "Teal:1" in dealt, "the card in Teal's hand was not dealt back after the box moved: %s" % dealt
+    # and Resync, pressed now, changes nothing about where the boxes stand
+    rt.execute("""
+      SEATED = { 'Red', 'Yellow', 'Orange', 'Teal' }
+      getSeatedPlayers = function() return SEATED end
+      MSG = {} broadcastToAll = function(m) MSG[#MSG + 1] = tostring(m) end
+      rttResyncClick(Player['Red'], '', 'rttResyncBtn') FLUSH(600)
+    """)
+    invariant("after Resync")
+    msg = list(dict(rt.eval("MSG") or {}).values())
+    assert not any("stray" in m for m in msg), "Resync found a stray box the seating had left: %s" % msg
+
+
 def t_resync_parks_a_stray_hand_box(src):
     """Resync sends another colour's box off a seated player's seat, and says so.
 
@@ -14544,6 +14607,7 @@ CASES = [
     ("the draft moves the boxes while nobody owns them", t_the_draft_moves_the_hand_boxes_while_nobody_owns_them),
     ("no two colours' hand boxes share a seat", t_no_two_colours_hand_boxes_share_a_seat),
     ("resync parks a stray hand box",       t_resync_parks_a_stray_hand_box),
+    ("hand boxes survive any sequence of layouts", t_hand_boxes_survive_any_sequence_of_layouts),
     ("winged menace hand from the seat", t_the_winged_menace_hand_is_built_from_the_seat_not_read_back),
 ]
 
