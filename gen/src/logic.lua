@@ -4027,7 +4027,7 @@ end
 function find_object_by_gm_note(gm_note)
    local objects = {}
    for _, obj in ipairs(getAllObjects()) do
-      if obj.getName() == gm_note then
+      if rttNameOf(obj) == gm_note then
          table.insert(objects, obj)
       end
    end
@@ -6432,6 +6432,14 @@ function rttSpawnFaction(faction, cx, cz, flip, category, rotationY, opts)
     local isCraftBoard = string.find(v.json, '"scaleX": 9.516764', 1, true) ~= nil
         and string.find(v.json, '"Name": "Custom_Tile"', 1, true) ~= nil
     local myCb = cb
+    -- A BAG IS TAGGED WITH ITS OWN NAME, so it is found by tag from then on (rttFindBag) and never
+    -- by walking names. Decided from the blueprint like the boards above: the outer object's "Name"
+    -- comes first in a TTS blob, and it is the type, not the nickname.
+    local ty = string.match(v.json, '"Name":%s*"([%w_]+)"') or ""
+    if ty == "Bag" or ty == "Custom_Model_Bag" or ty == "Custom_Model_Infinite_Bag" then
+      local prevBag = myCb
+      myCb = function(o) prevBag(o); pcall(function() o.addTag("RTT Bag: " .. (o.getName() or "")) end) end
+    end
     if isKnaveBoard then myCb = function(o) cb(o); rttSpawnCaptainsFor(o) end
     elseif isCrowBoard then myCb = function(o) cb(o); Wait.frames(function() rttCrowsPlots(cx, cz, flip, false, o) end, 1) end
     elseif isRatsBoard then myCb = function(o) cb(o); Wait.frames(function() pcall(function() rttRatsMoodManager(cx, cz, flip, rotationY) end) end, 1) end end
@@ -7496,10 +7504,7 @@ function rttMarquiseCats(cx, cz, flip, tries)
     end)
     return
   end
-  local bag = nil
-  for _, o in ipairs(getAllObjects()) do
-    if (o.getName() or "") == "Marquise Supply" then bag = o break end
-  end
+  local bag = rttFindBag("Marquise Supply")
   if bag == nil then later() return end
   -- Marsh clearings depend on player count: 4-player floods 3 clearings (skip them -> 12 cats);
   -- 5-player has no floods, all 15 clearings are active (place 15). Every other map is 12.
@@ -7693,7 +7698,7 @@ function rttLizardSetup()
   -- blueprint so no move is needed either.
   Wait.frames(function()
     for _, o in ipairs(getAllObjects()) do
-      if (o.getName() or "") == "Outcast Marker" then
+      if rttNameOf(o) == "Outcast Marker" then
         if o.getLock and o.getLock() then o.setLock(false) end
         o.setPosition({ RTT_LIZ_OUTCAST[1], RTT_LIZ_OUTCAST[2], RTT_LIZ_OUTCAST[3] })
       end
@@ -7924,6 +7929,29 @@ function rttMapBoardTagged()
   return best
 end
 
+-- The object's nickname, or "" for one that cannot answer -- a piece being destroyed this frame
+-- answers with the C# null pcall does not catch, and every name walk in this file goes through here.
+-- Maintainer, 2026-09-17: "any general rule?" -- find by tag or by guid; when a walk is unavoidable,
+-- read the name through this and nothing else.
+function rttNameOf(o)
+  local n = ""
+  pcall(function() n = o.getName() or "" end)
+  return n
+end
+
+-- A supply bag by the tag its kit gave it ("RTT Bag: <nickname>", see the kit callback in
+-- rttSpawnFaction), or, for a bag from an older save that carries no such tag, by a guarded walk.
+function rttFindBag(nick)
+  if nick == nil or nick == "" then return nil end
+  local hit = nil
+  pcall(function() hit = (getObjectsWithTag("RTT Bag: " .. nick) or {})[1] end)
+  if hit ~= nil then return hit end
+  for _, o in ipairs(getAllObjects()) do
+    if rttNameOf(o) == nick then return o end
+  end
+  return nil
+end
+
 -- The board, or nil. This used to fall back to a scan of every object for "the most snap points",
 -- which during a teardown was anything at all and with no map on the table was a faction board or the
 -- pond -- the relics were placed against it. The table's own tag answers now; see rttMap.
@@ -8052,10 +8080,7 @@ function rttBadgerRelics()
     end)
     return
   end
-  local bag = nil
-  for _, o in ipairs(getAllObjects()) do
-    if o.name == "Bag" and (o.getName() or "") == "Relics" then bag = o break end
-  end
+  local bag = rttFindBag("Relics")
   if bag == nil then return end
   local targets = {}
   local recorded = RTT_RELIC_POS[mapId]
@@ -9693,7 +9718,7 @@ RTT_WARRIOR_SUPPLY = nil
 local function rttFindByName(name)
   if name == nil or name == "" then return nil end
   for _, o in ipairs(getAllObjects()) do
-    if (o.getName() or "") == name then return o end
+    if rttNameOf(o) == name then return o end
   end
   return nil
 end
@@ -10518,7 +10543,7 @@ function rttHomeSlotTaken(slot, name, ignore, ytol)
   local taken = false
   pcall(function()
     for _, o in ipairs(getAllObjects()) do
-      if o ~= ignore and rttHomeFamily(o.getName() or "") == fam then
+      if o ~= ignore and rttHomeFamily(rttNameOf(o)) == fam then
         local p = o.getPosition()
         local dx, dy, dz = p.x - slot.p[1], p.y - slot.p[2], p.z - slot.p[3]
         if dx * dx + dz * dz < 0.36 and math.abs(dy) < ytol then taken = true return end
@@ -10596,7 +10621,7 @@ function rttMySupplyBag(color)
   for _, sup in pairs(rttWarriorSupplyMap()) do known[sup] = true end
   local best, bestd = nil, nil
   for _, o in ipairs(getAllObjects()) do
-    if known[o.getName() or ""] then
+    if known[rttNameOf(o)] then
       local p = o.getPosition()
       local d = (p.x - hp.x) ^ 2 + (p.z - hp.z) ^ 2
       if bestd == nil or d < bestd then best, bestd = o, d end
@@ -11150,7 +11175,7 @@ function rttPieceOnSlot(slot, name, ytol)
   local found = nil
   pcall(function()
     for _, o in ipairs(getAllObjects()) do
-      if (o.getName() or "") == name then
+      if rttNameOf(o) == name then
         local p = o.getPosition()
         local dx, dy, dz = p.x - slot.p[1], p.y - slot.p[2], p.z - slot.p[3]
         if dx * dx + dz * dz < 0.36 and math.abs(dy) < ytol then found = o return end

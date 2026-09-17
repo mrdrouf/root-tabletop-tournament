@@ -12662,6 +12662,36 @@ def t_the_board_remembers_each_vp_marker_by_guid(src):
     assert rt.eval("RTT_VP_MARKER['Duchy VP']") is None, "last game's marker outlived the game"
 
 
+def t_supply_bags_are_found_by_tag_and_names_are_read_guarded(src):
+    """A kit's bags carry "RTT Bag: <name>" and are found by it; a name is only ever read through rttNameOf.
+
+    Maintainer, 2026-09-17: "any general rule?" -- find by tag or guid, never by walking names, because
+    asking a piece being destroyed this frame for its name is the C# null that killed the VP panel.
+    The cats' and the relics' bags were the two searches with no guard at all; every other walk now
+    reads through rttNameOf, which answers "" for an object that cannot answer.
+    """
+    rt = fresh(src)
+    rt.execute("pcall(function() rttSpawnFaction('Marquise de Cat', 0, -20, false) end) FLUSH(400)")
+    got = rt.eval("""function()
+      local byTag = (getObjectsWithTag("RTT Bag: Marquise Supply") or {})[1]
+      local found = rttFindBag("Marquise Supply")
+      return { tagged = byTag ~= nil, same = (byTag ~= nil and found == byTag),
+               name = found and found.getName() or "" }
+    end""")()
+    assert got["tagged"], "the Marquise Supply bag was not tagged at spawn"
+    assert got["same"], "rttFindBag did not answer with the tagged bag"
+    assert got["name"] == "Marquise Supply"
+
+    # an older save's bag, untagged: still found, by the guarded walk
+    rt.execute("OLDBAG = MKOBJ('Relics', { -36, 11.4, 44 }, {})")
+    assert rt.eval("rttFindBag('Relics') == OLDBAG"), "an untagged bag from an older save was not found"
+
+    # a destroyed object answers "" instead of killing the caller
+    rt.execute("DEAD = MKOBJ('Plot', { 1, 1, 1 }, {}) DEAD.destruct()")
+    assert rt.eval("rttNameOf(DEAD)") == "", "rttNameOf did not survive a destroyed object"
+    assert rt.eval("rttFindBag('') == nil and rttFindBag(nil) == nil")
+
+
 def t_the_cats_wait_for_their_supply(src):
     """The Marquise's map cats retry instead of giving up on a fixed deadline.
 
@@ -14038,6 +14068,7 @@ CASES = [
     ("the cats wait for their supply",       t_the_cats_wait_for_their_supply),
     ("the pond leaves a panel still spawning alone", t_the_pond_ping_leaves_a_panel_still_spawning_alone),
     ("the board remembers each vp marker",   t_the_board_remembers_each_vp_marker_by_guid),
+    ("supply bags are found by tag",         t_supply_bags_are_found_by_tag_and_names_are_read_guarded),
     ("clear all forgets the map",            t_clear_all_forgets_the_map_and_the_cats_stay_in_the_supply),
     ("the map is read off the table",        t_the_map_is_read_off_the_table_not_remembered),
     ("the marsh variant is read off the board", t_the_marsh_variant_is_read_off_the_board),
