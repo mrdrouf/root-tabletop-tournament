@@ -13381,6 +13381,46 @@ def t_a_resync_puts_a_player_back_in_touch_with_their_hand(src):
         "the edge, which is the same fault as moving it; it must only ever grow." % (scales[0], scales[-1]))
 
 
+def t_the_winged_menace_hand_is_built_from_the_seat_not_read_back(src):
+    """The Winged Menace's second hand is placed from the seat's OWN hand transform, never read back.
+
+    setHandTransform is not instant. spawnWingedMenaceExtraHand is called forty lines after the seat's
+    hand 1 is written, in the same synchronous pass, and it used to read getHandTransform(1) back FOUR
+    times to find out where it was -- reads that this file says twice (~6154, ~6721) can answer with the
+    PARKED zone. Its twin spawnSupportersHand was given an explicit hand1 parameter to close exactly
+    that (RTT_SUPPORTERS_EXPLICIT); the comment there records the symptom: "the Alliance drew its three
+    cards into the old supporter area". The Winged Menace path never got the fix, so its extra hand
+    could be built off the spare zone parked at x=-75 and land somewhere nobody intended.
+
+    So the stub answers every getHandTransform(1) with the PARKED transform, deliberately, and the seat
+    transform is passed in. If the function reads back instead of using what it was given, hand 2 lands
+    next to the parked zone and this fails.
+    """
+    rt = fresh(src)
+    rt.execute("""
+      SEAT('Red', 'Alice')
+      -- two shapes on purpose: the seat's own seatHand carries an ARRAY rotation, while a transform
+      -- read back from TTS carries Vectors -- so the old code, which read back, runs and lands wrong,
+      -- and the new code, given the seat, must cope with the array.
+      SEAT_HAND = { position = { 52, 14.62, -64 }, rotation = { 0, 0, 0 }, scale = { 20, 6, 4 } }
+      PARKED    = { position = { x = -75, y = 5, z = 0 }, rotation = { x = 0, y = 0, z = 0 },
+                    scale = { x = 1, y = 1, z = 1 } }
+      Player['Red'].getHandTransform = function(i) return PARKED end     -- the stale read-back
+      GOT = nil
+      Player['Red'].setHandTransform = function(t, i) if i == 2 then GOT = t end end
+      pcall(function() spawnWingedMenaceExtraHand('Red', SEAT_HAND) end)
+    """)
+    got = rt.eval("GOT")
+    assert got is not None, "no second hand was placed at all"
+    x = rt.eval("function() return GOT.position.x or GOT.position[1] end")()
+    z = rt.eval("function() return GOT.position.z or GOT.position[3] end")()
+    # 13.53 away from the SEAT hand, so within ~14 of (52, -64); nowhere near the parked zone at x=-75
+    assert abs(x - 52) <= 14 and abs(z - (-64)) <= 14, (
+        "hand 2 was built from a read-back rather than the seat: it landed at (%.1f, %.1f), which is "
+        "not near the seat's hand at (52, -64)" % (x, z))
+    assert x > -60, "hand 2 landed by the parked zone at x=-75: (%.1f, %.1f)" % (x, z)
+
+
 CASES = [
     ("manual path drives the turn system",   t_manual_turn_order),
     ("manual path spawns 4 / 5 boards",      t_boards_spawn),
@@ -13599,6 +13639,7 @@ CASES = [
     ("no VP panel under the map",      t_a_vp_panel_is_never_placed_under_the_map),
     ("a VP panel is yours alone",       t_a_vp_panel_only_answers_its_own_seat),
     ("resync repairs your hand",       t_a_resync_puts_a_player_back_in_touch_with_their_hand),
+    ("winged menace hand from the seat", t_the_winged_menace_hand_is_built_from_the_seat_not_read_back),
 ]
 
 

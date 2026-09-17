@@ -3337,7 +3337,7 @@ function makeFaction(player,value,id,source)
   -- with it: the Winged Menace's extra hand, Salty Old Stan, and the Host of Light's pillar shuffle
   -- below all stopped being reached the moment a faction that needed them was picked.
   if id == "The Winged Menace" then
-    spawnWingedMenaceExtraHand(player.color)
+    spawnWingedMenaceExtraHand(player.color, seatHand)
   end
   -- Corvid plots + Lizard are owned by the shared rttFactionExtras (rttCrowsPlots / rttLizardSetup) for
   -- BOTH manual and ranked -- do NOT also run shufflePlots here (it double-ran plot setup on manual).
@@ -3473,10 +3473,24 @@ function rttPlaceDragonGod()
 end
 
 
-function spawnWingedMenaceExtraHand(color)
-  local angleY = Player[color].getHandTransform(1).rotation.y
-  local posX = Player[color].getHandTransform(1).position.x
-  local posZ = Player[color].getHandTransform(1).position.z
+-- THE SEAT'S HAND 1 IS PASSED IN, NOT READ BACK. This is the same fix spawnSupportersHand got
+-- (RTT_SUPPORTERS_EXPLICIT): setHandTransform is not instant, and this is called forty lines after the
+-- seat's hand 1 was written, in the same pass -- so the four live getHandTransform(1) reads that used to
+-- sit here could answer with the PARKED zone and put the Winged Menace's second hand off in the corner
+-- where the spare zones live. The supporters had exactly that failure ("the Alliance drew its three
+-- cards into the old supporter area"); this twin never got the fix. hand1 is optional so any older
+-- caller still works, but the one caller passes it.
+function spawnWingedMenaceExtraHand(color, hand1)
+  hand1 = hand1 or Player[color].getHandTransform(1)
+  -- BOTH SHAPES, like rttSupportersTransform: a transform read back from TTS carries Vectors (.x .y .z)
+  -- while the seat's own seatHand is built with a plain {0, y, 0} array for its rotation. Indexing only
+  -- one of them is a nil in arithmetic on the other -- the harness caught exactly that on the first
+  -- version of this fix, with a fixture shaped like the real seatHand.
+  local pos = hand1.position or {}
+  local rot = hand1.rotation or {}
+  local angleY = rot.y or rot[2] or 0
+  local posX = pos.x or pos[1] or 0
+  local posZ = pos.z or pos[3] or 0
 
   local angle = 1.07 * 2 * math.pi/6 - (math.pi/180 * angleY)
 
@@ -3484,7 +3498,7 @@ function spawnWingedMenaceExtraHand(color)
   local offsetZ = math.sin(angle) * 13.53
 
   local posy = Vector({posX + offsetX,12.56,posZ + offsetZ})
-  local roty = Player[color].getHandTransform(1).rotation
+  local roty = rot
 
   Player[color].setHandTransform({
       position = posy,
