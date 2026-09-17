@@ -286,6 +286,15 @@ relics etc" -- then "go ahead all of it". Each rule is one commit and one harnes
 STILL BY MEMORY, on purpose: `RTT_PRIO_MAP` (which map's priority markers are out -- rttClearPriority
 owns it), `RTT_TRACK` (the score track, re-found by guid and re-detected when gone).
 
+## Knaves stash, 2026-09-18 (built v1.447, not yet confirmed in TTS)
+
+- [x] **Snap points on the fifteen stash cells** of the Knaves rules board, read off the maintainer's
+      `items` save (five columns by three rows, board-local RTT_STASH_COL x RTT_STASH_ROW), baked into
+      the blueprint; the runtime asks those points to snap rotation too.
+- [x] **A captain's two items go by PICK ORDER**, cycling every seven: 2-1/2-2, 3-1/3-2, 4-1/4-2,
+      5-1/5-2, 1-1/1-2, 1-3/2-3, 3-3/4-3 (his "3-4" read as 4-3). Column 1 is the player's left, row 1
+      the top of the stash; if he counts the other way, flip RTT_STASH_COL or RTT_STASH_ROW.
+
 ## NOTES DO NOT TOUCH
 
 there are also some Homeland assets we don't have yet like the Gladiator meeple and the assembly and acclaim tokens (both sides each) are outdated

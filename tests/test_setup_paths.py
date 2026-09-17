@@ -12787,6 +12787,87 @@ def t_every_guid_registry_follows_a_re_create_and_forgets_with_the_game(src):
         assert rt.eval("type(%s)" % n) == "table", "%s is on the registry list but is not a table" % n
 
 
+def t_captain_items_fill_the_stash_by_pick_order(src):
+    """A captain's two items land on the stash cells its PICK ORDER earns, not on its slot's column.
+
+    Maintainer, 2026-09-18: "2-1 and 2-2 for first captain picked, 3-1 and 3-2 for second ... 1-1 and
+    1-2 for fifth, 1-3 and 2-3 for 6th, and 3-3 and 3-4 for 7th captain picked, then start over on 2-1
+    and 2-2". Column-row on the five-by-three grid he laid out in his `items` save; "3-4" is read as
+    4-3, the grid having three rows. The board's own frame, so the seat's rotation is carried.
+    """
+    rt = fresh(src)
+    rt.execute("""
+      KB = MKOBJ('Custom_Tile', { -1.82, 11.56, -50.98 }, { 'RTT Faction' })
+      KB.setRotation({ 0, 180, 0 }) KB.setScale({ 8.8227, 1, 8.8227 })
+      RTT_CAP_KNAVE_GUID = KB.getGUID()
+      RTT_CAP_ITEM_JSON = {}
+      for _, n in ipairs({ 'Sword', 'Coins', 'Boot', 'Tea', 'Hammer', 'Crossbow', 'Bag' }) do
+        RTT_CAP_ITEM_JSON[n] = '{"Name":"Custom_Tile","Nickname":"' .. n .. '"}'
+      end
+      DROPS = {}
+      local _s = spawnObjectJSON
+      spawnObjectJSON = function(p)
+        local q = p.position
+        DROPS[#DROPS + 1] = { x = q.x or q[1], z = q.z or q[3] }
+        return _s(p)
+      end
+      function CELL(c, r)
+        local w = KB.positionToWorld({ RTT_STASH_COL[c], RTT_STASH_Y, RTT_STASH_ROW[r] })
+        return { x = w.x, z = w.z }
+      end
+    """)
+    want = {1: ((2, 1), (2, 2)), 2: ((3, 1), (3, 2)), 3: ((4, 1), (4, 2)), 4: ((5, 1), (5, 2)),
+            5: ((1, 1), (1, 2)), 6: ((1, 3), (2, 3)), 7: ((3, 3), (4, 3)), 8: ((2, 1), (2, 2))}
+    for nth in range(1, 9):
+        rt.execute("DROPS = {} rttSpawnCaptainItems('Arbiter', %d)" % nth)
+        drops = [dict(v) for v in dict(rt.eval("DROPS")).values()]
+        assert len(drops) == 2, "captain %d dropped %d items, not two" % (nth, len(drops))
+        for k, cell in enumerate(want[nth]):
+            exp = dict(rt.eval("CELL(%d, %d)" % cell))
+            got = drops[k]
+            assert abs(got["x"] - exp["x"]) < 0.01 and abs(got["z"] - exp["z"]) < 0.01, (
+                "captain %d, item %d landed at (%.2f, %.2f), not on cell %d-%d (%.2f, %.2f)"
+                % (nth, k + 1, got["x"], got["z"], cell[0], cell[1], exp["x"], exp["z"]))
+
+    # ...and the detector counts picks, whatever slot the card sits in: slot 3 first, then slot 1
+    rt.execute("""
+      RTT_CAP_SPAWN_N = 0
+      DROPS = {}
+      rttSpawnCaptainMeeple('Cheat', 2)   -- dragged onto the THIRD slot first
+      rttSpawnCaptainMeeple('Ronin', 0)   -- then one onto the first slot
+    """)
+    drops = [dict(v) for v in dict(rt.eval("DROPS")).values()]
+    items = [d for d in drops]
+    c21 = dict(rt.eval("CELL(2, 1)")); c31 = dict(rt.eval("CELL(3, 1)"))
+    assert any(abs(d["x"] - c21["x"]) < 0.01 and abs(d["z"] - c21["z"]) < 0.01 for d in items), \
+        "the first captain picked did not get column 2 although it sat in slot 3"
+    assert any(abs(d["x"] - c31["x"]) < 0.01 and abs(d["z"] - c31["z"]) < 0.01 for d in items), \
+        "the second captain picked did not get column 3"
+    assert rt.eval("RTT_CAP_SPAWN_N") == 2
+
+
+def t_the_knaves_board_carries_the_stash_snaps(src):
+    """The Knaves rules board's blueprint carries a snap point on every one of the fifteen stash cells.
+
+    Maintainer, 2026-09-18: "create snap points at the position of these items so the player items go
+    there clean." Baked, not computed at runtime; the runtime only asks those points to snap rotation.
+    """
+    h = "84529E736BDD4EF6B70CA79E3F99E2D07FA75A2C"
+    i = src.index(h)
+    start = max(src.rfind('{"GUID"', 0, i), src.rfind('{"Name"', 0, i))
+    m = re.compile(r'"AttachedSnapPoints":\s*\[(.*?)\]', re.S).search(src, start)
+    assert m is not None, "the Knaves rules board has no snap points at all"
+    pts = json.loads("[" + m.group(1) + "]")
+    cols = [0.1504, -0.0052, -0.1609, -0.3165, -0.4722]
+    rows = [0.5663, 0.7201, 0.8739]
+    for r in rows:
+        for x in cols:
+            hit = [p for p in pts if abs(p["Position"]["x"] - x) < 0.002 and abs(p["Position"]["z"] - r) < 0.002]
+            assert len(hit) == 1, "stash cell at (%.4f, %.4f) has %d snap points" % (x, r, len(hit))
+            assert abs(hit[0]["Rotation"]["z"]) < 1, "a stash snap would turn an item face down"
+    assert len(pts) == 20, "the board carries %d snap points; its five old ones plus fifteen expected" % len(pts)
+
+
 def t_the_cats_wait_for_their_supply(src):
     """The Marquise's map cats retry instead of giving up on a fixed deadline.
 
@@ -14272,6 +14353,8 @@ CASES = [
     ("two vagabonds share no pieces",        t_two_vagabonds_do_not_share_pieces),
     ("a leaving row takes its pointers",     t_a_row_leaving_takes_its_pointers_with_it),
     ("the sweep re-asks before it touches",  t_the_sweep_and_its_timers_respect_what_changed_since),
+    ("captain items fill the stash by pick order", t_captain_items_fill_the_stash_by_pick_order),
+    ("the knaves board carries the stash snaps", t_the_knaves_board_carries_the_stash_snaps),
     ("the cats wait for their supply",       t_the_cats_wait_for_their_supply),
     ("the pond leaves a panel still spawning alone", t_the_pond_ping_leaves_a_panel_still_spawning_alone),
     ("the board remembers each vp marker",   t_the_board_remembers_each_vp_marker_by_guid),

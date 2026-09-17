@@ -160,3 +160,4 @@ setup board's top right corner, and goes up on every commit.
 - A hand that holds cards is never moved, hopped or rewritten, by the draft, a pick or Resync; the Resync sweep never touches the table itself.
 - Resync repairs a hand that holds cards: the cards are lifted out face down and locked, the box is rewritten while the player is off the colour, and the cards are dealt back once the player is home.
 - Numpad 1 and 2 do nothing in the deck positions: inside the deck holder's or the pond's footprint.
+- The Knaves rules board carries a snap point on each of the fifteen stash cells, and a captain's two items land on the pair of cells its pick order earns.

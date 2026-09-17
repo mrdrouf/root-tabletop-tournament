@@ -6126,6 +6126,25 @@ function rttSpawnCaptainsFor(rulesBoard)
         -- captain's meeple above the Knaves board (items TODO once the item-supply source is known).
         RTT_CAP_BOARD_GUID = board.getGUID()
         RTT_CAP_KNAVE_GUID = rulesBoard.getGUID()
+        -- THE STASH SNAPS TURN AN ITEM SQUARE TO THE BOARD, like the captain slots above: the fifteen
+        -- baked points (content.lua, RTT_STASH_COL x RTT_STASH_ROW) carry positions; rotation snapping
+        -- is asked for here, for those points only, and the board's older points stay as they are.
+        pcall(function()
+          local pts = {}
+          for _, sp in ipairs(rulesBoard.getSnapPoints() or {}) do
+            local p = sp.position
+            local px, pz = (p.x or p[1] or 0), (p.z or p[3] or 0)
+            local onCol, onRow = false, false
+            for _, cx in ipairs(RTT_STASH_COL) do if math.abs(px - cx) < 0.02 then onCol = true end end
+            for _, rz in ipairs(RTT_STASH_ROW) do if math.abs(pz - rz) < 0.02 then onRow = true end end
+            if onCol and onRow then
+              pts[#pts + 1] = { position = p, rotation = { 0, 0, 0 }, rotation_snap = true }
+            else
+              pts[#pts + 1] = { position = p, rotation = sp.rotation }
+            end
+          end
+          if #pts > 0 then rulesBoard.setSnapPoints(pts) end
+        end)
         RTT_CAP_SLOT = {}; RTT_CAP_SPAWN_N = 0; RTT_CAP_ITEM_N = 0
         RTT_CAP_SPAWNED = {}; RTT_CAP_WARRIOR_N = 0
         pcall(function() rttBuildCaptainMeeples() end)
@@ -6154,6 +6173,23 @@ RTT_CAP_ITEMS = { Arbiter={"Sword","Coins"}, Cheat={"Boot","Tea"}, Gladiator={"S
 RTT_CAP_ITEM_IMG = { Hammer="659FC4CB06EB0B0D", Tea="EBD306D267C01CDF", Crossbow="F8D6F48DD0ABEEA7",
   Sword="5C28A04F83536BEE", Coins="C4D891F4DF65BFE6", Bag="1C4D9EF6DB4497F8", Boot="4C9DEE88ED9F3B02" }
 RTT_CAP_ITEM_JSON   = nil
+-- THE STASH GRID: five columns by three rows in the rules board's own frame, read off the maintainer's
+-- save `items` (2026-09-18), where he laid the fifteen items by hand. Column 1 is the player's LEFT,
+-- row 1 the TOP of the stash (nearest the board's middle). The same fifteen points are baked into the
+-- board's snap points (content.lua), so an item dropped anywhere near lands clean.
+RTT_STASH_COL = { 0.1504, -0.0052, -0.1609, -0.3165, -0.4722 }
+RTT_STASH_ROW = { 0.5663, 0.7201, 0.8739 }
+RTT_STASH_Y   = 0.0996
+-- WHERE EACH CAPTAIN'S TWO ITEMS GO, BY THE ORDER THE CAPTAINS WERE PICKED -- not by the slot the card
+-- sits in. Maintainer, 2026-09-18: "2-1 and 2-2 for first captain picked, 3-1 and 3-2 for second
+-- captain picked, 4-1 and 4-2 for third captain picked, 5-1 and 5-2 for fourth captain picked, 1-1
+-- and 1-2 for fifth captain picked, 1-3 and 2-3 for 6th captain picked, and 3-3 and 3-4 for 7th
+-- captain picked, then start over on 2-1 and 2-2". Column-row; "3-4" read as 4-3, the grid having
+-- three rows. Cell 5-3 is the one spare.
+RTT_STASH_PAIRS = {
+  { { 2, 1 }, { 2, 2 } }, { { 3, 1 }, { 3, 2 } }, { { 4, 1 }, { 4, 2 } }, { { 5, 1 }, { 5, 2 } },
+  { { 1, 1 }, { 1, 2 } }, { { 1, 3 }, { 2, 3 } }, { { 3, 3 }, { 4, 3 } },
+}
 RTT_CAP_MEEPLE_JSON = nil
 RTT_CAP_BOARD_GUID  = nil
 RTT_CAP_KNAVE_GUID  = nil
@@ -6192,24 +6228,21 @@ function rttBuildCaptainItems()
   end
 end
 
--- spawn this captain's TWO items near its meeple's column (ox = the meeple's local-X offset).
--- drop this captain's items into the Knaves STASH (board-local grid, via positionToWorld so it follows
--- the seat's rotation). RTT_CAP_ITEM_N accumulates so items from different captains tile cleanly.
--- (Stash board-local spot is an estimate -- tell me the exact one and I bake it.)
--- Each captain = one COLUMN of the 3x2 stash rectangle (idx 0 = left, 1 = middle, 2 = right); its 2 items
--- stack TOP then BOTTOM. Board-local grid from the maintainer's last save: x {-0.313,-0.153,0.007} (step
--- 0.16), z {0.619 top, 0.759 bottom} (step 0.14). positionToWorld carries the seat rotation.
-function rttSpawnCaptainItems(name, idx)
+-- Drop this captain's TWO items into the Knaves STASH, on the pair of cells its PICK ORDER earns
+-- (RTT_STASH_PAIRS, cycling every seven), via positionToWorld so the grid follows the seat's rotation.
+-- `nth` is the captain's number in the order picked, 1 for the first; a caller with no count gets the
+-- first pair.
+function rttSpawnCaptainItems(name, nth)
   if RTT_CAP_ITEM_JSON == nil then rttBuildCaptainItems() end
   local kb = getObjectFromGUID(RTT_CAP_KNAVE_GUID or "")
   if kb == nil or RTT_CAP_ITEMS[name] == nil then return end
   local fry = kb.getRotation().y; local by = kb.getPosition().y
-  local colx = -0.313 + (idx or 0) * 0.16
+  local pair = RTT_STASH_PAIRS[((math.max(1, nth or 1) - 1) % #RTT_STASH_PAIRS) + 1]
   for k, iname in ipairs(RTT_CAP_ITEMS[name]) do
     local blob = RTT_CAP_ITEM_JSON and RTT_CAP_ITEM_JSON[iname]
-    if blob ~= nil then
-      local rowz = 0.619 + (k - 1) * 0.14           -- item 1 = top row, item 2 = bottom row
-      local wp = kb.positionToWorld({ colx, 0, rowz })
+    local cell = pair[k] or pair[#pair]
+    if blob ~= nil and cell ~= nil then
+      local wp = kb.positionToWorld({ RTT_STASH_COL[cell[1]], RTT_STASH_Y, RTT_STASH_ROW[cell[2]] })
       spawnObjectJSON({ json = blob, position = { wp.x, by + 1.2, wp.z }, rotation = { 0, fry, 0 },
         callback_function = function(o) pcall(function() o.addTag("RTT Faction") end) end })
     end
@@ -6247,7 +6280,9 @@ function rttSpawnCaptainMeeple(name, idx)
     RTT_CAP_WARRIOR_N = (RTT_CAP_WARRIOR_N or 0) + 1
     pcall(function() rttSpawnCaptainWarrior(idx) end)
   end
-  pcall(function() rttSpawnCaptainItems(name, idx) end)  -- this captain's 2 items = its column (top+bottom)
+  -- the items go by the ORDER the captains were picked, whatever slot the card sits in
+  RTT_CAP_SPAWN_N = (RTT_CAP_SPAWN_N or 0) + 1
+  pcall(function() rttSpawnCaptainItems(name, RTT_CAP_SPAWN_N) end)
 end
 
 -- one Knaves warrior below the captain row, board-local z=-1.137 from his save.
