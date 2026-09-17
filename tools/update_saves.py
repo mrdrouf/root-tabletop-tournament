@@ -48,12 +48,30 @@ def _tts_home():
         d = os.path.expanduser(c)
         if os.path.isdir(os.path.join(d, "Saves")):
             return d
-    # nothing found: fall back to the platform's usual spot so the error names a real path
-    return os.path.expanduser(here[1] if sys.platform.startswith("win") else here[0])
+    # nothing found: fall back to THIS platform's usual spot, so the error names a real path -- Linux
+    # included, which used to fall back to the macOS folder and then "update 0 saves" in silence
+    if sys.platform.startswith("win"):   return os.path.expanduser(here[1])
+    if sys.platform.startswith("linux"): return os.path.expanduser(here[3])
+    return os.path.expanduser(here[0])
 
 
 TTS_HOME = _tts_home()
 SAVES = os.path.join(TTS_HOME, "Saves")
+
+
+def _require_saves():
+    """A missing folder or base save is an ERROR, never a quiet "updated 0 save(s)".
+
+    That quiet zero is exactly how this script hid a day-old save on the Windows box; a tool whose
+    failure looks like success is worse than one that stops. Called before anything is touched.
+    """
+    if not os.path.isdir(SAVES):
+        raise SystemExit("[update_saves] no TTS Saves folder at %s -- is Tabletop Simulator installed "
+                         "on this machine, and has it been run once?" % SAVES)
+    base = os.path.join(SAVES, BASE_SAVE)
+    if not os.path.isfile(base) and "--all" not in sys.argv:
+        raise SystemExit("[update_saves] the base save %s is not in %s -- nothing to update, and "
+                         "nothing was." % (BASE_SAVE, SAVES))
 # NOT inside Saves/: TTS scans that folder, and it must not find our copies
 BACKUPS = os.path.join(TTS_HOME, "RTT_save_backups")
 KEEP_SETS = 2
@@ -191,6 +209,7 @@ def in_scope(path, every):
 
 
 def main():
+    _require_saves()
     dry = "--dry-run" in sys.argv
     every = "--all" in sys.argv
     global_lua, board, box, panel, surface = current_sources()

@@ -201,8 +201,18 @@ Ultimate mod doesn't use the actual assets for those
 
 what actions to automate like produce wood and recruit.
 
-sometimes assignement does nto work player can see it s hand but not below on the screen; leave and rejoin the game fixes it; oild bug that happens in orginal mod as well
+sometimes seat assignement does nt work player can see it s hand but not below on the screen; leave and rejoin the game fixes it; old bug that happens in orginal mod as well
 
-is march flooded clearing properly randomised got the same map twice ibn two consecutive games
+is march flooded clearing properly randomised? got the same map twice in two consecutive games
 
-also got same seating precisely the same with only same players what is going on
+spectator joined then I had error lua object reference not set on an instace of an object every time a player touched an object as player 1.
+
+left clic on a warrior then hold left clic on that warrior then right click to grab warriors draws cards; completely insane bug; also happens only in some middle clearing;
+
+status on the hand not appearing below screen? 
+
+
+wait according to the rules a dominance card spent in the lost souls stays in the lost souls until it is discarded!!!! also move frog cars in the discard or the lost souls back to the pond as you do in reverse for normal cards.
+
+also investigate: a player used 0 once successfully then it didn't work on other badgers
+other badgers ended up locked when using it

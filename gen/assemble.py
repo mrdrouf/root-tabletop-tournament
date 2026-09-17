@@ -106,6 +106,12 @@ UNTAGGED_SPAWN_OK = {
     # open board. Nothing is created, so there is nothing new to tag -- and a game card must NOT carry
     # a teardown tag or a new game would destroy cards belonging to the deck it deliberately spares.
     "rttVPClick",
+    # STACK AND SPLIT. rttResyncStackPairs groups two cards the game already has and takes them back out
+    # BY GUID to the spots it recorded a moment earlier -- the same cards, so nothing new to tag. Its
+    # rollback respawns a card from that card's own snapshot JSON, and rttResyncCardRestore re-applies
+    # the snapshot's exact tags on arrival. A teardown tag here would be actively wrong: these are game
+    # cards, and a new game spares the deck they belong to on purpose.
+    "rttResyncStackPairs",
     # THE PUMP, NOT A SPAWN SITE. It hands over specs its caller built, callback and all, so the tag
     # lives in the caller's own callback_function -- where this check reads it, in the caller.
     "rttSpawnStaggered",

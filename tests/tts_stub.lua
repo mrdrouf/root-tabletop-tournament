@@ -584,14 +584,29 @@ function MKDECK(specs)
     other.destruct()
     return o
   end
+  -- THE PILE COLLAPSES, as TTS's does. Removing the second-last card destroys the deck and spawns the
+  -- last one as a loose Card, in the deck's place, under the guid it had inside; the deck handle is
+  -- dead from then on. And a guid that is not in the pile answers nil rather than the top card: the
+  -- old fallback to index 1 hid every wrong-guid mistake as a success.
   function o.takeObject(p)
     p = p or {}
     local idx = 1                                    -- no guid given: the TOP card
     if p.guid then
+      idx = nil
       for i, c in ipairs(o.__cards) do if c.guid == p.guid then idx = i break end end
+      if idx == nil then return nil end
     end
     local c = table.remove(o.__cards, idx)
     if c == nil then return nil end
+    if #o.__cards == 1 then
+      local last = table.remove(o.__cards, 1)
+      local r = MKOBJ(last.nickname, o.__pos, {})
+      if last.guid ~= nil then REGUID(r, last.guid) end
+      r.name = "Card"; r.tag = "Card"
+      r.getDescription = function() return last.description or "" end
+      r.is_face_down = (last.face_down == true)
+      o.destruct()
+    end
     local t = MKOBJ(c.nickname, p.position, {})
     -- ...AND IT KEEPS THE GUID IT HAD IN THE PILE, which is how TTS behaves and what any stack-and-split
     -- repair relies on: it puts a pair into a pile and asks for each one BACK by guid. A stub that

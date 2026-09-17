@@ -8354,6 +8354,148 @@ def t_the_discard_sweep_only_takes_cards_that_have_landed(src):
         "the second move does not end at the dominance track: x %.2f" % land[0]
 
 
+def _holder_script(src):
+    """The deck/discard holder's own script (Refill Card, guid aa1464), out of the built board."""
+    for mm in re.finditer(r"json=\[\[(.*?)\]\]", src, re.S):
+        try:
+            d = json.loads(mm.group(1))
+        except ValueError:
+            continue
+        if d.get("GUID") == "aa1464":
+            return d["LuaScript"].replace("!=", "~=")
+    raise AssertionError("the Refill Card blueprint is not in the build")
+
+
+def t_a_dominance_card_spent_into_the_lost_souls_stays_there(src):
+    """A dominance card let go on the Lost Souls is a spent card and stays; on the discard it goes home.
+
+    Maintainer, 2026-09-17: "according to the rules a dominance card spent in the lost souls stays in
+    the lost souls until it is discarded!!!!" The drop handler treated the Lost Souls exactly like the
+    discard and launched every dominance card at the track from there too, so the Lizard Cult could
+    never keep one. Only a drop on the discard sends it home now; on the Lost Souls it snaps onto the
+    pile like any other card. The once-a-second sweep already left dominance alone on the lizard spots
+    (it passes isDiscard=false there), so the drop was the only leak.
+    """
+    script = _holder_script(src)
+
+    def drop_dominance_on(guid, loc, host_at):
+        """Drop a face-up 'Fox Dominance' on the object with this guid; return where it was sent."""
+        rt = lupa.LuaRuntime(unpack_returned_tuples=True)
+        rt.execute(open(os.path.join(HERE, "tts_stub.lua"), encoding="utf-8").read())
+        rt.execute("""
+          MOVED = {}
+          self.positionToWorld = function(p) return { x = p[1]*3.38, y = p[2], z = p[3]*3.38 } end
+          HOST = REGUID(MKOBJ('Custom_Tile', { %f, 1, %f }, {}), %r)
+          HOST.positionToWorld = function(p) return { x = %f + p[1], y = p[2], z = %f + p[3] } end
+          CARD = MKOBJ('Fox Dominance', {0,1,0}, {})
+          CARD.name = 'Card' CARD.tag = 'Card'
+          CARD.getDescription = function() return 'Fox' end
+          CARD.is_face_down = false
+          CARD.getPosition = function() return { x = %f + %f, y = 2, z = %f + %f } end
+          CARD.setPositionSmooth = function(p)
+            MOVED[#MOVED+1] = { x = p.x or p[1], z = p.z or p[3] }
+          end
+          CARD.setRotationSmooth = function() end
+          Physics = { cast = function() return {} end }
+        """ % (host_at[0], host_at[1], guid, host_at[0], host_at[1],
+               host_at[0], loc[0], host_at[1], loc[2]))
+        rt.execute(script)
+        rt.execute("pcall(function() onLoad('') end) "
+                   "pcall(function() onObjectDrop('Red', CARD) end) FLUSH(20)")
+        n = rt.eval("function() return #MOVED end")()
+        return [(rt.eval("function() return MOVED[%d].x end" % (i + 1))(),
+                 rt.eval("function() return MOVED[%d].z end" % (i + 1))()) for i in range(n)]
+
+    # on the lizard wizard's pile: it stays, snapped onto that pile
+    moves = drop_dominance_on("dc029b", (0.484, 1.00, -0.01), (100.0, 100.0))
+    assert moves, "a dominance card dropped on the Lost Souls was not snapped onto the pile at all"
+    assert all(abs(x - 100.484) < 0.01 for x, _ in moves), (
+        "a dominance card dropped on the Lost Souls was sent away (to x=%s); the rules say it stays "
+        "there until it is discarded" % [round(x, 2) for x, _ in moves])
+
+    # ...and on the lizard BOARD's pile, when no wizard is out
+    moves = drop_dominance_on("6a1fe4", (-0.905, 1.00, 0.5), (100.0, 100.0))
+    assert moves and all(abs(x - 99.095) < 0.01 for x, _ in moves), (
+        "a dominance card dropped on the lizard board's Lost Souls was sent away: %s"
+        % [round(x, 2) for x, _ in moves])
+
+    # ...while the DISCARD still sends it home to the track (x = -41.88), lifted first
+    rt = lupa.LuaRuntime(unpack_returned_tuples=True)
+    rt.execute(open(os.path.join(HERE, "tts_stub.lua"), encoding="utf-8").read())
+    rt.execute("""
+      MOVED = {}
+      self.positionToWorld = function(p) return { x = p[1]*3.38, y = p[2], z = p[3]*3.38 } end
+      CARD = MKOBJ('Fox Dominance', {0,1,0}, {})
+      CARD.name = 'Card' CARD.tag = 'Card'
+      CARD.getDescription = function() return 'Fox' end
+      CARD.is_face_down = false
+      CARD.getPosition = function() return { x = -0.957*3.38, y = 2, z = 0.222*3.38 } end
+      CARD.setPositionSmooth = function(p) MOVED[#MOVED+1] = p.x or p[1] end
+      CARD.setRotationSmooth = function() end
+      Physics = { cast = function() return {} end }
+    """)
+    rt.execute(script)
+    rt.execute("pcall(function() onLoad('') end) "
+               "pcall(function() onObjectDrop('Red', CARD) end) FLUSH(20)")
+    n = rt.eval("function() return #MOVED end")()
+    xs = [rt.eval("function() return MOVED[%d] end" % (i + 1))() for i in range(n)]
+    assert any(abs(x + 41.88) < 0.01 for x in xs), (
+        "a dominance card dropped on the DISCARD no longer goes home to the track: %s" % xs)
+
+
+def t_a_frog_on_the_discard_reaches_a_pond_found_by_tag(src):
+    """The sweep returns a frog card from the discard to the pond even when the pond's guid changed.
+
+    Maintainer, 2026-09-17: "also move frog cars in the discard or the lost souls back to the pond".
+    The holder's script did that -- but found the pond by the blueprint guid 347917, and TTS keeps a
+    blueprint's guid on spawn only while that guid is free. A pond that came up under a fresh guid
+    made every frog test in the script go quiet: frogs in the discard and the Lost Souls stayed put.
+    The board itself finds the pond by its "RTT Pond" tag (rttPondPile), and so does the holder now;
+    the guid is only the fallback.
+    """
+    script = _holder_script(src)
+
+    def frog_on_discard_after_sweep(pond_guid, pond_tags):
+        rt = lupa.LuaRuntime(unpack_returned_tuples=True)
+        rt.execute(open(os.path.join(HERE, "tts_stub.lua"), encoding="utf-8").read())
+        rt.execute("""
+          SENT = {}
+          self.positionToWorld = function(p) return { x = p[1]*3.38, y = p[2], z = p[3]*3.38 } end
+          POND = MKOBJ('Custom_Tile', { 50, 1, 50 }, %s)
+          if %r ~= '' then REGUID(POND, %r) end
+          POND.positionToWorld = function(p) return { x = 50 + p[1], y = p[2], z = 50 + p[3] } end
+          CARD = MKOBJ('Swamp', { -0.957*3.38, 1, 0.222*3.38 }, {})
+          CARD.name = 'Card' CARD.tag = 'Card'
+          CARD.getDescription = function() return 'Frog' end
+          CARD.resting = true
+          CARD.setPosition = function(p) SENT[#SENT+1] = { x = p.x or p[1], z = p.z or p[3] } end
+          CARD.setPositionSmooth = CARD.setPosition
+          -- the sphere cast answers with whatever card lies within 2 of the origin
+          Physics = { cast = function(q)
+            local o = q.origin
+            local p = CARD.getPosition()
+            if (p.x - o.x)^2 + (p.z - o.z)^2 <= 4 then return { { hit_object = CARD } } end
+            return {}
+          end }
+        """ % (pond_tags, pond_guid, pond_guid))
+        rt.execute(script)
+        rt.execute("pcall(function() onLoad('') end) pcall(function() updateButtons() end) FLUSH(5)")
+        n = rt.eval("function() return #SENT end")()
+        return [(rt.eval("function() return SENT[%d].x end" % (i + 1))(),
+                 rt.eval("function() return SENT[%d].z end" % (i + 1))()) for i in range(n)]
+
+    # a pond under a fresh guid, carrying the tag the board gives it: the frog goes home to it
+    sent = frog_on_discard_after_sweep("", "{ 'RTT Pond' }")
+    assert any(abs(x - 50) < 0.01 and abs(z - 49.91) < 0.01 for x, z in sent), (
+        "a frog resting on the discard was not returned to a pond found by its tag; moves: %s"
+        % [(round(x, 2), round(z, 2)) for x, z in sent])
+
+    # ...and the blueprint guid still works on its own, for a pond that arrived some other way
+    sent = frog_on_discard_after_sweep("347917", "{}")
+    assert any(abs(x - 50) < 0.01 and abs(z - 49.91) < 0.01 for x, z in sent), (
+        "a pond under the blueprint guid but without the tag is no longer found: %s" % sent)
+
+
 def t_nothing_creates_more_than_a_handful_of_objects_a_frame(src):
     """Every spawn path is paced, not just the faction one.
 
@@ -8475,163 +8617,136 @@ def t_the_duchess_keeps_her_whole_head_and_none_of_her_tiles(src):
          "so the card's frame is still cutting her skull" % (crest, below))
 
 
-def _reload_probe(rt):
-    """Count reload() calls and let a test make one of them fail the way a lost card would."""
+def _card_probe(rt):
+    """Reset the stub's stacking ledger and define CARDN(), the number of loose cards on the table."""
     rt.execute("""
-      RELOADED = {}
-      LOSE = {}
-      local _mk = MKOBJ
-      MKOBJ = function(n, p, t)
-        local o = _mk(n, p, t)
-        local _r = o.reload
-        o.reload = function()
-          RELOADED[#RELOADED + 1] = o.__guid
-          -- a card the reload swallows: destroyed, nothing handed back
-          if LOSE[o.__guid] then o.destruct() return nil end
-          return _r()
-        end
-        return o
-      end
+      GROUPED = {} REPAIRED = {}
       function CARDN() local n = 0
         for _, o in ipairs(getAllObjects()) do if o.tag == "Card" then n = n + 1 end end return n end
+      function REPAIRED_SET() local t = {} for _, g in ipairs(REPAIRED) do t[g] = true end return t end
     """)
 
 
-def t_the_resync_button_reloads_the_cards_on_the_table(src):
-    """Resync re-creates every loose card it may touch, loses none of them, and says so.
+def t_the_resync_button_restacks_the_cards_on_the_table(src):
+    """Resync puts every loose card through a pile, loses none of them, leaves no pile, and says so.
 
-    Maintainer, 2026-09-12: "make the reload cards with the resynch button."
-
-    WHY A RE-CREATE AND NOT A WRITE. The sweep's whole premise is that a property write reaches a
-    client that has NO SUCH OBJECT, which then takes the full state out of that message -- so it can
-    put back something a client never received. A card showing its back is the other case: the client
-    HAS the card, the write applies the way writes do, and whatever is stale stays stale. Zaandaa:
-    "sometimes you can't see what cards are, like only seeing the back of a card", and "fixing that
-    involves stacking them". Stacking is a DESTROY plus a CREATE, and reload() is that in one call.
-
-    The count is the other half. A repair that re-creates forty objects and gives back thirty-nine is
-    worse than the fault, so the pass is checked on what is on the table after it, not on what it did.
+    Maintainer, 2026-09-12: "make the reload cards with the resynch button" -- and 2026-09-17, after
+    the reload shipped and did nothing for a card showing its back: "puting a card on top of another
+    like stacking the; does make a card appear". reload() is a destroy plus a create and it did not
+    cure the card; group() is the thing the table does by hand, and it does. So the repair is the real
+    stack-and-split now, and this checks the whole table after a press: every card reached, the same
+    count of loose cards as before, no pile left behind, the busy flag down, the count reported.
     """
     rt = fresh(src)
-    _reload_probe(rt)
+    _card_probe(rt)
     rt.execute("MSG = {} broadcastToAll = function(m) MSG[#MSG+1] = tostring(m) end")
     rt.execute("pcall(function() rttSetup(Player['Red'],'','rttRankedBtn') end) FLUSH(250)")
     before = rt.eval("CARDN()")
-    assert before > 0, "the fixture put no cards on the table, so this proves nothing"
-    rt.execute("RELOADED = {} rttResyncClick(Player['Red'],'','rttResyncBtn') FLUSH(120)")
-    n = rt.eval("function() return #RELOADED end")()
-    assert n == before, "%d of the %d cards on the table were reloaded" % (n, before)
+    assert before > 1, "the fixture put %d cards on the table, so this proves nothing" % before
+    rt.execute("""
+      WANT = {}
+      for _, o in ipairs(getAllObjects()) do if o.tag == "Card" then WANT[#WANT + 1] = o.getGUID() end end
+      rttResyncClick(Player['Red'],'','rttResyncBtn') FLUSH(600)
+    """)
+    want = set((rt.eval("WANT") or {}).values())
+    repaired = set((rt.eval("REPAIRED_SET()") or {}).keys())
+    assert want <= repaired, "%d of the %d cards on the table never went through a pile: %s" % (
+        len(want - repaired), len(want), sorted(want - repaired)[:6])
     after = rt.eval("CARDN()")
-    assert after == before, "the table went from %d cards to %d across a resync" % (before, after)
+    assert after == before, "the table went from %d loose cards to %d across a resync" % (before, after)
+    piles = rt.eval("""function() local n = 0
+      for _, o in ipairs(getAllObjects()) do
+        if o.tag == "Deck" then for _, c in ipairs(o.getObjects() or {}) do
+          for _, g in ipairs(WANT) do if c.guid == g then n = n + 1 end end end end
+      end return n end""")()
+    assert piles == 0, "%d repaired card(s) are still inside a pile after the sweep" % piles
     assert rt.eval("RTT_RESYNC_BUSY") is False, "the sweep never released its busy flag"
-    msg = rt.eval("MSG")
-    msg = list(dict(msg).values()) if msg else []
-    assert any("cards reloaded" in m for m in msg), \
-        "the button did not report the cards it reloaded: %s" % msg
+    msg = list(dict(rt.eval("MSG") or {}).values())
+    assert any("cards restacked" in m for m in msg), (
+        "the button did not report the cards it restacked: %s" % msg)
 
 
-def t_a_card_reload_is_paced_like_a_spawn(src):
-    """The card pass goes a couple a frame, not all at once.
+def t_the_card_restack_is_paced_like_a_spawn(src):
+    """The card pass goes one pair a frame at most, and finishes every pair it starts.
 
-    A reload is a destroy AND a create, which is heavier than anything else the sweep does -- and the
-    whole reason this file staggers is that a burst of create messages is what loses objects in the
-    first place. A repair that fires forty of them in one frame is the bug wearing a different hat;
-    MULTIPLAYER_SYNC.md records that shape being shipped once already, as "only sometimes the button
-    works".
+    A stack is a destroy AND a create for both cards, which is heavier than anything else the sweep
+    does -- and the whole reason this file staggers is that a burst of create messages is what loses
+    objects in the first place. Twelve cards is six piles; never two in one frame, and all twelve loose
+    again at the end.
     """
     rt = fresh(src)
-    _reload_probe(rt)
+    _card_probe(rt)
     rt.execute("""
       DECK = {}
       for i = 1, 12 do DECK[i] = MKOBJ("Card", { 10 + i, 1, 0 }, {}) end
-      RELOADED = {}
       rttResyncReloadCards(function() end)
     """)
-    per = rt.eval("RTT_RESYNC_CARDS_PER_FRAME")
-    first = rt.eval("function() return #RELOADED end")()
-    assert first == per, "the first frame reloaded %d cards, not the %d budget" % (first, per)
-    rt.execute("FLUSH(1)")
-    assert rt.eval("function() return #RELOADED end")() <= 2 * per, \
-        "the second frame went past the budget"
-    rt.execute("FLUSH(60)")
-    assert rt.eval("function() return #RELOADED end")() == 12, \
-        "the pass dropped its tail: only %d of 12 cards were reloaded" \
-        % rt.eval("function() return #RELOADED end")()
+    assert rt.eval("function() return #GROUPED end")() == 1, (
+        "the first frame started %d pairs, not one" % rt.eval("function() return #GROUPED end")())
+    per_frame = []
+    for _ in range(120):
+        a = rt.eval("function() return #GROUPED end")()
+        rt.execute("FLUSH(1)")
+        per_frame.append(rt.eval("function() return #GROUPED end")() - a)
+    assert max(per_frame) <= 1, "a frame started more than one pair: %s" % [n for n in per_frame if n]
+    assert rt.eval("function() return #GROUPED end")() == 6, (
+        "twelve cards should be six piles; %d were made" % rt.eval("function() return #GROUPED end")())
+    assert rt.eval("CARDN()") == 12, "only %d of the 12 cards are loose again" % rt.eval("CARDN()")
 
 
-def t_a_reloaded_card_comes_back_whole(src):
-    """Tags, lock and place survive the re-create, and the teardown list learns the new GUID.
-
-    TTS documents NEITHER whether a respawned object keeps its GUID nor whether it keeps its tags, so
-    the pass puts both back rather than hoping. Each matters for a different reason:
+def t_a_restacked_card_comes_back_whole(src):
+    """Guid, tags, lock, facing and place survive the stack-and-split, and the teardown list still names it.
 
     TAGS, because this mod's teardown is tag-driven -- rttClearGameObjects sweeps RTT_TEARDOWN_TAGS --
-    so a card that comes back untagged is a card Clear All walks straight past. That is the "old seat
-    number cards remain if you start a new draft" bug, which this file has already fixed once.
-
-    THE GUID, because the draft deck is the one thing tracked by guid instead: rttSpawnDeck records
-    every card it puts out in RTT_SPAWNED, and the teardown destroys that list by guid. A reload that
-    hands back a new guid takes the card off that list unless the swap is made.
-
-    THE LOCK AND THE PLACE, because a resync must leave the table exactly as it found it. A draft card
-    that came back unlocked, or half a unit off its slot, would be a repair nobody asked for.
+    so a card that comes back untagged is a card Clear All walks straight past. THE GUID, because the
+    draft deck is tracked by guid in RTT_SPAWNED and the teardown destroys that list by guid. THE LOCK,
+    THE FACING AND THE PLACE, because a resync must leave the table exactly as it found it: a locked,
+    face-down draft card must be locked and face down on the same spot afterwards.
     """
     rt = fresh(src)
-    _reload_probe(rt)
+    _card_probe(rt)
     rt.execute("""
       C = MKOBJ("Card", { 12.5, 3.25, -7.5 }, { "RTT Faction", "Deck Object" })
       C.setRotation({ 0, 270, 180 })
+      C.is_face_down = true
       C.setLock(true)
       OLD = C.getGUID()
+      PARTNER = MKOBJ("Card", { 20, 1, 0 }, {})
       RTT_SPAWNED = { "somethingelse", OLD }
       rttResyncReloadCards(function() end)
       FLUSH(60)
-      NEW = nil
-      for _, o in ipairs(getAllObjects()) do
-        if o.tag == "Card" and o.getGUID() ~= OLD then NEW = o end
-      end
     """)
-    assert rt.eval("NEW") is not None, "the card did not come back at all"
-    got = rt.eval("function() local o = NEW return { g = o.getGUID(), lock = o.getLock(), "
+    assert rt.eval("function() return REPAIRED_SET()[OLD] == true end")(), "the card never went through a pile"
+    got = rt.eval("function() local o = getObjectFromGUID(OLD) if o == nil then return nil end "
+                  "return { tag = o.tag, lock = o.getLock(), rz = o.getRotation().z, "
                   "x = o.getPosition().x, y = o.getPosition().y, z = o.getPosition().z, "
                   "faction = o.hasTag('RTT Faction'), deck = o.hasTag('Deck Object'), "
                   "ntags = #o.getTags() } end")()
-    assert got["faction"] and got["deck"], "the reloaded card lost its tags, so teardown cannot see it"
+    assert got is not None, "the card did not come back under its own guid"
+    assert got["tag"] == "Card", "the card came back as a %s" % got["tag"]
+    assert got["faction"] and got["deck"], "the card lost its tags, so teardown cannot see it"
     assert got["ntags"] == 2, "the tags were doubled up: %d on a card that had 2" % got["ntags"]
-    assert got["lock"] is True, "the reloaded card came back unlocked"
+    assert got["lock"] is True, "the card came back unlocked"
+    assert abs(((got["rz"] - 180 + 180) % 360) - 180) < 1, "the card came back face up (z=%.0f)" % got["rz"]
     assert (abs(got["x"] - 12.5) < 0.05 and abs(got["y"] - 3.25) < 0.05
-            and abs(got["z"] + 7.5) < 0.05), \
-        "the reloaded card is at %.3f,%.3f,%.3f, not where it stood" % (got["x"], got["y"], got["z"])
-    spawned = rt.eval("RTT_SPAWNED")
-    spawned = list(dict(spawned).values()) if spawned else []
-    assert got["g"] in spawned, \
-        "RTT_SPAWNED still names the old guid, so Clear All would leave this card behind"
-    assert rt.eval("OLD") not in spawned, "the dead guid is still on the teardown list"
+            and abs(got["z"] + 7.5) < 0.05), (
+        "the card is at %.3f,%.3f,%.3f, not where it stood" % (got["x"], got["y"], got["z"]))
+    spawned = list(dict(rt.eval("RTT_SPAWNED") or {}).values())
+    assert rt.eval("OLD") in spawned, "RTT_SPAWNED no longer names the card, so Clear All would leave it"
 
 
-def t_a_card_reload_leaves_alone_what_it_must(src):
-    """Six kinds of card the pass must not re-create, each for its own reason.
+def t_the_card_restack_leaves_alone_what_it_must(src):
+    """Six kinds of card the pass must not stack, each for its own reason -- and two controls it must.
 
     IN A HAND and HELD, because a card in somebody's hand belongs to that player's zone and a card
-    being dragged belongs to their cursor; re-creating either yanks it out from under them. Zaandaa:
-    "locking things in people's hands is also very awkward."
-
-    MOVING and STILL SPAWNING, because both are cards something else is in the middle of. The
-    supporter deal animates three cards across the table and flips them when they land; the API is
-    explicit that a spawning object's guid "is assigned correctly once the spawning member becomes
-    false", so a card taken mid-arrival cannot even be accounted for afterwards.
-
-    SCRIPTED, because a respawn runs the card's onLoad again, re-registering everything it registers.
-    Nothing in the mod ships a scripted CARD today -- the Refill Card is a Custom_Token -- and this
-    keeps that free if one is ever added.
-
-    CARRYING BUTTONS, because createButton is runtime-only and a respawned card comes back bare.
-
-    A DECK, because a deck is the draw pile and the discard: re-creating one re-creates every card
-    inside it at once, and rttFindDrawDeck would then be hunting a guid that no longer exists.
+    being dragged belongs to their cursor; stacking either yanks it out from under them. MOVING and
+    STILL SPAWNING, because both are cards something else is in the middle of. SCRIPTED, because a
+    respawn runs the card's onLoad again. CARRYING BUTTONS, because createButton is runtime-only. A
+    DECK, because a deck is the draw pile and the discard. Two controls rather than one, because a
+    single eligible card has no partner and is left alone by design.
     """
     rt = fresh(src)
-    _reload_probe(rt)
+    _card_probe(rt)
     rt.execute("""
       SEAT('Red', 'hostess')
       SPARED = {}
@@ -8643,42 +8758,67 @@ def t_a_card_reload_leaves_alone_what_it_must(src):
       local s = card("scripted") s.getLuaScript = function() return "function onLoad() end" end
       card("with buttons").createButton({ label = "x" })
       SPARED["a deck"] = MKOBJ("Deck", { 40, 1, 9 }, {})
-      TAKEN = MKOBJ("Card", { 40, 1, 18 }, {})           -- the control: this one MUST be reloaded
+      TAKEN = { MKOBJ("Card", { 40, 1, 18 }, {}), MKOBJ("Card", { 40, 1, 27 }, {}) }   -- the controls
       rttResyncReloadCards(function() end)
       FLUSH(60)
-      LEFT = {}
-      for kind, o in pairs(SPARED) do LEFT[kind] = (getObjectFromGUID(o.__guid) ~= nil) end
-      CONTROL = (getObjectFromGUID(TAKEN.__guid) == nil)
+      local R = REPAIRED_SET()
+      STACKED = {}
+      for kind, o in pairs(SPARED) do STACKED[kind] = (R[o.__guid] == true) or (getObjectFromGUID(o.__guid) == nil) end
+      CONTROL = (R[TAKEN[1].__guid] == true) and (R[TAKEN[2].__guid] == true)
     """)
-    left = dict(rt.eval("LEFT"))
-    kept = [k for k, v in left.items() if not v]
-    assert not kept, "the pass re-created what it must not touch: %s" % ", ".join(sorted(kept))
-    assert rt.eval("CONTROL") is True, \
-        "the control card was not reloaded either, so this test would pass on a pass that does nothing"
+    stacked = [k for k, v in dict(rt.eval("STACKED")).items() if v]
+    assert not stacked, "the pass stacked what it must not touch: %s" % ", ".join(sorted(stacked))
+    assert rt.eval("CONTROL") is True, (
+        "the control cards were not stacked either, so this test would pass on a pass that does nothing")
 
 
-def t_a_card_the_reload_loses_is_put_back(src):
-    """If a re-create ever swallows a card, the pass spawns it again from the blueprint it kept.
+def t_a_card_the_stack_loses_is_put_back(src):
+    """If a pile ever swallows a card, the pass spawns it again from the blueprint it kept.
 
-    THE ONE WAY THIS REPAIR COULD COST SOMETHING. reload() destroys before it creates, so a failure
-    leaves nothing -- and a vanished card is a worse outcome than a card showing its back, which is
-    the whole complaint. So every card is snapshotted before it is touched (its JSON, its tags, its
-    lock, where it stood) and the accounting pass at the end puts back anything it cannot find.
+    THE ONE WAY THIS REPAIR COULD COST SOMETHING. group() destroys both cards before the pile exists,
+    and takeObject is a create -- a failure between the two leaves nothing, and a vanished card is a
+    worse outcome than a card showing its back, which is the whole complaint. So every card is
+    snapshotted before it is touched (its JSON, its tags, its lock, where it stood); a pile that does
+    not give both cards back within RTT_STACK_PATIENCE frames is rolled back -- the pile destroyed,
+    the missing card respawned from its snapshot -- and the accounting pass at the end puts back
+    anything still unaccounted for.
 
     AND IT MUST NOT PUT BACK WHAT IS STILL THERE. Spawning a duplicate is the mirror-image bug, so a
     card counts as absent only when it answers to neither guid, nothing stands within a whisker of
     where it was, and nobody at the table is mid-drag with a card that could be it. The second half of
-    this test is the ordinary case, where the reload works and the count must not grow.
+    this test is the ordinary case, where the stack works and the count must not grow.
     """
     rt = fresh(src)
-    _reload_probe(rt)
+    _card_probe(rt)
     rt.execute("""
+      -- a pile that swallows one guid: the card leaves the pile and nothing is handed back, while the
+      -- pile collapses onto its last card exactly as TTS's would
+      LOSE = {}
+      local _group = group
+      group = function(objs)
+        local made = _group(objs)
+        for _, pile in ipairs(made) do
+          local _take = pile.takeObject
+          pile.takeObject = function(q)
+            if q ~= nil and q.guid ~= nil and LOSE[q.guid] then
+              local keep = nil
+              for i, c in ipairs(pile.__cards) do
+                if c.guid == q.guid then table.remove(pile.__cards, i) break end
+              end
+              if #pile.__cards == 1 then keep = pile.__cards[1] _take({ guid = keep.guid, position = pile.__pos }) end
+              return nil
+            end
+            return _take(q)
+          end
+        end
+        return made
+      end
       A = MKOBJ("Card", { 55, 1, 0 }, { "RTT Faction" })
       A.setLock(true)
       LOSE[A.getGUID()] = true
       B = MKOBJ("Card", { 55, 1, 6 }, { "RTT Faction" })
       rttResyncReloadCards(function() end)
-      FLUSH(60)
+      FLUSH(120)
       BACK = nil
       for _, o in ipairs(getAllObjects()) do
         if o.tag == "Card" then
@@ -8690,21 +8830,22 @@ def t_a_card_the_reload_loses_is_put_back(src):
     assert rt.eval("BACK") is not None, "the swallowed card was not put back"
     got = rt.eval("function() local o = BACK return { lock = o.getLock(), "
                   "tag = o.hasTag('RTT Faction') } end")()
-    assert got["lock"] is True and got["tag"] is True, \
-        "the card came back without its lock or its tag: %s" % dict(got)
-    assert rt.eval("CARDN()") == 2, \
-        "the table holds %d cards where it held 2" % rt.eval("CARDN()")
+    assert got["lock"] is True and got["tag"] is True, (
+        "the card came back without its lock or its tag: %s" % dict(got))
+    assert rt.eval("CARDN()") == 2, (
+        "the table holds %d cards where it held 2" % rt.eval("CARDN()"))
+    assert rt.eval("RTT_RESYNC_BUSY") is False, "the rollback left the busy flag up"
 
     # ...and the ordinary case, where nothing was lost and nothing may be duplicated
     rt2 = fresh(src)
-    _reload_probe(rt2)
+    _card_probe(rt2)
     rt2.execute("""
       for i = 1, 5 do MKOBJ("Card", { 55 + i, 1, 0 }, {}) end
       rttResyncReloadCards(function() end)
       FLUSH(60)
     """)
-    assert rt2.eval("CARDN()") == 5, \
-        "a clean pass left %d cards where there were 5" % rt2.eval("CARDN()")
+    assert rt2.eval("CARDN()") == 5, (
+        "a clean pass left %d cards where there were 5" % rt2.eval("CARDN()"))
 
 
 def t_the_draft_deal_survives_a_card_going(src):
@@ -8747,7 +8888,7 @@ def t_a_resync_pressed_while_the_draft_deals_frees_itself(src):
     """Pressed mid-deal, the pass declines the cards -- and does not take the button down with it.
 
     The cards are declined because rttSlideOut is walking the draft and rttFlipAll is about to turn it
-    over; re-creating a card underneath either is the null the case above guards. But declining is a
+    over; stacking a card underneath either is the null the case above guards. But declining is a
     RETURN out of the middle of the sweep, and the sweep hands its busy flag to this pass rather than
     clearing it itself. An early return that forgot to clear left RTT_RESYNC_BUSY up for the rest of
     the session: pressed once during a draft, the button never worked again.
@@ -8755,28 +8896,30 @@ def t_a_resync_pressed_while_the_draft_deals_frees_itself(src):
     So: no card touched, the flag down, the reason said out loud, and the very next press works.
     """
     rt = fresh(src)
-    _reload_probe(rt)
+    _card_probe(rt)
     rt.execute("""
       MSG = {} broadcastToAll = function(m) MSG[#MSG+1] = tostring(m) end
-      for i = 1, 3 do MKOBJ("Card", { 70 + i, 1, 0 }, {}) end
+      CG = {}
+      for i = 1, 3 do CG[i] = MKOBJ("Card", { 70 + i, 1, 0 }, {}).getGUID() end
       RTT_BUSY = true
       rttResyncClick(Player['Red'], '', 'rttResyncBtn')
       FLUSH(120)
     """)
-    assert rt.eval("function() return #RELOADED end")() == 0, \
-        "cards were reloaded while a draft was dealing"
-    assert rt.eval("RTT_RESYNC_BUSY") is False, \
-        "the sweep kept its busy flag, so the button is dead for the rest of the session"
-    msg = rt.eval("MSG")
-    msg = list(dict(msg).values()) if msg else []
-    assert any("while the draft is dealing" in m for m in msg), \
-        "nobody was told why the cards were left alone: %s" % msg
+    assert rt.eval("function() return #GROUPED end")() == 0, (
+        "cards were stacked while a draft was dealing")
+    assert rt.eval("RTT_RESYNC_BUSY") is False, (
+        "the sweep kept its busy flag, so the button is dead for the rest of the session")
+    msg = list(dict(rt.eval("MSG") or {}).values())
+    assert any("while the draft is dealing" in m for m in msg), (
+        "nobody was told why the cards were left alone: %s" % msg)
 
-    # ...and the next press, with the deal over, does the cards
-    rt.execute("RTT_BUSY = false RELOADED = {} "
+    # ...and the next press, with the deal over, does the cards -- all three, the odd one via a donor
+    rt.execute("RTT_BUSY = false GROUPED = {} REPAIRED = {} "
                "rttResyncClick(Player['Red'], '', 'rttResyncBtn') FLUSH(120)")
-    assert rt.eval("function() return #RELOADED end")() == 3, \
-        "the second press reloaded %d of the 3 cards" % rt.eval("function() return #RELOADED end")()
+    missing = rt.eval("function() local R = REPAIRED_SET() local m = {} "
+                      "for _, g in ipairs(CG) do if not R[g] then m[#m + 1] = g end end return m end")()
+    missing = list(dict(missing or {}).values())
+    assert not missing, "the second press left %d of the 3 cards unstacked" % len(missing)
 
 
 # ------------------------------------------------ the game recorder (the save's GLOBAL script) --
@@ -13058,11 +13201,21 @@ def t_the_rng_seed_stays_inside_int32(src):
     seed = got[0]
     assert abs(seed) <= INT32, (
         "seed %r is outside int32; MoonSharp casts it to a constant and the mod stops being random" % seed)
+    # INTEGRAL, because MoonSharp's cast truncates: two seeds that differ only past the decimal point
+    # are the SAME seed to the game, whatever Lua 5.5 makes of them.
+    assert float(seed) == int(seed), "the seed carries a fractional part (%r) that the game discards" % seed
+    def as_int32(v):
+        v = int(v) & 0xFFFFFFFF
+        return v - (1 << 32) if v >= (1 << 31) else v
+
 
     # Two loads in the same wall-clock second. os.time() cannot tell them apart; os.clock() must.
     a = seeds_for(1700000000, 0.111)
     b = seeds_for(1700000000, 0.777)
     assert a != b, "two loads in the same second seeded identically (%r): same map, same seating" % a
+    # ...and distinct AFTER the cast the game applies, not merely as Lua numbers
+    assert as_int32(a[0]) != as_int32(b[0]), (
+        "the two seeds differ as Lua numbers but cast to the same int32 (%r, %r)" % (a, b))
 
 
 def t_the_recorder_records_a_piece_before_it_asks_for_its_art(src):
@@ -13130,6 +13283,11 @@ def t_the_recorder_records_a_piece_before_it_asks_for_its_art(src):
     # has no separate class field -- describing cardboard exactly as it did before.
     for spelling in ("Tile", "Token", "Card", "Deck"):
         assert ("%s = true" % spelling) in code, "the plain-class deny list does not name %s" % spelling
+    # ...AND THE LIST GATES THE CALL. A table that exists but is never consulted would pass the checks
+    # above; the condition guarding getCustomObject must itself say "not in the plain list".
+    gate = code[code.index("if nm == "):code.index("getCustomObject")]
+    assert "not OBS_PLAIN[cls]" in gate, (
+        "getCustomObject is not guarded by the plain-class list; the if that precedes it reads: %s" % gate.strip()[:160])
 
 
 def t_a_superseded_map_build_stops_spawning(src):
@@ -13174,6 +13332,28 @@ def t_a_superseded_map_build_stops_spawning(src):
             "a Marsh build interrupted after %d frame(s) and replaced left %d map objects where a "
             "clean build leaves %d: the superseded build kept spawning past the wipe"
             % (frames, got, clean))
+
+    # AND THE PRIORITY MARKERS OF A NON-MARSH MAP, REBUILT AS THE SAME MAP. RTT_PRIO_MAP used to be set
+    # when the marker batch was QUEUED; an interrupted build then a rebuild of the same map returned at
+    # "already out" with only part of the markers on the table, and markers are not Map Objects, so
+    # nothing else replaced them. Found by an independent review, 2026-09-17. It is set when the batch
+    # is DONE now, so the rebuild lays the full set.
+    def priority_after(map_id, interrupt_frames):
+        rt = fresh(src)
+        rt.execute("SEAT('Purple','H1')")
+        rt.execute("pcall(function() makeMap(Player['Purple'],'','%s') end) FLUSH(%d)" % (map_id, interrupt_frames))
+        rt.execute("pcall(function() makeMap(Player['Purple'],'','%s') end) FLUSH(400)" % map_id)
+        return rt.eval("function() local n = 0 "
+                       "for _, o in ipairs(getAllObjects()) do "
+                       "if o.hasTag and o.hasTag('RTT Priority') then n = n + 1 end end "
+                       "return n end")()
+    full = priority_after("Summer Map", 400)
+    assert full > 0, "a clean Summer build laid no priority markers, so this arm cannot see anything"
+    for frames in (2, 4, 6, 8):
+        got = priority_after("Summer Map", frames)
+        assert got == full, (
+            "Summer rebuilt over an interrupted Summer (%d frames in) has %d priority markers where a "
+            "clean build has %d: the first build was recorded as complete before it was" % (frames, got, full))
 
 
 def t_a_vp_panel_is_never_placed_under_the_map(src):
@@ -13295,6 +13475,27 @@ def t_a_vp_panel_only_answers_its_own_seat(src):
             % (colour, expect, row, "theirs" if expect == row else "refused",
                "refused" if refused else "allowed"))
 
+    # TWO VAGABONDS, TWO PANELS. rttFactionKey folds every vagabond character into "Vagabond", but the
+    # second vagabond's seat is keyed "Vagabond 2" and so is its panel. A check that derived the key from
+    # the faction refused the second vagabond his own panel and let him work the first one's. Found by
+    # an independent review, 2026-09-17. The seat's recorded key is what the panel must be matched on.
+    rt.execute("RTT_SEATS = {"
+               " { color = 'Red',  owner = 'Ann', faction = 'Thief',  key = 'Vagabond',   pickedAt = 1, pos = { 0, 0 } },"
+               " { color = 'Blue', owner = 'Ben', faction = 'Ranger', key = 'Vagabond 2', pickedAt = 2, pos = { 0, 0 } } }")
+    rt.execute("SEAT('Red', 'Ann') SEAT('Blue', 'Ben')")
+    rowV1 = rt.eval("function() return rttVPRow('Vagabond') end")()
+    rowV2 = rt.eval("function() return rttVPRow('Vagabond 2') end")()
+    assert rowV1 != rowV2, "the two vagabond rows collapsed to one name: %r" % rowV1
+    for colour, own, other in (("Blue", rowV2, rowV1), ("Red", rowV1, rowV2)):
+        rt.execute("SAID = {} pcall(function() rttVPClick({ color = '%s', id = 'vpDraw', row = '%s' }) end)" % (colour, own))
+        said = list((rt.eval("SAID") or {}).values())
+        assert not any("only use your own" in m for m in said), (
+            "%s was refused his OWN vagabond panel %r: %s" % (colour, own, said))
+        rt.execute("SAID = {} pcall(function() rttVPClick({ color = '%s', id = 'vpDraw', row = '%s' }) end)" % (colour, other))
+        said = list((rt.eval("SAID") or {}).values())
+        assert any("only use your own" in m for m in said), (
+            "%s was allowed the OTHER vagabond's panel %r: %s" % (colour, other, said))
+
     # ONE FACTION EACH, EVEN SOLO. Maintainer, 2026-09-16: "obviously you owned only 1 faction." A solo
     # player picking two factions used to work both panels, because the check asked "any seat you own".
     # It now asks rttMyFaction, which has always meant YOUR MOST RECENT PICK -- so the panels agree with
@@ -13317,68 +13518,42 @@ def t_a_vp_panel_only_answers_its_own_seat(src):
         "after picking a second faction the solo player could still work the first one's panel: %s" % said)
 
 
-def t_a_resync_puts_a_player_back_in_touch_with_their_hand(src):
-    """A resync re-sends every seated player's hand transform by RESIZING the zone, never by moving it.
+def t_a_resync_leaves_hand_zones_alone(src):
+    """Resync must not write any player's hand transform, because every such write drops the cards in it.
 
-    Maintainer, 2026-09-16: "sometimes seat assignement does nt work player can see it s hand but not
-    below on the screen; leave and rejoin the game fixes it; old bug that happens in orginal mod as
-    well." That is a TTS defect, not this mod's: tabletopsimulator.nolt.io/1010, "setHandTransform()
-    does not propagate to clients" -- the host sees the move, every OTHER client sees it, and the one
-    client whose own colour was moved does not. Its stated cure is to reconnect.
+    The hand-bar fault is a TTS defect (tabletopsimulator.nolt.io/1010: setHandTransform does not reach
+    the owning client) and the only cure is to reconnect. Three repairs were tried on 2026-09-17 --
+    moving the zone, restricting to empty hands, growing the zone in place -- and the first and third
+    both put players' cards on the table face up: "clicking resynch makes the cards fall off the
+    table now". An independent review then confirmed there is no supported write that re-sends a hand
+    transform without disturbing the zone.
 
-    Re-sending the transform a client already holds is a no-op the host may never put on the wire, so
-    the repair has to make a real change and undo it. WHICH change is the entire difficulty, and it
-    took two wrong answers to get here:
-
-      - it moved the zone up and back. Maintainer: "clicking resynch makes the cards fall off the table
-        now". A card does not travel with its zone; move the zone and the cards are simply outside one,
-        face up on the table, and putting it back does not put them back.
-      - it then skipped any hand holding cards. Maintainer: "not true that s not when the bug happens it
-        happens when a player has his cards already" -- which rules out moving the zone at all.
-
-    GROWING IT IS SAFE WHERE MOVING IS NOT. The zone keeps its exact position, so a strictly larger
-    volume about the same centre still contains every card the real one did; then it returns to the
-    real size, which contains those same cards because it did a moment ago and nothing has moved. Three
-    frames is also far too short for a card to come to REST, which is what a zone requires before it
-    claims anything, so the brief extra volume cannot swallow a neighbour either.
-
-    The position never changing is the load-bearing assertion here. The scale changing is what makes
-    the update get sent at all.
+    So this asserts the OPPOSITE of what its predecessor did. That test called rttResyncHands directly
+    and proved it nudged; a completely inert button passed it. This one drives the real button and
+    proves it never touches a hand at all -- which is the property that matters on a live table.
+    rttResyncHands stays defined, unreferenced, as the record of what was tried.
     """
     rt = fresh(src)
     rt.execute("""
       RTT_SEATS = { { color = 'Red', pos = { 52, -46 },
                       hand = { pos = { 52, 14.62, -64 }, rot = { 0, 0, 0 } } } }
       SEAT('Red', 'Alice')
-      HT = {}
-      Player['Red'].setHandTransform = function(t, i)
-        HT[#HT + 1] = string.format('%.2f,%.2f,%.2f|%.3f,%.3f,%.3f',
-          t.position[1], t.position[2], t.position[3], t.scale[1], t.scale[2], t.scale[3])
-      end
-      pcall(rttResyncHands)
-      FLUSH(30)
+      HT = 0
+      Player['Red'].setHandTransform = function(t, i) HT = HT + 1 end
+      SEATED = { 'Red' }
+      getSeatedPlayers = function() return SEATED end
+      pcall(function() rttResyncClick(Player['Red'], '', 'rttResyncBtn') end)
+      FLUSH(200)
     """)
-    got = list((rt.eval("HT") or {}).values())
-    assert len(got) >= 2, (
-        "the repair made %d hand write(s); it must change the zone and then change it back, because a "
-        "write identical to what the client already holds may never be sent: %s" % (len(got), got))
-
-    pos = [g.split("|")[0] for g in got]
-    assert len(set(pos)) == 1, (
-        "the zone MOVED during the repair (%s). A card does not travel with its zone: moving one drops "
-        "every card in it onto the table, face up." % pos)
-    assert pos[0] == "52.00,14.62,-64.00", "the zone is not at the seat: %r" % pos[0]
-
-    scales = [g.split("|")[1] for g in got]
-    assert scales[0] != scales[-1], (
-        "both writes had the same size as well as the same position, so nothing changed at all and TTS "
-        "has no reason to send anything: %s" % got)
-
-    first = [float(v) for v in scales[0].split(",")]
-    last  = [float(v) for v in scales[-1].split(",")]
-    assert all(f > l for f, l in zip(first, last)), (
-        "the zone SHRANK before it was restored (%s then %s). Shrinking pushes out whatever sat near "
-        "the edge, which is the same fault as moving it; it must only ever grow." % (scales[0], scales[-1]))
+    assert rt.eval("HT") == 0, (
+        "the resync button wrote a hand transform %d time(s); any such write drops the cards in that "
+        "hand, and there is no write that does not" % rt.eval("HT"))
+    # ...and the retired repair is not reachable from the sweep
+    raw = open(os.path.join(REPO, "dist", "Root_Tournament_Edition.json"), encoding="utf-8").read()
+    board = board_lua(raw)
+    calls = [l for l in board.split(chr(10)) if "rttResyncHands()" in l
+             and not l.strip().startswith("--") and "function rttResyncHands" not in l]
+    assert not calls, "rttResyncHands is called from the board script again: %s" % calls
 
 
 def t_the_winged_menace_hand_is_built_from_the_seat_not_read_back(src):
@@ -13420,6 +13595,157 @@ def t_the_winged_menace_hand_is_built_from_the_seat_not_read_back(src):
         "not near the seat's hand at (52, -64)" % (x, z))
     assert x > -60, "hand 2 landed by the parked zone at x=-75: (%.1f, %.1f)" % (x, z)
 
+    # ...AND THE ONE CALLER PASSES IT. A helper that copes with the seat is no use if makeFaction still
+    # calls it bare; the call site is asserted in the built board so the argument cannot quietly drop.
+    raw = open(os.path.join(REPO, "dist", "Root_Tournament_Edition.json"), encoding="utf-8").read()
+    board = board_lua(raw)
+    calls = [l.strip() for l in board.split(chr(10))
+             if "spawnWingedMenaceExtraHand(" in l and "function" not in l and not l.strip().startswith("--")]
+    assert calls and all("seatHand" in c for c in calls), (
+        "spawnWingedMenaceExtraHand is called without the seat's hand: %s" % calls)
+
+
+def t_a_resync_stacks_and_splits_every_loose_card(src):
+    """A resync repairs a table card by stacking it with a partner and taking both back out, exactly.
+
+    Maintainer, 2026-09-17: "puting a card on top of another like stacking the; does make a card
+    appear" -- a card a client draws blank is cured by a NEW object instance, and stacking two cards
+    into a pile is one. reload() is also a destroy plus a create, and the code's own comment reasoned
+    the two were equivalent; the table says they are not: the reload ran (4 of 4 eligible cards, in
+    this harness) and the cards stayed blank. So the repair is now the real thing.
+
+    WHAT IS PROVED, and it is the list a design review asked for:
+      - every eligible card goes through a pile, ODD COUNTS INCLUDED -- five cards, five repaired, the
+        odd one partnered with a card already done rather than left as broken as it started;
+      - each card comes back under ITS OWN guid, at its exact position and rotation -- a face-down
+        card in each role (the one taken out, and the one left to collapse) stays face down;
+      - tags, lock and a non-unit scale are restored;
+      - NO PILE IS LEFT: at the end no Deck holds any repaired guid;
+      - a card in a hand and a held card are never touched and never appear in REPAIRED;
+      - real decks are untouched;
+      - it is paced: never more than one pair (two cards) starts in any frame;
+      - the busy flags end down.
+
+    The stub's group() and its collapsing takeObject are what make this a behavioural test rather than
+    a source-order one: MKDECK.takeObject destroys the pile when the second-last card leaves and spawns
+    the last one loose under the guid it had inside, which is exactly the branch the first version of
+    this repair got wrong.
+    """
+    rt = fresh(src)
+    rt.execute("""
+      SEATED = { 'Red' }
+      getSeatedPlayers = function() return SEATED end
+      SEAT('Red', 'Alice')
+      -- five loose cards: two face down, one locked, one with a non-unit scale and an extra tag
+      CARDS = {}
+      local specs = {
+        { n = 'Ambush',    pos = { 3, 1, 0 },  rz = 0,   lock = false, scale = 1,   tags = { 'Deck Object' } },
+        { n = 'Root Tea',  pos = { 6, 1, 0 },  rz = 180, lock = false, scale = 1,   tags = {} },
+        { n = 'Dominance', pos = { 9, 1, 0 },  rz = 0,   lock = true,  scale = 1,   tags = { 'RTT Faction' } },
+        { n = 'Crossbow',  pos = { 12, 1, 0 }, rz = 180, lock = false, scale = 1.5, tags = {} },
+        { n = 'Travel Gear', pos = { 15, 1, 0 }, rz = 0, lock = false, scale = 1,   tags = {} },
+      }
+      for i, sp in ipairs(specs) do
+        local c = MKOBJ(sp.n, sp.pos, sp.tags)
+        c.tag = 'Card'; c.name = 'Card'
+        c.getLuaScript = function() return '' end
+        c.getButtons = function() return {} end
+        c.isSmoothMoving = function() return false end
+        c.setRotation({ 0, 90, sp.rz })
+        c.is_face_down = (sp.rz == 180)
+        c.setLock(sp.lock)
+        c.setScale({ sp.scale, 1, sp.scale })
+        CARDS[i] = { guid = c.getGUID(), pos = sp.pos, rz = sp.rz, lock = sp.lock, scale = sp.scale, tags = sp.tags }
+      end
+      -- a held card and a card in a hand: both must be left alone
+      HELD = MKOBJ('Ambush', { 30, 1, 0 }, {}); HELD.tag = 'Card'; HELD.name = 'Card'
+      HELD.getLuaScript = function() return '' end; HELD.getButtons = function() return {} end
+      HELD.isSmoothMoving = function() return false end; HELD.held_by_color = 'Red'
+      INHAND = MKOBJ('Ambush', { 40, 1, 0 }, {}); INHAND.tag = 'Card'; INHAND.name = 'Card'
+      INHAND.getLuaScript = function() return '' end; INHAND.getButtons = function() return {} end
+      INHAND.isSmoothMoving = function() return false end
+      Player['Red'].getHandObjects = function(i) if (i or 1) == 1 then return { INHAND } end return {} end
+      Player['Red'].getHandCount = function() return 1 end
+      -- a real deck that must not be touched
+      DECK = MKDECK({ { desc = 'x', nick = 'one' }, { desc = 'y', nick = 'two' }, { desc = 'z', nick = 'three' } })
+      DECK.setPosition({ 60, 1, 0 })
+      DECKGUID = DECK.getGUID()
+      DECKN = DECK.getQuantity()
+
+      GROUPED = {}; REPAIRED = {}
+      -- pacing: count group() calls per FLUSH step
+      STEPS = {}
+      local realGroup = group
+      group = function(objs) STEPS[#STEPS + 1] = #GROUPED return realGroup(objs) end
+      OK = rttResyncSweep(nil, false, true)
+    """)
+    assert rt.eval("OK") is True, "the sweep refused to start"
+    # drive frames one at a time and watch how many pairs start per frame
+    starts_per_frame = []
+    for _ in range(120):
+        before = rt.eval("function() return #GROUPED end")()
+        rt.execute("FLUSH(1)")
+        after = rt.eval("function() return #GROUPED end")()
+        starts_per_frame.append(after - before)
+    assert max(starts_per_frame) <= 1, (
+        "more than one pair started in a single frame: %s" % [n for n in starts_per_frame if n])
+
+    repaired = set((rt.eval("REPAIRED") or {}).values())
+    want = set(rt.eval("function() local t = {} for i, c in ipairs(CARDS) do t[i] = c.guid end return t end")().values())
+    assert want <= repaired, (
+        "not every loose card went through a pile; missing %s" % sorted(want - repaired))
+    assert rt.eval("function() return #GROUPED end")() == 3, (
+        "five cards should be three pairs (the odd card partnered with a done one); got %d"
+        % rt.eval("function() return #GROUPED end")())
+
+    held = rt.eval("function() return HELD.getGUID() end")()
+    inhand = rt.eval("function() return INHAND.getGUID() end")()
+    assert held not in repaired, "a held card was stacked"
+    assert inhand not in repaired, "a card in a hand was stacked"
+
+    # every card is back: same guid, exact position, exact facing, lock, scale, tags
+    for i in range(1, 6):
+        g = rt.eval("function() return CARDS[%d].guid end" % i)()
+        o = rt.eval("function() return getObjectFromGUID(CARDS[%d].guid) end" % i)()
+        assert o is not None, "card %d (%s) did not come back under its own guid" % (i, g)
+        tag = rt.eval("function() return getObjectFromGUID(CARDS[%d].guid).tag end" % i)()
+        assert tag == "Card", "card %d came back as a %s, not a loose Card" % (i, tag)
+        px, pz = rt.eval("function() local p = getObjectFromGUID(CARDS[%d].guid).getPosition() return p.x, p.z end" % i)()
+        wx, wz = rt.eval("function() return CARDS[%d].pos[1], CARDS[%d].pos[3] end" % (i, i))()
+        assert abs(px - wx) < 0.01 and abs(pz - wz) < 0.01, (
+            "card %d is at (%.2f, %.2f), not its snapshot (%.2f, %.2f)" % (i, px, pz, wx, wz))
+        rz = rt.eval("function() return getObjectFromGUID(CARDS[%d].guid).getRotation().z end" % i)()
+        wrz = rt.eval("function() return CARDS[%d].rz end" % i)()
+        assert abs(((rz - wrz + 180) % 360) - 180) < 1, (
+            "card %d came back with z rotation %.0f, not %.0f (face-down state lost)" % (i, rz, wrz))
+        lk = rt.eval("function() return getObjectFromGUID(CARDS[%d].guid).getLock() == true end" % i)()
+        wl = rt.eval("function() return CARDS[%d].lock end" % i)()
+        assert lk == wl, "card %d lock is %s, snapshot was %s" % (i, lk, wl)
+        sx = rt.eval("function() return getObjectFromGUID(CARDS[%d].guid).getScale().x end" % i)()
+        ws = rt.eval("function() return CARDS[%d].scale end" % i)()
+        assert abs(sx - ws) < 0.01, "card %d scale is %.2f, snapshot was %.2f" % (i, sx, ws)
+        for t in rt.eval("function() return CARDS[%d].tags end" % i)().values():
+            has = rt.eval("function() return getObjectFromGUID(CARDS[%d].guid).hasTag('%s') end" % (i, t))()
+            assert has, "card %d lost its tag %r" % (i, t)
+
+    # no pile left holding any repaired card; the real deck untouched
+    leftover = rt.eval("""function()
+      local n = 0
+      for _, o in ipairs(getAllObjects()) do
+        if o.tag == 'Deck' and o.getGUID() ~= DECKGUID then
+          for _, c in ipairs(o.getObjects() or {}) do
+            for _, k in ipairs(CARDS) do if c.guid == k.guid then n = n + 1 end end
+          end
+        end
+      end
+      return n
+    end""")()
+    assert leftover == 0, "%d repaired card(s) are still inside a pile" % leftover
+    assert rt.eval("function() local d = getObjectFromGUID(DECKGUID) return d ~= nil and d.getQuantity() == DECKN end")(), \
+        "the real deck was changed"
+    assert rt.eval("RTT_RESYNC_BUSY") is False and rt.eval("RTT_RESYNCING") is False, \
+        "the sweep left its busy flags up"
+
 
 CASES = [
     ("manual path drives the turn system",   t_manual_turn_order),
@@ -13441,6 +13767,8 @@ CASES = [
     ("box score builds its own face",  t_the_box_score_builds_its_own_face),
     ("box score columns fit",         t_the_box_score_columns_fit_what_goes_in_them),
     ("lost souls flips and snaps",    t_the_lost_souls_flips_and_snaps_like_the_discard),
+    ("dominance stays in the lost souls",  t_a_dominance_card_spent_into_the_lost_souls_stays_there),
+    ("frogs return to a pond by tag",    t_a_frog_on_the_discard_reaches_a_pond_found_by_tag),
     ("discard sweep takes only landed", t_the_discard_sweep_only_takes_cards_that_have_landed),
     ("map helper card ships on the row", t_a_maps_helper_card_ships_where_the_row_puts_it),
     ("landmark card spawns on the row", t_a_landmark_card_spawns_on_the_row),
@@ -13602,11 +13930,11 @@ CASES = [
     ("vagabond gets no setup card",     t_the_vagabond_gets_no_advanced_setup_card),
     ("rel markers follow the table",    t_relationship_markers_follow_the_factions_in_play),
     ("the duchess keeps her head",      t_the_duchess_keeps_her_whole_head_and_none_of_her_tiles),
-    ("resync reloads the cards",        t_the_resync_button_reloads_the_cards_on_the_table),
-    ("the card reload is paced",        t_a_card_reload_is_paced_like_a_spawn),
-    ("a reloaded card comes back whole", t_a_reloaded_card_comes_back_whole),
-    ("the reload spares what it must",  t_a_card_reload_leaves_alone_what_it_must),
-    ("a lost card is put back",         t_a_card_the_reload_loses_is_put_back),
+    ("resync restacks the cards",       t_the_resync_button_restacks_the_cards_on_the_table),
+    ("the card restack is paced",       t_the_card_restack_is_paced_like_a_spawn),
+    ("a restacked card comes back whole", t_a_restacked_card_comes_back_whole),
+    ("the restack spares what it must", t_the_card_restack_leaves_alone_what_it_must),
+    ("a lost card is put back",         t_a_card_the_stack_loses_is_put_back),
     ("mid-deal resync frees itself",   t_a_resync_pressed_while_the_draft_deals_frees_itself),
     ("the deal survives a card going",  t_the_draft_deal_survives_a_card_going),
     # the recorder in the save's Global script -- see the honesty note above these
@@ -13638,8 +13966,9 @@ CASES = [
     ("a replaced map build stops",     t_a_superseded_map_build_stops_spawning),
     ("no VP panel under the map",      t_a_vp_panel_is_never_placed_under_the_map),
     ("a VP panel is yours alone",       t_a_vp_panel_only_answers_its_own_seat),
-    ("resync repairs your hand",       t_a_resync_puts_a_player_back_in_touch_with_their_hand),
+    ("resync leaves hands alone",      t_a_resync_leaves_hand_zones_alone),
     ("winged menace hand from the seat", t_the_winged_menace_hand_is_built_from_the_seat_not_read_back),
+    ("resync stacks and splits cards",  t_a_resync_stacks_and_splits_every_loose_card),
 ]
 
 

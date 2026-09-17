@@ -2198,6 +2198,201 @@ end
 -- WHAT WAS THERE BEFORE, kept whole, so nothing depends on the reload having carried it. TTS documents
 -- neither whether the respawned card keeps its guid nor whether it keeps its tags, and the mod's
 -- teardown is TAG-driven -- a card that comes back untagged is a card that never gets cleared.
+-- STACK AND SPLIT, BECAUSE reload() DOES NOT CURE A CARD SHOWING ITS BACK ------------------------------
+--
+-- The comment above reasoned that reload() is stacking without the stack and that group() was
+-- "strictly worse". The table says otherwise. Maintainer, 2026-09-17: "puting a card on top of another
+-- like stacking the; does make a card appear" -- while the reload really runs (4 of 4 eligible cards
+-- in a harness pass) and does not. So whatever TTS rebuilds for a grouped card it does not rebuild for
+-- a reloaded one, and the repair has to be the real thing: two cards into a pile, then out again.
+--
+-- ONE PAIR AT A TIME, AS A TRANSACTION, holding GUIDs and snapshots and never a handle -- group()
+-- destroys the originals, so every step re-resolves what it needs by guid the moment it needs it.
+-- The inspector for the next step is armed BEFORE the destructive call, because a C# null inside it
+-- can end the current callback in a way pcall does not see, and the already-armed step must still run.
+--
+--   frame F     snapshot both, arm the inspector, group({a, b}), lock the pile, remember its guid
+--   frame F+1   re-resolve the pile by guid; take card A out BY GUID to its exact position and
+--               rotation, smooth=false. Only ONE take: removing the second-last card destroys the
+--               pile and spawns the last one loose, under its own guid. The pile handle is dead.
+--   then        poll until BOTH guids resolve as spawned, unheld, loose Cards; restore both exactly
+--               (rttResyncCardRestore: position, rotation, scale, tags, lock); start the next pair.
+--
+-- A PAIR THAT WILL NOT GROUP is left as it was: both cards still resolve loose, both are restored,
+-- nothing is stacked. A pile that never yields both cards back within RTT_STACK_PATIENCE frames is
+-- destroyed and the missing card respawned from its snapshot -- and only after that pile is gone,
+-- because the settle pass scans loose cards and would otherwise respawn a card still inside one.
+-- Both are rollbacks and both are logged.
+--
+-- THE ODD CARD is paired with a card already repaired: it is re-snapshotted and re-checked first, and
+-- goes through a second pile, which it does not mind. A table with a single eligible card is left
+-- alone -- the alternative is spawning a disposable partner mid-game, and a spawn-then-destroy is
+-- not a shape this mod ships. Records are kept BY GUID so a twice-repaired donor is settled once.
+RTT_STACK_PATIENCE = 30      -- frames a pair may take to come back before it is rolled back
+
+function rttResyncStackPairs(list, skip, done_by_guid, gen, onDone)
+  local i = 1
+  local doneList = {}                     -- guids repaired so far, in order, for the odd card's partner
+
+  local function eligible(guid)
+    local o = getObjectFromGUID(guid)
+    if o == nil then return nil end
+    if not rttResyncCardOK(o, skip) then return nil end
+    return o
+  end
+
+  local function finishAll()
+    local recs = {}
+    for _, g in ipairs(doneList) do if done_by_guid[g] ~= nil then recs[#recs + 1] = done_by_guid[g] end end
+    onDone(recs)
+  end
+
+  local function readyLoose(guid)
+    local o = getObjectFromGUID(guid)
+    if o == nil then return nil end
+    local ok = false
+    pcall(function() ok = (o.tag == "Card") and (o.spawning ~= true) and (o.held_by_color == nil) end)
+    if not ok then return nil end
+    return o
+  end
+
+  local nextPair                          -- forward declaration: the chain below calls it
+
+  -- Both cards are back loose: put each exactly where its snapshot says, remember them, move on.
+  local function settlePair(st)
+    for _, rec in ipairs({ st.a, st.b }) do
+      pcall(function() rttResyncCardRestore(rec, rec.guid) end)
+      if done_by_guid[rec.guid] == nil then doneList[#doneList + 1] = rec.guid end
+      done_by_guid[rec.guid] = rec
+    end
+    Wait.frames(nextPair, 1)
+  end
+
+  -- The pile never gave both back: destroy it, respawn whoever is missing, then continue.
+  local function rollback(st, why)
+    log("RTT resync: stack repair rolled back (" .. tostring(why) .. ") for " .. st.a.guid .. " + " .. st.b.guid)
+    pcall(function()
+      local pile = (st.pile ~= nil) and getObjectFromGUID(st.pile) or nil
+      if pile ~= nil and pile.held_by_color == nil then pile.destruct() end
+    end)
+    Wait.frames(function()
+      for _, rec in ipairs({ st.a, st.b }) do
+        if getObjectFromGUID(rec.guid) == nil then
+          pcall(function()
+            spawnObjectJSON({ json = rec.json, position = { rec.pos.x, rec.pos.y, rec.pos.z },
+                              rotation = { rec.rot.x, rec.rot.y, rec.rot.z }, smooth = false,
+                              callback_function = function(o)
+                                pcall(function() rttResyncCardRestore(rec, o.getGUID()) end)
+                              end })
+          end)
+        else
+          pcall(function() rttResyncCardRestore(rec, rec.guid) end)
+        end
+      end
+      Wait.frames(nextPair, RTT_RESYNC_CARD_SETTLE)
+    end, 2)
+  end
+
+  -- After the one take: wait for both guids to be loose Cards again, then settle.
+  local function pollBack(st)
+    if RTT_RUN_ID ~= gen then return finishAll() end
+    st.waited = (st.waited or 0) + 1
+    local a, b = readyLoose(st.a.guid), readyLoose(st.b.guid)
+    if a ~= nil and b ~= nil then return settlePair(st) end
+    if st.waited > RTT_STACK_PATIENCE then return rollback(st, "pile did not give both cards back") end
+    Wait.frames(function() pollBack(st) end, 1)
+  end
+
+  -- Frame F+1: the pile exists (or grouping silently failed); take exactly one card out by guid.
+  local function inspectAfterGroup(st)
+    if RTT_RUN_ID ~= gen then return finishAll() end
+    local a, b = readyLoose(st.a.guid), readyLoose(st.b.guid)
+    if a ~= nil and b ~= nil then
+      -- grouping did not happen: both are still loose. Put them back exactly and carry on.
+      log("RTT resync: group() declined " .. st.a.guid .. " + " .. st.b.guid .. "; left as they were")
+      return settlePair(st)
+    end
+    local pile = (st.pile ~= nil) and getObjectFromGUID(st.pile) or nil
+    if pile == nil then return rollback(st, "no pile after group()") end
+    local held = false
+    pcall(function() held = (pile.held_by_color ~= nil) end)
+    if held then
+      -- somebody grabbed it in the one frame it existed unlocked: wait, do not fight
+      Wait.frames(function() inspectAfterGroup(st) end, 1)
+      return
+    end
+    Wait.frames(function() pollBack(st) end, 1)     -- armed BEFORE the take, deliberately
+    pcall(function()
+      pile.setLock(false)
+      pile.takeObject({ guid = st.a.guid, smooth = false,
+                        position = { st.a.pos.x, st.a.pos.y, st.a.pos.z },
+                        rotation = { st.a.rot.x, st.a.rot.y, st.a.rot.z } })
+    end)
+    -- the pile handle is dead from here on; pollBack re-resolves everything by guid
+  end
+
+  -- Frame F: snapshot both, arm, group, lock.
+  local function startPair(ra, rb)
+    local st = { a = ra, b = rb, pile = nil, waited = 0 }
+    local a, b = getObjectFromGUID(ra.guid), getObjectFromGUID(rb.guid)
+    if a == nil or b == nil then return Wait.frames(nextPair, 1) end
+    Wait.frames(function() inspectAfterGroup(st) end, 1)   -- armed BEFORE group()
+    local made = nil
+    pcall(function()
+      pcall(function() if a.getLock() == true then a.setLock(false) end end)
+      pcall(function() if b.getLock() == true then b.setLock(false) end end)
+      made = group({ a, b })
+    end)
+    -- a and b are dead now if the group took. Find OUR pile among what came back, and lock it.
+    for _, pile in ipairs(made or {}) do
+      local has = 0
+      pcall(function()
+        for _, c in ipairs(pile.getObjects() or {}) do
+          if c.guid == ra.guid or c.guid == rb.guid then has = has + 1 end
+        end
+      end)
+      if has == 2 then
+        pcall(function() pile.setLock(true) end)
+        pcall(function() st.pile = pile.getGUID() end)
+        break
+      end
+    end
+  end
+
+  nextPair = function()
+    if RTT_RUN_ID ~= gen or RTT_BUSY == true then return finishAll() end
+    -- find the next two eligible cards in the list, re-checked now rather than when the list was built
+    local ra, rb = nil, nil
+    while i <= #list do
+      local o = eligible(list[i]); i = i + 1
+      if o ~= nil then
+        local rec = rttResyncCardSnapshot(o)
+        if rec ~= nil then
+          if ra == nil then ra = rec else rb = rec break end
+        end
+      end
+    end
+    if ra == nil then return finishAll() end
+    if rb == nil then
+      -- THE ODD CARD: partner it with a card already repaired, re-snapshotted now.
+      for k = #doneList, 1, -1 do
+        local d = eligible(doneList[k])
+        if d ~= nil and doneList[k] ~= ra.guid then
+          local rec = rttResyncCardSnapshot(d)
+          if rec ~= nil then rb = rec break end
+        end
+      end
+      if rb == nil then
+        log("RTT resync: one eligible card and no partner for it; left alone: " .. ra.guid)
+        return finishAll()
+      end
+    end
+    startPair(ra, rb)
+  end
+
+  nextPair()
+end
+
 function rttResyncCardSnapshot(o)
   local rec = nil
   pcall(function()
@@ -2217,9 +2412,28 @@ end
 function rttResyncCardRestore(rec, guid)
   local o = getObjectFromGUID(guid)
   if o == nil then return end
-  for _, t in ipairs(rec.tags) do
-    pcall(function() if not o.hasTag(t) then o.addTag(t) end end)
-  end
+  -- EXACT TAGS, not "at least these". Adding only the missing ones could never remove a tag the card
+  -- picked up in transit, and the stack repair below needs the card back exactly as it was.
+  pcall(function()
+    local tags = {}
+    for i, t in ipairs(rec.tags) do tags[i] = t end
+    if o.setTags ~= nil then o.setTags(tags)
+    else for _, t in ipairs(tags) do if not o.hasTag(t) then o.addTag(t) end end end
+  end)
+  -- ...AND ROTATION AND SCALE ON THEIR OWN, not only when the position drifted. A card back on its
+  -- exact spot with the wrong facing was left wrong; takeObject has no scale argument at all.
+  pcall(function()
+    if o.held_by_color ~= nil then return end
+    local r = o.getRotation()
+    local dr = math.abs(((r.y - rec.rot.y + 180) % 360) - 180) + math.abs(((r.z - rec.rot.z + 180) % 360) - 180)
+    if dr > 1 then o.setRotation({ rec.rot.x, rec.rot.y, rec.rot.z }) end
+    if rec.scale ~= nil then
+      local sc = o.getScale()
+      if math.abs(sc.x - rec.scale.x) > 0.001 or math.abs(sc.z - rec.scale.z) > 0.001 then
+        o.setScale({ rec.scale.x, rec.scale.y, rec.scale.z })
+      end
+    end
+  end)
   pcall(function() if (o.getLock() == true) ~= rec.lock then o.setLock(rec.lock) end end)
   -- and where it stood, if the respawn did not put it back there. Never while somebody is holding it.
   pcall(function()
@@ -2348,39 +2562,12 @@ function rttResyncReloadCards(done)
       if g ~= nil then list[#list + 1] = g end
     end
   end
-  local i, done_recs = 1, {}
-  local function pump()
-    -- asked every frame, not once: a deal that starts under the pass stops it where it stands
-    if RTT_RUN_ID ~= gen or RTT_BUSY == true then i = #list + 1 end
-    local n = 0
-    while i <= #list and n < RTT_RESYNC_CARDS_PER_FRAME do
-      local o = nil
-      pcall(function() o = getObjectFromGUID(list[i]) end)
-      -- ASKED AGAIN, not once when the list was built: a card picked up, dealt into a hand or
-      -- destroyed since then must not be reloaded now.
-      if o ~= nil and rttResyncCardOK(o, skip) then
-        -- SNAPSHOT HERE, not when the list was built. getJSON serialises the whole card, and doing
-        -- forty of them in the frame that builds the list is its own little burst -- the one thing
-        -- this pass must not be. Taken the instant before the destroy, it is also the freshest
-        -- possible copy of what has to come back.
-        local rec = rttResyncCardSnapshot(o)
-        if rec ~= nil then
-          local new = nil
-          pcall(function() new = o.reload() end)
-          pcall(function() if new ~= nil then rec.newguid = new.getGUID() end end)
-          done_recs[#done_recs + 1] = rec
-        end
-      end
-      i = i + 1
-      n = n + 1
-    end
-    if i <= #list then
-      Wait.frames(pump, 1)
-    else
-      Wait.frames(function() rttResyncCardsSettle(done_recs, done, gen) end, RTT_RESYNC_CARD_SETTLE)
-    end
-  end
-  pump()
+  -- STACKED IN PAIRS, NOT RELOADED -- see rttResyncStackPairs. One pair in flight at a time is the
+  -- pacing: two cards per pair, a frame between pairs, never a burst. The settle pass runs afterwards
+  -- as the final accounting, over records kept by guid so a twice-used donor is settled once.
+  rttResyncStackPairs(list, skip, {}, gen, function(done_recs)
+    Wait.frames(function() rttResyncCardsSettle(done_recs, done, gen) end, RTT_RESYNC_CARD_SETTLE)
+  end)
 end
 
 -- One pass over everything on the table, staggered like the spawns for the same reason: un-staggered
@@ -2560,7 +2747,7 @@ end
 function rttResyncClick(player, value, id)
   local ran = rttResyncSweep(function(n, nc, lostc, waited)
     local msg = "Resync: " .. tostring(n) .. " objects re-sent"
-    if (nc or 0) > 0 then msg = msg .. ", " .. tostring(nc) .. " cards reloaded" end
+    if (nc or 0) > 0 then msg = msg .. ", " .. tostring(nc) .. " cards restacked" end
     if (lostc or 0) > 0 then msg = msg .. " (" .. tostring(lostc) .. " put back)" end
     -- said out loud rather than silently skipped: pressing Resync mid-draft still re-sends the table,
     -- and the person who pressed it should know the cards were left for a second press
@@ -3993,8 +4180,12 @@ function rttSpawnPriority(id, jsons)
       end
     }
   end
-  rttSpawnStaggered(specs, nil, function() return RTT_MAP_GEN == gen end)
-  RTT_PRIO_MAP = id
+  -- MARKED COMPLETE WHEN THE BATCH IS, not when it is queued. Set before the pump finished, a rebuild
+  -- of the SAME map after an interrupted one returned at the top of this function ("already out") with
+  -- only part of the markers on the table -- and priority markers are not "Map Object"s, so nothing
+  -- else ever replaced them. Found by an independent review, 2026-09-17. The alive predicate cancels
+  -- the superseded batch; this makes the record of completion wait for the real one.
+  rttSpawnStaggered(specs, function() RTT_PRIO_MAP = id end, function() return RTT_MAP_GEN == gen end)
 end
 
 -- Marsh number tokens (priority order, skip-excluded-and-renumber).
@@ -4067,8 +4258,8 @@ function rttSpawnMarshNumbers()
       end
     end
   end
-  rttSpawnStaggered(numSpecs, nil, function() return RTT_MAP_GEN == gen end)
-  RTT_PRIO_MAP = "Marsh Map"
+  rttSpawnStaggered(numSpecs, function() RTT_PRIO_MAP = "Marsh Map" end,
+                    function() return RTT_MAP_GEN == gen end)   -- complete when it is, as above
 end
 
 RTT_PRIO_SUMMERMAP = {
@@ -5240,8 +5431,22 @@ function rttVPPanelIsMine(row, color)
   local faction = nil
   pcall(function() faction = rttMyFaction(color) end)
   if faction == nil or faction == "" then return false end
+  -- THE SEAT'S OWN KEY, NOT ONE DERIVED FROM THE FACTION. rttFactionKey folds every vagabond character
+  -- into "Vagabond", and the second vagabond's seat is keyed "Vagabond 2" -- which is also the row its
+  -- panel was spawned with (see the vagRow line in rttSpawnFaction). Deriving the key here refused the
+  -- second vagabond his own panel and accepted him on the first one's. Found by an independent review,
+  -- 2026-09-17. rttMyFaction answers with the CHARACTER, which is unique per seat, so the seat is found
+  -- by it and its recorded key is used -- exactly as rttSeatRecord already does at its "key =" line.
+  local key = nil
+  for _, s in ipairs(seats) do
+    if s ~= nil and s.faction == faction then
+      key = s.key or rttFactionKey(s.faction)
+      break
+    end
+  end
+  if key == nil then pcall(function() key = rttFactionKey(faction) end) end
   local mine = nil
-  pcall(function() mine = rttVPRow(rttFactionKey(faction)) end)
+  pcall(function() mine = rttVPRow(key) end)
   if mine == nil then return false end
   return mine == row
 end
@@ -5386,16 +5591,26 @@ RTT_VP_PANEL_DZ  = 19.033528 / 2 + RTT_VP_PANEL_GAP + RTT_VP_PANEL_DEPTH / 2   -
 -- Marsh would be wrong for the Gorge. 25 x 23 is larger than any of them, which is the safe direction
 -- to be wrong in for a refusal.
 function rttUnderMap(x, z)
+  -- THE TAGGED MAP ONLY, AND NO MAP MEANS NOT UNDER ONE. rttFindMapObject falls back to "the object
+  -- with the most snap points" when nothing is tagged -- during a teardown that can be anything -- and
+  -- the old world-origin box then refused panels under a map that did not exist. Found by an
+  -- independent review, 2026-09-17. With no tagged map there is nothing to be hidden beneath, so the
+  -- answer is false; and the fallback box, when bounds cannot be read, sits on the map's own position
+  -- rather than on the origin, so a moved map is measured where it is.
+  local m = nil
+  pcall(function() m = rttMapBoardTagged() end)
+  if m == nil then return false end
   local inside = nil
   pcall(function()
-    local m = rttFindMapObject()
-    if m == nil then return end
     local b = m.getBounds()
     if b == nil or b.center == nil or b.size == nil then return end
     inside = math.abs(x - b.center.x) <= b.size.x / 2 and math.abs(z - b.center.z) <= b.size.z / 2
   end)
   if inside ~= nil then return inside end
-  return math.abs(x) <= 25 and math.abs(z) <= 23
+  local mp = nil
+  pcall(function() mp = m.getPosition() end)
+  if mp == nil then return false end
+  return math.abs(x - mp.x) <= 25 and math.abs(z - mp.z) <= 23
 end
 
 function rttSpawnVPPanel(pos, row, spawnRy)
@@ -10329,7 +10544,19 @@ function rttGizmoHome(color)
   -- and one key that respects that everywhere is worth more than a key with an exception in it.
   local locked = false
   pcall(function() locked = (hovered.getLock() == true) end)
-  if locked then return end
+  -- SAY SO. This used to return in silence, and silence reads as "the key is broken". Maintainer,
+  -- 2026-09-17: "a player used 0 once successfully then it didn't work on other badgers / other
+  -- badgers ended up locked when using it" -- the second half explains the first, and the player could
+  -- not know it. A locked piece is not the gizmo's to move: ruins, prisoners and the map are locked on
+  -- purpose, and a warrior somebody locked by hand is theirs to unlock. But a key that refuses must
+  -- say why, so the next report names the lock and not the key.
+  if locked then
+    pcall(function()
+      broadcastToColor("That piece is locked, so numpad 0 leaves it alone. Unlock it (L) and try again.",
+                       color, { r = 1, g = 0.6, b = 0.2 })
+    end)
+    return
+  end
 
   -- ...and the kinds the key has no business touching at all. See RTT_HOME_NEVER.
   if RTT_HOME_NEVER[name] then return end
