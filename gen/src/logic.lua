@@ -2664,6 +2664,13 @@ end
 -- being reloaded. A Player ref is stale after the first change, so the way back finds the player
 -- again by Steam id. Spectators (Grey, Black) are never moved.
 RTT_RESEAT_TRIES = 12     -- frames to keep trying to put a player back on their colour
+-- HELD IN GREY FOR A MOMENT, NOT ONE FRAME. The one-frame hop (v1.431) did not bring the bar back --
+-- maintainer, 2026-09-17: "not resolved by resync" -- and the chat showed one "is color Teal" line
+-- per press and no Grey line at all, so a leave-and-return inside two frames may never have reached
+-- the client as two changes. Half a second is long enough to be sent as what it is: the player really
+-- stands up and really sits back down, which is the part of a reconnect this imitates. An
+-- experiment, and the number to change if it proves too slow or still not slow enough.
+RTT_RESEAT_HOLD = 0.5
 
 function rttResyncReseatOne(color, id, name, next)
   local p = nil
@@ -2699,7 +2706,7 @@ function rttResyncReseatOne(color, id, name, next)
     end)
     next()
   end
-  Wait.frames(back, 1)
+  Wait.time(back, RTT_RESEAT_HOLD)
   return true
 end
 

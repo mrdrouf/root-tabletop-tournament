@@ -194,6 +194,59 @@ Nothing below is implemented. The maintainer asked to be consulted before each c
       printed each score change to the console, which doubles as a game log.
 
 
+## From Zaandaa's solo test, 2026-09-17 evening (built v1.433-1.436, not yet confirmed in TTS)
+
+Diagnosed first, then the maintainer said "fix all the other things as well". One commit each.
+
+- [x] **Cats spawn on the bare table after Clear All.** v1.434 (7d773ca). `clearAll()` destroys the map (it keeps
+      only hand zones, Table Pieces, landmarks and three named fixtures) and calls
+      `rttResetRunState()`, which never touches `RTT_CURRENT_MAP`. `rttMarquiseCats` reads that
+      name and looks the clearing centres up in `RTT_CLEARING_CENTRES[mapId]` -- fixed world
+      coordinates -- so twelve cats drop where the last map's clearings were. It never asks whether
+      a map object exists (`rttFindMapObject` does exactly that and is unused here). The same stale
+      name feeds `rttFixMarshVariant`, the "would leave a different map behind" warning and
+      `rttBadgerRelics`. It is also saved into the board's state (`map`), so it survives a reload.
+      FIX SHAPE: Clear All forgets the map (`RTT_CURRENT_MAP = nil`, `RTT_MARSH_5P_BUILT = false`),
+      and the cats refuse to go out when `rttFindMapObject()` is nil (retry, then say so).
+- [x] **VP panel dies with a C# null when the frogs are picked right after another faction.** v1.435 (44baacf).
+      Chat: `[VP Panel - 3e5d6a] Lua Error <vpRefresh>: Object reference not set`. Save
+      `frogerror2.json`: Duchy joined 2:57:09, error 2:57:10, Diaspora joined 2:57:11 -- two kits
+      in the paced queue at once. `rttFrogsSetup` runs 0.5 s after the kit is queued: it merges the
+      frog cards into the main deck (`putObject` destroys the frogs' own deck) and spawns the pond
+      in the same call; the pond's callback then `call("vpRefresh")`s EVERY panel, including the
+      frogs' own panel, which may still be spawning. `vpRefresh` -> `vpMarker` walks
+      `getAllObjects()` and asks each object its name; an object destroyed in that frame (the
+      merged frog deck) or a panel not finished spawning (`self.UI`) answers with the C# null that
+      pcall does not catch. Every API call in the panel is already inside a pcall, which is itself
+      the proof that pcall is not the guard here.
+      FIX SHAPE: the board knows the marker (RTT_HOME / the box score row carries its guid) --
+      hand the panel its marker's guid or url in the ping instead of letting the panel search the
+      whole table; the pond ping skips panels whose `spawning` is true (they refresh themselves at
+      10/40/120 frames anyway); and the pond spawns a frame after the deck merge, not in the same
+      call. The harness cannot reproduce a C# null, so the proof is a TTS run: badgers then frogs
+      within two seconds.
+- [~] **Resync does not bring the hand bar back, and a player can see himself unseated while
+      everyone else sees him seated.** The reseat hops the player to Grey and straight back (one
+      frame). That re-runs the seat assignment, but the bar at the bottom of the screen is drawn
+      from the hand ZONE object on that client, and TTS bug 1010 is precisely that the zone's update
+      is not delivered to its owner. A colour hop does not re-send the zone object; only a zone
+      write (which drops the cards, tried four ways) or a reconnect does. The chat shows one
+      "Zaandaa is color Teal" per press and no Grey line, so whether the hop even reaches the
+      affected client is unknown -- a Grey-and-back inside two frames may be coalesced on the wire.
+      BUILT AS THE EXPERIMENT, v1.436: the reseat now holds Grey for RTT_RESEAT_HOLD = 0.5 s before
+      stepping back. Have the affected player say whether their screen showed the seat change. If yes, the hop reaches them and the bar is
+      the zone object (no script lever found short of recreating the zone, which is only safe when
+      the hand is empty). If no, the hop is not reaching that client at all.
+- [x] **Resync does not heal the crow plots.** v1.433 (ca9a547): the reload pass takes every loose tile and token. The plots are ordinary unlocked tiles inside the
+      hidden zone, and the sweep does touch them -- with the lock toggle. A lock toggle is a
+      property write: it only helps a client that HAS the object with stale state. A plot the client
+      never received (a dropped create in the crow burst: board, zone, then twelve plots) cannot be
+      revived by any write, and the reload pass -- the one thing that re-sends a definition -- is
+      cards only (`o.tag == "Card"` in `rttResyncCardOK`). So no path ever destroys-and-respawns a
+      plot. FIX SHAPE: let the reload pass take the plots too (named "Plot", tagged RTT Faction,
+      unlocked, no script, twelve objects), or more generally every loose unlocked faction token.
+      Whether the crow player or the others saw the bad plots decides which client dropped them.
+
 ## NOTES DO NOT TOUCH
 
 there are also some Homeland assets we don't have yet like the Gladiator meeple and the assembly and acclaim tokens (both sides each) are outdated

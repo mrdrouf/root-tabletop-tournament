@@ -146,3 +146,9 @@ setup board's top right corner, and goes up on every commit.
 - The lizards spawn one Outcast Marker, not two.
 - Its Lost Souls counts read the Wizard and sit under their own suit, not mirrored across the board.
 - The outcast symbol is drawn in the lizard board's own UI, with the token's yellow tile keyed out.
+
+## 2026-09-17
+- Resync re-creates every loose tile and token the way it re-creates cards, so crow plots heal too.
+- Clear All forgets the map it destroyed; the cats stay in the supply and say so when there is no map.
+- The frogs' VP panel no longer dies when the frogs are picked right behind another faction: markers are found by guid, and the pond leaves a panel still spawning alone.
+- Resync holds a player in Grey for half a second before seating them again (hand-bar experiment).

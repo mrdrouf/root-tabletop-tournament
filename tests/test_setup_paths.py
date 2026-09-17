@@ -13780,6 +13780,33 @@ def t_a_resync_re_sends_every_seat_in_turn(src):
     assert hops == "Red -> Grey|Grey -> Red", "with a spectator pressing, the colour changes were: %r" % hops
 
 
+def t_the_reseat_holds_the_player_in_grey_for_a_moment(src):
+    """The hand-bar repair keeps the player in Grey for RTT_RESEAT_HOLD before stepping them back.
+
+    The one-frame hop did not bring the bar back (maintainer, 2026-09-17: "not resolved by resync"),
+    and the chat showed one "is color Teal" per press and no Grey line, so a leave-and-return inside
+    two frames may never reach the client as two changes. The hold is the experiment: long enough to
+    be sent as a real stand-up and sit-down. The player must still come home afterwards.
+    """
+    rt = fresh(src)
+    rt.execute("""
+      SEATED = { 'Red' }
+      getSeatedPlayers = function() return SEATED end
+      SEAT('Red', 'Alice')
+      REC.colors = {}
+      rttResyncClick(Player['Red'], '', 'rttResyncBtn')
+      FLUSH_UNTIL(0.2, 400)
+      HELD = table.concat(REC.colors, '|')
+      FLUSH(400)
+      DONE = table.concat(REC.colors, '|')
+    """)
+    assert rt.eval("RTT_RESEAT_HOLD") >= 0.3, "the hold is %r, which is a hop, not a hold" % rt.eval("RTT_RESEAT_HOLD")
+    assert rt.eval("HELD") == "Red -> Grey", (
+        "a fifth of a second in, the colour changes were %r; the player should still be in Grey" % rt.eval("HELD"))
+    assert rt.eval("DONE") == "Red -> Grey|Grey -> Red", "the player did not come home: %r" % rt.eval("DONE")
+    assert rt.eval("function() return Player['Red'].steam_name end")() == "Alice", "Alice did not get Red back"
+
+
 def t_the_winged_menace_hand_is_built_from_the_seat_not_read_back(src):
     """The Winged Menace's second hand is placed from the seat's OWN hand transform, never read back.
 
@@ -14055,6 +14082,7 @@ CASES = [
     ("a VP panel is yours alone",       t_a_vp_panel_only_answers_its_own_seat),
     ("resync leaves hands alone",      t_a_resync_leaves_hand_zones_alone),
     ("resync re-sends every seat in turn", t_a_resync_re_sends_every_seat_in_turn),
+    ("the reseat holds the player in grey", t_the_reseat_holds_the_player_in_grey_for_a_moment),
     ("winged menace hand from the seat", t_the_winged_menace_hand_is_built_from_the_seat_not_read_back),
 ]
 
