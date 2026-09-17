@@ -8636,6 +8636,11 @@ def _reload_probe(rt):
       end
       function CARDN() local n = 0
         for _, o in ipairs(getAllObjects()) do if o.tag == "Card" then n = n + 1 end end return n end
+      -- every tile, token and card on the table, and how many of them the pass may take right now
+      function PIECEN() local n = 0
+        for _, o in ipairs(getAllObjects()) do if rttResyncCardboard(o) then n = n + 1 end end return n end
+      function ELIGN() local n, skip = 0, rttResyncSkip()
+        for _, o in ipairs(getAllObjects()) do if rttResyncCardOK(o, skip) then n = n + 1 end end return n end
     """)
 
 
@@ -8651,17 +8656,17 @@ def t_the_resync_button_reloads_the_cards_on_the_table(src):
     _reload_probe(rt)
     rt.execute("MSG = {} broadcastToAll = function(m) MSG[#MSG+1] = tostring(m) end")
     rt.execute("pcall(function() rttSetup(Player['Red'],'','rttRankedBtn') end) FLUSH(250)")
-    before = rt.eval("CARDN()")
-    assert before > 0, "the fixture put no cards on the table, so this proves nothing"
+    before, pieces = rt.eval("ELIGN()"), rt.eval("PIECEN()")
+    assert rt.eval("CARDN()") > 0, "the fixture put no cards on the table, so this proves nothing"
     rt.execute("RELOADED = {} rttResyncClick(Player['Red'],'','rttResyncBtn') FLUSH(120)")
     n = rt.eval("function() return #RELOADED end")()
-    assert n == before, "%d of the %d cards on the table were reloaded" % (n, before)
-    after = rt.eval("CARDN()")
-    assert after == before, "the table went from %d cards to %d across a resync" % (before, after)
+    assert n == before, "%d of the %d pieces the pass may take were reloaded" % (n, before)
+    after = rt.eval("PIECEN()")
+    assert after == pieces, "the table went from %d pieces to %d across a resync" % (pieces, after)
     assert rt.eval("RTT_RESYNC_BUSY") is False, "the sweep never released its busy flag"
     msg = list(dict(rt.eval("MSG") or {}).values())
-    assert any("cards reloaded" in m for m in msg), (
-        "the button did not report the cards it reloaded: %s" % msg)
+    assert any("reloaded" in m for m in msg), (
+        "the button did not report the pieces it reloaded: %s" % msg)
 
 
 def t_a_card_reload_is_paced_like_a_spawn(src):
@@ -8737,6 +8742,55 @@ def t_a_reloaded_card_comes_back_whole(src):
     assert got["g"] in spawned, "RTT_SPAWNED still names the old guid, so Clear All would leave this card behind"
     assert rt.eval("OLD") not in spawned, "the dead guid is still on the teardown list"
     assert rt.eval("CARDN()") == 1, "%d loose cards where there was 1" % rt.eval("CARDN()")
+
+
+def t_the_reload_reaches_every_loose_cardboard_piece(src):
+    """Resync re-creates every loose tile and token the way it re-creates cards, and nothing else.
+
+    Maintainer, 2026-09-17, on the crow plots that Resync never healed: "the fix should be the same
+    than for all the other cardboards". A plot is a plain tile; what goes wrong with it is its picture
+    or its never arriving, and a lock toggle sends neither. So the pass takes every loose tile and
+    token (a plot, a wood token, a card) and leaves alone what it should: a LOCKED tile or token is a
+    fixture whose only fault can be its place (the map, a board) and re-creating the map would hand
+    the score track a dead guid; a model has no face to get wrong; a scripted tile would re-run its
+    script. The home record numpad 0 sends a piece back by must follow the piece to its new guid.
+    """
+    rt = fresh(src)
+    _reload_probe(rt)
+    rt.execute("""
+      PLOT  = MKOBJ("Custom_Tile",  { 30, 1, 40 }, { "RTT Faction" }) PLOT.setName("Plot")
+      WOOD  = MKOBJ("Custom_Token", { 31, 1, 40 }, { "RTT Faction" })
+      CARD  = MKOBJ("Card",         { 32, 1, 40 }, {})
+      BOARD = MKOBJ("Custom_Tile",  { 33, 1, 40 }, { "RTT Faction" }) BOARD.setLock(true)
+      MAP   = MKOBJ("Custom_Token", {  0, 1,  0 }, { "Map Object" })  MAP.setLock(true)
+      CAT   = MKOBJ("Custom_Model", { 34, 1, 40 }, { "RTT Faction" })
+      ENC   = MKOBJ("Custom_Tile",  { 35, 1, 40 }, { "RTT Faction" })
+      ENC.getLuaScript = function() return "function onLoad() self.createButton({}) end" end
+      OLDPLOT = PLOT.getGUID()
+      RTT_HOME[OLDPLOT] = { n = "Plot", f = "Corvid Conspiracy", p = { 30, 1, 40 }, r = { 0, 0, 0 } }
+      BEFORE = PIECEN()
+      rttResyncReloadCards(function() end)
+      FLUSH(60)
+    """)
+    reloaded = set(dict(rt.eval("RELOADED") or {}).values())
+    for var, want in (("PLOT", True), ("WOOD", True), ("CARD", True),
+                      ("BOARD", False), ("MAP", False), ("CAT", False), ("ENC", False)):
+        g = rt.eval(var + ".__guid")
+        assert (g in reloaded) == want, (
+            "%s was %sreloaded" % (var, "not " if want else ""))
+    assert rt.eval("PIECEN()") == rt.eval("BEFORE"), (
+        "the table went from %d pieces to %d across the pass" % (rt.eval("BEFORE"), rt.eval("PIECEN()")))
+    home = rt.eval("""function()
+      local out = {}
+      for _, o in ipairs(getAllObjects()) do
+        if o.getName() == "Plot" then out.plot = o.getGUID() out.home = RTT_HOME[o.getGUID()] ~= nil end
+      end
+      out.old = RTT_HOME[OLDPLOT] ~= nil
+      return out
+    end""")()
+    assert home["plot"] is not None, "the plot did not come back"
+    assert home["home"], "the reloaded plot has no home record, so numpad 0 cannot send it back"
+    assert not home["old"], "the home record still hangs off the dead guid"
 
 
 def t_a_card_reload_leaves_alone_what_it_must(src):
@@ -13858,6 +13912,7 @@ CASES = [
     ("resync reloads the cards",        t_the_resync_button_reloads_the_cards_on_the_table),
     ("the card reload is paced",        t_a_card_reload_is_paced_like_a_spawn),
     ("a reloaded card comes back whole", t_a_reloaded_card_comes_back_whole),
+    ("the reload reaches every loose cardboard piece", t_the_reload_reaches_every_loose_cardboard_piece),
     ("the reload spares what it must",  t_a_card_reload_leaves_alone_what_it_must),
     ("deck cards carry no script",      t_no_deck_card_in_the_build_carries_a_script),
     ("a lost card is put back",         t_a_card_the_reload_loses_is_put_back),

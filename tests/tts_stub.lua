@@ -233,6 +233,9 @@ function MKOBJ(name, pos, tags)
   -- turned, its scale, its lock, and which way up it is.
   function o.reload()
     local n = MKOBJ(o.__name, o.__pos, {})
+    -- the TYPE comes back, whatever the nickname: a tile nicknamed "Plot" is still a Custom_Tile after
+    -- a respawn, and the cardboard pass tells its survivors apart by exactly that
+    n.name, n.tag, n.type = o.name, o.tag, o.type
     n.__rot, n.__scale = vec(o.__rot), vec(o.__scale)
     n.__locked = o.__locked
     n.is_face_down = o.is_face_down

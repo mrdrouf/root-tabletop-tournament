@@ -2143,6 +2143,9 @@ end
 -- back, 2026-09-17: "maybe a shortcut would be to destroy the card ourselves directly and respawn
 -- it then?" -- "yes go". The stacking version is one commit back if a table proves this wrong.
 --
+-- AND NOT ONLY CARDS ANY MORE. Since 2026-09-17 the pass takes every loose tile and token as well --
+-- see RTT_RESYNC_CARDBOARD -- because the crow plots went unhealed for exactly the reason cards did.
+--
 -- BUTTON ONLY. Nothing arms this automatically. A reload is far heavier than a lock toggle, and the
 -- lesson written at the bottom of MULTIPLAYER_SYNC.md is that a repair which floods a client is worse
 -- than the drop it repairs -- "only sometimes the button works" is what v1.155 looked like. So it runs
@@ -2153,6 +2156,20 @@ RTT_RESYNC_CARD_SETTLE     = 6     -- frames before the accounting pass: a respa
                                    -- only "assigned correctly once the spawning member becomes false"
 RTT_RESYNC_CARD_EPS        = 0.05  -- how near its old spot a card must be to BE the card that was there
 RTT_RESYNC_CARD_STILL      = 0.05  -- velocity (summed |x|+|y|+|z|) under which an unlocked card is still
+
+-- WHAT THE PASS RE-CREATES: CARDBOARD, not only cards. Maintainer, 2026-09-17, on the crow plots that
+-- Resync never healed: "the fix should be the same than for all the other cardboards". A plot is a
+-- plain tile, like every token and tile on the table, and what goes wrong with a tile is what goes
+-- wrong with a card -- its picture, or the piece never arriving -- neither of which a lock toggle can
+-- send. Keyed on `name`, the exact TTS type, because `tag` reads "Tile" for one and "Chip" for the
+-- other. Models (warriors, buildings, bags) have no face to get wrong and stay with the lock toggle.
+RTT_RESYNC_CARDBOARD = { Card = true, CardCustom = true, Custom_Tile = true, Custom_Token = true }
+
+function rttResyncCardboard(o)
+  local n = nil
+  pcall(function() n = o.name end)
+  return RTT_RESYNC_CARDBOARD[n or ""] == true
+end
 
 -- Whether a card's script does anything at all. Whitespace is ignored, and an onLoad with an empty
 -- body counts as no script: it registers nothing, so re-running it on a respawn changes nothing.
@@ -2169,7 +2186,13 @@ function rttResyncCardOK(o, skip)
     -- LOOSE CARDS ONLY. Not decks: a deck is the draw pile and the discard, reloading one re-creates
     -- every card in it at once, and rttFindDrawDeck would be looking for an object that no longer has
     -- that guid. Not tokens, not tiles -- the sweep above already covers those, cheaply.
-    if o.tag ~= "Card" then return end
+    if not rttResyncCardboard(o) then return end
+    -- LOOSE, unless it is a card. A locked tile or token is a fixture -- the map, a faction board, a
+    -- ruin, a priority marker, the pond, the deck holder -- whose only fault can be its place, which
+    -- the lock toggle already re-sends; re-creating the map would also hand the score track, the
+    -- landmarks and the box score a dead guid. A locked CARD is still a card (the draft deals them
+    -- locked and face down) and keeps its place in the pass.
+    if o.tag ~= "Card" and o.getLock() == true then return end
     if skip[o.getGUID()] == true then return end        -- in a hand, a laid prisoner, or the board itself
     if o.held_by_color ~= nil then return end           -- somebody has hold of it right now
     if o.spawning == true then return end               -- it has not finished arriving; its guid is not settled
@@ -2210,6 +2233,12 @@ function rttResyncSwapGuid(old, new)
   if old == new or new == nil then return end
   for i, g in ipairs(RTT_SPAWNED or {}) do
     if g == old then RTT_SPAWNED[i] = new end
+  end
+  -- ...and the home record numpad 0 sends a piece back by, now that tokens are re-created too: a
+  -- plot that came back under a new guid would otherwise have no way home.
+  if RTT_HOME ~= nil and RTT_HOME[old] ~= nil then
+    RTT_HOME[new] = RTT_HOME[old]
+    RTT_HOME[old] = nil
   end
 end
 
@@ -2281,7 +2310,7 @@ function rttResyncCardsSettle(list, done, gen)
   pcall(function() all = getAllObjects() end)
   for _, o in ipairs(all) do
     pcall(function()
-      if o.tag == "Card" then
+      if rttResyncCardboard(o) then
         cards[#cards + 1] = { guid = o.getGUID(), p = o.getPosition(), taken = false }
         if o.held_by_color ~= nil then held = true end
       end
@@ -2388,7 +2417,8 @@ function rttResyncReloadCards(done)
       -- a loose card left alone for a reason -- held, moving, scripted -- counted so the message can
       -- say so. Cards in hands are not "left alone", they are out of scope, and are not counted.
       pcall(function()
-        if o.tag == "Card" and skip[o.getGUID()] ~= true then skipped = skipped + 1 end
+        if rttResyncCardboard(o) and (o.tag == "Card" or o.getLock() ~= true)
+            and skip[o.getGUID()] ~= true then skipped = skipped + 1 end
       end)
     end
   end
@@ -2688,7 +2718,7 @@ end
 function rttResyncClick(player, value, id)
   local ran = rttResyncSweep(function(n, nc, lostc, waited, skipped)
     local msg = "Resync: " .. tostring(n) .. " objects re-sent"
-    if (nc or 0) > 0 then msg = msg .. ", " .. tostring(nc) .. " cards reloaded" end
+    if (nc or 0) > 0 then msg = msg .. ", " .. tostring(nc) .. " cards and tokens reloaded" end
     local seats = 0
     pcall(function() seats = rttResyncReseatAll(nil) end)
     if seats > 0 then msg = msg .. "; " .. tostring(seats) .. " seat(s) re-sent (hand bar)" end
