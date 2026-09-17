@@ -2685,31 +2685,26 @@ end
 -- dropped at a moment nobody spawned anything -- and one person pressing a button beats the whole
 -- table logging out. It destroys nothing, so it carries no warning and is not in RTT_WIPE_BTN; the
 -- debounce is the sweep's own busy flag, so a player mashing it cannot stack sweeps.
--- EVERY SEAT, RE-SENT, ONE AT A TIME. The hand bar at the bottom of the screen goes missing for a
--- player now and then -- they see their hand zone on the table and no cards along the bottom -- and
--- only a reconnect brought it back (TTS bug 1010: a hand zone's update is not delivered to the client
--- that owns it). Every write to the hand ZONE was tried and every one dropped the cards in it.
+-- EVERY SEAT'S HAND BOXES RE-PLACED, ONE PLAYER AT A TIME, WHILE THAT PLAYER IS OFF THE COLOUR.
 --
--- What a reconnect actually does for the hand is re-run the colour assignment on that client, and
--- that can be done without leaving: step the player off their colour and straight back onto it. The
--- hand, the cards in it and the turn slot belong to the COLOUR, not the player (see rttSeatPlayers),
--- so nothing is taken from anyone; the base mod's own kick-to-Grey used the same fact.
+-- The row at the bottom of the screen goes missing for a player now and then -- they see the hand
+-- box on the table and no cards along the bottom -- and only a reconnect brought it back. The cause
+-- is TTS's own (tabletopsimulator.nolt.io/1010): a hand-box move is dropped by the client that owns
+-- the colour, so that client keeps a stale copy of its box. Two earlier repairs could not work and
+-- are gone: a hop to Grey and back (v1.431, then held for half a second in v1.436 -- the maintainer:
+-- "changing colors does not help"), which re-read nothing; and writing the box while the player sat
+-- in it, which is the very write the client drops.
 --
--- ALL SEATED PLAYERS, IN TURN (maintainer, 2026-09-17: "do all players in order instead of just
--- player that clicked"), and strictly one at a time: a player is stepped back before the next one is
--- stepped off, so at no moment is more than one colour free -- nobody can land on somebody else's
--- colour by accident, and a hop that fails strands one player, not the table. It runs only once the
--- card pass has finished, so no hand is ever outside the sweep's "in a hand" list while cards are
--- being reloaded. A Player ref is stale after the first change, so the way back finds the player
--- again by Steam id. Spectators (Grey, Black) are never moved.
-RTT_RESEAT_TRIES = 12     -- frames to keep trying to put a player back on their colour
--- HELD IN GREY FOR A MOMENT, NOT ONE FRAME. The one-frame hop (v1.431) did not bring the bar back --
--- maintainer, 2026-09-17: "not resolved by resync" -- and the chat showed one "is color Teal" line
--- per press and no Grey line at all, so a leave-and-return inside two frames may never have reached
--- the client as two changes. Half a second is long enough to be sent as what it is: the player really
--- stands up and really sits back down, which is the part of a reconnect this imitates. An
--- experiment, and the number to change if it proves too slow or still not slow enough.
-RTT_RESEAT_HOLD = 0.5
+-- THIS ONE FOLLOWS THE RULE (rttPlaceSeatHands): the player is stepped off, BOTH boxes are written
+-- from the seat record while nobody owns the colour -- a real change first, then the exact box -- and
+-- the player is stepped back. The hand, its cards and the turn slot belong to the COLOUR, so nothing
+-- is taken from anyone. Strictly one player at a time, so no two colours are ever free at once; only
+-- after the card pass, so no hand is outside the sweep's exclusion list while cards are reloaded; the
+-- way back finds the player by Steam id, because the handle is stale after the first change.
+-- Spectators (Grey, Black) and a colour the table did not seat are left alone. A row still missing
+-- after this needs a rejoin, and the message says so.
+RTT_RESEAT_TRIES  = 12    -- frames to keep trying to put a player back on their colour
+RTT_REHAND_FRAMES = 2     -- frames the player stays off the colour after the boxes are written
 
 function rttResyncReseatOne(color, id, name, next)
   local p = nil
@@ -2718,6 +2713,13 @@ function rttResyncReseatOne(color, id, name, next)
   local same = false
   pcall(function() same = (id ~= nil and p.steam_id == id) or (id == nil and p.steam_name == name) end)
   if not same then return false end                      -- somebody else sits there now: leave them
+  -- the seat this colour wears, whose boxes are re-placed; a colour the table did not seat has no
+  -- record to place from, and its player is left alone
+  local seat = nil
+  for _, sr in ipairs(RTT_SEATS or {}) do
+    if sr ~= nil and sr.color == color and sr.hand ~= nil then seat = sr end
+  end
+  if seat == nil then return false end
   local function me()
     local found = nil
     pcall(function()
@@ -2730,6 +2732,7 @@ function rttResyncReseatOne(color, id, name, next)
   local stepped = false
   pcall(function() p.changeColor("Grey") stepped = true end)
   if not stepped then return false end
+  rttPlaceSeatHands(color, seat.hand, true)                -- both boxes, while nobody owns the colour
   local tries = 0
   local function back()
     tries = tries + 1
@@ -2745,7 +2748,7 @@ function rttResyncReseatOne(color, id, name, next)
     end)
     next()
   end
-  Wait.time(back, RTT_RESEAT_HOLD)
+  Wait.frames(back, RTT_REHAND_FRAMES)
   return true
 end
 
@@ -2779,7 +2782,9 @@ function rttResyncClick(player, value, id)
     if (nc or 0) > 0 then msg = msg .. ", " .. tostring(nc) .. " cards and tokens reloaded" end
     local seats = 0
     pcall(function() seats = rttResyncReseatAll(nil) end)
-    if seats > 0 then msg = msg .. "; " .. tostring(seats) .. " seat(s) re-sent (hand bar)" end
+    if seats > 0 then
+      msg = msg .. "; " .. tostring(seats) .. " hand(s) re-placed -- a hand row still missing after this needs a rejoin"
+    end
     -- the cards it would not touch, said out loud: the next "it did nothing to my card" report can
     -- then say whether the card was counted here, which is the difference between a skip and a bug
     if (skipped or 0) > 0 then
@@ -3518,13 +3523,17 @@ function makeFaction(player,value,id,source)
   local seatHand = {
     position = Vector(cp.x, 10.62, cp.z) + direction,
     rotation = { 0, br.y, 0 },
-    scale = { 16, 6, 4 }
+    scale = RTT_HAND_SCALE                 -- one size for a seat's hand: the draft's
   }
-  Player[player.color].setHandTransform(seatHand, 1)
+  -- OFF, PLACED, BACK. The picker's own boxes may not move while the picker owns the colour -- TTS
+  -- drops that move on the owner's client, see rttPlaceSeatHands -- so the picker is parked in Grey
+  -- for the frame it takes, both boxes are placed from this seat, and the picker sits back down.
+  local pc = player.color
+  rttPlaceHandsAround(pc, { pos = seatHand.position, rot = seatHand.rotation })
 
   -- Hand the seat DOWN rather than letting rttPlaceFaction read it back: same values, but now the
   -- result no longer depends on whether hand 1 has finished moving.
-  rttPlaceFaction(id, cp.x, cp.z, flip, player.color, false, category, spawnRy, player.color, seatHand)
+  rttPlaceFaction(id, cp.x, cp.z, flip, pc, false, category, spawnRy, pc, seatHand)
   -- A Vagabond is a CHARACTER, not a whole faction: the character data is just the pawn, its items and
   -- its VP marker. The shared board, dice and quest kit come from two more blueprint entries, which the
   -- draft paths already pull in via makeVagabondLayout. The manual selector needs the same, placed at
@@ -3706,30 +3715,10 @@ end
 -- cards into the old supporter area"); this twin never got the fix. hand1 is optional so any older
 -- caller still works, but the one caller passes it.
 function spawnWingedMenaceExtraHand(color, hand1)
-  hand1 = hand1 or Player[color].getHandTransform(1)
-  -- BOTH SHAPES, like rttSupportersTransform: a transform read back from TTS carries Vectors (.x .y .z)
-  -- while the seat's own seatHand is built with a plain {0, y, 0} array for its rotation. Indexing only
-  -- one of them is a nil in arithmetic on the other -- the harness caught exactly that on the first
-  -- version of this fix, with a fixture shaped like the real seatHand.
-  local pos = hand1.position or {}
-  local rot = hand1.rotation or {}
-  local angleY = rot.y or rot[2] or 0
-  local posX = pos.x or pos[1] or 0
-  local posZ = pos.z or pos[3] or 0
-
-  local angle = 1.07 * 2 * math.pi/6 - (math.pi/180 * angleY)
-
-  local offsetX = math.cos(angle) * 13.53
-  local offsetZ = math.sin(angle) * 13.53
-
-  local posy = Vector({posX + offsetX,12.56,posZ + offsetZ})
-  local roty = rot
-
-  Player[color].setHandTransform({
-      position = posy,
-      rotation = roty,
-      scale    = {5.99, 5.4, 5.50},
-  }, 2)
+  -- SHARES THE SUPPORTERS SPOT since 2026-09-17. Hand 2 is placed for every seat while nobody owns the
+  -- colour (rttPlaceSeatHands), and one second-hand spot per seat is what makes that possible; the
+  -- bats' own spot and size went with it. This is the fallback for a seat this build did not place.
+  spawnSupportersHand(color, hand1)
 end
 
 -- Where the supporters zone (hand 2) sits for a seat whose MAIN hand is `hand1`. A PURE function of
@@ -3753,6 +3742,69 @@ function rttSupportersTransform(hand1)
       rotation = rot,
       scale    = {12, 5.4, 5.50},
   }
+end
+
+-- ---- A SEAT'S TWO HAND BOXES, PLACED WHILE NOBODY OWNS THE COLOUR ---------------------------------
+-- Maintainer, 2026-09-17: "the hand position problem ... is a major issue; changing colors does not
+-- help." The blueprint keeps every seat colour's hand boxes at the table's long edges, and every game
+-- moved them behind the seats with setHandTransform -- AFTER seating the players. TTS has a defect
+-- exactly there (tabletopsimulator.nolt.io/1010): the client whose OWN colour's box is moved never
+-- applies the move; every other client does, and only a reconnect repairs it. So that client's row at
+-- the bottom stays empty while everybody else sees them seated with cards.
+--
+-- THE RULE: a hand box is only ever moved while nobody owns its colour. The draft parks everyone in
+-- Grey, places every seat's boxes, THEN seats (rttSeatPlayers); a manual pick hops the picker off,
+-- places, hops back (rttPlaceHandsAround); Resync does the same as a repair (rttResyncReseatOne).
+-- Hand 1 is the seat's own hand; hand 2 goes to the seat's supporters spot for EVERY seat, so the
+-- Alliance -- and the bats, who share that spot now -- need no move of their own when picked.
+--
+-- `jog`: first a real change (both boxes 5% larger, about the same centre), then the exact boxes, so
+-- a client whose copy is stale definitely receives an update -- a write the host sees as no change
+-- may never go on the wire. Growing then returning cannot push out a card the box held.
+function rttPlaceSeatHands(color, hand, jog)
+  if color == nil or color == "Grey" or color == "Black" then return end
+  if hand == nil or hand.pos == nil then return end
+  local h1 = { position = hand.pos, rotation = hand.rot or { 0, 0, 0 }, scale = RTT_HAND_SCALE }
+  local h2 = rttSupportersTransform(h1)
+  if jog then
+    local g = RTT_HAND_FIX_GROW
+    pcall(function()
+      Player[color].setHandTransform({ position = h1.position, rotation = h1.rotation,
+        scale = { RTT_HAND_SCALE[1] * g, RTT_HAND_SCALE[2] * g, RTT_HAND_SCALE[3] * g } }, 1)
+    end)
+    pcall(function()
+      Player[color].setHandTransform({ position = h2.position, rotation = h2.rotation,
+        scale = { h2.scale[1] * g, h2.scale[2] * g, h2.scale[3] * g } }, 2)
+    end)
+  end
+  pcall(function() Player[color].setHandTransform(h1, 1) end)
+  pcall(function() Player[color].setHandTransform(h2, 2) end)
+end
+
+-- The same, for a colour somebody is SITTING in: off to Grey, placed, straight back. The three land in
+-- one frame on the host and in that order on every client, so no client owns the colour while the
+-- boxes move. The hand is empty at a pick, so nobody loses a card. The player is found again by
+-- identity for the way back, because a Player handle is stale after the first change.
+function rttPlaceHandsAround(color, hand, jog)
+  if color == nil or color == "Grey" or color == "Black" then return end
+  local p, seated, id, name = nil, false, nil, nil
+  pcall(function()
+    p = Player[color]
+    seated = (p ~= nil and p.seated == true)
+    if seated then id, name = p.steam_id, p.steam_name end
+  end)
+  if not seated then rttPlaceSeatHands(color, hand, jog) return end
+  local off = false
+  pcall(function() p.changeColor("Grey"); off = true end)
+  rttPlaceSeatHands(color, hand, jog)
+  if not off then return end
+  local back = nil
+  pcall(function()
+    for _, q in ipairs(Player.getPlayers()) do
+      if (id ~= nil and q.steam_id == id) or (id == nil and q.steam_name == name) then back = q end
+    end
+  end)
+  if back ~= nil then pcall(function() back.changeColor(color) end) end
 end
 
 -- Marker for the test harness: this build takes the seat explicitly.
@@ -5013,7 +5065,7 @@ function rttSeatPlayers()
     if sN ~= nil then
       local seat = RTT_SEATS[sN]
       if seat ~= nil and seat.board ~= nil and seat.hand ~= nil then
-        want[#want + 1] = { p = p, n = sN, name = p.steam_name, c = RTT_SETUP_COLORS[sN] }
+        want[#want + 1] = { p = p, n = sN, name = p.steam_name, id = p.steam_id, c = RTT_SETUP_COLORS[sN] }
       end
     end
   end
@@ -5021,31 +5073,51 @@ function rttSeatPlayers()
   -- Red, each changeColor is refused for a colour somebody still holds. Park everyone who is standing
   -- on a colour that is not theirs in Grey first -- the base mod's own kick-everyone-to-Grey trick --
   -- and then every target is free. Grey is this mod's spectator seat and holds any number of players.
-  local target = {}
-  for _, w in ipairs(want) do if w.c ~= nil then target[w.c] = true end end
+  -- ...AND EVERYBODY WHOSE COLOUR IS A SEAT COLOUR IS PARKED, not only the players standing on
+  -- somebody else's. The seats' hand boxes are about to move, and TTS drops a hand-box move on the
+  -- client that owns the colour (tabletopsimulator.nolt.io/1010; see rttPlaceSeatHands). With every
+  -- such player in Grey, no client owns a seat colour while its boxes move, every client applies the
+  -- moves, and sitting down afterwards finds the box where it now is. A player in a colour that is not
+  -- a seat's (a sixth human at a four-seat table) is left where they are: nothing of theirs moves.
+  local moving = {}
+  for i, _ in ipairs(RTT_SEATS or {}) do
+    if RTT_SETUP_COLORS[i] ~= nil then moving[RTT_SETUP_COLORS[i]] = true end
+  end
   for _, p in ipairs(Player.getPlayers()) do
-    local mine = nil
-    for _, w in ipairs(want) do if w.name == p.steam_name then mine = w.c end end
-    if p.color ~= "Grey" and p.color ~= "Black" and p.color ~= mine and target[p.color] then
+    if p.color ~= "Grey" and p.color ~= "Black" and moving[p.color] then
       pcall(function() p.changeColor("Grey") end)
     end
   end
+  -- THE BOXES, while nobody owns them: seat N wears colour N, so its two boxes are colour N's.
+  for i, seat in ipairs(RTT_SEATS or {}) do
+    if seat ~= nil and seat.hand ~= nil then rttPlaceSeatHands(RTT_SETUP_COLORS[i], seat.hand) end
+  end
+  -- ...AND ONLY NOW DOES ANYBODY SIT DOWN, found again by identity: a Player handle is stale after
+  -- the change that parked it.
+  local function person(w)
+    local found = nil
+    pcall(function()
+      for _, q in ipairs(Player.getPlayers()) do
+        if (w.id ~= nil and q.steam_id == w.id) or (w.id == nil and q.steam_name == w.name) then found = q end
+      end
+    end)
+    return found or w.p
+  end
   for _, w in ipairs(want) do
-    if w.c ~= nil and w.p.color ~= w.c then pcall(function() w.p.changeColor(w.c) end) end
+    if w.c ~= nil then
+      local q = person(w)
+      if q ~= nil and q.color ~= w.c then pcall(function() q.changeColor(w.c) end) end
+    end
   end
 
   local seated = {}                                      -- [seat N] = seat colour, for the deferred card
   for _, w in ipairs(want) do
     local seat  = RTT_SEATS[w.n]
-    local color = w.c or w.p.color
+    local color = w.c or (person(w) or w.p).color
     -- replace: the draft DOES reassign, deliberately -- seat N wears turn-card N's colour, and the
     -- players were parked in Grey a moment ago precisely so this can happen without a clash.
     rttSetSeatColor(seat, color, true)
     rttSetSeatOwner(seat, w.name)
-    pcall(function()
-      Player[color].setHandTransform(
-        { position = seat.hand.pos, rotation = seat.hand.rot, scale = RTT_HAND_SCALE }, 1)
-    end)
     seated[w.n] = color
   end
   -- A seat nobody is sitting in takes its own turn number's colour as well, so the scheme reads the

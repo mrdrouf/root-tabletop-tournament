@@ -225,7 +225,7 @@ Diagnosed first, then the maintainer said "fix all the other things as well". On
       10/40/120 frames anyway); and the pond spawns a frame after the deck merge, not in the same
       call. The harness cannot reproduce a C# null, so the proof is a TTS run: badgers then frogs
       within two seconds.
-- [~] **Resync does not bring the hand bar back, and a player can see himself unseated while
+- [x] **Resync does not bring the hand bar back, and a player can see himself unseated while
       everyone else sees him seated.** The reseat hops the player to Grey and straight back (one
       frame). That re-runs the seat assignment, but the bar at the bottom of the screen is drawn
       from the hand ZONE object on that client, and TTS bug 1010 is precisely that the zone's update
@@ -233,8 +233,14 @@ Diagnosed first, then the maintainer said "fix all the other things as well". On
       write (which drops the cards, tried four ways) or a reconnect does. The chat shows one
       "Zaandaa is color Teal" per press and no Grey line, so whether the hop even reaches the
       affected client is unknown -- a Grey-and-back inside two frames may be coalesced on the wire.
-      BUILT AS THE EXPERIMENT, v1.436: the reseat now holds Grey for RTT_RESEAT_HOLD = 0.5 s before
-      stepping back. Have the affected player say whether their screen showed the seat change. If yes, the hop reaches them and the bar is
+      v1.436 held the player in Grey for half a second: "changing colors does not help". ROOT CAUSE
+      FOUND, v1.441: the blueprint keeps every seat colour's boxes at the table's long edges and every
+      game moved them behind the seats AFTER seating -- the exact move TTS drops on the owner's client.
+      THE RULE NOW (rttPlaceSeatHands): a hand box only moves while nobody owns its colour. The draft
+      parks everyone in a seat colour, places every seat's hand 1 and hand 2, then seats; a manual pick
+      hops the picker off, places, hops back; Resync does the same as a repair (a real change, then the
+      exact box, while the player is off). The bats' second hand shares the supporters spot. A row
+      still missing after Resync needs a rejoin, and the message says so. Not yet confirmed in TTS. If yes, the hop reaches them and the bar is
       the zone object (no script lever found short of recreating the zone, which is only safe when
       the hand is empty). If no, the hop is not reaching that client at all.
 - [x] **Resync does not heal the crow plots.** v1.433 (ca9a547): the reload pass takes every loose tile and token. The plots are ordinary unlocked tiles inside the

@@ -1744,6 +1744,54 @@ def _seat_ranked(rt, joined, names):
     rt.execute("rttSpawnSelectors() FLUSH(6) pcall(function() rttSeatPlayers() end) FLUSH(30)")
 
 
+def t_the_draft_moves_the_hand_boxes_while_nobody_owns_them(src):
+    """Seating parks every player in a seat colour, places every seat's two boxes, and only then seats.
+
+    Maintainer, 2026-09-17: "the hand position problem ... is a major issue; changing colors does not
+    help." TTS drops a hand-box move on the client that owns the colour (nolt 1010), and the draft
+    used to seat first and move the boxes after -- so every player at the table was exposed on every
+    game. Now no client owns a seat colour while its boxes move: everyone applies the moves, and
+    sitting down finds the box where it is. Two players already on their own colours are the case the
+    old code skipped, so they are the fixture.
+    """
+    rt = fresh(src)
+    rt.execute("""
+      REC.colors = {}
+      WROTE = {}
+      for _, c in ipairs({ 'Red', 'Yellow' }) do
+        local sh = Player[c].setHandTransform
+        Player[c].setHandTransform = function(tr, n)
+          WROTE[#WROTE + 1] = c .. tostring(n) .. '@' .. table.concat(REC.colors, '|')
+          return sh(tr, n)
+        end
+      end
+    """)
+    _seat_ranked(rt, ["Red", "Yellow"], ["Alice", "Ben"])
+    wrote = list(dict(rt.eval("WROTE") or {}).values())
+    assert wrote, "no hand box was placed at all"
+    for c in ("Red", "Yellow"):
+        mine = [w for w in wrote if w.startswith(c)]
+        assert any(w.startswith(c + "1@") for w in mine) and any(w.startswith(c + "2@") for w in mine), (
+            "%s's two boxes were not both placed: %s" % (c, mine))
+        for w in mine:
+            at = w.split("@", 1)[1]
+            assert ("%s -> Grey" % c) in at, "%s's box moved before %s was off the colour: %s" % (c, c, w)
+            assert ("Grey -> %s" % c) not in at, "%s's box moved after %s had sat back down: %s" % (c, c, w)
+    hops = rt.eval("function() return table.concat(REC.colors, '|') end")()
+    assert hops.index("Grey -> Red") > hops.index("Yellow -> Grey"), (
+        "somebody sat down before every box had moved: %s" % hops)
+    assert rt.eval("Player['Red'].steam_name") == "Alice" and rt.eval("Player['Yellow'].steam_name") == "Ben", \
+        "the players did not end up back on their colours"
+    assert rt.eval("Player['Grey'].steam_name") not in ("Alice", "Ben"), "somebody was left in Grey"
+    # hand 2 stands at the seat's supporters spot for BOTH seats, Alliance or not
+    for n, c in ((1, "Red"), (2, "Yellow")):
+        got = rt.eval("function() local h = Player['%s'].getHandTransform(2) return { x = h.position.x, z = h.position.z } end" % c)()
+        want = rt.eval("function() local h = rttSupportersTransform({ position = RTT_SEATS[%d].hand.pos, rotation = RTT_SEATS[%d].hand.rot }) return { x = h.position.x, z = h.position.z } end" % (n, n))()
+        assert abs(got["x"] - want["x"]) < 0.01 and abs(got["z"] - want["z"]) < 0.01, (
+            "%s's second box is at (%.1f, %.1f), not the seat's supporters spot (%.1f, %.1f)"
+            % (c, got["x"], got["z"], want["x"], want["z"]))
+
+
 def t_seat_colour_is_the_turn_order(src):
     """A seat's colour IS its turn-order number, and the player is recoloured into it.
 
@@ -13846,60 +13894,78 @@ def t_a_vp_panel_only_answers_its_own_seat(src):
 
 
 def t_a_resync_leaves_hand_zones_alone(src):
-    """Resync must not write any player's hand transform, because every such write drops the cards in it.
+    """Resync never writes a player's hand transform while that player is sitting in the colour.
 
-    The hand-bar fault is a TTS defect (tabletopsimulator.nolt.io/1010: setHandTransform does not reach
-    the owning client) and the only cure is to reconnect. Three repairs were tried on 2026-09-17 --
-    moving the zone, restricting to empty hands, growing the zone in place -- and the first and third
-    both put players' cards on the table face up: "clicking resynch makes the cards fall off the
-    table now". An independent review then confirmed there is no supported write that re-sends a hand
-    transform without disturbing the zone.
+    The hand-row fault is a TTS defect (tabletopsimulator.nolt.io/1010: a hand-box move is dropped by
+    the client that owns the colour). Three repairs tried on 2026-09-17 wrote the box while the player
+    sat in it -- moving the zone, restricting to empty hands, growing the zone in place -- and the
+    first and third put players' cards on the table face up: "clicking resynch makes the cards fall
+    off the table now". Then the rule was found: a box may only move while NOBODY owns its colour, and
+    the maintainer asked Resync to use it ("make resynch also use that logic"). So a write is allowed
+    exactly when the player has been stepped off, and never before or after.
 
-    So this asserts the OPPOSITE of what its predecessor did. That test called rttResyncHands directly
-    and proved it nudged; a completely inert button passed it. This one drives the real button and
-    proves it never touches a hand at all -- which is the property that matters on a live table.
-    rttResyncHands stays defined, unreferenced, as the record of what was tried.
+    This drives the real button and reads the colour log at every write. rttResyncHands, the retired
+    in-seat repair, stays defined and unreferenced as the record of what was tried.
     """
     rt = fresh(src)
     rt.execute("""
       RTT_SEATS = { { color = 'Red', pos = { 52, -46 },
                       hand = { pos = { 52, 14.62, -64 }, rot = { 0, 0, 0 } } } }
       SEAT('Red', 'Alice')
-      HT = 0
-      Player['Red'].setHandTransform = function(t, i) HT = HT + 1 end
+      REC.colors = {}
+      WROTE = {}
+      local sh = Player['Red'].setHandTransform
+      Player['Red'].setHandTransform = function(tr, i)
+        WROTE[#WROTE + 1] = tostring(i) .. '@' .. table.concat(REC.colors, '|')
+        return sh(tr, i)
+      end
       SEATED = { 'Red' }
       getSeatedPlayers = function() return SEATED end
       pcall(function() rttResyncClick(Player['Red'], '', 'rttResyncBtn') end)
       FLUSH(200)
     """)
-    assert rt.eval("HT") == 0, (
-        "the resync button wrote a hand transform %d time(s); any such write drops the cards in that "
-        "hand, and there is no write that does not" % rt.eval("HT"))
-    # ...and the retired repair is not reachable from the sweep
+    wrote = list(dict(rt.eval("WROTE") or {}).values())
+    assert wrote, "the button re-placed no hand box at all"
+    for w in wrote:
+        at = w.split("@", 1)[1]
+        assert "Red -> Grey" in at and "Grey -> Red" not in at, (
+            "a hand transform was written while Alice still owned Red -- the write TTS drops on the "
+            "owner, and the one that drops the cards: %s" % w)
+    assert rt.eval("Player['Red'].steam_name") == "Alice", "Alice did not get Red back"
+    # ...and the retired in-seat repair is not reachable from the sweep
     raw = open(os.path.join(REPO, "dist", "Root_Tournament_Edition.json"), encoding="utf-8").read()
     board = board_lua(raw)
     calls = [l for l in board.split(chr(10)) if "rttResyncHands()" in l
              and not l.strip().startswith("--") and "function rttResyncHands" not in l]
     assert not calls, "rttResyncHands is called from the board script again: %s" % calls
 
-
 def t_a_resync_re_sends_every_seat_in_turn(src):
-    """Resync steps every seated player off their colour and straight back, one at a time, after the sweep.
+    """Resync steps every seated player off their colour, re-places BOTH hand boxes from the seat while
+    nobody owns the colour, and steps them back -- one at a time, after the card pass.
 
-    The missing hand bar (TTS bug 1010) is cured by a reconnect, and what a reconnect does for the hand
-    is re-run the colour assignment on that client. Stepping a player to Grey and back does the same
-    without leaving: the hand and its cards belong to the colour, so nothing is lost. All seated
-    players, in turn (maintainer: "do all players in order instead of just player that clicked"),
-    strictly one at a time so no two colours are ever free at once; only after the card pass, so no
-    hand is outside the sweep's exclusion list while cards are being reloaded; spectators never.
+    The missing hand row is TTS's own defect (nolt 1010): a hand-box move is dropped by the client that
+    owns the colour. A hop to Grey and back alone (v1.431, held for half a second in v1.436) re-read
+    nothing -- the maintainer, 2026-09-17: "changing colors does not help" -- so the boxes are now
+    WRITTEN while the player is off the colour, a real change first and then the exact box, which is
+    the one moment every client applies the update. A colour the table did not seat is left alone.
     """
     rt = fresh(src)
     rt.execute("""
       SEATED = { 'Red', 'Blue' }
       getSeatedPlayers = function() return SEATED end
       SEAT('Red', 'Alice') SEAT('Blue', 'Ben')
+      RTT_SEATS = { { color = 'Red',  hand = RTT_SEAT_HAND[1], pos = { 52, -46 } },
+                    { color = 'Blue', hand = RTT_SEAT_HAND[2], pos = { -52, -46 } } }
       for i = 1, 3 do MKOBJ("Card", { 70 + i, 1, 0 }, {}) end
       REC.colors = {}
+      WROTE = {}
+      for _, c in ipairs({ 'Red', 'Blue' }) do
+        local sh = Player[c].setHandTransform
+        Player[c].setHandTransform = function(tr, n)
+          WROTE[#WROTE + 1] = c .. tostring(n) .. '@' .. table.concat(REC.colors, '|')
+          return sh(tr, n)
+        end
+      end
       HOP_BUSY = nil
       local hop = Player['Red'].changeColor
       Player['Red'].changeColor = function(nc) if HOP_BUSY == nil then HOP_BUSY = RTT_RESYNC_BUSY end return hop(nc) end
@@ -13909,56 +13975,37 @@ def t_a_resync_re_sends_every_seat_in_turn(src):
     """)
     hops = rt.eval("function() return table.concat(REC.colors, '|') end")()
     assert hops == "Red -> Grey|Grey -> Red|Blue -> Grey|Grey -> Blue", (
-        "every seated player should step to Grey and straight back, one after another; the colour "
-        "changes were: %r" % hops)
+        "every seated player should step to Grey and back, one after another; the colour changes were: %r" % hops)
     assert rt.eval("HOP_BUSY") is False, (
-        "a player was stepped off their colour while the sweep was still running (busy=%r); their hand "
-        "cards were outside the exclusion list at that moment" % rt.eval("HOP_BUSY"))
+        "a player was stepped off their colour while the sweep was still running (busy=%r)" % rt.eval("HOP_BUSY"))
+    wrote = list(dict(rt.eval("WROTE") or {}).values())
+    for c in ("Red", "Blue"):
+        mine = [w for w in wrote if w.startswith(c)]
+        assert any(w.startswith(c + "1@") for w in mine) and any(w.startswith(c + "2@") for w in mine), (
+            "%s's two boxes were not both written: %s" % (c, mine))
+        for w in mine:
+            at = w.split("@", 1)[1]
+            assert ("%s -> Grey" % c) in at and ("Grey -> %s" % c) not in at, (
+                "%s's box was written while %s still owned the colour: %s" % (c, c, w))
     assert rt.eval("function() return Player['Red'].steam_name end")() == "Alice", "Alice did not get Red back"
     assert rt.eval("function() return Player['Blue'].steam_name end")() == "Ben", "Ben did not get Blue back"
     msg = list(dict(rt.eval("MSG") or {}).values())
-    assert any("2 seat(s) re-sent" in m for m in msg), "the message does not count the seats re-sent: %s" % msg
+    assert any("2 hand(s) re-placed" in m and "rejoin" in m for m in msg), (
+        "the message does not count the hands re-placed and say what to do if a row is still missing: %s" % msg)
 
-    # a spectator pressing it is left where they are; the seated players are still done
+    # a spectator pressing it is left where they are; a seated player whose colour has no seat record too
     rt = fresh(src)
     rt.execute("""
-      SEATED = { 'Red' }
+      SEATED = { 'Red', 'Blue' }
       getSeatedPlayers = function() return SEATED end
-      SEAT('Red', 'Alice')
+      SEAT('Red', 'Alice') SEAT('Blue', 'Ben')
+      RTT_SEATS = { { color = 'Red', hand = RTT_SEAT_HAND[1], pos = { 52, -46 } } }
       REC.colors = {}
       rttResyncClick(Player['Grey'], '', 'rttResyncBtn')
       FLUSH(400)
     """)
     hops = rt.eval("function() return table.concat(REC.colors, '|') end")()
     assert hops == "Red -> Grey|Grey -> Red", "with a spectator pressing, the colour changes were: %r" % hops
-
-
-def t_the_reseat_holds_the_player_in_grey_for_a_moment(src):
-    """The hand-bar repair keeps the player in Grey for RTT_RESEAT_HOLD before stepping them back.
-
-    The one-frame hop did not bring the bar back (maintainer, 2026-09-17: "not resolved by resync"),
-    and the chat showed one "is color Teal" per press and no Grey line, so a leave-and-return inside
-    two frames may never reach the client as two changes. The hold is the experiment: long enough to
-    be sent as a real stand-up and sit-down. The player must still come home afterwards.
-    """
-    rt = fresh(src)
-    rt.execute("""
-      SEATED = { 'Red' }
-      getSeatedPlayers = function() return SEATED end
-      SEAT('Red', 'Alice')
-      REC.colors = {}
-      rttResyncClick(Player['Red'], '', 'rttResyncBtn')
-      FLUSH_UNTIL(0.2, 400)
-      HELD = table.concat(REC.colors, '|')
-      FLUSH(400)
-      DONE = table.concat(REC.colors, '|')
-    """)
-    assert rt.eval("RTT_RESEAT_HOLD") >= 0.3, "the hold is %r, which is a hop, not a hold" % rt.eval("RTT_RESEAT_HOLD")
-    assert rt.eval("HELD") == "Red -> Grey", (
-        "a fifth of a second in, the colour changes were %r; the player should still be in Grey" % rt.eval("HELD"))
-    assert rt.eval("DONE") == "Red -> Grey|Grey -> Red", "the player did not come home: %r" % rt.eval("DONE")
-    assert rt.eval("function() return Player['Red'].steam_name end")() == "Alice", "Alice did not get Red back"
-
 
 def t_the_winged_menace_hand_is_built_from_the_seat_not_read_back(src):
     """The Winged Menace's second hand is placed from the seat's OWN hand transform, never read back.
@@ -14239,7 +14286,7 @@ CASES = [
     ("a VP panel is yours alone",       t_a_vp_panel_only_answers_its_own_seat),
     ("resync leaves hands alone",      t_a_resync_leaves_hand_zones_alone),
     ("resync re-sends every seat in turn", t_a_resync_re_sends_every_seat_in_turn),
-    ("the reseat holds the player in grey", t_the_reseat_holds_the_player_in_grey_for_a_moment),
+    ("the draft moves the boxes while nobody owns them", t_the_draft_moves_the_hand_boxes_while_nobody_owns_them),
     ("winged menace hand from the seat", t_the_winged_menace_hand_is_built_from_the_seat_not_read_back),
 ]
 
