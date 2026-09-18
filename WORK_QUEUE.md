@@ -329,6 +329,8 @@ owns it), `RTT_TRACK` (the score track, re-found by guid and re-detected when go
       Steam name is "Zaandaa" in every earlier save; the four seated in this one are Davee_39,
       Starhard_Fishrinse, Requiem and simber1842, so he hosted from Grey or Black, the one condition
       the recorder had never been run under.
+      CONFIRMED LIVE the same night, on the old script: Zaandaa left the server, no error; rejoined
+      as spectator, error back; switched to Game Master (Black), still there. Fix not yet run in TTS.
 
 - [ ] **Numpad 0 says "That piece is locked ..." even for a piece it would never move.** Maintainer:
       "If the object would be unaffected, the error/advice shouldn't show." Gate the message on the
