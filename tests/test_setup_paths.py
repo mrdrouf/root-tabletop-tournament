@@ -29,11 +29,45 @@ def board_lua(raw):
     return [o for o in walk(d["ObjectStates"]) if o.get("GUID") == BOARD][0]["LuaScript"]
 
 
+# EVERY RUNTIME A CASE BUILDS, so the runner can ask each one afterwards whether the code under test
+# walked into a C# null (REC.nulls, see CSHARP_NULL in tts_stub.lua). A case does not have to assert
+# it: any null anywhere in a case fails that case, named. That is the whole point of modelling the
+# null -- the 2026-09-18 spectator error lived in a path a dozen cases already exercised, with the
+# stub answering politely where the game printed red.
+RUNTIMES = []
+
+# Registered at the lupa level, not in fresh(): thirty-odd cases build their own runtime by hand
+# (the holder script, the box score, the panels), and every one of them loads the same stub.
+_LuaRuntime = lupa.LuaRuntime
+
+
+def _tracked_runtime(*a, **k):
+    rt = _LuaRuntime(*a, **k)
+    RUNTIMES.append(rt)
+    return rt
+
+
+lupa.LuaRuntime = _tracked_runtime
+
+
+def nulls_seen():
+    out = []
+    for rt in RUNTIMES:
+        try:
+            nulls = rt.eval("REC and REC.nulls or nil")
+            if nulls is not None:
+                out.extend(str(v) for v in nulls.values())
+        except Exception:
+            pass
+    return out
+
+
 def fresh(src):
     rt = lupa.LuaRuntime(unpack_returned_tuples=True)
     rt.execute(open(os.path.join(HERE, "tts_stub.lua"), encoding="utf-8").read())
     rt.execute(src.replace("!=", "~="))            # TTS accepts != ; Lua 5.5 does not
     rt.execute("if onLoad then pcall(function() onLoad('') end) end FLUSH(6)")
+    RUNTIMES.append(rt)
     return rt
 
 
@@ -9363,6 +9397,7 @@ def fresh_observer(armed=True):
     # used to mean "whatever the source says" and would silently have stopped testing the off path the
     # day the default flipped. Both states are now asked for explicitly.
     rt.execute("OBS_ENABLED = " + ("true" if armed else "false"))
+    RUNTIMES.append(rt)
     return rt
 
 
@@ -14665,9 +14700,15 @@ def main():
 
     failed = []
     for name, fn in CASES:
+        RUNTIMES.clear()
         try:
             fn(src)
-            print("  %-13s %-38s OK" % (label, name))
+            nulls = nulls_seen()
+            if nulls:
+                failed.append(name)
+                print("  %-13s %-38s FAIL  C# null: %s" % (label, name, "; ".join(nulls[:3])))
+            else:
+                print("  %-13s %-38s OK" % (label, name))
         except AssertionError as e:
             failed.append(name)
             print("  %-13s %-38s FAIL  %s" % (label, name, e))

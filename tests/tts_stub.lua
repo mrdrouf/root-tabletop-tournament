@@ -23,6 +23,19 @@ function pcall(f, ...)
   if not r[1] and type(r[2]) == "table" and getmetatable(r[2]) == CSNULL then error(r[2], 0) end
   return table.unpack(r, 1, r.n)
 end
+-- A C# ENTRY POINT: an event handler or a spawn callback, which TTS calls from C#. A null inside one
+-- ends that call alone -- the red line is printed and the game goes on -- so here it is swallowed
+-- once it has been recorded, and the runner fails the case from REC.nulls. An ordinary Lua error is
+-- re-raised, so a broken handler still fails loudly exactly as it did before nulls were modelled.
+-- Timer callbacks (FLUSH) keep swallowing everything, as they always have.
+function CSENTRY(f, ...)
+  local r = table.pack(rawpcall(f, ...))
+  if not r[1] then
+    if type(r[2]) == "table" and getmetatable(r[2]) == CSNULL then return nil end
+    error(r[2], 0)
+  end
+  return table.unpack(r, 2, r.n)
+end
 
 Wait = {}
 local Q = {}
@@ -62,7 +75,7 @@ function FLUSH(rounds)
     FRAMENO = FRAMENO + 1
     local batch = Q; Q = {}
     table.sort(batch, function(a,b) return a.at < b.at end)
-    for _, e in ipairs(batch) do if not STOPPED[e.id] then pcall(e.f) end end
+    for _, e in ipairs(batch) do if not STOPPED[e.id] then rawpcall(e.f) end end
     if #Q == 0 then break end
   end
 end
@@ -85,7 +98,7 @@ function FLUSH_UNTIL(secs, rounds)
     if #due == 0 then Q = later break end
     Q = later
     table.sort(due, function(a,b) return a.at < b.at end)
-    for _, e in ipairs(due) do pcall(e.f) end
+    for _, e in ipairs(due) do rawpcall(e.f) end
   end
 end
 
@@ -122,6 +135,10 @@ function MKOBJ(name, pos, tags)
   local o = {__guid = g, __name = name or "", __tags = tags or {}, __pos = vec(pos), __dead = false,
              __rot = vec{0,0,0}, __scale = vec{1,1,1}, use_snap_points = false, held_by_color = nil}
   function o.getGUID() return o.__guid end
+  -- THE ONE QUESTION A DEAD HANDLE ANSWERS. isDestroyed() exists to be asked of an object that may be
+  -- gone, so it survives destruct() below where every other method becomes the null -- which is what
+  -- makes rttNameOf's "ask isDestroyed first" guard a real guard and not a wish.
+  function o.isDestroyed() return o.__dead == true end
   function o.getName() return o.__name end
   function o.setName(n) o.__name = n end
   -- COPIES, not the live tables. TTS returns a fresh Vector from each of these, and callers rely
@@ -178,11 +195,13 @@ function MKOBJ(name, pos, tags)
   -- his console. So a dead object's methods are replaced with throwers.
   --
   -- DEAD_STRICT can be turned off from a test that deliberately wants the old forgiving behaviour.
+  -- THE THROW IS THE C# NULL (CSHARP_NULL at the top): pcall does not catch it, and the case that
+  -- walks into one fails naming the touch. It used to be a plain Lua error, which every pcall in the
+  -- mod swallowed -- so the model said "a dead handle throws" and the suite could not see it throw.
   function o.destruct()
     if o.__dead then
       if DEAD_STRICT then
-        error("Object reference not set to an instance of an object. (destruct on a destroyed "
-              .. tostring(o.__name) .. ")", 2)
+        CSHARP_NULL("destruct on a destroyed " .. tostring(o.__name))
       end
       return
     end
@@ -190,10 +209,9 @@ function MKOBJ(name, pos, tags)
     note(REC.destroyed, o.__name.."|"..table.concat(o.__tags,","))
     if DEAD_STRICT then
       for k, v in pairs(o) do
-        if type(v) == "function" and string.sub(k, 1, 2) ~= "__" then
+        if type(v) == "function" and string.sub(k, 1, 2) ~= "__" and k ~= "isDestroyed" then
           o[k] = function()
-            error("Object reference not set to an instance of an object. (touched a destroyed "
-                  .. tostring(o.__name) .. "." .. tostring(k) .. ")", 2)
+            CSHARP_NULL("touched a destroyed " .. tostring(o.__name) .. "." .. tostring(k))
           end
         end
       end
@@ -214,8 +232,7 @@ function MKOBJ(name, pos, tags)
       end
       setmetatable(o, { __index = function(_, k)
         if type(k) == "string" and string.sub(k, 1, 2) == "__" then return nil end
-        error("Object reference not set to an instance of an object. (read "
-              .. tostring(k) .. " on a destroyed " .. tostring(o.__name) .. ")", 2)
+        CSHARP_NULL("read " .. tostring(k) .. " on a destroyed " .. tostring(o.__name))
       end })
     end
   end
@@ -314,7 +331,7 @@ function MKOBJ(name, pos, tags)
     p = p or {}
     if o.__contents == nil then
       local t = MKOBJ(p.guid or "taken", p.position, {})
-      if p.callback_function then p.callback_function(t) end
+      if p.callback_function then CSENTRY(p.callback_function, t) end
       return t
     end
     local idx = 1                                     -- no guid given: the TOP of the bag
@@ -328,7 +345,7 @@ function MKOBJ(name, pos, tags)
     local t = MKOBJ(e.nickname or e.guid, p.position, {})
     t.__guid = e.guid
     t.getGUID = function() return e.guid end
-    if p.callback_function then p.callback_function(t) end
+    if p.callback_function then CSENTRY(p.callback_function, t) end
     return t
   end
   function o.shuffle()
@@ -425,7 +442,24 @@ function MKOBJ(name, pos, tags)
   -- the Keepers' relics are called "Relic" and nothing but getCustomObject().image says which of the
   -- three kinds a tile is, so a stub that always answered {} could not express the case at all.
   o.__custom = {}
-  function o.getCustomObject() return o.__custom end
+  -- ...AND ONLY FOR AN OBJECT THAT HAS CUSTOM DATA. logic.lua (rttRelicKind): "getCustomObject() IS NOT
+  -- SAFE TO CALL ON ANYTHING. TTS answers a C# null for an object it has no custom data for" -- seen
+  -- live on warriors (Custom_Model), with tiles and tokens answering. So the TTS built-in types null
+  -- here, and so does a Custom_Model; a stub object named after a piece ("Cat Warrior") keeps
+  -- answering, because its name says nothing about its type.
+  local CUSTOMLESS = { Card = true, Deck = true, Bag = true, Infinite_Bag = true, BlockSquare = true,
+                       BlockRectangle = true, BlockTriangle = true, HandTrigger = true,
+                       ScriptingTrigger = true, FogOfWarTrigger = true, RandomizeTrigger = true,
+                       PlayerPawn = true, Domino = true, Quarter = true, ["3DText"] = true,
+                       Tablet = true, Notecard = true, Custom_Model = true }
+  function o.getCustomObject()
+    local nm = tostring(o.name or "")
+    if CUSTOMLESS[nm] or nm:match("^Figurine_") or nm:match("^Chip_") or nm:match("^Die_")
+       or nm:match("^Checker_") or nm:match("^Chess_") or nm:match("^go_game_piece") then
+      CSHARP_NULL("getCustomObject on a " .. nm .. " (" .. tostring(o.__name) .. ")")
+    end
+    return o.__custom
+  end
   function o.setCustomObject(t) o.__custom = t or {} end
   function o.getLuaScript() return "" end
   function o.setLuaScript() end function o.getGMNotes() return "" end
@@ -552,12 +586,12 @@ function spawnObjectJSON(p)
   if p and p.rotation then o.__rot = vec(p.rotation) end
   if p and p.scale then o.__scale = vec(p.scale) end
   note(REC.spawned, string.format("%s@%.1f,%.1f", n, o.__pos.x, o.__pos.z))
-  if p and p.callback_function then p.callback_function(o) end
+  if p and p.callback_function then CSENTRY(p.callback_function, o) end
   return o
 end
 function spawnObject(p)
   local o = MKOBJ((p or {}).type or "obj", (p or {}).position, {})
-  if p and p.callback_function then p.callback_function(o) end
+  if p and p.callback_function then CSENTRY(p.callback_function, o) end
   return o
 end
 
@@ -664,7 +698,7 @@ function MKDECK(specs)
     t.is_face_down = (rz > 90 and rz < 270)
     t.__rot = vec{ 0, (p.rotation and (p.rotation[2] or p.rotation.y)) or 0, rz }
     note(REC.spawned, "take:" .. (c.description ~= "" and c.description or c.nickname))
-    if p.callback_function then p.callback_function(t) end
+    if p.callback_function then CSENTRY(p.callback_function, t) end
     return t
   end
   return o
@@ -735,9 +769,17 @@ for i, c in ipairs(COLORS) do
     color = c, seated = false, steam_name = "P_" .. c, steam_id = nil,
     getHoverObject = function() return HOVER[c] end,
     getPointerPosition = function() return POINTER[c] or {x=0,y=1,z=0} end,
-    getHandTransform = function(n) return HANDS[c][n or 1] end,
+    -- A HAND THE COLOUR DOES NOT OWN IS A C# NULL here too, not nil and not a new zone: TTS cannot
+    -- read or move a zone that is not there, and setHandTransform does not create one. The board's own
+    -- crow-seat search already steps around Grey and Black before asking (logic.lua, rttCrowsHiddenZone).
+    getHandTransform = function(n)
+      n = n or 1
+      if HANDS[c][n] == nil then CSHARP_NULL("Player[" .. c .. "].getHandTransform(" .. tostring(n) .. ")") end
+      return HANDS[c][n]
+    end,
     setHandTransform = function(t, n)
       n = n or 1
+      if HANDS[c][n] == nil then CSHARP_NULL("Player[" .. c .. "].setHandTransform(" .. tostring(n) .. ")") end
       HANDS[c][n] = {position = vec(t.position), rotation = vec(t.rotation), scale = vec(t.scale or {1,1,1})}
       note(REC.hands, string.format("%s#%d -> %.2f,%.2f ry=%.1f", c, n, HANDS[c][n].position.x, HANDS[c][n].position.z, HANDS[c][n].rotation.y))
     end,
@@ -941,7 +983,7 @@ local function deliver(nextC, prevC)
   TURN_EVENTS[#TURN_EVENTS + 1] = string.format("%s<-%s", tostring(nextC), tostring(prevC))
   local np = (nextC ~= nil) and Player[nextC] or nil
   local pp = (prevC ~= nil) and Player[prevC] or nil
-  if onPlayerTurn then pcall(function() onPlayerTurn(np, pp) end) end
+  if onPlayerTurn then rawpcall(function() onPlayerTurn(np, pp) end) end
 end
 
 -- Hand the turn to a colour the way TTS does, event and all.
@@ -1113,7 +1155,7 @@ end
 local function fireObjectEvent(name, ...)
   local f = _G[name]
   if type(f) ~= "function" then return false end
-  f(...)
+  CSENTRY(f, ...)
   return true
 end
 function OBJ_DROP(color, o)     return fireObjectEvent("onObjectDrop", color, o) end

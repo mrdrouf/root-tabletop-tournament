@@ -321,6 +321,14 @@ owns it), `RTT_TRACK` (the score track, re-found by guid and re-detected when go
       Black own no hand zone, a hand index that is not there is recorded in REC.nulls and raised past
       every pcall), so the next guard of this kind is testable; the new case seats a spectator, drops
       a piece and changes turn. Against the old recorder it fails naming the call.
+      SECOND PASS, same evening ("make sure this never happens"): the stub now models EVERY C# null
+      the mod has met -- a dead handle (method or property), a hand a colour does not own, its
+      transform, getCustomObject on a plain object -- as the uncatchable throw it is, and the runner
+      fails ANY case that walks into one, under any number of pcalls, naming the call. All 237 cases
+      pass with that on, so no path the suite drives touches one. Evidence it was this bug: Zaandaa's
+      Steam name is "Zaandaa" in every earlier save; the four seated in this one are Davee_39,
+      Starhard_Fishrinse, Requiem and simber1842, so he hosted from Grey or Black, the one condition
+      the recorder had never been run under.
 
 - [ ] **Numpad 0 says "That piece is locked ..." even for a piece it would never move.** Maintainer:
       "If the object would be unaffected, the error/advice shouldn't show." Gate the message on the
