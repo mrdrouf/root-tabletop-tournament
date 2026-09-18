@@ -486,11 +486,19 @@ local function obsHands()
   pcall(function()
     for _, p in ipairs(Player.getPlayers()) do
       local col = nil
-      local nhands = 1
       -- `p` is USERDATA. Read the field you want inside a pcall; never type-check it.
+      -- ZERO HANDS IS ZERO HANDS. This clamped the count UP to one, and a spectator has none: the
+      -- host watching a game he is not playing sits in Grey (or Black) and owns no hand zone, so
+      -- asking him for hand 1 is `getHandObjects` on a hand that is not there -- the C# null that
+      -- pcall does not catch (logic.lua, RTT_HANDS_PER_SEAT). This runs inside every flush, 0.4 s
+      -- after every drop, so with one spectator at the table every touch of a piece ended the flush
+      -- in red: "[Global] Lua Error: Object reference not set to an instance of an object", all
+      -- game long, in Zaandaa's four-player game of 2026-09-18 hosted from a seat with no hand.
+      -- A count that cannot be read is treated as none: the null is the worse mistake, and the
+      -- next keyframe catches up on whatever a skipped hand held.
+      local nhands = 0
       pcall(function() col = p.color end)
-      pcall(function() nhands = p.getHandCount() or 1 end)
-      if nhands < 1 then nhands = 1 end
+      pcall(function() nhands = tonumber(p.getHandCount()) or 0 end)
       if nhands > 4 then nhands = 4 end
       for h = 1, nhands do
         local cards = nil
@@ -1347,7 +1355,11 @@ local function obsReveal()
       pcall(function() p = Player[c] end)
       if p ~= nil then
         local cards = nil
-        pcall(function() cards = p.getHandObjects(1) end)
+        -- Asked for only where a hand exists, for the reason obsHands gives: a seated colour with
+        -- no hand zone (a GM in Black) would answer with the C# null.
+        local n = 0
+        pcall(function() n = tonumber(p.getHandCount()) or 0 end)
+        if n >= 1 then pcall(function() cards = p.getHandObjects(1) end) end
         if cards ~= nil then
           local names = {}
           for k = 1, #cards do

@@ -1,6 +1,28 @@
 -- Minimal TTS surface, instrumented so the harness can observe what a setup path DID.
-REC = { destroyed = {}, spawned = {}, hands = {}, globals = {}, turns = {}, calls = {}, colors = {} }
+REC = { destroyed = {}, spawned = {}, hands = {}, globals = {}, turns = {}, calls = {}, colors = {},
+        nulls = {} }
 local function note(t, v) t[#t+1] = v end
+
+-- A C# NULL, MODELLED. TTS answers "Object reference not set to an instance of an object" for an API
+-- call on something that is not there -- a hand index the colour does not own is the one this mod
+-- has met most often -- and that is NOT a Lua error: pcall does not catch it, and it ends the whole
+-- call chain from the C# entry point down. The stub used to answer such a call politely, with an
+-- empty table, so every guard written against the null was untestable and the harness stayed green
+-- through two live outbreaks of it. Now the call is written to REC.nulls and raised as a sentinel
+-- that the stub's own pcall refuses to swallow, so a case dies exactly where the game would have and
+-- the record names the call that did it. `rawpcall` is the real one, for a test that wants to
+-- survive the death and read the record.
+local CSNULL = { __tostring = function(e) return "C# null: " .. tostring(e.what) end }
+rawpcall = pcall
+function CSHARP_NULL(what)
+  note(REC.nulls, what)
+  error(setmetatable({ what = what }, CSNULL), 0)
+end
+function pcall(f, ...)
+  local r = table.pack(rawpcall(f, ...))
+  if not r[1] and type(r[2]) == "table" and getmetatable(r[2]) == CSNULL then error(r[2], 0) end
+  return table.unpack(r, 1, r.n)
+end
 
 Wait = {}
 local Q = {}
@@ -704,6 +726,11 @@ for i, c in ipairs(COLORS) do
   local h = HAND1_HOME[c] or { -75, 12, -75 + i }
   HANDS[c] = { [1] = {position = vec(h), rotation = vec{0, (h[1] > 0) and 270 or 90, 0}, scale = vec{10,6,4}},
                [2] = {position = vec{-75, 5, -5 + i}, rotation = vec{0,0,0}, scale = vec{1,1,1}} }
+  -- NO HAND FOR A SPECTATOR OR THE GM. TTS gives Grey no hand zone at all, and this blueprint gives
+  -- Black none (twenty zones, two per seat colour, in the save). The stub handed both of them two,
+  -- so a recorder that asked a watching host for his hand read an empty table here and a C# null in
+  -- the game -- once per drop, all game, 2026-09-18.
+  if c == "Grey" or c == "Black" then HANDS[c] = {} end
   VIEW[c] = {
     color = c, seated = false, steam_name = "P_" .. c, steam_id = nil,
     getHoverObject = function() return HOVER[c] end,
@@ -725,7 +752,7 @@ for i, c in ipairs(COLORS) do
       note(REC.colors, c .. " -> " .. nc)
       e.color = nc
     end,
-    getHandCount = function() return 2 end,
+    getHandCount = function() return #HANDS[c] end,      -- the zones this colour owns: two for a seat, none for Grey
     -- WHAT IS ACTUALLY IN THE HAND. This returned {} for every colour, so every exclusion built on it
     -- was untestable -- the resync sweep has skipped hand objects since v1.154 and the harness could
     -- not tell that apart from not skipping them. A test fills HANDS[colour] with objects.
@@ -736,6 +763,8 @@ for i, c in ipairs(COLORS) do
       -- means hand 1 so every existing fixture is unchanged; HANDCARDS[c .. "#2"] is the second.
       getHandObjects = function(i)
         i = i or 1
+        -- A HAND THAT IS NOT THERE IS A C# NULL, not an empty table -- see CSHARP_NULL at the top.
+        if HANDS[c][i] == nil then CSHARP_NULL("Player[" .. c .. "].getHandObjects(" .. tostring(i) .. ")") end
         if i == 1 then return HANDCARDS[c] or {} end
         return HANDCARDS[c .. "#" .. tostring(i)] or {}
       end,

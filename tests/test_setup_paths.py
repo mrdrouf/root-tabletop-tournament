@@ -9605,6 +9605,45 @@ def t_the_payload_never_carries_a_hand(src):
         "a switch to stop recording is back; it will never be an option"
 
 
+def t_a_spectator_at_the_table_does_not_kill_the_flush(src):
+    """A host watching from Grey must not turn every drop into a red error.
+
+    Zaandaa's four-player game of 2026-09-18, hosted from a seat with no hand: "[Global] Lua Error:
+    Object reference not set to an instance of an object", once per touch of a piece, all game long.
+    obsHands runs inside every flush, 0.4 s after every drop, and it clamped a hand count of ZERO up
+    to one -- so the spectator was asked for hand 1, which he does not own, and that is the C# null
+    pcall cannot catch (logic.lua, RTT_HANDS_PER_SEAT). The flush died there every time: the drop was
+    never written and the error was printed in red for everyone at the table.
+
+    The stub models the null now (CSHARP_NULL in tts_stub.lua): the call is recorded and raised past
+    every pcall, so this case dies exactly where the game did and REC.nulls names the call.
+    """
+    rt = fresh_observer()
+    rt.execute("SEAT('Red', 'Davee') SEAT('Grey', 'Zaandaa')")
+    _a_game_is_on(rt)
+    rt.execute("""
+      HANDCARDS['Red'] = { MKOBJ('Ambush!', {40, 1, 40}, {}) }
+      PIECE = MKOBJ('Knaves Warrior', {6, 1, 6}, {})
+      OBJ_DROP('Red', PIECE)
+      OK, ERR = rawpcall(function() FLUSH(2) end)
+    """)
+    nulls = [str(v) for v in rt.eval("REC.nulls").values()]
+    assert not nulls, "the flush walked into a C# null: %s" % ", ".join(nulls)
+    assert rt.eval("OK") is True, "the flush died: %s" % rt.eval("tostring(ERR)")
+    piece = rt.eval("PIECE.getGUID()")
+    assert piece in rt.eval("table.concat(OBS.ev, '|')"), "the drop was never written"
+    assert rt.eval("#OBS.pend") == 0 and rt.eval("TIMERS()") == 0, "the flush did not finish"
+    # ...and a keyframe, which walks the same hands on every turn change, survives him too
+    rt.execute("""
+      Turns.enable = true Turns.order = {'Red'} TURN_SET('Red')
+      OK2, ERR2 = rawpcall(function() FLUSH(10) end)
+    """)
+    nulls = [str(v) for v in rt.eval("REC.nulls").values()]
+    assert not nulls and rt.eval("OK2") is True, \
+        "the keyframe walked into a C# null: %s %s" % (", ".join(nulls), rt.eval("tostring(ERR2)"))
+    assert rt.eval("#OBS.snap") >= 1, "no keyframe was written after the turn change"
+
+
 def t_a_second_game_is_not_appended_to_the_first(src):
     """Two games in one session must never end up in one document under one game_id.
 
@@ -14574,6 +14613,7 @@ CASES = [
     # the recorder in the save's Global script -- see the honesty note above these
     ("an idle table arms no timer",     t_an_idle_table_arms_no_timer),
     ("a drop arms one timer, once",     t_a_drop_arms_one_timer_and_a_second_drop_adds_none),
+    ("a spectator does not kill the flush", t_a_spectator_at_the_table_does_not_kill_the_flush),
     ("the flush drains and dies",       t_the_flush_writes_its_queue_and_lets_the_timer_die),
     ("EXPORT sends without a sheet",    t_export_without_a_box_score_still_sends_a_document),
     ("everything is recorded",         t_the_payload_never_carries_a_hand),

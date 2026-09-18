@@ -306,6 +306,33 @@ owns it), `RTT_TRACK` (the score track, re-found by guid and re-detected when go
       5-1/5-2, 1-1/1-2, 1-3/2-3, 3-3/4-3 (his "3-4" read as 4-3). Column 1 is the player's left, row 1
       the top of the stash; if he counts the other way, flip RTT_STASH_COL or RTT_STASH_ROW.
 
+## Zaandaa's four-player game, 2026-09-18 evening (drop/TS_AutoSave.json; built, not yet confirmed in TTS)
+
+- [x] **"[Global] Lua Error: Object reference not set to an instance of an object", once per touch of
+      a piece, all game.** The Global script is the game recorder. Its hand read (`obsHands`) runs
+      inside every flush, 0.4 s after every drop, and inside every keyframe; it clamped a hand count
+      of ZERO up to one, so a player with no hand zone -- the HOST WATCHING FROM GREY, which is how
+      Zaandaa ran this game (four seated, he was not one of them) -- was asked for hand 1, and that is
+      `getHandObjects` on a hand that does not exist: the C# null pcall cannot catch, the same one
+      RTT_HANDS_PER_SEAT in logic.lua documents. The flush died every time; the error is the same one
+      the NOTES entry "spectator joined then I had error ..." describes, from the same cause.
+      FIX: a count of zero (or one that cannot be read) is zero hands, and the export's reveal asks
+      the count too. The harness stub now MODELS the C# null (`CSHARP_NULL` in tts_stub.lua: Grey and
+      Black own no hand zone, a hand index that is not there is recorded in REC.nulls and raised past
+      every pcall), so the next guard of this kind is testable; the new case seats a spectator, drops
+      a piece and changes turn. Against the old recorder it fails naming the call.
+
+- [ ] **Numpad 0 says "That piece is locked ..." even for a piece it would never move.** Maintainer:
+      "If the object would be unaffected, the error/advice shouldn't show." Gate the message on the
+      piece having a home to go to.
+- [ ] **Box score: auto-detect the three captains picked when the Knaves are in.** Maintainer: "add
+      the autodetec of the 3 captains picked in boxscore with knaves faction."
+- [ ] **A dominance card spent into the Lost Souls stays there until discarded** (the rules), and
+      **frog cards in the discard or the Lost Souls go back to the pond**, the reverse of what is done
+      for normal cards. From the NOTES entry; not started.
+- [ ] **Numpad 0 worked once on a badger, then not on other badgers, which ended up locked.** From
+      the NOTES entry; not investigated.
+
 ## NOTES DO NOT TOUCH
 
 there are also some Homeland assets we don't have yet like the Gladiator meeple and the assembly and acclaim tokens (both sides each) are outdated
@@ -328,3 +355,10 @@ wait according to the rules a dominance card spent in the lost souls stays in th
 
 also investigate: a player used 0 once successfully then it didn't work on other badgers
 other badgers ended up locked when using it
+
+
+Minor thing: this shows up even for things that should not return anywhere with numpad 0. If the object would be unaffected, the error/advice shouldn't show. 
+
+error: That piece is locked, so numpad 0 leaves it alone. Unlock it (L) and try again. 
+
+Aslo add the autodetec of the 3 captains picked in boxscore with knaves faction.
