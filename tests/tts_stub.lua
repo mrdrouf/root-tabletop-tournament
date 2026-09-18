@@ -227,7 +227,7 @@ function MKOBJ(name, pos, tags)
       -- for anything missing, so a `__`-prefixed field a test uses to inspect the corpse still works.
       for _, k in ipairs({ "held_by_color", "resting", "spawning", "is_face_down", "tag", "name",
                            "type", "use_snap_points", "interactable", "loading_custom",
-                           "drag_selectable", "locked" }) do
+                           "drag_selectable", "locked", "UI" }) do
         o[k] = nil
       end
       setmetatable(o, { __index = function(_, k)

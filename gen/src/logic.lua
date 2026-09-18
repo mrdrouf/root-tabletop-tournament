@@ -3506,7 +3506,16 @@ function manualFactionPick(params)
 end
 
 function makeFaction(player,value,id,source)
-  if player.color == "Grey" then return end
+  -- NOBODY WITHOUT A HAND PICKS A FACTION: not a spectator, not the Game Master. A faction's setup
+  -- writes the picker's hand (the Alliance's supporters, the bats' second hand), and a colour with no
+  -- hand zone answers every hand call with the C# null. Only Grey was refused here; Black got through.
+  if not rttHasHand(player.color) then
+    pcall(function()
+      broadcastToColor("Spectators and the Game Master have no hand, so they cannot pick a faction.",
+                       player.color, { r = 1, g = 0.75, b = 0.3 })
+    end)
+    return
+  end
   local board = source or self
   -- Double-click guard: this board is destroyed on pick, but two fast clicks can both enter before it
   -- goes -> the faction spawns twice. Lock the board GUID once (audit: selector double-spawn).
@@ -3821,6 +3830,30 @@ function rttHandHasCards(color)
   local n = 0
   pcall(function() n = #(Player[color].getHandObjects(1) or {}) end)
   return n > 0
+end
+
+-- DOES THIS COLOUR OWN A HAND AT ALL? Grey (spectators) never does, Black (the Game Master) does not
+-- on this table, and a colour with no hand zone is the one thing every hand call nulls on --
+-- getHandObjects, getHandTransform, setHandTransform, deal: "Object reference not set to an instance
+-- of an object", which pcall does not catch. Zaandaa, 2026-09-18, on the recorder: the same red line
+-- once per drop with him watching from Grey, and again as Game Master. So the count is asked of the
+-- game, and anything that would read or write a hand asks this first. nil, a colour that cannot be
+-- asked, and a count of zero all answer false.
+function rttHasHand(color)
+  if type(color) ~= "string" or color == "" then return false end
+  local n = 0
+  pcall(function() n = tonumber(Player[color].getHandCount()) or 0 end)
+  return n >= 1
+end
+
+-- A HANDLE THAT MAY BE A CORPSE. isDestroyed() is the one question a destroyed object still answers;
+-- everything else on it is the C# null. Ask this of any handle held across a frame before touching it.
+function rttLive(o)
+  if o == nil then return nil end
+  local dead = false
+  pcall(function() dead = (o.isDestroyed() == true) end)
+  if dead then return nil end
+  return o
 end
 
 -- ...EXCEPT BY RESYNC, WHICH LIFTS THE CARDS OUT FIRST AND DEALS THEM BACK. Maintainer, 2026-09-18:
@@ -4790,6 +4823,13 @@ local function rttAttachBoard(seat, obj)
   if seat == nil or obj == nil then return nil end
   seat.board = obj
   return obj
+end
+
+-- ...AND THE ONE PLACE IT IS TAKEN AWAY: when the board is drafted into a faction, and when the
+-- handle turns out to be a corpse (a selector closed with its own X button).
+local function rttDetachBoard(seat)
+  if seat == nil then return end
+  seat.board = nil
 end
 
 function rttSeatOfBoard(guid)
@@ -5830,6 +5870,14 @@ function rttVPClick(args)
     return
   end
 
+  -- A DRAW NEEDS A HAND TO LAND IN. A Game Master or a spectator can reach a panel (they own no row,
+  -- so the ownership test above says nothing about them), and dealing to a colour with no hand zone
+  -- is the C# null.
+  if (id == "vpDraw" or id == "vpPond") and not rttHasHand(who) then
+    say("You have no hand at this seat to draw into.")
+    return
+  end
+
   if id == "vpPlus" or id == "vpMinus" then
     local sheet = (getObjectsWithTag("RTT BoxScore") or {})[1]
     if sheet == nil then say("There is no box score on the table to move a marker on.") return end
@@ -6553,7 +6601,11 @@ end
 function rttShowFactions()
   RTT_BUSY = false                                -- setup finished: buttons live again
   for _, seat in ipairs(RTT_SEATS or {}) do
-    local clone = seat.board
+    -- A SELECTOR CLOSED WITH ITS OWN X BUTTON leaves the seat holding a dead handle -- the board's
+    -- script destroys it and nothing tells this one -- and its UI is the C# null. Asked first, and a
+    -- corpse is forgotten so the seat reads as "no board" everywhere else too.
+    local clone = rttLive(seat.board)
+    if clone == nil then rttDetachBoard(seat) end
     if clone ~= nil then
       -- NO rttPickMapDeck HERE. That group was deleted from the selector's blueprint on 2026-09-07
       -- ("The map/deck pick was unreachable code; it is gone"), along with three of the four lines
@@ -6583,7 +6635,7 @@ end
 -- it is — all boards are live at once). First click on a faction takes it; the board is removed and
 -- the faction spawns at that seat; the other boards refresh so the taken faction disappears.
 function rttCoordFaction(args)
-  if args.color == "Grey" or args.color == "Black" then return end   -- spectators can't pick (match makeFaction)
+  if not rttHasHand(args.color) then return end       -- no hand, no pick (match makeFaction)
   local seat = rttSeatOfBoard(args.board or "")
   if seat == nil then return end
   local s = RTT_SEATS[seat]
@@ -6612,7 +6664,7 @@ function rttCoordFaction(args)
   RTT_FAC_TAKEN[faction] = true                        -- lock immediately (guards double-clicks)
   local clone = s.board
   local bp = clone.getPosition()
-  s.board = nil
+  rttDetachBoard(s)
   clone.destruct()                                     -- board gone first, then the faction spawns there
   -- s.hand is this seat's RTT_SEAT_HAND entry -- exactly what rttSeatPlayers put on hand 1.
   local seatHand = s.hand and { position = s.hand.pos, rotation = s.hand.rot } or nil
@@ -11004,6 +11056,8 @@ function rttMySupplyBag(color)
   -- No seat record for this colour: a table this board did not set up, or a colour nobody drafted in.
   -- Fall back to the supply nearest your own hand -- but only if it is genuinely YOURS. The seats are
   -- 92 apart and a supply sits ~18 from its own hand, so anything past 50 belongs to somebody else.
+  -- asked before the transform is read: a colour with no hand zone nulls on getHandTransform
+  if not rttHasHand(color) then return nil, "you are not seated at a hand." end
   local hp = nil
   pcall(function() hp = Player[color].getHandTransform(1).position end)
   if hp == nil then return nil, "you are not seated at a hand." end
@@ -11503,6 +11557,10 @@ function rttGizmoMark(color)
   -- The bounds only report the new shape once TTS has applied the rotation, so the drop and the lock
   -- wait a frame. Locking before that is what pinned it mid-air.
   Wait.frames(function()
+    -- RE-FOUND BY GUID, not the handle captured two frames ago: another player can delete, bag or
+    -- merge the piece in that window, and a dead handle is the C# null.
+    local hovered = getObjectFromGUID(guid)
+    if hovered == nil then RTT_MARKING[guid] = nil return end
     local rest = nil
     pcall(function()
       local np = hovered.getPosition()

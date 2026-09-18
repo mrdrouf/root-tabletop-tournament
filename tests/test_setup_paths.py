@@ -6599,7 +6599,7 @@ def t_a_seat_fact_has_one_writer(src):
         # normal one, decided together at the pick
         "key":     (2, "rttPlaceFaction"),
         "vagN":    (2, "rttPlaceFaction"),
-        # one setter, plus the clear when a board is drafted away
+        # one setter (rttAttachBoard) and one clearer (rttDetachBoard: drafted away, or found dead)
         "board":   (2, "rttAttachBoard"),
     }
     for field, (limit, owner_fn) in LIMITS.items():
@@ -9677,6 +9677,100 @@ def t_a_spectator_at_the_table_does_not_kill_the_flush(src):
     assert not nulls and rt.eval("OK2") is True, \
         "the keyframe walked into a C# null: %s %s" % (", ".join(nulls), rt.eval("tostring(ERR2)"))
     assert rt.eval("#OBS.snap") >= 1, "no keyframe was written after the turn change"
+
+
+def t_nobody_without_a_hand_picks_a_faction(src):
+    """A spectator or the Game Master is refused a faction, in words, and never walked into a null.
+
+    Codex audit, 2026-09-18, after the spectator error: makeFaction refused Grey and let Black through,
+    and a faction's setup then writes the picker's hand -- the Alliance's supporters into hand 2, the
+    bats' second hand -- which a colour with no hand zone answers with the C# null. The stub nulls on
+    Black's and Grey's hands now, so the refusal is the only way through this case.
+    """
+    rt = fresh(src)
+    rt.execute("""
+      RTT_SEATS = { { board = nil, pos = { 52, -46 } }, { board = nil, pos = { -52, -46 } } }
+      B1 = MKOBJ("", { 52, 11.56, -46 }, { RTT_SELECTOR_TAG })
+      RTT_DRAFT_FACTIONS = { "Woodland Alliance", "Eyrie Dynasties" }
+      RTT_FAC_TAKEN = {}
+    """)
+    for colour in ("Black", "Grey"):
+        rt.execute("pcall(function() rttCoordFaction({ color = '%s', id = 'rttFac1', board = B1.getGUID() }) end)"
+                   " FLUSH(120)" % colour)
+        assert rt.eval("RTT_FAC_TAKEN['Woodland Alliance']") is not True, "%s picked the Alliance" % colour
+        assert rt.eval("B1.isDestroyed()") is False, "a %s pick consumed the selector" % colour
+    rt.execute("SAID = {} pcall(function() makeFaction({ color = 'Black' }, '', 'Woodland Alliance', B1) end)"
+               " FLUSH(120)")
+    assert rt.eval("RTT_FAC_TAKEN['Woodland Alliance']") is not True, \
+        "the Game Master picked the Alliance through makeFaction"
+    said = list((rt.eval("SAID") or {}).values())
+    assert any("cannot pick" in m for m in said), "no word to the Game Master about why: %r" % said
+    # ...and a seated colour still can
+    rt.execute("pcall(function() rttCoordFaction({ color = 'Red', id = 'rttFac1', board = B1.getGUID() }) end)"
+               " FLUSH(120)")
+    assert rt.eval("RTT_FAC_TAKEN['Woodland Alliance']") is True, "a seated player could not pick"
+
+
+def t_a_draw_needs_a_hand(src):
+    """DRAW and DRAW POND from a panel deal nothing for a colour with no hand, and say so.
+
+    The panel's ownership test answers nothing for a Game Master or a spectator (they own no row), so
+    both reached the deal; a deal to a colour with no hand zone is the C# null.
+    """
+    rt = fresh(src)
+    rt.execute("""
+      HOLDER = REGUID(MKOBJ('Custom_Token', { 63.9, 1, 24.0 }, { 'Deck Object' }), 'aa1464')
+      HOLDER.getVar = function(k) return (k == 'RTT_REFILL_API') and true or nil end
+      HOLDER.call = function(fn) end
+      DRAWPOS = HOLDER.positionToWorld(Vector({ 0.957, 0.178, 0.222 }))
+      PILE = MKOBJ('Deck', DRAWPOS, { 'Deck Object' })
+      PILE.getQuantity = function() return 6 end
+      DEALT = {}
+      PILE.deal = function(n, c) DEALT[#DEALT + 1] = tostring(c) end
+      SEAT('Red', 'Alice') SEAT('Black', 'GM') SEAT('Grey', 'Watcher')
+      printToColor = function(m, c) SAID[#SAID + 1] = tostring(c) .. ':' .. tostring(m) end
+    """)
+    for colour in ("Black", "Grey"):
+        rt.execute("SAID = {} DEALT = {} pcall(function() rttVPClick({ color = '%s', id = 'vpDraw', row = 'Cats' }) end)"
+                   " FLUSH_UNTIL(3, 40)" % colour)
+        assert list((rt.eval("DEALT") or {}).values()) == [], "%s was dealt a card into no hand" % colour
+        said = list((rt.eval("SAID") or {}).values())
+        assert any("no hand" in m for m in said), "%s was not told why: %r" % (colour, said)
+        rt.execute("SAID = {} pcall(function() rttVPClick({ color = '%s', id = 'vpPond', row = 'Frogs' }) end)" % colour)
+        said = list((rt.eval("SAID") or {}).values())
+        assert any("no hand" in m for m in said), "%s: the pond draw did not say so: %r" % (colour, said)
+    rt.execute("SAID = {} DEALT = {} pcall(function() rttVPClick({ color = 'Red', id = 'vpDraw', row = 'Cats' }) end)"
+               " FLUSH_UNTIL(3, 40)")
+    assert list((rt.eval("DEALT") or {}).values()) == ["Red"], \
+        "a seated player's draw was lost: %r" % list((rt.eval("DEALT") or {}).values())
+
+
+def t_numpad_1_for_a_spectator_says_so(src):
+    """Numpad 1 pressed by a spectator or the Game Master answers in words and touches no hand."""
+    rt = fresh(src)
+    rt.execute("POINTER['Grey'] = { x = 80, y = 1, z = 80 } POINTER['Black'] = { x = 80, y = 1, z = 80 }")
+    for colour in ("Grey", "Black"):
+        rt.execute("SAID = {} onScriptingButtonDown(1, '%s') FLUSH(6)" % colour)
+        said = list((rt.eval("SAID") or {}).values())
+        assert said, "%s pressed numpad 1 and was told nothing" % colour
+
+
+def t_a_selector_closed_by_hand_is_forgotten(src):
+    """A selector closed with its own X button must not be driven by the next menu refresh.
+
+    The seat keeps the handle; the board's own script destroyed it. rttShowFactions drove its UI
+    through that handle -- the C# null -- every time another faction was taken.
+    """
+    rt = fresh(src)
+    rt.execute("""
+      B1 = MKOBJ("", { 52, 11.56, -46 }, { RTT_SELECTOR_TAG })
+      RTT_SEATS = { { board = B1, pos = { 52, -46 } } }
+      RTT_DRAFT_FACTIONS = { "Marquise de Cat" }
+      RTT_FAC_TAKEN = {}
+      B1.destruct()
+      pcall(rttShowFactions)
+    """)
+    assert rt.eval("RTT_SEATS[1].board") is None, "the dead selector is still the seat's board"
 
 
 def t_a_second_game_is_not_appended_to_the_first(src):
@@ -14649,6 +14743,10 @@ CASES = [
     ("an idle table arms no timer",     t_an_idle_table_arms_no_timer),
     ("a drop arms one timer, once",     t_a_drop_arms_one_timer_and_a_second_drop_adds_none),
     ("a spectator does not kill the flush", t_a_spectator_at_the_table_does_not_kill_the_flush),
+    ("nobody without a hand picks a faction", t_nobody_without_a_hand_picks_a_faction),
+    ("a draw needs a hand",             t_a_draw_needs_a_hand),
+    ("numpad 1 for a spectator says so", t_numpad_1_for_a_spectator_says_so),
+    ("a closed selector is forgotten",  t_a_selector_closed_by_hand_is_forgotten),
     ("the flush drains and dies",       t_the_flush_writes_its_queue_and_lets_the_timer_die),
     ("EXPORT sends without a sheet",    t_export_without_a_box_score_still_sends_a_document),
     ("everything is recorded",         t_the_payload_never_carries_a_hand),

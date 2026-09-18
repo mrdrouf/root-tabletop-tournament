@@ -331,6 +331,14 @@ owns it), `RTT_TRACK` (the score track, re-found by guid and re-detected when go
       the recorder had never been run under.
       CONFIRMED LIVE the same night, on the old script: Zaandaa left the server, no error; rejoined
       as spectator, error back; switched to Game Master (Black), still there. Fix not yet run in TTS.
+      THIRD PASS, v1.453 ("make sure this never happens"): an independent Codex read of every API
+      call that can null is in **[`NULL_AUDIT.md`](NULL_AUDIT.md)**. The concrete family -- the
+      same handless player pressing DRAW or DRAW POND, picking a faction as Game Master (only Grey
+      was refused), numpad 1 from Grey or Black -- is closed by one `rttHasHand(color)` check, in
+      words to the player. A selector closed with its own X button no longer leaves a dead handle
+      for the menu refresh (`rttLive`, `rttDetachBoard`), and numpad 3 re-finds its piece by GUID
+      after its two-frame wait. Four new cases. The rest of the audit (a piece deleted by another
+      player inside a sub-second wait) is recorded, not fixed.
 
 - [ ] **Numpad 0 says "That piece is locked ..." even for a piece it would never move.** Maintainer:
       "If the object would be unaffected, the error/advice shouldn't show." Gate the message on the
