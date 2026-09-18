@@ -14,11 +14,11 @@ two-frame wait" is real but rare.
 ## What was done with it
 
 - The **handless-player family** (items 1-6: DRAW, DRAW POND, a Game Master picking a faction, numpad 1
-  from Grey or Black) is fixed in v1.453: `rttHasHand(color)` asks the game for the colour's hand
+  from Grey or Black) is fixed in v1.454: `rttHasHand(color)` asks the game for the colour's hand
   count, and faction picks, panel draws and the supply-bag search refuse a colour without one.
-- The **selector closed with its own X button** (items 21-24) is fixed in v1.453: `rttLive(o)` asks
+- The **selector closed with its own X button** (items 21-24) is fixed in v1.454: `rttLive(o)` asks
   `isDestroyed()` before the menu refresh drives a board, and a corpse is detached from its seat.
-- The **numpad 3 handle** (items 10-16) is re-found by GUID after the two-frame wait, v1.453.
+- The **numpad 3 handle** (items 10-16) is re-found by GUID after the two-frame wait, v1.454.
 - The **harness models the null** since v1.452: Grey and Black own no hand zone, a dead handle
   (method, property, UI) throws, and so does a hand transform of a hand that is not there and
   getCustomObject on a plain object. The throw passes through every pcall and the runner fails any

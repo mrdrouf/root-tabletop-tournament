@@ -331,7 +331,7 @@ owns it), `RTT_TRACK` (the score track, re-found by guid and re-detected when go
       the recorder had never been run under.
       CONFIRMED LIVE the same night, on the old script: Zaandaa left the server, no error; rejoined
       as spectator, error back; switched to Game Master (Black), still there. Fix not yet run in TTS.
-      THIRD PASS, v1.453 ("make sure this never happens"): an independent Codex read of every API
+      THIRD PASS, v1.454 ("make sure this never happens"): an independent Codex read of every API
       call that can null is in **[`NULL_AUDIT.md`](NULL_AUDIT.md)**. The concrete family -- the
       same handless player pressing DRAW or DRAW POND, picking a faction as Game Master (only Grey
       was refused), numpad 1 from Grey or Black -- is closed by one `rttHasHand(color)` check, in
