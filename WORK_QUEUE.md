@@ -340,6 +340,14 @@ owns it), `RTT_TRACK` (the score track, re-found by guid and re-detected when go
       after its two-frame wait. Four new cases. The rest of the audit (a piece deleted by another
       player inside a sub-second wait) is recorded, not fixed.
 
+- [ ] **A crash after the end of the game (drop/TS_AutoSave_3.json, game 6aada60c54753b8f).** What the
+      data shows, all on the OLD script (v1.449/1.450): Duchy reached 30 at 01:38:58, the box score
+      logged gameover and archive-win, the recorder's document (115 KB, 1314 events, 24 keyframes,
+      reveal 4 hands) reached the server at 01:38:59 and was accepted, and the autosave at 01:39:08
+      shows a normal table: 259 objects, turns still on, nothing odd in any script's state. Host was
+      simber1842. NOTHING in the save or the archive is later than 01:39:08, so the crash itself is
+      not in the evidence. Needed: whose TTS crashed (host or a client), frozen or closed, what was
+      done after the win (Clear All, a new setup, EXPORT), any error text.
 - [ ] **Numpad 0 says "That piece is locked ..." even for a piece it would never move.** Maintainer:
       "If the object would be unaffected, the error/advice shouldn't show." Gate the message on the
       piece having a home to go to.
