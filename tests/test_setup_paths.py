@@ -8681,6 +8681,52 @@ def _holder_script(src):
     raise AssertionError("the Refill Card blueprint is not in the build")
 
 
+def t_the_pond_sweep_leaves_a_card_in_flight_alone(src):
+    """A card passing the pond in the air is not "at the pond"; a card lying on it is.
+
+    Simber, 2026-09-19, hosting the four-player game: "Twice, when frogs hit the button to draw a card,
+    the card drew into the discard ... the card was face down to other players and face up to frogs
+    even while hovering over the discard." The archive shows both: a card leaves the draw deck and 0.4 s
+    later sits on the discard slot, turned the way the holder turns things, and the frog player pulls
+    it back out by hand. The holder's once-a-second pond sweep sends any non-frog card it finds at the
+    pond to the discard, and only the frogs' hand lies past the pond, so only their deals crossed it.
+    The discard sweep already skips a card that is moving, held or not at rest; the pond sweep did not.
+    """
+    script = _holder_script(src)
+
+    def sweep(resting):
+        rt = lupa.LuaRuntime(unpack_returned_tuples=True)
+        rt.execute(open(os.path.join(HERE, "tts_stub.lua"), encoding="utf-8").read())
+        rt.execute("""
+          MOVED = {}
+          self.positionToWorld = function(p) return { x = p[1]*3.38, y = p[2], z = p[3]*3.38 } end
+          POND = REGUID(MKOBJ('The Pond', { 0.3, 1, 10.7 }, { 'RTT Pond' }), '347917')
+          POND.positionToWorld = function(p) return { x = 0.3 + p[1], y = p[2], z = 10.7 + p[3] } end
+          CARD = MKOBJ('Root Tea', { 0.3, 2.5, 10.6 }, {})
+          CARD.name = 'Card' CARD.tag = 'Card'
+          CARD.getDescription = function() return '' end
+          CARD.resting = %s
+          CARD.setPositionSmooth = function(p) MOVED[#MOVED+1] = { x = p.x or p[1], z = p.z or p[3] } end
+          CARD.setRotationSmooth = function() end
+          Physics = { cast = function(q)
+            local o = q.origin
+            if math.abs(o.x - 0.3) < 1 and math.abs(o.z - 10.61) < 1 then return { { hit_object = CARD } } end
+            return {}
+          end }
+        """ % ("true" if resting else "false"))
+        rt.execute(script)
+        rt.execute("pcall(function() onLoad('') end) pcall(updateButtons)")
+        n = rt.eval("function() return #MOVED end")()
+        return [(rt.eval("function() return MOVED[%d].x end" % (i + 1))(),
+                 rt.eval("function() return MOVED[%d].z end" % (i + 1))()) for i in range(n)]
+
+    assert sweep(resting=False) == [], \
+        "a card still in the air over the pond was sent away: %r" % sweep(resting=False)
+    moves = sweep(resting=True)
+    assert moves and abs(moves[-1][0] + 0.957 * 3.38) < 0.01, \
+        "a non-frog card lying on the pond no longer goes to the discard: %r" % moves
+
+
 def t_a_dominance_card_spent_into_the_lost_souls_stays_there(src):
     """A dominance card let go on the Lost Souls is a spent card and stays; on the discard it goes home.
 
@@ -14747,6 +14793,7 @@ CASES = [
     ("a draw needs a hand",             t_a_draw_needs_a_hand),
     ("numpad 1 for a spectator says so", t_numpad_1_for_a_spectator_says_so),
     ("a closed selector is forgotten",  t_a_selector_closed_by_hand_is_forgotten),
+    ("the pond sweep leaves a card in flight alone", t_the_pond_sweep_leaves_a_card_in_flight_alone),
     ("the flush drains and dies",       t_the_flush_writes_its_queue_and_lets_the_timer_die),
     ("EXPORT sends without a sheet",    t_export_without_a_box_score_still_sends_a_document),
     ("everything is recorded",         t_the_payload_never_carries_a_hand),

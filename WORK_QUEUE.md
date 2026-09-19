@@ -348,6 +348,29 @@ owns it), `RTT_TRACK` (the score track, re-found by guid and re-detected when go
       simber1842. NOTHING in the save or the archive is later than 01:39:08, so the crash itself is
       not in the evidence. Needed: whose TTS crashed (host or a client), frozen or closed, what was
       done after the win (Clear All, a new setup, EXPORT), any error text.
+      SIMBER (the host, Linux build), 2026-09-19 02:00: "about a min or so after the game ended,
+      everyone disappeared from the tts lobby and then 15 sec later I was kicked. I believe the error
+      said the lobby timed out and I confirmed with the other players that they had also been kicked."
+      Nothing in the mod runs a minute after a win: the recorder sent once, one second after it (and
+      the server has the document), the box score's second win-send only fires on a dominance change,
+      and neither script has a wait longer than a few seconds. A host losing every client and then
+      being kicked for a lobby timeout is the host's own connection to Steam dropping. Video to come.
+
+- [x] **The frogs' DRAW dealt a card that ended on the discard, face up to the frogs only.** Simber:
+      "Twice, when frogs hit the button to draw a card, the card drew into the discard ... the card
+      was face down to other players and face up to frogs even while hovering over the discard."
+      The archive shows both (00:10:35 Root Tea, 01:30:55 Mouse-in-a-Sack): the card leaves the draw
+      deck and 0.4 s later sits on the discard slot turned the holder's way, and Orange pulls it back
+      out by hand seconds later. CAUSE: the deck holder's once-a-second sweep sends any non-frog card
+      it finds at the pond to the discard, and only the frogs' hand lies past the pond, so only their
+      deals ever crossed it in the air. The discard sweep already skipped a card that is moving, held
+      or not at rest; the pond sweep did not. Fixed in the holder blueprint (content.lua, v1.457): the
+      pond sweep takes the same settled test. Harness case fails against the old holder. Not yet
+      confirmed in TTS.
+- [ ] **"All the clearing markers seemed to be unlocked."** Simber, same game. In the autosave taken
+      ten seconds after the win all twelve priority markers are LOCKED, and the map too. Resync's
+      lock mode unlocks each object for one frame and locks it again, so nothing stays unlocked by
+      design. Unknown when he saw it; the video may show. Not started.
 - [ ] **Numpad 0 says "That piece is locked ..." even for a piece it would never move.** Maintainer:
       "If the object would be unaffected, the error/advice shouldn't show." Gate the message on the
       piece having a home to go to.
