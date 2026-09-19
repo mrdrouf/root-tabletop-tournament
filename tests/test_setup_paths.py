@@ -8769,6 +8769,47 @@ def t_the_captains_told_to_the_sheet_follow_the_slot_cards(src):
     assert (rt.eval("GVGET('RTT_CAPTAINS')") or "") == "", "a new game kept the old captains"
 
 
+def t_the_captain_detector_stops_at_start(src):
+    """START ends the captain polling; the list published by then stands for the game.
+
+    Maintainer, 2026-09-19: "Captain detector (every card's position) should stop after the game has
+    started so we clicked on start." It polled every 1.5 s for the whole game, reading every card's
+    position each time. The turn panel's START now tells the board, and the detector returns without
+    re-arming; a new game arms it again with its Knaves board.
+    """
+    rt = fresh(src)
+    rt.execute("""
+      BOARD = MKOBJ('Knaves Board', {0, 11.6, 0}, {})
+      pcall(function() rttSpawnCaptainsFor(BOARD) end) FLUSH(30)
+      CAP = nil for _, o in ipairs(getAllObjects()) do if o.hasTag('RTT Captains') then CAP = o end end
+      RTT_CAP_BOARD_GUID = CAP.getGUID()
+      CAP.setSnapPoints({ { position = { -5, 0, 0 } }, { position = { 0, 0, 0 } }, { position = { 5, 0, 0 } } })
+      CAP.positionToWorld = function(q) local c = CAP.getPosition() return { x = c.x + (q[1] or q.x), y = c.y, z = c.z + (q[3] or q.z) } end
+      CAP.getBounds = function() local c = CAP.getPosition() return { center = c, size = { x = 14, y = 1, z = 6 } } end
+      rttSpawnCaptainMeeple = function() end
+      function CAPCARD(id, slot)
+        local w = CAP.positionToWorld(CAP.getSnapPoints()[slot].position)
+        local c = MKOBJ('Card', { w.x, w.y, w.z }, {})
+        c.getData = function() return { CardID = id } end
+        return c
+      end
+      A = CAPCARD(73400, 1) B = CAPCARD(73401, 2) C = CAPCARD(73402, 3)
+      rttCaptainDetect()
+    """)
+    told = lambda: json.loads(rt.eval("GVGET('RTT_CAPTAINS')") or "[]")
+    assert told() == ["Arbiter", "Cheat", "Gladiator"]
+    before = rt.eval("TIMERS()")
+    rt.execute("rttGameStarted() A.setPosition({ 80, 11.6, 80 }) D = CAPCARD(73403, 1) rttCaptainDetect()")
+    assert told() == ["Arbiter", "Cheat", "Gladiator"], "the detector kept following cards after START: %r" % told()
+    assert rt.eval("TIMERS()") == before, "the detector re-armed itself after START"
+    # the panel's START button is what says so
+    panel = json.loads(re.search(r"RTT_TURN_PANEL_JSON = \[====\[(.*?)\]====\]", src, re.S).group(1))["LuaScript"]
+    assert 'b.call("rttGameStarted")' in panel, "the turn panel's START does not tell the board"
+    # and a new game arms it again
+    rt.execute("rttResetRunState()")
+    assert rt.eval("RTT_STARTED") is False, "a new game did not clear the started flag"
+
+
 def t_the_sheet_takes_the_captains_it_is_told(src):
     """The box score's Knaves row shows the captains the board publishes, not a meeple count."""
     sheet = json.loads(re.search(r"RTT_BOXSCORE_JSON = \[====\[(.*?)\]====\]", src, re.S).group(1))["LuaScript"]
@@ -14900,6 +14941,7 @@ CASES = [
     ("a closed selector is forgotten",  t_a_selector_closed_by_hand_is_forgotten),
     ("the pond sweep leaves a card in flight alone", t_the_pond_sweep_leaves_a_card_in_flight_alone),
     ("the captains told follow the slot cards", t_the_captains_told_to_the_sheet_follow_the_slot_cards),
+    ("the captain detector stops at START", t_the_captain_detector_stops_at_start),
     ("the sheet takes the captains it is told", t_the_sheet_takes_the_captains_it_is_told),
     ("a card dropped on the pond turns face up", t_a_card_dropped_on_the_pond_turns_face_up),
     ("the flush drains and dies",       t_the_flush_writes_its_queue_and_lets_the_timer_die),

@@ -379,6 +379,41 @@ owns it), `RTT_TRACK` (the score track, re-found by guid and re-detected when go
       "on the frog pond the card should also flip face up like the normal discard." v1.458: the pond
       is a drop spot of the deck holder -- turned face up and snapped onto the pile; a dominance card
       is not launched at the track from there. Not yet confirmed in TTS.
+- [x] **The captain detector stops at START.** Maintainer, 2026-09-19: "Captain detector (every
+      card's position) should stop after the game has started so we clicked on start." It polled
+      every 1.5 s for the whole game (every card's position, ~310 API calls a pass). v1.459: the
+      turn panel's START tells the board (`rttGameStarted`), the detector returns without re-arming,
+      the list published by then stands, and a new game arms it again. Not yet confirmed in TTS.
+
+## Script load during play, measured 2026-09-19 (the "is it laggy" question)
+
+Per-call cost from the recorder's own measurement in TTS (156 objects x 3 reads in 1-2 ms, ~3 us a
+call). Nothing on the table runs every frame; nothing hooks pick-up, so a dragged piece costs no
+script time until it is dropped.
+
+| runs during play | period | calls a burst | ms a burst (measured / x10) |
+|---|---|---|---|
+| box score poll (every object's name, dominance scan, 4 markers) | 1.2 s | ~850 | 2.6 / 26 |
+| captain detector (until START, as of v1.459) | 1.5 s | ~310 | 1 / 10 |
+| turn panel tick (round + clock, 2 UI writes) | 0.25 s | ~5 | 0.3 |
+| deck holder sweep (3 physics casts) | 1 s | ~10 | 0.5 |
+| map lock, prisoner check, Steam tick | 1-3 s | ~10 | 0.03 |
+| recorder, per drop (0.4 s later) | on a drop | ~40 | 0.12 / 1.2 |
+| recorder, keyframe | once a turn | ~1850 | 5.5 / 55 |
+
+About 5 ms of script a second in all, the recorder ~2% of it. Not the cause of sluggish dragging.
+Where to cut, if it is ever needed, biggest first (none done):
+- [ ] Box score: keep the four VP markers by GUID and re-find them only when one is missing, rescan
+      the table every 5th poll -- ~90% of the per-second load.
+- [ ] Turn panel: tick once a second, and flash the alarm by recolouring (setAttribute) instead of
+      rebuilding the whole panel XML every 0.75 s on every client -- the one script behaviour that
+      can make CLIENTS stutter for a whole long turn.
+- [ ] Box score UI: at most one rebuild every 2 s (a 15 KB XML rebuild on every client on each
+      score change).
+- [ ] Deck holder sweep: every 2 s, or only for a few seconds after a card is dropped.
+- [ ] Map lock and prisoner timers: every 3-5 s instead of every second.
+- [ ] The clean test of the recorder: `OBS_ENABLED = false` in the Global script for one game.
+
 - [ ] **"All the clearing markers seemed to be unlocked."** Simber, same game. In the autosave taken
       ten seconds after the win all twelve priority markers are LOCKED, and the map too. Resync's
       lock mode unlocks each object for one frame and locks it again, so nothing stays unlocked by
