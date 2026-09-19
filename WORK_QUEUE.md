@@ -367,6 +367,18 @@ owns it), `RTT_TRACK` (the score track, re-found by guid and re-detected when go
       or not at rest; the pond sweep did not. Fixed in the holder blueprint (content.lua, v1.457): the
       pond sweep takes the same settled test. Harness case fails against the old holder. Not yet
       confirmed in TTS.
+- [x] **The box score's three captains do not follow a change of mind.** Maintainer, 2026-09-19:
+      "the captain auto detection does not change the three captains if the player changes his mind
+      and spawns another captain." The sheet counted captain MEEPLES near the Knaves' supply; a
+      captain is spawned once and never taken back, so after a swap four stood there, more than the
+      three the row allows, and the count refused to update. v1.458: the board rebuilds its slot
+      table on every pass of the detector and publishes the CARDS in the slots (`RTT_CAPTAINS`,
+      cleared by a new game); the sheet reads that first and only counts meeples for a board that
+      publishes nothing. Not yet confirmed in TTS.
+- [x] **A card dropped on the frog pond flips face up, like the discard.** Maintainer, 2026-09-19:
+      "on the frog pond the card should also flip face up like the normal discard." v1.458: the pond
+      is a drop spot of the deck holder -- turned face up and snapped onto the pile; a dominance card
+      is not launched at the track from there. Not yet confirmed in TTS.
 - [ ] **"All the clearing markers seemed to be unlocked."** Simber, same game. In the autosave taken
       ten seconds after the win all twelve priority markers are LOCKED, and the map too. Resync's
       lock mode unlocks each object for one frame and locks it again, so nothing stays unlocked by

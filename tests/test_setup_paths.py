@@ -8727,6 +8727,111 @@ def t_the_pond_sweep_leaves_a_card_in_flight_alone(src):
         "a non-frog card lying on the pond no longer goes to the discard: %r" % moves
 
 
+def t_the_captains_told_to_the_sheet_follow_the_slot_cards(src):
+    """The board publishes the captain CARDS in the slots, and follows a change of mind.
+
+    Maintainer, 2026-09-19: "the captain auto detection does not change the three captains if the
+    player changes his mind and spawns another captain." The detector kept whatever it had last seen
+    in a slot and published nothing; the sheet counted captain meeples, and a captain is spawned once
+    and never taken back, so after a swap four meeples stood there, more than the three the row
+    allows, and it kept the first three. The slot table is rebuilt every pass now and the list goes
+    out as RTT_CAPTAINS whenever it changes.
+    """
+    rt = fresh(src)
+    rt.execute("""
+      BOARD = MKOBJ('Knaves Board', {0, 11.6, 0}, {})
+      pcall(function() rttSpawnCaptainsFor(BOARD) end) FLUSH(30)
+      CAP = nil for _, o in ipairs(getAllObjects()) do if o.hasTag('RTT Captains') then CAP = o end end
+      RTT_CAP_BOARD_GUID = CAP.getGUID()
+      CAP.setSnapPoints({ { position = { -5, 0, 0 } }, { position = { 0, 0, 0 } }, { position = { 5, 0, 0 } } })
+      CAP.positionToWorld = function(q) local c = CAP.getPosition() return { x = c.x + (q[1] or q.x), y = c.y, z = c.z + (q[3] or q.z) } end
+      CAP.getBounds = function() local c = CAP.getPosition() return { center = c, size = { x = 14, y = 1, z = 6 } } end
+      rttSpawnCaptainMeeple = function() end     -- the meeples are not the question here
+      function CAPCARD(id, slot)
+        local w = CAP.positionToWorld(CAP.getSnapPoints()[slot].position)
+        local c = MKOBJ('Card', { w.x, w.y, w.z }, {})
+        c.getData = function() return { CardID = id } end
+        return c
+      end
+      A = CAPCARD(73400, 1) B = CAPCARD(73401, 2) C = CAPCARD(73402, 3)
+      rttCaptainDetect()
+    """)
+    told = lambda: json.loads(rt.eval("GVGET('RTT_CAPTAINS')") or "[]")
+    assert told() == ["Arbiter", "Cheat", "Gladiator"], "the three slot cards were not published: %r" % told()
+    # a change of mind: the Arbiter goes back, the Adventurer takes slot 1
+    rt.execute("A.setPosition({ 80, 11.6, 80 }) D = CAPCARD(73403, 1) rttCaptainDetect()")
+    assert told() == ["Adventurer", "Cheat", "Gladiator"], "the swap was not followed: %r" % told()
+    # a slot left empty drops out of the list
+    rt.execute("B.setPosition({ 80, 11.6, -80 }) rttCaptainDetect()")
+    assert told() == ["Adventurer", "Gladiator"], "an emptied slot still counts: %r" % told()
+    # and a new game clears what was published
+    rt.execute("rttResetRunState()")
+    assert (rt.eval("GVGET('RTT_CAPTAINS')") or "") == "", "a new game kept the old captains"
+
+
+def t_the_sheet_takes_the_captains_it_is_told(src):
+    """The box score's Knaves row shows the captains the board publishes, not a meeple count."""
+    sheet = json.loads(re.search(r"RTT_BOXSCORE_JSON = \[====\[(.*?)\]====\]", src, re.S).group(1))["LuaScript"]
+    rt = lupa.LuaRuntime(unpack_returned_tuples=True)
+    rt.execute(open(os.path.join(HERE, "tts_stub.lua"), encoding="utf-8").read())
+    rt.execute(sheet.replace("!=", "~="))
+    rt.execute("""Global.setVar('RTT_CAPTAINS', '["Adventurer","Cheat","Gladiator"]')""")
+    assert rt.eval("rttCaptainsTold()") == "Adventurer, Cheat, Gladiator", \
+        "the sheet did not read the published captains: %r" % rt.eval("rttCaptainsTold()")
+    rt.execute("""Global.setVar('RTT_CAPTAINS', '["Ronin","Cheat","Gladiator"]')""")
+    assert rt.eval("rttCaptainsTold()") == "Ronin, Cheat, Gladiator", "a changed list was not followed"
+    for empty in ("", "[]"):
+        rt.execute("Global.setVar('RTT_CAPTAINS', %r)" % empty)
+        assert rt.eval("rttCaptainsTold()") is None, "an empty list should hand back to the meeple count"
+    # the row consults it before it counts meeples
+    assert sheet.index("rttCaptainsTold()") < sheet.index('byName["Captain - " .. ch]'), \
+        "the Knaves row counts meeples before asking the board"
+
+
+def t_a_card_dropped_on_the_pond_turns_face_up(src):
+    """A card let go on the frog pond flips face up and snaps onto the pile, like the discard.
+
+    Maintainer, 2026-09-19: "on the frog pond the card should also flip face up like the normal
+    discard." The pond is a drop spot now; a dominance card is not launched at the track from there.
+    """
+    script = _holder_script(src)
+
+    def drop(name, desc, face_down):
+        rt = lupa.LuaRuntime(unpack_returned_tuples=True)
+        rt.execute(open(os.path.join(HERE, "tts_stub.lua"), encoding="utf-8").read())
+        rt.execute("""
+          MOVED = {} FLIPPED = 0
+          self.positionToWorld = function(p) return { x = p[1]*3.38, y = p[2], z = p[3]*3.38 } end
+          POND = REGUID(MKOBJ('The Pond', { 0.3, 1, 10.7 }, { 'RTT Pond' }), '347917')
+          POND.positionToWorld = function(p) return { x = 0.3 + p[1], y = p[2], z = 10.7 + p[3] } end
+          CARD = MKOBJ(%r, { 0.5, 2, 10.5 }, {})
+          CARD.name = 'Card' CARD.tag = 'Card'
+          CARD.getDescription = function() return %r end
+          CARD.is_face_down = %s
+          CARD.flip = function() FLIPPED = FLIPPED + 1 CARD.is_face_down = not CARD.is_face_down end
+          CARD.setPositionSmooth = function(p) MOVED[#MOVED+1] = { x = p.x or p[1], z = p.z or p[3] } end
+          CARD.setRotationSmooth = function() end
+          Physics = { cast = function() return {} end }
+        """ % (name, desc, "true" if face_down else "false"))
+        rt.execute(script)
+        rt.execute("pcall(function() onLoad('') end) pcall(function() onObjectDrop('Orange', CARD) end) FLUSH(20)")
+        n = rt.eval("function() return #MOVED end")()
+        moves = [(rt.eval("function() return MOVED[%d].x end" % (i + 1))(),
+                  rt.eval("function() return MOVED[%d].z end" % (i + 1))()) for i in range(n)]
+        return rt.eval("FLIPPED"), moves
+
+    flipped, moves = drop("Root Tea", "", True)
+    assert flipped == 1, "a face-down card dropped on the pond was not turned over"
+    assert moves and abs(moves[-1][0] - 0.3) < 0.01 and abs(moves[-1][1] - 10.61) < 0.01, \
+        "the card was not snapped onto the pond: %r" % moves
+    flipped, moves = drop("Militias", "frog", True)
+    assert flipped == 1 and moves and abs(moves[-1][1] - 10.61) < 0.01, \
+        "a frog card dropped on the pond was not turned and snapped: flipped %d, %r" % (flipped, moves)
+    flipped, moves = drop("Fox Dominance", "Fox", False)
+    assert all(abs(x + 41.88) > 0.01 for x, _ in moves), \
+        "a dominance card dropped on the pond was launched at the track: %r" % moves
+
+
 def t_a_dominance_card_spent_into_the_lost_souls_stays_there(src):
     """A dominance card let go on the Lost Souls is a spent card and stays; on the discard it goes home.
 
@@ -14794,6 +14899,9 @@ CASES = [
     ("numpad 1 for a spectator says so", t_numpad_1_for_a_spectator_says_so),
     ("a closed selector is forgotten",  t_a_selector_closed_by_hand_is_forgotten),
     ("the pond sweep leaves a card in flight alone", t_the_pond_sweep_leaves_a_card_in_flight_alone),
+    ("the captains told follow the slot cards", t_the_captains_told_to_the_sheet_follow_the_slot_cards),
+    ("the sheet takes the captains it is told", t_the_sheet_takes_the_captains_it_is_told),
+    ("a card dropped on the pond turns face up", t_a_card_dropped_on_the_pond_turns_face_up),
     ("the flush drains and dies",       t_the_flush_writes_its_queue_and_lets_the_timer_die),
     ("EXPORT sends without a sheet",    t_export_without_a_box_score_still_sends_a_document),
     ("everything is recorded",         t_the_payload_never_carries_a_hand),
