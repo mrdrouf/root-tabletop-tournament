@@ -2383,12 +2383,32 @@ function rttResyncCardsSettle(list, done, gen)
   local lost = {}
   for _, rec in ipairs(list) do
     local hit = nil
-    for _, c in ipairs(cards) do
-      if not c.taken and (c.guid == rec.guid or (rec.newguid ~= nil and c.guid == rec.newguid)) then
-        hit = c break
+    -- 1. THE HANDLE reload() HANDED BACK, if it still stands. That is identity, not a guess: the guid
+    --    read the instant after reload() can be the one TTS re-rolls a frame later, and a card that
+    --    settles a hair away from where it stood is still the card. Maintainer, 2026-09-20, after two
+    --    rabbit Ambushes in a game with no game before it: "secure resynch". isDestroyed() is the one
+    --    question a dead handle answers (rttLive), so this touches nothing that is gone.
+    local live = rttLive(rec.new)
+    if live ~= nil then
+      local g = nil
+      pcall(function() g = live.getGUID() end)
+      if g ~= nil then
+        for _, c in ipairs(cards) do
+          if not c.taken and c.guid == g then hit = c break end
+        end
+        if hit == nil then hit = { guid = g, taken = false } end   -- alive, only not in the walk
       end
     end
+    -- 2. either guid, for a reload that answered nothing this pass can hold
     if hit == nil then
+      for _, c in ipairs(cards) do
+        if not c.taken and (c.guid == rec.guid or (rec.newguid ~= nil and c.guid == rec.newguid)) then
+          hit = c break
+        end
+      end
+    end
+    -- 3. a card within a whisker of the old spot -- ONLY when reload() handed nothing back at all
+    if hit == nil and rec.new == nil then
       for _, c in ipairs(cards) do
         if not c.taken then
           local dx, dy, dz = c.p.x - rec.pos.x, c.p.y - rec.pos.y, c.p.z - rec.pos.z
@@ -2401,6 +2421,10 @@ function rttResyncCardsSettle(list, done, gen)
     if hit ~= nil then
       hit.taken = true
       rttResyncCardRestore(rec, hit.guid)
+    elseif rec.new ~= nil then
+      -- reload() answered and its card has since gone: onto a deck, into a hand, under a player's
+      -- delete. It is where somebody put it, not lost. NEVER put back -- a second copy of a card is
+      -- the worse mistake, and the only one nobody at the table can see happen.
     elseif not held then
       -- PROVABLY ABSENT, AND ONLY THEN. Not by guid, not where it stood, and nobody at the table is
       -- holding a card that could be it. Anything less than that and the put-back would DUPLICATE the
@@ -2506,6 +2530,7 @@ function rttResyncReloadCards(done)
           local new = nil
           pcall(function() new = o.reload() end)
           pcall(function() if new ~= nil then rec.newguid = new.getGUID() end end)
+          rec.new = new          -- the handle itself: the settle asks it, not a guid read too early
           done_recs[#done_recs + 1] = rec
         end
       end
@@ -2795,6 +2820,78 @@ function rttResyncReseatAll(onDone)
   return #seats
 end
 
+-- A CARD CENSUS AFTER EVERY RESYNC. Maintainer, 2026-09-20: "the resynch needs to check the cards and
+-- make sure there are no extra cards for each deck on the table after respawning the cards" -- and
+-- "be careful as decks have some cards in duplicates naturally". They do by NAME, never by CARD ID:
+-- two bird Ambushes are two indexes on the deck's sheet, and no deck blueprint lists one CardID twice
+-- (the harness holds that). So the census counts CardIDs, and only those of the shared decks and of
+-- the frogs' cards: a faction kit carries the same card id several times on purpose (three Faithful
+-- Retainers) and is left out. A CardID seen twice on the table is a duplicate whatever made it. Loose
+-- copies beyond the first are destroyed; a twin that sits inside a deck or in a hand is reported and
+-- left for a hand to sort out. Runs a few frames after the pass, once the put-back has finished
+-- spawning.
+RTT_DECK_CARD_IDS = nil
+function rttDeckCardIds()
+  if RTT_DECK_CARD_IDS ~= nil then return RTT_DECK_CARD_IDS end
+  local ids = {}
+  local function harvest(list)
+    for _, v in ipairs(list or {}) do
+      local j = v and v.json
+      if type(j) == "string" then
+        for id in string.gmatch(j, '"CardID"%s*:%s*(%d+)') do ids[tonumber(id)] = true end
+      end
+    end
+  end
+  pcall(function() for _, deck in pairs(EVERYTHING['Decks'] or {}) do harvest(deck['data']) end end)
+  pcall(function() harvest(EVERYTHING['Standard']['Lilypad Diaspora']['data']) end)
+  RTT_DECK_CARD_IDS = ids
+  return ids
+end
+
+function rttCardCensus()
+  local ids = rttDeckCardIds()
+  local seen, loose = {}, {}
+  for _, o in ipairs(getAllObjects()) do
+    pcall(function()
+      local nm = o.name
+      if nm == "Card" or nm == "CardCustom" then
+        if o.spawning == true or o.held_by_color ~= nil then return end
+        local d = o.getData()
+        local id = d and tonumber(d.CardID)
+        if id ~= nil and ids[id] then
+          seen[id] = (seen[id] or 0) + 1
+          loose[#loose + 1] = { o = o, id = id, nick = tostring(d.Nickname or "") }
+        end
+      elseif nm == "Deck" or nm == "DeckCustom" then
+        local d = o.getData()
+        for _, c in ipairs((d and d.ContainedObjects) or {}) do
+          local id = tonumber(c.CardID)
+          if id ~= nil and ids[id] then seen[id] = (seen[id] or 0) + 1 end
+        end
+      end
+    end)
+  end
+  local extra = {}
+  for id, n in pairs(seen) do if n > 1 then extra[id] = n - 1 end end
+  local skip = {}
+  pcall(function() skip = rttResyncSkip() end)     -- cards in hands, laid prisoners: never deleted
+  local names = {}
+  for _, e in ipairs(loose) do
+    if (extra[e.id] or 0) > 0 then
+      local g = nil
+      pcall(function() g = e.o.getGUID() end)
+      if g ~= nil and skip[g] ~= true then
+        pcall(function() e.o.destruct() end)
+        extra[e.id] = extra[e.id] - 1
+        names[#names + 1] = e.nick
+      end
+    end
+  end
+  local left = 0
+  for _, n in pairs(extra) do if n > 0 then left = left + 1 end end
+  return #names, names, left
+end
+
 function rttResyncClick(player, value, id)
   local ran = rttResyncSweep(function(n, nc, lostc, waited, skipped)
     local msg = "Resync: " .. tostring(n) .. " objects re-sent"
@@ -2822,6 +2919,19 @@ function rttResyncClick(player, value, id)
     -- and the person who pressed it should know the cards were left for a second press
     if waited == true then msg = msg .. "; cards left alone while the draft is dealing" end
     pcall(function() broadcastToAll(msg .. ".", { 0.66, 0.82, 0.86 }) end)
+    -- ...and the census, once anything the pass put back has finished spawning
+    Wait.frames(function()
+      local gone, names, left = 0, {}, 0
+      pcall(function() gone, names, left = rttCardCensus() end)
+      if gone > 0 then
+        pcall(function() broadcastToAll("Resync: " .. tostring(gone) .. " duplicate card(s) removed: "
+                                        .. table.concat(names, ", ") .. ".", { 1, 0.75, 0.3 }) end)
+      end
+      if left > 0 then
+        pcall(function() broadcastToAll("Resync: " .. tostring(left) .. " card(s) exist twice inside decks or hands; "
+                                        .. "please check them by hand.", { 1, 0.75, 0.3 }) end)
+      end
+    end, 10)
   end, false, true)
   if ran then
     pcall(function() broadcastToAll("Resyncing the table...", { 0.66, 0.82, 0.86 }) end)

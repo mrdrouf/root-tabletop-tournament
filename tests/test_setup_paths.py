@@ -9488,6 +9488,117 @@ def t_a_card_the_reload_loses_is_put_back(src):
     assert rt2.eval("CARDN()") == 5, "a clean pass left %d cards where there were 5" % rt2.eval("CARDN()")
 
 
+def t_the_resync_never_puts_back_a_card_that_came_back(src):
+    """A card whose reload answered is never respawned, whatever it did next.
+
+    Maintainer, 2026-09-20: "there were somehow two bunny ambush cards ... no there was no other game
+    before. secure resynch." The accounting pass judged a reloaded card lost when it answered to
+    neither guid -- and the guid read the instant after reload() can be the one TTS re-rolls a frame
+    later -- and nothing stood within 0.05 of its old spot, which a card settling on a pile fails. Then
+    it spawned the card again from its snapshot: two of it. Likewise a card a player dropped onto a
+    deck during the half-second pass: gone from the table, judged lost, spawned back.
+
+    The pass keeps the handle reload() hands back. Alive, it IS the card, wherever it went. Dead, the
+    card went where somebody put it. Only a reload that answered nothing can still be put back.
+    """
+    # (a) the reloaded card comes back under a guid the pass never saw, and a hair away
+    rt = fresh(src)
+    _reload_probe(rt)
+    rt.execute("""
+      A = MKOBJ("Card", { 55, 1, 0 }, {})
+      local _r = A.reload
+      A.reload = function()
+        local n = _r()
+        REGUID(n, "zz9999")                         -- the guid TTS settles on later, not the one read
+        n.setPosition({ 55.4, 1, 0.3 })             -- settled on the pile a hair away
+        return n
+      end
+      for i = 1, 3 do MKOBJ("Card", { 60 + i, 1, 0 }, {}) end
+      rttResyncReloadCards(function() end)
+      FLUSH(60)
+    """)
+    assert rt.eval("CARDN()") == 4, "a card that came back a hair away was put back a second time: %d cards for 4" % rt.eval("CARDN()")
+
+    # (b) the reloaded card is dropped onto a deck before the pass settles
+    rt = fresh(src)
+    _reload_probe(rt)
+    rt.execute("""
+      B = MKOBJ("Card", { 55, 1, 0 }, {})
+      local _r = B.reload
+      B.reload = function()
+        local n = _r()
+        Wait.frames(function() n.destruct() end, 2)  -- merged into the discard two frames on
+        return n
+      end
+      for i = 1, 3 do MKOBJ("Card", { 60 + i, 1, 0 }, {}) end
+      rttResyncReloadCards(function() end)
+      FLUSH(60)
+    """)
+    assert rt.eval("CARDN()") == 3, "a card merged away during the pass was spawned back: %d cards for 3" % rt.eval("CARDN()")
+    assert rt.eval("RTT_RESYNC_BUSY") is False, "the pass left the busy flag up"
+
+
+def t_the_resync_census_removes_extra_deck_cards_and_spares_natural_twins(src):
+    """After a Resync, no card of the shared deck exists twice; natural twins are two card ids.
+
+    Maintainer, 2026-09-20: "the resynch needs to check the cards and make sure there are no extra
+    cards for each deck on the table after respawning the cards", and "be careful as decks have some
+    cards in duplicates naturally." They do by name, never by card id: no deck blueprint lists one
+    CardID twice (asserted below), so the census counts card ids. Only the shared decks' and the
+    frogs' ids are judged; a faction kit carries the same id several times on purpose.
+    """
+    # no deck blueprint lists a card id twice, which is what makes counting by id right
+    for m in re.finditer(r"json *= *\[\[(.*?)\]\]", src, re.S):
+        try:
+            d = json.loads(m.group(1))
+        except ValueError:
+            continue
+        if d.get("Name") in ("Deck", "DeckCustom"):
+            ids = [c.get("CardID") for c in d.get("ContainedObjects") or []]
+            assert len(ids) == len(set(ids)), "a deck blueprint lists a card id twice: %r" % d.get("Nickname")
+
+    rt = fresh(src)
+    rt.execute("""
+      function CARD(nick, id, pos) local c = MKOBJ(nick, pos, {}) c.name = 'Card' c.tag = 'Card'
+        c.getData = function() return { CardID = id, Nickname = nick } end return c end
+      R1 = CARD('Ambush', 7646, { 10, 1, 10 })        -- rabbit Ambush, twice on the table
+      R2 = CARD('Ambush', 7646, { 20, 1, 10 })
+      B1 = CARD('Ambush', 7648, { 30, 1, 10 })        -- two bird Ambushes: two card ids, natural
+      B2 = CARD('Ambush', 7649, { 40, 1, 10 })
+      H1 = CARD('Root Tea', 7601, { -52, 12, 60 })    -- in a seated player's hand, and a loose twin on the table
+      SEAT('Red', 'Ann') HANDCARDS['Red'] = { H1 }
+      H2 = CARD('Root Tea', 7601, { 50, 1, 10 })
+      F1 = CARD('Faithful Retainer', 13500, { 60, 1, 10 })   -- a kit card, three by design
+      F2 = CARD('Faithful Retainer', 13500, { 70, 1, 10 })
+      F3 = CARD('Faithful Retainer', 13500, { 80, 1, 10 })
+      DECK = MKDECK({ {nick='Sword'}, {nick='Anvil'} })
+      DECK.getData = function() return { ContainedObjects = { { CardID = 7610 }, { CardID = 7611 } } } end
+      D1 = CARD('Sword', 7610, { 90, 1, 10 })         -- loose twin of a card inside the deck
+      GONE, NAMES, LEFT = rttCardCensus()
+    """)
+    assert rt.eval("GONE") == 3, "the census removed %d cards, expected 3 (rabbit twin, hand twin, deck twin)" % rt.eval("GONE")
+    alive = lambda n: rt.eval("%s.isDestroyed()" % n) is False
+    assert (alive("R1") != alive("R2")), "exactly one rabbit Ambush should remain"
+    assert alive("B1") and alive("B2"), "a natural twin (two card ids) was taken for a duplicate"
+    assert alive("H1") and not alive("H2"), "the copy in the hand must stay and the loose twin go"
+    assert alive("F1") and alive("F2") and alive("F3"), "faction kit cards are not the census's business"
+    assert not alive("D1") and alive("DECK"), "the loose twin of a deck card must go, the deck stay"
+    assert rt.eval("LEFT") == 0, "nothing should be left over: %s" % rt.eval("LEFT")
+
+    # a twin that sits inside two decks is reported, never touched
+    rt.execute("""
+      DECK2 = MKDECK({ {nick='Sword'} })
+      DECK2.getData = function() return { ContainedObjects = { { CardID = 7610 } } } end
+      GONE, NAMES, LEFT = rttCardCensus()
+    """)
+    assert rt.eval("GONE") == 0 and rt.eval("LEFT") == 1, "a twin inside decks must be reported, not removed"
+    assert alive("DECK") and alive("DECK2")
+
+    # ...and the Resync button runs it, after the pass
+    assert "rttCardCensus()" in src[src.index("function rttResyncClick"):src.index("function rttResyncClick") + 4000], \
+        "the Resync button does not run the census"
+
+
 def t_the_draft_deal_survives_a_card_going(src):
     """Take a card away mid-deal and the rest of the draft still deals.
 
@@ -14999,6 +15110,8 @@ CASES = [
     ("a closed selector is forgotten",  t_a_selector_closed_by_hand_is_forgotten),
     ("the pond sweep leaves a card in flight alone", t_the_pond_sweep_leaves_a_card_in_flight_alone),
     ("a new game purges frog leftovers",  t_a_new_game_purges_frog_leftovers),
+    ("the resync never puts back a card that came back", t_the_resync_never_puts_back_a_card_that_came_back),
+    ("the resync census keeps one of each deck card", t_the_resync_census_removes_extra_deck_cards_and_spares_natural_twins),
     ("every shared deck card is tagged",  t_every_shared_deck_card_carries_the_deck_tag),
     ("the captains told follow the slot cards", t_the_captains_told_to_the_sheet_follow_the_slot_cards),
     ("the captain detector stops at START", t_the_captain_detector_stops_at_start),

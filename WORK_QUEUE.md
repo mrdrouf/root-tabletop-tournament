@@ -430,9 +430,24 @@ Where to cut, if it is ever needed, biggest first (none done):
       (makeDeck destroys "Deck Object" only) and came back beside the new deck's copy -- the road to
       two rabbit Ambushes with either of those decks. NOW: every card of every shared deck is tagged
       in the blueprint. Two cases, both failing on the old build.
-      Still theoretical, recorded in NULL_AUDIT.md's spirit: the Resync card pass respawns a
-      snapshotted card it cannot find by guid or within 0.05 of its old spot -- a card dropped onto a
-      deck during that half-second would come back twice. Not seen in any archive.
+      MAINTAINER: "no there was no other game before. secure resynch." So for his game the two
+      roads above are out and the Resync card pass is the one left: it respawned a snapshotted card
+      it could not find by guid -- and the guid read the instant after reload() can be the one TTS
+      re-rolls a frame later -- or within 0.05 of its old spot, which a card settling on a pile
+      fails; and a card dropped onto a deck during the half-second pass was "lost" the same way.
+      v1.461: the pass keeps the handle reload() hands back. Alive, it IS the card, wherever it went;
+      dead, the card went where somebody put it and is never put back. Only a reload that answered
+      nothing at all can still be respawned, and then only by guid, spot and nobody dragging. One
+      case, two ways, both duplicating on the old build. His other two sightings fit the same
+      cause: "a card that seemed to be floating above the discard pile and a card fell through the
+      table" is what physics does with two cards spawned into one spot -- one pushed up, one down.
+      AND A CENSUS ("the resynch needs to check the cards and make sure there are no extra cards for
+      each deck on the table after respawning the cards"; "be careful as decks have some cards in
+      duplicates naturally"): ten frames after every Resync the board counts every card of the
+      shared decks and the frogs' cards by CARD ID -- natural twins are two ids, and no deck
+      blueprint lists one id twice, which the harness holds -- and destroys loose copies beyond the
+      first, sparing hands; a twin inside a deck is reported for a hand to sort out. Faction kit
+      cards (three Faithful Retainers) are not judged. Not yet confirmed in TTS.
 - [ ] **"All the clearing markers seemed to be unlocked."** Simber, same game. In the autosave taken
       ten seconds after the win all twelve priority markers are LOCKED, and the map too. Resync's
       lock mode unlocks each object for one frame and locks it again, so nothing stays unlocked by
