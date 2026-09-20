@@ -8868,6 +8868,60 @@ def t_the_captain_detector_stops_at_start(src):
     assert rt.eval("RTT_STARTED") is False, "a new game did not clear the started flag"
 
 
+def t_the_sheet_reads_on_events_and_polls_every_four_seconds(src):
+    """The box score reads the table when something happens to it, and every 4 s as a safety net.
+
+    Maintainer, 2026-09-20: "could the box score poll happen only when a vp marker is moved and
+    dropped or vp button is pressed?" -- "yes go ahead you can make the security poll every 4 seconds
+    instead of 10." The 1.2-second poll was the largest script burst on the table. A dropped marker
+    or card, a turn change, an arriving marker, a colour change, the panel's buttons and the board's
+    own marker moves each arm one read (half a second on, and once more a second later); a second
+    event while one is pending arms nothing.
+    """
+    sheet = json.loads(re.search(r"RTT_BOXSCORE_JSON = \[====\[(.*?)\]====\]", src, re.S).group(1))["LuaScript"]
+    assert "local POLL_SECONDS   = 4" in sheet, "the safety poll is not every 4 seconds"
+    for fn in ("onObjectDrop", "onObjectSpawn", "onPlayerChangeColor", "rttPollSoon"):
+        assert ("function %s(" % fn) in sheet, "the sheet has no %s" % fn
+    assert "pollSoon(0.2)" in sheet[sheet.index("function onPlayerTurn("):sheet.index("function onPlayerTurn(") + 600], \
+        "a turn change does not read"
+    assert "pollSoon(0.6)" in sheet[sheet.index("function rttNudge("):sheet.index("function rttNudge(") + 2500], \
+        "the +1/-1 buttons do not read"
+    # the board says so when IT moves a marker or places a map
+    for fn in ("rttPlaceVP", "rttTagMap"):
+        body = src[src.index("function %s(" % fn):]
+        body = body[:body.index("\nend\n")]
+        assert "rttTellSheet" in body, "%s does not tell the sheet" % fn
+    assert 'sh.call("rttPollSoon")' in src, "rttTellSheet does not call the sheet's rttPollSoon"
+
+    rt = lupa.LuaRuntime(unpack_returned_tuples=True)
+    rt.execute(open(os.path.join(HERE, "tts_stub.lua"), encoding="utf-8").read())
+    rt.execute(sheet.replace("!=", "~="))
+    rt.execute("LASTXML = '' self.UI.setXml = function(x) LASTXML = x end")
+    rt.execute("pcall(function() onLoad('') end) FLUSH_UNTIL(0.5, 400)")   # the build, not the 4 s poll
+    base = rt.eval("TIMERS()")
+    n0 = rt.eval("rttPollCount()")
+    rt.execute("""
+      M = MKOBJ('Duchy VP', { 0, 1, 0 }, {})
+      W = MKOBJ('Cat Warrior', { 1, 1, 1 }, {})
+      onObjectDrop('Red', W)
+    """)
+    assert rt.eval("TIMERS()") == base, "a warrior drop armed a read"
+    rt.execute("onObjectDrop('Red', M) onObjectDrop('Red', M)")
+    assert rt.eval("TIMERS()") == base + 1, "two marker drops armed %d reads, expected one" % (rt.eval("TIMERS()") - base)
+    rt.execute("FLUSH_UNTIL(0.6, 3)")
+    assert rt.eval("rttPollCount()") == n0 + 1, "the marker drop did not read half a second on"
+    assert rt.eval("TIMERS()") == base + 1, "the settled follow-up read was not armed"
+    rt.execute("FLUSH_UNTIL(1.1, 3)")
+    assert rt.eval("rttPollCount()") == n0 + 2, "the follow-up read a second later did not run"
+    assert rt.eval("TIMERS()") == base, "reads left a timer behind"
+    rt.execute("C = MKOBJ('Card', { 2, 1, 2 }, {}) onObjectDrop('Red', C)")
+    assert rt.eval("TIMERS()") == base + 1, "a card drop did not arm a read"
+    rt.execute("FLUSH_UNTIL(1.1, 6) onPlayerChangeColor('Blue')")
+    assert rt.eval("TIMERS()") == base + 1, "a colour change did not arm a read"
+    rt.execute("FLUSH_UNTIL(1.1, 6) rttPollSoon()")
+    assert rt.eval("TIMERS()") == base + 1, "the board's rttPollSoon did not arm a read"
+
+
 def t_the_sheet_takes_the_captains_it_is_told(src):
     """The box score's Knaves row shows the captains the board publishes, not a meeple count."""
     sheet = json.loads(re.search(r"RTT_BOXSCORE_JSON = \[====\[(.*?)\]====\]", src, re.S).group(1))["LuaScript"]
@@ -15115,6 +15169,7 @@ CASES = [
     ("every shared deck card is tagged",  t_every_shared_deck_card_carries_the_deck_tag),
     ("the captains told follow the slot cards", t_the_captains_told_to_the_sheet_follow_the_slot_cards),
     ("the captain detector stops at START", t_the_captain_detector_stops_at_start),
+    ("the sheet reads on events, polls every 4 s", t_the_sheet_reads_on_events_and_polls_every_four_seconds),
     ("the sheet takes the captains it is told", t_the_sheet_takes_the_captains_it_is_told),
     ("a card dropped on the pond turns face up", t_a_card_dropped_on_the_pond_turns_face_up),
     ("the flush drains and dies",       t_the_flush_writes_its_queue_and_lets_the_timer_die),

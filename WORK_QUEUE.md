@@ -393,7 +393,7 @@ script time until it is dropped.
 
 | runs during play | period | calls a burst | ms a burst (measured / x10) |
 |---|---|---|---|
-| box score poll (every object's name, dominance scan, 4 markers) | 1.2 s | ~850 | 2.6 / 26 |
+| box score poll (every object's name, dominance scan, 4 markers) | 4 s safety net + on events, as of v1.462 (was 1.2 s) | ~850 | 2.6 / 26 |
 | captain detector (until START, as of v1.459) | 1.5 s | ~310 | 1 / 10 |
 | turn panel tick (round + clock, 2 UI writes) | 0.25 s | ~5 | 0.3 |
 | deck holder sweep (3 physics casts) | 1 s | ~10 | 0.5 |
@@ -403,8 +403,15 @@ script time until it is dropped.
 
 About 5 ms of script a second in all, the recorder ~2% of it. Not the cause of sluggish dragging.
 Where to cut, if it is ever needed, biggest first (none done):
-- [ ] Box score: keep the four VP markers by GUID and re-find them only when one is missing, rescan
-      the table every 5th poll -- ~90% of the per-second load.
+- [x] Box score reads on EVENTS, v1.462. Maintainer: "could the box score poll happen only when a vp
+      marker is moved and dropped or vp button is pressed?" -- "yes go ahead you can make the security
+      poll every 4 seconds". A dropped marker or card, a turn change, an arriving marker, a colour
+      change, the panel's +1/-1 and the board's own marker moves (rttTellSheet, after rttPlaceVP and
+      rttTagMap) each arm one read 0.3 s on ("a bit slow to update when moving the vp markers") and
+      once more a second later; a second event while one is pending arms nothing. The 4-second poll
+      is the safety net. Also v1.462: the Resync message is one line ("make the resynch message
+      shorter and to the point"): "Resync done: N objects; M cards; ..." and only what happened.
+      Not yet confirmed in TTS.
 - [ ] Turn panel: tick once a second, and flash the alarm by recolouring (setAttribute) instead of
       rebuilding the whole panel XML every 0.75 s on every client -- the one script behaviour that
       can make CLIENTS stutter for a whole long turn.
@@ -448,6 +455,13 @@ Where to cut, if it is ever needed, biggest first (none done):
       blueprint lists one id twice, which the harness holds -- and destroys loose copies beyond the
       first, sparing hands; a twin inside a deck is reported for a hand to sort out. Faction kit
       cards (three Faithful Retainers) are not judged. Not yet confirmed in TTS.
+- [ ] **"Resynch changed my seat for some reason. I am alone with several factions picked by me.
+      Careful with that."** Maintainer, 2026-09-20, on v1.461. Not reproduced by reading: the reseat
+      (rttResyncReseatAll) walks the PLAYERS seated, steps each off to Grey, writes that colour's box
+      and steps them back onto the SAME colour, retrying and saying "Resync could not put you back on
+      <colour>" if it cannot; the stray-box pass moves boxes, never people. Needed: the colour he sat
+      in before the press and after, whether the chat said "could not put you back", and whether he
+      had switched colours to pick the factions.
 - [ ] **"All the clearing markers seemed to be unlocked."** Simber, same game. In the autosave taken
       ten seconds after the win all twelve priority markers are LOCKED, and the map too. Resync's
       lock mode unlocks each object for one frame and locks it again, so nothing stays unlocked by
