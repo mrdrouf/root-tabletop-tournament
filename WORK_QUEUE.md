@@ -482,6 +482,14 @@ Where to cut, if it is ever needed, biggest first (none done):
       updated in place on further changes, and emptied again if the marker returns to where the last
       round left it; its own turn then writes the cell for real and counts as one turn. The existing
       case carries the new rule and fails on the old build. Not yet confirmed in TTS.
+- [x] **A relic snapped to the enclave snap on a suit marker.** Maintainer, 2026-09-20: "that snap
+      should work only for enclaves." Each map token's blueprint carries one snap point per suit
+      marker, turned the marker's way (at the end of its lattice; Gorge at the start; Marsh has three
+      more for the five-player variant), and TTS lets any object take an untagged snap point; a
+      tagged one takes only objects that share a tag. v1.466: those points are tagged "Enclave" in
+      the six map blueprints (12, 12, 12, 12, 12, 15) and the twelve enclave tiles carry "Enclave"
+      too; relics and everything else pass them by. Enclaves are still placed by their own script.
+      One static case. Not yet confirmed in TTS.
 - [ ] **"All the clearing markers seemed to be unlocked."** Simber, same game. In the autosave taken
       ten seconds after the win all twelve priority markers are LOCKED, and the map too. Resync's
       lock mode unlocks each object for one frame and locks it again, so nothing stays unlocked by

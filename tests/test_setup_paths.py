@@ -8739,6 +8739,44 @@ def _holder_script(src):
     raise AssertionError("the Refill Card blueprint is not in the build")
 
 
+def t_the_marker_snaps_take_only_enclaves(src):
+    """The snap point on every suit marker is tagged for enclaves, so nothing else snaps to it.
+
+    Maintainer, 2026-09-20: "A relic snapped to the enclave snap on the suit marker that should not
+    happen that snap should work only for enclaves." The six map tokens carry, at the end (Gorge: at
+    the start) of their snap lattice, one snap point per suit marker, turned the marker's way -- and
+    TTS lets any object take an untagged snap point. A snap point with tags takes only objects that
+    share one (TTS knowledge base, Object Tags). So those points carry "Enclave" now, and so do the
+    twelve enclave tiles; relics and everything else pass them by. Marsh has three more for the
+    five-player variant's markers.
+    """
+    want = {"Summer Map": 12, "Winter Map": 12, "Lake Map": 12, "Mountain Map": 12, "Gorge Map": 12, "Marsh Map": 15}
+    kits = [(m.start(), m.group(1)) for m in re.finditer(r"\['([^']+)'\] *= *\{", src)]
+    def kit(pos):
+        return max((q, n) for q, n in kits if q <= pos)[1]
+    seen, enclaves, others = {}, 0, []
+    for m in re.finditer(r"json *= *\[\[(.*?)\]\]", src, re.S):
+        try:
+            d = json.loads(m.group(1))
+        except ValueError:
+            continue
+        k = kit(m.start())
+        sp = d.get("AttachedSnapPoints") or []
+        if k in want and len(sp) > 100:
+            tagged = [x for x in sp if x.get("Tags")]
+            assert all(x["Tags"] == ["Enclave"] for x in tagged), "%s: a snap carries another tag" % k
+            seen[k] = len(tagged)
+        tags = d.get("Tags") or []
+        if (d.get("Nickname") or "") == "Enclave":
+            enclaves += 1
+            assert "Enclave" in tags, "an enclave tile is not tagged Enclave: %s" % tags
+        elif "Enclave" in tags:
+            others.append(d.get("Nickname") or d.get("Name"))
+    assert seen == want, "marker snaps tagged for enclaves per map: %s, wanted %s" % (seen, want)
+    assert enclaves == 12, "found %d enclave tiles" % enclaves
+    assert not others, "something other than an enclave carries the Enclave tag: %s" % others
+
+
 def t_the_pond_sweep_leaves_a_card_in_flight_alone(src):
     """A card passing the pond in the air is not "at the pond"; a card lying on it is.
 
@@ -15282,6 +15320,7 @@ CASES = [
     ("a draw needs a hand",             t_a_draw_needs_a_hand),
     ("numpad 1 for a spectator says so", t_numpad_1_for_a_spectator_says_so),
     ("a closed selector is forgotten",  t_a_selector_closed_by_hand_is_forgotten),
+    ("the marker snaps take only enclaves", t_the_marker_snaps_take_only_enclaves),
     ("the pond sweep leaves a card in flight alone", t_the_pond_sweep_leaves_a_card_in_flight_alone),
     ("a new game purges frog leftovers",  t_a_new_game_purges_frog_leftovers),
     ("the resync never puts back a card that came back", t_the_resync_never_puts_back_a_card_that_came_back),
