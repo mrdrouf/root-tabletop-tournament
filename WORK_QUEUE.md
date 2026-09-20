@@ -471,6 +471,17 @@ Where to cut, if it is ever needed, biggest first (none done):
       places the seat's own colour's box once the pick is recorded -- the picker's only when the seat
       is his -- so the record and the boxes agree and Resync has nothing to move. One case, failing on
       the old build with the picker's box on seat 2. Not yet confirmed in TTS.
+- [x] **An off-turn point before a faction's turn shows in the current round at once, and comes off
+      if reverted.** Maintainer, 2026-09-20: "if a faction wins a point in a round but not on their
+      turn and they have not taken their turn yet you need to update their score for the score of
+      that turn ... even though they have not taken their turn in that round ... now if the player
+      reverts that score and goes back to the same score that he had in previous round then you need
+      to remove that score and that turn to what it was before". Before, the sheet only amended a
+      box the faction's own turn had already written. v1.465 (amendRound): a faction yet to play
+      gets the round's cell written PROVISIONALLY (row.prov) the moment its marker moves off-turn,
+      updated in place on further changes, and emptied again if the marker returns to where the last
+      round left it; its own turn then writes the cell for real and counts as one turn. The existing
+      case carries the new rule and fails on the old build. Not yet confirmed in TTS.
 - [ ] **"All the clearing markers seemed to be unlocked."** Simber, same game. In the autosave taken
       ten seconds after the win all twelve priority markers are LOCKED, and the map too. Resync's
       lock mode unlocks each object for one frame and locks it again, so nothing stays unlocked by

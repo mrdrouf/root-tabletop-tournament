@@ -11174,12 +11174,43 @@ def t_an_off_turn_point_lands_in_the_round_it_happened_in(src):
     assert locks == [2, 5, 7, 9], \
         "an off-turn point should have made round 4 read 9: the row reads %s" % locks
 
-    # p4 has NOT played round 4 -- nothing is written, so nothing is amended
-    rt = sheet_with([row("Corvid Conspiracy", 12, [3, 3, 3])])   # marker moved, box not written
+    # p4 has NOT played round 4 -- the point is written into round 4 anyway, PROVISIONALLY. Maintainer,
+    # 2026-09-20: "you need to update their score for the score of that turn ... even though they have
+    # not taken their turn in that round". This branch used to do nothing.
+    rt = sheet_with([row("Corvid Conspiracy", 12, [3, 3, 3])])   # marker moved to 12, box not written
     rt.execute("amendRound(1)")
-    locks = json.loads(rt.eval("onSave()"))["rows"][0]["locks"]
-    assert locks == [3, 3, 3], \
-        "a faction yet to play this round had a box written for it early: %s" % locks
+    saved = json.loads(rt.eval("onSave()"))["rows"][0]
+    assert saved["locks"] == [3, 3, 3, 12], \
+        "an off-turn point before their turn was not written into round 4: %s" % saved["locks"]
+    assert saved.get("prov", {}).get("4") is True, "the early cell is not marked provisional: %r" % saved.get("prov")
+    assert not saved.get("lastRound") or saved["lastRound"] == 3, "a provisional cell counted as the turn played"
+
+    # ...and it comes off again when the marker goes back to where the last round left them:
+    # "if the player reverts that score and goes back to the same score that he had in the previous
+    # round then you need to remove that score and that turn, to what it was before"
+    r = row("Corvid Conspiracy", 3, [3, 3, 3, 12]); r["prov"] = {"4": True}
+    rt = sheet_with([r])
+    rt.execute("amendRound(1)")
+    saved = json.loads(rt.eval("onSave()"))["rows"][0]
+    assert saved["locks"] == [3, 3, 3], "the reverted provisional point was not removed: %s" % saved["locks"]
+    assert not saved.get("prov", {}).get("4"), "the provisional mark was left behind"
+
+    # ...a second off-turn change before their turn just updates the provisional cell
+    r = row("Corvid Conspiracy", 13, [3, 3, 3, 12]); r["prov"] = {"4": True}
+    rt = sheet_with([r])
+    rt.execute("amendRound(1)")
+    saved = json.loads(rt.eval("onSave()"))["rows"][0]
+    assert saved["locks"] == [3, 3, 3, 13], "a further off-turn point did not update the provisional cell: %s" % saved["locks"]
+
+    # ...and their own turn then writes the cell for real, counting as ONE turn, not two
+    r = row("Corvid Conspiracy", 13, [3, 3, 3, 12]); r["prov"] = {"4": True}
+    rt = sheet_with([r], turns=7)
+    rt.execute("rebuildUI = function() end uiEndTurn()")   # the END TURN button locks the active row (1); no UI here
+    saved = json.loads(rt.eval("onSave()"))
+    assert saved["rows"][0]["locks"] == [3, 3, 3, 13] and saved["rows"][0]["lastRound"] == 4, \
+        "the turn did not write the final cell: %s" % saved["rows"][0]
+    assert saved["turns"] == 8, "a turn after a provisional cell was counted %s times" % (saved["turns"] - 7)
+    assert not saved["rows"][0].get("prov", {}).get("4"), "the provisional mark outlived the turn"
 
     # a hand-typed box is replaced by the marker, and its edit cleared with it
     rt = sheet_with([row("Keepers in Iron", 7, [0, 1, 5, 6], {"4": "12"})])
