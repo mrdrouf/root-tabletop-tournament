@@ -3172,6 +3172,7 @@ function rttNewGame(seats)
     pcall(function() rttSpawnMapExtras() end)
   end, 1)
   rttRemoveFrogsFromDeck()                         -- the deck survives teardown; its frog cards must not
+  pcall(function() rttRemoveFrogLeftovers() end)   -- ...nor the ones in hands or on the table
   if seats ~= nil then rttEnableTurns(seats) end
 end
 function rttBusyBegin(sec)
@@ -8272,17 +8273,22 @@ end
 function rttRemoveFrogsFromDeck()
   local deck = rttFindMainDeck()
   if deck == nil then return end
-  local guids = {}
+  -- BY INDEX, HIGHEST FIRST, NOT BY GUID. Two entries of a deck can carry the SAME guid: the maintainer's
+  -- own save of 2026-09-19 holds "Assimilators" twice under one guid, a leftover frog card from the
+  -- previous game merged in beside the fresh kit's copy. takeObject by guid pulls one of the two and
+  -- leaves its twin in the deck; taken from the top index down, the indices below never shift.
+  local idx = {}
   for _, c in ipairs(deck.getObjects() or {}) do
-    if (c.description or "") == "Frog" and c.guid ~= nil then guids[#guids + 1] = c.guid end
+    if (c.description or "") == "Frog" and c.index ~= nil then idx[#idx + 1] = c.index end
   end
-  if #guids == 0 then return end
+  if #idx == 0 then return end
+  table.sort(idx, function(x, y) return x > y end)
   local dp = deck.getPosition()
   local function pull(i)
-    if i > #guids then return end
+    if i > #idx then return end
     pcall(function()
       deck.takeObject({
-        guid              = guids[i],
+        index             = idx[i],
         position          = { dp.x, dp.y + 3, dp.z },
         smooth            = false,
         callback_function = function(o) pcall(function() o.destruct() end) end,
@@ -8291,6 +8297,29 @@ function rttRemoveFrogsFromDeck()
     Wait.time(function() pull(i + 1) end, 0.1)   -- one at a time: no deck-busy / collapse race
   end
   pull(1)
+end
+
+-- ...AND THE FROG CARDS THAT ARE NOT IN THE DECK. A frog card dealt into a hand or left on the table
+-- carries no tag -- the kit's cards are not "RTT Faction", and they were never "Deck Object" -- so a
+-- new game's teardown walked past it and a deck pick left it alone, and the next frog game's merge,
+-- which sweeps every loose frog card into the deck, put it in beside the fresh kit's copy of itself:
+-- the same card twice, same guid, in one deck (the maintainer's save of 2026-09-19). A new game has no
+-- kit out yet, so every frog card on the table at this moment is a leftover. All-frog piles (the pond's
+-- pile) too.
+function rttRemoveFrogLeftovers()
+  local gone = 0
+  for _, o in ipairs(getAllObjects()) do
+    pcall(function()
+      local nm = o.name
+      if (nm == "Card" or nm == "CardCustom") and (o.getDescription() or "") == "Frog" then
+        o.destruct(); gone = gone + 1
+      elseif nm == "Deck" then
+        local frog, total = rttFrogCount(o)
+        if total > 0 and frog == total then o.destruct(); gone = gone + 1 end
+      end
+    end)
+  end
+  return gone
 end
 
 -- ...AND IT WAITS FOR THE SLOT RATHER THAN SETTLING FOR THE BIGGEST PILE.

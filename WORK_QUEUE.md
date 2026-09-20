@@ -414,6 +414,25 @@ Where to cut, if it is ever needed, biggest first (none done):
 - [ ] Map lock and prisoner timers: every 3-5 s instead of every second.
 - [ ] The clean test of the recorder: `OBS_ENABLED = false` in the Global script for one game.
 
+- [x] **Two rabbit Ambush cards in one game, nobody cloned one.** Maintainer, 2026-09-20. No
+      function clones a card during play -- the two archived games of the 19th show not one card
+      spawned after START -- but cards LEAK BETWEEN GAMES on one table, and the maintainer's own
+      autosave of the 19th shows the shape of it: "Assimilators" twice inside the main deck under ONE
+      guid. Two roads, both closed in v1.460:
+      (1) A frog card carries no tag (not "RTT Faction", never "Deck Object"), so one dealt into a
+      hand or left on the table survived the new game's teardown, and the next frog game's merge,
+      which sweeps every loose frog card into the deck, put it in beside the fresh kit's copy of
+      itself. The removal that runs on every new game took the deck's frog cards by guid, which pulls
+      one of two twins and leaves the other. NOW: the new game also destroys every frog card in a
+      hand or on the table and every all-frog pile, and the deck's frog cards go by index, top down.
+      (2) The Standard and Exiles & Partisans deck blueprints tagged only the deck, not the 54 cards
+      (Squires & Disciples and Dark tag both), so a card dealt from them survived the next deck pick
+      (makeDeck destroys "Deck Object" only) and came back beside the new deck's copy -- the road to
+      two rabbit Ambushes with either of those decks. NOW: every card of every shared deck is tagged
+      in the blueprint. Two cases, both failing on the old build.
+      Still theoretical, recorded in NULL_AUDIT.md's spirit: the Resync card pass respawns a
+      snapshotted card it cannot find by guid or within 0.05 of its old spot -- a card dropped onto a
+      deck during that half-second would come back twice. Not seen in any archive.
 - [ ] **"All the clearing markers seemed to be unlocked."** Simber, same game. In the autosave taken
       ten seconds after the win all twelve priority markers are LOCKED, and the map too. Resync's
       lock mode unlocks each object for one frame and locks it again, so nothing stays unlocked by

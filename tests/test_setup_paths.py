@@ -249,6 +249,64 @@ def t_new_game_removes_frog_cards(src):
     assert rt.eval("#SHARED.__cards") == 40, "removal took non-frog cards too (deck is %d)" % rt.eval("#SHARED.__cards")
 
 
+def t_a_new_game_purges_frog_leftovers(src):
+    """Frog cards left in hands, on the table, in a pile, or twice in the deck do not reach the next game.
+
+    Maintainer, 2026-09-20: "there were somehow two bunny ambush cards. Everyone said they didn't
+    clone it." His own autosave of the 19th shows the shape of it: "Assimilators" twice inside the
+    main deck under ONE guid. A frog card carries no tag, so a new game's teardown walked past the one
+    in a hand and the next frog game's merge swept it in beside the fresh kit's copy. And the removal
+    that runs on every new game took cards by guid, which pulls one of two twins and leaves the other.
+    """
+    rt = fresh(src)
+    rt.execute(DECK_LUA % 14)
+    rt.execute("""
+      SHARED.__cards[42].guid = SHARED.__cards[41].guid          -- twins: one guid, two entries
+      LOOSE = MKOBJ('Militias', { 10, 11.6, 10 }, {}) LOOSE.name = 'Card' LOOSE.tag = 'Card'
+      LOOSE.getDescription = function() return 'Frog' end
+      HELD = MKOBJ('Advocates', { -52, 12, 60 }, {}) HELD.name = 'Card' HELD.tag = 'Card'
+      HELD.getDescription = function() return 'Frog' end
+      HANDCARDS['Red'] = { HELD }
+      PILE = MKDECK({ {desc='Frog'}, {desc='Frog'}, {desc='Frog'} })
+      PLAIN = MKOBJ('Ambush', { 12, 11.6, 12 }, {}) PLAIN.name = 'Card' PLAIN.tag = 'Card'
+      PLAIN.getDescription = function() return 'Rabbit' end
+    """)
+    assert _frogs(rt) == 14, "fixture is wrong"
+    rt.execute("pcall(function() setupFactionBoards(nil,nil,nil) end) FLUSH(40)")
+    assert _frogs(rt) == 0, "%d frog cards survived in the deck (twins under one guid?)" % _frogs(rt)
+    assert rt.eval("#SHARED.__cards") == 40, "removal took non-frog cards too (deck is %d)" % rt.eval("#SHARED.__cards")
+    for name in ("LOOSE", "HELD", "PILE"):
+        assert rt.eval("%s.isDestroyed()" % name) is True, "%s from the previous game reached the next" % name
+    assert rt.eval("PLAIN.isDestroyed()") is False, "a plain deck card on the table was taken for a frog leftover"
+
+
+def t_every_shared_deck_card_carries_the_deck_tag(src):
+    """Every card of every shared deck is tagged "Deck Object", so a deck pick sweeps the dealt ones.
+
+    makeDeck destroys what is tagged "Deck Object" before it spawns the deck chosen. The Squires and
+    Disciples and Dark decks tag their cards; the Standard and Exiles and Partisans decks tagged only
+    the deck, so a card dealt from them -- in a hand, on the table -- survived the next deck pick and
+    came back alongside the new deck's copy of itself. Two rabbit Ambushes, nobody having cloned one.
+    """
+    a, b = src.index("EVERYTHING['Decks']"), src.index("EVERYTHING['Maps']")
+    sec = src[a:b]
+    decks, bad = 0, []
+    for m in re.finditer(r"json *= *\[\[(.*?)\]\]", sec, re.S):
+        try:
+            d = json.loads(m.group(1))
+        except ValueError:
+            continue
+        if d.get("Name") not in ("Deck", "DeckCustom"):
+            continue
+        decks += 1
+        cs = d.get("ContainedObjects") or []
+        untagged = [c.get("Nickname") for c in cs if "Deck Object" not in (c.get("Tags") or [])]
+        if untagged:
+            bad.append("%d of %d untagged (%s...)" % (len(untagged), len(cs), ", ".join(untagged[:3])))
+    assert decks >= 4, "only %d shared decks found in the build" % decks
+    assert not bad, "shared deck cards without the Deck Object tag: %s" % "; ".join(bad)
+
+
 CAP_DECK_HASH = "FA78C0F952724D77A33BECEC0651802808037E95"
 
 
@@ -14940,6 +14998,8 @@ CASES = [
     ("numpad 1 for a spectator says so", t_numpad_1_for_a_spectator_says_so),
     ("a closed selector is forgotten",  t_a_selector_closed_by_hand_is_forgotten),
     ("the pond sweep leaves a card in flight alone", t_the_pond_sweep_leaves_a_card_in_flight_alone),
+    ("a new game purges frog leftovers",  t_a_new_game_purges_frog_leftovers),
+    ("every shared deck card is tagged",  t_every_shared_deck_card_carries_the_deck_tag),
     ("the captains told follow the slot cards", t_the_captains_told_to_the_sheet_follow_the_slot_cards),
     ("the captain detector stops at START", t_the_captain_detector_stops_at_start),
     ("the sheet takes the captains it is told", t_the_sheet_takes_the_captains_it_is_told),

@@ -646,7 +646,15 @@ function MKDECK(specs)
   for i, sp in ipairs(specs) do
     o.__cards[i] = { guid = string.format("c%03d", i), description = sp.desc or "", nickname = sp.nick or "card" }
   end
-  function o.getObjects() return o.__cards end
+  -- WITH THE INDEX, as TTS answers it (0-based), so code that takes by index can be tested. The
+  -- entries are copies: the store is o.__cards and tests read it directly.
+  function o.getObjects()
+    local out = {}
+    for i, c in ipairs(o.__cards) do
+      out[i] = { guid = c.guid, description = c.description, nickname = c.nickname, index = i - 1 }
+    end
+    return out
+  end
   function o.getQuantity() return #o.__cards end
   function o.putObject(other)
     local n = #o.__cards
@@ -670,6 +678,9 @@ function MKDECK(specs)
       idx = nil
       for i, c in ipairs(o.__cards) do if c.guid == p.guid then idx = i break end end
       if idx == nil then return nil end
+    elseif p.index ~= nil then
+      idx = p.index + 1                              -- TTS indexes from 0
+      if idx < 1 or idx > #o.__cards then return nil end
     end
     local c = table.remove(o.__cards, idx)
     if c == nil then return nil end
