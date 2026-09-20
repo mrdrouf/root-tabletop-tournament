@@ -14797,6 +14797,52 @@ def t_the_resync_sweep_never_touches_the_table(src):
     assert any(x.startswith("piece") for x in touched), "the sweep touched nothing at all, so this proves nothing"
 
 
+def t_a_resync_hop_moves_neither_the_turn_nor_the_seat(src):
+    """Resync's hop off to Grey and back leaves the turn, the order and the seat where they were.
+
+    Maintainer, 2026-09-20, alone with several factions picked by himself: "resynch changed my seat
+    for some reason ... careful with that." Two things happened during the hop: TTS itself may move
+    the turn off a colour that has nobody in it, and the board's own colour-change handler re-applied
+    the turn order reading that moved turn as the one to keep. Now the reseat marks itself
+    (RTT_RESEATING) so the handler stays out, and it puts the turn back to what it was before the
+    press once the player is home.
+    """
+    rt = fresh(src)
+    rt.execute("""
+      SEAT('Red', 'Ann')
+      RTT_SEATS = { { color = 'Red',    owner = 'Ann', hand = RTT_SEAT_HAND[1], pos = { 52, -46 } },
+                    { color = 'Yellow', owner = 'Ann', hand = RTT_SEAT_HAND[2], pos = { -52, -46 } },
+                    { color = 'Orange', owner = 'Ann', hand = RTT_SEAT_HAND[3], pos = { -52, 46 } },
+                    { color = 'Teal',   owner = 'Ann', hand = RTT_SEAT_HAND[4], pos = { 52, 46 } } }
+      RTT_TURN_SEATS = 4
+      Turns.enable = true Turns.type = 2
+      Turns.order = { 'Red', 'Yellow', 'Orange', 'Teal' } Turns.turn_color = 'Red'
+      ENABLED = 0
+      local _e = rttEnableTurns
+      rttEnableTurns = function(...) ENABLED = ENABLED + 1 return _e(...) end
+      -- what TTS does around the hop: fires the colour-change event, and moves the turn off the
+      -- colour that just emptied
+      local off = Player['Red'].changeColor
+      Player['Red'].changeColor = function(nc)
+        off(nc)
+        if nc == 'Grey' then Turns.turn_color = 'Yellow' end
+        pcall(function() onPlayerChangeColor(nc) end)
+      end
+      REC.colors = {}
+      rttResyncReseatAll(nil)
+      FLUSH(80)
+    """)
+    hops = rt.eval("function() return table.concat(REC.colors, '|') end")()
+    assert hops == "Red -> Grey|Grey -> Red", "the player did not come straight back to Red: %r" % hops
+    assert rt.eval("Player['Red'].seated") is True, "Ann is not back on Red"
+    assert rt.eval("Turns.turn_color") == "Red", "the turn moved to %r during the hop" % rt.eval("Turns.turn_color")
+    assert rt.eval("ENABLED") == 0, "the colour-change handler re-applied the order %d time(s) during the hop" % rt.eval("ENABLED")
+    assert rt.eval("table.concat(Turns.order, ',')") == "Red,Yellow,Orange,Teal", "the order changed"
+    assert rt.eval("RTT_RESEATING") is False, "the reseat left its flag up"
+    # numpad 0 on a locked piece says nothing any more
+    assert "numpad 0 leaves it alone" not in src, "the locked-piece advice is back; he asked twice for it to go"
+
+
 def t_a_resync_re_sends_every_seat_in_turn(src):
     """Resync steps every seated player off their colour, re-places their hand box from the seat while
     nobody owns the colour, and steps them back -- one at a time, after the card pass.
@@ -15170,6 +15216,7 @@ CASES = [
     ("the captains told follow the slot cards", t_the_captains_told_to_the_sheet_follow_the_slot_cards),
     ("the captain detector stops at START", t_the_captain_detector_stops_at_start),
     ("the sheet reads on events, polls every 4 s", t_the_sheet_reads_on_events_and_polls_every_four_seconds),
+    ("a resync hop moves neither turn nor seat", t_a_resync_hop_moves_neither_the_turn_nor_the_seat),
     ("the sheet takes the captains it is told", t_the_sheet_takes_the_captains_it_is_told),
     ("a card dropped on the pond turns face up", t_a_card_dropped_on_the_pond_turns_face_up),
     ("the flush drains and dies",       t_the_flush_writes_its_queue_and_lets_the_timer_die),

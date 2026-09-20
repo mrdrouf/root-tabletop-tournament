@@ -455,20 +455,22 @@ Where to cut, if it is ever needed, biggest first (none done):
       blueprint lists one id twice, which the harness holds -- and destroys loose copies beyond the
       first, sparing hands; a twin inside a deck is reported for a hand to sort out. Faction kit
       cards (three Faithful Retainers) are not judged. Not yet confirmed in TTS.
-- [ ] **"Resynch changed my seat for some reason. I am alone with several factions picked by me.
-      Careful with that."** Maintainer, 2026-09-20, on v1.461. Not reproduced by reading: the reseat
-      (rttResyncReseatAll) walks the PLAYERS seated, steps each off to Grey, writes that colour's box
-      and steps them back onto the SAME colour, retrying and saying "Resync could not put you back on
-      <colour>" if it cannot; the stray-box pass moves boxes, never people. Needed: the colour he sat
-      in before the press and after, whether the chat said "could not put you back", and whether he
-      had switched colours to pick the factions.
+- [x] **"Resynch changed my seat for some reason. I am alone with several factions picked by me.
+      Careful with that."** Maintainer, 2026-09-20, on v1.461. The reseat steps the player off to
+      Grey and straight back, and two things happened in between: TTS may move the turn off a colour
+      with nobody in it, and the board's own colour-change handler re-applied the turn order reading
+      that moved turn as the one to keep -- with several factions all his, the turn (and the panel,
+      and the box score's row) landed on another of them. v1.463: the reseat marks itself
+      (RTT_RESEATING) so the handler stays out of its hops, and puts the turn back to what it was
+      before the press once the player is home (rttRestoreTurn). One case. Not yet confirmed in TTS.
 - [ ] **"All the clearing markers seemed to be unlocked."** Simber, same game. In the autosave taken
       ten seconds after the win all twelve priority markers are LOCKED, and the map too. Resync's
       lock mode unlocks each object for one frame and locks it again, so nothing stays unlocked by
       design. Unknown when he saw it; the video may show. Not started.
-- [ ] **Numpad 0 says "That piece is locked ..." even for a piece it would never move.** Maintainer:
-      "If the object would be unaffected, the error/advice shouldn't show." Gate the message on the
-      piece having a home to go to.
+- [x] **Numpad 0 says "That piece is locked ..." even for a piece it would never move.** Maintainer:
+      "If the object would be unaffected, the error/advice shouldn't show." Then, 2026-09-20: "I told
+      you already to remove that message." v1.463: the message is gone; a locked piece is left alone
+      in silence.
 - [ ] **Box score: auto-detect the three captains picked when the Knaves are in.** Maintainer: "add
       the autodetec of the 3 captains picked in boxscore with knaves faction."
 - [ ] **A dominance card spent into the Lost Souls stays there until discarded** (the rules), and

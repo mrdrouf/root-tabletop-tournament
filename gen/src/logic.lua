@@ -2744,6 +2744,14 @@ end
 RTT_RESEAT_TRIES  = 12    -- frames to keep trying to put a player back on their colour
 RTT_REHAND_FRAMES = 2     -- frames the player stays off the colour after the boxes are written
 
+-- THE TURN AS IT WAS BEFORE THE HOP, put back after it. TTS keeps its own counsel about a colour
+-- with nobody in it; what the table showed before the press is what it must show after.
+RTT_RESEATING = false
+function rttRestoreTurn(turnWas)
+  if turnWas == nil or turnWas == "" then return end
+  pcall(function() if Turns.turn_color ~= turnWas then Turns.turn_color = turnWas end end)
+end
+
 function rttResyncReseatOne(color, id, name, next)
   local p = nil
   pcall(function() p = Player[color] end)
@@ -2769,13 +2777,15 @@ function rttResyncReseatOne(color, id, name, next)
   end
   -- THE CARDS COME OUT FIRST (rttLiftHandCards) and go back in once the player is home; a hop that
   -- cannot even start puts them straight back.
+  local turnWas = nil
+  pcall(function() turnWas = Turns.turn_color end)
   local lifted = rttLiftHandCards(color)
   local stepped = false
   pcall(function() p.changeColor("Grey") stepped = true end)
   if not stepped then rttDealBackCards(color, lifted) return false end
   rttWriteSeatHand(color, seat.hand, true)                 -- the hand box, while nobody owns the colour
   local function home()
-    Wait.frames(function() rttDealBackCards(color, lifted) next() end, 1)
+    Wait.frames(function() rttDealBackCards(color, lifted) rttRestoreTurn(turnWas) next() end, 1)
   end
   local tries = 0
   local function back()
@@ -2797,6 +2807,7 @@ function rttResyncReseatOne(color, id, name, next)
 end
 
 function rttResyncReseatAll(onDone)
+  RTT_RESEATING = true                                     -- the hops below are not seat changes
   local seats = {}
   pcall(function()
     for _, q in ipairs(Player.getPlayers()) do
@@ -2809,6 +2820,7 @@ function rttResyncReseatAll(onDone)
   local function step()
     i = i + 1
     if i > #seats then
+      RTT_RESEATING = false
       if onDone ~= nil then onDone(#seats) end
       return
     end
@@ -3120,6 +3132,11 @@ end
 -- All this does is re-assert the order (a colour freed or taken can change what TTS will step
 -- through) and re-publish, so the box score sees the same truth the board holds.
 function onPlayerChangeColor(player_color)
+  -- NOT FOR RESYNC'S OWN HOP. The reseat steps a player off to Grey and straight back to repair the
+  -- hand box; that is not a seat change, and re-applying the order in between reads the turn off a
+  -- table with nobody in the seat. Maintainer, 2026-09-20, alone with several factions: "resynch
+  -- changed my seat for some reason". The reseat also puts the turn back itself (rttRestoreTurn).
+  if RTT_RESEATING == true then return end
   if RTT_TURN_SEATS == nil then return end          -- no game set up yet: nothing to re-apply
   local keep = nil
   pcall(function() keep = Turns.turn_color end)
@@ -11294,11 +11311,9 @@ function rttGizmoHome(color)
   -- not know it. A locked piece is not the gizmo's to move: ruins, prisoners and the map are locked on
   -- purpose, and a warrior somebody locked by hand is theirs to unlock. But a key that refuses must
   -- say why, so the next report names the lock and not the key.
+  -- IN SILENCE. Maintainer, 2026-09-19 and again 2026-09-20 ("I told you already to remove that
+  -- message"): the advice showed on pieces numpad 0 would never move anyway, so it is gone.
   if locked then
-    pcall(function()
-      broadcastToColor("That piece is locked, so numpad 0 leaves it alone. Unlock it (L) and try again.",
-                       color, { r = 1, g = 0.6, b = 0.2 })
-    end)
     return
   end
 
