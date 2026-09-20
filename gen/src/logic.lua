@@ -3690,12 +3690,24 @@ function makeFaction(player,value,id,source)
   -- drops that move on the owner's client, see rttPlaceSeatHands -- so the picker is parked in Grey
   -- for the frame it takes, the hand is placed from this seat, and the picker sits back down.
   local pc = player.color
-  rttPlaceHandsAround(pc, { pos = seatHand.position, rot = seatHand.rotation })
-  pcall(function() rttEvictStrayHands(seatHand.position, pc) end)   -- nobody else's box on this seat
-
   -- Hand the seat DOWN rather than letting rttPlaceFaction read it back: same values, but now the
   -- result no longer depends on whether hand 1 has finished moving.
   rttPlaceFaction(id, cp.x, cp.z, flip, pc, false, category, spawnRy, pc, seatHand)
+
+  -- THE SEAT'S OWN COLOUR'S BOX, placed once the pick is recorded. rttPlaceFaction gives the seat
+  -- the picker's colour if no other seat has it, else a free one -- one person picking several
+  -- factions (the maintainer testing alone) gets seat 1 in his colour and the rest in free colours.
+  -- This used to place the PICKER's box on every pick, so his box followed his last pick while the
+  -- record kept his colour on the first seat, and the next Resync, repairing the box to the record,
+  -- put it back on seat 1: "resynch changed my seat", 2026-09-20, twice. A seat that is not the
+  -- picker's gets its own colour's box here, and the picker's is not touched.
+  local seatColor = pc
+  pcall(function()
+    local s = RTT_SEATS[rttSeatAt(cp.x, cp.z, false)]
+    if s ~= nil and s.color ~= nil and s.color ~= "" then seatColor = s.color end
+  end)
+  rttPlaceHandsAround(seatColor, { pos = seatHand.position, rot = seatHand.rotation })
+  pcall(function() rttEvictStrayHands(seatHand.position, seatColor) end)   -- nobody else's box on this seat
   -- A Vagabond is a CHARACTER, not a whole faction: the character data is just the pawn, its items and
   -- its VP marker. The shared board, dice and quest kit come from two more blueprint entries, which the
   -- draft paths already pull in via makeVagabondLayout. The manual selector needs the same, placed at

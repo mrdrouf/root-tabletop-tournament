@@ -463,6 +463,14 @@ Where to cut, if it is ever needed, biggest first (none done):
       and the box score's row) landed on another of them. v1.463: the reseat marks itself
       (RTT_RESEATING) so the handler stays out of its hops, and puts the turn back to what it was
       before the press once the player is home (rttRestoreTurn). One case. Not yet confirmed in TTS.
+      "STILL CHANGED MY SEAT" (v1.463) -- the real road, closed in v1.464: the manual pick placed
+      the PICKER's hand box on every pick (makeFaction, rttPlaceHandsAround with the picker's colour),
+      so one person picking several factions had his box follow his last pick, while rttPlaceFaction,
+      refused a second seat in his colour, gave that seat a free colour and kept his colour on seat 1.
+      Resync repairs a box to the RECORD, so it put his box back on seat 1 every time. The pick now
+      places the seat's own colour's box once the pick is recorded -- the picker's only when the seat
+      is his -- so the record and the boxes agree and Resync has nothing to move. One case, failing on
+      the old build with the picker's box on seat 2. Not yet confirmed in TTS.
 - [ ] **"All the clearing markers seemed to be unlocked."** Simber, same game. In the autosave taken
       ten seconds after the win all twelve priority markers are LOCKED, and the map too. Resync's
       lock mode unlocks each object for one frame and locks it again, so nothing stays unlocked by

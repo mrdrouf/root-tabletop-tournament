@@ -14843,6 +14843,49 @@ def t_a_resync_hop_moves_neither_the_turn_nor_the_seat(src):
     assert "numpad 0 leaves it alone" not in src, "the locked-piece advice is back; he asked twice for it to go"
 
 
+def t_a_second_pick_by_the_same_person_leaves_their_box_where_it_is(src):
+    """One person picking several factions keeps their hand box on their first seat; the other
+    seats get their own colours' boxes; a Resync afterwards moves nothing.
+
+    Maintainer, 2026-09-20, alone with several factions: "resynch changed my seat for some reason"
+    -- and after the first fix, "still changed my seat". The manual pick placed the PICKER's box on
+    every pick, so his box followed his last pick, while rttPlaceFaction, refused a second seat in
+    his colour, gave that seat a free colour and kept his on seat 1. Resync repairs a box to the
+    record, so it put his box back on seat 1. The pick places the seat's own colour's box now.
+    """
+    rt = fresh(src)
+    rt.execute("""
+      pcall(function() setupFactionBoards(nil, nil, nil) end) FLUSH(10)
+      SEAT('Red', 'Ann')
+      B = {}
+      for _, o in ipairs(getObjectsWithTag('RTT Manual Selector')) do
+        local p = o.getPosition()
+        if math.abs(p.x - 52) < 1 and math.abs(p.z + 46) < 1 then B[1] = o end
+        if math.abs(p.x + 52) < 1 and math.abs(p.z + 46) < 1 then B[2] = o end
+      end
+    """)
+    assert rt.eval("B[1] ~= nil and B[2] ~= nil"), "the two selector boards were not found at their seats"
+    rt.execute("pcall(function() makeFaction({ color = 'Red' }, '', 'Marquise de Cat', B[1]) end) FLUSH(150)")
+    assert rt.eval("RTT_SEATS[1].color") == "Red", "the first pick did not give seat 1 the picker's colour"
+    h1 = dict(rt.eval("HANDOF('Red', 1)"))
+    assert abs(h1["x"] - 52) < 3 and h1["z"] < -50, "after the first pick Red's box is not behind seat 1: %r" % h1
+    rt.execute("REC.hands = {} pcall(function() makeFaction({ color = 'Red' }, '', 'Eyrie Dynasties', B[2]) end) FLUSH(150)")
+    c2 = rt.eval("RTT_SEATS[2].color")
+    assert c2 and c2 != "Red", "seat 2 took the picker's colour too: %r" % c2
+    h1b = dict(rt.eval("HANDOF('Red', 1)"))
+    assert abs(h1b["x"] - h1["x"]) < 0.01 and abs(h1b["z"] - h1["z"]) < 0.01, \
+        "the second pick moved the picker's box from seat 1 to %r" % h1b
+    h2 = dict(rt.eval("HANDOF('%s', 1)" % c2))
+    assert abs(h2["x"] + 52) < 3 and h2["z"] < -50, "seat 2's colour %s has no box behind seat 2: %r" % (c2, h2)
+    moved_red = [str(v) for v in rt.eval("REC.hands").values() if str(v).startswith("Red#1")]
+    assert not moved_red, "the second pick wrote Red's box: %r" % moved_red
+    # ...and a Resync afterwards leaves the picker exactly where they are
+    rt.execute("REC.hands = {} rttResyncReseatAll(nil) FLUSH(80)")
+    h1c = dict(rt.eval("HANDOF('Red', 1)"))
+    assert abs(h1c["x"] - h1["x"]) < 0.01 and abs(h1c["z"] - h1["z"]) < 0.01, "Resync moved the picker's box to %r" % h1c
+    assert rt.eval("Player['Red'].seated") is True, "Ann is not back on Red after the Resync"
+
+
 def t_a_resync_re_sends_every_seat_in_turn(src):
     """Resync steps every seated player off their colour, re-places their hand box from the seat while
     nobody owns the colour, and steps them back -- one at a time, after the card pass.
@@ -15217,6 +15260,7 @@ CASES = [
     ("the captain detector stops at START", t_the_captain_detector_stops_at_start),
     ("the sheet reads on events, polls every 4 s", t_the_sheet_reads_on_events_and_polls_every_four_seconds),
     ("a resync hop moves neither turn nor seat", t_a_resync_hop_moves_neither_the_turn_nor_the_seat),
+    ("a second pick leaves the picker's box", t_a_second_pick_by_the_same_person_leaves_their_box_where_it_is),
     ("the sheet takes the captains it is told", t_the_sheet_takes_the_captains_it_is_told),
     ("a card dropped on the pond turns face up", t_a_card_dropped_on_the_pond_turns_face_up),
     ("the flush drains and dies",       t_the_flush_writes_its_queue_and_lets_the_timer_die),

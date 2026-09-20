@@ -476,6 +476,7 @@ function MKOBJ(name, pos, tags)
   o.__uiids = nil
   o.__uiattr = {}
   o.UI = {setXml=function() end, getAttribute=function() return "" end,
+          getAttributes=function() return {} end,       -- makeFaction reads the button's attributes
           setAttribute=function(id, k, v)
             if o.__uiids ~= nil and o.__uiids[tostring(id)] ~= true then
               error("Object reference not set to an instance of an object. (no UI element '"
