@@ -501,6 +501,15 @@ Where to cut, if it is ever needed, biggest first (none done):
       dealt again, three times, and one that still will not go is set down INSIDE the hand box,
       unlocked, where the zone takes it. Two cases, both failing on the old build (the existing
       reseat case now requires the card to end out of the air). Not yet confirmed in TTS.
+      THE CHAIN, read off his autosave (TS_AutoSave_8, 2026-09-21 12:50, a build before v1.463): his
+      White box still behind the last seat picked (pre-v1.464), the record on seat 1; Resync pressed
+      holding a card; the repair lifted his five cards (floating, locked); the step off the colour
+      was REFUSED -- the box was never written, and TTS declines to move a player holding an object
+      -- so the repair gave up and dealt the cards straight back in the frame it had moved them; the
+      deal did not take; unlocked in the air they fell onto one another: a five-card deck, face up,
+      on the table surface inside the White zone, which a hand cannot lay out. v1.468: the reseat
+      also checks that the step off actually took (a refusal without an error counted as success),
+      and an aborted repair deals back two frames later, not in the frame it moved the cards.
 - [ ] **"All the clearing markers seemed to be unlocked."** Simber, same game. In the autosave taken
       ten seconds after the win all twelve priority markers are LOCKED, and the map too. Resync's
       lock mode unlocks each object for one frame and locks it again, so nothing stays unlocked by

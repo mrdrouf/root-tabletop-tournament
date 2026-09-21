@@ -2789,7 +2789,19 @@ function rttResyncReseatOne(color, id, name, next)
   local lifted = rttLiftHandCards(color)
   local stepped = false
   pcall(function() p.changeColor("Grey") stepped = true end)
-  if not stepped then rttDealBackCards(color, lifted) return false end
+  -- ...AND CHECK IT TOOK. TTS declines to change the colour of a player who is holding an object,
+  -- and it can decline without throwing. The maintainer's autosave of 2026-09-21 shows the result of
+  -- taking a refusal for a step: the box never written, the lifted cards dealt straight back in the
+  -- frame they were moved, the deal not taking, five cards fallen into one deck inside the zone.
+  if stepped then
+    local still = false
+    pcall(function() still = (Player[color] ~= nil and Player[color].seated == true) end)
+    if still then stepped = false end
+  end
+  if not stepped then
+    Wait.frames(function() rttDealBackCards(color, lifted) end, 2)   -- not in the frame they were moved
+    return false
+  end
   rttWriteSeatHand(color, seat.hand, true)                 -- the hand box, while nobody owns the colour
   local function home()
     Wait.frames(function() rttDealBackCards(color, lifted) rttRestoreTurn(turnWas) next() end, 1)
