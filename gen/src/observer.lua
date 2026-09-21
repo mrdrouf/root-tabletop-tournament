@@ -142,6 +142,10 @@ OBS_TURN_WAIT_MAX = 30
 -- played. The exposure is at the table, not in the archive.
 
 OBS_ENABLED = true
+-- THE RESYNC RESEAT. The board sets this (Global.setVar) while it hops players off their colour and
+-- back: the turn pointer goes with the hop and comes back, and neither pass is a turn. See
+-- logic.lua, rttTurnHold.
+OBS_TURN_HOLD = false
 
 -- THE ENDPOINT IS A CONSTANT, for the same reason the Root Database's URL is one in the box score:
 -- a settable URL in an object strangers load off a save is an exfiltration field. There is no write
@@ -1783,6 +1787,7 @@ end
 
 function onPlayerTurn(player, previous_player)
   if not OBS_ENABLED then return end
+  if OBS_TURN_HOLD == true then return end          -- the Resync reseat: see rttTurnHold in logic.lua
   -- `player` is USERDATA. Read `.color` inside a pcall and never ask what type it is: the test stub
   -- hands a plain table here and TTS does not, which is precisely how that mistake survives a green
   -- test suite. `previous_player` is nil on the first turn of a game.

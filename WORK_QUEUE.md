@@ -539,6 +539,22 @@ Where to cut, if it is ever needed, biggest first (none done):
       unnecessary fluff in the document" -- so it is one page now, one line per item, no asides.
       Then "the text on the document is too much still be more to the point concise precise
       rigorous": every item is a fragment now, "thing: what happens", no full sentences.
+- [x] **"When clicking start twice the boxscore skips a turn when we play instead of restarting
+      fresh from turn 1."** Maintainer, 2026-09-22. His autosave of 00:08 (Knaves, Rats, Diaspora,
+      Eyrie): two "panel start" events, 570 s and 625 s into the sheet's log, both clean -- START ran
+      twice because the sheet held no lock yet, and the second left nothing behind. The skip came at
+      771.7 s, 146 s later: Knaves locked in round 1, then a THIRD OF A SECOND later Rats locked at 0
+      and the round went to 2; Knaves' real first turn then landed in column 2 at 862.8 s, and he
+      repaired the sheet by hand at 1486 s. Two passes 0.3 s apart, forward then back, is the Resync
+      reseat: stepping the turn holder off their colour makes TTS pass the turn on, and
+      rttRestoreTurn passes it back. The sheet locked the outgoing row on each, and the return,
+      going backwards in the order, read as a wrap. (Whether Resync was pressed then is not in the
+      save; the shape matches nothing else in the mod.) v1.478: the board holds the sheet, the turn
+      panel and the recorder for the whole reseat (rttTurnHold -> the sheet's rttTurnHold, the
+      panel's panelTurnHold, Global OBS_TURN_HOLD) and releases them two frames after the last
+      restore; held, the sheet locks nothing and moves no round, the panel's clock does not restart,
+      the recorder writes no turn; the sheet lets go by itself after ten seconds if never released.
+      START itself is unchanged. Three cases. Not yet confirmed in TTS.
 - [ ] **"All the clearing markers seemed to be unlocked."** Simber, same game. In the autosave taken
       ten seconds after the win all twelve priority markers are LOCKED, and the map too. Resync's
       lock mode unlocks each object for one frame and locks it again, so nothing stays unlocked by

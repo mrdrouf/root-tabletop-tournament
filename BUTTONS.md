@@ -62,7 +62,9 @@ script spawn reaches a client as an incremental create message, a distant client
 nothing re-sends it. The host cannot tell what is missing, so the sweep is an unconditional blind
 resend of everything except four things — the coordinator board, anything held, anything in a hand,
 and a laid prisoner. It destroys nothing, so it asks nothing and runs on a single click, and its own
-busy flag is the debounce.
+busy flag is the debounce. The reseat that follows hops each player off their colour and back, and
+the turn pointer goes with the hop and returns; the box score, the turn panel and the recorder are
+held for the whole reseat so that trip is not read as two turns and a new round.
 
 **It is the ONLY way a sweep runs.** `RTT_RESYNC_AUTO` is `false`, so nothing sweeps in the
 background: a sweep writes state to every object on the table, and doing that automatically after

@@ -14897,12 +14897,42 @@ def t_a_resync_hop_moves_neither_the_turn_nor_the_seat(src):
         if nc == 'Grey' then Turns.turn_color = 'Yellow' end
         pcall(function() onPlayerChangeColor(nc) end)
       end
+      -- the sheet and the panel, as far as the board can tell them apart: each answers for its hold
+      -- API and records every call with where the pointer stood and how many hops had happened
+      HOLDS = {}
+      SHEET = MKOBJ('Root Box Score', {0, 1, 0}, {'RTT BoxScore'})
+      SHEET.getVar = function(k) if k == 'RTT_HOLD_API' then return true end end
+      SHEET.call = function(fn, d)
+        HOLDS[#HOLDS + 1] = 'sheet:' .. fn .. ':' .. tostring(d and d.on) .. '@' .. tostring(Turns.turn_color) .. '#' .. #REC.colors
+        return true
+      end
+      PANEL = MKOBJ('Turn Panel', {0, 1, 0}, { RTT_TAG_PANEL })
+      PANEL.getVar = function(k) if k == 'PANEL_HOLD_API' then return true end end
+      PANEL.call = function(fn, d) HOLDS[#HOLDS + 1] = 'panel:' .. fn .. ':' .. tostring(d and d.on) return true end
+      HELD_AT_HOP = nil
+      local off2 = Player['Red'].changeColor
+      Player['Red'].changeColor = function(nc)
+        if nc == 'Grey' then HELD_AT_HOP = Global.getVar('OBS_TURN_HOLD') end
+        off2(nc)
+      end
       REC.colors = {}
       rttResyncReseatAll(nil)
       FLUSH(80)
     """)
     hops = rt.eval("function() return table.concat(REC.colors, '|') end")()
     assert hops == "Red -> Grey|Grey -> Red", "the player did not come straight back to Red: %r" % hops
+    # THE HOP IS NOT A TURN. Maintainer, 2026-09-22: "the boxscore skips a turn when we play" -- the
+    # pointer's trip off and back was locked as two turns and read as a wrap. The sheet, the panel
+    # and the recorder are held from before the first hop until after the last restore has landed.
+    holds = [str(v) for v in (rt.eval("HOLDS") or {}).values()]
+    assert holds and holds[0] == "sheet:rttTurnHold:true@Red#0", \
+        "the sheet was not told to hold before the first hop: %r" % holds
+    assert "panel:panelTurnHold:true" in holds and "panel:panelTurnHold:false" in holds, \
+        "the panel was not held and released: %r" % holds
+    assert holds[-1].startswith("sheet:rttTurnHold:false@Red#2") or holds[-2].startswith("sheet:rttTurnHold:false@Red#2"), \
+        "the sheet was not released after both hops with the turn back on Red: %r" % holds
+    assert rt.eval("HELD_AT_HOP") is True, "the recorder was not held while the player stepped off"
+    assert rt.eval("Global.getVar('OBS_TURN_HOLD')") is False, "the recorder was left held"
     assert rt.eval("Player['Red'].seated") is True, "Ann is not back on Red"
     assert rt.eval("Turns.turn_color") == "Red", "the turn moved to %r during the hop" % rt.eval("Turns.turn_color")
     assert rt.eval("ENABLED") == 0, "the colour-change handler re-applied the order %d time(s) during the hop" % rt.eval("ENABLED")
@@ -15148,6 +15178,68 @@ def t_numpad_1_takes_a_warrior_from_a_home_set_with_numpad_4(src):
     rt.execute("A.setLock(true) rttGizmoTake('Red') FLUSH(10)")
     assert abs(rt.eval("A.__pos.x") - ax) < 0.01 and rt.eval("TOOK") == 2, \
         "a locked warrior on the row was taken, or the bag was not used instead (x %.1f, took %d)" % (rt.eval("A.__pos.x"), rt.eval("TOOK"))
+
+
+def t_the_sheet_ignores_passes_while_resync_reseats(src):
+    """While the board holds it, the sheet locks nothing and moves no round, whatever passes arrive.
+
+    Maintainer, 2026-09-22: "the boxscore skips a turn when we play instead of restarting fresh from
+    turn 1." His autosave: Knaves locked at 771.7 s, Rats locked at 0 a third of a second later, and
+    the round went to 2 -- the Resync reseat's hop off Red and back, read as two turns and a wrap.
+    Held, both passes are ignored; released, a real pass locks as before; and a hold the board never
+    releases lets go by itself after ten seconds.
+    """
+    sheet = json.loads(re.search(r"RTT_BOXSCORE_JSON = \[====\[(.*?)\]====\]", src, re.S).group(1))
+    rt = lupa.LuaRuntime(unpack_returned_tuples=True)
+    rt.execute(open(os.path.join(HERE, "tts_stub.lua"), encoding="utf-8").read())
+    rt.execute(sheet["LuaScript"].replace("!=", "~="))
+    state = json.dumps({
+        "rows": [{"fac": "Knaves", "color": "Red", "score": 2, "locks": [], "edits": {}},
+                 {"fac": "Rats", "color": "Yellow", "score": 0, "locks": [], "edits": {}}],
+        "meta": {"map": "", "deck": ""}, "active": 1, "round": 1, "turns": 0, "started": True,
+    })
+    rt.execute("""
+      self.UI.setXml = function() end
+      Global = { call = function() return true end }
+      SEAT('Red', 'Ann') SEAT('Yellow', 'Ben')
+      Turns.enable = true Turns.order = { 'Red', 'Yellow' } Turns.turn_color = 'Red'
+    """)
+    rt.execute("pcall(function() onLoad(%s) end) FLUSH(20)" % json.dumps(state))
+    assert rt.eval("RTT_HOLD_API") is True, "the sheet does not announce the hold API"
+    st = lambda: json.loads(rt.eval("onSave()"))          # S is file-local: onSave is the way in
+    locks = lambda: [list(r.get("locks") or []) for r in st()["rows"]]
+    turns = lambda: st().get("turns") or 0
+    rnd = lambda: st().get("round") or 0
+    # the hop: off Red to Yellow and back, both while held
+    rt.execute("rttTurnHold({ on = true }) TURN_SET('Yellow') FLUSH_UNTIL(0.2) TURN_SET('Red') FLUSH_UNTIL(0.2)")
+    assert locks() == [[], []] and turns() == 0 and rnd() == 1, \
+        "the hop was recorded: locks %r, turns %d, round %d" % (locks(), turns(), rnd())
+    # released: the real pass locks Knaves in round 1
+    rt.execute("rttTurnHold({ on = false }) TURN_SET('Yellow') FLUSH_UNTIL(0.2)")
+    assert locks()[0] == [2] and turns() == 1 and rnd() == 1, \
+        "a real pass after the release did not lock as before: locks %r, turns %d, round %d" % (locks(), turns(), rnd())
+    # a hold nobody releases lets go on its own
+    rt.execute("rttTurnHold({ on = true }) FLUSH_UNTIL(11) TURN_SET('Red') FLUSH_UNTIL(0.2)")
+    assert locks()[1] == [0] and rnd() == 2, \
+        "the safety release did not happen: locks %r, round %d" % (locks(), rnd())
+
+
+def t_the_recorder_ignores_passes_while_resync_reseats(src):
+    """The recorder writes no turn for the reseat's hop off and back.
+
+    Same hop as the sheet case above, seen from the Global script: the board sets OBS_TURN_HOLD
+    around the reseat and the recorder's turn handler returns while it is up.
+    """
+    rt = fresh_observer()
+    rt.execute("SEAT('Red', 'Ann') SEAT('Blue', 'Ben')")
+    _a_game_is_on(rt)
+    rt.execute("Turns.enable = true Turns.order = { 'Red', 'Blue' } TURN_SET('Red') FLUSH(10)")
+    count = lambda: rt.eval("(function() local n = 0 for _, e in ipairs(OBS.ev) do if type(e) == 'string' and e:find('\"turn\"', 1, true) then n = n + 1 end end return n end)()")
+    base = count()
+    rt.execute("OBS_TURN_HOLD = true TURN_SET('Blue') FLUSH(5) TURN_SET('Red') FLUSH(5)")
+    assert count() == base, "the recorder wrote %d turn(s) for the hop" % (count() - base)
+    rt.execute("OBS_TURN_HOLD = false TURN_SET('Blue') FLUSH(5)")
+    assert count() == base + 1, "a real pass after the release was not recorded (%d)" % (count() - base)
 
 
 def t_a_resync_re_sends_every_seat_in_turn(src):
@@ -15530,6 +15622,8 @@ CASES = [
     ("numpad 4 sets where a selection goes home", t_numpad_4_sets_where_a_selection_goes_home),
     ("numpad 1 takes from a home set with numpad 4", t_numpad_1_takes_a_warrior_from_a_home_set_with_numpad_4),
     ("numpad 0 fills the set row once, then the supply", t_numpad_0_fills_the_set_row_once_and_sends_the_rest_to_the_supply),
+    ("the sheet ignores passes while resync reseats", t_the_sheet_ignores_passes_while_resync_reseats),
+    ("the recorder ignores passes while resync reseats", t_the_recorder_ignores_passes_while_resync_reseats),
     ("the sheet takes the captains it is told", t_the_sheet_takes_the_captains_it_is_told),
     ("a card dropped on the pond turns face up", t_a_card_dropped_on_the_pond_turns_face_up),
     ("the flush drains and dies",       t_the_flush_writes_its_queue_and_lets_the_timer_die),
