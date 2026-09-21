@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Root: Tournament Edition - the things that are not obvious</title>
+<style>
+  @font-face { font-family: "Metamorphous"; src: url("../tools/preview/fonts/Metamorphous.ttf"); }
+  @font-face { font-family: "Sorts Mill Goudy"; src: url("../tools/preview/fonts/sortsmillgoudy.ttf"); }
+  @font-face { font-family: "Caudex"; src: url("../tools/preview/fonts/Caudex.ttf"); }
+  @page { size: A4; margin: 0; }
+  :root {
+    --parch: #F4E4BC; --parch2: #FBEFD2; --ink: #26170B; --rust: #7E4A1E; --gold: #C9A05C;
+    --green: #4E7A3A; --red: #A83226; --walnut: #52381E; --line: #B8925A;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: var(--parch); color: var(--ink);
+    font-family: "Sorts Mill Goudy", "Caudex", Georgia, serif; font-size: 9.6pt; line-height: 1.32; }
+  .page { width: 210mm; height: 297mm; padding: 11mm 12mm 9mm 12mm; position: relative;
+    background: var(--parch); page-break-after: always; overflow: hidden; }
+  .page:last-child { page-break-after: auto; }
+  .page::before, .page::after { content: ""; position: absolute; left: 7mm; right: 7mm; height: 0;
+    border-top: 1.2px solid var(--walnut); opacity: .55; }
+  .page::before { top: 6mm; } .page::after { bottom: 6mm; }
+
+  h1, h2, .cap, .pill { font-family: "Metamorphous", "Caudex", serif; font-weight: normal; }
+  header { display: flex; align-items: center; gap: 8mm; margin-bottom: 4mm; }
+  header img { width: 58mm; height: auto; }
+  header h1 { font-size: 18.5pt; margin: 0 0 1.5mm 0; color: var(--ink); line-height: 1.05; white-space: nowrap; }
+  header p { margin: 0; color: var(--rust); font-size: 10.5pt; }
+
+  h2 { font-size: 13.5pt; color: var(--rust); margin: 3.4mm 0 1.4mm 0; padding-bottom: 0.6mm;
+    border-bottom: 1px solid var(--line); letter-spacing: .2px; }
+  h2 small { font-family: "Sorts Mill Goudy", serif; font-size: 9pt; color: var(--walnut); margin-left: 2mm; letter-spacing: 0; }
+  p { margin: 0 0 1.6mm 0; }
+  b { color: var(--ink); }
+  .lead { color: var(--walnut); font-style: italic; margin-bottom: 2mm; }
+
+  .keys { display: grid; grid-template-columns: 1fr 1fr; column-gap: 6mm; row-gap: 2mm; }
+  .key { display: flex; gap: 3mm; align-items: flex-start; }
+  .cap { flex: 0 0 11mm; height: 11mm; border: 1.4px solid var(--walnut); border-radius: 2mm;
+    background: var(--parch2); box-shadow: 1.5px 1.5px 0 var(--walnut); display: flex; align-items: center;
+    justify-content: center; font-size: 17pt; color: var(--ink); }
+  .cap.hold { border-color: var(--green); box-shadow: 1.5px 1.5px 0 var(--green); }
+  .key b { display: block; font-family: "Metamorphous", serif; font-weight: normal; font-size: 10.5pt; margin-bottom: .5mm; }
+  .key .hold-note { color: var(--green); font-style: italic; }
+
+  .cols { display: grid; grid-template-columns: 1fr 1fr; column-gap: 6mm; }
+  ul { margin: 0; padding-left: 4mm; }
+  li { margin-bottom: 0.9mm; }
+  .btn { font-family: "Metamorphous", serif; font-size: 8.4pt; color: var(--parch2); background: var(--walnut);
+    padding: 0 1.4mm; border-radius: 1mm; white-space: nowrap; letter-spacing: .3px; }
+  .btn.gold { background: var(--gold); color: var(--ink); }
+  .btn.red { background: var(--red); }
+  .btn.green { background: var(--green); }
+  .note { border: 1px solid var(--line); background: var(--parch2); padding: 1.8mm 3mm; margin-top: 2mm;
+    border-radius: 1.2mm; }
+  .note b { font-family: "Metamorphous", serif; font-weight: normal; }
+  footer { position: absolute; left: 12mm; right: 12mm; bottom: 8mm; display: flex; justify-content: space-between;
+    color: var(--walnut); font-size: 8.5pt; font-style: italic; }
+</style>
+</head>
+<body>
+
+<section class="page">
+  <header>
+    <img src="root_logo.png" alt="Root Tabletop Tournament">
+    <div>
+      <h1>The things that are not obvious</h1>
+      <p>Root: Tournament Edition &middot; the mod's hidden helpers, on two pages</p>
+    </div>
+  </header>
+
+  <h2>The numpad <small>always on, nothing to spawn: hover a piece and press a key</small></h2>
+  <div class="keys">
+    <div class="key"><div class="cap">0</div><div><b>Send it home</b>
+      Any piece goes back where it belongs: a warrior or wood into its supply bag, a building or token into the rightmost
+      empty slot of its kind, a tunnel to its own spot. Works on anybody's piece. A card, a hireling or a locked piece:
+      nothing happens.</div></div>
+    <div class="key"><div class="cap">1</div><div><b>Take a warrior</b>
+      One warrior from <i>your</i> supply appears standing at your pointer, wherever it is. Yours is the faction you
+      picked last. An empty supply does nothing.</div></div>
+    <div class="key"><div class="cap hold">2</div><div><b>Take a token or building</b>
+      <span class="hold-note">Hold one second</span> on a token or building to choose that kind. From then on every tap
+      brings one of that kind from its supply to your pointer. The choice is yours alone and sticks. Nothing chosen:
+      nothing happens.</div></div>
+    <div class="key"><div class="cap">3</div><div><b>Knave prisoner</b>
+      Hover any warrior: it lies flat, locks and gets a black outline. Press again to stand it up where it lay.
+      Unlocking it by hand only takes the mark off and leaves it where it is.</div></div>
+    <div class="key"><div class="cap hold">4</div><div><b>Set the home</b>
+      Box-select pieces (enclaves, warriors, buildings) and <span class="hold-note">hold one second</span>: where they
+      stand becomes their home. Numpad 0 sends them back there and numpad 2 takes that kind from there. Nothing
+      selected: the hovered piece. Kept through a reload, forgotten by a new game.</div></div>
+    <div class="key"><div class="cap" style="font-size:9pt">no pad</div><div><b>No numpad?</b>
+      Bind the five named keys in <i>Options &rarr; Game Keys</i>: "Move back to supply/initial position", "Move a warrior
+      from own supply to cursor", "Move any token to cursor; set type by holding numpad 2 for 2 seconds" (the hold is
+      one second), "Set warrior as a knave prisoner", "Set home of selected pieces; hold numpad 4 for 1 second".</div></div>
+  </div>
+
+  <h2>The box score <small>the walnut sheet beside the map, spawned with it</small></h2>
+  <p class="lead">It keeps score by itself and never writes in chat. You only touch it to correct something.</p>
+  <div class="cols">
+    <div>
+      <ul>
+        <li><b>It reads the VP markers</b> on the score track. Rows follow the seats, names follow who sits there, the
+          map and deck are read off the table.</li>
+        <li><b>Each turn pass writes the finishing faction's score</b> into the round's column. A point scored before
+          your turn shows at once and is confirmed by your own turn.</li>
+        <li><b>It updates when a marker or card is dropped</b> or a VP button is pressed, with a safety read every
+          four seconds. A bumped marker is caught by that.</li>
+        <li><b>Dominance:</b> settle a marker on a dominance card and the sheet records turn and suit and offers
+          <span class="btn">DOM WIN</span>. A Vagabond or the Knaves get <span class="btn">COALITION</span> instead.
+          A marker reaching 30 ends the game.</li>
+        <li><b>Knaves:</b> the three captains are read from the cards in the captains board's slots, until START.</li>
+      </ul>
+    </div>
+    <div>
+      <ul>
+        <li><span class="btn">END TURN</span> records the highlighted faction when the TTS turn order is not running.</li>
+        <li><span class="btn">EDIT</span> corrects anything: click a cell to type a score, a column number to declare the
+          round, a portrait for whose turn it is, &#9650; to reorder, &#9660; for the Eyrie leader, captains or vagabond
+          character, plus <span class="btn">MAP</span> <span class="btn">DECK</span> <span class="btn">UNPICKED</span>
+          and the game name. A typed number stands until the marker says otherwise.</li>
+        <li><span class="btn">EXPORT</span> writes the game as JSON into the TTS Notebook (tab "BoxScore") and opens
+          the Root Database box: paste a one-time token from the site to upload the game.</li>
+        <li><span class="btn">INFO</span> is the full manual, on the sheet itself.</li>
+      </ul>
+    </div>
+  </div>
+
+  <h2>The VP panel <small>one per faction, above its Crafted Improvements board</small></h2>
+  <div class="cols">
+    <div><ul>
+      <li><span class="btn red">&ndash;</span> and <span class="btn green">+</span> move that faction's VP marker one
+        step on the track. The box score follows.</li>
+      <li><span class="btn gold">DRAW 1 CARD</span> deals a card from the draw pile to your hand. With the frogs out
+        it reads DRAW CARD and <span class="btn gold">DRAW POND</span> draws from the pond.</li>
+    </ul></div>
+    <div><ul>
+      <li><b>Only the faction's owner can use it</b>, and that is the faction you picked last. Anyone else gets a
+        quiet line in chat. The Riverfolk's card goes to their public hand.</li>
+    </ul></div>
+  </div>
+
+  <footer><span>Root: Tournament Edition &middot; by MrDrouf</span><span>page 1 of 2</span></footer>
+</section>
+
+<section class="page">
+  <h2>The draft <small>what happens after 3-, 4- or 5-Player Draft</small></h2>
+  <div class="cols">
+    <div><ul>
+      <li><b>Seats and turn order are random</b>, even for a lone tester. Every seat gets its colour, its hand and
+        the matching turn-order card. The pool is one militant faction plus the others; the 3-player draft deals four
+        faction cards to three seats.</li>
+      <li><b>Each seat gets a light selector board</b> showing the drafted factions. The first click takes that faction:
+        the board vanishes, the faction's pieces appear at that seat and the other boards refresh.</li>
+    </ul></div>
+    <div><ul>
+      <li><b>Your faction is the one you picked last.</b> Numpad 1, numpad 2 and the VP panel all follow that pick,
+        so switching faction moves your supply with you.</li>
+      <li><b>Knaves:</b> four captains are dealt and three are kept. Their board, and the three captains the box score
+        shows, follow the cards in its slots.</li>
+    </ul></div>
+  </div>
+
+  <h2>The turn panel <small>the clock, spawned with the map next to the box score</small></h2>
+  <div class="cols">
+    <div><ul>
+      <li><b>ROUND</b> is read from the box score, so the two can never disagree. The clock is the turn in progress.</li>
+      <li><span class="btn gold">START</span> begins turn 1 at the first seat, shuffles the deck once and starts the
+        game recorder. If the sheet already holds a game it asks first, in red:
+        <span class="btn red">THIS RESETS BOXSCORE</span>. Press again within four seconds.</li>
+      <li><span class="btn">DEAL 5 CARDS</span> deals five from the shared deck to every seat. It asks before
+        dealing a second time.</li>
+    </ul></div>
+    <div><ul>
+      <li><span class="btn">PAUSE</span> stops the clock and becomes <span class="btn">CONTINUE</span>. The break is
+        not counted.</li>
+      <li><b>Past twenty minutes the panel flashes red.</b> Soft on purpose: no sound, nothing interrupted. It does
+        not flash while paused. Three quick presses of DEAL show the flash for fifteen seconds.</li>
+    </ul></div>
+  </div>
+
+  <h2>The deck holder <small>draw, discard, dominance and the pond</small></h2>
+  <div class="cols">
+    <div><ul>
+      <li><b>Drop a card on the discard:</b> it turns face up and snaps onto the pile.</li>
+      <li><b>A dominance card dropped there</b> flies to its own slot. A frog card goes back to the pond. Cards that
+        shuffle on discard go back into the deck.</li>
+    </ul></div>
+    <div><ul>
+      <li><b>The frog pond is a drop spot too:</b> a card dropped on it turns face up. A card that is not a frog's
+        is sent on to the discard.</li>
+      <li><b>The draw pile is never touched</b> by the holder. It only ever puts cards in.</li>
+    </ul></div>
+  </div>
+
+  <h2>Resync <small>on the setup board, bottom row</small></h2>
+  <div class="cols">
+    <div><ul>
+      <li><b>Re-sends every object to every player.</b> Press it when someone is missing pieces or sees card backs
+        where the rest see faces. It destroys nothing.</li>
+      <li><b>It refuses to run while anyone holds a piece with the mouse</b> and says who. Cards in your hand are
+        fine. Drop what you hold and press again.</li>
+    </ul></div>
+    <div><ul>
+      <li><b>After a respawn it counts the cards.</b> A duplicate lying loose is removed; a twin inside a deck or a
+        hand is reported and left for a person to sort out.</li>
+      <li><b>Only you should see the difference.</b> Seats, turn order and hands are put back exactly as they were.</li>
+    </ul></div>
+  </div>
+
+  <h2>The setup board <small>things worth knowing</small></h2>
+  <div class="cols">
+    <div><ul>
+      <li><b>A button that wipes something asks twice.</b> The first click turns it red and says what it would reset,
+        the second within three seconds does it. With nothing to wipe there is no question.</li>
+      <li><b>A new game never touches the map</b>, and a map button never touches the factions. The one exception is
+        the Marsh, which is rebuilt when the four- and five-player boards no longer fit the table.</li>
+      <li><b>The box score and the turn panel stay put.</b> They are never destroyed by a map change or a new game.
+        Only START clears the sheet.</li>
+      <li><span class="btn">MORE</span> swaps the two bottom rows for <span class="btn">RIVERBOAT</span> (the
+        Flotilla hireling, wipes nothing) and <span class="btn">CREDITS</span>. <span class="btn">BACK</span> returns.</li>
+    </ul></div>
+    <div><ul>
+      <li><span class="btn">FACTION CARDS</span> also lays out the twelve vagabond characters in a row behind the
+        captains deck.</li>
+      <li><b>Knaves:</b> drop a captain card into a slot of the captains board and its meeple, its two items and its
+        warrior appear by themselves.</li>
+      <li><b>The snap points beside the suit markers take enclaves only.</b> A relic or anything else passes them by.</li>
+      <li><span class="btn red">CLEAR ALL</span> empties the table but keeps the setup board, the hand zones and the
+        table pieces. It asks like the rest.</li>
+    </ul></div>
+  </div>
+
+  <div class="note"><b>Two rules the mod lives by.</b> A piece is put where it belongs by the piece itself, never by
+    who pressed the key, so being wrong about who you are costs nothing. And a key with nothing to do does nothing,
+    silently.</div>
+
+  <footer><span>Root: Tournament Edition &middot; by MrDrouf &middot; September 2026 &middot;
+    github.com/mrdrouf/root-tabletop-tournament</span><span>page 2 of 2</span></footer>
+</section>
+
+</body>
+</html>

@@ -26,6 +26,9 @@ Drop that one file into your Tabletop Simulator **Saves** folder (no subfolder):
 Then **Games → Save & Load → "Root: Tournament Edition"** and load it fresh (don't "Continue").
 (`dist/Root_Tournament_Edition.png` is an optional save‑list thumbnail.)
 
+**Player guide:** [`guide/RTT_Guide.pdf`](guide/RTT_Guide.pdf) — two pages on the things that are not
+obvious: the numpad keys, the box score, the VP panel, the turn panel, the deck holder, Resync.
+
 ---
 
 ## The buttons (setup board)
