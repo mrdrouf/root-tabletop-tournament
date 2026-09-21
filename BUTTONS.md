@@ -165,7 +165,8 @@ with no home — a hireling, a card — does nothing, and says nothing.
 
 **NUMPAD 1 — take a warrior** out of YOUR supply, standing up, at your pointer, whatever the pointer
 happens to be over. Yours is the faction you last PICKED, not the seat you started in, so switching
-faction moves the supply with you. An empty supply does nothing.
+faction moves the supply with you. A warrior of yours standing on a home set with numpad 4 is taken
+before the bag is opened; a prisoner is left where it lies. An empty supply does nothing.
 
 **NUMPAD 2 — take a token or building to your pointer**, of the kind you chose. To choose, hold the
 key for one second on a token or building; from then on a tap takes one of that kind from its supply

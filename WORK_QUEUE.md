@@ -513,6 +513,11 @@ Where to cut, if it is ever needed, biggest first (none done):
       any home row; with nothing selected the hovered piece alone; a short press does nothing; a
       word says how many were set. Saved with the board (home4) so a reload keeps them; a new game
       forgets them with every other home. One case. Not yet confirmed in TTS.
+      "NUMPAD 1 NEEDS TO FIND WARRIORS even if they are not in the supply but in their new home set
+      with numpad 4." v1.473: numpad 1 looks at your faction's set homes first and hands out a
+      warrior standing on one (a locked prisoner is skipped), and only then opens the bag -- the
+      order numpad 2 already uses for a row and a bag. Numpad 0 on such a warrior already went back to
+      the set spot. One more case. Not yet confirmed in TTS.
 - [x] **A two-page player guide to the things that are not obvious.** Maintainer, 2026-09-21: "Create
       a tiny nice design looking pdf to explain the functions of the mod that are not obvious so the
       numpad and other things from boxscore." guide/RTT_Guide.pdf, built from guide/RTT_Guide.html by

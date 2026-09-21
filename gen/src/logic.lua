@@ -11532,6 +11532,30 @@ end
 -- Which supply is yours comes from where you are SEATED, so a mis-hover cannot take somebody else's.
 function rttGizmoTake(color)
   if rttPointerOverDeckArea(color) then return end     -- over a deck: nothing, silently
+  -- FROM A HOME SET WITH NUMPAD 4 FIRST. Maintainer, 2026-09-21: "numpad 1 needs to find warriors
+  -- even if they are not in the supply but in their new home set with numpad 4." A warrior's only
+  -- recorded homes are the ones set that way (rttHomeMeasuredOnly keeps its spawn spots out), so a
+  -- warrior of your faction standing on one of those spots is taken before the bag is asked -- the
+  -- way numpad 2 takes from a row before it opens a bag. A prisoner (locked) is left where it lies.
+  local pos = nil
+  pcall(function() pos = Player[color].getPointerPosition() end)
+  local faction = rttMyFaction(color)
+  if faction ~= nil and pos ~= nil then
+    local _, warName = rttFactionPieceNames(faction)
+    if warName ~= nil then
+      local slots = rttSlotsFor(warName)
+      local ytol = rttHomeYTol(slots)
+      for i = #slots, 1, -1 do
+        local o = rttPieceOnSlot(slots[i], warName, ytol)
+        local locked = false
+        if o ~= nil then pcall(function() locked = (o.getLock() == true) end) end
+        if o ~= nil and not locked then
+          pcall(function() o.setPositionSmooth({ pos.x, pos.y + 1.5, pos.z }, false, true) end)
+          return
+        end
+      end
+    end
+  end
   local bag, why = rttMySupplyBag(color)
   if bag == nil then
     broadcastToColor((why or "Could not tell which supply is yours."), color,

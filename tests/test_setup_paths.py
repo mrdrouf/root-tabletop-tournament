@@ -15045,6 +15045,56 @@ def t_numpad_4_sets_where_a_selection_goes_home(src):
     assert rt.eval("RTT_HOME[A.getGUID()] ~= nil"), "the held hotkey did not set a home"
 
 
+def t_numpad_1_takes_a_warrior_from_a_home_set_with_numpad_4(src):
+    """Numpad 1 takes a warrior standing on a home set with numpad 4 before it opens the bag.
+
+    Maintainer, 2026-09-21: "numpad 1 needs to find warriors even if they are not in the supply but
+    in their new home set with numpad 4." Two warriors set on the table are handed out one by one
+    with the bag untouched; the third press opens the bag. A prisoner on its home is left alone, and
+    numpad 0 on such a warrior goes back to the set spot, not the bag.
+    """
+    rt = fresh(src)
+    rt.execute("""
+      Global.setVar("RTT_SEAT_COLOR", JSON.encode({ ["Lord of the Hundreds"] = "Red" }))
+      SEAT('Red', 'Ann')
+      PUT, TOOK = 0, 0
+      BAG = MKOBJ("Hundreds Supply", {0,1,0}, {})
+      BAG.getQuantity = function() return 3 end
+      BAG.putObject = function(o) PUT = PUT + 1 end
+      BAG.takeObject = function(p)
+        TOOK = TOOK + 1
+        local o = MKOBJ("Hundreds Warrior", p.position, {})
+        if p.callback_function then p.callback_function(o) end
+      end
+      A = MKOBJ("Hundreds Warrior", { 10, 11.6, 10 }, {})
+      B = MKOBJ("Hundreds Warrior", { 12, 11.6, 10 }, {})
+      RTT_HOME = {}
+      SELECTED['Red'] = { A, B }
+      broadcastToColor = function() end
+      onScriptingButtonDown(4, 'Red') FLUSH_UNTIL(RTT_KEY4_HOLD) onScriptingButtonUp(4, 'Red')
+      SELECTED['Red'] = {}
+      POINTER['Red'] = { x = 20, y = 1, z = -30 } HOVER['Red'] = nil
+    """)
+    assert rt.eval("RTT_HOME[A.getGUID()] ~= nil and RTT_HOME[B.getGUID()] ~= nil"), "the homes were not set"
+    at_pointer = lambda: [n for n in ("A", "B") if abs(rt.eval("%s.__pos.x" % n) - 20) < 0.01]
+    rt.execute("rttGizmoTake('Red') FLUSH(10)")
+    assert len(at_pointer()) == 1 and rt.eval("TOOK") == 0, \
+        "first press: expected one set warrior at the pointer and the bag untouched, got %r, took %d" % (at_pointer(), rt.eval("TOOK"))
+    rt.execute("rttGizmoTake('Red') FLUSH(10)")
+    assert len(at_pointer()) == 2 and rt.eval("TOOK") == 0, \
+        "second press: expected both set warriors at the pointer and the bag untouched, got %r, took %d" % (at_pointer(), rt.eval("TOOK"))
+    rt.execute("rttGizmoTake('Red') FLUSH(10)")
+    assert rt.eval("TOOK") == 1, "third press: the bag should have been opened once the set homes were empty"
+    # numpad 0 on a set warrior goes back to its own spot, not into the bag
+    rt.execute("HOVER['Red'] = A rttGizmoHome('Red') FLUSH(10)")
+    assert rt.eval("PUT") == 0 and abs(rt.eval("A.__pos.x") - 10) < 0.01, \
+        "numpad 0 did not send the warrior back to its set home (put %d, x %.1f)" % (rt.eval("PUT"), rt.eval("A.__pos.x"))
+    # a prisoner lying on its home is not handed out
+    rt.execute("A.setLock(true) rttGizmoTake('Red') FLUSH(10)")
+    assert abs(rt.eval("A.__pos.x") - 10) < 0.01 and rt.eval("TOOK") == 2, \
+        "a locked warrior on its home was taken, or the bag was not used instead (x %.1f, took %d)" % (rt.eval("A.__pos.x"), rt.eval("TOOK"))
+
+
 def t_a_resync_re_sends_every_seat_in_turn(src):
     """Resync steps every seated player off their colour, re-places their hand box from the seat while
     nobody owns the colour, and steps them back -- one at a time, after the card pass.
@@ -15423,6 +15473,7 @@ CASES = [
     ("a second pick leaves the picker's box", t_a_second_pick_by_the_same_person_leaves_their_box_where_it_is),
     ("resync waits for hands to be empty of the mouse", t_resync_does_not_run_while_anyone_holds_a_piece),
     ("numpad 4 sets where a selection goes home", t_numpad_4_sets_where_a_selection_goes_home),
+    ("numpad 1 takes from a home set with numpad 4", t_numpad_1_takes_a_warrior_from_a_home_set_with_numpad_4),
     ("the sheet takes the captains it is told", t_the_sheet_takes_the_captains_it_is_told),
     ("a card dropped on the pond turns face up", t_a_card_dropped_on_the_pond_turns_face_up),
     ("the flush drains and dies",       t_the_flush_writes_its_queue_and_lets_the_timer_die),
