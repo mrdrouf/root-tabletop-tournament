@@ -2766,6 +2766,13 @@ function rttResyncReseatOne(color, id, name, next)
     if sr ~= nil and sr.color == color and sr.hand ~= nil then seat = sr end
   end
   if seat == nil then return false end
+  if rttHoldsSomething(color) then
+    pcall(function()
+      broadcastToColor(tostring(name) .. ": your hand was left alone while you are holding a card; "
+                       .. "put it down and press Resync again.", color, { 1, 0.75, 0.3 })
+    end)
+    return false
+  end
   local function me()
     local found = nil
     pcall(function()
@@ -4024,8 +4031,30 @@ function rttLiftHandCards(color)
   return out
 end
 
-function rttDealBackCards(color, lifted)
-  for _, e in ipairs(lifted or {}) do
+-- DEALT BACK, AND CHECKED. Maintainer, 2026-09-21: "the hand stops acting like a hand, the cards
+-- start floating a bit then they behave not as a hand but like a deck of cards ... they consistently
+-- fall to the table after a while." That is a lifted card whose deal back never took: unlocked in the
+-- air, it falls, and cards that land on one another stack. So every deal is verified a few frames on,
+-- a card that is not in a hand of the colour is dealt again, and one that still will not go is set
+-- down INSIDE the hand box, unlocked, where the zone takes it -- never left in the air.
+RTT_REDEAL_TRIES  = 3
+RTT_REDEAL_FRAMES = 6
+function rttHandHolds(color)
+  local guids = {}
+  local n = 0
+  pcall(function() n = tonumber(Player[color].getHandCount()) or 0 end)
+  if n > RTT_HANDS_PER_SEAT then n = RTT_HANDS_PER_SEAT end
+  for h = 1, n do
+    pcall(function()
+      for _, o in ipairs(Player[color].getHandObjects(h) or {}) do guids[o.getGUID()] = true end
+    end)
+  end
+  return guids
+end
+function rttDealBackCards(color, lifted, tries)
+  tries = tries or 0
+  lifted = lifted or {}
+  for _, e in ipairs(lifted) do
     pcall(function()
       local c = getObjectFromGUID(e.guid)
       if c == nil then return end
@@ -4033,6 +4062,41 @@ function rttDealBackCards(color, lifted)
       c.deal(1, color, e.hand)
     end)
   end
+  if #lifted == 0 then return end
+  Wait.frames(function()
+    local held = rttHandHolds(color)
+    local left = {}
+    for _, e in ipairs(lifted) do
+      if not held[e.guid] and getObjectFromGUID(e.guid) ~= nil then left[#left + 1] = e end
+    end
+    if #left == 0 then return end
+    if tries < RTT_REDEAL_TRIES then rttDealBackCards(color, left, tries + 1) return end
+    for _, e in ipairs(left) do
+      pcall(function()
+        local c = getObjectFromGUID(e.guid)
+        if c == nil then return end
+        local ht = Player[color].getHandTransform(e.hand)
+        local hp, hr = ht.position, ht.rotation
+        c.setLock(false)
+        c.setPositionSmooth({ hp.x or hp[1], (hp.y or hp[2]) + 1, hp.z or hp[3] }, false, true)
+        c.setRotationSmooth({ 0, hr.y or hr[2] or 0, 0 }, false, true)
+      end)
+    end
+  end, RTT_REDEAL_FRAMES)
+end
+
+-- IS THIS COLOUR'S PLAYER HOLDING SOMETHING? A hand repair lifts the cards out of the box and steps
+-- the player off the colour; done under a card in hand it comes apart (above). Left alone instead,
+-- and told so.
+function rttHoldsSomething(color)
+  if color == nil or color == "" then return false end
+  local holding = false
+  pcall(function()
+    for _, o in ipairs(getAllObjects()) do
+      if o.held_by_color == color then holding = true return end
+    end
+  end)
+  return holding
 end
 
 -- THE ONE WAY A HAND BOX MOVES, whatever state it is in: the cards come out (rttLiftHandCards), the
@@ -4043,6 +4107,7 @@ end
 -- means no move may ever be refused, and a hand holding cards was the one thing that refused one.
 function rttMoveHand(color, transform, jog)
   if color == nil or color == "Grey" or color == "Black" or transform == nil then return false end
+  if rttHoldsSomething(color) then return false end     -- see rttHoldsSomething: not under a card in hand
   local lifted = rttLiftHandCards(color)
   local ok = false
   rttWithColorFree(color, function()

@@ -490,6 +490,17 @@ Where to cut, if it is ever needed, biggest first (none done):
       the six map blueprints (12, 12, 12, 12, 12, 15) and the twelve enclave tiles carry "Enclave"
       too; relics and everything else pass them by. Enclaves are still placed by their own script.
       One static case. Not yet confirmed in TTS.
+- [x] **Resync with a card in hand: "the hand stops acting like a hand, the cards start floating a
+      bit then they behave ... like a deck of cards ... they consistently fall to the table after a
+      while."** Maintainer, 2026-09-21. The hand repair lifts the hand's cards six units up, locked and
+      face down, steps the player off the colour, rewrites the box, steps them back and deals the
+      cards back -- fire and forget. A deal that does not take leaves an unlocked card in the air; it
+      falls, and cards that land on one another stack. v1.467: (1) a player who is holding something
+      is skipped by the repair and told to put it down and press again (also any other hand-box
+      move); (2) every deal back is checked six frames on -- a card not in a hand of the colour is
+      dealt again, three times, and one that still will not go is set down INSIDE the hand box,
+      unlocked, where the zone takes it. Two cases, both failing on the old build (the existing
+      reseat case now requires the card to end out of the air). Not yet confirmed in TTS.
 - [ ] **"All the clearing markers seemed to be unlocked."** Simber, same game. In the autosave taken
       ten seconds after the win all twelve priority markers are LOCKED, and the map too. Resync's
       lock mode unlocks each object for one frame and locks it again, so nothing stays unlocked by
