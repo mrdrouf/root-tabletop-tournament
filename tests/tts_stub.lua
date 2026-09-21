@@ -135,6 +135,7 @@ function MKOBJ(name, pos, tags)
   local o = {__guid = g, __name = name or "", __tags = tags or {}, __pos = vec(pos), __dead = false,
              __rot = vec{0,0,0}, __scale = vec{1,1,1}, use_snap_points = false, held_by_color = nil}
   function o.getGUID() return o.__guid end
+  function o.drop() o.held_by_color = nil end            -- "forces an Object, if held by a player, to be dropped"
   -- THE ONE QUESTION A DEAD HANDLE ANSWERS. isDestroyed() exists to be asked of an object that may be
   -- gone, so it survives destruct() below where every other method becomes the null -- which is what
   -- makes rttNameOf's "ask isDestroyed first" guard a real guard and not a wish.

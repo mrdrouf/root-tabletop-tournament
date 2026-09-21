@@ -2747,6 +2747,7 @@ RTT_REHAND_FRAMES = 2     -- frames the player stays off the colour after the bo
 -- THE TURN AS IT WAS BEFORE THE HOP, put back after it. TTS keeps its own counsel about a colour
 -- with nobody in it; what the table showed before the press is what it must show after.
 RTT_RESEATING = false
+RTT_DROP_FRAMES = 2          -- frames between forcing a held piece down and repairing that player's hand
 function rttRestoreTurn(turnWas)
   if turnWas == nil or turnWas == "" then return end
   pcall(function() if Turns.turn_color ~= turnWas then Turns.turn_color = turnWas end end)
@@ -2766,12 +2767,23 @@ function rttResyncReseatOne(color, id, name, next)
     if sr ~= nil and sr.color == color and sr.hand ~= nil then seat = sr end
   end
   if seat == nil then return false end
+  -- HOLDING SOMETHING: IT IS DROPPED, AND THE REPAIR RUNS ANYWAY. TTS will not move a player who
+  -- holds an object off their colour, which is what took the hand apart (a refusal counted as a
+  -- step). Maintainer, 2026-09-21: "find a way to make it happen even when they are holding
+  -- something." Object.drop() "forces an Object, if held by a player, to be dropped" -- so what they
+  -- hold is let go where it is, and the repair comes back for them two frames later, when nothing
+  -- is in their hand any more.
   if rttHoldsSomething(color) then
     pcall(function()
-      broadcastToColor(tostring(name) .. ": your hand was left alone while you are holding a card; "
-                       .. "put it down and press Resync again.", color, { 1, 0.75, 0.3 })
+      for _, o in ipairs(getAllObjects()) do
+        if o.held_by_color == color then pcall(function() o.drop() end) end
+      end
     end)
-    return false
+    Wait.frames(function()
+      local started = rttResyncReseatOne(color, id, name, next)
+      if not started then next() end
+    end, RTT_DROP_FRAMES)
+    return true
   end
   local function me()
     local found = nil

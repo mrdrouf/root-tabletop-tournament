@@ -14956,12 +14956,13 @@ def t_a_second_pick_by_the_same_person_leaves_their_box_where_it_is(src):
 
 
 def t_a_player_holding_a_card_is_left_alone_by_the_resync(src):
-    """A player who is holding something keeps their hand as it is: no lift, no hop, and a word why.
+    """A player who is holding something has it dropped, and then gets the full repair, at once.
 
     Maintainer, 2026-09-21: "if someone holds a card while pressing the resynch button, the hand stops
     acting like a hand, the cards start floating a bit then they behave not as a hand but like a deck
-    of cards." The repair lifts the hand's cards into the air, locked, and steps the player off the
-    colour; under a card in hand that comes apart. Now such a player is skipped and told.
+    of cards." TTS will not move a player holding an object off their colour, so the repair came
+    apart under a card in hand. And: "find a way to make it happen even when they are holding
+    something." Object.drop() forces a held piece down; the repair then runs two frames later.
     """
     rt = fresh(src)
     rt.execute("""
@@ -14974,11 +14975,13 @@ def t_a_player_holding_a_card_is_left_alone_by_the_resync(src):
       REC.colors = {}
       rttResyncReseatAll(nil) FLUSH(80)
     """)
-    assert rt.eval("A.getLock()") is False and rt.eval("B.getLock()") is False, "the hand's cards were lifted and locked"
-    assert abs(rt.eval("A.getPosition().y") - 13.9) < 0.01, "a hand card was moved"
-    assert rt.eval("table.concat(REC.colors, '|')") == "", "the player was stepped off the colour while holding a card"
+    assert rt.eval("H.held_by_color") is None, "the held card was not dropped"
+    hops = rt.eval("table.concat(REC.colors, '|')")
+    assert hops == "Red -> Grey|Grey -> Red", "the repair did not run once the card was dropped: %r" % hops
+    assert rt.eval("A.getLock()") is False and rt.eval("B.getLock()") is False, "the hand's cards were left locked"
+    assert rt.eval("RTT_RESEATING") is False, "the reseat left its flag up"
     said = [str(v) for v in (rt.eval("SAID") or {}).values()]
-    assert any("holding" in m for m in said), "the player was not told why the hand was left alone: %r" % said
+    assert not any("holding" in m for m in said), "the player was lectured instead of served: %r" % said
 
 
 def t_cards_dealt_back_are_checked_and_never_left_in_the_air(src):
@@ -15405,7 +15408,7 @@ CASES = [
     ("the sheet reads on events, polls every 4 s", t_the_sheet_reads_on_events_and_polls_every_four_seconds),
     ("a resync hop moves neither turn nor seat", t_a_resync_hop_moves_neither_the_turn_nor_the_seat),
     ("a second pick leaves the picker's box", t_a_second_pick_by_the_same_person_leaves_their_box_where_it_is),
-    ("a player holding a card is left alone", t_a_player_holding_a_card_is_left_alone_by_the_resync),
+    ("a holder's card is dropped, hand repaired", t_a_player_holding_a_card_is_left_alone_by_the_resync),
     ("dealt-back cards are checked",     t_cards_dealt_back_are_checked_and_never_left_in_the_air),
     ("the sheet takes the captains it is told", t_the_sheet_takes_the_captains_it_is_told),
     ("a card dropped on the pond turns face up", t_a_card_dropped_on_the_pond_turns_face_up),

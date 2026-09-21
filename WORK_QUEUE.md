@@ -510,6 +510,13 @@ Where to cut, if it is ever needed, biggest first (none done):
       on the table surface inside the White zone, which a hand cannot lay out. v1.468: the reseat
       also checks that the step off actually took (a refusal without an error counted as success),
       and an aborted repair deals back two frames later, not in the frame it moved the cards.
+      "CAN YOU FIX THE RESYNCH EVEN WHEN PLAYER HOLD THINGS INSTEAD OF THAT CLUNKY FIX?" -- "find a
+      way to make it happen even when they are holding something." v1.469: Object.drop() ("forces an
+      Object, if held by a player, to be dropped") -- the repair drops whatever that player holds,
+      where it is, waits two frames, and then runs in full: lift, step off, box, step back, cards
+      dealt back and checked. No message, nothing to press again. The player has to pick the piece
+      up again afterwards; that is the whole cost. (Other hand-box moves -- a pick's placement, a
+      stray box parked -- still stand back from a holder; they never coincide with a drag.)
 - [ ] **"All the clearing markers seemed to be unlocked."** Simber, same game. In the autosave taken
       ten seconds after the win all twelve priority markers are LOCKED, and the map too. Resync's
       lock mode unlocks each object for one frame and locks it again, so nothing stays unlocked by
