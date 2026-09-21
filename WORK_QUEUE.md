@@ -537,6 +537,8 @@ Where to cut, if it is ever needed, biggest first (none done):
       setup board's habits. Linked from the README. The footer carries a month, not a build number,
       because the commit hook bumps VERSION on every commit. First cut was two pages -- "lot of
       unnecessary fluff in the document" -- so it is one page now, one line per item, no asides.
+      Then "the text on the document is too much still be more to the point concise precise
+      rigorous": every item is a fragment now, "thing: what happens", no full sentences.
 - [ ] **"All the clearing markers seemed to be unlocked."** Simber, same game. In the autosave taken
       ten seconds after the win all twelve priority markers are LOCKED, and the map too. Resync's
       lock mode unlocks each object for one frame and locks it again, so nothing stays unlocked by

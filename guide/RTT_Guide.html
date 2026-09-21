@@ -14,7 +14,7 @@
   }
   * { box-sizing: border-box; }
   html, body { margin: 0; padding: 0; background: var(--parch); color: var(--ink);
-    font-family: "Sorts Mill Goudy", "Caudex", Georgia, serif; font-size: 9.4pt; line-height: 1.3; }
+    font-family: "Sorts Mill Goudy", "Caudex", Georgia, serif; font-size: 10.2pt; line-height: 1.32; }
   .page { width: 210mm; height: 297mm; padding: 10mm 12mm 9mm 12mm; position: relative;
     background: var(--parch); overflow: hidden; }
   .page::before, .page::after { content: ""; position: absolute; left: 7mm; right: 7mm; height: 0;
@@ -63,95 +63,87 @@
     </div>
   </header>
 
-  <h2>The numpad <small>hover a piece and press</small></h2>
+  <h2>The numpad <small>hover a piece, press</small></h2>
   <div class="keys">
-    <div class="key"><div class="cap">0</div><div><b>Send it home</b>
-      Warriors and wood go back into their supply bag, buildings and tokens into the rightmost empty slot of their
-      kind. Locked pieces, cards and hirelings are left alone.</div></div>
+    <div class="key"><div class="cap">0</div><div><b>Send home</b>
+      Warrior, wood: supply bag. Building, token: rightmost empty slot of its kind. Locked piece, card, hireling:
+      nothing.</div></div>
     <div class="key"><div class="cap">1</div><div><b>Take a warrior</b>
-      One of your warriors appears at your pointer: from the row set with numpad 4 first, otherwise from your supply.</div></div>
+      One of yours to the pointer. From the numpad 4 row, else the supply.</div></div>
     <div class="key"><div class="cap hold">2</div><div><b>Take a token or building</b>
-      <span class="hold-note">Hold one second</span> on a piece to choose its kind. Each tap then brings one of that
-      kind to your pointer.</div></div>
-    <div class="key"><div class="cap">3</div><div><b>Knave prisoner</b>
-      Lays the hovered warrior flat, locked, outlined in black. Press again to stand it up.</div></div>
-    <div class="key"><div class="cap hold">4</div><div><b>Set the home</b>
-      Select pieces and <span class="hold-note">hold one second</span>: their spots become the home row of that kind.
-      Numpad 0 fills it one per spot, then the supply; numpad 1 and 2 take from it first. A new numpad 4 on a kind
-      replaces its row.</div></div>
+      <span class="hold-note">Hold 1 s</span> on a piece: sets the kind. Tap: one of that kind to the pointer.</div></div>
+    <div class="key"><div class="cap">3</div><div><b>Prisoner</b>
+      Warrior lies flat, locked, black outline. Press again: stands up.</div></div>
+    <div class="key"><div class="cap hold">4</div><div><b>Set a home row</b>
+      Select pieces, <span class="hold-note">hold 1 s</span>: their spots are the row of that kind. Numpad 0 fills
+      it, then the supply. Numpad 1 and 2 take from it. The next numpad 4 on that kind replaces it.</div></div>
     <div class="key"><div class="cap" style="font-size:8.5pt">no<br>pad</div><div><b>No numpad</b>
-      Bind the five keys in <i>Options &rarr; Game Keys</i>. They start with "Move back to supply", "Move a warrior",
-      "Move any token", "Set warrior as a knave prisoner", "Set home of selected pieces".</div></div>
+      <i>Options &rarr; Game Keys</i>: "Move back to supply", "Move a warrior", "Move any token",
+      "Set warrior as a knave prisoner", "Set home of selected pieces".</div></div>
   </div>
 
   <div class="cols">
     <div>
       <h2>The box score <small>beside the map</small></h2>
       <ul>
-        <li>Reads the VP markers on the track. Rows follow the seats. Each turn pass writes the finishing faction's
-          score; a point scored before your turn shows at once.</li>
-        <li>A marker settled on a dominance card records turn and suit and offers <span class="btn">DOM WIN</span>.
-          A Vagabond or the Knaves get <span class="btn">COALITION</span> instead.</li>
-        <li><span class="btn">END TURN</span> records the highlighted faction when the TTS turn order is off.</li>
-        <li><span class="btn">EDIT</span>: click a cell to type a score, a column number to set the round, a portrait
-          for whose turn it is, &#9650; to reorder, &#9660; for leader, captains or character, plus
-          <span class="btn">MAP</span> <span class="btn">DECK</span> <span class="btn">UNPICKED</span> and the game name.</li>
-        <li><span class="btn">EXPORT</span> writes the game to the Notebook tab "BoxScore" and opens a box for the
-          Root Database token.</li>
-        <li><span class="btn">INFO</span> is the manual.</li>
+        <li>Reads the VP markers on the track. Rows follow the seats.</li>
+        <li>A turn pass writes the finishing faction's score. A point scored before your turn shows at once.</li>
+        <li>Marker on a dominance card: turn and suit recorded, <span class="btn">DOM WIN</span> offered.
+          Vagabond, Knaves: <span class="btn">COALITION</span>.</li>
+        <li><span class="btn">END TURN</span>: records the highlighted faction. For tables without the TTS turn order.</li>
+        <li><span class="btn">EDIT</span>: cell = score, column number = round, portrait = whose turn, &#9650; = order,
+          &#9660; = leader, captains, character. <span class="btn">MAP</span> <span class="btn">DECK</span>
+          <span class="btn">UNPICKED</span>, game name.</li>
+        <li><span class="btn">EXPORT</span>: JSON to the Notebook tab "BoxScore". Opens the Root Database token box.</li>
+        <li><span class="btn">INFO</span>: the manual.</li>
       </ul>
 
       <h2>The VP panel <small>above each Crafted Improvements board</small></h2>
       <ul>
-        <li><span class="btn red">&ndash;</span> <span class="btn green">+</span> move that faction's marker one step.</li>
-        <li><span class="btn gold">DRAW 1 CARD</span> deals one to your hand. <span class="btn gold">DRAW POND</span>
-          draws from the frog pond.</li>
-        <li>Only the faction's owner can use it.</li>
+        <li><span class="btn red">&ndash;</span> <span class="btn green">+</span>: marker one step.</li>
+        <li><span class="btn gold">DRAW 1 CARD</span>: to your hand. <span class="btn gold">DRAW POND</span>: from the pond.</li>
+        <li>Owner only.</li>
       </ul>
 
       <h2>The turn panel <small>next to the box score</small></h2>
       <ul>
-        <li><b>ROUND</b> comes from the box score. The clock is the turn in progress.</li>
-        <li><span class="btn gold">START</span>: turn 1, shuffles the deck, clears the sheet. Asks first when the
-          sheet holds a game.</li>
-        <li><span class="btn">DEAL 5 CARDS</span> to every seat. Asks before a second deal.</li>
-        <li><span class="btn">PAUSE</span> / <span class="btn">CONTINUE</span> stop and resume the clock.</li>
-        <li>The panel flashes red after twenty minutes.</li>
+        <li><b>ROUND</b>: from the box score. Clock: the current turn.</li>
+        <li><span class="btn gold">START</span>: turn 1. Shuffles the deck, clears the sheet. Asks if the sheet holds a game.</li>
+        <li><span class="btn">DEAL 5 CARDS</span>: to every seat. Asks before a second deal.</li>
+        <li><span class="btn">PAUSE</span> / <span class="btn">CONTINUE</span>.</li>
+        <li>Red flash after 20 min.</li>
       </ul>
     </div>
     <div>
       <h2>The draft</h2>
       <ul>
-        <li>Seats and turn order are random. Each seat gets a selector board; the first click takes that faction.</li>
-        <li>Your faction is the one you picked last. Numpad 1, numpad 2 and the VP panel follow it.</li>
-        <li>Knaves: four captains dealt, keep three. A captain card in a board slot spawns its meeple, items and
-          warrior.</li>
+        <li>Random seats and turn order. One selector board per seat. First click takes the faction.</li>
+        <li>Your faction: your last pick. Numpad 1, 2 and the VP panel follow it.</li>
+        <li>Knaves: 4 captains dealt, keep 3. A captain card in a slot spawns its meeple, items, warrior.</li>
       </ul>
 
       <h2>The deck holder</h2>
       <ul>
-        <li>A card dropped on the discard turns face up.</li>
-        <li>A dominance card goes to its slot, a frog card to the pond, shuffle-on-discard cards into the deck.</li>
-        <li>A card dropped on the pond turns face up. The draw pile is never touched.</li>
+        <li>Card on the discard: face up.</li>
+        <li>Dominance card: its slot. Frog card: the pond. Shuffle-on-discard card: the deck.</li>
+        <li>Card on the pond: face up. Draw pile: never touched.</li>
       </ul>
 
       <h2>Resync <small>setup board, bottom row</small></h2>
       <ul>
-        <li>Re-sends every object to every player. Use it when someone is missing pieces or sees card backs.</li>
-        <li>Does not run while anyone holds a piece with the mouse. Cards in the hand are fine.</li>
-        <li>Afterwards a duplicated loose card is removed.</li>
+        <li>Re-sends every object to every player. For missing pieces, card backs.</li>
+        <li>Refused while anyone holds a piece with the mouse. Cards in hand: fine.</li>
+        <li>Removes a duplicated loose card.</li>
       </ul>
 
       <h2>The setup board</h2>
       <ul>
-        <li>A button that wipes something turns red and asks. Press again within three seconds.</li>
-        <li>A new game leaves the map; a map button leaves the factions. The Marsh is rebuilt when the player
-          count changes.</li>
-        <li>The box score and the turn panel are never destroyed.</li>
-        <li><span class="btn">MORE</span>: <span class="btn">RIVERBOAT</span> (Flotilla hireling) and
-          <span class="btn">CREDITS</span>.</li>
-        <li><span class="btn">FACTION CARDS</span> also lays out the vagabond characters.</li>
-        <li>The snap points beside the suit markers take enclaves only.</li>
+        <li>A wipe button turns red and asks. Press again within 3 s.</li>
+        <li>New game: keeps the map. Map button: keeps the factions. Marsh: rebuilt when the player count changes.</li>
+        <li>Box score, turn panel: never destroyed.</li>
+        <li><span class="btn">MORE</span>: <span class="btn">RIVERBOAT</span> (Flotilla hireling), <span class="btn">CREDITS</span>.</li>
+        <li><span class="btn">FACTION CARDS</span>: vagabond characters too.</li>
+        <li>Suit-marker snaps: enclaves only.</li>
       </ul>
     </div>
   </div>
