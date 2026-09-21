@@ -490,33 +490,19 @@ Where to cut, if it is ever needed, biggest first (none done):
       the six map blueprints (12, 12, 12, 12, 12, 15) and the twelve enclave tiles carry "Enclave"
       too; relics and everything else pass them by. Enclaves are still placed by their own script.
       One static case. Not yet confirmed in TTS.
-- [x] **Resync with a card in hand: "the hand stops acting like a hand, the cards start floating a
-      bit then they behave ... like a deck of cards ... they consistently fall to the table after a
-      while."** Maintainer, 2026-09-21. The hand repair lifts the hand's cards six units up, locked and
-      face down, steps the player off the colour, rewrites the box, steps them back and deals the
-      cards back -- fire and forget. A deal that does not take leaves an unlocked card in the air; it
-      falls, and cards that land on one another stack. v1.467: (1) a player who is holding something
-      is skipped by the repair and told to put it down and press again (also any other hand-box
-      move); (2) every deal back is checked six frames on -- a card not in a hand of the colour is
-      dealt again, three times, and one that still will not go is set down INSIDE the hand box,
-      unlocked, where the zone takes it. Two cases, both failing on the old build (the existing
-      reseat case now requires the card to end out of the air). Not yet confirmed in TTS.
-      THE CHAIN, read off his autosave (TS_AutoSave_8, 2026-09-21 12:50, a build before v1.463): his
-      White box still behind the last seat picked (pre-v1.464), the record on seat 1; Resync pressed
-      holding a card; the repair lifted his five cards (floating, locked); the step off the colour
-      was REFUSED -- the box was never written, and TTS declines to move a player holding an object
-      -- so the repair gave up and dealt the cards straight back in the frame it had moved them; the
-      deal did not take; unlocked in the air they fell onto one another: a five-card deck, face up,
-      on the table surface inside the White zone, which a hand cannot lay out. v1.468: the reseat
-      also checks that the step off actually took (a refusal without an error counted as success),
-      and an aborted repair deals back two frames later, not in the frame it moved the cards.
-      "CAN YOU FIX THE RESYNCH EVEN WHEN PLAYER HOLD THINGS INSTEAD OF THAT CLUNKY FIX?" -- "find a
-      way to make it happen even when they are holding something." v1.469: Object.drop() ("forces an
-      Object, if held by a player, to be dropped") -- the repair drops whatever that player holds,
-      where it is, waits two frames, and then runs in full: lift, step off, box, step back, cards
-      dealt back and checked. No message, nothing to press again. The player has to pick the piece
-      up again afterwards; that is the whole cost. (Other hand-box moves -- a pick's placement, a
-      stray box parked -- still stand back from a holder; they never coincide with a drag.)
+- [x] **Resync with a card held by the mouse: "the hand stops acting like a hand, the cards start
+      floating a bit then they behave ... like a deck of cards ... they consistently fall to the
+      table after a while."** Maintainer, 2026-09-21. The hand repair steps a player off their colour
+      and TTS will not do that for a player holding an object; run anyway, the repair took a hand
+      apart -- his autosave of 12:50 (a build before v1.463) shows a five-card deck, face up, on the
+      table surface inside his hand zone. THE RULE, his words: "if any player is holding something,
+      create a message saying that everyone needs to drop everything they're holding with their
+      mouse. Be precise so it is no confusion with holding in the hand ... and then do not proceed."
+      v1.470: Resync checks first; if anyone holds a piece with the mouse it does not run and says
+      so in one line, naming them and saying cards in the hand are fine. Everything the attempts of
+      v1.467-1.469 had added around this (the skip, the checked deal-back, the step check, the
+      forced drop) is removed; the code is back to v1.466 plus this gate. One case. Not yet confirmed
+      in TTS.
 - [ ] **"All the clearing markers seemed to be unlocked."** Simber, same game. In the autosave taken
       ten seconds after the win all twelve priority markers are LOCKED, and the map too. Resync's
       lock mode unlocks each object for one frame and locks it again, so nothing stays unlocked by

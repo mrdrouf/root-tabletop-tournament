@@ -14955,76 +14955,41 @@ def t_a_second_pick_by_the_same_person_leaves_their_box_where_it_is(src):
     assert rt.eval("Player['Red'].seated") is True, "Ann is not back on Red after the Resync"
 
 
-def t_a_player_holding_a_card_is_left_alone_by_the_resync(src):
-    """A player who is holding something has it dropped, and then gets the full repair, at once.
+def t_resync_does_not_run_while_anyone_holds_a_piece(src):
+    """Resync refuses to run while any player holds something with the mouse, and says so in a line.
 
-    Maintainer, 2026-09-21: "if someone holds a card while pressing the resynch button, the hand stops
-    acting like a hand, the cards start floating a bit then they behave not as a hand but like a deck
-    of cards." TTS will not move a player holding an object off their colour, so the repair came
-    apart under a card in hand. And: "find a way to make it happen even when they are holding
-    something." Object.drop() forces a held piece down; the repair then runs two frames later.
+    Maintainer, 2026-09-21: "if any player is holding something, create a message saying that everyone
+    needs to drop everything they're holding with their mouse. Be precise so it is no confusion with
+    holding in the hand ... and then do not proceed." The hand repair steps a player off their colour
+    and TTS will not do that for a player holding an object; run anyway, it took a hand apart into a
+    deck. Everything the earlier attempts added around that is gone; this gate is the whole fix.
     """
     rt = fresh(src)
     rt.execute("""
-      SEAT('Red', 'Ann')
+      SEAT('Red', 'Ann') SEAT('Blue', 'Ben')
       RTT_SEATS = { { color = 'Red', owner = 'Ann', hand = RTT_SEAT_HAND[1], pos = { 52, -46 } } }
-      A = MKOBJ('Card', { -50, 13.9, -64 }, {}) B = MKOBJ('Card', { -48, 13.9, -64 }, {})
-      HANDCARDS['Red'] = { A, B }
-      H = MKOBJ('Card', { 0, 3, 0 }, {}) H.held_by_color = 'Red'
-      SAID = {}
-      REC.colors = {}
-      rttResyncReseatAll(nil) FLUSH(80)
+      A = MKOBJ('Card', { -50, 13.9, -64 }, {}) HANDCARDS['Red'] = { A }
+      H = MKOBJ('Cat Warrior', { 0, 3, 0 }, {}) H.held_by_color = 'Blue'
+      for i = 1, 3 do MKOBJ('Card', { 70 + i, 1, 0 }, {}) end
+      MSG = {} broadcastToAll = function(m) MSG[#MSG + 1] = tostring(m) end
+      REC.colors = {} REC.spawned = {}
+      rttResyncClick(Player['Red'], '', 'rttResyncBtn') FLUSH(200)
     """)
-    assert rt.eval("H.held_by_color") is None, "the held card was not dropped"
-    hops = rt.eval("table.concat(REC.colors, '|')")
-    assert hops == "Red -> Grey|Grey -> Red", "the repair did not run once the card was dropped: %r" % hops
-    assert rt.eval("A.getLock()") is False and rt.eval("B.getLock()") is False, "the hand's cards were left locked"
-    assert rt.eval("RTT_RESEATING") is False, "the reseat left its flag up"
-    said = [str(v) for v in (rt.eval("SAID") or {}).values()]
-    assert not any("holding" in m for m in said), "the player was lectured instead of served: %r" % said
-
-
-def t_cards_dealt_back_are_checked_and_never_left_in_the_air(src):
-    """A lifted card whose deal back does not take is dealt again, and at last set down in the box.
-
-    Maintainer, 2026-09-21: "the cards are not held anymore they consistently fall to the table after a
-    while." The deal back was fire-and-forget: an unlocked card in the air that the deal did not take
-    fell, and cards that land on one another stack into a deck.
-    """
-    rt = fresh(src)
-    rt.execute("""
-      SEAT('Red', 'Ann')
-      RTT_SEATS = { { color = 'Red', owner = 'Ann', hand = RTT_SEAT_HAND[1], pos = { 52, -46 } } }
-      A = MKOBJ('Card', { -50, 13.9, -64 }, {}) B = MKOBJ('Card', { -48, 13.9, -64 }, {})
-      HANDCARDS['Red'] = { A, B }
-      -- lifting a card out of the box takes it out of the hand; a deal that works puts it back
-      for _, c in ipairs({ A, B }) do
-        local sl = c.setLock
-        c.setLock = function(v)
-          if v then
-            local keep = {}
-            for _, x in ipairs(HANDCARDS['Red']) do if x ~= c then keep[#keep + 1] = x end end
-            HANDCARDS['Red'] = keep
-          end
-          return sl(v)
-        end
-      end
-      A.deal = function(n, col, h) HANDCARDS[col][#HANDCARDS[col] + 1] = A end
-      BDEALS = 0
-      B.deal = function(n, col, h) BDEALS = BDEALS + 1 end          -- never takes
-      MOVED = {}
-      B.setPositionSmooth = function(p) MOVED[#MOVED + 1] = { x = p.x or p[1], y = p.y or p[2], z = p.z or p[3] } end
-      rttResyncReseatAll(nil) FLUSH(200)
-    """)
-    assert rt.eval("function() for _, x in ipairs(HANDCARDS['Red']) do if x == A then return true end end return false end")(), \
-        "the card whose deal worked is not back in the hand"
-    assert rt.eval("A.getLock()") is False, "a card dealt back was left locked"
-    assert rt.eval("BDEALS") == 4, "the card whose deal failed was dealt %d time(s); expected 1 + 3 retries" % rt.eval("BDEALS")
-    assert rt.eval("B.getLock()") is False, "the card that would not deal was left locked in the air"
-    moved = [dict(v) for v in (rt.eval("MOVED") or {}).values()]
-    hand = dict(rt.eval("HANDOF('Red', 1)"))
-    assert moved and abs(moved[-1]["x"] - hand["x"]) < 0.5 and abs(moved[-1]["z"] - hand["z"]) < 0.5, \
-        "the card that would not deal was not set down inside the hand box: %r vs hand %r" % (moved, hand)
+    msg = [str(v) for v in (rt.eval("MSG") or {}).values()]
+    assert len(msg) == 1, "expected one line, got %r" % msg
+    assert "did not run" in msg[0] and "Ben" in msg[0] and "mouse" in msg[0] and "hand are fine" in msg[0], \
+        "the line does not say who, that it is the mouse, or that the hand is fine: %r" % msg[0]
+    assert rt.eval("table.concat(REC.colors, '|')") == "", "a player was stepped off their colour anyway"
+    assert not any(str(v).startswith("reload:") for v in (rt.eval("REC.spawned") or {}).values()), "cards were reloaded anyway"
+    assert rt.eval("A.getLock()") is False and abs(rt.eval("A.getPosition().y") - 13.9) < 0.01, "a hand card was touched"
+    assert rt.eval("RTT_RESYNC_BUSY") is False, "the button was left busy"
+    # ...and with nothing held it runs as before
+    rt.execute("H.held_by_color = nil MSG = {} rttResyncClick(Player['Red'], '', 'rttResyncBtn') FLUSH(400)")
+    msg = [str(v) for v in (rt.eval("MSG") or {}).values()]
+    assert any(m.startswith("Resync done") for m in msg), "the sweep did not run once nothing was held: %r" % msg
+    # nothing of the earlier attempts is left in the build
+    for gone in ("rttHoldsSomething", "rttHandHolds", "RTT_REDEAL_TRIES", "RTT_DROP_FRAMES", "RTT_RESEAT_PENDING"):
+        assert gone not in src, "%s is still in the build" % gone
 
 
 def t_a_resync_re_sends_every_seat_in_turn(src):
@@ -15116,8 +15081,6 @@ def t_a_resync_re_sends_every_seat_in_turn(src):
         if v then HANDCARDS['Red'] = {} end   -- lifted and locked: out of the box, as TTS would soon agree
         return sl(v)
       end
-      local sp = CARD.setPosition
-      CARD.setPosition = function(q) LOG[#LOG + 1] = string.format('lift:%.1f', q.y or q[2]) return sp(q) end
       local sh = Player['Red'].setHandTransform
       Player['Red'].setHandTransform = function(tr, n)
         LOG[#LOG + 1] = 'hand' .. tostring(n) .. '@' .. table.concat(REC.colors, '|')
@@ -15133,11 +15096,8 @@ def t_a_resync_re_sends_every_seat_in_turn(src):
     assert any(x.startswith("deal:Red:1@") and "Grey -> Red" in x for x in log), (
         "the card was not dealt back into Alice's hand once she was home: %s" % log)
     assert any(x.startswith("lock:false@") for x in log), "the card was dealt back still locked: %s" % log
-    assert any(x.startswith("lift:") and float(x[5:]) > 20 for x in log),         "the lifted card was not moved clear of the box: %s" % [x for x in log if x.startswith("lift:")]
-    # the fixture's deal never takes, so the checked deal-back (2026-09-21) must set the card down in
-    # the box rather than leave it locked in the air, where it would fall and stack
     y = rt.eval("CARD.getPosition().y")
-    assert y < 20 and rt.eval("CARD.getLock()") is False,         "a card whose deal did not take was left in the air (y=%.1f, locked=%s)" % (y, rt.eval("CARD.getLock()"))
+    assert y > 20, "the lifted card was not moved clear of the box (y=%.1f)" % y
 
 def t_the_winged_menace_hand_is_built_from_the_seat_not_read_back(src):
     """The Winged Menace's second hand is placed from the seat's OWN hand transform, never read back.
@@ -15408,8 +15368,7 @@ CASES = [
     ("the sheet reads on events, polls every 4 s", t_the_sheet_reads_on_events_and_polls_every_four_seconds),
     ("a resync hop moves neither turn nor seat", t_a_resync_hop_moves_neither_the_turn_nor_the_seat),
     ("a second pick leaves the picker's box", t_a_second_pick_by_the_same_person_leaves_their_box_where_it_is),
-    ("a holder's card is dropped, hand repaired", t_a_player_holding_a_card_is_left_alone_by_the_resync),
-    ("dealt-back cards are checked",     t_cards_dealt_back_are_checked_and_never_left_in_the_air),
+    ("resync waits for hands to be empty of the mouse", t_resync_does_not_run_while_anyone_holds_a_piece),
     ("the sheet takes the captains it is told", t_the_sheet_takes_the_captains_it_is_told),
     ("a card dropped on the pond turns face up", t_a_card_dropped_on_the_pond_turns_face_up),
     ("the flush drains and dies",       t_the_flush_writes_its_queue_and_lets_the_timer_die),

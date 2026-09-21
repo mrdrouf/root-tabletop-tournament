@@ -2747,7 +2747,6 @@ RTT_REHAND_FRAMES = 2     -- frames the player stays off the colour after the bo
 -- THE TURN AS IT WAS BEFORE THE HOP, put back after it. TTS keeps its own counsel about a colour
 -- with nobody in it; what the table showed before the press is what it must show after.
 RTT_RESEATING = false
-RTT_DROP_FRAMES = 2          -- frames between forcing a held piece down and repairing that player's hand
 function rttRestoreTurn(turnWas)
   if turnWas == nil or turnWas == "" then return end
   pcall(function() if Turns.turn_color ~= turnWas then Turns.turn_color = turnWas end end)
@@ -2767,24 +2766,6 @@ function rttResyncReseatOne(color, id, name, next)
     if sr ~= nil and sr.color == color and sr.hand ~= nil then seat = sr end
   end
   if seat == nil then return false end
-  -- HOLDING SOMETHING: IT IS DROPPED, AND THE REPAIR RUNS ANYWAY. TTS will not move a player who
-  -- holds an object off their colour, which is what took the hand apart (a refusal counted as a
-  -- step). Maintainer, 2026-09-21: "find a way to make it happen even when they are holding
-  -- something." Object.drop() "forces an Object, if held by a player, to be dropped" -- so what they
-  -- hold is let go where it is, and the repair comes back for them two frames later, when nothing
-  -- is in their hand any more.
-  if rttHoldsSomething(color) then
-    pcall(function()
-      for _, o in ipairs(getAllObjects()) do
-        if o.held_by_color == color then pcall(function() o.drop() end) end
-      end
-    end)
-    Wait.frames(function()
-      local started = rttResyncReseatOne(color, id, name, next)
-      if not started then next() end
-    end, RTT_DROP_FRAMES)
-    return true
-  end
   local function me()
     local found = nil
     pcall(function()
@@ -2801,19 +2782,7 @@ function rttResyncReseatOne(color, id, name, next)
   local lifted = rttLiftHandCards(color)
   local stepped = false
   pcall(function() p.changeColor("Grey") stepped = true end)
-  -- ...AND CHECK IT TOOK. TTS declines to change the colour of a player who is holding an object,
-  -- and it can decline without throwing. The maintainer's autosave of 2026-09-21 shows the result of
-  -- taking a refusal for a step: the box never written, the lifted cards dealt straight back in the
-  -- frame they were moved, the deal not taking, five cards fallen into one deck inside the zone.
-  if stepped then
-    local still = false
-    pcall(function() still = (Player[color] ~= nil and Player[color].seated == true) end)
-    if still then stepped = false end
-  end
-  if not stepped then
-    Wait.frames(function() rttDealBackCards(color, lifted) end, 2)   -- not in the frame they were moved
-    return false
-  end
+  if not stepped then rttDealBackCards(color, lifted) return false end
   rttWriteSeatHand(color, seat.hand, true)                 -- the hand box, while nobody owns the colour
   local function home()
     Wait.frames(function() rttDealBackCards(color, lifted) rttRestoreTurn(turnWas) next() end, 1)
@@ -2935,7 +2904,37 @@ function rttCardCensus()
   return #names, names, left
 end
 
+-- WHO IS HOLDING SOMETHING WITH THE MOUSE: { { color, name }, ... }. Cards in a hand are not held.
+function rttWhoHolds()
+  local out, seen = {}, {}
+  pcall(function()
+    for _, o in ipairs(getAllObjects()) do
+      local c = o.held_by_color
+      if c ~= nil and c ~= "" and not seen[c] then
+        seen[c] = true
+        out[#out + 1] = { color = c, name = rttPersonIn(c) or c }
+      end
+    end
+  end)
+  return out
+end
+
+-- NOT WHILE ANYONE HOLDS A PIECE WITH THE MOUSE. The hand repair steps a player off their colour, and
+-- TTS will not do that for a player holding an object; run anyway, the repair took a hand apart into
+-- a deck (2026-09-21). Maintainer: "if any player is holding something, create a message saying that
+-- everyone needs to drop everything they're holding with their mouse ... and then do not proceed."
 function rttResyncClick(player, value, id)
+  local holders = rttWhoHolds()
+  if #holders > 0 then
+    local who = {}
+    for _, h in ipairs(holders) do who[#who + 1] = tostring(h.name) end
+    pcall(function()
+      broadcastToAll("Resync did not run: " .. table.concat(who, ", ") .. " is holding a piece with the "
+                     .. "mouse. Everyone drop what you hold with the mouse (cards in your hand are fine) "
+                     .. "and press Resync again.", { 1, 0.75, 0.3 })
+    end)
+    return
+  end
   local ran = rttResyncSweep(function(n, nc, lostc, waited, skipped)
     -- SHORT AND TO THE POINT. Maintainer, 2026-09-20: "make the resynch message shorter and to the
     -- point." What was done, in one line; anything else only when it happened.
@@ -4055,30 +4054,8 @@ function rttLiftHandCards(color)
   return out
 end
 
--- DEALT BACK, AND CHECKED. Maintainer, 2026-09-21: "the hand stops acting like a hand, the cards
--- start floating a bit then they behave not as a hand but like a deck of cards ... they consistently
--- fall to the table after a while." That is a lifted card whose deal back never took: unlocked in the
--- air, it falls, and cards that land on one another stack. So every deal is verified a few frames on,
--- a card that is not in a hand of the colour is dealt again, and one that still will not go is set
--- down INSIDE the hand box, unlocked, where the zone takes it -- never left in the air.
-RTT_REDEAL_TRIES  = 3
-RTT_REDEAL_FRAMES = 6
-function rttHandHolds(color)
-  local guids = {}
-  local n = 0
-  pcall(function() n = tonumber(Player[color].getHandCount()) or 0 end)
-  if n > RTT_HANDS_PER_SEAT then n = RTT_HANDS_PER_SEAT end
-  for h = 1, n do
-    pcall(function()
-      for _, o in ipairs(Player[color].getHandObjects(h) or {}) do guids[o.getGUID()] = true end
-    end)
-  end
-  return guids
-end
-function rttDealBackCards(color, lifted, tries)
-  tries = tries or 0
-  lifted = lifted or {}
-  for _, e in ipairs(lifted) do
+function rttDealBackCards(color, lifted)
+  for _, e in ipairs(lifted or {}) do
     pcall(function()
       local c = getObjectFromGUID(e.guid)
       if c == nil then return end
@@ -4086,41 +4063,6 @@ function rttDealBackCards(color, lifted, tries)
       c.deal(1, color, e.hand)
     end)
   end
-  if #lifted == 0 then return end
-  Wait.frames(function()
-    local held = rttHandHolds(color)
-    local left = {}
-    for _, e in ipairs(lifted) do
-      if not held[e.guid] and getObjectFromGUID(e.guid) ~= nil then left[#left + 1] = e end
-    end
-    if #left == 0 then return end
-    if tries < RTT_REDEAL_TRIES then rttDealBackCards(color, left, tries + 1) return end
-    for _, e in ipairs(left) do
-      pcall(function()
-        local c = getObjectFromGUID(e.guid)
-        if c == nil then return end
-        local ht = Player[color].getHandTransform(e.hand)
-        local hp, hr = ht.position, ht.rotation
-        c.setLock(false)
-        c.setPositionSmooth({ hp.x or hp[1], (hp.y or hp[2]) + 1, hp.z or hp[3] }, false, true)
-        c.setRotationSmooth({ 0, hr.y or hr[2] or 0, 0 }, false, true)
-      end)
-    end
-  end, RTT_REDEAL_FRAMES)
-end
-
--- IS THIS COLOUR'S PLAYER HOLDING SOMETHING? A hand repair lifts the cards out of the box and steps
--- the player off the colour; done under a card in hand it comes apart (above). Left alone instead,
--- and told so.
-function rttHoldsSomething(color)
-  if color == nil or color == "" then return false end
-  local holding = false
-  pcall(function()
-    for _, o in ipairs(getAllObjects()) do
-      if o.held_by_color == color then holding = true return end
-    end
-  end)
-  return holding
 end
 
 -- THE ONE WAY A HAND BOX MOVES, whatever state it is in: the cards come out (rttLiftHandCards), the
@@ -4131,7 +4073,6 @@ end
 -- means no move may ever be refused, and a hand holding cards was the one thing that refused one.
 function rttMoveHand(color, transform, jog)
   if color == nil or color == "Grey" or color == "Black" or transform == nil then return false end
-  if rttHoldsSomething(color) then return false end     -- see rttHoldsSomething: not under a card in hand
   local lifted = rttLiftHandCards(color)
   local ok = false
   rttWithColorFree(color, function()
