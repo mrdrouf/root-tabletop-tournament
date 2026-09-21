@@ -14,7 +14,7 @@
   }
   * { box-sizing: border-box; }
   html, body { margin: 0; padding: 0; background: var(--parch); color: var(--ink);
-    font-family: "Sorts Mill Goudy", "Caudex", Georgia, serif; font-size: 10.2pt; line-height: 1.32; }
+    font-family: "Sorts Mill Goudy", "Caudex", Georgia, serif; font-size: 9.7pt; line-height: 1.3; }
   .page { width: 210mm; height: 297mm; padding: 10mm 12mm 9mm 12mm; position: relative;
     background: var(--parch); overflow: hidden; }
   .page::before, .page::after { content: ""; position: absolute; left: 7mm; right: 7mm; height: 0;
@@ -27,7 +27,7 @@
   header h1 { font-size: 18pt; margin: 0 0 1mm 0; line-height: 1.05; white-space: nowrap; }
   header p { margin: 0; color: var(--rust); font-size: 10pt; }
 
-  h2 { font-size: 12.5pt; color: var(--rust); margin: 3mm 0 1.2mm 0; padding-bottom: 0.5mm;
+  h2 { font-size: 12.5pt; color: var(--rust); margin: 2.6mm 0 1.1mm 0; padding-bottom: 0.5mm;
     border-bottom: 1px solid var(--line); }
   h2 small { font-family: "Sorts Mill Goudy", serif; font-size: 8.8pt; color: var(--walnut); margin-left: 2mm; }
 
@@ -69,14 +69,17 @@
       Warrior, wood: supply bag. Building, token: rightmost empty slot of its kind. Locked piece, card, hireling:
       nothing.</div></div>
     <div class="key"><div class="cap">1</div><div><b>Take a warrior</b>
-      One of yours to the pointer. From the numpad 4 row, else the supply.</div></div>
+      One of your warriors to the pointer. From the warriors' numpad 4 row first; none there: from the supply.</div></div>
     <div class="key"><div class="cap hold">2</div><div><b>Take a token or building</b>
-      <span class="hold-note">Hold 1 s</span> on a piece: sets the kind. Tap: one of that kind to the pointer.</div></div>
+      <span class="hold-note">Hold 1 s</span> on a token or building: that is now your kind. Tap: one piece of your kind
+      to the pointer. From its numpad 4 row first; none there: from its supply.</div></div>
     <div class="key"><div class="cap">3</div><div><b>Prisoner</b>
       Warrior lies flat, locked, black outline. Press again: stands up.</div></div>
     <div class="key"><div class="cap hold">4</div><div><b>Set a home row</b>
-      Select pieces, <span class="hold-note">hold 1 s</span>: their spots are the row of that kind. Numpad 0 fills
-      it, then the supply. Numpad 1 and 2 take from it. The next numpad 4 on that kind replaces it.</div></div>
+      Select pieces, <span class="hold-note">hold 1 s</span>: their spots become the home row of that kind. Numpad 0
+      sends a piece of that kind to a free spot of the row; row full: to the supply. Numpad 1 takes a warrior from
+      the warriors' row; numpad 2 takes its chosen kind from that kind's row. Numpad 4 again on a kind: the old row
+      of that kind is forgotten.</div></div>
     <div class="key"><div class="cap" style="font-size:8.5pt">no<br>pad</div><div><b>No numpad</b>
       <i>Options &rarr; Game Keys</i>: "Move back to supply", "Move a warrior", "Move any token",
       "Set warrior as a knave prisoner", "Set home of selected pieces".</div></div>
