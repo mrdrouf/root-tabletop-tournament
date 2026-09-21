@@ -14993,12 +14993,14 @@ def t_resync_does_not_run_while_anyone_holds_a_piece(src):
 
 
 def t_numpad_4_sets_where_a_selection_goes_home(src):
-    """Numpad 4 held on a selection makes the pieces' spots their homes for numpad 0 and numpad 2.
+    """Numpad 4 held on a selection makes the pieces' spots the home row of that kind.
 
     Maintainer, 2026-09-21: "select a bunch of tokens ... press numpad 4 for, let's say, one second,
     this would redefine the default position of where this token goes back when I press zero ... and
-    numpad 2 would pick the enclaves from that position as well." A short press does nothing; the
-    hold takes the whole second, like numpad 2's choosing. Saved with the board.
+    numpad 2 would pick the enclaves from that position as well." Then: "allow only 1 new zone per
+    tokens/type of warrior with numpad 4, if I numpad 4 after numpad 4 then you forget the previous
+    numpad 4 positions." A short press does nothing; the hold takes the whole second. Saved with the
+    board, and a save from the first build (one spot per piece) is gathered into a row on load.
     """
     rt = fresh(src)
     rt.execute("""
@@ -15009,40 +15011,92 @@ def t_numpad_4_sets_where_a_selection_goes_home(src):
       SAID = {} broadcastToColor = function(m, c) SAID[#SAID + 1] = tostring(m) end
       onScriptingButtonDown(4, 'Red') FLUSH_UNTIL(0.5) onScriptingButtonUp(4, 'Red')
     """)
-    assert rt.eval("RTT_HOME[A.getGUID()] == nil"), "half a second set a home; it takes the full hold"
+    row_xs = lambda r: sorted(round(sp["p"][1], 2) for sp in (r or {}).values())
+    assert rt.eval("RTT_HOME_SET['Sympathy'] == nil"), "half a second set a row; it takes the full hold"
     rt.execute("onScriptingButtonDown(4, 'Red') FLUSH_UNTIL(RTT_KEY4_HOLD) onScriptingButtonUp(4, 'Red')")
-    home = rt.eval("RTT_HOME[A.getGUID()]")
-    assert home is not None and abs(home["p"][1] - 10) < 0.01 and home["set"] is True, "the hold did not set A's home: %r" % (home and dict(home))
+    assert row_xs(rt.eval("RTT_HOME_SET['Sympathy']")) == [10, 12], "the hold did not set the row: %r" % row_xs(rt.eval("RTT_HOME_SET['Sympathy']"))
     said = [str(v) for v in (rt.eval("SAID") or {}).values()]
     assert any("Home set for 2" in m and "Sympathy" in m for m in said), "no word of what was set: %r" % said
-    # numpad 0 on A, moved away, sends it back to its own spot
+    # numpad 0 on A, moved away, brings it back to the free spot of the row (B stands on the other)
     rt.execute("A.setPosition({ 30, 11.6, 30 }) HOVER['Red'] = A onScriptingButtonDown(10, 'Red') FLUSH(10)")
     assert abs(rt.eval("A.__pos.x") - 10) < 0.01 and abs(rt.eval("A.__pos.z") - 10) < 0.01, \
-        "numpad 0 did not send A back to the spot set with numpad 4: (%.1f, %.1f)" % (rt.eval("A.__pos.x"), rt.eval("A.__pos.z"))
-    # numpad 2, with Sympathy chosen, takes one from those spots
+        "numpad 0 did not bring A back to the row's free spot: (%.1f, %.1f)" % (rt.eval("A.__pos.x"), rt.eval("A.__pos.z"))
+    # numpad 2, with Sympathy chosen, takes one from the row
     rt.execute("RTT_TOKEN_PICK['Red'] = 'Sympathy' POINTER['Red'] = { x = 40, y = 1, z = 40 } HOVER['Red'] = nil rttGizmoToken('Red') FLUSH(10)")
     took = [n for n in ("A", "B") if abs(rt.eval("%s.__pos.x" % n) - 40) < 0.01]
-    assert len(took) == 1, "numpad 2 did not take a Sympathy from the spots set with numpad 4: %r" % took
-    # the set homes survive a save and a load
+    assert len(took) == 1, "numpad 2 did not take a Sympathy from the row set with numpad 4: %r" % took
+    # the row survives a save and a load
     rt.execute("STATE = onSave()")
-    rt2 = fresh(src)
-    rt2.execute("onLoad(%s)" % "STATE_FROM_RT1")
     saved = json.loads(rt.eval("STATE"))
-    assert saved.get("home4") and len(saved["home4"]) == 2, "the set homes are not saved: %r" % saved.get("home4")
+    assert len((saved.get("home4") or {}).get("Sympathy") or []) == 2, "the row is not saved: %r" % saved.get("home4")
     rt2 = fresh(src)
     rt2.execute("pcall(function() onLoad(%s) end)" % json.dumps(json.dumps(saved)))
-    g = rt.eval("A.getGUID()")
-    back = rt2.eval("RTT_HOME[%r]" % g)
-    assert back is not None and back["set"] is True and abs(back["p"][1] - 10) < 0.01, "a reload lost the set home"
-    # nothing selected and nothing hovered: a word, no home
-    rt.execute("SELECTED['Red'] = {} HOVER['Red'] = nil SAID = {} RTT_HOME = {} onScriptingButtonDown(4, 'Red') FLUSH_UNTIL(RTT_KEY4_HOLD) onScriptingButtonUp(4, 'Red')")
+    assert row_xs(rt2.eval("RTT_HOME_SET['Sympathy']")) == [10, 12], "a reload lost the row"
+    # a save from the first build, one spot per piece guid, is gathered into a row
+    old = dict(saved)
+    old["home4"] = {"a1b2c3": {"n": "Sympathy", "p": [10, 11.6, 10], "r": [0, 0, 0]},
+                    "d4e5f6": {"n": "Sympathy", "p": [12, 11.6, 10], "r": [0, 0, 0]}}
+    rt3 = fresh(src)
+    rt3.execute("pcall(function() onLoad(%s) end)" % json.dumps(json.dumps(old)))
+    assert row_xs(rt3.eval("RTT_HOME_SET['Sympathy']")) == [10, 12], "a first-build save was not gathered into a row"
+    # one row per kind: a new numpad 4 on one Sympathy replaces the row
+    rt.execute("C = MKOBJ('Sympathy', { 14, 11.6, 10 }, {}) SELECTED['Red'] = { C } onScriptingButtonDown(4, 'Red') FLUSH_UNTIL(RTT_KEY4_HOLD) onScriptingButtonUp(4, 'Red')")
+    assert row_xs(rt.eval("RTT_HOME_SET['Sympathy']")) == [14], "a second numpad 4 did not replace the row: %r" % row_xs(rt.eval("RTT_HOME_SET['Sympathy']"))
+    # nothing selected and nothing hovered: a word, no row
+    rt.execute("SELECTED['Red'] = {} HOVER['Red'] = nil SAID = {} RTT_HOME_SET = {} onScriptingButtonDown(4, 'Red') FLUSH_UNTIL(RTT_KEY4_HOLD) onScriptingButtonUp(4, 'Red')")
     said = [str(v) for v in (rt.eval("SAID") or {}).values()]
-    assert rt.eval("next(RTT_HOME) == nil") and any("select" in m for m in said), "an empty hold did not say so: %r" % said
+    assert rt.eval("next(RTT_HOME_SET) == nil") and any("select" in m for m in said), "an empty hold did not say so: %r" % said
     # the named hotkey (a keyboard without a numpad) is the same held key
     LBL = "Set home of selected pieces; hold numpad 4 for 1 second"
     assert rt.eval("HOTKEY_HOLDS(%r)" % LBL) is True, "the numpad 4 hotkey is not registered to fire on key up"
-    rt.execute("SELECTED['Red'] = { A } RTT_HOME = {} PRESS(%r, 'Red') FLUSH_UNTIL(RTT_KEY4_HOLD) PRESS(%r, 'Red', true)" % (LBL, LBL))
-    assert rt.eval("RTT_HOME[A.getGUID()] ~= nil"), "the held hotkey did not set a home"
+    rt.execute("SELECTED['Red'] = { A } RTT_HOME_SET = {} PRESS(%r, 'Red') FLUSH_UNTIL(RTT_KEY4_HOLD) PRESS(%r, 'Red', true)" % (LBL, LBL))
+    assert rt.eval("RTT_HOME_SET['Sympathy'] ~= nil"), "the held hotkey did not set a row"
+
+
+def t_numpad_0_fills_the_set_row_once_and_sends_the_rest_to_the_supply(src):
+    """Numpad 0 puts one warrior per set spot and the rest into the supply bag.
+
+    Maintainer, 2026-09-21: "sometimes you send back more warriors than the new home positions can
+    allow and do not split properly between the possible positions when some are still in the
+    supply." Three spots set, four warriors sent home one after another (one of them fresh out of the
+    bag): the three spots each hold one, the fourth goes into the bag, and no spot holds two.
+    """
+    rt = fresh(src)
+    rt.execute("""
+      Global.setVar("RTT_SEAT_COLOR", JSON.encode({ ["Lord of the Hundreds"] = "Red" }))
+      SEAT('Red', 'Ann')
+      PUT, TOOK = 0, 0
+      BAG = MKOBJ("Hundreds Supply", {0,1,0}, {})
+      BAG.getQuantity = function() return 3 end
+      BAG.putObject = function(o) PUT = PUT + 1 end
+      BAG.takeObject = function(p)
+        TOOK = TOOK + 1
+        D = MKOBJ("Hundreds Warrior", p.position, {})
+        if p.callback_function then p.callback_function(D) end
+      end
+      A = MKOBJ("Hundreds Warrior", { 10, 11.6, 10 }, {})
+      B = MKOBJ("Hundreds Warrior", { 12, 11.6, 10 }, {})
+      C = MKOBJ("Hundreds Warrior", { 14, 11.6, 10 }, {})
+      RTT_HOME = {}
+      SELECTED['Red'] = { A, B, C }
+      broadcastToColor = function() end
+      onScriptingButtonDown(4, 'Red') FLUSH_UNTIL(RTT_KEY4_HOLD) onScriptingButtonUp(4, 'Red')
+      SELECTED['Red'] = {}
+      for _, o in ipairs({ A, B, C }) do o.setPosition({ 40, 11.6, 40 }) end
+      POINTER['Red'] = { x = 20, y = 1, z = -30 } HOVER['Red'] = nil
+      rttGizmoTake('Red') FLUSH(10)
+    """)
+    assert rt.eval("TOOK") == 1 and rt.eval("D ~= nil"), "the bag was not opened for a fourth warrior"
+    on_spot = lambda: sorted(round(rt.eval("%s.__pos.x" % n)) for n in ("A", "B", "C", "D") if round(rt.eval("%s.__pos.x" % n)) in (10, 12, 14))
+    for i, n in enumerate(("D", "A", "B")):
+        rt.execute("HOVER['Red'] = %s onScriptingButtonDown(10, 'Red') FLUSH(10)" % n)
+        assert rt.eval("PUT") == 0, "warrior %s went into the bag while a set spot was free" % n
+        got = on_spot()
+        assert len(got) == i + 1 and len(set(got)) == i + 1, "after %s: spots held %r" % (n, got)
+    rt.execute("HOVER['Red'] = C onScriptingButtonDown(10, 'Red') FLUSH(10)")
+    assert rt.eval("PUT") == 1, "the fourth warrior did not go into the bag once the row was full"
+    got = on_spot()
+    assert got == [10, 12, 14], "the row should hold one warrior per spot, got %r" % got
 
 
 def t_numpad_1_takes_a_warrior_from_a_home_set_with_numpad_4(src):
@@ -15075,7 +15129,7 @@ def t_numpad_1_takes_a_warrior_from_a_home_set_with_numpad_4(src):
       SELECTED['Red'] = {}
       POINTER['Red'] = { x = 20, y = 1, z = -30 } HOVER['Red'] = nil
     """)
-    assert rt.eval("RTT_HOME[A.getGUID()] ~= nil and RTT_HOME[B.getGUID()] ~= nil"), "the homes were not set"
+    assert rt.eval("#(RTT_HOME_SET['Hundreds Warrior'] or {}) == 2"), "the row was not set"
     at_pointer = lambda: [n for n in ("A", "B") if abs(rt.eval("%s.__pos.x" % n) - 20) < 0.01]
     rt.execute("rttGizmoTake('Red') FLUSH(10)")
     assert len(at_pointer()) == 1 and rt.eval("TOOK") == 0, \
@@ -15085,14 +15139,15 @@ def t_numpad_1_takes_a_warrior_from_a_home_set_with_numpad_4(src):
         "second press: expected both set warriors at the pointer and the bag untouched, got %r, took %d" % (at_pointer(), rt.eval("TOOK"))
     rt.execute("rttGizmoTake('Red') FLUSH(10)")
     assert rt.eval("TOOK") == 1, "third press: the bag should have been opened once the set homes were empty"
-    # numpad 0 on a set warrior goes back to its own spot, not into the bag
+    # numpad 0 on a warrior goes back to a free spot of the set row, not into the bag
     rt.execute("HOVER['Red'] = A rttGizmoHome('Red') FLUSH(10)")
-    assert rt.eval("PUT") == 0 and abs(rt.eval("A.__pos.x") - 10) < 0.01, \
-        "numpad 0 did not send the warrior back to its set home (put %d, x %.1f)" % (rt.eval("PUT"), rt.eval("A.__pos.x"))
-    # a prisoner lying on its home is not handed out
+    ax = rt.eval("A.__pos.x")
+    assert rt.eval("PUT") == 0 and (abs(ax - 10) < 0.01 or abs(ax - 12) < 0.01), \
+        "numpad 0 did not send the warrior back to the set row (put %d, x %.1f)" % (rt.eval("PUT"), ax)
+    # a prisoner lying on the row is not handed out
     rt.execute("A.setLock(true) rttGizmoTake('Red') FLUSH(10)")
-    assert abs(rt.eval("A.__pos.x") - 10) < 0.01 and rt.eval("TOOK") == 2, \
-        "a locked warrior on its home was taken, or the bag was not used instead (x %.1f, took %d)" % (rt.eval("A.__pos.x"), rt.eval("TOOK"))
+    assert abs(rt.eval("A.__pos.x") - ax) < 0.01 and rt.eval("TOOK") == 2, \
+        "a locked warrior on the row was taken, or the bag was not used instead (x %.1f, took %d)" % (rt.eval("A.__pos.x"), rt.eval("TOOK"))
 
 
 def t_a_resync_re_sends_every_seat_in_turn(src):
@@ -15474,6 +15529,7 @@ CASES = [
     ("resync waits for hands to be empty of the mouse", t_resync_does_not_run_while_anyone_holds_a_piece),
     ("numpad 4 sets where a selection goes home", t_numpad_4_sets_where_a_selection_goes_home),
     ("numpad 1 takes from a home set with numpad 4", t_numpad_1_takes_a_warrior_from_a_home_set_with_numpad_4),
+    ("numpad 0 fills the set row once, then the supply", t_numpad_0_fills_the_set_row_once_and_sends_the_rest_to_the_supply),
     ("the sheet takes the captains it is told", t_the_sheet_takes_the_captains_it_is_told),
     ("a card dropped on the pond turns face up", t_a_card_dropped_on_the_pond_turns_face_up),
     ("the flush drains and dies",       t_the_flush_writes_its_queue_and_lets_the_timer_die),

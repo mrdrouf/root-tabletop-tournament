@@ -90,10 +90,15 @@ function onLoad(state)
     RTT_TURN_SEATS = d.turnSeats or RTT_TURN_SEATS
     if type(d.laid) == "table" then RTT_LAID = d.laid end
     if type(d.home4) == "table" then
-      RTT_HOME_SET = d.home4
-      for g, h in pairs(d.home4) do
-        if type(h) == "table" and h.p ~= nil then
-          RTT_HOME[g] = { n = h.n or "", f = "", p = h.p, r = h.r or { 0, 0, 0 }, set = true, x = true }
+      -- ROWS BY NAME. A save from the first build (v1.471-1.474) keyed one spot per piece guid with
+      -- the name inside; those are gathered into rows so nothing that was set is lost.
+      RTT_HOME_SET = {}
+      for k, h in pairs(d.home4) do
+        if type(h) == "table" and h.p ~= nil and type(h.n) == "string" and h.n ~= "" then
+          RTT_HOME_SET[h.n] = RTT_HOME_SET[h.n] or {}
+          table.insert(RTT_HOME_SET[h.n], { p = h.p, r = h.r or { 0, 0, 0 } })
+        elseif type(h) == "table" and type(k) == "string" then
+          RTT_HOME_SET[k] = h
         end
       end
     end
@@ -1691,7 +1696,7 @@ RTT_SPAWNED = {}
 -- A new registry goes HERE, not into either of the two functions.
 RTT_GUID_REGISTRIES = {
   { var = "RTT_HOME",          shape = "key",   run = true  },   -- where every piece spawned (numpad 0)
-  { var = "RTT_HOME_SET",      shape = "key",   run = true  },   -- the homes set with numpad 4
+  { var = "RTT_HOME_SET",      shape = "key",   run = true  },   -- the rows set with numpad 4, by name
   { var = "RTT_VP_MARKER",     shape = "value", run = true  },   -- each kit's VP marker, by its name
   { var = "RTT_SPAWNED",       shape = "list",  run = false },   -- the teardown's own list; it clears it
   { var = "RTT_LAID",          shape = "key",   run = false },   -- laid prisoners: saved state, kept by its tick
@@ -11387,7 +11392,7 @@ function rttGizmoHome(color)
 
   -- 2. its own spot, for the types that have no row
   local home = (RTT_HOME or {})[hovered.getGUID()]
-  if home ~= nil and (RTT_HOME_OWN_SPOT[name] or home.set) then   -- a Plot, or a home set with numpad 4
+  if RTT_HOME_OWN_SPOT[name] and home ~= nil then
     pcall(function()
       hovered.setPositionSmooth({ home.p[1], home.p[2], home.p[3] }, false, true)
       -- a plot keeps whatever face it is lying on -- see RTT_HOME_KEEP_FACING
@@ -11401,6 +11406,24 @@ function rttGizmoHome(color)
   -- 3. the rightmost empty slot of its kind
   -- THE ROW, WHICH MAY BE SHARED. rttHomeFamily is the name itself for everything except the
   -- Keepers' waystations, so this is the old behaviour for every other piece in the game.
+  -- THE ROW SET WITH NUMPAD 4 FIRST, one piece per spot; once it is full the piece goes where it
+  -- always went. See rttSetHomes.
+  local setSlots = rttSetSlotsFor(name)
+  if #setSlots > 0 then
+    local stol = rttHomeYTol(setSlots)
+    for _, sl in ipairs(setSlots) do
+      if not rttHomeSlotTaken(sl, name, hovered, stol) then
+        pcall(function()
+          hovered.setPositionSmooth({ sl.p[1], sl.p[2], sl.p[3] }, false, true)
+          if not RTT_HOME_KEEP_FACING[name] then
+            hovered.setRotation({ sl.r[1], sl.r[2], sl.r[3] })
+          end
+        end)
+        return
+      end
+    end
+  end
+
   local slots = rttSlotsFor(name)
 
   -- ...AND THE ROW WITHIN IT, for a piece whose name does not say which row it belongs to. All
@@ -11533,17 +11556,17 @@ end
 function rttGizmoTake(color)
   if rttPointerOverDeckArea(color) then return end     -- over a deck: nothing, silently
   -- FROM A HOME SET WITH NUMPAD 4 FIRST. Maintainer, 2026-09-21: "numpad 1 needs to find warriors
-  -- even if they are not in the supply but in their new home set with numpad 4." A warrior's only
-  -- recorded homes are the ones set that way (rttHomeMeasuredOnly keeps its spawn spots out), so a
-  -- warrior of your faction standing on one of those spots is taken before the bag is asked -- the
-  -- way numpad 2 takes from a row before it opens a bag. A prisoner (locked) is left where it lies.
+  -- even if they are not in the supply but in their new home set with numpad 4." A warrior of your
+  -- faction standing on the row set with numpad 4 (rttSetSlotsFor) is taken before the bag is asked,
+  -- the way numpad 2 takes from a row before it opens a bag. A prisoner (locked) is left where it
+  -- lies.
   local pos = nil
   pcall(function() pos = Player[color].getPointerPosition() end)
   local faction = rttMyFaction(color)
   if faction ~= nil and pos ~= nil then
     local _, warName = rttFactionPieceNames(faction)
     if warName ~= nil then
-      local slots = rttSlotsFor(warName)
+      local slots = rttSetSlotsFor(warName)
       local ytol = rttHomeYTol(slots)
       for i = #slots, 1, -1 do
         local o = rttPieceOnSlot(slots[i], warName, ytol)
@@ -11947,6 +11970,17 @@ function rttGizmoToken(color)
   -- 1. off the END of its row. rttHomeSlots hands back the fill order, so walking it backwards
   --    empties the row from the far end -- the exact mirror of numpad 0 filling it.
   -- the SAME row numpad 0 fills, family and all -- see rttSlotsFor
+  -- THE ROW SET WITH NUMPAD 4 FIRST, its far end first like any row. See rttSetHomes.
+  local setSlots = rttSetSlotsFor(name)
+  local stol = rttHomeYTol(setSlots)
+  for i = #setSlots, 1, -1 do
+    local o = rttPieceOnSlot(setSlots[i], name, stol)
+    if o ~= nil then
+      pcall(function() o.setPositionSmooth(to, false, true) end)
+      return
+    end
+  end
+
   local slots = rttSlotsFor(name)
   local ytol = rttHomeYTol(slots)
   for i = #slots, 1, -1 do
@@ -12003,22 +12037,40 @@ end
 -- so the named hotkey can share it: addHotkey takes a triggerOnKeyUp flag and hands its callback an
 -- isKeyUp, so a Mac without a numpad holds the same way. A second hotkey was briefly added for
 -- choosing the kind, on the belief that a named key could not be held -- it can.
--- NUMPAD 4, HELD ON A SELECTION: WHERE THOSE PIECES GO HOME FROM NOW ON. Maintainer, 2026-09-21:
--- "let's assume I select a bunch of tokens, for example enclaves ... If I press numpad 4 for, let's
--- say, one second, this would redefine the default position of where this token goes back when I
--- press zero ... take all of the warriors out of the supply, select them all, press numpad 4 ... then
+-- NUMPAD 4, HELD ON A SELECTION: A HOME ROW FOR THAT KIND OF PIECE. Maintainer, 2026-09-21: "let's
+-- assume I select a bunch of tokens, for example enclaves ... If I press numpad 4 for, let's say,
+-- one second, this would redefine the default position of where this token goes back when I press
+-- zero ... take all of the warriors out of the supply, select them all, press numpad 4 ... then
 -- whenever I press numpad 0 on a warrior it would send it back to that default position ... and
 -- numpad 2 would pick the enclaves from that position as well."
 --
--- Each selected piece's home becomes the spot it stands on: numpad 0 sends it back exactly there
--- (its own spot, as a Plot has), and because the spot is recorded under the piece's name like a
--- spawn position, numpad 2 finds pieces standing on it as it finds any home row. Held for the whole
--- RTT_KEY4_HOLD, like numpad 2's choosing; a short press does nothing. With nothing selected the
--- hovered piece alone is taken. Saved with the board (home4), so a reload keeps them; a new game
--- forgets them with every other home.
+-- A ROW KEYED BY THE PIECE'S NAME, NOT A HOME PER PIECE. The first build recorded each selected
+-- piece's own spot against its guid, and the maintainer saw what that does: "sometimes you send back
+-- more warriors than the new home positions can allow and do not split properly between the possible
+-- positions when some are still in the supply" -- a warrior went to ITS spot with another already
+-- standing on it, and a warrior fresh out of the bag had no set spot at all. So the spots are a row
+-- like any other: numpad 0 fills the free ones first, one piece per spot (rttHomeSlotTaken), and the
+-- rest go where they always went; numpad 1 and 2 take from it before they open a bag.
+--
+-- ONE ROW PER KIND, and the next numpad 4 on that kind REPLACES it: "allow only 1 new zone per
+-- tokens/type of warrior with numpad 4, if I numpad 4 after numpad 4 then you forget the previous
+-- numpad 4 positions." Held for the whole RTT_KEY4_HOLD, like numpad 2's choosing; a short press does
+-- nothing. With nothing selected the hovered piece alone is taken. Saved with the board (home4), so a
+-- reload keeps the rows; a new game forgets them with every other home.
 RTT_KEY4 = {}
 RTT_KEY4_HOLD = 1
-RTT_HOME_SET = {}                -- [guid] = { n, p, r }: the homes the players set with numpad 4
+RTT_HOME_SET = {}                -- [name] = { { p, r }, ... }: the row set with numpad 4 for that kind
+-- The row set for a kind, as slots in the fill order every row uses; empty when none was set.
+function rttSetSlotsFor(name)
+  local out = {}
+  for _, sp in ipairs((RTT_HOME_SET or {})[name] or {}) do
+    if type(sp) == "table" and sp.p ~= nil then
+      out[#out + 1] = { n = name, f = "", p = sp.p, r = sp.r or { 0, 0, 0 }, set = true }
+    end
+  end
+  if #out == 0 then return out end
+  return rttOrderSlots(out, name)
+end
 function rttSetHomes(color)
   local picked = {}
   pcall(function() picked = Player[color].getSelectedObjects() or {} end)
@@ -12027,19 +12079,15 @@ function rttSetHomes(color)
     pcall(function() hov = Player[color].getHoverObject() end)
     if hov ~= nil then picked = { hov } end
   end
-  local n, names = 0, {}
+  local rows, n = {}, 0
   for _, o in ipairs(picked) do
     pcall(function()
       local name = o.getName() or ""
       if name == "" or RTT_HOME_NEVER[name] then return end
-      local g = o.getGUID()
       local p, r = o.getPosition(), o.getRotation()
-      local old = RTT_HOME[g]
-      RTT_HOME[g] = { n = name, f = (old ~= nil and old.f) or "", p = { p.x, p.y, p.z },
-                      r = { r.x, r.y, r.z }, set = true, x = true }
-      RTT_HOME_SET[g] = { n = name, p = { p.x, p.y, p.z }, r = { r.x, r.y, r.z } }
+      rows[name] = rows[name] or {}
+      table.insert(rows[name], { p = { p.x, p.y, p.z }, r = { r.x, r.y, r.z } })
       n = n + 1
-      names[name] = true
     end)
   end
   if n == 0 then
@@ -12049,7 +12097,10 @@ function rttSetHomes(color)
     return
   end
   local list = {}
-  for k in pairs(names) do list[#list + 1] = k end
+  for name, row in pairs(rows) do
+    RTT_HOME_SET[name] = row         -- the row this kind had before is forgotten
+    list[#list + 1] = name
+  end
   table.sort(list)
   pcall(function()
     broadcastToColor("Home set for " .. n .. " piece(s): " .. table.concat(list, ", ") .. ".", color,

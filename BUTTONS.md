@@ -165,7 +165,7 @@ with no home — a hireling, a card — does nothing, and says nothing.
 
 **NUMPAD 1 — take a warrior** out of YOUR supply, standing up, at your pointer, whatever the pointer
 happens to be over. Yours is the faction you last PICKED, not the seat you started in, so switching
-faction moves the supply with you. A warrior of yours standing on a home set with numpad 4 is taken
+faction moves the supply with you. A warrior of yours standing on the row set with numpad 4 is taken
 before the bag is opened; a prisoner is left where it lies. An empty supply does nothing.
 
 **NUMPAD 2 — take a token or building to your pointer**, of the kind you chose. To choose, hold the
@@ -177,11 +177,13 @@ Warriors are numpad 1's job. With nothing chosen a tap does nothing and says not
 Pressing it again stands it up where it lay and puts the outline out. Unlocking it by hand only takes
 the mark off and leaves it where it is.
 
-**NUMPAD 4 — set where the selected pieces go home.** Box-select pieces (enclaves, warriors,
-buildings, anything with a name) and hold the key for one second: each piece's spot becomes its home.
-Numpad 0 then sends it back exactly there, and numpad 2 takes pieces of that kind from those spots.
-With nothing selected the hovered piece alone is taken. A short press does nothing. The homes are
-saved with the board, so a reload keeps them; a new game forgets them.
+**NUMPAD 4 — set a home row for a kind of piece.** Box-select pieces (enclaves, warriors, buildings,
+anything with a name) and hold the key for one second: their spots become the home row of that kind.
+Numpad 0 fills that row first, one piece per spot, and sends the rest where they always went (a
+warrior into its supply, a token or building to its old row); numpad 1 and numpad 2 take from that row
+before they open a bag. One row per kind: a new numpad 4 on a kind replaces its row. With nothing
+selected the hovered piece alone is taken. A short press does nothing. The rows are saved with the
+board, so a reload keeps them; a new game forgets them.
 
 Those are TTS *scripting buttons*, which are numpad-bound, so **on a laptop with no numpad** (a
 MacBook, where the top-row 0 is a different key and needs Shift on a French layout) bind the named

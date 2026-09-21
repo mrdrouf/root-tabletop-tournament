@@ -518,6 +518,16 @@ Where to cut, if it is ever needed, biggest first (none done):
       warrior standing on one (a locked prisoner is skipped), and only then opens the bag -- the
       order numpad 2 already uses for a row and a bag. Numpad 0 on such a warrior already went back to
       the set spot. One more case. Not yet confirmed in TTS.
+      "SOMETIMES YOU SEND BACK MORE WARRIORS THAN THE NEW HOME POSITIONS CAN ALLOW and do not split
+      properly between the possible positions when some are still in the supply" -- "allow only 1 new
+      zone per tokens/type of warrior with numpad 4, if I numpad 4 after numpad 4 then you forget the
+      previous numpad 4 positions." The first build keyed a set home to the PIECE: a warrior went to
+      its own spot even with another already standing on it, and a fresh warrior out of the bag had
+      no set home at all. v1.475: the set spots are a ROW keyed by the piece's NAME (RTT_HOME_SET
+      [name]), one row per kind, replaced whole by the next numpad 4 on that kind. Numpad 0 fills the
+      free spots of that row first, one piece per spot, and the rest go where they always went (a
+      warrior into its bag, a token to its old row); numpad 1 and 2 take from that row before a bag.
+      A save from the first build is converted on load. Three cases. Not yet confirmed in TTS.
 - [x] **A one-page player guide to the things that are not obvious.** Maintainer, 2026-09-21: "Create
       a tiny nice design looking pdf to explain the functions of the mod that are not obvious so the
       numpad and other things from boxscore." guide/RTT_Guide.pdf, built from guide/RTT_Guide.html by
