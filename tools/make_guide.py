@@ -1,6 +1,6 @@
 """Render guide/RTT_Guide.html to guide/RTT_Guide.pdf with Edge in headless mode.
 
-The guide is the two-page player sheet for the things in the mod that are not obvious: the numpad
+The guide is the one-page player sheet for the things in the mod that are not obvious: the numpad
 keys, the box score, the VP panel, the turn panel, the deck holder and the setup board's habits.
 Edit the HTML, run this, commit both. The footer carries a month, not a build number: the commit
 hook bumps VERSION on every commit, so a number printed here would be stale the moment it landed.

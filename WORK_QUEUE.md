@@ -518,14 +518,15 @@ Where to cut, if it is ever needed, biggest first (none done):
       warrior standing on one (a locked prisoner is skipped), and only then opens the bag -- the
       order numpad 2 already uses for a row and a bag. Numpad 0 on such a warrior already went back to
       the set spot. One more case. Not yet confirmed in TTS.
-- [x] **A two-page player guide to the things that are not obvious.** Maintainer, 2026-09-21: "Create
+- [x] **A one-page player guide to the things that are not obvious.** Maintainer, 2026-09-21: "Create
       a tiny nice design looking pdf to explain the functions of the mod that are not obvious so the
       numpad and other things from boxscore." guide/RTT_Guide.pdf, built from guide/RTT_Guide.html by
       tools/make_guide.py (Edge headless; Metamorphous for headings as the nearest free face to the
       board's Luminari, Sorts Mill Goudy for text, the mod's parchment). Numpad 0-4 and the named
       hotkeys, the box score, the VP panel, the draft, the turn panel, the deck holder, Resync and the
       setup board's habits. Linked from the README. The footer carries a month, not a build number,
-      because the commit hook bumps VERSION on every commit.
+      because the commit hook bumps VERSION on every commit. First cut was two pages -- "lot of
+      unnecessary fluff in the document" -- so it is one page now, one line per item, no asides.
 - [ ] **"All the clearing markers seemed to be unlocked."** Simber, same game. In the autosave taken
       ten seconds after the win all twelve priority markers are LOCKED, and the map too. Resync's
       lock mode unlocks each object for one frame and locks it again, so nothing stays unlocked by
