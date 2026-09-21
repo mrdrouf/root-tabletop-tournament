@@ -503,6 +503,16 @@ Where to cut, if it is ever needed, biggest first (none done):
       v1.467-1.469 had added around this (the skip, the checked deal-back, the step check, the
       forced drop) is removed; the code is back to v1.466 plus this gate. One case. Not yet confirmed
       in TTS.
+- [x] **Numpad 4: hold it on a selection to set where those pieces go home.** Maintainer,
+      2026-09-21: "select a bunch of tokens, for example enclaves ... press numpad 4 for, let's say,
+      one second, this would redefine the default position of where this token goes back when I
+      press zero ... take all of the warriors out of the supply, select them all, press numpad 4 ...
+      and numpad 2 would pick the enclaves from that position as well." v1.471: held for the full
+      second (RTT_KEY4_HOLD, like numpad 2's choosing), every selected piece's spot becomes its home:
+      numpad 0 sends it back exactly there, numpad 2 finds pieces standing on those spots as it finds
+      any home row; with nothing selected the hovered piece alone; a short press does nothing; a
+      word says how many were set. Saved with the board (home4) so a reload keeps them; a new game
+      forgets them with every other home. One case. Not yet confirmed in TTS.
 - [ ] **"All the clearing markers seemed to be unlocked."** Simber, same game. In the autosave taken
       ten seconds after the win all twelve priority markers are LOCKED, and the map too. Resync's
       lock mode unlocks each object for one frame and locks it again, so nothing stays unlocked by

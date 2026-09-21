@@ -32,6 +32,7 @@ function onSave()
     -- leaves them flat, lit and locked with nothing able to undo it.
     return JSON.encode({ v = 1, run = RTT_RUN_ID or 0, turnSeats = RTT_TURN_SEATS, seats = seats,
                          laid = RTT_LAID or {}, pickN = RTT_PICK_N or 0,
+                         home4 = RTT_HOME_SET or {},
                          -- order: the draft's single shuffle, person -> seat number. It is not a
                          -- duplicate of the seats -- it is the INPUT that decides which seat each
                          -- person gets, and it is needed in the window between the order cards being
@@ -88,6 +89,14 @@ function onLoad(state)
     RTT_RUN_ID     = d.run or RTT_RUN_ID
     RTT_TURN_SEATS = d.turnSeats or RTT_TURN_SEATS
     if type(d.laid) == "table" then RTT_LAID = d.laid end
+    if type(d.home4) == "table" then
+      RTT_HOME_SET = d.home4
+      for g, h in pairs(d.home4) do
+        if type(h) == "table" and h.p ~= nil then
+          RTT_HOME[g] = { n = h.n or "", f = "", p = h.p, r = h.r or { 0, 0, 0 }, set = true, x = true }
+        end
+      end
+    end
     RTT_PICK_N = d.pickN or RTT_PICK_N
     if type(d.order) == "table" then RTT_ORDER = d.order end
     if type(d.map) == "string" and d.map ~= "" then RTT_CURRENT_MAP = d.map end
@@ -127,6 +136,11 @@ function onLoad(state)
       if isKeyUp then rttKey2Up(color) else rttKey2Down(color) end
     end, true)
     addHotkey("Set warrior as a knave prisoner", function(color) rttGizmoMark(color) end)
+    -- numpad 4, held: the same press-and-hold, so it works without a numpad. New label, nothing bound yet.
+    addHotkey("Set home of selected pieces; hold numpad 4 for 1 second",
+              function(color, _, _, isKeyUp)
+      if isKeyUp then rttKey4Up(color) else rttKey4Down(color) end
+    end, true)
   end)
   assets = {}
   if self.getName() != "Faction Board" then
@@ -1677,6 +1691,7 @@ RTT_SPAWNED = {}
 -- A new registry goes HERE, not into either of the two functions.
 RTT_GUID_REGISTRIES = {
   { var = "RTT_HOME",          shape = "key",   run = true  },   -- where every piece spawned (numpad 0)
+  { var = "RTT_HOME_SET",      shape = "key",   run = true  },   -- the homes set with numpad 4
   { var = "RTT_VP_MARKER",     shape = "value", run = true  },   -- each kit's VP marker, by its name
   { var = "RTT_SPAWNED",       shape = "list",  run = false },   -- the teardown's own list; it clears it
   { var = "RTT_LAID",          shape = "key",   run = false },   -- laid prisoners: saved state, kept by its tick
@@ -11372,7 +11387,7 @@ function rttGizmoHome(color)
 
   -- 2. its own spot, for the types that have no row
   local home = (RTT_HOME or {})[hovered.getGUID()]
-  if RTT_HOME_OWN_SPOT[name] and home ~= nil then
+  if home ~= nil and (RTT_HOME_OWN_SPOT[name] or home.set) then   -- a Plot, or a home set with numpad 4
     pcall(function()
       hovered.setPositionSmooth({ home.p[1], home.p[2], home.p[3] }, false, true)
       -- a plot keeps whatever face it is lying on -- see RTT_HOME_KEEP_FACING
@@ -11964,6 +11979,75 @@ end
 -- so the named hotkey can share it: addHotkey takes a triggerOnKeyUp flag and hands its callback an
 -- isKeyUp, so a Mac without a numpad holds the same way. A second hotkey was briefly added for
 -- choosing the kind, on the belief that a named key could not be held -- it can.
+-- NUMPAD 4, HELD ON A SELECTION: WHERE THOSE PIECES GO HOME FROM NOW ON. Maintainer, 2026-09-21:
+-- "let's assume I select a bunch of tokens, for example enclaves ... If I press numpad 4 for, let's
+-- say, one second, this would redefine the default position of where this token goes back when I
+-- press zero ... take all of the warriors out of the supply, select them all, press numpad 4 ... then
+-- whenever I press numpad 0 on a warrior it would send it back to that default position ... and
+-- numpad 2 would pick the enclaves from that position as well."
+--
+-- Each selected piece's home becomes the spot it stands on: numpad 0 sends it back exactly there
+-- (its own spot, as a Plot has), and because the spot is recorded under the piece's name like a
+-- spawn position, numpad 2 finds pieces standing on it as it finds any home row. Held for the whole
+-- RTT_KEY4_HOLD, like numpad 2's choosing; a short press does nothing. With nothing selected the
+-- hovered piece alone is taken. Saved with the board (home4), so a reload keeps them; a new game
+-- forgets them with every other home.
+RTT_KEY4 = {}
+RTT_KEY4_HOLD = 1
+RTT_HOME_SET = {}                -- [guid] = { n, p, r }: the homes the players set with numpad 4
+function rttSetHomes(color)
+  local picked = {}
+  pcall(function() picked = Player[color].getSelectedObjects() or {} end)
+  if #picked == 0 then
+    local hov = nil
+    pcall(function() hov = Player[color].getHoverObject() end)
+    if hov ~= nil then picked = { hov } end
+  end
+  local n, names = 0, {}
+  for _, o in ipairs(picked) do
+    pcall(function()
+      local name = o.getName() or ""
+      if name == "" or RTT_HOME_NEVER[name] then return end
+      local g = o.getGUID()
+      local p, r = o.getPosition(), o.getRotation()
+      local old = RTT_HOME[g]
+      RTT_HOME[g] = { n = name, f = (old ~= nil and old.f) or "", p = { p.x, p.y, p.z },
+                      r = { r.x, r.y, r.z }, set = true, x = true }
+      RTT_HOME_SET[g] = { n = name, p = { p.x, p.y, p.z }, r = { r.x, r.y, r.z } }
+      n = n + 1
+      names[name] = true
+    end)
+  end
+  if n == 0 then
+    pcall(function()
+      broadcastToColor("Numpad 4: select the pieces first, then hold it a second.", color, { r = 1, g = 0.6, b = 0.2 })
+    end)
+    return
+  end
+  local list = {}
+  for k in pairs(names) do list[#list + 1] = k end
+  table.sort(list)
+  pcall(function()
+    broadcastToColor("Home set for " .. n .. " piece(s): " .. table.concat(list, ", ") .. ".", color,
+                     { r = 0.7, g = 1, b = 0.7 })
+  end)
+end
+function rttKey4Down(color)
+  local st = { set = false }
+  RTT_KEY4[color] = st
+  st.id = Wait.time(function()
+    if RTT_KEY4[color] ~= st then return end
+    st.set = true
+    pcall(function() rttSetHomes(color) end)
+  end, RTT_KEY4_HOLD)
+end
+function rttKey4Up(color)
+  local st = RTT_KEY4[color]
+  RTT_KEY4[color] = nil
+  if st == nil then return end
+  if st.id ~= nil and not st.set then pcall(function() Wait.stop(st.id) end) end
+end
+
 function rttKey2Down(color)
   if rttPointerOverDeckArea(color) then return end     -- over a deck: nothing, silently (Up finds no press)
   local hovered = nil
@@ -12043,11 +12127,13 @@ function onScriptingButtonDown(idx, color)
   elseif idx == 1  then pcall(function() rttGizmoTake(color) end)   -- numpad 1: take a warrior
   elseif idx == 2  then pcall(function() rttKey2Down(color) end)    -- numpad 2: take a token / choose
   elseif idx == 3  then pcall(function() rttGizmoMark(color) end)   -- numpad 3: knave prisoner
+  elseif idx == 4  then pcall(function() rttKey4Down(color) end)    -- numpad 4: hold to set home
   end
 end
 
 function onScriptingButtonUp(idx, color)
   if idx == 2 then pcall(function() rttKey2Up(color) end) end
+  if idx == 4 then pcall(function() rttKey4Up(color) end) end
 end
 
 

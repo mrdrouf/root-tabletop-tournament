@@ -167,27 +167,29 @@ with no home — a hireling, a card — does nothing, and says nothing.
 happens to be over. Yours is the faction you last PICKED, not the seat you started in, so switching
 faction moves the supply with you. An empty supply does nothing.
 
-**NUMPAD 2 — lay a warrior down and light it.** Hovering ANY warrior, yours or an opponent's, tips it
-flat onto the board, locks it, and outlines it in **black**. Pressing it again on the same warrior
-stands it up exactly where it stood, unlocks it and puts the outline out. It survives a reload. Only
-warriors: buildings and tokens are ignored.
+**NUMPAD 2 — take a token or building to your pointer**, of the kind you chose. To choose, hold the
+key for one second on a token or building; from then on a tap takes one of that kind from its supply
+(a bag, or a row of home slots) to wherever your pointer is. The choice is per player and sticks.
+Warriors are numpad 1's job. With nothing chosen a tap does nothing and says nothing.
 
-The piece keeps its own paint. It was tinted cream for a day, which loses the faction's colour and
-reads as damage; then a translucent disc was drawn under it in the presser's colour; then that was
-withdrawn too ("make the highlight numpad 2 and remove current numpad 2 option", 2026-09-07), so
-there is one key, one mark, and nothing spawned on the board to clean up. The outline is black
-because TTS fixes its thickness and offers no intensity — colour is the only lever, and a player
-colour outlines a warrior already painted in that colour, on a map printed in the same warm palette.
-Black is the one value neither the seven maps nor the twelve factions use.
+**NUMPAD 3 — knave prisoner.** Hovering any warrior tips it flat, locks it and outlines it in black.
+Pressing it again stands it up where it lay and puts the outline out. Unlocking it by hand only takes
+the mark off and leaves it where it is.
 
-**Numpad 3 does nothing.** It drew the disc until that option was withdrawn.
+**NUMPAD 4 — set where the selected pieces go home.** Box-select pieces (enclaves, warriors,
+buildings, anything with a name) and hold the key for one second: each piece's spot becomes its home.
+Numpad 0 then sends it back exactly there, and numpad 2 takes pieces of that kind from those spots.
+With nothing selected the hovered piece alone is taken. A short press does nothing. The homes are
+saved with the board, so a reload keeps them; a new game forgets them.
 
 Those are TTS *scripting buttons*, which are numpad-bound, so **on a laptop with no numpad** (a
 MacBook, where the top-row 0 is a different key and needs Shift on a French layout) bind the named
-hotkeys in *Options → Game Keys*: **"Gizmo: send the hovered piece home"**, **"Gizmo: take a warrior
-from your supply"** and **"Gizmo: lay it down and light it up"**. They are registered unbound, so on a
-machine with a numpad there is nothing to configure. (That last label is unchanged from when it was
-numpad 3's: TTS matches a binding by label, so renaming it would drop whatever key you had bound.)
+hotkeys in *Options → Game Keys*: **"Move back to supply/initial position"**, **"Move a warrior from
+own supply to cursor"**, **"Move any token to cursor; set type by holding numpad 2 for 2 seconds"**
+(the hold is one second; the label is frozen because TTS matches a binding by its label, so changing
+a word would drop whatever key you had bound), **"Set warrior as a knave prisoner"** and **"Set home
+of selected pieces; hold numpad 4 for 1 second"**. They are registered unbound, so on a machine with
+a numpad there is nothing to configure.
 
 ---
 

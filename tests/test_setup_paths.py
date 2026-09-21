@@ -14992,6 +14992,59 @@ def t_resync_does_not_run_while_anyone_holds_a_piece(src):
         assert gone not in src, "%s is still in the build" % gone
 
 
+def t_numpad_4_sets_where_a_selection_goes_home(src):
+    """Numpad 4 held on a selection makes the pieces' spots their homes for numpad 0 and numpad 2.
+
+    Maintainer, 2026-09-21: "select a bunch of tokens ... press numpad 4 for, let's say, one second,
+    this would redefine the default position of where this token goes back when I press zero ... and
+    numpad 2 would pick the enclaves from that position as well." A short press does nothing; the
+    hold takes the whole second, like numpad 2's choosing. Saved with the board.
+    """
+    rt = fresh(src)
+    rt.execute("""
+      SEAT('Red', 'Ann')
+      A = MKOBJ('Sympathy', { 10, 11.6, 10 }, {}) B = MKOBJ('Sympathy', { 12, 11.6, 10 }, {})
+      RTT_HOME = {}
+      SELECTED['Red'] = { A, B }
+      SAID = {} broadcastToColor = function(m, c) SAID[#SAID + 1] = tostring(m) end
+      onScriptingButtonDown(4, 'Red') FLUSH_UNTIL(0.5) onScriptingButtonUp(4, 'Red')
+    """)
+    assert rt.eval("RTT_HOME[A.getGUID()] == nil"), "half a second set a home; it takes the full hold"
+    rt.execute("onScriptingButtonDown(4, 'Red') FLUSH_UNTIL(RTT_KEY4_HOLD) onScriptingButtonUp(4, 'Red')")
+    home = rt.eval("RTT_HOME[A.getGUID()]")
+    assert home is not None and abs(home["p"][1] - 10) < 0.01 and home["set"] is True, "the hold did not set A's home: %r" % (home and dict(home))
+    said = [str(v) for v in (rt.eval("SAID") or {}).values()]
+    assert any("Home set for 2" in m and "Sympathy" in m for m in said), "no word of what was set: %r" % said
+    # numpad 0 on A, moved away, sends it back to its own spot
+    rt.execute("A.setPosition({ 30, 11.6, 30 }) HOVER['Red'] = A onScriptingButtonDown(10, 'Red') FLUSH(10)")
+    assert abs(rt.eval("A.__pos.x") - 10) < 0.01 and abs(rt.eval("A.__pos.z") - 10) < 0.01, \
+        "numpad 0 did not send A back to the spot set with numpad 4: (%.1f, %.1f)" % (rt.eval("A.__pos.x"), rt.eval("A.__pos.z"))
+    # numpad 2, with Sympathy chosen, takes one from those spots
+    rt.execute("RTT_TOKEN_PICK['Red'] = 'Sympathy' POINTER['Red'] = { x = 40, y = 1, z = 40 } HOVER['Red'] = nil rttGizmoToken('Red') FLUSH(10)")
+    took = [n for n in ("A", "B") if abs(rt.eval("%s.__pos.x" % n) - 40) < 0.01]
+    assert len(took) == 1, "numpad 2 did not take a Sympathy from the spots set with numpad 4: %r" % took
+    # the set homes survive a save and a load
+    rt.execute("STATE = onSave()")
+    rt2 = fresh(src)
+    rt2.execute("onLoad(%s)" % "STATE_FROM_RT1")
+    saved = json.loads(rt.eval("STATE"))
+    assert saved.get("home4") and len(saved["home4"]) == 2, "the set homes are not saved: %r" % saved.get("home4")
+    rt2 = fresh(src)
+    rt2.execute("pcall(function() onLoad(%s) end)" % json.dumps(json.dumps(saved)))
+    g = rt.eval("A.getGUID()")
+    back = rt2.eval("RTT_HOME[%r]" % g)
+    assert back is not None and back["set"] is True and abs(back["p"][1] - 10) < 0.01, "a reload lost the set home"
+    # nothing selected and nothing hovered: a word, no home
+    rt.execute("SELECTED['Red'] = {} HOVER['Red'] = nil SAID = {} RTT_HOME = {} onScriptingButtonDown(4, 'Red') FLUSH_UNTIL(RTT_KEY4_HOLD) onScriptingButtonUp(4, 'Red')")
+    said = [str(v) for v in (rt.eval("SAID") or {}).values()]
+    assert rt.eval("next(RTT_HOME) == nil") and any("select" in m for m in said), "an empty hold did not say so: %r" % said
+    # the named hotkey (a keyboard without a numpad) is the same held key
+    LBL = "Set home of selected pieces; hold numpad 4 for 1 second"
+    assert rt.eval("HOTKEY_HOLDS(%r)" % LBL) is True, "the numpad 4 hotkey is not registered to fire on key up"
+    rt.execute("SELECTED['Red'] = { A } RTT_HOME = {} PRESS(%r, 'Red') FLUSH_UNTIL(RTT_KEY4_HOLD) PRESS(%r, 'Red', true)" % (LBL, LBL))
+    assert rt.eval("RTT_HOME[A.getGUID()] ~= nil"), "the held hotkey did not set a home"
+
+
 def t_a_resync_re_sends_every_seat_in_turn(src):
     """Resync steps every seated player off their colour, re-places their hand box from the seat while
     nobody owns the colour, and steps them back -- one at a time, after the card pass.
@@ -15369,6 +15422,7 @@ CASES = [
     ("a resync hop moves neither turn nor seat", t_a_resync_hop_moves_neither_the_turn_nor_the_seat),
     ("a second pick leaves the picker's box", t_a_second_pick_by_the_same_person_leaves_their_box_where_it_is),
     ("resync waits for hands to be empty of the mouse", t_resync_does_not_run_while_anyone_holds_a_piece),
+    ("numpad 4 sets where a selection goes home", t_numpad_4_sets_where_a_selection_goes_home),
     ("the sheet takes the captains it is told", t_the_sheet_takes_the_captains_it_is_told),
     ("a card dropped on the pond turns face up", t_a_card_dropped_on_the_pond_turns_face_up),
     ("the flush drains and dies",       t_the_flush_writes_its_queue_and_lets_the_timer_die),

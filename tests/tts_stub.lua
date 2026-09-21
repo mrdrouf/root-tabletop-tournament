@@ -520,6 +520,7 @@ end
 -- the gizmo asks who you are hovering and where you are pointing
 HOVER = {}
 POINTER = {}
+SELECTED = {}                     -- [colour] = the objects that player has box-selected
 function getAllObjects() local r = {} for _,o in pairs(LIVE) do if not o.__dead then r[#r+1] = o end end return r end
 getObjects = getAllObjects
 function spawnObjectJSON(p)
@@ -780,6 +781,7 @@ for i, c in ipairs(COLORS) do
   VIEW[c] = {
     color = c, seated = false, steam_name = "P_" .. c, steam_id = nil,
     getHoverObject = function() return HOVER[c] end,
+    getSelectedObjects = function() return SELECTED[c] or {} end,
     getPointerPosition = function() return POINTER[c] or {x=0,y=1,z=0} end,
     -- A HAND THE COLOUR DOES NOT OWN IS A C# NULL here too, not nil and not a new zone: TTS cannot
     -- read or move a zone that is not there, and setHandTransform does not create one. The board's own
