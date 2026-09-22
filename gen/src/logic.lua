@@ -3265,6 +3265,7 @@ function rttResetRunState()
   RTT_CAP_SPAWNED    = {}
   RTT_CAP_SLOT       = {}
   RTT_CAP_DEALT      = {}
+  RTT_RELICS_OUT     = false
   RTT_CAP_SPAWN_N    = 0
   RTT_CAP_ITEM_N     = 0
   RTT_CAP_WARRIOR_N  = 0
@@ -8937,10 +8938,19 @@ function rttFreeUnlockedPrisoners()
       RTT_LAID[guid] = nil
       RTT_MARKING[guid] = nil
     elseif not RTT_MARKING[guid] then            -- a mark still landing is not an unlocked prisoner
-      local locked = false
-      pcall(function() locked = (o.getLock() == true) end)
-      -- unlocked BY HAND: clear the mark, leave the piece lying where it is (standUp = false)
-      if not locked then pcall(function() rttFreePrisoner(o, guid, false) end) end
+      -- THE SAME PIECE. Seven guids are baked into both a Diaspora warrior and a Keeper warrior,
+      -- and one into a Cat warrior and a Dark Deck one (2026-09-23), and a piece coming out of a bag
+      -- takes its baked guid back if it is free. A record whose guid now names a different piece
+      -- is forgotten, and that piece is not touched.
+      local rec = RTT_LAID[guid]
+      if rec.n ~= nil and rttNameOf(o) ~= rec.n then
+        RTT_LAID[guid] = nil
+      else
+        local locked = false
+        pcall(function() locked = (o.getLock() == true) end)
+        -- unlocked BY HAND: clear the mark, leave the piece lying where it is (standUp = false)
+        if not locked then pcall(function() rttFreePrisoner(o, guid, false) end) end
+      end
     end
   end
 end
@@ -8966,6 +8976,15 @@ function rttHoldMapLocked()
   if RTT_RESYNCING == true then return end
   local m = nil
   if RTT_MAP_LOCK_GUID ~= nil then pcall(function() m = getObjectFromGUID(RTT_MAP_LOCK_GUID) end) end
+  -- THE MAP, OR NOTHING. The guid is remembered for the life of the board and never cleared by a map
+  -- change, so if it were ever handed to another object this tick would lock that object every
+  -- second and make it untouchable. No baked guid in the build is shared with a map (checked
+  -- 2026-09-23), but a remembered guid is asked to prove it is the map before anything is touched.
+  if m ~= nil then
+    local isMap = false
+    pcall(function() isMap = (m.hasTag(RTT_MAP_TAG) == true) end)
+    if not isMap then m = nil; RTT_MAP_LOCK_GUID = nil end
+  end
   if m == nil then
     pcall(function()
       m = rttMap()
@@ -11016,8 +11035,18 @@ function rttRelicSlotUnder(p, slots)
   return best
 end
 
+-- ONLY WHILE THE KEEPERS' ROWS ARE OUT. Maintainer, 2026-09-23: "every drop is checked for a relic on
+-- the wrong row. That seems very intensive, just for relics. Can't you implement a better mechanics?"
+-- The check was one name read per drop; now it is nothing at all unless the Keepers are in the game
+-- (the flag goes up when their relic rows are recorded, and down with the run state).
+--
+-- AND IT NEVER TURNS A RELIC. A relic put down on its own row used to be turned to the row's value
+-- side, and one carried to its row got the slot's rotation whole -- the same flip the key was told to
+-- stop doing ("I told you it cannot flip it", 2026-09-22). On its own row the relic is now left
+-- exactly as it was put down; carried across, it keeps its face (rttHomeTurn).
+RTT_RELICS_OUT = false
 function rttRelicDropped(o)
-  if o == nil then return end
+  if not RTT_RELICS_OUT or o == nil then return end
   local name = nil
   pcall(function() name = o.getName() end)
   if name ~= "Relic" then return end
@@ -11033,12 +11062,8 @@ function rttRelicDropped(o)
   local on = rttRelicSlotUnder(p, slots)
   if on == nil then return end
 
-  -- THE RIGHT ROW: nothing to move, but it still has to be the right way up. Its place on the grid
-  -- is where the player put it, so it is not nudged onto the centre of the space -- only turned over.
-  if on.k == kind then
-    pcall(function() o.setRotation({ on.r[1], on.r[2], on.r[3] }) end)
-    return
-  end
+  -- THE RIGHT ROW: left exactly as it was put down, face and all (2026-09-22: "it cannot flip it").
+  if on.k == kind then return end
 
   -- THE WRONG ROW: the leftmost empty space of its own, exactly as numpad 0 would choose it.
   local ytol = rttHomeYTol(slots)
@@ -11046,7 +11071,7 @@ function rttRelicDropped(o)
     if sl.k == kind and not rttHomeSlotTaken(sl, "Relic", o, ytol) then
       pcall(function()
         o.setPositionSmooth({ sl.p[1], sl.p[2], sl.p[3] }, false, true)
-        o.setRotation({ sl.r[1], sl.r[2], sl.r[3] })
+        rttHomeTurn(o, "Relic", sl.r)                  -- face kept, yaw from the slot
       end)
       return
     end
@@ -11163,6 +11188,7 @@ function rttAddHomeExtras(faction, cx, cz, flip, rotationY, name, rot, done)
       -- `x = true` marks this as a MEASURED slot rather than a spawn record. The two are otherwise
       -- indistinguishable once they are both in RTT_HOME, and RTT_HOME_EXTRA_ONLY needs to tell them
       -- apart to drop the spawn spots of a piece whose real place is elsewhere.
+      if e[1] == "Relic" then RTT_RELICS_OUT = true end      -- the drop check wakes up
       RTT_HOME["x" .. faction .. e[1] .. i] = {
         n = e[1], f = faction, k = e.k, x = true,
         p = { cx + vec.x, 11.56 + vec.y - 0.1, cz + vec.z },
@@ -12120,7 +12146,7 @@ function rttGizmoMark(color)
   local rx = r.x
   local nx = ((rx % 360) + 360) % 360
   if nx > 45 and nx < 315 then rx = 0 end
-  RTT_LAID[guid] = { rot = { rx, r.y, r.z }, pos = { p.x, p.y, p.z }, who = color,
+  RTT_LAID[guid] = { rot = { rx, r.y, r.z }, pos = { p.x, p.y, p.z }, who = color, n = name,
                      tint = (tint ~= nil) and { tint.r, tint.g, tint.b } or nil }
   RTT_MARKING[guid] = true                       -- hands off until the mark below has landed
   pcall(function() hovered.setRotation({ 90, r.y, r.z }) end)   -- tips forward, away from the player

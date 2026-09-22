@@ -11919,6 +11919,7 @@ def t_a_relic_dropped_on_the_wrong_row_is_carried_across(src):
         o.setRotation({ 0, 180, 0 })
         return o
       end
+      RTT_RELICS_OUT = true                            -- the rows above are the Keepers', out on the table
       -- a Jewelry put down by hand on the FIGURE row, third space along
       J = RELIC("Jewelry", { 5.1, 11.66, -41.7 })
       onObjectDrop("Red", J)
@@ -11928,16 +11929,22 @@ def t_a_relic_dropped_on_the_wrong_row_is_carried_across(src):
         "the Jewelry stayed on the Figure row (z %.2f); its own row is -45.10" % z
     assert abs(rt.eval("J.getPosition().x") - 1.7) < 0.001, \
         "the rescued Jewelry did not take the left end of its own row"
-    assert abs(rt.eval("J.getRotation().z") - 180) < 0.01, \
-        "the rescued relic is not showing its value side"
+    # 2026-09-22, "it cannot flip it": carried across with its face kept, squared to the row
+    assert abs(rt.eval("J.getRotation().z")) < 0.01 and abs(rt.eval("J.getRotation().y") - 180) < 0.01, \
+        "the rescued relic was turned over: (%.0f, %.0f)" % (rt.eval("J.getRotation().y"), rt.eval("J.getRotation().z"))
 
-    # ON ITS OWN ROW: left where it was put, but turned over.
+    # ON ITS OWN ROW: left exactly as it was put down, face and all.
     rt.execute('T = RELIC("Tablet", { 5.15, 11.66, -43.42 }) onObjectDrop("Red", T)')
     assert abs(rt.eval("T.getPosition().x") - 5.15) < 0.001 and \
            abs(rt.eval("T.getPosition().z") - (-43.42)) < 0.001, \
         "a relic put down on its own row was shoved onto the centre of the space"
-    assert abs(rt.eval("T.getRotation().z") - 180) < 0.01, \
-        "a relic put down on its own row was left showing the side it spawns as"
+    assert abs(rt.eval("T.getRotation().z")) < 0.01 and abs(rt.eval("T.getRotation().y") - 180) < 0.01, \
+        "a relic put down on its own row was turned"
+
+    # WITH NO KEEPERS OUT the drop is not even looked at: a relic on a row stays where it fell
+    rt.execute('RTT_RELICS_OUT = false  N = RELIC("Jewelry", { 5.1, 11.66, -41.7 }) NAMED = 0 local g = N.getName N.getName = function() NAMED = NAMED + 1 return g() end onObjectDrop("Red", N) RTT_RELICS_OUT = true')
+    assert abs(rt.eval("N.getPosition().z") - (-41.7)) < 0.001 and rt.eval("NAMED") == 0, \
+        "with no Keepers in play the drop was still looked at (%d name read(s))" % rt.eval("NAMED")
 
     # OFF THE GRID: not our business. A relic on the map stays exactly where it was dropped.
     rt.execute('M = RELIC("Jewelry", { 80, 11.66, 80 }) onObjectDrop("Red", M)')
@@ -15328,6 +15335,20 @@ def t_a_locked_warrior_that_is_no_prisoner_is_freed_by_the_tick(src):
     rt.execute("Q = MKOBJ('Cat Warrior', { 9, 1, 9 }, {}) HOVER['Red'] = Q onScriptingButtonDown(3, 'Red') RTT_LAID[Q.getGUID()] = nil FLUSH(5)")
     assert rt.eval("Q.getLock()") is not True, "numpad 3 locked a piece whose record was gone"
     assert rt.eval("RTT_MARKING[Q.getGUID()] == nil"), "the mark was left in flight"
+    # a record whose guid now names a DIFFERENT piece (frogs and badgers share seven baked guids):
+    # the tick forgets it and leaves that piece alone
+    rt.execute("""
+      D = MKOBJ('Diaspora Warrior', { 12, 1, 12 }, {}) D.setColorTint({ r = 0.2, g = 0.8, b = 0.2 })
+      RTT_LAID[D.getGUID()] = { rot = { 0, 0, 0 }, pos = { 1, 1, 1 }, who = 'Red', n = 'Keeper Warrior', tint = { 1, 1, 1 } }
+      rttFreeUnlockedPrisoners()
+    """)
+    assert rt.eval("RTT_LAID[D.getGUID()] == nil"), "a record naming another piece was kept"
+    t = rt.eval("D.getColorTint()")
+    assert abs(t.g - 0.8) < 0.01 and abs(rt.eval("D.__pos.x") - 12) < 0.01, "the twin was touched: tint %r" % dict(t)
+    # the map lock touches nothing but the map: a remembered guid that names a warrior is dropped
+    rt.execute("RTT_MAP_LOCK_GUID = W.getGUID() W.setLock(false) rttHoldMapLocked()")
+    assert rt.eval("W.getLock()") is False and rt.eval("W.interactable ~= false"), "the map lock locked a warrior"
+    assert rt.eval("RTT_MAP_LOCK_GUID ~= W.getGUID()"), "the map lock kept a guid that is not the map's"
 
 
 def t_deck_buttons_ask_when_a_deck_is_out(src):

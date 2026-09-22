@@ -643,6 +643,21 @@ Where to cut, if it is ever needed, biggest first (none done):
       target deck is, spawned once and merged in one putObject, then the deck is shuffled a second
       later; with no deck to be found the stack goes loose on the draw slot face down. The frog case
       checks the one spawn, the one put, the facing and the shuffle. Not yet confirmed in TTS.
+- [x] **"The map lock and the prisoner check might be dangerous ... could be responsible for locking
+      wires when someone presses numpad 0" and "every drop is checked for a relic on the wrong row.
+      That seems very intensive, just for relics."** Maintainer, 2026-09-23. Read again with that in
+      mind: the map lock locks only the object behind a remembered guid, never cleared by a map
+      change, and no baked guid in the build is shared with a map; the prisoner check only ever
+      unlocks. Neither can lock a warrior. But the build DOES bake the same guid into a Diaspora
+      warrior and a Keeper warrior seven times over, and into a Cat warrior and a Dark Deck one
+      once, and a piece out of a bag takes its baked guid back if free -- so any record keyed by guid
+      can come to name the wrong piece. v1.484: the map lock asks the remembered object to carry the
+      map tag before touching it, else forgets the guid and finds the map again; a prisoner record
+      carries the piece's name and the tick forgets a record whose guid names another piece rather
+      than touching it (numpad 3's deferred lock already checks). The relic drop check runs only
+      while the Keepers' rows are out (RTT_RELICS_OUT, reset with the run state) -- nothing at all
+      per drop otherwise -- and never turns a relic any more: on its own row it is left as put down,
+      carried across it keeps its face. Cases grown. Not yet confirmed in TTS.
 - [ ] **"All the clearing markers seemed to be unlocked."** Simber, same game. In the autosave taken
       ten seconds after the win all twelve priority markers are LOCKED, and the map too. Resync's
       lock mode unlocks each object for one frame and locks it again, so nothing stays unlocked by
