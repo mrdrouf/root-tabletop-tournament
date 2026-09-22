@@ -611,6 +611,19 @@ Where to cut, if it is ever needed, biggest first (none done):
       it into the Knaves row (row.dealt) on every table pass and exports the one dealt captain not
       among the kept three, when that is exactly one. A manual setup deals nothing and exports null.
       Two cases. Not yet confirmed in TTS.
+- [x] **Numpad 0 flips a relic face up, and so do the Keepers board's snaps.** Maintainer,
+      2026-09-22: "make sure that numpad 0 on relics does not flip face up the relic! so also need to
+      change the behavior of the snaps so relics on the badger faction board are not necessarily
+      face up." His rule of 2026-09-13 stands: on the board a relic shows its points side (the row's
+      slots carry z 180), and the harness held me to it -- a first cut that kept whatever face the
+      relic had failed "a relic on the board shows points". What turned them face up was the board:
+      its twelve relic snap points carried a rotation, and a tile that comes to rest on one is turned
+      to the side the snap names. v1.481: those snaps carry no rotation any more (blueprint 7d2953,
+      three rows of four; the board's seven other snaps untouched), so a relic dropped by hand keeps
+      the side it was dropped with; and numpad 0 sets the points side a second time 0.8 s after the
+      slide (rttHomeTurn, RTT_HOME_RETURN), so nothing on arrival can leave it face up. The three
+      numpad 0 turn sites go through rttHomeTurn; a Plot still takes no rotation at all. One case,
+      static and driven. Not yet confirmed in TTS.
 - [ ] **"All the clearing markers seemed to be unlocked."** Simber, same game. In the autosave taken
       ten seconds after the win all twelve priority markers are LOCKED, and the map too. Resync's
       lock mode unlocks each object for one frame and locks it again, so nothing stays unlocked by

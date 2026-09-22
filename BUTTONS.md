@@ -162,7 +162,9 @@ of the board, so it works in every game with nothing to spawn or toggle.
 
 **NUMPAD 0 — send it home.** Hovering ANY piece puts it back where that piece belongs: a warrior or
 the Marquise's wood into its own supply bag, a building or token into the rightmost empty slot of its
-kind, Acclaim two to a stack, a Tunnel to its own spot. It asks no permission and does not care who
+kind, Acclaim two to a stack, a Tunnel to its own spot. A relic is laid on its points side, and
+turned that way a second time once it has landed; the Keepers board's relic snaps carry no rotation
+any more, so they no longer turn a relic face up. It asks no permission and does not care who
 pressed it — the piece decides its destination, so being wrong about who you are costs nothing. (An
 ownership check lived here for a few hours on 2026-09-07 and came out again: "remove the player
 permission with numpad 0 so it s not broken when it s wrong about who is who".) Hovering something

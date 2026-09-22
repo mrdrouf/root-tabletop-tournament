@@ -15469,6 +15469,52 @@ def t_the_export_names_the_discarded_captain(src):
     assert json.loads(rt2.eval("exportJson()"))["participants"][0]["discarded_captain"] == "thief", "a reload lost the discarded captain"
 
 
+def t_numpad_0_keeps_a_relics_face(src):
+    """Numpad 0 lays a relic on its points side and the row's snaps no longer turn it back.
+
+    Maintainer, 2026-09-13: "a relic should always be on its flipped side when it s on the faction
+    board." Then 2026-09-22: "make sure that numpad 0 on relics does not flip face up the relic! so
+    also need to change the behavior of the snaps so relics on the badger faction board are not
+    necessarily face up." The key sets the flipped side, and sets it again once the slide has ended
+    so nothing on arrival can undo it; the twelve relic snap points on the Keepers board (blueprint
+    7d2953) carry no rotation any more, while the board's seven other snaps keep theirs.
+    """
+    rt = fresh(src)
+    rt.execute("""
+      RTT_HOME = {}
+      for c = 1, 4 do
+        RTT_HOME["f" .. c] = { n = "Relic", f = "Keepers in Iron", k = "Figure", x = true,
+                               p = { c * 1.7, 1, -40 }, r = { 0, 180, 180 } }
+      end
+      R = MKOBJ("Relic", { 30, 1, 30 }, {})
+      R.setCustomObject({ image = "https://x/87A3E507CAEC4A4083EC8AD3998E20A5EB4597A5/" })
+      R.setRotation({ 0, 90, 0 })                       -- the side it spawns as
+      SEAT('Red', 'Ann') HOVER['Red'] = R onScriptingButtonDown(10, 'Red') FLUSH_UNTIL(0.1)
+    """)
+    rot = rt.eval("R.getRotation()")
+    assert abs(rt.eval("R.__pos.z") + 40) < 0.01, "the relic did not go to its row"
+    assert abs(rot.y - 180) < 0.01 and abs(rot.z - 180) < 0.01, \
+        "numpad 0 did not lay the relic on its points side: (%.0f, %.0f, %.0f)" % (rot.x, rot.y, rot.z)
+    # something on arrival turns it back (what a snap with a rotation did); the key turns it again
+    rt.execute("R.setRotation({ 0, 180, 0 }) FLUSH_UNTIL(1.0)")
+    rot = rt.eval("R.getRotation()")
+    assert abs(rot.z - 180) < 0.01, "the second turn after landing did not happen: z %.0f" % rot.z
+    # a relic already on its points side stays there
+    rt.execute("R.setPosition({ 30, 1, 30 }) R.setRotation({ 0, 90, 180 }) onScriptingButtonDown(10, 'Red') FLUSH_UNTIL(1.0)")
+    rot = rt.eval("R.getRotation()")
+    assert abs(rot.y - 180) < 0.01 and abs(rot.z - 180) < 0.01, \
+        "a points-side relic came home turned: (%.0f, %.0f, %.0f)" % (rot.x, rot.y, rot.z)
+    # the board's relic slots: position only
+    i = src.index('"GUID": "7d2953"')
+    arr = src[src.index('"AttachedSnapPoints": [', i):]
+    arr = arr[:arr.index("]") + 1]
+    snaps = re.findall(r'\{"Position": (\{[^}]*\})(,"Rotation": \{[^}]*\})?\}', arr)
+    assert len(snaps) == 19, "the Keepers board has %d snaps, not 19" % len(snaps)
+    relic = [s for s in snaps if -0.1 < float(re.search(r'"z": ([-\d.eE]+)', s[0]).group(1)) < 0.45]
+    assert len(relic) == 12 and all(s[1] == "" for s in relic), "a relic slot still turns what snaps to it"
+    assert all(s[1] != "" for s in snaps if s not in relic), "a slot that is not a relic's lost its rotation"
+
+
 def t_a_resync_re_sends_every_seat_in_turn(src):
     """Resync steps every seated player off their colour, re-places their hand box from the seat while
     nobody owns the colour, and steps them back -- one at a time, after the card pass.
@@ -15857,6 +15903,7 @@ CASES = [
     ("frog cards survive a deck change",   t_frog_cards_survive_a_deck_replacement),
     ("the draft notes the captains dealt", t_the_draft_notes_the_four_captains_dealt),
     ("the export names the discarded captain", t_the_export_names_the_discarded_captain),
+    ("numpad 0 lays a relic points up",    t_numpad_0_keeps_a_relics_face),
     ("the sheet takes the captains it is told", t_the_sheet_takes_the_captains_it_is_told),
     ("a card dropped on the pond turns face up", t_a_card_dropped_on_the_pond_turns_face_up),
     ("the flush drains and dies",       t_the_flush_writes_its_queue_and_lets_the_timer_die),

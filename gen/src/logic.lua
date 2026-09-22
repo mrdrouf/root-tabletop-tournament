@@ -11161,6 +11161,33 @@ RTT_HOME_OWN_SPOT = { ["Plot"] = true }
 -- not the yaw. Squaring a spun tile up is worth less than never undoing a deliberate flip.
 RTT_HOME_KEEP_FACING = { ["Plot"] = true }
 
+-- ...AND A RELIC IS TURNED TWICE: now, and again once it has landed. Maintainer, 2026-09-13: "a relic
+-- should always be on its flipped side when it s on the faction board not the side it spawns as" --
+-- the row's slots carry z 180 for that. Then, 2026-09-22: "make sure that numpad 0 on relics does
+-- not flip face up the relic! so also need to change the behavior of the snaps so relics on the
+-- badger faction board are not necessarily face up." The key was setting the flipped side and the
+-- board was undoing it: its twelve relic snap points carried a rotation, which turns a tile that
+-- comes to rest on them back to the side they name. Those snaps carry no rotation any more, and the
+-- key sets the facing a second time after the slide has ended, so nothing that happens on arrival
+-- can leave a relic on the wrong side. Everything else takes the slot's rotation once; a plot takes
+-- none of it.
+RTT_HOME_RETURN = { ["Relic"] = true }
+RTT_HOME_RETURN_SECS = 0.8
+function rttHomeTurn(o, name, r)
+  if RTT_HOME_KEEP_FACING[name] then return end
+  o.setRotation({ r[1], r[2], r[3] })
+  if RTT_HOME_RETURN[name] then
+    local guid = nil
+    pcall(function() guid = o.getGUID() end)
+    if guid == nil then return end
+    Wait.time(function()
+      local x = getObjectFromGUID(guid)
+      if x == nil then return end
+      pcall(function() if x.held_by_color == nil then x.setRotation({ r[1], r[2], r[3] }) end end)
+    end, RTT_HOME_RETURN_SECS)
+  end
+end
+
 -- Acclaim fills stack by stack, in the maintainer's order: bottom-right, bottom-left, top-right,
 -- top-left, two per stack.
 RTT_HOME_STACKED = { ["Acclaim"] = 2 }
@@ -11580,9 +11607,7 @@ function rttGizmoHome(color)
     pcall(function()
       hovered.setPositionSmooth({ home.p[1], home.p[2], home.p[3] }, false, true)
       -- a plot keeps whatever face it is lying on -- see RTT_HOME_KEEP_FACING
-      if not RTT_HOME_KEEP_FACING[name] then
-        hovered.setRotation({ home.r[1], home.r[2], home.r[3] })
-      end
+      rttHomeTurn(hovered, name, home.r)
     end)
     return
   end
@@ -11599,9 +11624,7 @@ function rttGizmoHome(color)
       if not rttHomeSlotTaken(sl, name, hovered, stol) then
         pcall(function()
           hovered.setPositionSmooth({ sl.p[1], sl.p[2], sl.p[3] }, false, true)
-          if not RTT_HOME_KEEP_FACING[name] then
-            hovered.setRotation({ sl.r[1], sl.r[2], sl.r[3] })
-          end
+          rttHomeTurn(hovered, name, sl.r)
         end)
         return
       end
@@ -11638,9 +11661,7 @@ function rttGizmoHome(color)
         hovered.setPositionSmooth({ sl.p[1], sl.p[2], sl.p[3] }, false, true)
         -- the same rule here: a plot with no record of its own would otherwise be re-faced by
         -- whichever slot it landed in, which is the same flip by another road
-        if not RTT_HOME_KEEP_FACING[name] then
-          hovered.setRotation({ sl.r[1], sl.r[2], sl.r[3] })
-        end
+        rttHomeTurn(hovered, name, sl.r)
       end)
       return
     end
