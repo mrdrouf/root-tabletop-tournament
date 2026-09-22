@@ -121,7 +121,10 @@ Battle Mat; and any VP markers still waiting for a score track.
 
 ## Decks
 
-**Standard · Exiles & Partisans · Squires & Disciples** — all `makeDeck`.
+**Standard · Exiles & Partisans · Squires & Disciples** — all `rttArmDeck` → `makeDeck`. With a deck
+out (anything tagged `Deck Object`) they ask like the map buttons: *"This will reset the deck."*, a
+second click within three seconds goes ahead; on a bare table they just run. The frogs' cards inside
+the old deck are read off it first and put into the new one once it stands, then it is shuffled.
 
 This page used to claim "the small-count variant loads automatically in a 1–2 player game". It did
 not, and could not: `makeDeck` branches on `ends_with(id, "2")`, but no button id ends in `2` and
@@ -163,7 +166,10 @@ kind, Acclaim two to a stack, a Tunnel to its own spot. It asks no permission an
 pressed it — the piece decides its destination, so being wrong about who you are costs nothing. (An
 ownership check lived here for a few hours on 2026-09-07 and came out again: "remove the player
 permission with numpad 0 so it s not broken when it s wrong about who is who".) Hovering something
-with no home — a hireling, a card — does nothing, and says nothing.
+with no home — a hireling, a card, a VP marker — does nothing, and says nothing. A warrior found
+locked that is not a prisoner is unlocked by the prisoner tick, and written down with the last keys
+pressed (`RTT_LOCK_LOG`, saved with the board): "numpad 0 locks other warriors" has no source in the
+code, so the log is how the next report gets its cause.
 
 **NUMPAD 1 — take a warrior** out of YOUR supply, standing up, at your pointer, whatever the pointer
 happens to be over. Yours is the faction you last PICKED, not the seat you started in, so switching

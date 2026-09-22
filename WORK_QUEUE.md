@@ -567,6 +567,50 @@ Where to cut, if it is ever needed, biggest first (none done):
       digit that outgrows its half is drawn past the edge rather than hidden; the tick writes the two
       halves, the save keeps the one string. ROUND untouched, the two fields still equal. The clock
       case checks the cells and the tick. Not yet confirmed in TTS.
+- [x] **The deck buttons ask.** Maintainer, 2026-09-22: "Clicking a deck should be disabled when
+      another deck is loaded, which you can do similarly to preventing a map from loading. so put a
+      warning, This will reset the deck." v1.480: the three deck buttons are wipe buttons
+      (RTT_WIPE_BTN, `deck` beside `map`): with anything tagged "Deck Object" out the first click
+      turns the art into the red question and the second within three seconds runs makeDeck; on a
+      bare table it just runs. The art is `WipeConfirmDeckArt` (assets/buttons/wipe_confirm_deck_*),
+      RENDERED WITH METAMORPHOUS AS A STAND-IN because Luminari is not on this machine --
+      tools/make_wipe_text.py has the job (square, three lines, cream) and says so when it runs; run
+      it on the Mac and swap the URL in gen/src/save.json to match the map warning. One case. Not
+      yet confirmed in TTS.
+- [x] **Frog cards go down with a replaced deck.** Maintainer, 2026-09-22: "if a deck is replaced, it
+      also gets rid of all frog cards in it (and I'm not sure if those can easily come back without
+      making a new frog faction from the selector). deal with that." They could not come back. v1.480:
+      makeDeck reads every frog card inside a tagged deck off it as JSON before removeDeckItems, and
+      once the new deck stands (rttRestoreFrogs: the draw slot, else the main deck, up to six tries
+      a second apart) spawns each and puts it in, then shuffles; if no deck is ever found they are
+      spawned loose on the draw slot rather than lost. One case. Not yet confirmed in TTS.
+- [x] **Numpad 0 sends a VP marker back to the faction.** Maintainer, 2026-09-22: "Should probably
+      exclude those." v1.480: rttHomeNever -- a ruin, and any name ending in " VP" -- is refused by
+      numpad 0 and numpad 4. One case. Not yet confirmed in TTS.
+- [~] **"Sometimes hitting numpad 0 will lock other warriors! happens very often not to the host,
+      you need to figure out how that is possible and make sure to disable that. important bug."**
+      Maintainer, 2026-09-22. NOT FOUND IN THE CODE: the only setLock(true) that can reach a warrior
+      in every script of the save is numpad 3's, and it records the piece in RTT_LAID first; numpad
+      0 never locks, the prisoner tick only unlocks, the resync sweep restores what it found a frame
+      later, no warrior blueprint is baked locked, and no other script handles the numpad. Nothing
+      in it differs between host and guest. The three autosaves of 02:12-02:14 hold four locked
+      warriors and all four are prisoners. v1.480 does two things regardless: the prisoner tick now
+      frees ANY locked warrior that is not in RTT_LAID (rttFreeStrayLocks), so whatever locks them
+      is undone within RTT_MAP_LOCK_SECS; and it writes each one down -- the piece, where it stood,
+      and the last eight numpad presses with who and how long ago (RTT_KEY_LOG) -- into RTT_LOCK_LOG,
+      saved with the board (lockLog) and sent to the recorder as a "note" row. THE NEXT AUTOSAVE
+      AFTER IT HAPPENS SAYS WHICH KEY CAME BEFORE. Numpad 3's deferred lock also checks it still
+      holds the piece it was pressed on and that its record stands. One case. Open until the log
+      names the cause.
+- [x] **The discarded captain in the export.** Maintainer, 2026-09-22: "when a draft happens you need
+      to show which captain has not been picked when the knaves are in game. there is a field for
+      that in the website to which you export with the boxscore. it needs to be completed." The
+      payload had `discarded_captain = null -- not tracked`. v1.480: the draft notes each of the
+      four captains it deals (rttNoteDealtCaptain, published as RTT_CAPTAINS_DEALT, saved with the
+      board as caps4 and published again on load; a new game or draft starts over); the sheet reads
+      it into the Knaves row (row.dealt) on every table pass and exports the one dealt captain not
+      among the kept three, when that is exactly one. A manual setup deals nothing and exports null.
+      Two cases. Not yet confirmed in TTS.
 - [ ] **"All the clearing markers seemed to be unlocked."** Simber, same game. In the autosave taken
       ten seconds after the win all twelve priority markers are LOCKED, and the map too. Resync's
       lock mode unlocks each object for one frame and locks it again, so nothing stays unlocked by

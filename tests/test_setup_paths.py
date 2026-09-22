@@ -15271,6 +15271,204 @@ def t_the_recorder_ignores_passes_while_resync_reseats(src):
     assert count() == base + 1, "a real pass after the release was not recorded (%d)" % (count() - base)
 
 
+def t_numpad_0_leaves_vp_markers_alone(src):
+    """Numpad 0 and numpad 4 ignore a faction's VP marker.
+
+    Maintainer, 2026-09-22: "Hitting numpad 0 on a VP marker makes it go back to the faction. Should
+    probably exclude those." The marker's spawn spot is a home row like any other, so it was carried
+    off the score track. Now a name ending in " VP" is never the gizmo's business.
+    """
+    rt = fresh(src)
+    rt.execute("""
+      SEAT('Red', 'Ann')
+      M = MKOBJ('Marquise VP', { 20, 11.6, 30 }, {})
+      RTT_HOME = { m1 = { n = 'Marquise VP', f = 'Marquise de Cat', p = { 50, 11.6, -40 }, r = { 0, 0, 0 } } }
+      HOVER['Red'] = M onScriptingButtonDown(10, 'Red') FLUSH(10)
+    """)
+    assert abs(rt.eval("M.__pos.x") - 20) < 0.01 and abs(rt.eval("M.__pos.z") - 30) < 0.01, \
+        "numpad 0 moved the VP marker to (%.1f, %.1f)" % (rt.eval("M.__pos.x"), rt.eval("M.__pos.z"))
+    rt.execute("SELECTED['Red'] = { M } RTT_HOME_SET = {} onScriptingButtonDown(4, 'Red') FLUSH_UNTIL(RTT_KEY4_HOLD) onScriptingButtonUp(4, 'Red')")
+    assert rt.eval("RTT_HOME_SET['Marquise VP'] == nil"), "numpad 4 set a row for a VP marker"
+
+
+def t_a_locked_warrior_that_is_no_prisoner_is_freed_by_the_tick(src):
+    """A warrior found locked with no prisoner record is unlocked, and the keys before it are noted.
+
+    Maintainer, 2026-09-22: "sometimes hitting numpad 0 will lock other warriors! happens very often
+    not to the host ... make sure to disable that." Numpad 3 is the only thing in the build that
+    locks a warrior, and it records the piece first; anything else is a stray. The prisoner tick
+    frees it and keeps a note of the piece and the last key presses, saved with the board. A real
+    prisoner is left locked, and numpad 3's own deferred lock lands only on the piece it was pressed
+    on, while its record still stands.
+    """
+    rt = fresh(src)
+    rt.execute("""
+      SEAT('Red', 'Ann') SEAT('Blue', 'Ben')
+      W = MKOBJ('Cat Warrior', { 5, 1, 5 }, {}) P = MKOBJ('Eyrie Warrior', { 8, 1, 8 }, {})
+      broadcastToColor = function() end
+      CLOCK = 5000 os.time = function() return CLOCK end
+      onScriptingButtonDown(10, 'Blue') FLUSH(10)      -- Ben's numpad 0 on nothing
+      CLOCK = 5002
+      HOVER['Red'] = P onScriptingButtonDown(3, 'Red') FLUSH(5)   -- Ann lays a prisoner
+      W.setLock(true)                                             -- and something locks W
+      CLOCK = 5004
+      RTT_LOCK_LOG = {}
+      rttFreeUnlockedPrisoners()
+    """)
+    assert rt.eval("W.getLock()") is False, "the stray lock was not taken off"
+    assert rt.eval("P.getLock()") is True and rt.eval("RTT_LAID[P.getGUID()] ~= nil"), "the prisoner was freed"
+    log = rt.eval("RTT_LOCK_LOG[1]")
+    assert log is not None and log["n"] == "Cat Warrior" and "Blue np0" in log["keys"] and "Red np3" in log["keys"], \
+        "the note does not name the piece and the keys before it: %r" % (log and dict(log))
+    assert '"lockLog"' in rt.eval("onSave()"), "the lock log is not saved with the board"
+    # numpad 3's deferred lock: the record gone before it lands, nothing is locked
+    rt.execute("Q = MKOBJ('Cat Warrior', { 9, 1, 9 }, {}) HOVER['Red'] = Q onScriptingButtonDown(3, 'Red') RTT_LAID[Q.getGUID()] = nil FLUSH(5)")
+    assert rt.eval("Q.getLock()") is not True, "numpad 3 locked a piece whose record was gone"
+    assert rt.eval("RTT_MARKING[Q.getGUID()] == nil"), "the mark was left in flight"
+
+
+def t_deck_buttons_ask_when_a_deck_is_out(src):
+    """A deck button asks first when a deck is on the table, and just runs on a bare table.
+
+    Maintainer, 2026-09-22: "Clicking a deck should be disabled when another deck is loaded, which
+    you can do similarly to preventing a map from loading. so put a warning, This will reset the
+    deck." Same two-press shape as the map buttons: the art turns into the red question, a second
+    press within three seconds runs makeDeck, and nothing happens on its own.
+    """
+    rt = fresh(src)
+    for did in ("Standard Deck", "Exiles and Partisans Deck", "Squires and Disciples Deck"):
+        d = rt.eval("RTT_WIPE_BTN[%r]" % did)
+        assert d is not None and d["deck"] == did and d["warnMap"] == "WipeConfirmDeckArt", "%s is not a wipe button: %r" % (did, d and dict(d))
+    rt.execute("MADE = {} makeDeck = function(p, v, id) MADE[#MADE + 1] = tostring(id) end SET = {} self.UI.setAttribute = function(id, k, v) SET[#SET + 1] = id .. ':' .. k .. '=' .. tostring(v) end")
+    # bare table: no question
+    rt.execute("rttArmDeck(Player['Red'], '', 'Standard Deck') FLUSH(2)")
+    assert [str(v) for v in rt.eval("MADE").values()] == ["Standard Deck"], "a deck on a bare table did not just load"
+    # a deck out: the first press asks, the second runs
+    # FLUSH_UNTIL, not FLUSH: FLUSH fires every pending wait, the three-second disarm included
+    rt.execute("MADE = {} SET = {} MKDECK({ { nick = 'Ambush!' }, { nick = 'Dominance' } }) rttArmDeck(Player['Red'], '', 'Exiles and Partisans Deck') FLUSH_UNTIL(0.5)")
+    assert rt.eval("#MADE") == 0, "the deck loaded without asking while a deck was out"
+    sets = [str(v) for v in rt.eval("SET").values()]
+    assert "Exiles and Partisans Deck:icon=WipeConfirmDeckArt" in sets and "Exiles and Partisans Deck:color=#a83226" in sets, "the button did not turn into the question: %r" % sets
+    rt.execute("rttArmDeck(Player['Red'], '', 'Exiles and Partisans Deck') FLUSH_UNTIL(0.5)")
+    assert [str(v) for v in rt.eval("MADE").values()] == ["Exiles and Partisans Deck"], "the second press did not load the deck"
+    # the buttons on the board go through the question, not straight to makeDeck
+    dist = json.load(open(os.path.join(REPO, "dist", "Root_Tournament_Edition.json"), encoding="utf-8"))
+    board = next(o for o in dist["ObjectStates"] if o.get("GUID") == "bab7e1")
+    xml = board.get("XmlUI", "")
+    for did in ("Standard Deck", "Exiles and Partisans Deck", "Squires and Disciples Deck"):
+        tag = re.search(r'<Button id="%s"[^>]*>' % re.escape(did), xml)
+        assert tag and 'onclick="rttArmDeck"' in tag.group(0), "%s does not ask: %s" % (did, tag and tag.group(0))
+    assert any(a.get("Name") == "WipeConfirmDeckArt" for a in board.get("CustomUIAssets", [])), "the deck question's art is not registered"
+
+
+def t_frog_cards_survive_a_deck_replacement(src):
+    """Frog cards inside the shared deck are read off it before it goes and put into the new one.
+
+    Maintainer, 2026-09-22: "if a deck is replaced, it also gets rid of all frog cards in it (and
+    I'm not sure if those can easily come back without making a new frog faction from the
+    selector). deal with that."
+    """
+    rt = fresh(src)
+    rt.execute("""
+      OLD = MKDECK({ { nick = 'Ambush!' }, { nick = 'Lilypad', desc = 'Frog' }, { nick = 'Tadpole', desc = 'Frog' }, { nick = 'Sappers' } })
+      J = rttFrogCardsInDecks()
+    """)
+    assert rt.eval("#J") == 2 and all("Frog" in str(v) for v in rt.eval("J").values()), "the frog cards were not read off the deck: %r" % [str(v)[:60] for v in rt.eval("J").values()]
+    # the new deck stands: each frog is spawned and put into it, then it is shuffled
+    rt.execute("""
+      OLD.destruct()
+      specs = {} for i = 1, 24 do specs[i] = { nick = 'card' .. i } end
+      NEW = MKDECK(specs)
+      SHUFFLED = 0 NEW.shuffle = function() SHUFFLED = SHUFFLED + 1 end
+      rttRestoreFrogs(J, 0) FLUSH_UNTIL(2)
+    """)
+    assert rt.eval("NEW.getQuantity()") == 26, "the new deck holds %d cards, not 26" % rt.eval("NEW.getQuantity()")
+    assert rt.eval("SHUFFLED") >= 1, "the new deck was not shuffled after the frogs went in"
+    # and makeDeck does both: reads the frogs before the wipe, restores them after
+    rt.execute("""
+      NEW.destruct()
+      MKDECK({ { nick = 'Ambush!' }, { nick = 'Lilypad', desc = 'Frog' } })
+      CAPT, RESTORED = nil, nil
+      local f = rttFrogCardsInDecks
+      rttFrogCardsInDecks = function() local r = f() CAPT = #r return r end
+      rttRestoreFrogs = function(j, t) RESTORED = #j end
+      makeDeck(nil, nil, 'Standard Deck') FLUSH(8)
+    """)
+    assert rt.eval("CAPT") == 1 and rt.eval("RESTORED") == 1, "makeDeck read %r and restored %r frog card(s)" % (rt.eval("CAPT"), rt.eval("RESTORED"))
+
+
+def t_the_draft_notes_the_four_captains_dealt(src):
+    """The board records each captain the draft deals and publishes the list for the sheet.
+
+    Maintainer, 2026-09-22: "when a draft happens you need to show which captain has not been picked
+    when the knaves are in game. there is a field for that in the website." The kept three are
+    already published; the sheet needs the four dealt to name the fourth. Saved with the board and
+    published again on load; a new game starts the list over.
+    """
+    rt = fresh(src)
+    ids = [str(k) for k in rt.eval("(function() local t = {} for id in pairs(RTT_CAP_CARDID) do t[#t + 1] = id end table.sort(t) return t end)()").values()]
+    assert len(ids) >= 4, "fewer than four captain card ids known: %r" % ids
+    rt.execute("""
+      RTT_CAP_DEALT = {}
+      local function card(id) local o = MKOBJ('Captain', { 0, 1, 0 }, {}) o.getData = function() return { CardID = tonumber(id) } end return o end
+      for _, id in ipairs({ %s }) do rttNoteDealtCaptain(card(id)) end
+      rttNoteDealtCaptain(card(%s))          -- the same card twice is one captain
+    """ % (", ".join(ids[:4]), ids[0]))
+    dealt = [str(v) for v in rt.eval("RTT_CAP_DEALT").values()]
+    assert len(dealt) == 4 and len(set(dealt)) == 4, "the dealt list is %r" % dealt
+    assert json.loads(rt.eval("GVGET('RTT_CAPTAINS_DEALT')")) == dealt, "the list was not published"
+    saved = json.loads(rt.eval("onSave()"))
+    assert saved.get("caps4") == dealt, "the list is not saved with the board: %r" % saved.get("caps4")
+    rt2 = fresh(src)
+    rt2.execute("pcall(function() onLoad(%s) end)" % json.dumps(json.dumps(saved)))
+    assert [str(v) for v in rt2.eval("RTT_CAP_DEALT").values()] == dealt, "a reload lost the list"
+    assert json.loads(rt2.eval("GVGET('RTT_CAPTAINS_DEALT')")) == dealt, "a reload did not publish the list again"
+
+
+def t_the_export_names_the_discarded_captain(src):
+    """The Knaves row's export carries the one dealt captain that was not kept.
+
+    Maintainer, 2026-09-22: "there is a field for that in the website to which you export with the
+    boxscore. it needs to be completed." The board publishes the four dealt; the row keeps three;
+    discarded_captain is the fourth. Read into the row on a table pass, so a reload keeps it; null
+    when nothing was dealt or the difference is not exactly one.
+    """
+    sheet = json.loads(re.search(r"RTT_BOXSCORE_JSON = \[====\[(.*?)\]====\]", src, re.S).group(1))
+    rt = lupa.LuaRuntime(unpack_returned_tuples=True)
+    rt.execute(open(os.path.join(HERE, "tts_stub.lua"), encoding="utf-8").read())
+    rt.execute(sheet["LuaScript"].replace("!=", "~="))
+    state = json.dumps({
+        "rows": [{"fac": "Knaves", "color": "Red", "score": 0, "locks": [], "edits": {},
+                  "variant": "Scoundrel, Adventurer, Gladiator"}],
+        "meta": {"map": "", "deck": ""}, "active": 1, "round": 1, "turns": 0, "started": True,
+    })
+    rt.execute("""
+      self.UI.setXml = function() end
+      GVX = {}
+      Global = { call = function() return true end, getVar = function(k) return GVX[k] end, setVar = function(k, v) GVX[k] = v end }
+      SEAT('Red', 'Ann')
+    """)
+    rt.execute("pcall(function() onLoad(%s) end) FLUSH(20)" % json.dumps(state))
+    part = lambda: json.loads(rt.eval("exportJson()"))["participants"][0]
+    assert part()["discarded_captain"] is None, "with nothing dealt the field is not null: %r" % part()["discarded_captain"]
+    rt.execute("""
+      GVX['RTT_CAPTAINS'] = JSON.encode({ 'Scoundrel', 'Adventurer', 'Gladiator' })
+      GVX['RTT_CAPTAINS_DEALT'] = JSON.encode({ 'Thief', 'Scoundrel', 'Adventurer', 'Gladiator' })
+      pcall(rttResetAndStart) FLUSH(5)
+    """)
+    e = part()
+    assert e["captains"] == ["scoundrel", "adventurer", "gladiator"], "the kept three read %r" % e["captains"]
+    assert e["discarded_captain"] == "thief", "the discarded captain reads %r" % e["discarded_captain"]
+    # kept in the row, so a reload of the sheet keeps it with no board to ask
+    st = rt.eval("onSave()")
+    rt2 = lupa.LuaRuntime(unpack_returned_tuples=True)
+    rt2.execute(open(os.path.join(HERE, "tts_stub.lua"), encoding="utf-8").read())
+    rt2.execute(sheet["LuaScript"].replace("!=", "~="))
+    rt2.execute("self.UI.setXml = function() end Global = { call = function() return true end, getVar = function() return nil end, setVar = function() end }")
+    rt2.execute("pcall(function() onLoad(%s) end) FLUSH(5)" % json.dumps(st))
+    assert json.loads(rt2.eval("exportJson()"))["participants"][0]["discarded_captain"] == "thief", "a reload lost the discarded captain"
+
+
 def t_a_resync_re_sends_every_seat_in_turn(src):
     """Resync steps every seated player off their colour, re-places their hand box from the seat while
     nobody owns the colour, and steps them back -- one at a time, after the card pass.
@@ -15653,6 +15851,12 @@ CASES = [
     ("numpad 0 fills the set row once, then the supply", t_numpad_0_fills_the_set_row_once_and_sends_the_rest_to_the_supply),
     ("the sheet ignores passes while resync reseats", t_the_sheet_ignores_passes_while_resync_reseats),
     ("the recorder ignores passes while resync reseats", t_the_recorder_ignores_passes_while_resync_reseats),
+    ("numpad 0 leaves VP markers alone",  t_numpad_0_leaves_vp_markers_alone),
+    ("a stray lock on a warrior is freed", t_a_locked_warrior_that_is_no_prisoner_is_freed_by_the_tick),
+    ("deck buttons ask when a deck is out", t_deck_buttons_ask_when_a_deck_is_out),
+    ("frog cards survive a deck change",   t_frog_cards_survive_a_deck_replacement),
+    ("the draft notes the captains dealt", t_the_draft_notes_the_four_captains_dealt),
+    ("the export names the discarded captain", t_the_export_names_the_discarded_captain),
     ("the sheet takes the captains it is told", t_the_sheet_takes_the_captains_it_is_told),
     ("a card dropped on the pond turns face up", t_a_card_dropped_on_the_pond_turns_face_up),
     ("the flush drains and dies",       t_the_flush_writes_its_queue_and_lets_the_timer_die),

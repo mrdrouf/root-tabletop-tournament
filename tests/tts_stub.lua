@@ -658,6 +658,14 @@ function MKDECK(specs)
     return out
   end
   function o.getQuantity() return #o.__cards end
+  function o.getData()
+    local co = {}
+    for i, c in ipairs(o.__cards) do
+      co[i] = { Name = "Card", GUID = c.guid, Nickname = c.nickname, Description = c.description,
+                CardID = c.cardid or (500 + i) }
+    end
+    return { Name = "Deck", GUID = o.getGUID(), Nickname = o.getName(), ContainedObjects = co }
+  end
   function o.putObject(other)
     local n = #o.__cards
     if other.__cards then

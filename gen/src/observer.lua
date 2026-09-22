@@ -1945,3 +1945,13 @@ function onLoad(state)
       .. #OBS.snap .. " snapshots.")
   end)
 end
+
+-- A NOTE FROM THE BOARD, as an event row: what freed a stray lock and which keys came before it
+-- (logic.lua, rttNoteLock). Kind "note", the text in the last field. Only while a game is recording.
+OBS_NOTE_API = true
+function rttRecordNote(d)
+  if not OBS_ENABLED or OBS.id == nil then return end
+  local text = ""
+  pcall(function() text = tostring((type(d) == "table" and d.text) or d or "") end)
+  obsEvent(obsNow(), "note", "", "", 0, 0, 0, text)
+end

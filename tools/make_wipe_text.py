@@ -29,7 +29,19 @@ OUT = os.path.join(REPO, "assets", "buttons")
 CDN = "https://cdn.jsdelivr.net/gh/mrdrouf/root-tabletop-tournament@main/assets/buttons/%s"
 
 LUM = "/System/Library/Fonts/Supplemental/Luminari.ttf"
+# WITHOUT LUMINARI (a Windows machine) the nearest free face stands in, and the run says so: the art
+# still needs re-rendering on the Mac to match the others. Metamorphous is the stand-in the player
+# guide already uses for the same reason.
+STAND_IN = not os.path.exists(LUM)
+FONT = LUM if not STAND_IN else os.path.join(REPO, "tools", "preview", "fonts", "Metamorphous.ttf")
 WIDE = (272, 136)                # the wide button's art, measured on wipe_confirm_wide
+# THE SQUARE ONES (the map and deck buttons, 34x34 on the board): three lines in 272x272, measured on
+# wipe_confirm_map -- ink x 5..265, line bands 21-79 / 100-158 / 195-252, so a pitch of 87 -- and a
+# cream fill rather than white, which is what that art carries.
+SQUARE = (272, 272)
+SQ_INK_W = 258
+SQ_PITCH = 87
+CREAM = (247, 238, 214, 255)
 INK_W = 245                      # how much of that width the longest line fills, measured the same way
 PITCH = 55                       # baseline-to-baseline, measured the same way
 STROKE = 5                       # the black outline; the shipped art is 3x more outline than fill
@@ -39,30 +51,33 @@ JOBS = [
     # The new one. Maintainer, 2026-09-09, asking for a Clear All button: "add a warning This clears
     # everything."
     ("ClearAllConfirmArt", "wipe_confirm_clear", ["This clears", "everything."]),
+    # The deck buttons. Maintainer, 2026-09-22: "put a warning, This will reset the deck." Square,
+    # like the map buttons' "This will reset the map." beside them.
+    ("WipeConfirmDeckArt", "wipe_confirm_deck", ["This will", "reset the", "deck."], "square"),
 ]
 
 # What the check renders: the wide warning exactly as it ships, so the recipe can be compared with it.
 REFERENCE = ("wipe_confirm_wide_8020706a.png", ["This will reset", "all factions."])
 
 
-def render(lines, size=WIDE, ink_w=INK_W, pitch=PITCH, stroke=STROKE):
+def render(lines, size=WIDE, ink_w=INK_W, pitch=PITCH, stroke=STROKE, fill=(255, 255, 255, 255)):
     """The lines in Luminari, white on a black outline, centred on transparency."""
     im = Image.new("RGBA", size, (0, 0, 0, 0))
     d = ImageDraw.Draw(im)
     # SIZED ON THE LONGEST LINE, so a longer warning gets smaller rather than running off the button.
     pt = 8
     while pt < 200:
-        f = ImageFont.truetype(LUM, pt + 1)
+        f = ImageFont.truetype(FONT, pt + 1)
         w = max(d.textbbox((0, 0), t, font=f, stroke_width=stroke)[2]
                 - d.textbbox((0, 0), t, font=f, stroke_width=stroke)[0] for t in lines)
         if w > ink_w:
             break
         pt += 1
-    f = ImageFont.truetype(LUM, pt)
+    f = ImageFont.truetype(FONT, pt)
     for i, t in enumerate(lines):
         bb = d.textbbox((0, 0), t, font=f, stroke_width=stroke)
         d.text((size[0] / 2 - (bb[2] - bb[0]) / 2 - bb[0], i * pitch - bb[1] + stroke),
-               t, font=f, fill=(255, 255, 255, 255), stroke_width=stroke, stroke_fill=(0, 0, 0, 255))
+               t, font=f, fill=fill, stroke_width=stroke, stroke_fill=(0, 0, 0, 255))
     # CENTRED ON THE INK ITSELF, not on a line box. The shipped warning's ink sits dead centre in the
     # button (x 13..257 and y 21..115 of 272x136, both centres within a pixel of the middle), which a
     # font's own metrics do not give you: ascent, descent and the stroke all pad the box differently
@@ -105,12 +120,18 @@ def check():
 
 
 def main():
-    if not os.path.exists(LUM):
-        sys.exit("missing %s" % LUM)
-    check()
+    if STAND_IN:
+        print("  LUMINARI IS NOT ON THIS MACHINE: rendering with Metamorphous as a stand-in.")
+        print("  Re-run on the Mac and replace the file (and its URL in gen/src/save.json) to match.")
+    else:
+        check()
     print()
-    for name, stem, lines in JOBS:
-        im, pt = render(lines)
+    for job in JOBS:
+        name, stem, lines = job[0], job[1], job[2]
+        if len(job) > 3 and job[3] == "square":
+            im, pt = render(lines, SQUARE, SQ_INK_W, SQ_PITCH, fill=CREAM)
+        else:
+            im, pt = render(lines)
         tmp = os.path.join(OUT, "_tmp_%s.png" % stem)
         im.save(tmp)
         digest = hashlib.md5(open(tmp, "rb").read()).hexdigest()[:8]
