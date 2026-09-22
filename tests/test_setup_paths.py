@@ -4239,7 +4239,9 @@ def t_the_panel_flashes_after_twenty_minutes(src):
     g.buildUI()
     xml = g.LASTXML or ""
     assert ">7<" in xml, "a rebuild lost the round number: it re-emits the placeholder"
-    assert ">3:21<" in xml, "a rebuild lost the clock: it re-emits the placeholder"
+    # the clock is three cells since 2026-09-22 (minutes, the colon on the centre line, seconds)
+    assert ">3<" in xml and ">:<" in xml and ">21<" in xml, \
+        "a rebuild lost the clock: it re-emits the placeholder"
 
     # the demo: three DEAL presses inside three seconds, with no turn running at all
     g.PANEL_START = None
@@ -10442,6 +10444,33 @@ def t_the_clock_has_room_for_a_two_digit_minute(src):
     assert w_round + spacing + w_time == box, \
         ("the readouts sum to %d and the content box is %d"
          % (w_round + spacing + w_time, box))
+
+    # THE COLON ON THE CENTRE LINE, AND NOTHING WRAPS. Maintainer, 2026-09-22, at 10:00 on the table:
+    # "the last digit of the seconds is not visible" -- the one centred string, sized from an Arial
+    # measurement above, is drawn wider by TTS and its last character wrapped out of the 70px field.
+    # "dont uncenter shit please just center the : separating the digits of minutes and seconds."
+    # Three parts: minutes right-aligned, the colon in a fixed cell, seconds left-aligned; the two
+    # sides are equal, so the colon sits on the field's centre line whatever the minutes read; and
+    # every part overflows rather than wraps, so a digit is drawn past the edge before it is hidden.
+    parts = {}
+    for pid in ("pnlTime", "pnlTimeColon", "pnlTimeSec"):
+        tag = re.search(r'<Text id="%s"[^>]*>' % pid, xml)
+        assert tag, "the clock has no %s part" % pid
+        parts[pid] = tag.group(0)
+        assert 'horizontalOverflow="Overflow"' in tag.group(0), "%s can still wrap its digits" % pid
+        assert 'resizeTextForBestFit' not in tag.group(0), "%s refits itself" % pid
+    pw = lambda pid: int(re.search(r'preferredWidth="(\d+)"', parts[pid]).group(1))
+    assert pw("pnlTime") == pw("pnlTimeSec"), "the minutes and seconds cells differ, so the colon is off centre"
+    assert pw("pnlTime") * 2 + pw("pnlTimeColon") == w_time, "the three cells do not fill the field exactly"
+    assert 'alignment="MiddleRight"' in parts["pnlTime"] and 'alignment="MiddleLeft"' in parts["pnlTimeSec"], \
+        "the minutes must hug the colon from the left and the seconds from the right"
+    row = xml[xml.rindex("<HorizontalLayout", 0, xml.index('id="pnlTime"')):xml.index('id="pnlTime"')]
+    assert 'childForceExpandWidth="false"' in row, "the clock row expands its cells, so their widths are ignored"
+    # the tick writes both halves, from the one string the save keeps
+    rt.execute("SET = {} self.UI.setValue = function(id, v) SET[id] = tostring(v) end CLOCK = 1000 os.time = function() return CLOCK end PANEL_START = 1000 CLOCK = 1000 + 10 * 60 + 7 panelTick()")
+    assert rt.eval("PANEL_TTXT") == "10:07", "the clock string is %r" % rt.eval("PANEL_TTXT")
+    assert rt.eval("SET.pnlTime") == "10" and rt.eval("SET.pnlTimeSec") == "07", \
+        "the tick wrote %r / %r" % (rt.eval("SET.pnlTime"), rt.eval("SET.pnlTimeSec"))
 
 
 def t_the_torn_boards_are_cut_where_the_art_is_torn(src):

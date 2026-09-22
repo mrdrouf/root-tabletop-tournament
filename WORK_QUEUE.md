@@ -555,6 +555,18 @@ Where to cut, if it is ever needed, biggest first (none done):
       restore; held, the sheet locks nothing and moves no round, the panel's clock does not restart,
       the recorder writes no turn; the sheet lets go by itself after ten seconds if never released.
       START itself is unchanged. Three cases. Not yet confirmed in TTS.
+- [x] **"At 10 minutes the last digit of the seconds is not visible on the timer. I THOUGHT THAT
+      WAS FIXED DID YOU REVERT SOMETHING???"** Maintainer, 2026-09-22. Nothing was reverted: the
+      clock code is byte for byte the fix of 2026-09-12 (b695adf), which sized a 125px field from an
+      Arial measurement of "10:00" at 46pt (119px) and never saw the table -- TTS's face draws it
+      wider, the one centred string wrapped, and the last character went to a second line the 70px
+      field cannot show. "Dont uncenter shit please just center the : separating the digits of
+      minutes and seconds you should have enough space." v1.479: the clock is three texts in the same
+      125px field -- minutes right-aligned in 55px, the colon in a 15px cell on the centre line,
+      seconds left-aligned in 55px -- each with horizontalOverflow="Overflow", so nothing wraps and a
+      digit that outgrows its half is drawn past the edge rather than hidden; the tick writes the two
+      halves, the save keeps the one string. ROUND untouched, the two fields still equal. The clock
+      case checks the cells and the tick. Not yet confirmed in TTS.
 - [ ] **"All the clearing markers seemed to be unlocked."** Simber, same game. In the autosave taken
       ten seconds after the win all twelve priority markers are LOCKED, and the map too. Resync's
       lock mode unlocks each object for one frame and locks it again, so nothing stays unlocked by
