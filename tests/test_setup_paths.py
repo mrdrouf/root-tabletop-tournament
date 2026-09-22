@@ -11836,10 +11836,13 @@ def t_a_trade_post_returns_to_the_board_not_the_pile(src):
 
 
 def t_a_relic_on_the_board_shows_its_points(src):
-    """A relic scoring on the Keepers' board lies on its VALUE side, not the side it spawns as.
+    """The relic row is recorded on its VALUE side; numpad 0 no longer turns a relic to it.
 
     Maintainer, 2026-09-13: "a relic should always be on its flipped side when it s on the faction
-    board not the side it spawns as."
+    board not the side it spawns as." The row's slots still carry that side. Then, 2026-09-22, on the
+    key that enforced it: "pressing numpad 0 on a relic shows it face up on the keepers faction board
+    I told you it cannot flip it." So the key squares a relic up and keeps whatever face it has --
+    the last block below pins that, where it used to pin the turn.
 
     THE TWO FACES ARE NOT ART AND A BLANK BACK. The side a relic spawns as is the relic alone -- a
     stone idol, an inscribed tablet, an acorn on a cord -- and the other side is that same relic with
@@ -11867,7 +11870,7 @@ def t_a_relic_on_the_board_shows_its_points(src):
                  "return h.r[3] end end end)()")
     assert abs(rz - 180) < 0.01, "a far-row relic slot is not turned over: z %.1f" % rz
 
-    # ...and numpad 0 actually puts the tile that way up
+    # ...and numpad 0 carries the tile there WITHOUT turning it (2026-09-22: "it cannot flip it")
     rt.execute("""
       RTT_HOME = {}
       RTT_HOME["s1"] = { n = "Relic", f = "Keepers in Iron", k = "Tablet", x = true,
@@ -11878,8 +11881,8 @@ def t_a_relic_on_the_board_shows_its_points(src):
       HOVER = { Red = R }
       rttGizmoHome("Red")
     """)
-    assert abs(rt.eval("R.getRotation().z") - 180) < 0.01, \
-        "numpad 0 laid the relic on the board still showing the side it spawns as"
+    assert abs(rt.eval("R.getRotation().z")) < 0.01, \
+        "numpad 0 turned the relic over on the way to the board; it may only square it up"
 
 
 def t_a_relic_dropped_on_the_wrong_row_is_carried_across(src):
@@ -15374,6 +15377,10 @@ def t_frog_cards_survive_a_deck_replacement(src):
       J = rttFrogCardsInDecks()
     """)
     assert rt.eval("#J") == 2 and all("Frog" in str(v) for v in rt.eval("J").values()), "the frog cards were not read off the deck: %r" % [str(v)[:60] for v in rt.eval("J").values()]
+    # CustomDeck is keyed by number in the table and must go out as an OBJECT: an array is what TTS
+    # refused with "Cannot deserialize the current JSON array into type Dictionary<Int32, ...>"
+    assert all('"CustomDeck":{"2611":' in str(v) for v in rt.eval("J").values()), \
+        "a frog card's CustomDeck went out as an array: %r" % [str(v) for v in rt.eval("J").values()][0]
     # the new deck stands: each frog is spawned and put into it, then it is shuffled
     rt.execute("""
       OLD.destruct()
@@ -15392,9 +15399,11 @@ def t_frog_cards_survive_a_deck_replacement(src):
       local f = rttFrogCardsInDecks
       rttFrogCardsInDecks = function() local r = f() CAPT = #r return r end
       rttRestoreFrogs = function(j, t) RESTORED = #j end
-      makeDeck(nil, nil, 'Standard Deck') FLUSH(8)
+      makeDeck(nil, nil, 'Standard Deck')
     """)
-    assert rt.eval("CAPT") == 1 and rt.eval("RESTORED") == 1, "makeDeck read %r and restored %r frog card(s)" % (rt.eval("CAPT"), rt.eval("RESTORED"))
+    assert rt.eval("CAPT") == 1 and rt.eval("RESTORED") is None, "the restore ran in the wipe's own frame"
+    rt.execute("FLUSH(8)")
+    assert rt.eval("RESTORED") == 1, "makeDeck read %r and restored %r frog card(s)" % (rt.eval("CAPT"), rt.eval("RESTORED"))
 
 
 def t_the_draft_notes_the_four_captains_dealt(src):
@@ -15470,14 +15479,14 @@ def t_the_export_names_the_discarded_captain(src):
 
 
 def t_numpad_0_keeps_a_relics_face(src):
-    """Numpad 0 lays a relic on its points side and the row's snaps no longer turn it back.
+    """Numpad 0 squares a relic up to its row and never turns it; the row's snaps do not either.
 
-    Maintainer, 2026-09-13: "a relic should always be on its flipped side when it s on the faction
-    board." Then 2026-09-22: "make sure that numpad 0 on relics does not flip face up the relic! so
-    also need to change the behavior of the snaps so relics on the badger faction board are not
-    necessarily face up." The key sets the flipped side, and sets it again once the slide has ended
-    so nothing on arrival can undo it; the twelve relic snap points on the Keepers board (blueprint
-    7d2953) carry no rotation any more, while the board's seven other snaps keep theirs.
+    Maintainer, 2026-09-22: "make sure that numpad 0 on relics does not flip face up the relic!",
+    and on a build that still laid it on the row's recorded side: "pressing numpad 0 on a relic
+    shows it face up on the keepers faction board I told you it cannot flip it." The key takes the
+    slot's yaw and keeps the piece's own x and z, sets that again once the slide has ended, and the
+    twelve relic snap points on the Keepers board (blueprint 7d2953) carry no rotation any more,
+    while the board's seven other snaps keep theirs.
     """
     rt = fresh(src)
     rt.execute("""
@@ -15488,22 +15497,22 @@ def t_numpad_0_keeps_a_relics_face(src):
       end
       R = MKOBJ("Relic", { 30, 1, 30 }, {})
       R.setCustomObject({ image = "https://x/87A3E507CAEC4A4083EC8AD3998E20A5EB4597A5/" })
-      R.setRotation({ 0, 90, 0 })                       -- the side it spawns as
+      R.setRotation({ 0, 90, 0 })
       SEAT('Red', 'Ann') HOVER['Red'] = R onScriptingButtonDown(10, 'Red') FLUSH_UNTIL(0.1)
     """)
     rot = rt.eval("R.getRotation()")
     assert abs(rt.eval("R.__pos.z") + 40) < 0.01, "the relic did not go to its row"
-    assert abs(rot.y - 180) < 0.01 and abs(rot.z - 180) < 0.01, \
-        "numpad 0 did not lay the relic on its points side: (%.0f, %.0f, %.0f)" % (rot.x, rot.y, rot.z)
-    # something on arrival turns it back (what a snap with a rotation did); the key turns it again
-    rt.execute("R.setRotation({ 0, 180, 0 }) FLUSH_UNTIL(1.0)")
+    assert abs(rot.y - 180) < 0.01 and abs(rot.z) < 0.01 and abs(rot.x) < 0.01, \
+        "numpad 0 turned the relic over: (%.0f, %.0f, %.0f)" % (rot.x, rot.y, rot.z)
+    # something on arrival turns it (what a snap with a rotation did); the key puts the face back
+    rt.execute("R.setRotation({ 0, 180, 180 }) FLUSH_UNTIL(1.0)")
     rot = rt.eval("R.getRotation()")
-    assert abs(rot.z - 180) < 0.01, "the second turn after landing did not happen: z %.0f" % rot.z
-    # a relic already on its points side stays there
+    assert abs(rot.z) < 0.01, "the second setting after landing did not keep the face: z %.0f" % rot.z
+    # a relic lying on its other side comes home on that side
     rt.execute("R.setPosition({ 30, 1, 30 }) R.setRotation({ 0, 90, 180 }) onScriptingButtonDown(10, 'Red') FLUSH_UNTIL(1.0)")
     rot = rt.eval("R.getRotation()")
     assert abs(rot.y - 180) < 0.01 and abs(rot.z - 180) < 0.01, \
-        "a points-side relic came home turned: (%.0f, %.0f, %.0f)" % (rot.x, rot.y, rot.z)
+        "a turned relic came home turned back: (%.0f, %.0f, %.0f)" % (rot.x, rot.y, rot.z)
     # the board's relic slots: position only
     i = src.index('"GUID": "7d2953"')
     arr = src[src.index('"AttachedSnapPoints": [', i):]
@@ -15903,7 +15912,7 @@ CASES = [
     ("frog cards survive a deck change",   t_frog_cards_survive_a_deck_replacement),
     ("the draft notes the captains dealt", t_the_draft_notes_the_four_captains_dealt),
     ("the export names the discarded captain", t_the_export_names_the_discarded_captain),
-    ("numpad 0 lays a relic points up",    t_numpad_0_keeps_a_relics_face),
+    ("numpad 0 keeps a relic's face",      t_numpad_0_keeps_a_relics_face),
     ("the sheet takes the captains it is told", t_the_sheet_takes_the_captains_it_is_told),
     ("a card dropped on the pond turns face up", t_a_card_dropped_on_the_pond_turns_face_up),
     ("the flush drains and dies",       t_the_flush_writes_its_queue_and_lets_the_timer_die),

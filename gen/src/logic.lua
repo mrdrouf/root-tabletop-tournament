@@ -4334,7 +4334,21 @@ function rttFrogCardsInDecks()
       if dk.name ~= "Deck" and dk.name ~= "DeckCustom" then return end
       local data = dk.getData()
       for _, c in ipairs((data and data.ContainedObjects) or {}) do
-        if (c.Description or "") == "Frog" then out[#out + 1] = JSON.encode(c) end
+        if (c.Description or "") == "Frog" then
+          -- CustomDeck (and States) are keyed by NUMBER in the table getData hands back, and
+          -- JSON.encode writes a numeric-keyed table as an ARRAY -- which spawnObjectJSON refuses:
+          -- "Cannot deserialize the current JSON array into type Dictionary<Int32, CustomDeckState>
+          -- ... Path 'CustomDeck'" (2026-09-23, the first deck change with frogs in the deck). The
+          -- keys are made strings first, which is what the JSON had before TTS decoded it.
+          for _, field in ipairs({ "CustomDeck", "States" }) do
+            if type(c[field]) == "table" then
+              local fixed = {}
+              for k, v in pairs(c[field]) do fixed[tostring(k)] = v end
+              c[field] = fixed
+            end
+          end
+          out[#out + 1] = JSON.encode(c)
+        end
       end
     end)
   end
@@ -4346,6 +4360,7 @@ function rttRestoreFrogs(jsons, tries)
   local ok = false
   pcall(function() ok = (deck ~= nil and (deck.name == "Deck" or deck.name == "DeckCustom")) end)
   if not ok then pcall(function() deck = rttFindMainDeck(); ok = (deck ~= nil) end) end
+  pcall(function() if ok and deck.isDestroyed() then ok = false end end)   -- the old deck, on its way out
   if not ok then
     if tries < RTT_FROG_TRIES then
       Wait.time(function() rttRestoreFrogs(jsons, tries + 1) end, RTT_FROG_WAIT)
@@ -4432,7 +4447,9 @@ function makeDeck(player,value,id)
   if find_object_by_gm_note("Dragon God") ~= nil then
     Wait.frames(function() pcall(function() rttPlaceDragonGod() end) end, 2)
   end
-  if #frogs > 0 then rttRestoreFrogs(frogs, 0) end
+  -- NOT THIS FRAME: removeDeckItems' destructs have not taken yet, and the first look would find
+  -- the old deck still standing and spawn the frogs into it.
+  if #frogs > 0 then Wait.time(function() rttRestoreFrogs(frogs, 0) end, RTT_FROG_WAIT) end
 end
 
 
@@ -11161,29 +11178,35 @@ RTT_HOME_OWN_SPOT = { ["Plot"] = true }
 -- not the yaw. Squaring a spun tile up is worth less than never undoing a deliberate flip.
 RTT_HOME_KEEP_FACING = { ["Plot"] = true }
 
--- ...AND A RELIC IS TURNED TWICE: now, and again once it has landed. Maintainer, 2026-09-13: "a relic
--- should always be on its flipped side when it s on the faction board not the side it spawns as" --
--- the row's slots carry z 180 for that. Then, 2026-09-22: "make sure that numpad 0 on relics does
--- not flip face up the relic! so also need to change the behavior of the snaps so relics on the
--- badger faction board are not necessarily face up." The key was setting the flipped side and the
--- board was undoing it: its twelve relic snap points carried a rotation, which turns a tile that
--- comes to rest on them back to the side they name. Those snaps carry no rotation any more, and the
--- key sets the facing a second time after the slide has ended, so nothing that happens on arrival
--- can leave a relic on the wrong side. Everything else takes the slot's rotation once; a plot takes
--- none of it.
-RTT_HOME_RETURN = { ["Relic"] = true }
+-- ...AND A RELIC IS NEVER TURNED: it squares up to its row and keeps its face. Maintainer,
+-- 2026-09-22: "make sure that numpad 0 on relics does not flip face up the relic!", and when a build
+-- still laid it on the row's recorded side: "pressing numpad 0 on a relic shows it face up on the
+-- keepers faction board I told you it cannot flip it." That replaces his rule of 2026-09-13 ("a
+-- relic should always be on its flipped side when it s on the faction board"), which this key used
+-- to enforce. The row's slots still carry the value side, for a relic dropped by hand to be judged
+-- against; the key takes only the slot's yaw and leaves the piece's own x and z alone, sets that
+-- again once the slide has ended so nothing on arrival can turn it, and the board's relic snaps
+-- carry no rotation any more. Everything else takes the slot's rotation once; a plot takes none.
+RTT_HOME_KEEP_FACE = { ["Relic"] = true }
 RTT_HOME_RETURN_SECS = 0.8
 function rttHomeTurn(o, name, r)
   if RTT_HOME_KEEP_FACING[name] then return end
-  o.setRotation({ r[1], r[2], r[3] })
-  if RTT_HOME_RETURN[name] then
+  local want = { r[1], r[2], r[3] }
+  if RTT_HOME_KEEP_FACE[name] then
+    local cur = nil
+    pcall(function() cur = o.getRotation() end)
+    if cur == nil then return end
+    want = { cur.x, r[2], cur.z }
+  end
+  o.setRotation(want)
+  if RTT_HOME_KEEP_FACE[name] then
     local guid = nil
     pcall(function() guid = o.getGUID() end)
     if guid == nil then return end
     Wait.time(function()
       local x = getObjectFromGUID(guid)
       if x == nil then return end
-      pcall(function() if x.held_by_color == nil then x.setRotation({ r[1], r[2], r[3] }) end end)
+      pcall(function() if x.held_by_color == nil then x.setRotation(want) end end)
     end, RTT_HOME_RETURN_SECS)
   end
 end

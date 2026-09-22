@@ -624,6 +624,19 @@ Where to cut, if it is ever needed, biggest first (none done):
       slide (rttHomeTurn, RTT_HOME_RETURN), so nothing on arrival can leave it face up. The three
       numpad 0 turn sites go through rttHomeTurn; a Plot still takes no rotation at all. One case,
       static and driven. Not yet confirmed in TTS.
+      THEN, ON THAT BUILD: "pressing numpad 0 on a relic shows it face up on the keepers faction
+      board I told you it cannot flip it." v1.482: the key never turns a relic -- it takes the
+      slot's yaw and keeps the piece's own x and z (RTT_HOME_KEEP_FACE), and sets that again 0.8 s
+      after the slide. His rule of 2026-09-13 is withdrawn for the key: the row's slots still carry
+      the value side for a relic dropped by hand, and the 09-13 case now pins that the key keeps the
+      face. Not yet confirmed in TTS.
+- [x] **"Cannot deserialize the current JSON array into type Dictionary<Int32, CustomDeckState>
+      ... Path 'CustomDeck'" on replacing a deck.** Maintainer, 2026-09-23, with frog cards in the
+      deck. The frog restore of v1.480 re-encoded each card's table from getData, whose CustomDeck
+      is keyed by NUMBER, and JSON.encode writes a numeric-keyed table as an array. v1.482: the keys
+      are made strings before encoding (CustomDeck, States); the restore also waits a second so it
+      cannot find the old deck still standing in the wipe's own frame, and skips a deck that is
+      destroyed. The frog case checks the JSON shape and the delay. Not yet confirmed in TTS.
 - [ ] **"All the clearing markers seemed to be unlocked."** Simber, same game. In the autosave taken
       ten seconds after the win all twelve priority markers are LOCKED, and the map too. Resync's
       lock mode unlocks each object for one frame and locks it again, so nothing stays unlocked by

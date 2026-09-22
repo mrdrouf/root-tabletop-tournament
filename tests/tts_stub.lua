@@ -662,7 +662,7 @@ function MKDECK(specs)
     local co = {}
     for i, c in ipairs(o.__cards) do
       co[i] = { Name = "Card", GUID = c.guid, Nickname = c.nickname, Description = c.description,
-                CardID = c.cardid or (500 + i) }
+                CardID = c.cardid or (500 + i), CustomDeck = { [2611] = { FaceURL = "face", BackURL = "back" } } }
     end
     return { Name = "Deck", GUID = o.getGUID(), Nickname = o.getName(), ContainedObjects = co }
   end
