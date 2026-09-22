@@ -4340,19 +4340,53 @@ function rttFrogCardsInDecks()
           -- "Cannot deserialize the current JSON array into type Dictionary<Int32, CustomDeckState>
           -- ... Path 'CustomDeck'" (2026-09-23, the first deck change with frogs in the deck). The
           -- keys are made strings first, which is what the JSON had before TTS decoded it.
-          for _, field in ipairs({ "CustomDeck", "States" }) do
-            if type(c[field]) == "table" then
-              local fixed = {}
-              for k, v in pairs(c[field]) do fixed[tostring(k)] = v end
-              c[field] = fixed
-            end
-          end
+          rttStrKeys(c)
           out[#out + 1] = JSON.encode(c)
         end
       end
     end)
   end
   return out
+end
+function rttStrKeys(c)
+  for _, field in ipairs({ "CustomDeck", "States" }) do
+    if type(c[field]) == "table" then
+      local fixed = {}
+      for k, v in pairs(c[field]) do fixed[tostring(k)] = v end
+      c[field] = fixed
+    end
+  end
+  return c
+end
+-- ONE STACK, TURNED AS THE DECK IS. Maintainer, 2026-09-23: "when replacing the deck the frog cards
+-- get shuffled in a weird way" -- they were spawned one above another with whatever facing each had
+-- inside the old deck and pushed into the new one singly. Now the cards become one deck blob, every
+-- card given the target deck's rotation (face down, its yaw), spawned once and merged in one
+-- putObject, and the deck is shuffled a second later. A single card is spawned as itself.
+function rttFrogStackJSON(jsons, dr)
+  local cards, ids, cd = {}, {}, {}
+  for _, j in ipairs(jsons or {}) do
+    local c = nil
+    pcall(function() c = JSON.decode(j) end)
+    if type(c) == "table" then
+      rttStrKeys(c)
+      c.Transform = c.Transform or { posX = 0, posY = 0, posZ = 0, scaleX = 1, scaleY = 1, scaleZ = 1 }
+      c.Transform.rotX, c.Transform.rotY, c.Transform.rotZ = dr.x, dr.y, dr.z
+      if c.CardID ~= nil then ids[#ids + 1] = c.CardID end
+      for k, v in pairs(c.CustomDeck or {}) do cd[tostring(k)] = v end
+      cards[#cards + 1] = c
+    end
+  end
+  if #cards == 0 then return nil end
+  if #cards == 1 then return JSON.encode(cards[1]) end
+  local t = cards[1].Transform
+  return JSON.encode({
+    Name = "Deck", Nickname = "", Description = "", GMNotes = "",
+    Transform = { posX = 0, posY = 0, posZ = 0, rotX = dr.x, rotY = dr.y, rotZ = dr.z,
+                  scaleX = t.scaleX or 1, scaleY = t.scaleY or 1, scaleZ = t.scaleZ or 1 },
+    Locked = false, Grid = true, Snap = true, Hands = true, SidewaysCard = false,
+    DeckIDs = ids, CustomDeck = cd, ContainedObjects = cards,
+  })
 end
 function rttRestoreFrogs(jsons, tries)
   if jsons == nil or #jsons == 0 then return end
@@ -4366,25 +4400,29 @@ function rttRestoreFrogs(jsons, tries)
       Wait.time(function() rttRestoreFrogs(jsons, tries + 1) end, RTT_FROG_WAIT)
       return
     end
-    local at = nil
-    pcall(function() at = getObjectFromGUID(RTT_HOLDER_GUID).positionToWorld(RTT_HOLDER_DRAW) end)
+    -- no deck to be found: the stack goes loose on the draw slot, face down, rather than being lost
+    local at, ry = nil, 0
+    pcall(function()
+      local h = getObjectFromGUID(RTT_HOLDER_GUID)
+      at = h.positionToWorld(RTT_HOLDER_DRAW); ry = h.getRotation().y
+    end)
     at = at or { x = 0, y = 2, z = 0 }
-    for i, j in ipairs(jsons) do
-      pcall(function() spawnObjectJSON({ json = j, position = { at.x, at.y + 2 + i * 0.3, at.z },
-        callback_function = function(o) pcall(function() o.addTag("RTT Faction") end) end }) end)
-    end
+    local blob = rttFrogStackJSON(jsons, { x = 0, y = ry, z = 180 })
+    if blob == nil then return end
+    pcall(function() spawnObjectJSON({ json = blob, position = { at.x, at.y + 2, at.z }, rotation = { 0, ry, 180 },
+      callback_function = function(o) pcall(function() o.addTag("RTT Faction") end) end }) end)
     return
   end
-  local dp = deck.getPosition()
-  for i, j in ipairs(jsons) do
-    pcall(function()
-      spawnObjectJSON({ json = j, position = { dp.x, dp.y + 2 + i * 0.3, dp.z },
-        callback_function = function(o)
-          pcall(function() o.addTag("RTT Faction") end)     -- the frogs' own tag: a new game clears it
-          pcall(function() deck.putObject(o) end)
-        end })
-    end)
-  end
+  local dp, dr = deck.getPosition(), deck.getRotation()
+  local blob = rttFrogStackJSON(jsons, dr)
+  if blob == nil then return end
+  pcall(function()
+    spawnObjectJSON({ json = blob, position = { dp.x, dp.y + 3, dp.z }, rotation = { dr.x, dr.y, dr.z },
+      callback_function = function(o)
+        pcall(function() o.addTag("RTT Faction") end)     -- the frogs' own tag: a new game clears it
+        pcall(function() deck.putObject(o) end)
+      end })
+  end)
   Wait.time(function() pcall(function() deck.shuffle() end) end, 1.0)
 end
 

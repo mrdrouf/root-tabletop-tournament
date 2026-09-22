@@ -637,6 +637,12 @@ Where to cut, if it is ever needed, biggest first (none done):
       are made strings before encoding (CustomDeck, States); the restore also waits a second so it
       cannot find the old deck still standing in the wipe's own frame, and skips a deck that is
       destroyed. The frog case checks the JSON shape and the delay. Not yet confirmed in TTS.
+      "WHEN REPLACING THE DECK THE FROG CARDS GET SHUFFLED IN A WEIRD WAY" (2026-09-23): they were
+      spawned one above another, each with whatever facing it had inside the old deck, and pushed
+      in singly. v1.483: the cards become one deck blob (rttFrogStackJSON), every card turned as the
+      target deck is, spawned once and merged in one putObject, then the deck is shuffled a second
+      later; with no deck to be found the stack goes loose on the draw slot face down. The frog case
+      checks the one spawn, the one put, the facing and the shuffle. Not yet confirmed in TTS.
 - [ ] **"All the clearing markers seemed to be unlocked."** Simber, same game. In the autosave taken
       ten seconds after the win all twelve priority markers are LOCKED, and the map too. Resync's
       lock mode unlocks each object for one frame and locks it again, so nothing stays unlocked by

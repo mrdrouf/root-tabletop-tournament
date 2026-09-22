@@ -15381,15 +15381,25 @@ def t_frog_cards_survive_a_deck_replacement(src):
     # refused with "Cannot deserialize the current JSON array into type Dictionary<Int32, ...>"
     assert all('"CustomDeck":{"2611":' in str(v) for v in rt.eval("J").values()), \
         "a frog card's CustomDeck went out as an array: %r" % [str(v) for v in rt.eval("J").values()][0]
-    # the new deck stands: each frog is spawned and put into it, then it is shuffled
+    # the new deck stands: the frogs come back as ONE stack turned as the deck is, merged in one
+    # move, and the deck is shuffled ("the frog cards get shuffled in a weird way", 2026-09-23)
     rt.execute("""
       OLD.destruct()
       specs = {} for i = 1, 24 do specs[i] = { nick = 'card' .. i } end
-      NEW = MKDECK(specs)
-      SHUFFLED = 0 NEW.shuffle = function() SHUFFLED = SHUFFLED + 1 end
+      NEW = MKDECK(specs) NEW.setRotation({ 0, 90, 180 })
+      SHUFFLED, PUTS, BLOBS = 0, 0, {}
+      NEW.shuffle = function() SHUFFLED = SHUFFLED + 1 end
+      local put = NEW.putObject NEW.putObject = function(o) PUTS = PUTS + 1 return put(o) end
+      local sp = spawnObjectJSON spawnObjectJSON = function(p) BLOBS[#BLOBS + 1] = p.json return sp(p) end
       rttRestoreFrogs(J, 0) FLUSH_UNTIL(2)
     """)
-    assert rt.eval("NEW.getQuantity()") == 26, "the new deck holds %d cards, not 26" % rt.eval("NEW.getQuantity()")
+    blobs = [str(v) for v in rt.eval("BLOBS").values()]
+    assert len(blobs) == 1 and rt.eval("PUTS") == 1, "the frogs went in as %d spawn(s) and %d put(s), not one stack" % (len(blobs), rt.eval("PUTS"))
+    stack = json.loads(blobs[0])
+    assert stack["Name"] == "Deck" and stack["DeckIDs"] and len(stack["ContainedObjects"]) == 2, "the stack is not a two-card deck: %s" % blobs[0][:120]
+    assert list(stack["CustomDeck"].keys()) == ["2611"], "the stack's CustomDeck is not keyed by string: %r" % stack["CustomDeck"]
+    assert all(abs(c["Transform"]["rotZ"] - 180) < 0.01 and abs(c["Transform"]["rotY"] - 90) < 0.01 for c in stack["ContainedObjects"]), \
+        "a frog card is not turned as the deck is: %r" % [c["Transform"] for c in stack["ContainedObjects"]]
     assert rt.eval("SHUFFLED") >= 1, "the new deck was not shuffled after the frogs went in"
     # and makeDeck does both: reads the frogs before the wipe, restores them after
     rt.execute("""
