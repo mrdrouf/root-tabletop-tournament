@@ -547,12 +547,6 @@ local warmSunProphetLocations = {
 }
 
 
-function dist(o,x,z)
-
-  return math.sqrt(math.pow(o.getPosition().x - x,2) + (math.pow(o.getPosition().z - z,2)))
-end
-
-
 function contains(tbl, item)
   for key, value in pairs(tbl) do
       if value == item then return key end
@@ -3820,41 +3814,6 @@ function makeDeck(player,value,id)
   -- NOT THIS FRAME: removeDeckItems' destructs have not taken yet, and the first look would find
   -- the old deck still standing and spawn the frogs into it.
   if #frogs > 0 then Wait.time(function() rttRestoreFrogs(frogs, 0) end, RTT_FROG_WAIT) end
-end
-
-
-function makeMapTool(id)
-  local my_rot = self.getRotation()
-  local objects = {}
-  objects = EVERYTHING["Tools"][id]['data']
-  local scale = rttPlaceScale()
-
-  for _,v in ipairs(objects) do
-      local vec = Vector(v.move_to) * scale
-      vec.y = vec.y - 0.1
-
-      vec = vec * Vector({-15.5, 1, 15.5})
-
-      local newVec = Vector({0,1,0})
-      newVec.x = vec.z
-      newVec.y = vec.y + 10.01
-      newVec.z = vec.x
-
-      local new_pos = newVec
-      new_pos.y = new_pos.y + 10 - 8.5 + 0.05
-      new_pos.x = new_pos.x - 45 - 8.31 - 7.82
-      new_pos.z = new_pos.z -1.38
-      spawnObjectJSON({
-          json              = v.json,
-          position          = new_pos,
-          callback_function = function(o)
-            local _tg=o.getTags(); table.insert(_tg,"Map Object"); o.setTags(_tg)
-            o.setRotation({o.getRotation().x, o.getRotation().y, o.getRotation().z})
-          end
-      })
-
-  end
-
 end
 
 
@@ -9827,14 +9786,6 @@ function removeDeckItems()
     for _,v in ipairs(getObjectsWithTag("Deck Object")) do
       v.destruct()
     end
-end
-
-
-function concat(t1,t2)
-    for i=1,#t2 do
-        t1[#t1+1] = t2[i]  --corrected bug. if t1[#t1+i] is used, indices will be skipped
-    end
-    return t1
 end
 
 

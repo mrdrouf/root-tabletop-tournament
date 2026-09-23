@@ -303,7 +303,8 @@ def t_every_shared_deck_card_carries_the_deck_tag(src):
         untagged = [c.get("Nickname") for c in cs if "Deck Object" not in (c.get("Tags") or [])]
         if untagged:
             bad.append("%d of %d untagged (%s...)" % (len(untagged), len(cs), ", ".join(untagged[:3])))
-    assert decks >= 4, "only %d shared decks found in the build" % decks
+    # three since v1.489: the Dark Deck, which no button could load, left the build
+    assert decks >= 3, "only %d shared decks found in the build" % decks
     assert not bad, "shared deck cards without the Deck Object tag: %s" % "; ".join(bad)
 
 
@@ -15662,6 +15663,28 @@ def t_no_button_art_has_a_hard_edge(src):
     assert not hard, "these buttons still draw a hard rectangle round their art: %r" % hard
 
 
+def t_the_tag_registry_holds_only_tags_the_build_uses(src):
+    """The save's ComponentTags registry, what the Edit Tags dialog lists, names no tag nothing uses.
+
+    Maintainer, 2026-09-23, with the dialog open: "tags still present" -- Blighted City,
+    BlightedPair1, DrawDraftX, Dummy, WWAdsetCards, RandomBot, the Firebrands and friends, the base
+    mod's whole history. Every entry left is a tag some blueprint, the scene or a script can put on
+    an object; TTS re-adds anything a script invents at runtime, so the list can only be too long,
+    never too short.
+    """
+    dist = json.load(open(os.path.join(REPO, "dist", "Root_Tournament_Edition.json"), encoding="utf-8"))
+    labels = [l["displayed"] for l in dist["ComponentTags"]["labels"]]
+    # not "Dummy": the ruins code still tags with it
+    for gone in ("Blighted City", "BlightedPair1", "BlightedPair2", "DrawDraftX", "WWAdsetCards",
+                 "RandomBot", "Firebrand Fox", "Deck Aides", "Captain Cards", "FiftyFiftyBoard", "Growth"):
+        assert gone not in labels, "the registry still lists %r" % gone
+    board = next(o for o in dist["ObjectStates"] if o.get("GUID") == "bab7e1")
+    everything = board.get("LuaScript", "") + dist.get("LuaScript", "") + json.dumps(dist["ObjectStates"])
+    stray = [t for t in labels if ('"%s"' % t) not in everything and ("\\\"%s\\\"" % t) not in everything]
+    assert not stray, "registry entries no blueprint, scene object or script names: %r" % stray
+    assert "EVERYTHING['Decks']['Dark Deck']" not in board.get("LuaScript", ""), "the Dark Deck kit is back"
+
+
 def t_a_resync_re_sends_every_seat_in_turn(src):
     """Resync steps every seated player off their colour, re-places their hand box from the seat while
     nobody owns the colour, and steps them back -- one at a time, after the card pass.
@@ -16054,6 +16077,7 @@ CASES = [
     ("the table cannot be touched",         t_the_table_cannot_be_touched),
     ("no fan content is left",               t_no_fan_content_is_left_in_the_build),
     ("no button art has a hard edge",        t_no_button_art_has_a_hard_edge),
+    ("the tag registry is only what is used", t_the_tag_registry_holds_only_tags_the_build_uses),
     ("numpad 0 keeps a relic's face",      t_numpad_0_keeps_a_relics_face),
     ("the sheet takes the captains it is told", t_the_sheet_takes_the_captains_it_is_told),
     ("a card dropped on the pond turns face up", t_a_card_dropped_on_the_pond_turns_face_up),

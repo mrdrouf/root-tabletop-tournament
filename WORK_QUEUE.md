@@ -704,6 +704,14 @@ Where to cut, if it is ever needed, biggest first (none done):
       One static case reads the files the board points at.
 - [x] **"Remove all the tags."** Maintainer, 2026-09-23. v1.488: the save's Workshop tag list is
       empty. The static case above pins it.
+- [x] **"Tags still present"** -- the Edit Tags dialog, 2026-09-23, listing Blighted City, BlightedPair1,
+      Captain Cards, DrawDraftX, Dummy and the rest. That list is the save's top-level
+      `ComponentTags` registry, the object-tag names the base mod ever used, not the Workshop tags
+      emptied in v1.488. v1.489: the registry keeps only tags some blueprint, the scene or a script
+      can put on an object (18 of 42); TTS re-adds any tag a script invents at runtime, so nothing
+      can go missing. Also out: the Dark Deck kit (108 KB, no button could load it) and three
+      helpers nothing called (concat, dist, makeMapTool). A static case reads the registry off the
+      build. Base save replaced, backed up first.
 - [ ] **"All the clearing markers seemed to be unlocked."** Simber, same game. In the autosave taken
       ten seconds after the win all twelve priority markers are LOCKED, and the map too. Resync's
       lock mode unlocks each object for one frame and locks it again, so nothing stays unlocked by
