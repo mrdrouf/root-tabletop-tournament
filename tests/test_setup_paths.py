@@ -15555,6 +15555,26 @@ def t_numpad_0_keeps_a_relics_face(src):
     assert all(s[1] != "" for s in snaps if s not in relic), "a slot that is not a relic's lost its rotation"
 
 
+def t_the_table_control_is_gone(src):
+    """The Flex Table Control, the red button at the table's corner, is no longer in the scene.
+
+    Maintainer, 2026-09-23: "can you remove the table control panel, the red button at the corner of
+    the table?" It was the Ultimate Collection's table-scaling widget (guid bd69bd), a locked piece
+    with a 17 KB script whose load hook was misspelt and never ran. The nine table pieces are locked
+    in the save and stay so. Clear All and the resync sweep keep sparing one by name, for a save that
+    still carries it.
+    """
+    dist = json.load(open(os.path.join(REPO, "dist", "Root_Tournament_Edition.json"), encoding="utf-8"))
+    names = [o.get("Nickname") for o in dist["ObjectStates"]]
+    assert "Flex Table Control" not in names, "the control is still in the scene"
+    assert not any(o.get("GUID") == "bd69bd" for o in dist["ObjectStates"]), "bd69bd is still in the scene"
+    pieces = [o for o in dist["ObjectStates"] if "Table Piece" in (o.get("Tags") or [])]
+    assert len(pieces) == 9 and all(o.get("Locked") for o in pieces), "the table pieces are not all there and locked"
+    rt = fresh(src)
+    rt.execute("C = MKOBJ('Flex Table Control', { 76.8, 9.9, -67.1 }, {})")
+    assert rt.eval("rttClearAllTakes(C)") is False, "Clear All would take a control left in an old save"
+
+
 def t_a_resync_re_sends_every_seat_in_turn(src):
     """Resync steps every seated player off their colour, re-places their hand box from the seat while
     nobody owns the colour, and steps them back -- one at a time, after the card pass.
@@ -15943,6 +15963,7 @@ CASES = [
     ("frog cards survive a deck change",   t_frog_cards_survive_a_deck_replacement),
     ("the draft notes the captains dealt", t_the_draft_notes_the_four_captains_dealt),
     ("the export names the discarded captain", t_the_export_names_the_discarded_captain),
+    ("the table control is gone",           t_the_table_control_is_gone),
     ("numpad 0 keeps a relic's face",      t_numpad_0_keeps_a_relics_face),
     ("the sheet takes the captains it is told", t_the_sheet_takes_the_captains_it_is_told),
     ("a card dropped on the pond turns face up", t_a_card_dropped_on_the_pond_turns_face_up),

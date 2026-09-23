@@ -658,6 +658,14 @@ Where to cut, if it is ever needed, biggest first (none done):
       while the Keepers' rows are out (RTT_RELICS_OUT, reset with the run state) -- nothing at all
       per drop otherwise -- and never turns a relic any more: on its own row it is left as put down,
       carried across it keeps its face. Cases grown. Not yet confirmed in TTS.
+- [x] **"Can you remove the table control panel, the red button at the corner of the table?"**
+      Maintainer, 2026-09-23. The Flex Table Control (bd69bd, the Ultimate Collection's table-scaling
+      widget, a locked Chinese-checkers piece at the table's corner with a 17 KB script whose load
+      hook is spelt `onload` and never ran). v1.485: removed from the scene in gen/src/save.json; the
+      nine table pieces are locked in the save and need nothing from it. Clear All and the resync
+      sweep still spare one by name for a save that carries it. A SCENE CHANGE: update_saves.py
+      patches scripts only, so the base save in the Saves folder was replaced by the fresh build
+      (backed up first) -- an old save keeps its button. One static case. Not yet confirmed in TTS.
 - [ ] **"All the clearing markers seemed to be unlocked."** Simber, same game. In the autosave taken
       ten seconds after the win all twelve priority markers are LOCKED, and the map too. Resync's
       lock mode unlocks each object for one frame and locks it again, so nothing stays unlocked by
