@@ -712,6 +712,8 @@ Where to cut, if it is ever needed, biggest first (none done):
       can go missing. Also out: the Dark Deck kit (108 KB, no button could load it) and three
       helpers nothing called (concat, dist, makeMapTool). A static case reads the registry off the
       build. Base save replaced, backed up first.
+      Then "remove all tags" -- v1.490: the registry ships empty. TTS lists whatever tags objects
+      carry and scripts add, so nothing is lost and no history can show. The case pins the empty list.
 - [ ] **"All the clearing markers seemed to be unlocked."** Simber, same game. In the autosave taken
       ten seconds after the win all twelve priority markers are LOCKED, and the map too. Resync's
       lock mode unlocks each object for one frame and locks it again, so nothing stays unlocked by

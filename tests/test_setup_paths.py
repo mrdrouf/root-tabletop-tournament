@@ -15674,6 +15674,9 @@ def t_the_tag_registry_holds_only_tags_the_build_uses(src):
     """
     dist = json.load(open(os.path.join(REPO, "dist", "Root_Tournament_Edition.json"), encoding="utf-8"))
     labels = [l["displayed"] for l in dist["ComponentTags"]["labels"]]
+    # then "remove all tags": the registry ships EMPTY. TTS lists whatever tags objects carry and
+    # scripts add, so an empty list costs nothing and cannot show history.
+    assert labels == [], "the registry is not empty: %r" % labels
     # not "Dummy": the ruins code still tags with it
     for gone in ("Blighted City", "BlightedPair1", "BlightedPair2", "DrawDraftX", "WWAdsetCards",
                  "RandomBot", "Firebrand Fox", "Deck Aides", "Captain Cards", "FiftyFiftyBoard", "Growth"):
