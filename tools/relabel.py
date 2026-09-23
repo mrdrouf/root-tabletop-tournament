@@ -13,6 +13,7 @@ import hashlib, json, math, os, re, shutil, sys
 from PIL import Image, ImageDraw, ImageFont
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+from deseam import deseam_file   # noqa: E402  -- beside this file; no rectangle round a label's art
 LUM = "/System/Library/Fonts/Supplemental/Luminari.ttf"
 CREAM = (237, 224, 192, 255)
 OUTLINE = (18, 12, 7, 255)
@@ -348,12 +349,14 @@ def main(write):
     for name, stem, lines, mkart, frac, drop, *rest in SQUARES:
         p = os.path.join(outdir, stem + ".png")
         art, sz = square_label(p, mkart(), lines, frac, drop, floor=(rest[0] if rest else SQUEEZE_FLOOR))
+        deseam_file(p, name)                       # no rectangle round the art: tools/deseam.py
         f, u = publish(p); urls[name] = u
         report.append(("SQ", name, art, sz, os.path.basename(f)))
     for name, stem, lines, mkart, *rest in WIDES:
         p = os.path.join(outdir, stem + ".png")
         art, sz = wide_label(p, mkart(), lines, pt=(rest[0] if rest else WIDE_PT),
                              floor=(rest[1] if len(rest) > 1 else SQUEEZE_FLOOR))
+        deseam_file(p, name)                       # no rectangle round the art: tools/deseam.py
         f, u = publish(p); urls[name] = u
         report.append(("WD", name, art, sz, os.path.basename(f)))
     for kind, name, art, sz, fn in report:

@@ -15622,6 +15622,46 @@ def t_no_fan_content_is_left_in_the_build(src):
     assert not stray, "UI assets the board never shows: %r" % stray
 
 
+def t_no_button_art_has_a_hard_edge(src):
+    """No board button shows a rectangle round its art, and the save carries no Workshop tags.
+
+    Maintainer, 2026-09-23, with a screenshot of Theme and Mountain: "all the buttons still have
+    seams visible between the button itself and the art used" -- and "remove all the tags". The
+    label's art is a rectangular crop with its own ground; TTS shades its button sprite and paints
+    the icon flat, so even a ground of the button's exact colour shows as a box. tools/deseam.py
+    keys the owl's ground and feathers every other rectangle's edge; the Faction Cards card keeps
+    its edge because the card is the picture. Read straight off the files the board points at.
+    """
+    import numpy as np
+    from PIL import Image
+    dist = json.load(open(os.path.join(REPO, "dist", "Root_Tournament_Edition.json"), encoding="utf-8"))
+    assert dist.get("Tags") == [], "the save still carries Workshop tags: %r" % dist.get("Tags")
+    board = next(o for o in dist["ObjectStates"] if o.get("GUID") == "bab7e1")
+    urls = {a["Name"]: a["URL"] for a in board["CustomUIAssets"]}
+    hard = []
+    for name in sorted(set(re.findall(r'icon\s*=\s*"([^"]+)"', board["XmlUI"]))):
+        url = urls.get(name, "")
+        if "@main/assets/" not in url or name in ("FactionCardsArt", "Riverfolk Company"):
+            continue                                  # the card is the picture; the otter is a silhouette that fills its box
+        f = os.path.join(REPO, "assets", url.split("@main/assets/")[1])
+        assert os.path.exists(f), "%s points at a file that is not in the repo: %s" % (name, f)
+        a = np.asarray(Image.open(f).convert("RGBA"))
+        h, w = a.shape[:2]
+        band = a[: int(h * 0.62)] if h >= w else a[:, : int(w * 0.5)]
+        op = band[..., 3] > 40
+        if not op.any():
+            continue
+        ys, xs = np.where(op)
+        t, b, l, r = ys.min(), ys.max(), xs.min(), xs.max()
+        rect = band[t:b + 1, l:r + 1]
+        if (rect[..., 3] > 40).mean() < 0.78:
+            continue                                  # a silhouette has no box
+        ring = np.concatenate([rect[0], rect[-1], rect[:, 0], rect[:, -1]])[..., 3]
+        if (ring > 120).mean() > 0.15:
+            hard.append((name, round(float((ring > 120).mean()), 2)))
+    assert not hard, "these buttons still draw a hard rectangle round their art: %r" % hard
+
+
 def t_a_resync_re_sends_every_seat_in_turn(src):
     """Resync steps every seated player off their colour, re-places their hand box from the seat while
     nobody owns the colour, and steps them back -- one at a time, after the card pass.
@@ -16013,6 +16053,7 @@ CASES = [
     ("the table control is gone",           t_the_table_control_is_gone),
     ("the table cannot be touched",         t_the_table_cannot_be_touched),
     ("no fan content is left",               t_no_fan_content_is_left_in_the_build),
+    ("no button art has a hard edge",        t_no_button_art_has_a_hard_edge),
     ("numpad 0 keeps a relic's face",      t_numpad_0_keeps_a_relics_face),
     ("the sheet takes the captains it is told", t_the_sheet_takes_the_captains_it_is_told),
     ("a card dropped on the pond turns face up", t_a_card_dropped_on_the_pond_turns_face_up),

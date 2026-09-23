@@ -690,6 +690,20 @@ Where to cut, if it is ever needed, biggest first (none done):
       Kept on purpose: five old names the harness still pins (rttResyncArm, summonLizardBlocker,
       rttCloneFor, rttGetCurrentMap, rttGizmoWarrior) and the official card faces. A scene change:
       the base save was replaced by the fresh build, backed up first. One static case.
+- [x] **"All the buttons still have seams visible between the button itself and the art used."**
+      Maintainer, 2026-09-23, with Theme and Mountain in a screenshot. A label is art over a caption
+      on transparency, and the art is a rectangular crop with its own ground; TTS shades its button
+      sprite and paints the icon flat, so even Theme's ground -- #49514b, its button's exact colour
+      -- showed as a box. v1.488, tools/deseam.py: the owl's ground is keyed out (the connected
+      ground only, from the edge in), and every other rectangle -- the six maps, the three decks,
+      the draft and setup photos, the Marsh label, the selector picture -- has its edge feathered
+      over 9 px into the button; silhouettes are untouched and the Faction Cards card keeps its edge
+      because the card is the picture. Decided by name: a measured rule in the first preview keyed
+      the snow off the Winter map. tools/relabel.py runs the same step on every label it composes,
+      so a re-render on the Mac keeps it. New hashed files, save URLs rewritten, old files removed.
+      One static case reads the files the board points at.
+- [x] **"Remove all the tags."** Maintainer, 2026-09-23. v1.488: the save's Workshop tag list is
+      empty. The static case above pins it.
 - [ ] **"All the clearing markers seemed to be unlocked."** Simber, same game. In the autosave taken
       ten seconds after the win all twelve priority markers are LOCKED, and the map too. Resync's
       lock mode unlocks each object for one frame and locks it again, so nothing stays unlocked by
