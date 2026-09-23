@@ -150,244 +150,6 @@ function onLoad(state)
       if isKeyUp then rttKey4Up(color) else rttKey4Down(color) end
     end, true)
   end)
-  assets = {}
-  if self.getName() != "Faction Board" then
-    assets = {
-
-        {name = "ThemeArt", url = "https://steamusercontent-a.akamaihd.net/ugc/16316853328531788856/FE0894D6BBC40E7876FE4A683368A61FC1B35547/"},
-        {name = "RankedArt", url = "https://steamusercontent-a.akamaihd.net/ugc/17736006513028835727/23F7EB2248073953C65D1AAD44636708E9E2DFE1/"},
-        {name = "FivePlayerArt", url = "https://steamusercontent-a.akamaihd.net/ugc/10646501209524696434/622AC9B1FA1D4C6B239DF99C896C07640F449574/"},
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-        {name = "Marquise de Cat",url  = "https://steamusercontent-a.akamaihd.net/ugc/1861696999739429295/F6CF523AAA7DCC91AF3812339EBB3354F6D9891A/"},
-        {name = "Eyrie Dynasties",url  = "https://steamusercontent-a.akamaihd.net/ugc/1728793291755958213/960DFA43E52D99A3250863FC63F3BA3AE5104325/"},
-        {name = "Woodland Alliance",url  = "https://steamusercontent-a.akamaihd.net/ugc/1728793291755956632/E99D3C9B246A94F6A898EC0D8098A05FA9467473/"},
-        {name = "VagabondAndKnaves",url  = "https://steamusercontent-a.akamaihd.net/ugc/11747765109863371101/6EB77E31F0244DFD039474C19C18D49AD0C93DBD/"},
-        {name = "Vagabond",url  = "https://steamusercontent-a.akamaihd.net/ugc/18029067728280360921/442E94C46A3882D69BD9CE83FAC257620EE84AEB/"},
-        {name = "The Lizard Cult",url  = "https://steamusercontent-a.akamaihd.net/ugc/1728793291755960838/D88CBE9192488A678AF3EC6DFC45B4C728C9A169/"},
-        {name = "Riverfolk Company",url  = "https://steamusercontent-a.akamaihd.net/ugc/1728793291755963912/C9589D96259534C6FB15DD91F78E7E90A073FDD8/"},
-        {name = "Underground Duchy",url  = "https://steamusercontent-a.akamaihd.net/ugc/1728793291755961872/1E2748C8EDD0BDE039B81658AFD0B19C771569BD/"},
-        {name = "Corvid Conspiracy",url  = "https://steamusercontent-a.akamaihd.net/ugc/1728793291755959858/69B8EC707AD26EF2F558ACAB65B39163B812D3F6/"},
-        {name = "Lord of the Hundreds",url  = "https://steamusercontent-a.akamaihd.net/ugc/1833522185818578726/CE952087E18A1C0B6B94E44EF53EB009A97A7122/"},
-        {name = "Keepers in Iron",url  = "https://steamusercontent-a.akamaihd.net/ugc/1833522185818579404/C0D7197A109DBF0C2EFB34DF50AE2CA70A66C25B/"},
-        {name = "Twilight Council",url  = "https://steamusercontent-a.akamaihd.net/ugc/2452866064845174396/6228F6A71DDC36CD883777CA958857CB123D7ECB/"},
-        {name = "Lilypad Diaspora",url  = "https://steamusercontent-a.akamaihd.net/ugc/2508034524425991747/77C277526C0042FE2754C83836A1E2C3C03FAD38/"},
-        {name = "Knaves of the Deepwood",url  = "https://steamusercontent-a.akamaihd.net/ugc/14468202139363768412/1012F7145C45B86F395C099B9AE80EA536529DD3/"},
-
-        {name = "Adventurer",url="https://steamusercontent-a.akamaihd.net/ugc/1728793291756318712/DAB9CB5B2AA9CF5AF4BDD67CFED687B8595411CF/"},
-        {name = "Arbiter",url="https://steamusercontent-a.akamaihd.net/ugc/1728793291756223555/8BB76979D215E9C042976005212DD7D0F9EBCDBD/"},
-        {name = "Harrier",url="https://steamusercontent-a.akamaihd.net/ugc/1728793291756321980/D728E9E7523EF9917554681B8CCFA7A79D6E95DC/"},
-        {name = "Ranger",url="https://steamusercontent-a.akamaihd.net/ugc/1728793291756323292/B5CDBACDB5E58637478F86047D574579AECBC763/"},
-        {name = "Ronin",url="https://steamusercontent-a.akamaihd.net/ugc/1861696999739435936/8C15D8C6D58FAF51A22B66697740CBA5BAEBBEFB/"},
-        {name = "Scoundrel",url="https://steamusercontent-a.akamaihd.net/ugc/1728793291756324621/71561324D23947260120C7F2EDF0A692986619EB/"},
-        {name = "Thief",url = "https://steamusercontent-a.akamaihd.net/ugc/1728793291756326469/AA4F3B6BF91AC337A240B582DF46C07DF9A374E5/"},
-        {name = "Tinker",url = "https://steamusercontent-a.akamaihd.net/ugc/1728793291756328063/25E9D54EAFE7A483877DECF1013DE57C96B0F214/"},
-        {name = "Vagrant", url = "https://steamusercontent-a.akamaihd.net/ugc/1728793291756329310/FEBDC9CB90C879DFC4ECAE1BBDDA857DBF9CD95C/"},
-        {name = "Gladiator", url = "https://steamusercontent-a.akamaihd.net/ugc/16433884667023926/65F0E372EB9EEF805369BB5F766846F066BD62AF/"},
-        {name = "Jailor", url = "https://steamusercontent-a.akamaihd.net/ugc/10906121492486022753/B8147FE9BB8652380D0027EB4AF0C7FF8C7C66AE/"},
-        {name = "Cheat", url = "https://steamusercontent-a.akamaihd.net/ugc/14685838847886183596/2F910C564507478E736E783C2B01011BF710E3D0/"},
-
-
-
-
-
-
-        {name = "The Noxious Battery",url = "https://steamusercontent-a.akamaihd.net/ugc/16419302166144247/F28FED589189A2A0EFFF6586F9A83E34840FC439/"},
-
-        {name = "Black Creek Pirates",url = "https://steamusercontent-a.akamaihd.net/ugc/1728793291754407173/8AE59004E86A18683681D2677C685D8C84B00E78/"},
-        {name = "Workshop Marquise",url = "https://steamusercontent-a.akamaihd.net/ugc/1728793291754408441/8EB77D6898CC9B9787C1C07870405CFAE0101509/"},
-        {name = "Spinners of Mercy",url = "https://steamusercontent-a.akamaihd.net/ugc/1728793291754416260/AE57D54645432C8981422F9051666710651D0A7B/"},
-        {name = "Arachnid Association",url = "https://steamusercontent-a.akamaihd.net/ugc/1728793291754417443/B754FCCED4E254960BE764B064689FC9A5DC63BA/"},
-        {name = "Arachnid Association II",url = "https://steamusercontent-a.akamaihd.net/ugc/1728793635526446511/9AE39070D94704577D502A7272E2C2BBA280EEB0/"},
-        {name = "Necropossums Cabal",url = "https://steamusercontent-a.akamaihd.net/ugc/1728793291754421552/0ECC6133A89142CFD3BB9C8DCE77DD80B42DAEFF/"},
-
-        {name = "United Dove Corps",url = "https://steamusercontent-a.akamaihd.net/ugc/1728793291754429271/C57C13B0F3F728DD0D45B09F7FB280173116DEDD/"},
-        {name = "United Dove Corps II",url = "https://steamusercontent-a.akamaihd.net/ugc/1760320725210985400/313DDA3DC787AD1250E67BEB6D15C9CC521F0CA2/"},
-
-        {name = "The Law of Slug",url = "https://steamusercontent-a.akamaihd.net/ugc/1728793269130778170/778A62D63760B4120D313DC353057CA33D462093/"},
-        {name = "Grouch",url = "https://steamusercontent-a.akamaihd.net/ugc/1728793269130982247/6DA4C7DB07CDE7A8816778BC17EB204D82525DBD/"},
-        {name = "Bone Patrol",url = "https://steamusercontent-a.akamaihd.net/ugc/1728793269130783070/891450842D245D61990A8B72A20DE9845CE8BF28/"},
-        {name = "The Winged Menace",url = "https://steamusercontent-a.akamaihd.net/ugc/1728793269130772512/5224E0C4368F481102D897EEBF414FA3C2D45028/"},
-        {name = "Croakers Coven",url = "https://steamusercontent-a.akamaihd.net/ugc/1728793269130781664/CFA0D3E4F26C6801C757C3353FE5DC5A41DC3464/"},
-        {name = "Old Man Tinker",url = "https://steamusercontent-a.akamaihd.net/ugc/1728793269130777020/80BF4930BB27FA1E2A7A239C0A7974063F5C2525/"},
-
-
-
-        {name = "Dawn of the Marquistadors",url = "https://steamusercontent-a.akamaihd.net/ugc/1696154224422718057/A8AAC9571CC9982B09392B55E9E751BE319BEA8B/"},
-        {name = "Eyrie's End",url = "https://steamusercontent-a.akamaihd.net/ugc/1696154224422738170/CF032C0C50839D92BE2F0A4A2FFACB24C5C3F005/"},
-
-        {name = "Advanced Setup",url = "https://steamusercontent-a.akamaihd.net/ugc/1833522185814719458/237945A7E3C9DE1967AE096BD09BE1F7829476C0/"},
-        {name = "Law of Root",url = "https://steamusercontent-a.akamaihd.net/ugc/1725416402719828856/442D99DF43D27564672F46E7B94389838E77EBB7/"},
-        {name = "Hirelings",url = "https://steamusercontent-a.akamaihd.net/ugc/1862809948809300312/E3C3019162AAD66652E8C4AB388D47FE777E5A9E/"},
-        {name = "Landmarks",url = "https://steamusercontent-a.akamaihd.net/ugc/12936154875885790386/85439BAAE5C809A82FAF83A96E5232DFF4152DD0/"},
-        {name = "Faction Select",url = "https://steamusercontent-a.akamaihd.net/ugc/1858304668138699983/C44EA2A82303E48DE0BF8014D328132B2254D498/"},
-
-        {name = "Battle Mat",url = "https://steamusercontent-a.akamaihd.net/ugc/1728793367872326632/BBBD16CCB2233145C130F362BD4772B701C7DF2D/"},
-        {name = "Koffin Keeper",url = "https://steamusercontent-a.akamaihd.net/ugc/1728793367872328873/9643C19226CC90278C43552680153DDF15418A5A/"},
-        {name = "Lizard Wizard",url = "https://steamusercontent-a.akamaihd.net/ugc/1728793367872331088/3CE6C8D9633EBD9DF25142BA43A97E9B35F01AE4/"},
-        {name = "Mole Monger",url="https://steamusercontent-a.akamaihd.net/ugc/1728793367872336052/05940C3730A58F0B71A020D512486BB890F45550/"},
-        {name = "Faction Selector Tool",url="https://steamusercontent-a.akamaihd.net/ugc/16420027251539310/A450741E43546370C6509D413D2CA3F1DABCBFAC/"},
-        {name = "Mini-Mood Manager",url="https://steamusercontent-a.akamaihd.net/ugc/1782839567653163566/583C3FE604C4B4E943BD914071325274C515E9D8/"},
-        {name = "Bat Bungler",url="https://steamusercontent-a.akamaihd.net/ugc/14651271115865573647/F4976C56FFA40862183EC055ED9F908FA96DC2B3/"},
-
-        {name = "Items",url="https://steamusercontent-a.akamaihd.net/ugc/12996382395453116197/45486599501A1D46FA13087CA986ED5521F7835C/"},
-
-
-
-
-
-        {name = "Autumn Map",url = "https://steamusercontent-a.akamaihd.net/ugc/9338841708247799860/688C6CB9F5A34B2A2B067C6DA493AD653B7D9C6A/"},
-        {name = "Winter Map",url = "https://steamusercontent-a.akamaihd.net/ugc/12863190738702993416/F9C676622A48D6E15BB3AE235E26CE7BC8D11283/"},
-        {name = "Lake Map",url = "https://steamusercontent-a.akamaihd.net/ugc/11224158918879846636/C034E1855CED11FD28D76E3020D629478FABD195/"},
-        {name = "Mountain Map",url = "https://steamusercontent-a.akamaihd.net/ugc/17146621840035729417/55256EFBD832F89B16ADAF98A382D4BF09162487/"},
-        {name = "Marsh Map",url = "https://steamusercontent-a.akamaihd.net/ugc/12189840401890527004/1A5500DF801E01874A28C059E04D049043948426/"},
-
-        {name = "Summer Map",url = "https://steamusercontent-a.akamaihd.net/ugc/1696154224423110603/C3BC80DD5A0F72966665CAC14BECEEED1B02A692/"},
-
-        {name = "Gorge Map",url = "https://steamusercontent-a.akamaihd.net/ugc/17163206417596942920/65DEC204EF54C27F6BAFE8202D3AE63F73D28DD3/"},
-        
-        {name = "Deep Woods Map",url = "https://steamusercontent-a.akamaihd.net/ugc/1728793291755429411/8C1C77B62B18F620F24053812DC4B32DAE8FD86D/"},
-        {name = "Wastelands Map",url = "https://steamusercontent-a.akamaihd.net/ugc/1728793291755559172/F8B13B88C817D4BC1C4262DB09E109F84484148A/"},
-        {name = "Narrows and Islets Map", url = "https://steamusercontent-a.akamaihd.net/ugc/1728793291755465538/44001F9D0FA1F134FE63DE2720B367CF00F17D24/"},
-        {name = "Tropics Map", url = "https://steamusercontent-a.akamaihd.net/ugc/1782840088903024368/D45A2DD6DA43C27CAA47C56305C8E1B0A053F881/"},
-
-        {name = "Blighted Grove Map",url = "https://steamusercontent-a.akamaihd.net/ugc/16430283484922818/2C537178499FF02869872FC4CEE2493C089026E8/"},
-
-        {name = "Standard Deck",url = "https://steamusercontent-a.akamaihd.net/ugc/1791848789393178780/9438FC204F346D081D3E66A95BBEAC918288004A/"},
-        {name = "Exiles and Partisans Deck",url = "https://steamusercontent-a.akamaihd.net/ugc/1791848789393180099/504416827060BE54A0038F2C9BCF5D5A9475367F/"},
-        {name = "Squires and Disciples Deck",url = "https://steamusercontent-a.akamaihd.net/ugc/16423108253239612/4B2CC3EBFD87C25AD92E61110CF80A5C0E461BD6/"},
-        {name = "Dark Deck",url = "https://steamusercontent-a.akamaihd.net/ugc/1759199733286355061/7CC669574FB8C2836047540B51419475D35EA270/"},
-
-
-
-        {name = "Tools", url = "https://steamusercontent-a.akamaihd.net/ugc/1725416402721070945/3B57F7CCBEDB396CEB70481769051D7CD491CAFB/"},
-
-
-
-
-
-
-
-
-
-        {name = "Root Logo", url="https://steamusercontent-a.akamaihd.net/ugc/1859433104053130905/247FAE492208FF3BEFACE423A31B8D7644BA7B19/"},
-        {name = "Credits",url="https://steamusercontent-a.akamaihd.net/ugc/1728793367872500988/79BC1C2E8411DCAFADF7C9B7D094F2273CC38E87/"},
-
-        
-        {name = "Ehss and Slug Info",url = "https://steamusercontent-a.akamaihd.net/ugc/1782839103935392102/0927F44D64B56538A6E2A028FF30126D6652702C/"},
-        {name = "JustinInExile Info",url = "https://steamusercontent-a.akamaihd.net/ugc/1728793635528179522/0F18B9473BA94C17D367FD9D79F35A0EC4D9C32E/"},
-        {name = "Nevakanezah Info",url="https://steamusercontent-a.akamaihd.net/ugc/1728793799439302485/F46D00FF0354D5F24AFCFB7FFFAC2EA4DDA28A11/"},
-        {name = "Nevakanezah and Slug Info", url= "https://steamusercontent-a.akamaihd.net/ugc/1704036430908662468/83E53F32BC1C2149747AF4C5B35EDF2B1F5F4717/"},
-
-
-
-
-
-
-
-
-        {name = "Official Content Info",url = "https://steamusercontent-a.akamaihd.net/ugc/1725416136412842797/8C16959C043FF934C5D88C583AD957EE85D4B7FE/"},
-        {name = "Blank Info",url = "https://steamusercontent-a.akamaihd.net/ugc/1728793635526111266/638962CD65D3760A1FD61D0AA78EE4C496C5487E/"},
-
-
-
-
-
-        {name = "Lost City", url="https://steamusercontent-a.akamaihd.net/ugc/1859433736239172517/D920C1D6AF1EB2D20AC4C645BA54FA5603ACB0C6/"},
-        {name = "Mousehold", url="https://steamusercontent-a.akamaihd.net/ugc/11208216119893423521/6899825B194B4AE1C272FD70C8A67292943B3E06/"},
-        {name = "Foxburrow", url="https://steamusercontent-a.akamaihd.net/ugc/14325117635732818978/AB011F3096FD8FDCD48FC9589DCDE8EF30A76560/"},
-        {name = "Rabbit-Town", url = "https://steamusercontent-a.akamaihd.net/ugc/13209270657155809146/E83807902465C87971D45F55BE9FEF59ABA98312/"},
-
-
-
-
-
-
-
-        
-        
-
-
-
-
-
-
-        {name = "Xmark",url="https://steamusercontent-a.akamaihd.net/ugc/1809859531500279761/E8108BE85DEBE1F569D9FDF951FA0D2DEA769CB8/"},
-
-
-
-
-
-
-
-
-
-
-
-        -- Tournament Assets
-
-
-
-        {name = "Warriors Wake",url="https://steamusercontent-a.akamaihd.net/ugc/1786233211086912182/563B6D9C9AFC31863D36B443728319131A2B4E03/"},
-        {name = "Woodland Revolution", url="https://steamusercontent-a.akamaihd.net/ugc/1833522185818215151/BD81EFECC6902E60CAFE69E4D0097FDE9B1C86EB/"},
-
-
-        {name = "Black Creek Pirates II",url="https://steamusercontent-a.akamaihd.net/ugc/1874056202036022996/426F024995C896F8DFB53D5F51BA8100A213AB64/"},
-
-        {name = "Mob Lobber",url="https://steamusercontent-a.akamaihd.net/ugc/1871806044359108580/ED91771BFC667788679555DC9F9E7E175E5A2346/"},
-        {name = "Supply Knight",url="https://steamusercontent-a.akamaihd.net/ugc/16420027239829921/595B9928F56465239300E6A54C4A27E53F6E04F5/"},
-
-        {name = "Urban Map", url="https://steamusercontent-a.akamaihd.net/ugc/1856049403360886234/7DACC2ADA249351AA203BD55EEABE021F13D7AB5/"},
-
-
-
-
-
-
-        -- New Fan Factions // 11/11/2024
-
-
-
-        {name = "Host of Light",url = "https://steamusercontent-a.akamaihd.net/ugc/16420027245496603/0CEAE160AA06FE2B5EBF9C9586CDD385368F0A21/"},
-
-
-
-
-
-    }
-
-    _G['Roster'] = {}
-    _G['DraftedFactions'] = {"","","","","",""}
-    _G['TurnOrder'] = {}
-    _G['ColorsTaken'] = {}
-    vagabondChosen = false
-    -- THE SIX-COLOUR LITERAL IS GONE. It sat here assigning a turn order on every single load, after
-    -- the seat record had already been restored and published a line above -- so a resumed game
-    -- briefly ran an order that contradicted its own record. It is also the line the commit that
-    -- first switched the turn system on identified as the reason nothing worked: Turns.enable was
-    -- never assigned anywhere, so this was the only Turns statement in the file and it did nothing
-    -- but overwrite. rttEnableTurns owns the order now, and it derives it from the seats.
-
-
-    -- RTT m640: onLoad setCustomAssets removed (cold-load blank fix). The saved
-    -- CustomUIAssets carries only the icons referenced by the retained setup UI, so the
-    -- setup UI renders from them directly; this frame-100 table-replace fired before
-    -- the Steam assets finished downloading on a cold cache and blanked the buttons
-    -- with no re-render (only a 2nd/warm load recovered).
-
-  end
 
   -- and from here on the map stays locked, whatever anybody does to it
   pcall(function() Wait.time(rttHoldMapLocked, RTT_MAP_LOCK_SECS, -1) end)
@@ -399,53 +161,11 @@ end
 
 local lastSuccess = 10
 
-local draftBotNames = {"draftCatBot","draftBirdBot","draftWABot","draftVagaBot","draftLizBot","draftOtterBot","draftMoleBot","draftCrowBot"}
-local draftBotDefaultColor = "#DDDDFF"
 
-local draftBotColors = {}
-draftBotColors["draftCatBot"] = "#d77435"
-draftBotColors["draftBirdBot"] = "#4776b6"
-draftBotColors["draftWABot"] = "#6bb659"
-draftBotColors["draftVagaBot"] = "#808080"
-draftBotColors["draftLizBot"] = "#DFD835"
-draftBotColors["draftOtterBot"] = "#54ABA6"
-draftBotColors["draftMoleBot"] = "#DBB89B"
-draftBotColors["draftCrowBot"] = "#512870"
-
-local inactiveLandmarkColor = "#222222"
 local activeLandmarkColor = "#DDDDDD"
-local landmarkNames = {"draftLegendaryForge","draftTheFerry","draftLostCity","draftTheTower","draftBlackMarket","draftElderTreetop","draftFoxburrow","draftRabbit-Town","draftMousehold"}
-_G['DraftedLandmarks'] = {}
-
-local draftedFactions = {}
-local vagabondCards = {}
-local overallPlayerCount
-local draftedHirelings = {}
-
-local hirelingsSelected = false
-
-local draftCardOptions = {}
-
-local selectedHirelings = {}
-
-local redTaken = false
-
-function startingReset()
-  self.reload()
-end
 
 
 _G['BotRoster'] = {}
-
-
-
-
-
-
-
-
-
-
 
 
 local handScale = {20,6,4}
@@ -453,255 +173,29 @@ local handRotations = {{0,0,0},{0,180,0}}
 local handPositions = {{52.00,14.62,-64.00},{0.00,14.62,-64.00},{-52.00,14.62,-64.00},{-52.00,14.62,64.00},{0.00,14.62,64.00},{52.00,14.62,64.00}}
 
 
-
-
 local setupColors = {"Red","Yellow","Orange","Teal","Green","Brown"}
-
-
-
-
-
-
-
-
-
-
-local priorityClearingMarkerLocations = {
-  {-- Autumn
-    {-23.02, 11.70, 17.09},{21.78, 11.63, 11.88},{15.39, 11.63, -14.30},{-22.06, 11.69, -15.88},{1.91, 11.66, 21.41},{20.49, 11.63, -4.76},
-    {1.18, 11.65, -15.25},{-6.23, 11.66, -14.21},{-23.95, 11.69, 5.44},{-1.48, 11.67, 12.02},{3.65, 11.66, 1.30},{-9.18, 11.67, 1.52}
-  },
-  {-- Winter
-    {-21.79, 11.72, 18.71},{21.23, 11.64, 15.45},{16.46, 11.63, -13.11},{-22.44, 11.69, -12.69},{-6.23, 11.67, 19.64},{4.84, 11.66, 16.07},
-    {24.20, 11.63, -4.37},{1.12, 11.65, -10.71},{-6.55, 11.66, -13.24},{-19.97, 11.69, 0.16},{-7.23, 11.67, 4.44},{8.84, 11.65, -0.09}
-  },
-  {-- Lake
-    {18.20, 11.63, -13.44},{-18.33, 11.69, 18.58},{-23.42, 11.69, -14.65},{23.84, 11.63, 9.19},{22.98, 11.63, -1.33},{12.14, 11.65, 15.14},
-    {-1.57, 11.67, 21.56},{-22.90, 11.69, 5.10},{-6.04, 11.66, -16.63},{-11.59, 11.68, 10.20},{11.31, 11.64, 2.68},{-11.31, 11.67, -7.41}
-  },
-  { -- Mountain
-    {-19.56, 11.69, 19.37},{20.22, 11.64, 15.43},{21.28, 11.63, -11.86},{-20.33, 11.68, -16.71},{4.28, 11.66, 18.60},{23.77, 11.63, -0.81},
-    {0.38, 11.65, -14.64},{-22.93, 11.69, 0.09},{-13.78, 11.68, 10.17},{1.91, 11.66, 7.39},{9.67, 11.64, -7.80},{-10.84, 11.67, -3.57},
-  },
-  { -- Gorge -- nitrorev helped
-    {-21.19, 11.72, 17.05},{21.12, 11.64, 17.43},{15.24, 11.63, -17.04},{-15.53, 11.68, -14.91},
-    {4.14, 11.66, 18.88},{16.74, 11.64, 8.59},{-3.78, 11.66, -12.57},{-17.83, 11.68, -2.40},
-    {22.26, 11.63, -4.82},{-18.71, 11.69, 5.49},{0.32, 11.66, 11.18},{-0.60, 11.66, -3.02}
-  },
-  { -- Treasure Island -- has 13 clearings
-    {-20.73, 11.69, 16.97},{23.46, 11.63, 13.58},{21.41, 11.63, -15.83},{-22.22, 11.69, -15.64},{8.05, 11.65, 14.15},{23.05, 11.63, 3.28},
-    {0.80, 11.65, -18.52},{-21.82, 11.69, -2.32},{-3.88, 11.67, 20.09},{-7.16, 11.67, 6.62},{-2.28, 11.66, -8.29},{14.39, 11.64, -5.48},
-    {-2.57, 11.66, 2.24}
-  },
-  { -- Deep Woods -- special setup
-
-  },
-  { -- Wastelands
-    {15.55, 11.71, -16.84},{-17.72, 11.70, 13.97},{-18.21, 11.69, -13.34},{20.51, 11.72, 12.30},{1.77, 11.71, 21.80},{-9.76, 11.71, 21.58},
-    {-24.42, 11.69, -6.27},{3.66, 11.71, -13.43},{24.18, 11.71, -4.04},{-4.87, 11.71, 9.32},{-6.86, 11.70, -5.23},{6.06, 11.71, -0.59}
-  },
-  { -- Australia -- nitrorev helped
-    {-19.41, 11.69, 6.84},{21.01, 11.63, -3.45},{-19.85, 11.69, -1.84},{18.45, 11.64, 5.63},{-20.39, 11.69, -9.23},{17.20, 11.64, 14.11},
-    {13.24, 11.64, -14.79},{-9.45, 11.68, 12.00},{7.05, 11.65, 11.47},{1.40, 11.66, -3.00},{-3.23, 11.66, -3.11},{-3.27, 11.67, 12.71}
-  },
-  { -- Narrows & Islets -- 15 clearings!
-    {8.37, 11.65, 17.96},{-19.48, 11.68, -14.18},{-6.32, 11.67, 16.78},{12.50, 11.64, -9.50},{14.76, 11.64, 10.43},{-1.27, 11.65, -7.61},
-    {-9.27, 11.66, -12.39},{-17.30, 11.68, -5.89},{0.54, 11.66, 11.46},{5.60, 11.65, -1.12},{-11.39, 11.67, -5.71},{-11.05, 11.67, 2.85},
-    {-2.94, 11.66, -1.54},{4.41, 11.65, 13.19},{-5.48, 11.67, 8.62}
-
-  },
-  { -- Tunnel Unraveled -- Has its own clearings
-
-  },
-  { -- Tropics
-    {-12.57, 11.68, 16.57},{16.40, 11.64, 13.49},{8.22, 11.64, -15.62},{-18.48, 11.68, -7.11},{-9.84, 11.67, 8.31},{10.55, 11.65, 4.19},
-    {6.32, 11.65, -7.26},{-9.39, 11.67, -14.59},{-18.40, 11.69, 7.53},{2.92, 11.66, 13.49},{12.32, 11.64, -6.28},{-2.83, 11.66, -4.92}
-  },
-  {-- Summer
-    {-23.02, 11.70, 17.09},{21.78, 11.63, 11.88},{15.39, 11.63, -14.30},{-22.06, 11.69, -15.88},{1.91, 11.66, 21.41},{20.49, 11.63, -4.76},
-    {1.18, 11.65, -15.25},{-6.23, 11.66, -14.21},{-23.95, 11.69, 5.44},{-1.48, 11.67, 12.02},{3.65, 11.66, 1.30},{-9.18, 11.67, 1.52}
-  },
-  { -- Lost Woodland -- nitrorev helped
-    {-18.73, 11.66, 22.07},{20.18, 11.66, 24.20},{21.91, 11.66, -13.88},{-22.86, 11.66, -15.13},{-10.87, 11.66, 22.48},{23.20, 11.66, 12.76},
-    {-6.59, 11.66, -14.61},{-20.50, 11.66, 3.59},{8.08, 11.66, 23.68},{20.66, 11.66, -5.97},{2.85, 11.66, -9.86},{-11.13, 11.66, -1.15},
-    {-15.54, 11.66, 14.22},{10.37, 11.66, 13.15},{0.67, 11.72, 7.72},{5.52, 11.66, 0.32}
-
-  },
-  { -- Legends -- nitrorev helped
-    {-23.37, 11.68, 17.65},{23.42, 11.62, 18.74},{24.29, 11.63, -16.28},{-24.20, 11.69, -14.37},{-0.72, 11.65, 21.60},{22.35, 11.63, 3.31},
-    {2.18, 11.65, -12.39},{-24.10, 11.68, -0.07},{-10.84, 11.67, 11.11},{12.73, 11.64, 13.54},{-10.49, 11.67, -3.31},{5.55, 11.65, 3.25}
-
-  },
-  { -- Urban -- nitrorev helped
-    {-23.16, 11.70, 20.90},{17.57, 11.64, 17.17},{21.81, 11.63, -12.25},{-22.38, 11.69, -12.22},{-2.38, 11.65, 20.93},{23.65, 11.63, 2.01},
-    {2.03, 11.65, -13.48},{-18.39, 11.69, 1.87},{3.66, 11.66, 18.09},{4.72, 11.65, 5.89},{-5.07, 11.67, -3.47},{-4.48, 11.67, 9.57}
-  },
-  {
-    -- River Town
-    {-12.35, 11.67, 6.07},{10.67, 11.64, 4.67},{4.77, 11.65, -2.67},{-4.81, 11.66, -5.80},{-23.08, 11.69, 18.43},{21.03, 11.63, 13.22},
-    {17.30, 11.63, -13.46},{-15.71, 11.67, -16.52},{-22.60, 11.69, 2.51},{-4.33, 11.67, 19.44},{21.55, 11.63, 4.01},{1.87, 11.65, -15.70},
-  },
-  {
-    -- Mountainside
-    {11.89, 11.65, 12.91},{19.23, 11.65, -12.24},{-20.98, 11.65, -17.06},{-23.38, 11.65, 7.99},{18.12, 11.65, 3.66},{0.78, 11.65, -14.47},
-    {-21.42, 11.65, -9.63},{-0.95, 11.65, 20.24},{9.05, 11.65, -1.22},{-8.88, 11.65, -6.11},{-14.76, 11.65, 2.71},{-1.44, 11.65, 10.30}
-  },
-  {-- Tidal Flats
-    {-17.80, 11.69, 14.58},{21.85, 11.63, 13.94},{19.51, 11.63, -13.17},{-19.52, 11.68, -13.35},{4.56, 11.66, 19.03},{19.55, 11.64, 8.45},
-    {21.73, 11.63, -8.47},{-2.69, 11.66, -13.19},{-21.26, 11.69, -1.05},{-19.92, 11.69, 9.45},{0.12, 11.66, 10.57},{10.52, 11.64, -7.05},
-    {-13.67, 11.68, -5.95}
-  },
-  { -- Blighted City
-    {-23.89, 11.70, 18.49},{18.75, 11.64, 19.95},{22.01, 11.63, -12.25},{-24.14, 11.69, -16.12},{0.09, 11.67, 21.55},{24.06, 11.63, 1.95},
-    {-4.29, 11.66, -13.24},{-23.76, 11.69, -0.76},{-13.81, 11.68, 10.17},{9.65, 11.65, 12.28},{9.96, 11.64, -3.87},{-14.57, 11.68, -6.13},
-    {-0.86, 11.66, -3.42}
-  },
-  { -- Taiga
-    {-24.21, 11.69, 15.51},{22.13, 11.63, 14.21},{23.07, 11.62, -11.33},{-24.28, 11.68, -16.33},{-4.52, 11.67, 17.52},{22.23, 11.63, -1.54},
-    {-23.63, 11.69, -1.74},{2.56, 11.65, 4.42},{2.56, 11.65, 4.42},{12.14, 11.64, -6.81},{-7.61, 11.66, -10.07},{-13.79, 11.67, 0.00}
-  },
-  { -- Gloom
-      {-18.77, 11.69, 20.29},{23.43, 11.63, 16.11},{20.47, 11.63, -17.53},{-22.19, 11.69, -16.25},{1.97, 11.66, 19.70},{20.68, 11.63, -2.86},
-      {5.21, 11.65, -18.11},{-7.32, 11.67, -13.22},{-21.59, 11.69, 0.41},{-9.60, 11.68, 9.16},{6.93, 11.65, 7.11},{-1.81, 11.66, -2.45}
-  },
-  { -- Klacar's Volcano Island
-      {13.85, 11.64, -10.14},{-18.52, 11.69, 14.76},{18.12, 11.64, 12.62},{-21.94, 11.69, -8.40},{20.78, 11.63, 4.23},{-19.83, 11.69, 2.82},
-      {5.78, 11.66, 16.35},{-4.74, 11.66, -12.26},{-10.31, 11.68, 9.49},{6.24, 11.65, -13.85},{-6.74, 11.67, -2.26},{2.33, 11.66, 4.59}
-  },
-  { -- SPACEBALLS -- Unknown
-      {63.33, 11.56, -7.57},{65.43, 11.56, -7.57},{67.53, 11.56, -7.57},{63.33, 11.56, -9.40},{65.43, 11.56, -9.40},{67.53, 11.56, -9.40},
-      {63.33, 11.56, -11.23},{65.43, 11.56, -11.23},{67.53, 11.56, -11.23},{63.33, 11.56, -13.07},{65.43, 11.56, -13.07},{67.53, 11.56, -13.07},
-      {63.33, 11.56, -14.90},{65.43, 11.56, -14.90},{67.53, 11.56, -14.90}
-  },
-  { -- INFERNO -- Unknown
-      {63.33, 11.56, -7.57},{65.43, 11.56, -7.57},{67.53, 11.56, -7.57},{63.33, 11.56, -9.40},{65.43, 11.56, -9.40},{67.53, 11.56, -9.40},
-      {63.33, 11.56, -11.23},{65.43, 11.56, -11.23},{67.53, 11.56, -11.23},{63.33, 11.56, -13.07},{65.43, 11.56, -13.07},{67.53, 11.56, -13.07},
-      {63.33, 11.56, -14.90},{65.43, 11.56, -14.90},{67.53, 11.56, -14.90}
-  },
-
-  { -- Blighted Grove
-    {-22.79, 11.70, 17.47},{18.45, 11.64, 19.13},{21.65, 11.65, -17.43},{-22.56, 11.71, -15.57},{1.65, 11.67, 17.19},{21.24, 11.64, -0.31},
-    {0.83, 11.67, -11.95},{-24.19, 11.71, 1.23},{-9.03, 11.68, 3.70},{0.24, 11.67, -2.27}
-  },
-
-  { -- Gorge Original -- nitrorev helped
-    {-14.24, 11.69, 19.60},{20.20, 11.64, 16.05},{12.34, 11.64, -15.74},{-13.41, 11.67, -15.64},{4.86, 11.66, 18.32},{11.38, 11.65, 8.56},
-    {-3.30, 11.66, -13.14},{-17.16, 11.68, -1.17},{15.58, 11.64, -0.91},{-13.05, 11.68, 8.56},{0.47, 11.66, 11.19},{4.80, 11.65, -0.65}
-  },
-  { -- Marsh -- Unknown
-    {63.33, 11.56, -7.57},{65.43, 11.56, -7.57},{67.53, 11.56, -7.57},{63.33, 11.56, -9.40},{65.43, 11.56, -9.40},{67.53, 11.56, -9.40},
-    {63.33, 11.56, -11.23},{65.43, 11.56, -11.23},{67.53, 11.56, -11.23},{63.33, 11.56, -13.07},{65.43, 11.56, -13.07},{67.53, 11.56, -13.07},
-    {63.33, 11.56, -14.90},{65.43, 11.56, -14.90},{67.53, 11.56, -14.90}
-  },
-
-  
-
-
-}
-
-
-
-
-
 
 
 local redFactionTaken = false
 
 
-
-
-
 local vagabondsTaken = 0
 
 
-
-
-local allowedFactions = {false, false, false, false, false, false, false, false, false, false, false, false, false, false}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 function infoEhssAndSlug() setInfo("Ehss and Slug Info") end
-
 
 
 function infoNevakanezah() setInfo("Nevakanezah Info") end
 function infoNevakanezahAndSlug() setInfo("Nevakanezah and Slug Info") end
 
 
-
 function infoOfficialContent() setInfo("Official Content Info") end
-
 
 
 -- infoGinso removed with the Gizmo button (no hover, no button -- it is always on).
 
 
-
-
-
-
-
-_G['WWLineUp'] = {}
-_G['WWSelected'] = {"","","","","","","","","",""} -- 10 slots
-_G['WWTimer'] = 50
-
-
-function table.clone(org)
-  return {table.unpack(org)}
-end
-
-
-
-_G['WWMaps'] = {}
-_G['WWMaps']['Official'] = {'Autumn','Winter','Lake','Mountain'}
-_G['WWMaps']['Homebrew'] = {'Australia','The Deep Woods','Gorge','Legends','Summer','Treasure Island','The Wastelands'}
-_G['WWDecks'] = {}
-_G['WWDecks']['Official'] = {'Standard','Exiles and Partisans'}
-_G['WWDecks']['Homebrew'] = {'Action! Deck Booster','Dark','60 Card Master','Sorcery of the Enchanted Woods','Upstarts and Renegades'}
-_G['WW54Decks'] = {'Standard','Exiles and Partisans','Upstarts and Renegades','Sorcery of the Enchanted Woods'}
-
-
 ----#CHECKPOINT------
-
-
-
-
-
-
-
-
-
-
-_G['WWOfficialRed'] = {"Marquise de Cat", "Eyrie Dynasties", "Underground Duchy", "Lord of the Hundreds", "Keepers in Iron"}
-_G['WWOfficialGray'] = {"Woodland Alliance", "Vagabond","The Lizard Cult", "Riverfolk Company", "Corvid Conspiracy"}
-_G['WWHomebrewRed'] = {"Eyrie\'s End", "Dawn of the Marquistadors", "Workshop Marquise", "Warriors Wake"}
-_G['WWHomebrewGray'] = {"Old Man Tinker", "Necropossums Cabal", "Arachnid Association II", "Croakers Coven", "The Noxious Battery",
-                      "Bone Patrol", "Black Creek Pirates II", "Spinners of Mercy", "The Winged Menace", "Woodland Revolution",
-                      "United Dove Corps II", "Doomed Swindler", "Grouch", "Doomed Berserker", "Doomed Bard", "Doomed Blacksmith",
-                      "Doomed Zealot", "Doomed Barkeep"}
-_G['WWVagabonds'] = {"Adventurer","Arbiter","Harrier","Ranger","Ronin","Scoundrel","Thief","Tinker","Vagrant"}
-_G['WWHomebrewVagabonds'] = {"Grouch","Doomed Blacksmith","Doomed Swindler","Doomed Bard","Doomed Barkeep","Doomed Zealot", "Doomed Berserker"}
-
-_G['WWOfficialRedSubset'] = {}
-_G['WWOfficialGraySubset'] = {}
-_G['WWHomebrewRedSubset'] = {}
-_G['WWHomebrewGraySubset'] = {}
-_G['WWFacSelector'] = 1
-_G['WWVagabondsTaken'] = 0
 
 
 _G["WWAdsetCardFaces"] = {}
@@ -727,52 +221,10 @@ _G["WWAdsetCardFaces"]["Thief"] = "https://steamusercontent-a.akamaihd.net/ugc/7
 _G["WWAdsetCardFaces"]["Tinker"] = "https://steamusercontent-a.akamaihd.net/ugc/792008787920007980/31E9550DB276915F3EA1F27CD387ADCE81657B2E/"
 _G["WWAdsetCardFaces"]["Vagrant"] = "https://steamusercontent-a.akamaihd.net/ugc/792008787919989189/87AA5C7CE4192FBC0900B24EC7DEAB95110CAB94/"
 
-_G["WWAdsetCardFaces"]["Dawn of the Marquistadors"] = "https://steamusercontent-a.akamaihd.net/ugc/1830157803763364012/80D3E3F0DABD7DB5AD02576DE84C8D2C058E7DC9/"
-_G["WWAdsetCardFaces"]["Eyrie's End"] = "https://steamusercontent-a.akamaihd.net/ugc/1799745188602018545/D10E883DA9C8CA1D21A20107E8B3964B7C8FD6AF/"
-_G["WWAdsetCardFaces"]["Workshop Marquise"] = "https://steamusercontent-a.akamaihd.net/ugc/1838030727459786230/1D6F97882D0CA488F872BED20BF15A0E1FFC3CBC/"
-_G["WWAdsetCardFaces"]["Warriors Wake"] = "https://steamusercontent-a.akamaihd.net/ugc/1799745188598338285/D4B919631E3D2814A284A172AC724C8EBD97E638/"
-_G["WWAdsetCardFaces"]["United Dove Corps II"] = "https://steamusercontent-a.akamaihd.net/ugc/1838031283911363609/889CEB9A6EF31B493D306636680400D1A27CDD83/"
-_G["WWAdsetCardFaces"]["The Winged Menace"] = "https://steamusercontent-a.akamaihd.net/ugc/1799745188605443236/5430479DA59241216056C2DA927BA65654FC21AF/"
-_G["WWAdsetCardFaces"]["The Noxious Battery"] = "https://steamusercontent-a.akamaihd.net/ugc/1838031731706445734/09D94A6A0FE64441B673ACD1FC5604D06B13E6E5/"
-_G["WWAdsetCardFaces"]["Doomed Barkeep"] = "https://steamusercontent-a.akamaihd.net/ugc/1799745188602019195/FFEDDC03F92F3690B27BE82B04E6B619A4474692/"
-_G["WWAdsetCardFaces"]["Doomed Berserker"] = "https://steamusercontent-a.akamaihd.net/ugc/1799745188602019195/FFEDDC03F92F3690B27BE82B04E6B619A4474692/"
-_G["WWAdsetCardFaces"]["Arachnid Association II"] = "https://steamusercontent-a.akamaihd.net/ugc/1838030916025840794/8B1AFD7C2356027B4A7DB11275FFDBB26F92871B/"
-_G["WWAdsetCardFaces"]["Spinners of Mercy"] = "https://steamusercontent-a.akamaihd.net/ugc/1867301389180149376/CA21C6BD3BD6BDDFC59E2FAB811A40EB16BC36F2/"
-_G["WWAdsetCardFaces"]["Doomed Bard"] = "https://steamusercontent-a.akamaihd.net/ugc/1799745188602019195/FFEDDC03F92F3690B27BE82B04E6B619A4474692/"
-_G["WWAdsetCardFaces"]["Croakers Coven"] = "https://steamusercontent-a.akamaihd.net/ugc/1799745188605515942/3A871BCEA16174042234C178DEABD3B3F6BD0315/"
-_G["WWAdsetCardFaces"]["Doomed Blacksmith"] = "https://steamusercontent-a.akamaihd.net/ugc/1799745188602019195/FFEDDC03F92F3690B27BE82B04E6B619A4474692/"
-_G["WWAdsetCardFaces"]["Necropossums Cabal"] = "https://steamusercontent-a.akamaihd.net/ugc/1838030916025950391/20D12721D649E0FB360DB443E290E6CB62768538/"
-_G["WWAdsetCardFaces"]["Bone Patrol"] = "https://steamusercontent-a.akamaihd.net/ugc/1799745188604059656/45989E8388A73FB1BFC913EE09B77761BB00E702/"
-_G["WWAdsetCardFaces"]["Woodland Revolution"] = "https://steamusercontent-a.akamaihd.net/ugc/1838030916025497145/5FEF49903F35C2B7DE82ABCAC195434C19F64C73/"
-_G["WWAdsetCardFaces"]["Grouch"] = "https://steamusercontent-a.akamaihd.net/ugc/1835787942529722117/BA5DC63CB14B76FE0B786AC2646C848A9A252BFD/"
-_G["WWAdsetCardFaces"]["Black Creek Pirates II"] = "https://steamusercontent-a.akamaihd.net/ugc/1829027562284717626/0B768C5CCE87116FB5C13A2CE0314A04C099C135/"
-_G["WWAdsetCardFaces"]["Old Man Tinker"] = "https://steamusercontent-a.akamaihd.net/ugc/1871808701914097125/A1B303EAF2911FD003482BB2D511D2FBB4DCB403/"
-_G["WWAdsetCardFaces"]["Doomed Zealot"] = "https://steamusercontent-a.akamaihd.net/ugc/1799745188602019195/FFEDDC03F92F3690B27BE82B04E6B619A4474692/"
-_G["WWAdsetCardFaces"]["Doomed Swindler"] = "https://steamusercontent-a.akamaihd.net/ugc/1799745188602019195/FFEDDC03F92F3690B27BE82B04E6B619A4474692/"
-
-_G["WWHomebrewVagabondFaces"] = {}
-_G["WWHomebrewVagabondFaces"]["Doomed Swindler"] = "https://steamusercontent-a.akamaihd.net/ugc/1697277908217697184/3797D6BBB63EBA15DB63AE6D6F15111A311D0F56/"
-_G["WWHomebrewVagabondFaces"]["Doomed Zealot"] = "https://steamusercontent-a.akamaihd.net/ugc/1756947110726833658/F7591792EEC70DAA65F0202FC769E492EB014E53/"
-_G["WWHomebrewVagabondFaces"]["Doomed Blacksmith"] = "https://steamusercontent-a.akamaihd.net/ugc/1755820943818624505/791BAE685873E062B8EB8359006BD90230DDEA9C/"
-_G["WWHomebrewVagabondFaces"]["Doomed Berserker"] = "https://steamusercontent-a.akamaihd.net/ugc/1755820943820932760/09358C3415355BCD25C0B5204E48850ED250A451/"
-_G["WWHomebrewVagabondFaces"]["Doomed Bard"] = "https://steamusercontent-a.akamaihd.net/ugc/1756947477064412199/F552281EEEB312E45FE5657766CA79853DC64886/"
-_G["WWHomebrewVagabondFaces"]["Doomed Barkeep"] = "https://steamusercontent-a.akamaihd.net/ugc/1755820943820933573/EC1111A451825CAC4FF7942271ABA6D213EBEBAC/"
-_G["WWHomebrewVagabondFaces"]["Grouch"] = "https://steamusercontent-a.akamaihd.net/ugc/1758065039320526659/10CFC98366787FBC60F26C949F487B7D29852822/"
-
-
-
 
 _G['PlayerColors'] = {"#E53F36","#F5E850","#F68B57","#64BBBD","#6DBA5A","#A07641"}
 _G['WWRosterSelector'] = 0
 _G['WWPlayerSetupMode'] = false
-
-
-
-
-
-
-
-
 
 
 function tableHasElement(table, element)
@@ -783,22 +235,6 @@ function tableHasElement(table, element)
   end
   return false
 end
-
-function isDoomedVagabond(faction)
-  local dvs = {"Doomed Swindler", "Grouch", "Doomed Berserker", "Doomed Bard", "Doomed Blacksmith", "Doomed Zealot", "Doomed Barkeep"}
-  return tableHasElement(dvs,faction)
-end
-
-
-
-
-
-
-
-
-
-
-
 
 
 local hirelingMarkerLocations = {
@@ -1020,7 +456,6 @@ local forestPatrolLocations = {
   },
 
 
-
 }
 
 local warmSunProphetLocations = {
@@ -1109,7 +544,6 @@ local warmSunProphetLocations = {
   {{0.94, 11.56, 25.19},{0.94, 11.56, 24.51},{5.40, 11.66, 9.08},{-2.05, 11.66, -2.36}},
 
 
-
 }
 
 
@@ -1119,22 +553,12 @@ function dist(o,x,z)
 end
 
 
-
-
-
-
-
-
-
-
-
 function contains(tbl, item)
   for key, value in pairs(tbl) do
       if value == item then return key end
   end
   return false
 end
-
 
 
 -- CLEAR ALL RESETS STATE, NOT JUST OBJECTS. This is base-mod code: it destroys almost everything on
@@ -1194,7 +618,6 @@ function clearAll()
   RTT_MARSH_5P_BUILT = false
 end
 
-redTaken = false
 _G['vagabondAlreadySpawned'] = false
 
 _G['DraftableFactions'] = {"Marquise de Cat","Eyrie Dynasties","Woodland Alliance","Vagabond1",
@@ -1205,22 +628,13 @@ _G['DraftableFactions'] = {"Marquise de Cat","Eyrie Dynasties","Woodland Allianc
                           }
 
 
-
-
 --###############################################
 --###############################################
 --###############################################
 --###############################################
-
-
 
 
 tournamentMapSelected = false
-
-
-
-
-
 
 
 local banFactionNames = {"BanCats","BanBirds","BanGreen","BanVagabond1","BanVagabond2","BanLizards","BanOtters","BanMoles","BanCrows","BanRats","BanBadgers","BanBats","BanFrogs","BanKnaves"}
@@ -1228,13 +642,6 @@ local banFactionNames = {"BanCats","BanBirds","BanGreen","BanVagabond1","BanVaga
 local banFactionColors = {"#d77435","#4776b6","#6bb659","#ffffff","#ffffff",
 "#e8e138","#5cbab4","#e4c0a2","#542c75","#f3461b",
 "#acadb1","#964E30","#B09804","#808080"}
-
-
-
-
-
-
-
 
 
 function getPosition(color,playerCount)
@@ -1280,14 +687,10 @@ function flipSide(color,playerCount)
 end
 
 
-
 function makeVagabondLayout(i,faction,color)
   spawnDraftFaction(i,faction,color)
   spawnDraftFaction(i,"Vagabond Dice and VP",color)
 end
-
-
-
 
 
 -- ---- WHERE THINGS GO: A CONSTANT, NEVER A QUESTION ------------------------------------------
@@ -1372,7 +775,6 @@ function spawnDraftFaction(i,faction,color)
     end
 
 
-
       if o.hasTag("Shuffleable") then o.shuffle() o.shuffle() end
   end
   for _,v in ipairs(objects) do
@@ -1391,16 +793,6 @@ function spawnDraftFaction(i,faction,color)
       })
   end
 end
-
-
-
-
-
-
-
-
-
-
 
 
 function allButtonsOff()
@@ -1561,53 +953,9 @@ function setup()
 end
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 function makeFactionSelector()
   spawnManualFactionSelector({54.81,11.56,0}, {0,90,0}, false)
 end
-
-
-
-
-
-
-
-
-_G['TurnOrder'] = {}
-
-
-
-local vagabondChosen = false
-
-
-
-
-
-
-
-
 
 
 -- The board's own X button. It used to call Global.call('ImGone', {self}) first -- a base-mod hook
@@ -1630,14 +978,6 @@ function clearInfo()
   self.UI.setAttribute("info","image","Blank Info")
 end
 
-function isDoomedVagabond(name)
-  if (name == "Doomed Berserker" or name == "Doomed Barkeep" or name == "Doomed Blacksmith" or name == "Doomed Swindler" or
-  name == "Doomed Bard" or name == "Doomed Zealot") then
-    return true
-  else
-    return false
-  end
-end
 
 function isVagabond(id)
   if (id == "Adventurer" or id == "Arbiter" or id == "Harrier" or id == "Ranger" or id == "Ronin" or id == "Scoundrel" or id == "Thief" or id == "Tinker" or id == "Vagrant" or id == "Gladiator" 
@@ -3902,7 +3242,6 @@ function makeFaction(player,value,id,source)
 end
 
 
-
 function distance(p1,p2)
   local xDist = p1[1] - p2[1]
   local yDist = p1[2] - p2[2]
@@ -4059,11 +3398,6 @@ end
 -- REWRITTEN. Maintainer, 2026-09-17, after somebody else pressed Resync while he held cards: "I could
 -- not see the face up of my cards in my hands" -- the cards came back showing their backs to their
 -- owner. Nothing here can repair a hand with cards in it; it is left exactly as it is.
-function rttHandHasCards(color)
-  local n = 0
-  pcall(function() n = #(Player[color].getHandObjects(1) or {}) end)
-  return n > 0
-end
 
 -- DOES THIS COLOUR OWN A HAND AT ALL? Grey (spectators) never does, Black (the Game Master) does not
 -- on this table, and a colour with no hand zone is the one thing every hand call nulls on --
@@ -4317,9 +3651,6 @@ function ends_with(str, ending)
    return ending == "" or str:sub(-#ending) == ending
 end
 
-function starts_with(str, start)
-   return str:sub(1, #start) == start or start == str
-end
 
 -- THE FROGS' CARDS COME THROUGH A DECK CHANGE. Maintainer, 2026-09-22: "if a deck is replaced, it
 -- also gets rid of all frog cards in it (and I'm not sure if those can easily come back without
@@ -4492,9 +3823,6 @@ function makeDeck(player,value,id)
 end
 
 
-
-
-
 function makeMapTool(id)
   local my_rot = self.getRotation()
   local objects = {}
@@ -4528,14 +3856,6 @@ function makeMapTool(id)
   end
 
 end
-
-
-
-
-
-
-
-
 
 
 function makeTool(player,value,id)
@@ -4576,19 +3896,6 @@ function makeTool(player,value,id)
       })
   end
 end
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 function toggleSpecial(id)
@@ -4701,21 +4008,6 @@ function makeSpecialWithTag(category,name,x,y,z,tag,rotationY)
 end
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 function find_object_by_gm_note(gm_note)
    local objects = {}
    for _, obj in ipairs(getAllObjects()) do
@@ -4725,8 +4017,6 @@ function find_object_by_gm_note(gm_note)
    end
    return objects[1]
 end
-
-
 
 
 -- 9 always-present Marsh clearings: world x, y, z, rotY
@@ -6458,11 +5748,6 @@ function rttPlaceMap(mapId)
   makeMap("", "", mapId)      -- makeMap spawns the battle mat itself now
 end
 
-function rttPlaceDeck(deckId)
-  local id = deckId
-  if #RTT_ORDER <= 2 then id = id .. " 2" end
-  makeDeck("", "", id)
-end
 
 -- runs on the COORDINATOR (relayed from a selector)
 -- THE MAP/DECK PICK IS GONE, not merely switched off. rttBeginPick set RTT_PICK_STAGE = 0 and the
@@ -7977,11 +7262,6 @@ function rttFactionExtras(faction, cx, cz, flip, isDraft)
 end
 
 
-
-
-
-
-
 -- ---- Marquise de Cat: one warrior in the CENTRE of every clearing -------------------------
 -- The 3 staging warriors + buildings + Keep are baked (m570/m550) so they spawn in place. Here
 -- we only handle the 12 cats on the map: taken STRAIGHT from the Marquise Supply bag onto each
@@ -8968,7 +8248,28 @@ end
 -- right-clicked, so it cannot be unlocked, dragged or deleted by hand. Scripts are unaffected, so
 -- removeMapItems still destroys it on a map change and Clear All still takes it -- both call
 -- destruct(), which does not care.
+-- THE TABLE ITSELF CANNOT BE TOUCHED. The Flex Table Control used to set the nine table pieces
+-- non-interactable in its load hook, and went out of the scene in v1.485; maintainer, the next day:
+-- "in the newest version, the table can be unlocked." interactable is not a saved flag, so it is set
+-- here on the tick's first pass after every load, once, and never by anything else.
+RTT_TABLE_HELD = false
+function rttHoldTable()
+  if RTT_TABLE_HELD then return end
+  local n = 0
+  pcall(function()
+    for _, o in ipairs(getObjectsWithTag("Table Piece") or {}) do
+      pcall(function()
+        if o.getLock() ~= true then o.setLock(true) end
+        if o.interactable ~= false then o.interactable = false end
+      end)
+      n = n + 1
+    end
+  end)
+  if n > 0 then RTT_TABLE_HELD = true end
+end
+
 function rttHoldMapLocked()
+  rttHoldTable()
   -- NOT WHILE A SWEEP IS RUNNING. This ticks every few seconds and forces the map locked and
   -- non-interactable; a resync deliberately unlocks it for two frames and makes it interactable for
   -- the same two, so a tick landing in that window would undo the repair and put the map back before
@@ -9021,7 +8322,6 @@ end
 function rttGetCurrentMap() local _, name = rttMap() return name end
 
 function rttGetMarshExcluded() return RTT_MARSH_EXCLUDED end
-function rttGet5pMarsh() return RTT_5P_MARSH end
 
 function rttBadgerRelics()
   -- THE MAP, OFF THE TABLE (rttMap). The relics go into the map's forests, so no map means no relics
@@ -10031,17 +9331,6 @@ function makeMap(player,value,id,keepBoard)
     end
     step()
   end
-  if id == "The Wastelands Map" or id == "The Deep Woods Map" then
-    makeMapTool("The Law of Slug")
-  end
-
-  if id == "Narrows and Islets Map" then
-    makeMapTool("Narrows and Islets Instructions")
-  end
-
-  if id == "Tropics Map" then
-    makeMapTool("Tropics Instructions")
-  end
 
 
   --local my_rot = self.getRotation()
@@ -10194,16 +9483,6 @@ function shuffleMaps(id)
         ruins[i].removeTag("Dummy")
       end
     end
-  end
-
-  -- Blighted Grove Map Setup
-  if id == "Blighted Grove Map" then
-    local deletables = getObjectsWithTag("BlightedPair" .. tostring(math.random(2)))
-
-    for i = 1, #deletables do
-      deletables[i].destroy()
-    end
-
   end
 
 
@@ -10501,10 +9780,6 @@ function removeTagFromAssets(tag)
 end
 
 
-
-
-
-
 -- (base mod) THE RE-SEED THAT WAS HERE IS GONE. It ran AFTER the seeding above, so it was the one
 -- that actually took effect -- and it discarded the warm-up that guards against adjacent os.time()
 -- seeds. That is the defect behind a Marsh and a seating order repeating across reloads. shuffle()
@@ -10518,11 +9793,6 @@ function shuffle( t )
   end
   return t
 end
-
-
-
-
-
 
 
 -- `keep` spares ONE object, which is how a same-map rebuild leaves the board itself standing while
@@ -10558,9 +9828,6 @@ function removeDeckItems()
       v.destruct()
     end
 end
-
-
-
 
 
 function concat(t1,t2)
@@ -12034,10 +11301,6 @@ function rttIsLaid(o)
 end
 
 -- The presser's colour as an r,g,b table, for whichever mark they used.
-function rttMarkColor(color)
-  local rgb = RTT_PLAYER_RGB[color] or { 1, 1, 1 }
-  return { r = rgb[1], g = rgb[2], b = rgb[3] }
-end
 
 -- NUMPAD 2 LAYS A WARRIOR DOWN AND LIGHTS IT: tipped over, locked, pressed again to stand it back up.
 -- It was two keys for a while -- 2 drew a disc under the piece, 3 outlined it -- and the maintainer

@@ -15575,6 +15575,53 @@ def t_the_table_control_is_gone(src):
     assert rt.eval("rttClearAllTakes(C)") is False, "Clear All would take a control left in an old save"
 
 
+def t_the_table_cannot_be_touched(src):
+    """The nine table pieces are locked and non-interactable after every load, by the board's own tick.
+
+    Maintainer, 2026-09-23, the day after the Flex Table Control left: "in the newest version, the
+    table can be unlocked." That control's load hook used to make the pieces untouchable. Now the
+    map-lock tick does it on its first pass, once per load.
+    """
+    rt = fresh(src)
+    rt.execute("""
+      T = {} for i = 1, 3 do T[i] = MKOBJ('', { i * 50, 1, 0 }, { 'Table Piece' }) T[i].setLock(false) end
+      W = MKOBJ('Cat Warrior', { 5, 1, 5 }, {})
+      RTT_TABLE_HELD = false rttHoldMapLocked()
+    """)
+    for i in (1, 2, 3):
+        assert rt.eval("T[%d].getLock()" % i) is True and rt.eval("T[%d].interactable" % i) is False, "table piece %d can still be touched" % i
+    assert rt.eval("W.interactable ~= false and W.getLock() ~= true"), "the tick touched a warrior"
+    assert rt.eval("RTT_TABLE_HELD") is True, "the tick will do it again every second"
+
+
+def t_no_fan_content_is_left_in_the_build(src):
+    """Nothing of the base mod's homebrew catalogue is left in the board's code or the save.
+
+    Maintainer, 2026-09-23: "remove all the fan content references not used in the mod and in the
+    json. I thought that was done." What was left: a 96-entry UI asset list that was never applied,
+    the Warriors-Wake draft's lists and bot colours, a copy of the priority-marker table, three tool
+    kits nothing spawns, twenty-two homebrew card faces, and the save's Workshop tags "Fans",
+    "Homebrew", "Noir" and friends.
+    """
+    for name in ("Necropossums", "Spinners of Mercy", "Black Creek Pirates", "Dawn of the Marquistadors",
+                 "Doomed Barkeep", "WWHomebrew", "WWMaps", "draftBotColors", "priorityClearingMarkerLocations",
+                 "allowedFactions", "Blighted Grove Map", "Narrows and Islets Map", "The Law of Slug"):
+        assert name not in src, "%r is still in the build" % name
+    assert 'assets = {}\n  if self.getName() != "Faction Board"' not in src, "the never-applied asset list is back"
+    for kit in ("['Clearing Priorities']", "['Clearing Markers']", "['Captain Cards']"):
+        assert kit not in src, "the orphan kit %s is back" % kit
+    dist = json.load(open(os.path.join(REPO, "dist", "Root_Tournament_Edition.json"), encoding="utf-8"))
+    tags = dist.get("Tags") or []
+    for t in ("Fans", "Homebrew", "Noir", "Variants", "Dice", "Lighting"):
+        assert t not in tags, "the save still carries the Workshop tag %r" % t
+    board = next(o for o in dist["ObjectStates"] if o.get("GUID") == "bab7e1")
+    names = [a.get("Name") for a in board.get("CustomUIAssets") or []]
+    used = set(re.findall(r'(?:image|icon)\s*=\s*"([^"]+)"', board.get("XmlUI", "")))
+    runtime = {"ClearAllConfirmArt", "WipeConfirmArt", "WipeConfirmArtWide", "WipeConfirmDeckArt", "WipeConfirmMapArt", "WipeConfirmMapArtWide"}
+    stray = [n for n in names if n not in used and n not in runtime]
+    assert not stray, "UI assets the board never shows: %r" % stray
+
+
 def t_a_resync_re_sends_every_seat_in_turn(src):
     """Resync steps every seated player off their colour, re-places their hand box from the seat while
     nobody owns the colour, and steps them back -- one at a time, after the card pass.
@@ -15964,6 +16011,8 @@ CASES = [
     ("the draft notes the captains dealt", t_the_draft_notes_the_four_captains_dealt),
     ("the export names the discarded captain", t_the_export_names_the_discarded_captain),
     ("the table control is gone",           t_the_table_control_is_gone),
+    ("the table cannot be touched",         t_the_table_cannot_be_touched),
+    ("no fan content is left",               t_no_fan_content_is_left_in_the_build),
     ("numpad 0 keeps a relic's face",      t_numpad_0_keeps_a_relics_face),
     ("the sheet takes the captains it is told", t_the_sheet_takes_the_captains_it_is_told),
     ("a card dropped on the pond turns face up", t_a_card_dropped_on_the_pond_turns_face_up),

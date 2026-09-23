@@ -672,6 +672,24 @@ Where to cut, if it is ever needed, biggest first (none done):
       font needed) and also drops the same file beside the base save. tools/make_logo.py no longer
       writes the thumbnail, so a re-run cannot put the birds back; the logo and icon files keep the
       picture. The README's line on the thumbnail still holds.
+- [x] **"In the newest version, the table can be unlocked."** Maintainer, 2026-09-23, the day after
+      the Flex Table Control left. Its load hook -- spelt `onload`, which TTS does honour -- made the
+      nine table pieces non-interactable, and nothing else did. v1.487: the map-lock tick sets them
+      locked and non-interactable on its first pass after every load (rttHoldTable), once. One case.
+- [x] **"Remove all the fan content references not used in the mod and in the json. I thought that
+      was done."** Maintainer, 2026-09-23. v1.487, out of the board's code: a 96-entry UI asset list
+      (lines 153-389) that was assigned and never applied -- the save's own CustomUIAssets is what
+      clients load, and it was already trimmed; the Warriors-Wake draft's lists (WW*), its bot names
+      and colours, its landmark and hireling draft state, a 130-line copy of the priority-marker
+      table, allowedFactions, twenty-two homebrew card faces and the homebrew vagabond faces, and six
+      functions nothing named (startingReset, rttHandHasCards, starts_with, rttPlaceDeck,
+      rttGet5pMarsh, rttMarkColor). Out of the content: three tool kits nothing spawns (Clearing
+      Priorities, Clearing Markers, Captain Cards, 43 KB). Out of the save: the Workshop tags
+      Miniature Games, Dice, Figurines, Lighting, Rules, Tables, Components, Meeples, Vagabonds,
+      Factions, Collection, Variants, Fans, Homebrew and Noir, and four UI assets no button shows.
+      Kept on purpose: five old names the harness still pins (rttResyncArm, summonLizardBlocker,
+      rttCloneFor, rttGetCurrentMap, rttGizmoWarrior) and the official card faces. A scene change:
+      the base save was replaced by the fresh build, backed up first. One static case.
 - [ ] **"All the clearing markers seemed to be unlocked."** Simber, same game. In the autosave taken
       ten seconds after the win all twelve priority markers are LOCKED, and the map too. Resync's
       lock mode unlocks each object for one frame and locks it again, so nothing stays unlocked by
