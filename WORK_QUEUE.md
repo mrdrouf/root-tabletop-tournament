@@ -666,6 +666,12 @@ Where to cut, if it is ever needed, biggest first (none done):
       sweep still spare one by name for a save that carries it. A SCENE CHANGE: update_saves.py
       patches scripts only, so the base save in the Saves folder was replaced by the fresh build
       (backed up first) -- an old save keeps its button. One static case. Not yet confirmed in TTS.
+- [x] **"Replace the birds in the thumbnail. just black. no AI art just the name."** Maintainer,
+      2026-09-23. v1.486: dist/Root_Tournament_Edition.png is the name plaque alone on black,
+      written by tools/make_thumbnail.py, which cuts the plaque out of assets/icon/logo_1024.png (no
+      font needed) and also drops the same file beside the base save. tools/make_logo.py no longer
+      writes the thumbnail, so a re-run cannot put the birds back; the logo and icon files keep the
+      picture. The README's line on the thumbnail still holds.
 - [ ] **"All the clearing markers seemed to be unlocked."** Simber, same game. In the autosave taken
       ten seconds after the win all twelve priority markers are LOCKED, and the map too. Resync's
       lock mode unlocks each object for one frame and locks it again, so nothing stays unlocked by

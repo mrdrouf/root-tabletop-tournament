@@ -150,13 +150,15 @@ def main():
     # art of the mod." So the same picture lands in all three places it is seen -- the logo, the icon
     # tools/make_icon.py used to write, and the 256px thumbnail Tabletop Simulator shows in the save
     # list. One script writes all of them, so they cannot fall out of step.
+    # ...EXCEPT THE SAVE-LIST THUMBNAIL, since 2026-09-23. Maintainer: "replace the birds in the
+    # thumbnail. just black. no AI art just the name." tools/make_thumbnail.py writes that one: the
+    # plaque alone on black. This script no longer touches it, or a re-run would put the birds back.
     written = []
     for path, img in ((os.path.join(OUTDIR, "logo_1024.png"), canvas),
                       (os.path.join(OUTDIR, "logo_512.png"), at512),
                       (os.path.join(OUTDIR, "logo_256.png"), at256),
                       (os.path.join(OUTDIR, "mod_icon_512.png"), at512),
-                      (os.path.join(OUTDIR, "mod_icon_256.png"), at256),
-                      (THUMB, at256)):
+                      (os.path.join(OUTDIR, "mod_icon_256.png"), at256)):
         img.save(path)
         written.append(os.path.relpath(path, ROOT))
     print("wrote " + ", ".join(written))
