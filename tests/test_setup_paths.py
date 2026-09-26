@@ -15844,6 +15844,71 @@ def t_the_winged_menace_hand_is_built_from_the_seat_not_read_back(src):
         "spawnWingedMenaceExtraHand is called without the seat's hand: %s" % calls)
 
 
+def t_the_bounce_between_piles_waits_less(src):
+    """A card carried between piles waits 0.7s for the sweep, not a full second.
+
+    Maintainer, 2026-09-26: "currently how long does it take for a frog card in the discard to bounce
+    back to the pond? how reactive is it? make the bounce between decks including the lost souls 30%
+    faster."
+
+    ONE TICK SWEEPS EVERYTHING. updateButtons walks the discard, the vulture board, the Lost Souls
+    (the lizard wizard, else the lizard board) and the pond in a single pass on one repeating Wait, so
+    that one interval IS the reaction time of every automatic bounce. A frog card let go on the discard
+    is deliberately not moved by the drop handler -- snapping it onto the pile first would merge it in
+    for the sweep to dig back out -- so it waits for the next tick.
+
+    THE WAITING IS THE ONLY PART THAT WAS OURS. The sweep insists a card has come to REST before it
+    touches it (that requirement is what stopped it snatching cards in mid-air, 2026-09-12 and
+    2026-09-18) and setPositionSmooth has no speed setting, so the settle and the flight cannot be
+    shortened. The interval and the arc's lift pause are the two waits on a bounce, and both come off
+    30%: 1.0s -> 0.7s, and 4 frames -> 3.
+
+    Read out of the BUILD, because the holder's script is embedded in a blueprint and it is the built
+    copy that ships.
+    """
+    rt = fresh(src)
+    holder = rt.eval("""function()
+        for _, cat in pairs(EVERYTHING) do
+          for _, kit in pairs(cat) do
+            for _, v in ipairs(kit['data'] or {}) do
+              if v.json:find('"GUID": "aa1464"', 1, true) then return v.json end
+            end
+          end
+        end
+        return ""
+    end""")()
+    assert holder != "", "the deck holder is not in the build"
+    lua = json.loads(holder)["LuaScript"].replace("\r\n", "\n")
+
+    assert "local SWEEP_S = 0.7" in lua, \
+        "the sweep interval is not 0.7s, so the bounce is not 30% quicker"
+    assert "Wait.time(updateButtons, SWEEP_S, -1)" in lua, \
+        "the repeating sweep does not use SWEEP_S, so the constant is decoration"
+    assert "Wait.time(updateButtons, 1, -1)" not in lua, \
+        "the old one-second sweep is still armed"
+
+    # the arc's lift pause, the only other wait between letting go and arriving
+    i = lua.index("local function sendCardArcTo(")
+    tail = lua[i:i + 1600]
+    assert "end, 3)" in tail, "the arc still pauses 4 frames before the card sets off"
+    assert "end, 4)" not in tail, "the old four-frame lift is still there"
+
+    # ARC_CLEAR_S has to outlast the lift, the flight and one whole sweep interval
+    j = lua.index("local ARC_CLEAR_S = ")
+    clear = float(lua[j + len("local ARC_CLEAR_S = "):].split("\n")[0].strip())
+    assert clear > 0.7, \
+        "the in-flight guard (%ss) no longer outlasts a sweep interval, so the sweep can take a card twice" % clear
+
+    # and the script still parses -- it is edited as an escaped string inside a blueprint
+    probe = lupa.LuaRuntime(unpack_returned_tuples=True)
+    err = ""
+    try:
+        probe.execute("local f = function() " + lua.replace("!=", "~=") + " end")
+    except Exception as exc:
+        err = str(exc)[:160]
+    assert err == "", "the deck holder's script no longer parses: %s" % err
+
+
 CASES = [
     ("manual path drives the turn system",   t_manual_turn_order),
     ("manual path spawns 4 / 5 boards",      t_boards_spawn),
@@ -16119,6 +16184,7 @@ CASES = [
     ("resync parks a stray hand box",       t_resync_parks_a_stray_hand_box),
     ("hand boxes survive any sequence of layouts", t_hand_boxes_survive_any_sequence_of_layouts),
     ("winged menace hand from the seat", t_the_winged_menace_hand_is_built_from_the_seat_not_read_back),
+    ("the bounce between piles waits less", t_the_bounce_between_piles_waits_less),
 ]
 
 
