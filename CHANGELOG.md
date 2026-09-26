@@ -163,3 +163,10 @@ setup board's top right corner, and goes up on every commit.
 - The Knaves rules board carries a snap point on each of the fifteen stash cells, and a captain's two items land on the pair of cells its pick order earns.
 - A seat colour's hand box is either behind its seat or parked at its home on the table edge, never left on another game's seat; a new game, the draft, a manual pick and Resync all enforce it, so no two colours' boxes stand on one seat.
 - Every hand-box move goes through one primitive that lifts the cards out, steps the owner off, writes the box and deals the cards back, so a hand holding cards can no longer leave a box on the wrong seat; Resync leaves hands alone while a setup is seating people.
+
+## 2026-09-26
+- Deck holder: a card bounces between the piles 30% sooner -- the sweep every 0.7s, the lift 3 frames.
+- Battle mat: a roll can no longer stick. It waits for the dice to finish arriving instead of a fixed
+  half second, bounds the wait for them to settle, and carries a watchdog that clears the mat if a
+  roll never finishes. The coroutines and the deprecated Timers are gone.
+- Resync replaces a battle mat that is stuck mid-roll, and takes the frozen dice with it.

@@ -730,6 +730,48 @@ Where to cut, if it is ever needed, biggest first (none done):
 - [ ] **Numpad 0 worked once on a badger, then not on other badgers, which ended up locked.** From
       the NOTES entry; not investigated.
 
+- [x] **Frozen dice on the battle mat, and a bounce that took too long.** v1.492.
+      Zaandaa, 2026-09-26: "there's a known Ultimate bug in the battle mat object ... if mod caching
+      is off, occasionally dice will end up frozen, as if there's a roll in progress ... since there's
+      no way to replace the battle mat in the mod with a button, it's no longer easily fixed the old
+      way." The mat's script keeps one variable, rollInProgress: nil idle, true rolling, false
+      resting. nil and false both lead somewhere -- a click on nil rolls, a click on false cleans up
+      and rolls -- but true was cleared in exactly ONE place, the last step of its monitor coroutine,
+      and the auto-removal timer was armed only AFTER that line. Anything that stopped the coroutine
+      left the mat answering every click with "Roll in progress." for the rest of the session, two
+      locked non-interactable dice standing on it, and the coroutine yielding every frame forever.
+      MOD CACHING OFF IS WHY IT HAPPENS. The dice are Custom_Dice with a Steam texture, re-fetched on
+      every roll with caching off, and the script gave itself a fixed 0.5s head start before rolling
+      them: a die still SPAWNING cannot be rolled, and `die.resting` for one is never true, so
+      `repeat ... until allRest` never ended. clone() was called on that same still-loading die and
+      its result used without a nil check, and both dice went into currentDice only after two calls
+      that can throw -- so a failed roll also left orphan dice the mat did not know about.
+      FIXED IN THE BLUEPRINT: it waits for the dice to finish arriving (spawnWaitMax) rather than a
+      fixed half second, bounds the wait for them to settle (restWaitMax), carries a watchdog that
+      clears the mat if a roll has not finished in rollWatchdog seconds, records each die the instant
+      it exists, spawns the second die instead of cloning it, and reads no die without asking
+      isDestroyed first. Both coroutines and both deprecated Timers are gone, onto Wait.
+      AND RESYNC IS THE CURE FOR ONE ALREADY STUCK (maintainer: "a suggestion is to reload the battle
+      mat with resynch"): rttResyncBattleMat replaces it FROM THE BLUEPRINT -- not reload(), which
+      would bring the old script back with it -- and destroys the frozen dice, sparing the bats' die
+      and the rats' Mob Die. Only when the mat is actually stuck or has dice beside it: a
+      Custom_Assetbundle re-downloads on a respawn.
+      A SAVED TABLE'S EXISTING MAT KEEPS THE OLD SCRIPT until the map is replaced or Resync is
+      pressed -- update_saves.py rewrites the board, and the mat is spawned out of the board.
+      Two cases; the first reproduces the freeze on the shipped script (the harness needed a Timer
+      shim and the dice APIs before it could run the old script at all). Not yet confirmed in TTS.
+- [x] **The bounce between the piles is 30% quicker.** v1.491. Maintainer, 2026-09-26: "currently how
+      long does it take for a frog card in the discard to bounce back to the pond? how reactive is
+      it? make the bounce between decks including the lost souls 30% faster." One tick of
+      updateButtons sweeps the discard, the vulture board, the Lost Souls and the pond, so that
+      interval was the reaction time of every automatic bounce: settle (physics) + up to a second of
+      waiting + the flight, one to two seconds in all. The waiting was the only part that was ours --
+      the sweep must see a card at REST (that is what stopped it snatching cards in mid-air) and
+      setPositionSmooth has no speed setting -- so both waits come off 30%: the sweep 1.0s to 0.7s
+      (SWEEP_S), the arc's lift 4 frames to 3. ARC_CLEAR_S stays at 2.0; its rule is that it outlast
+      one whole sweep interval, and a shorter interval only makes it safer. One case.
+      Not yet confirmed in TTS.
+
 ## NOTES DO NOT TOUCH
 
 there are also some Homeland assets we don't have yet like the Gladiator meeple and the assembly and acclaim tokens (both sides each) are outdated

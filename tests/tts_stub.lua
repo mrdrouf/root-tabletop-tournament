@@ -102,6 +102,38 @@ function FLUSH_UNTIL(secs, rounds)
   end
 end
 
+-- TTS's Timer class, deprecated in favour of Wait but still real, and built here on top of it.
+--
+-- WITHOUT IT A SCRIPT THAT USES ONE CANNOT BE DRIVEN AT ALL, and that is worse than not testing it:
+-- Timer.destroy on a nil global ends the calling function, which from the outside looks exactly like
+-- the bug under test. The battle mat's old script failed the frozen-dice case for that reason rather
+-- than for the freeze, so the case proved nothing until this existed. Two blueprint scripts reach
+-- for it: the deck holder's delayed shuffle, and the mat before it was rewritten onto Wait.
+--
+-- An identifier that is already taken is REFUSED, as TTS refuses it -- which is why every caller
+-- destroys before it creates.
+Timer = {}
+local TIMER_BY_ID = {}
+function Timer.create(p)
+  p = p or {}
+  local id = p.identifier
+  if id ~= nil and TIMER_BY_ID[id] ~= nil then return false end
+  local owner, fname, args = p.function_owner, p.function_name, p.parameters
+  local h = Wait.time(function()
+    if id ~= nil then TIMER_BY_ID[id] = nil end
+    local f = _G[fname]
+    if f == nil and owner ~= nil then pcall(function() f = owner[fname] end) end
+    if f ~= nil then f(args) end
+  end, p.delay or 0)
+  if id ~= nil then TIMER_BY_ID[id] = h end
+  return true
+end
+function Timer.destroy(id)
+  local h = (id ~= nil) and TIMER_BY_ID[id] or nil
+  if h ~= nil then Wait.stop(h) TIMER_BY_ID[id] = nil end
+  return h ~= nil
+end
+
 local function vec(t, y2, z2)
   if type(t) == 'number' then t = {t, y2 or 0, z2 or 0} end
   t = t or {}
@@ -256,7 +288,21 @@ function MKOBJ(name, pos, tags)
   function o.setAngularVelocity(v) o.__avel = v end
   o.__vel = vec{0, 0, 0}
   function o.getVelocity() return vec(o.__vel) end
-  function o.randomize() end function o.clone(p) return MKOBJ(o.__name, (p or {}).position, o.__tags) end
+  -- A DIE'S FACES, AND A ROLL THAT LANDS ON ONE OF THEM. The battle mat sets twelve rotation values on
+  -- each die it spawns, rolls them and then reads getRotationValue() back to announce the result, so a
+  -- randomize() that does nothing and a getRotationValue that does not exist make the whole roll
+  -- untestable -- the mat's old script died on setRotationValues before it had put a single die out.
+  function o.setRotationValues(t) o.__rotvals = t end
+  function o.getRotationValues() return o.__rotvals end
+  function o.getRotationValue() return o.__rotval or 0 end
+  function o.randomize()
+    local n = 0
+    for _ in pairs(o.__rotvals or {}) do n = n + 1 end
+    if n == 0 then return end
+    local pick = (o.__rotvals)[math.random(n)]
+    o.__rotval = (type(pick) == "table") and (pick.value or pick[1] or 0) or 0
+  end
+  function o.clone(p) return MKOBJ(o.__name, (p or {}).position, o.__tags) end
 
   -- A REAL RELOAD, NOT A NO-OP. This used to be `function o.reload() return o end`, which is not what
   -- TTS does and is the worst kind of stub: any test written against it passes whatever the code does.

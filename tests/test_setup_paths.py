@@ -15909,6 +15909,205 @@ def t_the_bounce_between_piles_waits_less(src):
     assert err == "", "the deck holder's script no longer parses: %s" % err
 
 
+def _mat_script(src):
+    """The battle mat's own script (Custom_Assetbundle, guid 2314cc), out of the built board."""
+    for mm in re.finditer(r"json=\[\[(.*?)\]\]", src, re.S):
+        try:
+            d = json.loads(mm.group(1))
+        except ValueError:
+            continue
+        if d.get("GUID") == "2314cc":
+            return d["LuaScript"].replace("!=", "~=")
+    raise AssertionError("the Battle Mat blueprint is not in the build")
+
+
+def _mat_runtime(src):
+    """A runtime with the mat's script loaded and just enough table under it to roll."""
+    rt = lupa.LuaRuntime(unpack_returned_tuples=True)
+    rt.execute(open(os.path.join(HERE, "tts_stub.lua"), encoding="utf-8").read())
+    rt.execute("""
+      -- Lua dropped math.atan2 at 5.3; randomRotation still calls it and TTS still has it
+      math.atan2 = math.atan2 or function(y, x) return math.atan(y, x) end
+      function stringColorToRGB(c) return { r = 1, g = 1, b = 1 } end
+      SAID = {}
+      local _bc = broadcastToAll
+      broadcastToAll = function(msg, col) SAID[#SAID + 1] = tostring(msg) end
+      self.getScale    = function() return Vector({ 1, 1, 1 }) end
+      self.getPosition = function() return Vector({ 33.17, 1.55, 9.21 }) end
+      self.getRotation = function() return Vector({ 0, 180, 0 }) end
+      self.createButton = function() end
+      self.editButton   = function() end
+      self.setVar       = function(k, v) end
+    """)
+    rt.execute(_mat_script(src))
+    rt.execute("pcall(function() onload('') end) FLUSH(4)")
+    RUNTIMES.append(rt)
+    return rt
+
+
+def _mat_dice(rt):
+    """The dice the mat is currently holding, as stub objects."""
+    n = rt.eval("function() return #(currentDice or {}) end")()
+    return [rt.eval("function() return currentDice[%d] end" % (i + 1))() for i in range(int(n))]
+
+
+def t_the_battle_mat_cannot_stay_stuck(src):
+    """The mat always finds its way back to idle, whatever happens to a die.
+
+    Zaandaa, 2026-09-26: "there's a known Ultimate bug in the battle mat object ... if mod caching is
+    off, occasionally dice will end up frozen, as if there's a roll in progress ... since there's no
+    way to replace the battle mat in the mod with a button, it's no longer easily fixed the old way."
+
+    rollInProgress is the mat's whole state: nil idle, true rolling, false resting. nil and false both
+    lead somewhere -- a click on nil rolls, a click on false cleans up and rolls -- but true was
+    cleared in exactly ONE place, the last step of the monitor coroutine, and the auto-removal timer
+    was armed only AFTER that line. So anything that stopped the coroutine left the mat answering
+    every click with "Roll in progress." for the rest of the session, with two locked,
+    non-interactable dice standing on it.
+
+    TWO THINGS STOP THAT COROUTINE, AND MOD CACHING OFF CAUSES BOTH. The dice are Custom_Dice with a
+    Steam texture, re-fetched on every roll when caching is off, and the script gave itself a fixed
+    0.5s head start before rolling them: a die still SPAWNING cannot be rolled, and `die.resting` for
+    one is never true, so `repeat ... until allRest` yielded every frame forever. And a die destroyed
+    or fallen answers any read with a C# null, which pcall does not catch.
+
+    Driven, not read: a roll whose dice never finish arriving and never come to rest, and a mat left
+    claiming a roll with nothing to finish it. Both end idle.
+    """
+    # 1. THE ORDINARY ROLL still works, and clears up after itself
+    rt = _mat_runtime(src)
+    rt.execute("pcall(function() click_roll(nil, 'Red') end)")
+    assert len(_mat_dice(rt)) == 2, "a click no longer puts two dice out: %d" % len(_mat_dice(rt))
+    rt.execute("FLUSH_UNTIL(0.9, 400)")
+    assert rt.eval("rollInProgress") is False, \
+        "after the dice settled the mat is %r, not resting" % rt.eval("rollInProgress")
+    assert _mat_dice(rt), "the dice were cleared before the removal delay"
+    rt.execute("FLUSH_UNTIL(11, 20)")
+    assert rt.eval("rollInProgress") is None, "the mat never went back to idle after a clean roll"
+    assert all(d.isDestroyed() for d in _mat_dice(rt)) or not _mat_dice(rt), \
+        "the dice outlived the cleanup"
+
+    # 2. DICE THAT NEVER ARRIVE AND NEVER REST -- caching off, the texture never lands
+    rt = _mat_runtime(src)
+    rt.execute("""
+      local _spawn = spawnObject
+      spawnObject = function(p)
+        local o = _spawn(p)
+        o.spawning = true     -- the picture never arrives
+        o.resting  = false    -- so it never comes to rest either
+        return o
+      end
+      pcall(function() click_roll(nil, 'Red') end)
+    """)
+    assert len(_mat_dice(rt)) == 2, "two dice were not put out"
+    rt.execute("FLUSH_UNTIL(0.9, 600)")
+    assert rt.eval("rollInProgress") is not True, \
+        "a die that never finished spawning left the mat claiming a roll forever -- the frozen-dice bug"
+    rt.execute("FLUSH_UNTIL(31, 30)")
+    assert rt.eval("rollInProgress") is None, "the mat never reached idle: %r" % rt.eval("rollInProgress")
+
+    # 3. THE WATCHDOG ITSELF: a mat claiming a roll with nothing left to finish it clears itself
+    rt = _mat_runtime(src)
+    rt.execute("currentDice = {} rollInProgress = true rollGuardArm() FLUSH_UNTIL(31, 6)")
+    assert rt.eval("rollInProgress") is None, \
+        "a stuck mat did not clear itself within rollWatchdog: %r" % rt.eval("rollInProgress")
+    assert any("cleared itself" in x for x in rt.eval("SAID").values()), \
+        "the mat cleared itself without saying so: %r" % list(rt.eval("SAID").values())
+
+    # ...and a real roll arms it, before any die is touched
+    rt = _mat_runtime(src)
+    rt.execute("pcall(function() click_roll(nil, 'Red') end) FLUSH_UNTIL(0.6, 1)")
+    assert rt.eval("rollInProgress") is True, "the roll did not start"
+    assert rt.eval("rollGuard") is not None, "a roll is running with no watchdog armed"
+
+    # 4. A DIE DESTROYED MID-ROLL is dropped, not read. currentDice is only appended to, so every
+    #    pass has to walk liveDice(); the stub raises a C# null past pcall for a dead handle, and the
+    #    runner fails any case that touches one -- so reaching idle here IS the assertion.
+    rt = _mat_runtime(src)
+    rt.execute("""
+      pcall(function() click_roll(nil, 'Red') end)
+      for _, d in ipairs(currentDice) do d.destruct() end
+      FLUSH_UNTIL(31, 60)
+    """)
+    assert rt.eval("rollInProgress") is None, \
+        "dice destroyed mid-roll left the mat busy: %r" % rt.eval("rollInProgress")
+
+
+def t_resync_replaces_a_frozen_battle_mat(src):
+    """Resync replaces a mat that is stuck mid-roll, and takes the frozen dice with it.
+
+    Maintainer, 2026-09-26: "a suggestion is to reload the battle mat with resynch."
+
+    THE SWEEP COULD NOT DO IT. Its lock toggle is a property write, which cannot reach a Lua variable
+    inside another object's script, and the reload pass is cards only (rttResyncCardOK). The mat used
+    to be replaceable from the menu -- makeSpecial is still the toggle that did it -- and that button
+    is gone, so nothing on the table could undo this.
+
+    REPLACED FROM THE BLUEPRINT, NOT RELOADED. A reload brings the object's own script back with it,
+    and a mat standing on a SAVED table carries the old one: update_saves.py rewrites the board, the
+    sheet and the panel, and the mat is spawned out of the board's content, so a saved mat keeps its
+    old script until the map is replaced. Spawning a new one is what hands that table the fix.
+
+    AND IT SPARES THE FACTION DICE. Two kits bring a Custom_Dice of their own -- RTT_KEEP_DICE, the
+    bats' die and the rats' Mob Die -- and those are rolled by hand, so they are interactable and sit
+    on their own board. Only a non-interactable die beside the mat is the mat's.
+    """
+    def table(stuck, dice=2):
+        rt = fresh(src)
+        rt.execute("""
+          MAT = MKOBJ('Battle Mat', { 33.17, 1.55, 9.21 }, { 'Map Object', 'RTT Fixture', 'RTT Mat' })
+          MAT.getVar = function(k) if k == 'rollInProgress' then return %s end end
+          function DIE(name, x, z, inter, guid)
+            local o = MKOBJ(name, { x, 1.6, z }, {})
+            o.name = 'Custom_Dice'
+            o.interactable = inter
+            if guid ~= nil then o = REGUID(o, guid) end
+            return o
+          end
+          FROZEN = {}
+          for i = 1, %d do FROZEN[i] = DIE('', 33.17 + i, 9.21, false) end
+          MOB  = DIE('Mob Die', 34.0, 9.5, true, '81f2b2')      -- a faction's own, by hand
+          BATS = DIE('', 34.5, 10.0, false, 'dc8eb3')           -- spared by guid even so
+          FAR  = DIE('', -20.0, -30.0, false)                   -- somebody else's, nowhere near the mat
+        """ % ("true" if stuck else "nil", dice))
+        return rt
+
+    # a mat stuck mid-roll: replaced, and the frozen dice go
+    rt = table(stuck=True)
+    done, gone = rt.eval("function() return rttResyncBattleMat() end")()
+    assert done is True, "a mat stuck mid-roll was left alone"
+    assert gone == 2, "the frozen dice were not removed: %r" % gone
+    assert rt.eval("MAT.isDestroyed()") is True, "the stuck mat is still there"
+    for keep in ("MOB", "BATS", "FAR"):
+        assert rt.eval("%s.isDestroyed()" % keep) is not True, \
+            "%s was destroyed; only the mat's own dice may go" % keep
+    rt.execute("FLUSH(8)")
+    fresh_mat = rt.eval("""function()
+        for _, o in ipairs(getAllObjects()) do
+          if o.hasTag('RTT Mat') and not o.isDestroyed() then return o end
+        end
+    end""")()
+    assert fresh_mat is not None, "no new battle mat was spawned in its place"
+    assert fresh_mat.hasTag("Map Object") and fresh_mat.hasTag("RTT Fixture"), \
+        "the replacement mat did not take the fixture tags back, so nothing can find it again"
+
+    # a mat that is FINE is not touched: a Custom_Assetbundle re-downloads on a respawn
+    rt = table(stuck=False, dice=0)
+    done, gone = rt.eval("function() return rttResyncBattleMat() end")()
+    assert done is False and gone == 0, "a healthy mat was replaced anyway (%r, %r)" % (done, gone)
+    assert rt.eval("MAT.isDestroyed()") is not True, "a healthy mat was destroyed"
+
+    # ...but stray frozen dice beside a mat that says nothing are reason enough
+    rt = table(stuck=False, dice=1)
+    done, gone = rt.eval("function() return rttResyncBattleMat() end")()
+    assert done is True and gone == 1, "a die left frozen beside the mat was not cleared: %r, %r" % (done, gone)
+
+    # and with no mat on the table at all it is a no-op, not a null
+    rt = fresh(src)
+    done, gone = rt.eval("function() return rttResyncBattleMat() end")()
+    assert done is False and gone == 0, "with no mat out it still claimed to do something"
+
+
 CASES = [
     ("manual path drives the turn system",   t_manual_turn_order),
     ("manual path spawns 4 / 5 boards",      t_boards_spawn),
@@ -16185,6 +16384,8 @@ CASES = [
     ("hand boxes survive any sequence of layouts", t_hand_boxes_survive_any_sequence_of_layouts),
     ("winged menace hand from the seat", t_the_winged_menace_hand_is_built_from_the_seat_not_read_back),
     ("the bounce between piles waits less", t_the_bounce_between_piles_waits_less),
+    ("the battle mat cannot stay stuck",    t_the_battle_mat_cannot_stay_stuck),
+    ("resync replaces a frozen battle mat", t_resync_replaces_a_frozen_battle_mat),
 ]
 
 

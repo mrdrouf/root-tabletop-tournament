@@ -2312,6 +2312,112 @@ end
 -- TTS will not do that for a player holding an object; run anyway, the repair took a hand apart into
 -- a deck (2026-09-21). Maintainer: "if any player is holding something, create a message saying that
 -- everyone needs to drop everything they're holding with their mouse ... and then do not proceed."
+-- THE BATTLE MAT IS REPLACED, NOT TOUCHED.
+--
+-- Zaandaa, 2026-09-26: "there's a known Ultimate bug in the battle mat object ... if mod caching is
+-- off, occasionally dice will end up frozen, as if there's a roll in progress ... since there's no way
+-- to replace the battle mat in the mod with a button, it's no longer easily fixed the old way." And
+-- the maintainer: "a suggestion is to reload the battle mat with resynch."
+--
+-- WHAT GOES WRONG. The mat's script keeps one variable, rollInProgress: nil idle, true rolling, false
+-- resting. nil and false both lead somewhere -- a click on nil rolls, a click on false cleans up and
+-- rolls -- but true was cleared in exactly ONE place, the last step of its monitor coroutine, and the
+-- auto-removal timer was armed only AFTER that line. So anything that stopped the coroutine (a die
+-- still downloading its picture, which is what mod caching OFF guarantees sooner or later; a die
+-- destroyed or fallen, which is a C# null on the next read) left the mat answering every click with
+-- "Roll in progress." for the rest of the session, two locked non-interactable dice standing on it.
+--
+-- WHY THE SWEEP CANNOT DO IT. The lock toggle is a PROPERTY write -- it cannot reach a Lua variable
+-- inside another object's script -- and the reload pass is cards only (rttResyncCardOK). The mat used
+-- to be replaceable from the menu, and makeSpecial is still the toggle that did it; that button is
+-- gone, so until now nothing on the table could undo this at all.
+--
+-- REPLACED FROM THE BLUEPRINT, NOT reload()ed. A reload brings the object's own script back with it,
+-- and the copy standing on somebody's SAVED table is the old one -- update_saves.py rewrites the
+-- board, the sheet and the panel, and the mat is spawned out of the board's content, so a saved mat
+-- keeps its old script until the map is replaced. Spawning a new one from the blueprint is what hands
+-- that table the fixed script, and it is exactly what the menu button used to do.
+--
+-- ONLY WHEN IT IS ACTUALLY WRONG. The mat is a Custom_Assetbundle: with caching off a respawn
+-- re-downloads it, which is a second of missing mat for everyone, and not something to do on every
+-- press. getVar reads a global out of the mat's own script; scripts run on the host, so the host's
+-- answer is the only one there is.
+RTT_RESYNC_MAT  = true
+RTT_DICE_RADIUS = 8    -- a battle die lands radialOffset * scale, about 3.4, from the mat's centre
+
+-- Every battle die the mat is no longer keeping track of.
+--
+-- NOT EVERY Custom_Dice ON THE TABLE. Two faction kits bring one -- RTT_KEEP_DICE, the bats' die and
+-- the rats' Mob Die -- and those are rolled BY HAND, so they are interactable and they sit on their
+-- own faction's board. The mat's are spawned non-interactable and never leave its side, which is what
+-- these three tests are: the internal name, interactable false, and within RTT_DICE_RADIUS of the mat.
+function rttStrayBattleDice(matPos)
+  local out = {}
+  if matPos == nil then return out end
+  for _, o in ipairs(getAllObjects()) do
+    local take = false
+    pcall(function()
+      if o.name ~= "Custom_Dice" then return end
+      if o.interactable ~= false then return end
+      if o.held_by_color ~= nil then return end
+      if RTT_KEEP_DICE[o.getGUID()] == true then return end
+      local p = o.getPosition()
+      local dx, dz = p.x - matPos.x, p.z - matPos.z
+      take = (dx * dx + dz * dz) <= (RTT_DICE_RADIUS * RTT_DICE_RADIUS)
+    end)
+    if take then out[#out + 1] = o end
+  end
+  return out
+end
+
+-- The mat, whether it is stuck mid-roll, and how many dice are standing beside it. Read before
+-- anything is destroyed, so the answer describes the table the player is looking at.
+function rttBattleMatState()
+  local mat = rttFixture(RTT_TAG_MAT)
+  if mat == nil then return nil, false, 0 end
+  local stuck = false
+  pcall(function() stuck = (mat.getVar("rollInProgress") == true) end)
+  local pos = nil
+  pcall(function() pos = mat.getPosition() end)
+  return mat, stuck, #rttStrayBattleDice(pos)
+end
+
+-- Returns whether the mat was replaced, and how many stray dice went with it.
+function rttResyncBattleMat()
+  if RTT_RESYNC_MAT ~= true then return false, 0 end
+  local mat, stuck, strays = rttBattleMatState()
+  if mat == nil then return false, 0 end
+  if stuck ~= true and strays == 0 then return false, 0 end
+  local pos, old = nil, nil
+  pcall(function() pos = mat.getPosition() end)
+  pcall(function() old = mat.getGUID() end)
+  local gone = 0
+  for _, die in ipairs(rttStrayBattleDice(pos)) do
+    pcall(function() die.destruct() end)
+    gone = gone + 1
+  end
+  pcall(function() mat.destruct() end)
+  -- A FRAME BETWEEN THE DESTROY AND THE SPAWN, the same gap removeMapItems takes before a rebuild and
+  -- for the same reason: a create landing in the frame its predecessor is destroyed in is the shape
+  -- that loses objects on a distant client.
+  Wait.frames(function()
+    pcall(function() makeSpecialWithTag("Tools", "Battle Mat", 33.17, 1.55, 9.21, "Map Object") end)
+    -- ...and it takes the fixture tags back, exactly as the map's own spawn does two frames on
+    Wait.frames(function()
+      for _, o in ipairs(getObjectsWithTag("Map Object")) do
+        pcall(function()
+          if rttNameOf(o) == "Battle Mat" then
+            o.addTag(RTT_FIXTURE_TAG)
+            o.addTag(RTT_TAG_MAT)
+            if old ~= nil then rttSwapGuidEverywhere(old, o.getGUID()) end
+          end
+        end)
+      end
+    end, 2)
+  end, 1)
+  return true, gone
+end
+
 function rttResyncClick(player, value, id)
   local holders = rttWhoHolds()
   if #holders > 0 then
@@ -2340,6 +2446,14 @@ function rttResyncClick(player, value, id)
       if strays > 0 then parts[#parts + 1] = tostring(strays) .. " stray hand box(es) parked" end
     end
     if (lostc or 0) > 0 then parts[#parts + 1] = tostring(lostc) .. " put back" end
+    -- SILENT WHEN THE MAT WAS FINE, which is nearly always: rttResyncBattleMat only acts on a mat
+    -- that is stuck mid-roll or has dice left beside it, and the message is meant to stay one line.
+    local matdone, matdice = false, 0
+    pcall(function() matdone, matdice = rttResyncBattleMat() end)
+    if matdone then
+      parts[#parts + 1] = "battle mat replaced"
+      if (matdice or 0) > 0 then parts[#parts + 1] = tostring(matdice) .. " frozen dice removed" end
+    end
     local msg = "Resync done: " .. table.concat(parts, "; ")
     if RTT_BUSY == true or waited == true then msg = msg .. " (hands and cards left alone while the draft is dealing)" end
     pcall(function() broadcastToAll(msg .. ".", { 0.66, 0.82, 0.86 }) end)
