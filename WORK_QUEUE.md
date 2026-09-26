@@ -759,7 +759,15 @@ Where to cut, if it is ever needed, biggest first (none done):
       A SAVED TABLE'S EXISTING MAT KEEPS THE OLD SCRIPT until the map is replaced or Resync is
       pressed -- update_saves.py rewrites the board, and the mat is spawned out of the board.
       Two cases; the first reproduces the freeze on the shipped script (the harness needed a Timer
-      shim and the dice APIs before it could run the old script at all). Not yet confirmed in TTS.
+      shim and the dice APIs before it could run the old script at all).
+      THE LOOK CHANGED AND SHOULD NOT HAVE, v1.493. Maintainer: "did you change the animation of the
+      battle map because it looks like another dice and not falling from above anymore when you click
+      it" -- then "why did you change the visual at all?" Only the clone had to go. The first cut also
+      spawned the second die straight onto the far side instead of beside the first and gliding it
+      over, and rewrote the gap between the two dice being let go from an accidental second (the old
+      wait() counted os.time(), which moves in whole seconds) to a literal 0.1 -- so the dice stopped
+      sliding and fell together. Both restored, spawnWaitMax cut to 1.5 so a die can never visibly
+      hang, and the choreography is now its own harness case. Not yet confirmed in TTS.
 - [x] **The bounce between the piles is 30% quicker.** v1.491. Maintainer, 2026-09-26: "currently how
       long does it take for a frog card in the discard to bounce back to the pond? how reactive is
       it? make the bounce between decks including the lost souls 30% faster." One tick of

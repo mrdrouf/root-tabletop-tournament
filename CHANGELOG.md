@@ -170,3 +170,5 @@ setup board's top right corner, and goes up on every commit.
   half second, bounds the wait for them to settle, and carries a watchdog that clears the mat if a
   roll never finishes. The coroutines and the deprecated Timers are gone.
 - Resync replaces a battle mat that is stuck mid-roll, and takes the frozen dice with it.
+- Battle mat: the roll looks exactly as it always did again. The freeze fix only needed the clone
+  gone; it had also moved where the second die appears and made the two fall together. Pinned.

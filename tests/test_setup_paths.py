@@ -15938,6 +15938,24 @@ def _mat_runtime(src):
       self.createButton = function() end
       self.editButton   = function() end
       self.setVar       = function(k, v) end
+      GLIDED = {}
+      SPAWNED_AT = {}
+      local _spawn = spawnObject
+      spawnObject = function(p)
+        local q = (p or {}).position or {}
+        SPAWNED_AT[#SPAWNED_AT + 1] = { x = q.x or q[1], z = q.z or q[3] }
+        return _spawn(p)
+      end
+      local _mk = MKOBJ
+      MKOBJ = function(...)
+        local o = _mk(...)
+        local _sps = o.setPositionSmooth
+        o.setPositionSmooth = function(pos, ...)
+          GLIDED[#GLIDED + 1] = { x = pos.x or pos[1], z = pos.z or pos[3] }
+          return _sps(pos, ...)
+        end
+        return o
+      end
     """)
     rt.execute(_mat_script(src))
     rt.execute("pcall(function() onload('') end) FLUSH(4)")
@@ -15978,7 +15996,7 @@ def t_the_battle_mat_cannot_stay_stuck(src):
     rt = _mat_runtime(src)
     rt.execute("pcall(function() click_roll(nil, 'Red') end)")
     assert len(_mat_dice(rt)) == 2, "a click no longer puts two dice out: %d" % len(_mat_dice(rt))
-    rt.execute("FLUSH_UNTIL(0.9, 400)")
+    rt.execute("FLUSH_UNTIL(1.1, 400)")
     assert rt.eval("rollInProgress") is False, \
         "after the dice settled the mat is %r, not resting" % rt.eval("rollInProgress")
     assert _mat_dice(rt), "the dice were cleared before the removal delay"
@@ -16000,7 +16018,7 @@ def t_the_battle_mat_cannot_stay_stuck(src):
       pcall(function() click_roll(nil, 'Red') end)
     """)
     assert len(_mat_dice(rt)) == 2, "two dice were not put out"
-    rt.execute("FLUSH_UNTIL(0.9, 600)")
+    rt.execute("FLUSH_UNTIL(1.1, 600)")
     assert rt.eval("rollInProgress") is not True, \
         "a die that never finished spawning left the mat claiming a roll forever -- the frozen-dice bug"
     rt.execute("FLUSH_UNTIL(31, 30)")
@@ -16031,6 +16049,50 @@ def t_the_battle_mat_cannot_stay_stuck(src):
     """)
     assert rt.eval("rollInProgress") is None, \
         "dice destroyed mid-roll left the mat busy: %r" % rt.eval("rollInProgress")
+
+
+def t_the_battle_mat_roll_still_looks_the_same(src):
+    """A click puts one die out, and the second appears beside it and slides to the far side.
+
+    Maintainer, 2026-09-26, on the first cut of the freeze fix: "did you change the animation of the
+    battle map because it looks like another dice and not falling from above anymore when you click
+    it" -- and then "why did you change the visual at all?"
+
+    NOTHING ABOUT THE FREEZE NEEDED THE LOOK TO CHANGE. One thing had to go: the second die was made
+    with clone() off the first, and a clone of a die still fetching its picture comes back nil, which
+    ended the click with an orphan die on the table and no roll armed. Replacing that clone with a
+    spawn is the whole fix. The first cut also spawned it straight onto the far side instead of beside
+    the first and gliding it over, and rewrote the gap between the two dice being let go from an
+    accidental second (the old wait() counted os.time(), which moves in whole seconds) to a literal
+    0.1 -- so the dice stopped sliding and started falling together. Neither was asked for.
+
+    So the choreography is pinned here, separately from the state machine: where the dice are born,
+    that one of them travels about a mat's width, how far apart they are let go, and that a die can
+    never hang in the air long waiting for its picture.
+    """
+    rt = _mat_runtime(src)
+    rt.execute("pcall(function() click_roll(nil, 'Red') end)")
+
+    born = list(rt.eval("SPAWNED_AT").values())
+    assert len(born) == 2, \
+        "%d dice were spawned, not 2 -- the second is cloned again, which is what breaks on a slow " \
+        "texture" % len(born)
+    pa, pb = born[0], born[1]
+    assert abs(pa.x - pb.x) < 0.01 and abs(pa.z - pb.z) < 0.01, \
+        "the dice are born at different spots, so the second one no longer slides across"
+
+    glides = list(rt.eval("GLIDED").values())
+    assert glides, "nothing glides: the second die appears on the far side instead of sliding there"
+    far = glides[-1]
+    # radialOffset 3 each side of the mat's centre, so the trip is about 6 units
+    assert abs((far.x - pa.x) ** 2 + (far.z - pa.z) ** 2 - 36) < 6, \
+        "the second die does not slide to the opposite side of the mat: %r from %r" % (far, pa)
+
+    assert rt.eval("DIE_GAP") >= 0.5, \
+        "the dice are let go %rs apart, so they drop together instead of one then the other" \
+        % rt.eval("DIE_GAP")
+    assert rt.eval("spawnWaitMax") <= 2, \
+        "a die could hang in the air up to %rs before it is let go" % rt.eval("spawnWaitMax")
 
 
 def t_resync_replaces_a_frozen_battle_mat(src):
@@ -16385,6 +16447,7 @@ CASES = [
     ("winged menace hand from the seat", t_the_winged_menace_hand_is_built_from_the_seat_not_read_back),
     ("the bounce between piles waits less", t_the_bounce_between_piles_waits_less),
     ("the battle mat cannot stay stuck",    t_the_battle_mat_cannot_stay_stuck),
+    ("the battle mat roll looks the same", t_the_battle_mat_roll_still_looks_the_same),
     ("resync replaces a frozen battle mat", t_resync_replaces_a_frozen_battle_mat),
 ]
 
