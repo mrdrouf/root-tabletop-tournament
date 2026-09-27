@@ -15954,6 +15954,7 @@ def _mat_runtime(src):
       PUT_AT  = {}                 -- setPosition: where a re-roll stands each die
       TURNED  = {}                 -- setRotation: the random orientation it is given
       ROLLED  = {}                 -- randomize(): the throw itself, once per die per roll
+      SPUN    = {}                 -- setAngularVelocity: the tumble a re-roll gives each die
       SPAWNED_AT = {}
       local _spawn = spawnObject
       spawnObject = function(p)
@@ -15978,6 +15979,11 @@ def _mat_runtime(src):
         o.setRotation = function(r, ...)
           TURNED[#TURNED + 1] = { x = r.x or r[1], y = r.y or r[2], z = r.z or r[3] }
           return _sr(r, ...)
+        end
+        local _sav = o.setAngularVelocity
+        o.setAngularVelocity = function(v, ...)
+          SPUN[#SPUN + 1] = { x = v.x or v[1], y = v.y or v[2], z = v.z or v[3] }
+          return _sav(v, ...)
         end
         local _rz = o.randomize
         o.randomize = function(...)
@@ -16183,21 +16189,20 @@ def t_a_second_roll_reuses_the_dice(src):
     assert len(rt.eval("SPAWNED_AT")) == spawns_before, \
         "the second roll spawned %d more dice" % (len(rt.eval("SPAWNED_AT")) - spawns_before)
 
-    # ...lifted back to the two launch spots, which are radialOffset each side of the mat's centre
-    lifts = list(rt.eval("PUT_AT").values())
-    assert len(lifts) == 2, "both dice were not stood up for the throw: %d placements" % len(lifts)
-    apart = (lifts[0].x - lifts[1].x) ** 2 + (lifts[0].z - lifts[1].z) ** 2
-    assert abs(apart - 36) < 6, "the dice were not put back on opposite sides of the mat: %r" % lifts
-
-    # THE DIE IS NOT LIFTED AT ALL, it is thrown. Maintainer, 2026-09-27: "so the dice now reappear on top
-    # they do not rejump they always respawn" -- moving it to a point in the air, by any means, is a
-    # respawn or a glide, never a jump. The reposition is x and z only, at the height the die is already
-    # resting at, and the air comes from real upward velocity applied after randomize().
-    landed = rt.eval("LANDED")
-    for lift in lifts:
-        assert abs(lift.y - landed) < 0.01, \
-            "a die lying at y=%r was moved to y=%r -- putting it up in the air is a respawn, not a jump" \
-            % (landed, lift.y)
+    # NOTHING MOVES A DIE AND NOTHING TURNS IT. Maintainer, 2026-09-27: "there is still a readjustment
+    # alike a respawn is there a way to deal with that so the dices do not respawn at all" -- and before
+    # that, "the dice now reappear on top they do not rejump they always respawn". Every version of this
+    # put the die somewhere first: glided up (setPositionSmooth), placed up (setPosition), then nudged
+    # across the mat and snapped to a new face (setPosition + setRotation). Each of those is an instant
+    # jump of the kind a respawn makes. The die is picked up from where it lies, facing what it was
+    # facing, and thrown -- that is the only motion there is.
+    assert not list(rt.eval("PUT_AT").values()), \
+        "a re-roll still teleports a die: %r" % list(rt.eval("PUT_AT").values())
+    assert not list(rt.eval("TURNED").values()), \
+        "a re-roll still snaps a die to a new face, which reads as a respawn: %r" \
+        % list(rt.eval("TURNED").values())
+    assert not list(rt.eval("GLIDED").values()), \
+        "a re-roll still glides a die: %r" % list(rt.eval("GLIDED").values())
 
     # NO PAUSE AT THE TOP OF THE LIFT. Maintainer, 2026-09-27: "the dices jump up, freeze in the air for
     # half a second, then proceed. make it smooth." waitBeforeRoll (0.5s) is there so a freshly SPAWNED
@@ -16307,25 +16312,35 @@ def t_a_re_roll_is_as_random_as_the_first(src):
         "a re-roll threw %d dice (%r); randomize() IS the roll, so every die must get one" \
         % (len(rolls), rolls)
 
-    # 2. and given a fresh random orientation first, not left on the face it landed on
-    turned = list(rt.eval("TURNED").values())
-    assert len(turned) == 2, \
-        "%d of the 2 dice were re-oriented before the throw; a die left as it lay starts every " \
-        "re-roll from the same face" % len(turned)
-    assert any(abs(t.x) > 0.01 or abs(t.y) > 0.01 or abs(t.z) > 0.01 for t in turned), \
-        "every die was turned to zero, so the orientation is not random: %r" % turned
+    # 2. AND EACH IS GIVEN A RANDOM TUMBLE, which is where the randomness of a re-roll comes from. A
+    #    die's face is decided by its spin and its air time, not by where it started -- which is why
+    #    nothing needs to be moved or re-oriented first, and why none of that was ever buying randomness.
+    spun = list(rt.eval("SPUN").values())
+    thrown = [v for v in spun if abs(v.x) > 0.01 or abs(v.y) > 0.01 or abs(v.z) > 0.01]
+    assert len(thrown) == 2, \
+        "%d of the 2 dice were given a tumble; a die dropped without spin lands on the face it left with" \
+        % len(thrown)
+    assert (thrown[0].x, thrown[0].y, thrown[0].z) != (thrown[1].x, thrown[1].y, thrown[1].z), \
+        "both dice were given the SAME spin, so they are not independent: %r" % thrown
+    assert all(abs(v.x) <= rt.eval("rerollSpin") + 0.01 and abs(v.y) <= rt.eval("rerollSpin") + 0.01
+               and abs(v.z) <= rt.eval("rerollSpin") + 0.01 for v in thrown), \
+        "a spin is outside rerollSpin on some axis, so it is not the range the constant claims: %r" % thrown
 
-    # 3. nothing is driving the die when it is thrown: put there, not tweened, and motion zeroed
-    assert len(rt.eval("PUT_AT")) == 2, \
-        "the dice were not placed with setPosition, so something else is moving them into position"
+    # ...and it differs from roll to roll, not just from die to die
+    rt.execute("SPUN = {} pcall(function() click_roll(nil, 'Red') end) FLUSH_UNTIL(1, 300)")
+    again = [v for v in rt.eval("SPUN").values() if abs(v.x) > 0.01]
+    assert again and (again[0].x, again[0].y, again[0].z) != (thrown[0].x, thrown[0].y, thrown[0].z), \
+        "the next re-roll reused the same spin, so every re-roll would land the same way"
+
+    # 3. and nothing is left driving the die when it is thrown -- no drift, and no kinematic tween,
+    #    which is what swallowed the spin and stopped them tumbling in v1.498
     assert not list(rt.eval("GLIDED").values()), \
         "a re-roll still glides a die with setPositionSmooth -- a kinematic tween swallows the throw, " \
         "which is why the dice stopped tumbling"
     stopped = rt.eval("""function()
         local n = 0
         for _, d in ipairs(currentDice or {}) do
-          local v, a = d.__vel, d.__avel
-          if v ~= nil and a ~= nil then n = n + 1 end
+          if d.__vel ~= nil and d.__avel ~= nil then n = n + 1 end
         end
         return n
     end""")()

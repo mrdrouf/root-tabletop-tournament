@@ -848,6 +848,20 @@ Where to cut, if it is ever needed, biggest first (none done):
       The case lands the dice by hand first (the harness has no gravity) and then holds that a re-roll
       does not change a die's height and does give each one upward velocity. It fails on v1.499 with
       "a die lying at y=2.15 was moved to y=9.55".
+      NOTHING MOVES AND NOTHING TURNS, v1.501. Maintainer: "there is still a readjustment alike a respawn
+      is there a way to deal with that so the dices do not respawn at all", with "make the jump a bit
+      higher". He was right that both were still there: even nudged across the mat at resting height
+      setPosition is a teleport, and setRotation snapped the die to a new face on the spot -- two instant
+      jumps, which is precisely what a respawn looks like. Neither happens now. The die is picked up from
+      where it lies, facing what it was facing; the only thing rerollDice does to it is clear any drift.
+      THE RANDOMNESS MOVED TO WHERE IT BELONGS, and this is why none of that was needed: a die's face is
+      decided by its SPIN and its air time, not by where it started. rerollSpin (14 rad/s, picked per axis
+      per die) and rerollJump (9 -> 14, about ten units of air) are applied to a free die right after
+      randomize(), with nothing in the way -- so it leaves the mat under its own momentum and turns over
+      several times on the way down. The case measures it: every die given a non-zero tumble, the two dice
+      never given the SAME spin, every axis inside rerollSpin, and the next re-roll's spin different
+      again. It fails on v1.500 and v1.499 with "0 of the 2 dice were given a tumble".
+      Dead with the lift: the launch-spot angle, the lock, rerollExtraHeight.
       THE HARNESS COULD NOT DRIVE ANY OF THIS, which is why two broken rewrites went out unnoticed.
       startLuaCoroutine was `if _G[f] then _G[f]() end` -- called like a plain function, so the first
       coroutine.yield inside raised and the body died there. It creates a real coroutine and resumes it
