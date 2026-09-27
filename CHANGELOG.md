@@ -166,9 +166,8 @@ setup board's top right corner, and goes up on every commit.
 
 ## 2026-09-26
 - Deck holder: a card bounces between the piles 30% sooner -- the sweep every 0.7s, the lift 3 frames.
-- Battle mat: a roll can no longer stick. It waits for the dice to finish arriving instead of a fixed
-  half second, bounds the wait for them to settle, and carries a watchdog that clears the mat if a
-  roll never finishes. The coroutines and the deprecated Timers are gone.
+- Battle mat: a roll that never finishes now clears itself after 30s, so the mat can no longer be
+  stuck saying "Roll in progress." for the rest of the session. The roll itself is untouched.
 - Resync replaces a battle mat that is stuck mid-roll, and takes the frozen dice with it.
-- Battle mat: the roll looks exactly as it always did again. The freeze fix only needed the clone
-  gone; it had also moved where the second die appears and made the two fall together. Pinned.
+- Battle mat: two attempts at the above rewrote the roll and changed how it looks. Both reverted --
+  the roll is the Ultimate script's again, line for line, and a harness case holds it there.

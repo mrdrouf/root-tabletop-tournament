@@ -760,14 +760,29 @@ Where to cut, if it is ever needed, biggest first (none done):
       pressed -- update_saves.py rewrites the board, and the mat is spawned out of the board.
       Two cases; the first reproduces the freeze on the shipped script (the harness needed a Timer
       shim and the dice APIs before it could run the old script at all).
-      THE LOOK CHANGED AND SHOULD NOT HAVE, v1.493. Maintainer: "did you change the animation of the
-      battle map because it looks like another dice and not falling from above anymore when you click
-      it" -- then "why did you change the visual at all?" Only the clone had to go. The first cut also
-      spawned the second die straight onto the far side instead of beside the first and gliding it
-      over, and rewrote the gap between the two dice being let go from an accidental second (the old
-      wait() counted os.time(), which moves in whole seconds) to a literal 0.1 -- so the dice stopped
-      sliding and fell together. Both restored, spawnWaitMax cut to 1.5 so a die can never visibly
-      hang, and the choreography is now its own harness case. Not yet confirmed in TTS.
+      THE LOOK CHANGED TWICE AND SHOULD NOT HAVE AT ALL, reverted in v1.494. Maintainer: "did you
+      change the animation of the battle map because it looks like another dice and not falling from
+      above anymore when you click it", then "why did you change the visual at all?", then "looks like
+      complete shit I think you re completely misunderstanding the original code it must be. dices are
+      moving at the same time".
+      He was right both times. The first build rewrote the whole roll path onto Wait -- the clone
+      replaced by a second spawn, that die moved to the far side instead of gliding there, and the gap
+      between the two dice being let go turned from an accidental fraction of a second (the old wait()
+      counts os.time(), which moves in whole seconds, so it waits only until the clock ticks over) into
+      a literal 0.1. The second build then GUESSED at the old look and forced a full second, which was
+      wrong again.
+      THE ROLL IS THE ORIGINAL NOW, line for line: the spawn at angle 0, the clone at angle 0, the
+      glide to -180, the 0.5s Timer, both coroutines, wait(). The freeze is fixed by ADDING, not by
+      touching -- rollWatchdog (30s) is armed the instant rollInProgress goes true and calls
+      cleanupDice if it is still true when it fires, which also empties currentDice and so ends the
+      spinning monitor. Plus dieAlive() on every read of a die (a destroyed handle is not nil, and
+      reading one is the uncatchable null), the first die recorded before anything can throw, and a
+      clone that comes back nil no longer ends the click. Thirteen hunks, none on the visible path.
+      DROPPED with the revert: the spawn-wait, the bounded monitor, the Wait rewrite, spawnOneDie.
+      They were defensible in isolation and all of them changed the look.
+      Two cases: the watchdog (fails on the original, which stays busy forever, and on the rewrite,
+      whose roll never starts in the harness) and one that pins the roll path verbatim (fails on the
+      rewrite). Not yet confirmed in TTS.
 - [x] **The bounce between the piles is 30% quicker.** v1.491. Maintainer, 2026-09-26: "currently how
       long does it take for a frog card in the discard to bounce back to the pond? how reactive is
       it? make the bounce between decks including the lost souls 30% faster." One tick of
