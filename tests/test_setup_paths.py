@@ -12,7 +12,7 @@ drive BOTH paths against a stubbed TTS and assert they agree.
 
 Needs lupa (pip install lupa). The stub is tests/tts_stub.lua.
 """
-import json, math, os, re, subprocess, sys
+import collections, json, math, os, re, subprocess, sys
 import lupa
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -15951,6 +15951,9 @@ def _mat_runtime(src):
       self.editButton   = function() end
       self.setVar       = function(k, v) end
       GLIDED = {}
+      PUT_AT  = {}                 -- setPosition: where a re-roll stands each die
+      TURNED  = {}                 -- setRotation: the random orientation it is given
+      ROLLED  = {}                 -- randomize(): the throw itself, once per die per roll
       SPAWNED_AT = {}
       local _spawn = spawnObject
       spawnObject = function(p)
@@ -15965,6 +15968,21 @@ def _mat_runtime(src):
         o.setPositionSmooth = function(pos, ...)
           GLIDED[#GLIDED + 1] = { x = pos.x or pos[1], y = pos.y or pos[2], z = pos.z or pos[3] }
           return _sps(pos, ...)
+        end
+        local _sp = o.setPosition
+        o.setPosition = function(pos, ...)
+          PUT_AT[#PUT_AT + 1] = { x = pos.x or pos[1], y = pos.y or pos[2], z = pos.z or pos[3] }
+          return _sp(pos, ...)
+        end
+        local _sr = o.setRotation
+        o.setRotation = function(r, ...)
+          TURNED[#TURNED + 1] = { x = r.x or r[1], y = r.y or r[2], z = r.z or r[3] }
+          return _sr(r, ...)
+        end
+        local _rz = o.randomize
+        o.randomize = function(...)
+          ROLLED[#ROLLED + 1] = tostring(o.getGUID())
+          return _rz(...)
         end
         return o
       end
@@ -16148,7 +16166,7 @@ def t_a_second_roll_reuses_the_dice(src):
     assert rt.eval("rollInProgress") is False, \
         "the first roll is not finished, so this is not the branch under test: %r" % rt.eval("rollInProgress")
 
-    rt.execute("GLIDED = {} pcall(function() click_roll(nil, 'Red') end)")
+    rt.execute("GLIDED = {} PUT_AT = {} TURNED = {} ROLLED = {} pcall(function() click_roll(nil, 'Red') end)")
     again = _mat_dice(rt)
     assert len(again) == 2, "the second click left %d dice" % len(again)
     assert sorted(d.getGUID() for d in again) == guids, \
@@ -16158,8 +16176,8 @@ def t_a_second_roll_reuses_the_dice(src):
         "the second roll spawned %d more dice" % (len(rt.eval("SPAWNED_AT")) - spawns_before)
 
     # ...lifted back to the two launch spots, which are radialOffset each side of the mat's centre
-    lifts = list(rt.eval("GLIDED").values())
-    assert len(lifts) == 2, "both dice were not lifted: %d moves" % len(lifts)
+    lifts = list(rt.eval("PUT_AT").values())
+    assert len(lifts) == 2, "both dice were not stood up for the throw: %d placements" % len(lifts)
     apart = (lifts[0].x - lifts[1].x) ** 2 + (lifts[0].z - lifts[1].z) ** 2
     assert abs(apart - 36) < 6, "the dice were not put back on opposite sides of the mat: %r" % lifts
 
@@ -16218,6 +16236,82 @@ def t_a_second_roll_reuses_the_dice(src):
     """)
     assert len(_mat_dice(rt)) == 2, \
         "with the old dice destroyed the click did not spawn a fresh pair: %d" % len(_mat_dice(rt))
+
+
+def t_a_re_roll_is_as_random_as_the_first(src):
+    """A re-rolled die is thrown the same way a freshly spawned one is, and the die is uniform.
+
+    Maintainer, 2026-09-27: "the dice on the first roll do roll much more and better than on the
+    subsequent ones like they dont rotate much", and "be 100% sure no randomness is broken".
+
+    HE WAS SEEING A KINEMATIC TWEEN. The lift used setPositionSmooth, and while that runs TTS owns the
+    object's position AND velocity -- so the impulse and spin randomize() gave the die a tenth of a
+    second later were swallowed, and it arrived at the top with no angular velocity and simply dropped.
+    The face was still chosen by randomize(), so the result was not biased, but a die that does not
+    tumble is not the roll this mat has always shown.
+
+    So a re-roll now sets each die up exactly as a fresh spawn does -- at the launch spot, at a rotation
+    from randomRotation(), with no leftover motion, locked -- and lets rollDice unlock it and randomize()
+    throw it with nothing in the way.
+
+    WHAT "NO RANDOMNESS IS BROKEN" MEANS HERE, all four checked below:
+      1. every die is thrown, once, on a re-roll as on a first roll (randomize is the roll);
+      2. every die is given a fresh random orientation first, from the same generator spawnObject gets;
+      3. nothing is left driving the die when it is thrown -- no velocity, no angular velocity, no tween;
+      4. the die itself is uniform: twelve faces, three each of 0, 1, 2 and 3, which is the Root battle
+         die, and the mat never re-writes those values after the spawn.
+    """
+    # 4. THE DIE IS UNIFORM, and only the spawn ever sets its faces
+    lua = _mat_script(src).replace("\r\n", "\n")
+    faces = collections.Counter(int(m) for m in re.findall(r"\{value=(\d+), rotation=", lua))
+    assert dict(sorted(faces.items())) == {0: 3, 1: 3, 2: 3, 3: 3}, \
+        "the die is not the uniform Root battle die any more: %r" % dict(sorted(faces.items()))
+    assert lua.count("setRotationValues") == 1, \
+        "the face values are written in more than one place, so a re-roll could change the die"
+    assert "randomseed" not in lua, \
+        "the mat reseeds the generator, which is how the base mod's shuffle() was broken"
+
+    # a first roll: every die turned at random, then thrown
+    rt = _mat_runtime(src)
+    rt.execute("pcall(function() click_roll(nil, 'Red') end) FLUSH_UNTIL(1, 300)")
+    first_rolls = list(rt.eval("ROLLED").values())
+    assert len(first_rolls) == 2 and len(set(first_rolls)) == 2, \
+        "a first roll did not throw each of the two dice exactly once: %r" % first_rolls
+
+    # now the re-roll, measured on its own
+    rt.execute("PUT_AT = {} TURNED = {} ROLLED = {} GLIDED = {}"
+               " pcall(function() click_roll(nil, 'Red') end) FLUSH_UNTIL(1, 300)")
+
+    # 1. every die thrown, once
+    rolls = list(rt.eval("ROLLED").values())
+    assert len(rolls) == 2 and len(set(rolls)) == 2, \
+        "a re-roll threw %d dice (%r); randomize() IS the roll, so every die must get one" \
+        % (len(rolls), rolls)
+
+    # 2. and given a fresh random orientation first, not left on the face it landed on
+    turned = list(rt.eval("TURNED").values())
+    assert len(turned) == 2, \
+        "%d of the 2 dice were re-oriented before the throw; a die left as it lay starts every " \
+        "re-roll from the same face" % len(turned)
+    assert any(abs(t.x) > 0.01 or abs(t.y) > 0.01 or abs(t.z) > 0.01 for t in turned), \
+        "every die was turned to zero, so the orientation is not random: %r" % turned
+
+    # 3. nothing is driving the die when it is thrown: put there, not tweened, and motion zeroed
+    assert len(rt.eval("PUT_AT")) == 2, \
+        "the dice were not placed with setPosition, so something else is moving them into position"
+    assert not list(rt.eval("GLIDED").values()), \
+        "a re-roll still glides a die with setPositionSmooth -- a kinematic tween swallows the throw, " \
+        "which is why the dice stopped tumbling"
+    stopped = rt.eval("""function()
+        local n = 0
+        for _, d in ipairs(currentDice or {}) do
+          local v, a = d.__vel, d.__avel
+          if v ~= nil and a ~= nil then n = n + 1 end
+        end
+        return n
+    end""")()
+    assert stopped == 2, \
+        "%d of the 2 dice had their leftover motion cleared before the throw" % stopped
 
 
 def t_resync_replaces_a_frozen_battle_mat(src):
@@ -16574,6 +16668,7 @@ CASES = [
     ("the battle mat cannot stay stuck",    t_the_battle_mat_cannot_stay_stuck),
     ("the battle mat roll is the original", t_the_battle_mat_roll_is_the_original),
     ("a second roll reuses the dice",      t_a_second_roll_reuses_the_dice),
+    ("a re-roll is as random as the first", t_a_re_roll_is_as_random_as_the_first),
     ("resync replaces a frozen battle mat", t_resync_replaces_a_frozen_battle_mat),
 ]
 

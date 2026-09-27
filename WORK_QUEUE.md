@@ -822,7 +822,21 @@ Where to cut, if it is ever needed, biggest first (none done):
       of heightOffset rather than replacing it, because heightOffset is shared with the fresh SPAWN --
       the roll already approved, which was not asked to change. A first roll drops from where it always
       did; a re-roll gets more air, which is what a throw should look like next to a drop. The case
-      reads the lift height, which the glide recorder used to throw away.
+      reads the lift height, which the glide recorder used to throw away. Raised again to 5 in v1.499.
+      AND THEY TUMBLE AGAIN, v1.499. Maintainer: "the dice on the first roll do roll much more and
+      better than on the subsequent ones like they dont rotate much", with "be 100% sure no randomness
+      is broken". setPositionSmooth is a KINEMATIC tween: while it runs TTS owns the object's position
+      AND velocity, so the impulse and spin randomize() gave the die a tenth of a second later were
+      swallowed -- it arrived at the top with no angular velocity and dropped. The face was still chosen
+      by randomize(), so the result was never biased, but a die that does not tumble is not this mat's
+      roll. A re-roll now sets each die up exactly as a fresh spawn does: setPosition to the launch spot,
+      setRotation(randomRotation()) -- the same generator spawnObject is handed -- velocity and angular
+      velocity zeroed, locked; then rollDice unlocks it and randomize() throws it with nothing in the way.
+      ONE REAL BIAS FOUND AND FIXED while checking: displayResults defaulted an unreadable die's face to
+      0, and with hitValue 0 that scored as a hit. A die that cannot be read is left out of the tally.
+      A dedicated case holds all four parts of "no randomness is broken": every die thrown exactly once,
+      every die re-oriented first, nothing driving it when it is thrown, and the die itself uniform
+      (twelve faces, three each of 0-3, written in exactly one place). It fails on v1.498.
       THE HARNESS COULD NOT DRIVE ANY OF THIS, which is why two broken rewrites went out unnoticed.
       startLuaCoroutine was `if _G[f] then _G[f]() end` -- called like a plain function, so the first
       coroutine.yield inside raised and the body died there. It creates a real coroutine and resumes it
