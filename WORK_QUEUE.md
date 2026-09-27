@@ -818,6 +818,11 @@ Where to cut, if it is ever needed, biggest first (none done):
       resume and a stall of up to sixty frames looked instant. It is derived from the stub's own frame
       counter now (one second per sixty frames), which is what wait() really costs, so the case
       measures how many dice are unlocked a tenth of a second in: 1 of 2 on v1.496, 2 of 2 now.
+      A BIT HIGHER, v1.498. Maintainer: "make them jump a bit higher." rerollExtraHeight (2) sits ON TOP
+      of heightOffset rather than replacing it, because heightOffset is shared with the fresh SPAWN --
+      the roll already approved, which was not asked to change. A first roll drops from where it always
+      did; a re-roll gets more air, which is what a throw should look like next to a drop. The case
+      reads the lift height, which the glide recorder used to throw away.
       THE HARNESS COULD NOT DRIVE ANY OF THIS, which is why two broken rewrites went out unnoticed.
       startLuaCoroutine was `if _G[f] then _G[f]() end` -- called like a plain function, so the first
       coroutine.yield inside raised and the body died there. It creates a real coroutine and resumes it

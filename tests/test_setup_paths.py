@@ -15963,7 +15963,7 @@ def _mat_runtime(src):
         local o = _mk(...)
         local _sps = o.setPositionSmooth
         o.setPositionSmooth = function(pos, ...)
-          GLIDED[#GLIDED + 1] = { x = pos.x or pos[1], z = pos.z or pos[3] }
+          GLIDED[#GLIDED + 1] = { x = pos.x or pos[1], y = pos.y or pos[2], z = pos.z or pos[3] }
           return _sps(pos, ...)
         end
         return o
@@ -16162,6 +16162,18 @@ def t_a_second_roll_reuses_the_dice(src):
     assert len(lifts) == 2, "both dice were not lifted: %d moves" % len(lifts)
     apart = (lifts[0].x - lifts[1].x) ** 2 + (lifts[0].z - lifts[1].z) ** 2
     assert abs(apart - 36) < 6, "the dice were not put back on opposite sides of the mat: %r" % lifts
+
+    # AND THROWN HIGHER THAN A FRESH SPAWN DROPS FROM. Maintainer, 2026-09-27: "make them jump a bit
+    # higher." heightOffset is shared with the spawn, which is the roll already approved, so the extra
+    # sits on top of it -- a first roll drops from where it always did, a re-roll gets more air.
+    mat_y = rt.eval("function() return self.getPosition().y end")()
+    spawn_y = mat_y + rt.eval("heightOffset")
+    extra = rt.eval("rerollExtraHeight") or 0
+    assert extra > 0, "a re-roll is thrown no higher than a fresh spawn drops from"
+    for lift in lifts:
+        assert abs(lift.y - (spawn_y + extra)) < 0.01, \
+            "a die was lifted to y=%r; a fresh spawn is y=%r and the throw should clear it by %r" \
+            % (lift.y, spawn_y, extra)
 
     # NO PAUSE AT THE TOP OF THE LIFT. Maintainer, 2026-09-27: "the dices jump up, freeze in the air for
     # half a second, then proceed. make it smooth." waitBeforeRoll (0.5s) is there so a freshly SPAWNED
