@@ -862,6 +862,18 @@ Where to cut, if it is ever needed, biggest first (none done):
       never given the SAME spin, every axis inside rerollSpin, and the next re-roll's spin different
       again. It fails on v1.500 and v1.499 with "0 of the 2 dice were given a tumble".
       Dead with the lift: the launch-spot angle, the lock, rerollExtraHeight.
+- [x] **The second die starts lower on a first roll.** v1.502. Maintainer, 2026-09-27: "in the first
+      roll, the second dice starts from lower place for some reason." NOT ONE OF MINE -- this one is the
+      Ultimate Collection's, and it has always been there. `interactable = false` and `setLock(true)` are
+      applied to spawnedDie only, three lines ABOVE the clone, and a clone inherits neither. So the second
+      die was free from the moment it existed: the glide to -180 holds it for a fraction of a second, then
+      gravity has it, and rollDice does not let the dice go until waitBeforeRoll half a second later -- by
+      which time it had fallen, while the first die was still held at heightOffset. It was also
+      INTERACTABLE, which the first die is not, so a battle die could be plucked out of the air mid-roll.
+      The clone is now locked, made non-interactable and had its motion zeroed before the glide, exactly
+      as the first die is. Found by asking the harness what state each die was actually in rather than
+      reasoning about it; the case pins lock, grabbability and equal height, and fails on every build
+      including the original.
       THE HARNESS COULD NOT DRIVE ANY OF THIS, which is why two broken rewrites went out unnoticed.
       startLuaCoroutine was `if _G[f] then _G[f]() end` -- called like a plain function, so the first
       coroutine.yield inside raised and the body died there. It creates a real coroutine and resumes it

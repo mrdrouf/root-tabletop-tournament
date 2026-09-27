@@ -16126,6 +16126,29 @@ def t_the_battle_mat_roll_is_the_original(src):
     assert len(born) == 1, \
         "%d dice were SPAWNED; the second one is cloned off the first, as it always was" % len(born)
     assert len(_mat_dice(rt)) == 2, "the clone did not join the roll"
+
+    # BOTH DICE ARE HELD THE SAME WAY UNTIL THE ROLL. Maintainer, 2026-09-27: "in the first roll, the
+    # second dice starts from lower place for some reason." interactable and setLock are applied to
+    # spawnedDie only, three lines above the clone, and a clone inherits neither -- so the second die was
+    # free from the moment it existed. The glide holds it for a fraction of a second, then gravity does,
+    # and rollDice does not let go until waitBeforeRoll: by then it had fallen while the first was still
+    # held up at heightOffset. It was interactable too, so it could be plucked out of the air mid-roll.
+    held = rt.eval("""function()
+        local out = {}
+        for i, d in ipairs(currentDice) do
+          out[i] = { locked = (d.__locked == true), free = (d.interactable ~= false), y = d.getPosition().y }
+        end
+        return out
+    end""")()
+    a, b = held[1], held[2]
+    assert a.locked and b.locked, \
+        "die 1 locked=%s, die 2 locked=%s -- an unheld die falls before the roll lets go" \
+        % (a.locked, b.locked)
+    assert not a.free and not b.free, \
+        "die 1 grabbable=%s, die 2 grabbable=%s -- a battle die must not be pluckable mid-roll" \
+        % (a.free, b.free)
+    assert abs(a.y - b.y) < 0.01, \
+        "the two dice start %.3f apart in height (%.3f vs %.3f)" % (abs(a.y - b.y), a.y, b.y)
     glides = list(rt.eval("GLIDED").values())
     assert glides, "the clone no longer slides across the mat"
     far, start = glides[-1], born[0]
