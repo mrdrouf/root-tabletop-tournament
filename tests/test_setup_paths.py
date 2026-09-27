@@ -16115,15 +16115,16 @@ def t_the_battle_mat_roll_is_the_original(src):
     for gone in ("spawnOneDie", "rollWhenReady", "spawnWaitMax", "restWaitMax", "DIE_GAP", "liveDice"):
         assert gone not in lua, "%r is back: the roll path has been rewritten again" % gone
 
-    # THE TWO DELIBERATE DEPARTURES FROM THE ORIGINAL, both here because the original made the two dice
-    # differently and that is what made one of them start lower (2026-09-27: "one dice still starts lower
-    # than the other one"). The clone was created ON TOP OF the first die and slid across with
-    # setPositionSmooth; it is created at its own spot now, and nothing slides.
-    assert "findGlobalPosWithLocalDirection(-180),rotation=randomRotation()}" in lua, \
-        "the clone is not created at its own spot, so the two dice are still made differently"
+    # THE ONE DELIBERATE DEPARTURE FROM THE ORIGINAL. Maintainer, 2026-09-27, after three builds of me
+    # guessing at why one die started lower: "make them both fall from a good height at the same height."
+    # Neither height was ever SET by this script -- the first die's came from spawnObject, the second's from
+    # clone(), with autoraise and a kinematic glide in between, none of which the harness can see. Both are
+    # set now, from one number, after both dice exist.
     code = "\n".join(l for l in lua.split("\n") if not l.strip().startswith("--"))
     assert "setPositionSmooth" not in code, \
-        "a die is still slid into place; a kinematic tween is the one thing that made them differ"
+        "a die is still slid into place, and a kinematic glide is one of the things that left them uneven"
+    assert code.count("die.setPosition(") == 1, \
+        "the dice are not placed from one line, so their heights can differ again"
 
     # DRIVEN, so this is not just text: ONE die is spawned and ONE is cloned off it -- a clone carries the
     # picture and the twelve rotation values, so it costs no second texture fetch, which is what leaves a
@@ -16160,15 +16161,26 @@ def t_the_battle_mat_roll_is_the_original(src):
     assert not list(rt.eval("GLIDED").values()), \
         "a die is still slid into place on a first roll: %r" % list(rt.eval("GLIDED").values())
 
-    # ...and the two of them stand on opposite sides of the mat, radialOffset each side of its centre
+    # ...on opposite sides of the mat, radialOffset each side of its centre, AND AT THE SAME GOOD HEIGHT
     spots = rt.eval("""function()
         local out = {}
-        for i, d in ipairs(currentDice) do local q = d.getPosition() out[i] = { x = q.x, z = q.z } end
+        for i, d in ipairs(currentDice) do
+          local q = d.getPosition()
+          out[i] = { x = q.x, y = q.y, z = q.z }
+        end
         return out
     end""")()
     apart = (spots[1].x - spots[2].x) ** 2 + (spots[1].z - spots[2].z) ** 2
     assert abs(apart - 36) < 6, \
         "the dice are not on opposite sides of the mat: %r" % [(spots[1].x, spots[1].z), (spots[2].x, spots[2].z)]
+    assert abs(spots[1].y - spots[2].y) < 0.001, \
+        "the dice start %.3f apart in height (%.3f vs %.3f)" % (abs(spots[1].y - spots[2].y), spots[1].y, spots[2].y)
+    want = rt.eval("function() return self.getPosition().y end")() + (rt.eval("rollDropHeight") or 0)
+    assert abs(spots[1].y - want) < 0.001, \
+        "the dice are held at y=%.3f, not the rollDropHeight this script sets (%.3f)" % (spots[1].y, want)
+    assert (rt.eval("rollDropHeight") or 0) > rt.eval("heightOffset"), \
+        "rollDropHeight (%r) is no higher than where the dice used to appear, so it is not 'a good height'" \
+        % rt.eval("rollDropHeight")
 
     # a clone that comes back nil -- a slow texture with caching off -- does not end the click
     rt = _mat_runtime(src)

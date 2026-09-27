@@ -885,6 +885,22 @@ Where to cut, if it is ever needed, biggest first (none done):
       spawnObject because a clone carries the picture and the twelve rotation values, so it costs no
       second texture fetch -- and a second fetch with caching off is what leaves a die still spawning when
       the roll comes. Fails on v1.502 and on the original.
+      SET, NOT INHERITED, v1.504 -- and this is the one that was actually the point. Maintainer, after
+      v1.503 made it worse ("now one dice starts super high and the other bounces on the first roll"):
+      "make them both fall from a good height at the same height." EVERY EARLIER ATTEMPT WAS A GUESS ABOUT
+      WHERE THE DICE ENDED UP BY ACCIDENT. The first die's height came from spawnObject's position, the
+      second's from clone()'s, with autoraise, a kinematic glide and whatever offset clone() applies in
+      between -- and the harness sees none of that (no physics, no autoraise, no tween: it reported both
+      dice level under every single version I shipped, which is why three builds went out broken). Neither
+      height was ever set by this script. Both are set now, from rollDropHeight (5, above the old 3), in one
+      loop over currentDice after both dice exist, with the lock, the un-grabbing and the motion clearing
+      in the same place. Two dice given the same y by the same line cannot differ whatever the engine did.
+      The case holds it: one setPosition call, no glide anywhere, both dice at exactly mat + rollDropHeight,
+      on opposite sides, and rollDropHeight higher than the old spawn height. It fails on v1.502, v1.503 and
+      the original.
+      LESSON, and it is the same one as the rest of this file: the harness could not see any of it, so
+      "I reasoned about it" was worth nothing three times running. What worked was asking the harness to
+      PRINT the state of each die, and then setting the thing explicitly instead of inheriting it.
       THE HARNESS COULD NOT DRIVE ANY OF THIS, which is why two broken rewrites went out unnoticed.
       startLuaCoroutine was `if _G[f] then _G[f]() end` -- called like a plain function, so the first
       coroutine.yield inside raised and the body died there. It creates a real coroutine and resumes it

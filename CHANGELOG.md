@@ -178,8 +178,9 @@ setup board's top right corner, and goes up on every commit.
   looks like. None of it was buying randomness either: a die's face comes from its spin and its air.
 - The harness runs coroutines for real, so the mat's roll can be driven end to end.
 - Resync replaces a battle mat that is stuck mid-roll, and takes the frozen dice with it.
-- Battle mat: on a first roll the two dice are now made the same way -- the second is created at its
-  own spot rather than on top of the first and slid across, and both are held and un-grabbable until
-  the roll lets go. That asymmetry, not the height, was why one die started lower.
+- Battle mat: on a first roll both dice are now SET to one height (rollDropHeight, 5 above the mat) and
+  held there, un-grabbable, until the roll lets them go. Neither height used to be set by the script at
+  all -- one came from spawnObject, the other from clone(), with autoraise and a glide in between --
+  which is why one die always started lower.
 - Battle mat: two attempts at the above rewrote the roll and changed how it looks. Both reverted --
   the roll is the Ultimate script's again, line for line, and a harness case holds it there.
