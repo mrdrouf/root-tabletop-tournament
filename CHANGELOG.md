@@ -181,6 +181,8 @@ setup board's top right corner, and goes up on every commit.
 - Battle mat: on a first roll both dice are now SET to one height (rollDropHeight, 5 above the mat) and
   held there, un-grabbable, until the roll lets them go. Neither height used to be set by the script at
   all -- one came from spawnObject, the other from clone(), with autoraise and a glide in between --
-  which is why one die always started lower.
+  which is why one die always started lower. Both are let go six frames apart rather than up to a
+  second, and a first roll is a pure drop -- randomize()'s own hop, which was its own size for each die,
+  is cleared while its random spin is kept.
 - Battle mat: two attempts at the above rewrote the roll and changed how it looks. Both reverted --
   the roll is the Ultimate script's again, line for line, and a harness case holds it there.

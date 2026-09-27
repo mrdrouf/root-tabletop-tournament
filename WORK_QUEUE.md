@@ -901,6 +901,19 @@ Where to cut, if it is ever needed, biggest first (none done):
       LESSON, and it is the same one as the rest of this file: the harness could not see any of it, so
       "I reasoned about it" was worth nothing three times running. What worked was asking the harness to
       PRINT the state of each die, and then setting the thing explicitly instead of inheriting it.
+      AND THEY GO TOGETHER, AND THEY DROP, v1.505. Maintainer: "the first roll still has one dice jumping
+      higher than the other one. they should both drop initially from some height." Two causes, both in
+      coroutine_rollDice. (1) The dice were let go ONE AT A TIME with wait(0.1) between them, and wait()
+      counts os.time(), which reports only whole seconds -- so it stalls until the clock ticks over, up to a
+      full second, with one die already down on the mat while the other was still held at rollDropHeight.
+      A re-roll got dieGapFrames earlier the same day and the first roll was deliberately left alone; that
+      was the mistake. Six frames now, on EVERY roll. (2) randomize() hands each die a hop of its own size,
+      so even released together one out-jumps the other -- on a first roll the LINEAR velocity is cleared
+      right after randomize(), leaving its random spin untouched, so both dice simply fall from the height
+      they are already held at. The re-roll keeps its upward throw (rerollJump).
+      The case drives it on a FIXED 20-frame budget, which matters: the first cut read dieGapFrames and
+      defaulted it to something large when absent, so it waited the stall out and passed on the very build
+      that had the bug. It fails on v1.504 with "only 1 of the 2 dice had been let go 20 frames in".
       THE HARNESS COULD NOT DRIVE ANY OF THIS, which is why two broken rewrites went out unnoticed.
       startLuaCoroutine was `if _G[f] then _G[f]() end` -- called like a plain function, so the first
       coroutine.yield inside raised and the body died there. It creates a real coroutine and resumes it

@@ -16182,6 +16182,43 @@ def t_the_battle_mat_roll_is_the_original(src):
         "rollDropHeight (%r) is no higher than where the dice used to appear, so it is not 'a good height'" \
         % rt.eval("rollDropHeight")
 
+    # AND THEY ARE LET GO TOGETHER, AND THEY DROP. Maintainer, 2026-09-27: "the first roll still has one
+    # dice jumping higher than the other one. they should both drop initially from some height."
+    #
+    # Two things did that. The dice were let go one at a time with wait(0.1) between them, and wait() counts
+    # os.time(), which reports whole seconds -- so it stalled until the clock ticked, up to a second, with
+    # one die already down while the other was still held at full height. And randomize() hands each die a
+    # hop of its own size, so even released together one would out-jump the other.
+    rt.execute("FLUSH_UNTIL(0.6, 1)")           # the waitBeforeRoll timer: the roll starts
+    loose = lambda: rt.eval("""function()
+        local n = 0
+        for _, d in ipairs(currentDice or {}) do if d.__locked == false then n = n + 1 end end
+        return n
+    end""")()
+    BUDGET = 20
+    frames = 0
+    while frames < BUDGET and loose() < 2:
+        rt.execute("FLUSH_UNTIL(0.3, 1)")
+        frames += 1
+    assert loose() == 2, \
+        "only %d of the 2 dice had been let go %d frames into the roll; the other is still held up in " \
+        "the air (wait(0.1) stalls until os.time() ticks, which is up to a second)" % (loose(), frames)
+    gap = rt.eval("dieGapFrames")
+    assert gap is not None and gap <= 12, \
+        "the gap between the dice is not a small frame count (dieGapFrames=%r)" % gap
+    assert frames <= gap + 2, \
+        "the dice were let go %d frames apart, not dieGapFrames (%d)" % (frames, gap)
+
+    # a first roll is a DROP: no upward throw on either die, and the spin randomize() gave them is left be
+    ups = rt.eval("""function()
+        local out = {}
+        for i, d in ipairs(currentDice) do local v = d.__vel or {} out[i] = (v.y or v[2] or 0) end
+        return out
+    end""")()
+    assert abs(ups[1]) < 0.01 and abs(ups[2]) < 0.01, \
+        "a first roll throws the dice upward (%r, %r); they are held at a height already and should fall" \
+        % (ups[1], ups[2])
+
     # a clone that comes back nil -- a slow texture with caching off -- does not end the click
     rt = _mat_runtime(src)
     rt.execute("""
