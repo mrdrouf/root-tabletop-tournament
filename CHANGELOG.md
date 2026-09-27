@@ -177,7 +177,9 @@ setup board's top right corner, and goes up on every commit.
   nudged across the mat and snapped to a new face -- and each of those instant jumps is what a respawn
   looks like. None of it was buying randomness either: a die's face comes from its spin and its air.
 - The harness runs coroutines for real, so the mat's roll can be driven end to end.
-- Resync replaces a battle mat that is stuck mid-roll, and takes the frozen dice with it.
+- Resync replaces a battle mat that is stuck mid-roll, takes the frozen dice with it, and also replaces
+  one running an older script -- a mat's script lives in the mat, so a saved table keeps whatever it was
+  spawned with until the map is replaced.
 - Battle mat: on a first roll both dice are now SET to one height (rollDropHeight, 5 above the mat) and
   held there, un-grabbable, until the roll lets them go. Neither height used to be set by the script at
   all -- one came from spawnObject, the other from clone(), with autoraise and a glide in between --

@@ -2343,6 +2343,29 @@ end
 -- press. getVar reads a global out of the mat's own script; scripts run on the host, so the host's
 -- answer is the only one there is.
 RTT_RESYNC_MAT  = true
+-- CONSTANTS THE CURRENT BATTLE MAT BLUEPRINT DEFINES. A mat that cannot answer for one of these is running
+-- an older copy of the script, and Resync replaces it.
+--
+-- WHY THIS IS NEEDED AT ALL: a mat's script lives in the MAT, not in the board. update_saves.py rewrites
+-- the board, the sheet and the panel, and the mat is spawned out of the board's content -- so a mat already
+-- standing on a saved table keeps whatever script it was spawned with until the map is replaced. The first
+-- version of this only acted on a mat that was stuck at that moment, which meant a table with the old
+-- script and no current fault was never fixed, and the maintainer was told otherwise. getVar reads a global
+-- out of the object's own script; scripts run on the host, so the host's answer is the only one there is.
+--
+-- ADD TO THIS LIST when the mat blueprint gains a constant, and an old mat is replaced on the next Resync.
+RTT_MAT_MARKERS = { "rollWatchdog", "rollDropHeight", "dieGapFrames", "rollDrift", "rerollJump" }
+
+-- Does this mat carry the current script?
+function rttBattleMatStale(mat)
+  if mat == nil then return false end
+  for _, name in ipairs(RTT_MAT_MARKERS) do
+    local v = nil
+    pcall(function() v = mat.getVar(name) end)
+    if v == nil then return true end
+  end
+  return false
+end
 RTT_DICE_RADIUS = 8    -- a battle die lands radialOffset * scale, about 3.4, from the mat's centre
 
 -- Every battle die the mat is no longer keeping track of.
@@ -2374,20 +2397,21 @@ end
 -- anything is destroyed, so the answer describes the table the player is looking at.
 function rttBattleMatState()
   local mat = rttFixture(RTT_TAG_MAT)
-  if mat == nil then return nil, false, 0 end
+  if mat == nil then return nil, false, 0, false end
   local stuck = false
   pcall(function() stuck = (mat.getVar("rollInProgress") == true) end)
   local pos = nil
   pcall(function() pos = mat.getPosition() end)
-  return mat, stuck, #rttStrayBattleDice(pos)
+  return mat, stuck, #rttStrayBattleDice(pos), rttBattleMatStale(mat)
 end
 
 -- Returns whether the mat was replaced, and how many stray dice went with it.
 function rttResyncBattleMat()
   if RTT_RESYNC_MAT ~= true then return false, 0 end
-  local mat, stuck, strays = rttBattleMatState()
-  if mat == nil then return false, 0 end
-  if stuck ~= true and strays == 0 then return false, 0 end
+  local mat, stuck, strays, stale = rttBattleMatState()
+  if mat == nil then return false, 0, false end
+  -- stuck now, dice left frozen beside it, or running a script older than this build
+  if stuck ~= true and strays == 0 and stale ~= true then return false, 0, false end
   local pos, old = nil, nil
   pcall(function() pos = mat.getPosition() end)
   pcall(function() old = mat.getGUID() end)
@@ -2415,7 +2439,7 @@ function rttResyncBattleMat()
       end
     end, 2)
   end, 1)
-  return true, gone
+  return true, gone, stale
 end
 
 function rttResyncClick(player, value, id)
@@ -2448,10 +2472,10 @@ function rttResyncClick(player, value, id)
     if (lostc or 0) > 0 then parts[#parts + 1] = tostring(lostc) .. " put back" end
     -- SILENT WHEN THE MAT WAS FINE, which is nearly always: rttResyncBattleMat only acts on a mat
     -- that is stuck mid-roll or has dice left beside it, and the message is meant to stay one line.
-    local matdone, matdice = false, 0
-    pcall(function() matdone, matdice = rttResyncBattleMat() end)
+    local matdone, matdice, matold = false, 0, false
+    pcall(function() matdone, matdice, matold = rttResyncBattleMat() end)
     if matdone then
-      parts[#parts + 1] = "battle mat replaced"
+      parts[#parts + 1] = matold and "battle mat updated" or "battle mat replaced"
       if (matdice or 0) > 0 then parts[#parts + 1] = tostring(matdice) .. " frozen dice removed" end
     end
     local msg = "Resync done: " .. table.concat(parts, "; ")

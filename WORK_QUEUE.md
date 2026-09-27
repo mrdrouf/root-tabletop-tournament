@@ -758,6 +758,16 @@ Where to cut, if it is ever needed, biggest first (none done):
       Custom_Assetbundle re-downloads on a respawn.
       A SAVED TABLE'S EXISTING MAT KEEPS THE OLD SCRIPT until the map is replaced or Resync is
       pressed -- update_saves.py rewrites the board, and the mat is spawned out of the board.
+      AND RESYNC ONLY DID THAT FOR A MAT THAT WAS STUCK AT THAT MOMENT, v1.507. Maintainer, 2026-09-27:
+      "you confirm that resynch redo the battle mat right?" -- asked, checked, and the answer was no for
+      the normal case: `if stuck ~= true and strays == 0 then return false` left an idle mat alone whatever
+      script it carried, so a table with the old script and no current fault was never fixed. He had been
+      told otherwise twice. RTT_MAT_MARKERS lists the constants the current blueprint defines
+      (rollWatchdog, rollDropHeight, dieGapFrames, rollDrift, rerollJump); a mat that answers nil for any
+      of them via getVar is running an older copy and is replaced, once, and the message says "battle mat
+      updated" rather than "replaced". ADD TO THAT LIST whenever the mat blueprint gains a constant and the
+      next Resync delivers it. The case drives the stale path with a mat that answers for nothing, and
+      checks every name on the list is really defined in the blueprint.
       Two cases; the first reproduces the freeze on the shipped script (the harness needed a Timer
       shim and the dice APIs before it could run the old script at all).
       THE LOOK CHANGED TWICE AND SHOULD NOT HAVE AT ALL, reverted in v1.494. Maintainer: "did you

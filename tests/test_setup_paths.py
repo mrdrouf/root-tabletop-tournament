@@ -16527,7 +16527,12 @@ def t_resync_replaces_a_frozen_battle_mat(src):
         rt = fresh(src)
         rt.execute("""
           MAT = MKOBJ('Battle Mat', { 33.17, 1.55, 9.21 }, { 'Map Object', 'RTT Fixture', 'RTT Mat' })
-          MAT.getVar = function(k) if k == 'rollInProgress' then return %s end end
+          -- a mat on the CURRENT script: it answers for every RTT_MAT_MARKERS constant. A mat that cannot
+          -- is running an older copy, which is its own reason to be replaced -- exercised separately below.
+          MAT.getVar = function(k)
+            if k == 'rollInProgress' then return %s end
+            for _, m in ipairs(RTT_MAT_MARKERS) do if k == m then return 1 end end
+          end
           function DIE(name, x, z, inter, guid)
             local o = MKOBJ(name, { x, 1.6, z }, {})
             o.name = 'Custom_Dice'
@@ -16545,7 +16550,7 @@ def t_resync_replaces_a_frozen_battle_mat(src):
 
     # a mat stuck mid-roll: replaced, and the frozen dice go
     rt = table(stuck=True)
-    done, gone = rt.eval("function() return rttResyncBattleMat() end")()
+    done, gone, old = rt.eval("function() return rttResyncBattleMat() end")()
     assert done is True, "a mat stuck mid-roll was left alone"
     assert gone == 2, "the frozen dice were not removed: %r" % gone
     assert rt.eval("MAT.isDestroyed()") is True, "the stuck mat is still there"
@@ -16564,18 +16569,43 @@ def t_resync_replaces_a_frozen_battle_mat(src):
 
     # a mat that is FINE is not touched: a Custom_Assetbundle re-downloads on a respawn
     rt = table(stuck=False, dice=0)
-    done, gone = rt.eval("function() return rttResyncBattleMat() end")()
+    done, gone, old = rt.eval("function() return rttResyncBattleMat() end")()
     assert done is False and gone == 0, "a healthy mat was replaced anyway (%r, %r)" % (done, gone)
     assert rt.eval("MAT.isDestroyed()") is not True, "a healthy mat was destroyed"
 
     # ...but stray frozen dice beside a mat that says nothing are reason enough
     rt = table(stuck=False, dice=1)
-    done, gone = rt.eval("function() return rttResyncBattleMat() end")()
+    done, gone, old = rt.eval("function() return rttResyncBattleMat() end")()
     assert done is True and gone == 1, "a die left frozen beside the mat was not cleared: %r, %r" % (done, gone)
+
+    # A MAT RUNNING AN OLDER SCRIPT is replaced too, even with nothing wrong with it right now. Its script
+    # lives in the MAT, not in the board: update_saves.py rewrites the board, the sheet and the panel, and
+    # the mat is spawned out of the board's content -- so a mat already standing on a saved table keeps
+    # whatever script it was spawned with until the map is replaced. Without this, a table with the old
+    # script and no current fault was never fixed, whatever anybody was told.
+    rt = table(stuck=False, dice=0)
+    rt.execute("MAT.getVar = function(k) return nil end")      # answers for none of the constants
+    done, gone, old = rt.eval("function() return rttResyncBattleMat() end")()
+    assert done is True and old is True, \
+        "a mat running an older script was left alone (done=%r, stale=%r)" % (done, old)
+    assert rt.eval("MAT.isDestroyed()") is True, "the old mat is still there"
+    rt.execute("FLUSH(8)")
+    assert rt.eval("""function()
+        for _, o in ipairs(getAllObjects()) do
+          if o.hasTag('RTT Mat') and not o.isDestroyed() then return true end
+        end
+        return false
+    end""")() is True, "no replacement mat was spawned"
+
+    # ...and every constant the mat blueprint defines is on the list that decides that
+    lua = _mat_script(src)
+    for name in rt.eval("RTT_MAT_MARKERS").values():
+        assert ("\n%s " % name) in lua.replace("\r\n", "\n"), \
+            "RTT_MAT_MARKERS names %r, which the mat blueprint does not define" % name
 
     # and with no mat on the table at all it is a no-op, not a null
     rt = fresh(src)
-    done, gone = rt.eval("function() return rttResyncBattleMat() end")()
+    done, gone, old = rt.eval("function() return rttResyncBattleMat() end")()
     assert done is False and gone == 0, "with no mat out it still claimed to do something"
 
 
