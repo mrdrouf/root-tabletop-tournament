@@ -947,6 +947,21 @@ Where to cut, if it is ever needed, biggest first (none done):
       wait() is now called by nothing and is gone, so no delay in this script depends on the wall clock --
       every one of its "wait(0.1)"s was really "wait until the clock ticks over". The case pins that: no
       wait() helper, no os.time(), both pauses frame counts, and waitBeforeRoll under 0.5. It fails on v1.507.
+      SIMULATED, v1.509. Maintainer: "simulate to make sure you did not fuck the randomness" -- fair, after
+      that many rewrites, and the harness cases check SHAPE (every die thrown, every die spun, nothing
+      repositioned) rather than distribution. tools/sim_battle_mat.py drives the built blueprint's own
+      functions over 200k draws: randomRotation covers the sphere with no NaN (it carries a real typo,
+      `if t2 < -1.0 then ts = -1.0 end` -- assigning to `ts`, not `t2` -- so asin could in principle be
+      handed an out-of-range value; it never was in 200k, which is why it is checked rather than assumed),
+      the die's faces are 3 each of 0-3 and land uniform (chi2 1.37 against 16.27 at p=.001), the push is
+      inward in 20000/20000 and never further out than the old fixed spot, the drop angle is uniform over
+      12 sectors (chi2 8.8 against 31.26), the tumble is symmetric and full-range, and displayResults
+      announces the faces the dice show for all 64 face/hit-value combinations. Nothing was wrong.
+      THE FIRST RUN REPORTED THREE FAILURES AND ALL THREE WERE THE SIMULATION'S: rotation_values is built
+      INSIDE click_roll so it is nil until a roll has happened (every face read 0); two fresh lupa runtimes
+      produce the IDENTICAL random sequence, so re-creating one mid-sample re-draws the same numbers and
+      multiplied the angle chi2 by the eight runtimes used (57.6 -> 8.8); and a "#" after a face marks a die
+      that met the hit value. All three are written into the tool's docstring so they are not rediscovered.
       THE HARNESS COULD NOT DRIVE ANY OF THIS, which is why two broken rewrites went out unnoticed.
       startLuaCoroutine was `if _G[f] then _G[f]() end` -- called like a plain function, so the first
       coroutine.yield inside raised and the body died there. It creates a real coroutine and resumes it

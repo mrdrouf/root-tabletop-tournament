@@ -192,5 +192,7 @@ setup board's top right corner, and goes up on every commit.
 - Battle mat: rolls finish sooner. A first roll waits 0.3s instead of 0.5s before letting the dice go, and
   no roll holds the mat busy for up to a second after the dice have settled -- that pause was an os.time()
   stall, and os.time() only counts whole seconds. Re-rolled dice settle 20% sooner (less spin and drift).
+- `tools/sim_battle_mat.py` Monte-Carlos the mat's randomness against the built blueprint: the rotation
+  generator, the die's faces, the push, the drop spots, the tumble, and the announced result.
 - Battle mat: two attempts at the above rewrote the roll and changed how it looks. Both reverted --
   the roll is the Ultimate script's again, line for line, and a harness case holds it there.
