@@ -171,9 +171,10 @@ setup board's top right corner, and goes up on every commit.
 - Battle mat: the next roll lifts the dice that are already out and rolls them again, instead of
   destroying them and spawning a new pair. The lift and the throw are one motion --
   a re-roll does not wait the half second a freshly spawned die needs, and both dice are let go a
-  tenth of a second apart instead of up to a whole one, and thrown properly: stood at the launch spot
-  at a random rotation with no leftover motion, five units higher than a fresh spawn, then let go.
-  Gliding them there had been a kinematic tween, which swallowed the throw and stopped them tumbling.
+  tenth of a second apart instead of up to a whole one, and genuinely thrown: nudged back to their
+  spots ON the mat, turned at random, then given real upward velocity, so they leave under their own
+  momentum and tumble the whole way. Moving them to a point in the air -- glided or placed -- was a
+  glide and a respawn, not a jump, and the glide's kinematic tween swallowed the spin as well.
 - The harness runs coroutines for real, so the mat's roll can be driven end to end.
 - Resync replaces a battle mat that is stuck mid-roll, and takes the frozen dice with it.
 - Battle mat: two attempts at the above rewrote the roll and changed how it looks. Both reverted --

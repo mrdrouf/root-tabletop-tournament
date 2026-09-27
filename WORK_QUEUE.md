@@ -837,6 +837,17 @@ Where to cut, if it is ever needed, biggest first (none done):
       A dedicated case holds all four parts of "no randomness is broken": every die thrown exactly once,
       every die re-oriented first, nothing driving it when it is thrown, and the die itself uniform
       (twelve faces, three each of 0-3, written in exactly one place). It fails on v1.498.
+      A JUMP IS PHYSICS, v1.500. Maintainer: "so the dice now reappear on top they do not rejump they
+      always respawn." Both earlier attempts moved the die to a point in the AIR and let it fall from
+      there -- setPositionSmooth (a glide, and being kinematic it also swallowed the spin) then
+      setPosition (an appearance). Neither is a jump. The die stays on the mat now: the reposition is x
+      and z only, at the height it is already resting at, it is turned by randomRotation(), and after
+      randomize() has rolled it, rerollJump (9 units/sec, about four units of air) is applied as upward
+      VELOCITY -- linear only, so randomize()'s random spin is untouched. It leaves the mat under its own
+      momentum, rises turning, and tumbles the whole way down. rerollExtraHeight is gone.
+      The case lands the dice by hand first (the harness has no gravity) and then holds that a re-roll
+      does not change a die's height and does give each one upward velocity. It fails on v1.499 with
+      "a die lying at y=2.15 was moved to y=9.55".
       THE HARNESS COULD NOT DRIVE ANY OF THIS, which is why two broken rewrites went out unnoticed.
       startLuaCoroutine was `if _G[f] then _G[f]() end` -- called like a plain function, so the first
       coroutine.yield inside raised and the body died there. It creates a real coroutine and resumes it

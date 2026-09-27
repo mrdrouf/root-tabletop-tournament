@@ -16166,7 +16166,15 @@ def t_a_second_roll_reuses_the_dice(src):
     assert rt.eval("rollInProgress") is False, \
         "the first roll is not finished, so this is not the branch under test: %r" % rt.eval("rollInProgress")
 
-    rt.execute("GLIDED = {} PUT_AT = {} TURNED = {} ROLLED = {} pcall(function() click_roll(nil, 'Red') end)")
+    rt.execute("""
+      LANDED = self.getPosition().y + 0.6
+      for _, d in ipairs(currentDice) do
+        local q = d.getPosition()
+        d.setPosition({ x = q.x, y = LANDED, z = q.z })
+      end
+      GLIDED = {} PUT_AT = {} TURNED = {} ROLLED = {}
+      pcall(function() click_roll(nil, 'Red') end)
+    """)
     again = _mat_dice(rt)
     assert len(again) == 2, "the second click left %d dice" % len(again)
     assert sorted(d.getGUID() for d in again) == guids, \
@@ -16181,17 +16189,15 @@ def t_a_second_roll_reuses_the_dice(src):
     apart = (lifts[0].x - lifts[1].x) ** 2 + (lifts[0].z - lifts[1].z) ** 2
     assert abs(apart - 36) < 6, "the dice were not put back on opposite sides of the mat: %r" % lifts
 
-    # AND THROWN HIGHER THAN A FRESH SPAWN DROPS FROM. Maintainer, 2026-09-27: "make them jump a bit
-    # higher." heightOffset is shared with the spawn, which is the roll already approved, so the extra
-    # sits on top of it -- a first roll drops from where it always did, a re-roll gets more air.
-    mat_y = rt.eval("function() return self.getPosition().y end")()
-    spawn_y = mat_y + rt.eval("heightOffset")
-    extra = rt.eval("rerollExtraHeight") or 0
-    assert extra > 0, "a re-roll is thrown no higher than a fresh spawn drops from"
+    # THE DIE IS NOT LIFTED AT ALL, it is thrown. Maintainer, 2026-09-27: "so the dice now reappear on top
+    # they do not rejump they always respawn" -- moving it to a point in the air, by any means, is a
+    # respawn or a glide, never a jump. The reposition is x and z only, at the height the die is already
+    # resting at, and the air comes from real upward velocity applied after randomize().
+    landed = rt.eval("LANDED")
     for lift in lifts:
-        assert abs(lift.y - (spawn_y + extra)) < 0.01, \
-            "a die was lifted to y=%r; a fresh spawn is y=%r and the throw should clear it by %r" \
-            % (lift.y, spawn_y, extra)
+        assert abs(lift.y - landed) < 0.01, \
+            "a die lying at y=%r was moved to y=%r -- putting it up in the air is a respawn, not a jump" \
+            % (landed, lift.y)
 
     # NO PAUSE AT THE TOP OF THE LIFT. Maintainer, 2026-09-27: "the dices jump up, freeze in the air for
     # half a second, then proceed. make it smooth." waitBeforeRoll (0.5s) is there so a freshly SPAWNED
@@ -16219,6 +16225,19 @@ def t_a_second_roll_reuses_the_dice(src):
     assert loose() == 2, \
         "%d of the 2 dice were let go within a tenth of a second; the other is still locked in the air" \
         % loose()
+
+    # and each of them is thrown UPWARD -- the air comes from velocity, not from being placed high
+    jump = rt.eval("rerollJump") or 0
+    assert jump > 0, "nothing throws the dice upward, so a re-roll has no jump in it"
+    thrown = rt.eval("""function()
+        local n = 0
+        for _, d in ipairs(currentDice or {}) do
+          local v = d.__vel
+          if v ~= nil and (v.y or v[2] or 0) > 0 then n = n + 1 end
+        end
+        return n
+    end""")()
+    assert thrown == 2, "%d of the 2 dice were thrown upward" % thrown
 
     # and they actually roll: the pending auto-removal from the FIRST roll must not bin them mid-roll
     rt.execute("FLUSH_UNTIL(1, 300)")
