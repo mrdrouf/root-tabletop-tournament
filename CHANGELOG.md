@@ -189,5 +189,8 @@ setup board's top right corner, and goes up on every commit.
 - Battle mat: the dice no longer start from the same two poles every roll. They drop at a random pair of
   opposite angles, at a random distance from the centre (never further out than the old fixed spot), and
   each is pushed inward across the mat as it is let go.
+- Battle mat: rolls finish sooner. A first roll waits 0.3s instead of 0.5s before letting the dice go, and
+  no roll holds the mat busy for up to a second after the dice have settled -- that pause was an os.time()
+  stall, and os.time() only counts whole seconds. Re-rolled dice settle 20% sooner (less spin and drift).
 - Battle mat: two attempts at the above rewrote the roll and changed how it looks. Both reverted --
   the roll is the Ultimate script's again, line for line, and a harness case holds it there.

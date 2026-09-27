@@ -937,6 +937,16 @@ Where to cut, if it is ever needed, biggest first (none done):
       distinct places, the pair must always be on opposite sides of the centre, no die may be dropped
       further out than radialOffset, and every push must have a positive component towards the centre.
       It fails on v1.505 with "six rolls started from only 1 distinct places".
+      FASTER, v1.508. Maintainer: "the first roll is a bit too slow and make other rolls 20% faster to
+      converge to finish number." Three things, and the biggest was not the one asked about: waitBeforeRoll
+      0.5 -> 0.3 (the whole of "the first roll is slow" -- half a second of nothing between the click and the
+      dice being let go); the pause AFTER the dice settle, on every roll, was `wait(0.1)` and therefore an
+      os.time() stall of up to a FULL SECOND with the result already announced and the mat refusing a new
+      roll, now dieGapFrames; and rerollSpin 14 -> 11 with rollDrift 3 -> 2.4, both -20%, since spin and skid
+      are what keep a die moving after it has landed. The throw height is untouched.
+      wait() is now called by nothing and is gone, so no delay in this script depends on the wall clock --
+      every one of its "wait(0.1)"s was really "wait until the clock ticks over". The case pins that: no
+      wait() helper, no os.time(), both pauses frame counts, and waitBeforeRoll under 0.5. It fails on v1.507.
       THE HARNESS COULD NOT DRIVE ANY OF THIS, which is why two broken rewrites went out unnoticed.
       startLuaCoroutine was `if _G[f] then _G[f]() end` -- called like a plain function, so the first
       coroutine.yield inside raised and the body died there. It creates a real coroutine and resumes it

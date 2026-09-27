@@ -16099,16 +16099,14 @@ def t_the_battle_mat_roll_is_the_original(src):
     lua = _mat_script(src).replace("\r\n", "\n")
 
     # the original, verbatim
-    for line in ("waitBeforeRoll = 0.5",
-                 "radialOffset = 3",
+    for line in ("radialOffset = 3",
                  "heightOffset = 3",
                  "position = findGlobalPosWithLocalDirection(0),",
                  "local spawnedDie2 = spawnedDie.clone(clone_parameters);",
                  'function_name="rollDice", function_owner=self,',
                  'startLuaCoroutine(self, "coroutine_rollDice")',
                  'startLuaCoroutine(self, "coroutine_monitorDice")',
-                 "wait(0.1)",
-                 "repeat coroutine.yield(0) until os.time() > start + time"):
+                 "coroutine_monitorDice"):
         assert line in lua, "the roll is no longer the original -- this line is gone: %r" % line
 
     # and nothing from the rewrite came back
@@ -16125,6 +16123,20 @@ def t_the_battle_mat_roll_is_the_original(src):
         "a die is still slid into place, and a kinematic glide is one of the things that left them uneven"
     assert code.count("die.setPosition(") == 1, \
         "the dice are not placed from one line, so their heights can differ again"
+
+    # NOTHING ON A ROLL WAITS ON os.time() ANY MORE. wait() was `repeat coroutine.yield(0) until os.time() >
+    # start + time`, and os.time() reports whole seconds -- so every "wait(0.1)" in this script was really a
+    # stall until the clock ticked over, up to a full second. One sat between the two dice being let go (one
+    # die on the mat, the other still in the air) and one sat after they had settled and the result had been
+    # announced, holding the mat busy for another second. Both are frame counts now, and the helper is gone.
+    assert "function wait(" not in code, \
+        "the os.time() wait helper is back; every delay it serves is a stall of up to a second"
+    assert "os.time()" not in code, "something on a roll waits on the wall clock again"
+    assert code.count("dieGapFrames do coroutine.yield(0)") == 2, \
+        "the two pauses on a roll are not both frame counts"
+    before = float(re.search(r"waitBeforeRoll = ([0-9.]+)", code).group(1))
+    assert before < 0.5, \
+        "a first roll still waits %rs before it lets the dice go" % before
 
     # DRIVEN, so this is not just text: ONE die is spawned and ONE is cloned off it -- a clone carries the
     # picture and the twelve rotation values, so it costs no second texture fetch, which is what leaves a
