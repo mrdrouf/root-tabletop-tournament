@@ -874,6 +874,17 @@ Where to cut, if it is ever needed, biggest first (none done):
       as the first die is. Found by asking the harness what state each die was actually in rather than
       reasoning about it; the case pins lock, grabbability and equal height, and fails on every build
       including the original.
+      STILL LOWER, and the lock was not it: v1.503. "one dice still starts lower than the other one." The
+      clone was created at angle 0 -- ON TOP OF the first die -- and then slid to -180 with
+      setPositionSmooth, and that slide was the ONLY thing ever different between the two dice. The
+      harness cannot see what it costs (no physics, no kinematic tween: it reports both at the same height
+      either way), and a tween owns an object while it runs and hands it back at the end, so what it
+      leaves behind at the moment the roll lets go is not worth another guess. The clone is created AT
+      -180 now and nothing slides anywhere on the roll path: two dice made the same way, at their own
+      spots, both locked, both un-grabbable, cannot differ. It stays a clone rather than a second
+      spawnObject because a clone carries the picture and the twelve rotation values, so it costs no
+      second texture fetch -- and a second fetch with caching off is what leaves a die still spawning when
+      the roll comes. Fails on v1.502 and on the original.
       THE HARNESS COULD NOT DRIVE ANY OF THIS, which is why two broken rewrites went out unnoticed.
       startLuaCoroutine was `if _G[f] then _G[f]() end` -- called like a plain function, so the first
       coroutine.yield inside raised and the body died there. It creates a real coroutine and resumes it

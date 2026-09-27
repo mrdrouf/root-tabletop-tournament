@@ -16103,10 +16103,7 @@ def t_the_battle_mat_roll_is_the_original(src):
                  "radialOffset = 3",
                  "heightOffset = 3",
                  "position = findGlobalPosWithLocalDirection(0),",
-                 "clone_parameters = {position = findGlobalPosWithLocalDirection(0),rotation=randomRotation()}",
                  "local spawnedDie2 = spawnedDie.clone(clone_parameters);",
-                 "local pos = findGlobalPosWithLocalDirection(-180)",
-                 "spawnedDie2.setPositionSmooth(pos, false, true)",
                  'function_name="rollDice", function_owner=self,',
                  'startLuaCoroutine(self, "coroutine_rollDice")',
                  'startLuaCoroutine(self, "coroutine_monitorDice")',
@@ -16118,8 +16115,19 @@ def t_the_battle_mat_roll_is_the_original(src):
     for gone in ("spawnOneDie", "rollWhenReady", "spawnWaitMax", "restWaitMax", "DIE_GAP", "liveDice"):
         assert gone not in lua, "%r is back: the roll path has been rewritten again" % gone
 
-    # DRIVEN, so this is not just text: ONE die is spawned and ONE is cloned off it, at the same spot,
-    # and that clone travels about a mat's width (radialOffset 3 each side of centre).
+    # THE TWO DELIBERATE DEPARTURES FROM THE ORIGINAL, both here because the original made the two dice
+    # differently and that is what made one of them start lower (2026-09-27: "one dice still starts lower
+    # than the other one"). The clone was created ON TOP OF the first die and slid across with
+    # setPositionSmooth; it is created at its own spot now, and nothing slides.
+    assert "findGlobalPosWithLocalDirection(-180),rotation=randomRotation()}" in lua, \
+        "the clone is not created at its own spot, so the two dice are still made differently"
+    code = "\n".join(l for l in lua.split("\n") if not l.strip().startswith("--"))
+    assert "setPositionSmooth" not in code, \
+        "a die is still slid into place; a kinematic tween is the one thing that made them differ"
+
+    # DRIVEN, so this is not just text: ONE die is spawned and ONE is cloned off it -- a clone carries the
+    # picture and the twelve rotation values, so it costs no second texture fetch, which is what leaves a
+    # die still spawning when the roll comes.
     rt = _mat_runtime(src)
     rt.execute("pcall(function() click_roll(nil, 'Red') end)")
     born = list(rt.eval("SPAWNED_AT").values())
@@ -16149,11 +16157,18 @@ def t_the_battle_mat_roll_is_the_original(src):
         % (a.free, b.free)
     assert abs(a.y - b.y) < 0.01, \
         "the two dice start %.3f apart in height (%.3f vs %.3f)" % (abs(a.y - b.y), a.y, b.y)
-    glides = list(rt.eval("GLIDED").values())
-    assert glides, "the clone no longer slides across the mat"
-    far, start = glides[-1], born[0]
-    assert abs((far.x - start.x) ** 2 + (far.z - start.z) ** 2 - 36) < 6, \
-        "the clone does not slide to the opposite side of the mat: %r from %r" % (far, start)
+    assert not list(rt.eval("GLIDED").values()), \
+        "a die is still slid into place on a first roll: %r" % list(rt.eval("GLIDED").values())
+
+    # ...and the two of them stand on opposite sides of the mat, radialOffset each side of its centre
+    spots = rt.eval("""function()
+        local out = {}
+        for i, d in ipairs(currentDice) do local q = d.getPosition() out[i] = { x = q.x, z = q.z } end
+        return out
+    end""")()
+    apart = (spots[1].x - spots[2].x) ** 2 + (spots[1].z - spots[2].z) ** 2
+    assert abs(apart - 36) < 6, \
+        "the dice are not on opposite sides of the mat: %r" % [(spots[1].x, spots[1].z), (spots[2].x, spots[2].z)]
 
     # a clone that comes back nil -- a slow texture with caching off -- does not end the click
     rt = _mat_runtime(src)
