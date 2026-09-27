@@ -16158,6 +16158,18 @@ def t_a_second_roll_reuses_the_dice(src):
     apart = (lifts[0].x - lifts[1].x) ** 2 + (lifts[0].z - lifts[1].z) ** 2
     assert abs(apart - 36) < 6, "the dice were not put back on opposite sides of the mat: %r" % lifts
 
+    # NO PAUSE AT THE TOP OF THE LIFT. Maintainer, 2026-09-27: "the dices jump up, freeze in the air for
+    # half a second, then proceed. make it smooth." waitBeforeRoll (0.5s) is there so a freshly SPAWNED
+    # die can finish arriving; a re-roll has nothing to wait for, and that half second was the dice
+    # hanging locked at the top of the lift. The re-roll is armed shorter than the lift itself, so the
+    # unlock and the randomize land while they are still rising.
+    lift = rt.eval("rerollLift") or 99
+    assert lift < rt.eval("waitBeforeRoll"), \
+        "a re-roll waits %rs, as long as a fresh spawn, so the dice hang at the top of the lift" % lift
+    rt.execute("FLUSH_UNTIL(0.2, 2)")
+    assert rt.eval("rollInProgress") is True, \
+        "the re-roll had not started 0.2s in, so the dice are frozen in the air waiting for it"
+
     # and they actually roll: the pending auto-removal from the FIRST roll must not bin them mid-roll
     rt.execute("FLUSH_UNTIL(1, 40)")
     assert rt.eval("rollInProgress") is not None, \

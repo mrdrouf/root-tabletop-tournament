@@ -798,6 +798,13 @@ Where to cut, if it is ever needed, biggest first (none done):
       the same 0.5s Timer into the same rollDice. It cancels the PREVIOUS roll's auto-removal first --
       that timer is still counting, so a click nine seconds later would have binned the dice one second
       into the new roll. With the old dice gone it falls back to the original fresh spawn.
+      SMOOTH, v1.496. Maintainer: "the dices jump up, freeze in the air for half a second, then
+      proceed. make it smooth." waitBeforeRoll is 0.5 because a freshly SPAWNED die needs a moment to
+      finish arriving; a re-roll has nothing to wait for, so that half second was the dice hanging at
+      the top of the lift, locked, doing nothing -- setPositionSmooth with fast=true covers that short
+      distance in a fraction of it. rerollLift (0.1s) is deliberately SHORTER than the lift, so the
+      unlock and the randomize land while the dice are still rising and the throw and the spin are one
+      motion. A fresh roll still waits the full 0.5.
       THE HARNESS COULD NOT DRIVE ANY OF THIS, which is why two broken rewrites went out unnoticed.
       startLuaCoroutine was `if _G[f] then _G[f]() end` -- called like a plain function, so the first
       coroutine.yield inside raised and the body died there. It creates a real coroutine and resumes it
