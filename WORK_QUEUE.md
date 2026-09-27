@@ -914,6 +914,19 @@ Where to cut, if it is ever needed, biggest first (none done):
       The case drives it on a FIXED 20-frame budget, which matters: the first cut read dieGapFrames and
       defaulted it to something large when absent, so it waited the stall out and passed on the very build
       that had the bug. It fails on v1.504 with "only 1 of the 2 dice had been let go 20 frames in".
+      HIGHER AND CIRCULATING, v1.506. "make them drop from higher" -- rollDropHeight 5 -> 9. And "any way
+      that the dices circulate a bit more on the battle mat? now it looks like they only stay at two
+      opposite poles very unnatural": the drop spots were findGlobalPosWithLocalDirection(0) and (-180) at
+      exactly radialOffset, two fixed points, so every roll of a whole game began in the same two places,
+      and a die that is only dropped lands about where it was dropped. Now the pair lands at a RANDOM pair
+      of opposite angles (opposite so the two can never be dropped onto each other) at a random distance
+      within rollSpreadMin..1 of radialOffset, and each die is pushed as it is let go (rollDrift, 3).
+      THE PUSH IS ALWAYS INWARD, with a random sideways sweep on top, and the drop radius never exceeds the
+      old fixed one -- nothing in this script catches a die that leaves the table, so "more natural" must
+      not become "off the mat". The case checks both: six seeded rolls must start from at least five
+      distinct places, the pair must always be on opposite sides of the centre, no die may be dropped
+      further out than radialOffset, and every push must have a positive component towards the centre.
+      It fails on v1.505 with "six rolls started from only 1 distinct places".
       THE HARNESS COULD NOT DRIVE ANY OF THIS, which is why two broken rewrites went out unnoticed.
       startLuaCoroutine was `if _G[f] then _G[f]() end` -- called like a plain function, so the first
       coroutine.yield inside raised and the body died there. It creates a real coroutine and resumes it

@@ -16170,9 +16170,12 @@ def t_the_battle_mat_roll_is_the_original(src):
         end
         return out
     end""")()
-    apart = (spots[1].x - spots[2].x) ** 2 + (spots[1].z - spots[2].z) ** 2
-    assert abs(apart - 36) < 6, \
-        "the dice are not on opposite sides of the mat: %r" % [(spots[1].x, spots[1].z), (spots[2].x, spots[2].z)]
+    cx, cz = rt.eval("function() local c = self.getPosition() return c.x, c.z end")()
+    v1 = (spots[1].x - cx, spots[1].z - cz)
+    v2 = (spots[2].x - cx, spots[2].z - cz)
+    assert v1[0] * v2[0] + v1[1] * v2[1] < 0, \
+        "the dice are not on opposite sides of the mat's centre, so one can be dropped onto the other: %r" \
+        % [v1, v2]
     assert abs(spots[1].y - spots[2].y) < 0.001, \
         "the dice start %.3f apart in height (%.3f vs %.3f)" % (abs(spots[1].y - spots[2].y), spots[1].y, spots[2].y)
     want = rt.eval("function() return self.getPosition().y end")() + (rt.eval("rollDropHeight") or 0)
@@ -16433,6 +16436,72 @@ def t_a_re_roll_is_as_random_as_the_first(src):
     end""")()
     assert stopped == 2, \
         "%d of the 2 dice had their leftover motion cleared before the throw" % stopped
+
+
+def t_the_dice_do_not_land_on_the_same_two_poles(src):
+    """Every roll drops the dice somewhere else on the mat, and pushes them across it.
+
+    Maintainer, 2026-09-27: "any way that the dices circulate a bit more on the battle mat? now it looks
+    like they only stay at two opposite poles very unnatural."
+
+    The drop spots were findGlobalPosWithLocalDirection(0) and (-180) at exactly radialOffset -- two fixed
+    points, so every roll of a whole game began at the same two places; and a die that is only dropped
+    lands more or less where it was dropped.
+
+    Now the pair lands at a random pair of OPPOSITE angles (opposite so the two can never be dropped onto
+    each other) at a random distance from the centre, and each die is pushed as it is let go.
+
+    THE PUSH IS ALWAYS INWARD, with a random sideways sweep on top, and the drop radius never exceeds the
+    old fixed one. Nothing in this script catches a die that leaves the table, so "more natural" must not
+    become "off the mat": both halves of that are checked below.
+    """
+    import math as _m
+
+    def roll(seed):
+        rt = _mat_runtime(src)
+        rt.execute("math.randomseed(%d) pcall(function() click_roll(nil, 'Red') end)" % seed)
+        rt.execute("FLUSH_UNTIL(0.6, 1) FLUSH_UNTIL(0.3, 14)")     # the roll starts, both dice let go
+        return rt, rt.eval("""function()
+            local c, out = self.getPosition(), {}
+            for i, d in ipairs(currentDice) do
+              local q, v = d.getPosition(), d.__vel or {}
+              out[i] = { dx = q.x - c.x, dz = q.z - c.z,
+                         vx = (v.x or v[1] or 0), vz = (v.z or v[3] or 0) }
+            end
+            return out
+        end""")()
+
+    seen, runs = set(), []
+    for seed in (1, 8, 15, 22, 29, 36):
+        rt, dice = roll(seed)
+        runs.append((rt, dice))
+        seen.add((round(dice[1].dx, 2), round(dice[1].dz, 2)))
+
+    assert len(seen) >= 5, \
+        "six rolls started from only %d distinct places; the dice still land on fixed poles" % len(seen)
+
+    rt0, _ = runs[0]
+    limit = rt0.eval("function() return radialOffset * self.getScale().x end")()
+    drift = rt0.eval("rollDrift") or 0
+    assert drift > 0, "the dice are not pushed at all, so they land where they were dropped"
+
+    for rt, dice in runs:
+        a, b = dice[1], dice[2]
+        # opposite sides of the centre, so one is never dropped onto the other
+        assert a.dx * b.dx + a.dz * b.dz < 0, \
+            "the two dice were dropped on the same side of the mat: %r" % [(a.dx, a.dz), (b.dx, b.dz)]
+        for die in (a, b):
+            r = _m.hypot(die.dx, die.dz)
+            assert r <= limit + 0.01, \
+                "a die was dropped %.2f from the centre; the old fixed spot was %.2f and nothing here " \
+                "catches a die that leaves the table" % (r, limit)
+            # ...and its push is INWARD: the horizontal velocity points back towards the centre
+            assert abs(die.vx) > 0.001 or abs(die.vz) > 0.001, \
+                "a die was let go with no push across the mat"
+            inward = (-die.dx * die.vx) + (-die.dz * die.vz)
+            assert inward > 0, \
+                "a die is pushed AWAY from the mat's centre (pos %r, vel %r), which is how one ends up " \
+                "off the table" % ((die.dx, die.dz), (die.vx, die.vz))
 
 
 def t_resync_replaces_a_frozen_battle_mat(src):
@@ -16790,6 +16859,7 @@ CASES = [
     ("the battle mat roll is the original", t_the_battle_mat_roll_is_the_original),
     ("a second roll reuses the dice",      t_a_second_roll_reuses_the_dice),
     ("a re-roll is as random as the first", t_a_re_roll_is_as_random_as_the_first),
+    ("dice do not land on two fixed poles", t_the_dice_do_not_land_on_the_same_two_poles),
     ("resync replaces a frozen battle mat", t_resync_replaces_a_frozen_battle_mat),
 ]
 
