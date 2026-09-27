@@ -15928,13 +15928,18 @@ def _mat_runtime(src):
     rt.execute("""
       -- Lua dropped math.atan2 at 5.3; randomRotation still calls it and TTS still has it
       math.atan2 = math.atan2 or function(y, x) return math.atan(y, x) end
-      -- A CLOCK THAT MOVES. The mat's wait() is `repeat coroutine.yield(0) until os.time() > start +
-      -- time`, and os.time() counts WHOLE SECONDS -- so in a harness where FLUSH costs no wall time it
-      -- never advances and the roll coroutine yields for ever. Ticking it one second per read models
-      -- what it does in game (waits until the clock rolls over, which is anything from no time at all
-      -- to a second) and is what lets the roll actually be driven to the end.
-      local _t = 1000
-      os.time = function() _t = _t + 1 return _t end
+      -- A CLOCK TIED TO THE FRAME COUNT, so wait() costs what it costs in game.
+      --
+      -- The mat's wait() is `repeat coroutine.yield(0) until os.time() > start + time`, and os.time()
+      -- reports WHOLE SECONDS -- so wait(0.1) does not wait a tenth of a second, it waits until the
+      -- clock ticks over, which is anything up to a full second of yielding. In a harness where FLUSH
+      -- costs no wall time the clock never moves at all and the coroutine yields for ever.
+      --
+      -- Advancing it one second per READ hid the thing it exists to expose: wait() returned after one
+      -- resume, so a stall of up to sixty frames looked instant and "only one dice jumps properly"
+      -- (2026-09-27) was invisible here. One second per SIXTY FRAMES is the real cost, and FRAMENO is
+      -- the stub's own frame counter, so a case that flushes N rounds pays exactly what N frames pay.
+      os.time = function() return 1000 + math.floor(FRAMENO / 60) end
       function stringColorToRGB(c) return { r = 1, g = 1, b = 1 } end
       SAID = {}
       local _bc = broadcastToAll
@@ -16009,7 +16014,7 @@ def t_the_battle_mat_cannot_stay_stuck(src):
     """)
     assert len(_mat_dice(rt)) == 2, "a click no longer puts two dice out: %d" % len(_mat_dice(rt))
 
-    rt.execute("FLUSH_UNTIL(1, 80)")
+    rt.execute("FLUSH_UNTIL(1, 300)")
     assert rt.eval("rollInProgress") is True, \
         "the monitor is not waiting on the dice, so this case is not testing what it says: %r" \
         % rt.eval("rollInProgress")
@@ -16112,7 +16117,7 @@ def t_the_battle_mat_roll_is_the_original(src):
     """)
     assert len(_mat_dice(rt)) == 1, \
         "a clone that came back nil lost the roll: %d dice recorded" % len(_mat_dice(rt))
-    rt.execute("FLUSH_UNTIL(1, 60)")
+    rt.execute("FLUSH_UNTIL(1, 300)")
     assert rt.eval("rollInProgress") is not None, \
         "no roll ran at all after the clone failed -- the click died where setPositionSmooth used to be"
 
@@ -16133,7 +16138,7 @@ def t_a_second_roll_reuses_the_dice(src):
     a game.
     """
     rt = _mat_runtime(src)
-    rt.execute("pcall(function() click_roll(nil, 'Red') end) FLUSH_UNTIL(1, 40)")
+    rt.execute("pcall(function() click_roll(nil, 'Red') end) FLUSH_UNTIL(1, 300)")
     first = _mat_dice(rt)
     assert len(first) == 2, "the first click did not put two dice out"
     guids = sorted(d.getGUID() for d in first)
@@ -16170,8 +16175,23 @@ def t_a_second_roll_reuses_the_dice(src):
     assert rt.eval("rollInProgress") is True, \
         "the re-roll had not started 0.2s in, so the dice are frozen in the air waiting for it"
 
+    # BOTH DICE ARE LET GO TOGETHER. Maintainer, 2026-09-27: "only one dice jumps properly." The dice are
+    # unlocked one at a time with wait(0.1) between them, and that wait counts os.time(), which only
+    # reports whole seconds -- so it stalls until the clock ticks, up to a full second. On a re-roll both
+    # dice have already been lifted, so whichever is second hangs there LOCKED for that whole stall while
+    # the first is thrown. Six frames is the tenth of a second the line was asking for.
+    loose = lambda: rt.eval("""function()
+        local n = 0
+        for _, d in ipairs(currentDice or {}) do if d.__locked == false then n = n + 1 end end
+        return n
+    end""")()
+    rt.execute("FLUSH_UNTIL(0.3, 16)")
+    assert loose() == 2, \
+        "%d of the 2 dice were let go within a tenth of a second; the other is still locked in the air" \
+        % loose()
+
     # and they actually roll: the pending auto-removal from the FIRST roll must not bin them mid-roll
-    rt.execute("FLUSH_UNTIL(1, 40)")
+    rt.execute("FLUSH_UNTIL(1, 300)")
     assert rt.eval("rollInProgress") is not None, \
         "the re-roll never ran, or the old removal timer cleared the mat under it"
     assert all(not d.isDestroyed() for d in _mat_dice(rt)), \
@@ -16180,7 +16200,7 @@ def t_a_second_roll_reuses_the_dice(src):
     # with the dice gone, it falls back to a fresh spawn rather than rolling nothing
     rt = _mat_runtime(src)
     rt.execute("""
-      pcall(function() click_roll(nil, 'Red') end) FLUSH_UNTIL(1, 40)
+      pcall(function() click_roll(nil, 'Red') end) FLUSH_UNTIL(1, 300)
       for _, d in ipairs(currentDice) do d.destruct() end
       pcall(function() click_roll(nil, 'Red') end)
     """)

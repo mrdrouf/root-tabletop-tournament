@@ -805,6 +805,19 @@ Where to cut, if it is ever needed, biggest first (none done):
       distance in a fraction of it. rerollLift (0.1s) is deliberately SHORTER than the lift, so the
       unlock and the randomize land while the dice are still rising and the throw and the spin are one
       motion. A fresh roll still waits the full 0.5.
+      AND BOTH DICE JUMP, v1.497. Maintainer: "only one dice jumps properly." The dice are unlocked one
+      at a time inside coroutine_rollDice with wait(0.1) between them -- and wait() is `repeat
+      coroutine.yield(0) until os.time() > start + time`, where os.time() reports only WHOLE SECONDS.
+      So it does not wait a tenth of a second, it waits until the clock happens to tick over: anything
+      from no time at all to a full second. On a re-roll both dice have already been lifted, so
+      whichever is second hangs there LOCKED for that whole stall while the first is thrown -- one die
+      jumps, one freezes. Six yielded frames on a re-roll is the tenth of a second the line was asking
+      for. A FRESH roll keeps the original wait(), stall and all.
+      THE HARNESS COULD NOT SEE IT, and that is the third visual bug in this script it could not see.
+      The mat runtime faked os.time by advancing a second on every READ, so wait() returned after one
+      resume and a stall of up to sixty frames looked instant. It is derived from the stub's own frame
+      counter now (one second per sixty frames), which is what wait() really costs, so the case
+      measures how many dice are unlocked a tenth of a second in: 1 of 2 on v1.496, 2 of 2 now.
       THE HARNESS COULD NOT DRIVE ANY OF THIS, which is why two broken rewrites went out unnoticed.
       startLuaCoroutine was `if _G[f] then _G[f]() end` -- called like a plain function, so the first
       coroutine.yield inside raised and the body died there. It creates a real coroutine and resumes it
