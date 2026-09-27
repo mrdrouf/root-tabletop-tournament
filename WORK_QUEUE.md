@@ -780,9 +780,32 @@ Where to cut, if it is ever needed, biggest first (none done):
       clone that comes back nil no longer ends the click. Thirteen hunks, none on the visible path.
       DROPPED with the revert: the spawn-wait, the bounded monitor, the Wait rewrite, spawnOneDie.
       They were defensible in isolation and all of them changed the look.
-      Two cases: the watchdog (fails on the original, which stays busy forever, and on the rewrite,
-      whose roll never starts in the harness) and one that pins the roll path verbatim (fails on the
-      rewrite). Not yet confirmed in TTS.
+      FIVE SECONDS, NOT THIRTY, v1.495. Maintainer: "30 second is too long, maybe 5 second but only
+      if it s not computing intensive." It is one PENDING Timer, not a poll, so the delay costs nothing
+      either way. But five flat would bin a real roll: measured from where it is armed a legitimate
+      roll can take about five and a half seconds (each of the two wait(0.1)s between the dice being
+      let go is 0 to 1s, because wait() counts os.time() and only sees whole seconds, plus one to two
+      and a half of tumbling). So a roll whose dice are STILL MOVING is given another five, up to
+      rollWatchdogTries (4) times -- two property reads per extension, only while a roll is running.
+      The real case is unaffected: a stuck mat's dice are at rest, so it clears at five.
+      AND THE NEXT ROLL REUSES THE DICE, v1.495. Maintainer: "once dices have been spawned, the next
+      dice roll jumps the existing dices into the air and rerolls them instead of spawning new ones."
+      The `rollInProgress == false` branch called cleanupDice() -- which DESTROYS both dice -- and
+      recursed into a fresh spawn: two creates, two setCustomObject calls and a clone on every roll
+      after the first, and with caching off each of those re-fetches the texture, which is where the
+      freeze lives. rerollDice lifts them back to the two launch spots (angle 0 and -180, so a re-roll
+      looks like a first roll rather than the dice creeping together), locked for the lift, then arms
+      the same 0.5s Timer into the same rollDice. It cancels the PREVIOUS roll's auto-removal first --
+      that timer is still counting, so a click nine seconds later would have binned the dice one second
+      into the new roll. With the old dice gone it falls back to the original fresh spawn.
+      THE HARNESS COULD NOT DRIVE ANY OF THIS, which is why two broken rewrites went out unnoticed.
+      startLuaCoroutine was `if _G[f] then _G[f]() end` -- called like a plain function, so the first
+      coroutine.yield inside raised and the body died there. It creates a real coroutine and resumes it
+      once a frame now, as TTS does, and the mat runtime ticks os.time so wait() completes. The mat's
+      whole roll runs end to end in the harness.
+      Four cases. Against the true original: the freeze stays busy forever, a nil clone loses the roll,
+      and the second roll replaces the dice. Against the first rewrite: the roll path is not the
+      original. Not yet confirmed in TTS.
 - [x] **The bounce between the piles is 30% quicker.** v1.491. Maintainer, 2026-09-26: "currently how
       long does it take for a frog card in the discard to bounce back to the pond? how reactive is
       it? make the bounce between decks including the lost souls 30% faster." One tick of

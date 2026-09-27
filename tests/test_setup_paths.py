@@ -15928,6 +15928,13 @@ def _mat_runtime(src):
     rt.execute("""
       -- Lua dropped math.atan2 at 5.3; randomRotation still calls it and TTS still has it
       math.atan2 = math.atan2 or function(y, x) return math.atan(y, x) end
+      -- A CLOCK THAT MOVES. The mat's wait() is `repeat coroutine.yield(0) until os.time() > start +
+      -- time`, and os.time() counts WHOLE SECONDS -- so in a harness where FLUSH costs no wall time it
+      -- never advances and the roll coroutine yields for ever. Ticking it one second per read models
+      -- what it does in game (waits until the clock rolls over, which is anything from no time at all
+      -- to a second) and is what lets the roll actually be driven to the end.
+      local _t = 1000
+      os.time = function() _t = _t + 1 return _t end
       function stringColorToRGB(c) return { r = 1, g = 1, b = 1 } end
       SAID = {}
       local _bc = broadcastToAll
@@ -15988,39 +15995,56 @@ def t_the_battle_mat_cannot_stay_stuck(src):
     `repeat ... until allRest` never ends. A die destroyed or fallen does the same by answering a read
     with a null pcall cannot catch.
 
-    THE STUB MODELS THAT FAITHFULLY WITHOUT MEANING TO. startLuaCoroutine here calls the function
-    rather than resuming a coroutine, so the first wait() inside it raises -- which is precisely "the
-    roll coroutine stopped part way". The roll starts, dies, and the watchdog is the only thing that
-    can end it.
+    DRIVEN WITH A DIE THAT NEVER RESTS, which is the failure itself and not a stand-in for it. The stub
+    runs the mat's two coroutines for real and ticks os.time so wait() completes, so the whole roll is
+    driven: the monitor reaches `repeat ... until allRest` and stays there, exactly as it does in game
+    when a texture has not landed.
     """
+    # A DIE WHOSE TEXTURE NEVER LANDS NEVER RESTS, so the monitor's repeat-until-allRest never ends
     rt = _mat_runtime(src)
-    rt.execute("pcall(function() click_roll(nil, 'Red') end)")
+    rt.execute("""
+      local _mk = MKOBJ
+      MKOBJ = function(...) local o = _mk(...) o.resting = false return o end
+      pcall(function() click_roll(nil, 'Red') end)
+    """)
     assert len(_mat_dice(rt)) == 2, "a click no longer puts two dice out: %d" % len(_mat_dice(rt))
 
-    # the roll starts, and then its coroutine dies part way -- the mat is stuck
-    rt.execute("FLUSH_UNTIL(1, 10)")
+    rt.execute("FLUSH_UNTIL(1, 80)")
     assert rt.eval("rollInProgress") is True, \
-        "the roll never started, so this case is not testing what it says: %r" % rt.eval("rollInProgress")
-
-    # and the watchdog has not fired yet, so nothing here is an accident of flushing everything
+        "the monitor is not waiting on the dice, so this case is not testing what it says: %r" \
+        % rt.eval("rollInProgress")
     assert _mat_dice(rt), "the dice went before the watchdog was due"
 
-    rt.execute("FLUSH_UNTIL(%d, 8)" % 31)
+    # the dice ARE still moving, so the watchdog gives them rollWatchdogTries more goes before binning
+    # them -- and then it does bin them, rather than waiting on them for ever
+    rt.execute("FLUSH_UNTIL(%d, 40)" % 26)
     assert rt.eval("rollInProgress") is None, \
-        "a roll that never finished left the mat busy forever -- the frozen-dice bug: %r" \
+        "a roll whose dice never rest left the mat busy forever -- the frozen-dice bug: %r" \
         % rt.eval("rollInProgress")
     assert any("cleared itself" in x for x in rt.eval("SAID").values()), \
         "the mat cleared itself without saying so: %r" % list(rt.eval("SAID").values())
-    assert all(d.isDestroyed() for d in _mat_dice(rt)) or not _mat_dice(rt), \
-        "the frozen dice are still on the table"
 
     # ...and a click works again afterwards, which is the point of clearing it
     rt.execute("pcall(function() click_roll(nil, 'Red') end)")
     assert len(_mat_dice(rt)) == 2, "the mat still will not roll after clearing itself"
 
+    # THE COMMON CASE CLEARS IN FIVE SECONDS, not twenty-five: dice that have LANDED and a monitor that
+    # died is a mat at rest, so there is nothing to wait for and no extension is given.
+    rt = _mat_runtime(src)
+    rt.execute("""
+      DICE = { MKOBJ('', {33, 1.6, 9}, {}), MKOBJ('', {35, 1.6, 9}, {}) }
+      currentDice = DICE
+      rollInProgress = true
+      rollGuardArm()
+      FLUSH_UNTIL(6, 4)
+    """)
+    assert rt.eval("rollInProgress") is None, \
+        "a mat stuck with its dice already at rest was not cleared within rollWatchdog: %r" \
+        % rt.eval("rollInProgress")
+
     # a mat RESTING is not stuck: with removalDelay = -1 the dice are left out on purpose
     rt = _mat_runtime(src)
-    rt.execute("currentDice = {} rollInProgress = false rollGuardArm() FLUSH_UNTIL(31, 6)")
+    rt.execute("currentDice = {} rollInProgress = false rollGuardArm() FLUSH_UNTIL(31, 8)")
     assert rt.eval("rollInProgress") is False, \
         "the watchdog cleared a mat that was only resting, which would bin dice left out on purpose"
 
@@ -16088,8 +16112,68 @@ def t_the_battle_mat_roll_is_the_original(src):
     """)
     assert len(_mat_dice(rt)) == 1, \
         "a clone that came back nil lost the roll: %d dice recorded" % len(_mat_dice(rt))
-    rt.execute("FLUSH_UNTIL(1, 10)")
-    assert rt.eval("rollInProgress") is True, "no roll was armed at all after the clone failed"
+    rt.execute("FLUSH_UNTIL(1, 60)")
+    assert rt.eval("rollInProgress") is not None, \
+        "no roll ran at all after the clone failed -- the click died where setPositionSmooth used to be"
+
+
+def t_a_second_roll_reuses_the_dice(src):
+    """The next roll lifts the dice that are already out; it does not destroy them and spawn new ones.
+
+    Maintainer, 2026-09-27: "once dices have been spawned, the next dice roll jumps the existing dices
+    into the air and rerolls them instead of spawning new ones."
+
+    The `rollInProgress == false` branch used to call cleanupDice() -- which DESTROYS both dice -- and
+    recurse into a fresh spawn: two creates, two setCustomObject calls and a clone on every roll after
+    the first. That is also where the frozen-dice bug lives, because with mod caching off each of those
+    creates re-fetches the die texture from Steam. Re-rolling what is there asks nothing of the network.
+
+    The dice go back to the two launch spots (angle 0 and -180, heightOffset up) rather than straight up
+    from where they lie, so a re-roll looks like a first roll instead of the dice creeping together over
+    a game.
+    """
+    rt = _mat_runtime(src)
+    rt.execute("pcall(function() click_roll(nil, 'Red') end) FLUSH_UNTIL(1, 40)")
+    first = _mat_dice(rt)
+    assert len(first) == 2, "the first click did not put two dice out"
+    guids = sorted(d.getGUID() for d in first)
+    spawns_before = len(rt.eval("SPAWNED_AT"))
+
+    # the roll has finished and the dice are lying there, waiting for removalDelay
+    assert rt.eval("rollInProgress") is False, \
+        "the first roll is not finished, so this is not the branch under test: %r" % rt.eval("rollInProgress")
+
+    rt.execute("GLIDED = {} pcall(function() click_roll(nil, 'Red') end)")
+    again = _mat_dice(rt)
+    assert len(again) == 2, "the second click left %d dice" % len(again)
+    assert sorted(d.getGUID() for d in again) == guids, \
+        "the second roll replaced the dice instead of re-rolling them"
+    assert all(not d.isDestroyed() for d in again), "the second roll destroyed the dice it should reuse"
+    assert len(rt.eval("SPAWNED_AT")) == spawns_before, \
+        "the second roll spawned %d more dice" % (len(rt.eval("SPAWNED_AT")) - spawns_before)
+
+    # ...lifted back to the two launch spots, which are radialOffset each side of the mat's centre
+    lifts = list(rt.eval("GLIDED").values())
+    assert len(lifts) == 2, "both dice were not lifted: %d moves" % len(lifts)
+    apart = (lifts[0].x - lifts[1].x) ** 2 + (lifts[0].z - lifts[1].z) ** 2
+    assert abs(apart - 36) < 6, "the dice were not put back on opposite sides of the mat: %r" % lifts
+
+    # and they actually roll: the pending auto-removal from the FIRST roll must not bin them mid-roll
+    rt.execute("FLUSH_UNTIL(1, 40)")
+    assert rt.eval("rollInProgress") is not None, \
+        "the re-roll never ran, or the old removal timer cleared the mat under it"
+    assert all(not d.isDestroyed() for d in _mat_dice(rt)), \
+        "the previous roll's removal timer destroyed the dice during the new roll"
+
+    # with the dice gone, it falls back to a fresh spawn rather than rolling nothing
+    rt = _mat_runtime(src)
+    rt.execute("""
+      pcall(function() click_roll(nil, 'Red') end) FLUSH_UNTIL(1, 40)
+      for _, d in ipairs(currentDice) do d.destruct() end
+      pcall(function() click_roll(nil, 'Red') end)
+    """)
+    assert len(_mat_dice(rt)) == 2, \
+        "with the old dice destroyed the click did not spawn a fresh pair: %d" % len(_mat_dice(rt))
 
 
 def t_resync_replaces_a_frozen_battle_mat(src):
@@ -16445,6 +16529,7 @@ CASES = [
     ("the bounce between piles waits less", t_the_bounce_between_piles_waits_less),
     ("the battle mat cannot stay stuck",    t_the_battle_mat_cannot_stay_stuck),
     ("the battle mat roll is the original", t_the_battle_mat_roll_is_the_original),
+    ("a second roll reuses the dice",      t_a_second_roll_reuses_the_dice),
     ("resync replaces a frozen battle mat", t_resync_replaces_a_frozen_battle_mat),
 ]
 

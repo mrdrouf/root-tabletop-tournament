@@ -988,7 +988,33 @@ function printToAll() end function printToColor() end function broadcastToAll() 
 SAID = {}
 function broadcastToColor(msg, color) SAID[#SAID+1] = tostring(color) .. ': ' .. tostring(msg) end
 function log() end function logStyle() end
-function startLuaCoroutine(o, f) if _G[f] then _G[f]() end return 1 end
+-- A REAL COROUTINE, RESUMED ONCE A FRAME, which is what TTS does with one.
+--
+-- This used to be `if _G[f] then _G[f]() end` -- call it like an ordinary function -- and that is not a
+-- small inaccuracy: the FIRST coroutine.yield inside it raises "attempt to yield from outside a
+-- coroutine", so the body ran as far as its first yield and then died. Every script in the mod that
+-- uses one was therefore untestable past its first pause, and the battle mat's whole roll is two
+-- coroutines with a yield in each -- which is why the harness watched two broken rewrites of it go out.
+--
+-- Resumed on a Wait so FLUSH drives it frame by frame, and an error inside it kills that coroutine and
+-- nothing else, exactly as TTS does. A body that yields forever simply keeps being resumed until FLUSH
+-- runs out of rounds, which is the harness's own bound on "forever".
+COROUTINES = 0                                  -- how many have been started, for a case that counts
+function startLuaCoroutine(o, f)
+  local fn = _G[f]
+  if fn == nil and o ~= nil then pcall(function() fn = o[f] end) end
+  if fn == nil then return false end
+  COROUTINES = COROUTINES + 1
+  local co = coroutine.create(fn)
+  local function pump()
+    if coroutine.status(co) == "dead" then return end
+    local ok = coroutine.resume(co)
+    if ok ~= true then return end               -- it threw: dead, and nothing else is affected
+    if coroutine.status(co) ~= "dead" then Wait.frames(pump, 1) end
+  end
+  pump()
+  return true
+end
 function getSeatedPlayers() local r = {} for _,c in ipairs(COLORS) do if Player[c].seated then r[#r+1]=c end end return r end
 function destroyObject(o) if o and o.destruct then o.destruct() end end
 function copy(o) return o end
