@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Root: Tournament Edition - the things that are not obvious</title>
+<style>
+  @font-face { font-family: "Metamorphous"; src: url("../tools/preview/fonts/Metamorphous.ttf"); }
+  @font-face { font-family: "Sorts Mill Goudy"; src: url("../tools/preview/fonts/sortsmillgoudy.ttf"); }
+  @font-face { font-family: "Caudex"; src: url("../tools/preview/fonts/Caudex.ttf"); }
+  @page { size: A4; margin: 0; }
+  :root {
+    --parch: #F4E4BC; --parch2: #FBEFD2; --ink: #26170B; --rust: #7E4A1E; --gold: #C9A05C;
+    --green: #4E7A3A; --red: #A83226; --walnut: #52381E; --line: #B8925A;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: var(--parch); color: var(--ink);
+    font-family: "Sorts Mill Goudy", "Caudex", Georgia, serif; font-size: 9.7pt; line-height: 1.3; }
+  .page { width: 210mm; height: 297mm; padding: 10mm 12mm 9mm 12mm; position: relative;
+    background: var(--parch); overflow: hidden; }
+  .page::before, .page::after { content: ""; position: absolute; left: 7mm; right: 7mm; height: 0;
+    border-top: 1.2px solid var(--walnut); opacity: .55; }
+  .page::before { top: 6mm; } .page::after { bottom: 6mm; }
+
+  h1, h2, .cap, .btn { font-family: "Metamorphous", "Caudex", serif; font-weight: normal; }
+  header { display: flex; align-items: center; gap: 7mm; margin-bottom: 3mm; }
+  header img { width: 46mm; height: auto; }
+  header h1 { font-size: 18pt; margin: 0 0 1mm 0; line-height: 1.05; white-space: nowrap; }
+  header p { margin: 0; color: var(--rust); font-size: 10pt; }
+
+  h2 { font-size: 12.5pt; color: var(--rust); margin: 2.6mm 0 1.1mm 0; padding-bottom: 0.5mm;
+    border-bottom: 1px solid var(--line); }
+  h2 small { font-family: "Sorts Mill Goudy", serif; font-size: 8.8pt; color: var(--walnut); margin-left: 2mm; }
+
+  .keys { display: grid; grid-template-columns: 1fr 1fr; column-gap: 6mm; row-gap: 1.6mm; }
+  .key { display: flex; gap: 2.6mm; align-items: flex-start; }
+  .cap { flex: 0 0 9.5mm; height: 9.5mm; border: 1.3px solid var(--walnut); border-radius: 1.8mm;
+    background: var(--parch2); box-shadow: 1.3px 1.3px 0 var(--walnut); display: flex; align-items: center;
+    justify-content: center; font-size: 15pt; }
+  .cap.hold { border-color: var(--green); box-shadow: 1.3px 1.3px 0 var(--green); }
+  .key b { display: block; font-family: "Metamorphous", serif; font-weight: normal; font-size: 10pt; margin-bottom: .3mm; }
+  .hold-note { color: var(--green); font-style: italic; }
+
+  .cols { display: grid; grid-template-columns: 1fr 1fr; column-gap: 7mm; }
+  ul { margin: 0; padding-left: 3.6mm; }
+  li { margin-bottom: 0.8mm; }
+  .btn { font-size: 8.2pt; color: var(--parch2); background: var(--walnut); padding: 0 1.3mm;
+    border-radius: 1mm; white-space: nowrap; letter-spacing: .3px; }
+  .btn.gold { background: var(--gold); color: var(--ink); }
+  .btn.red { background: var(--red); }
+  .btn.green { background: var(--green); }
+  footer { position: absolute; left: 12mm; right: 12mm; bottom: 8mm; display: flex; justify-content: space-between;
+    color: var(--walnut); font-size: 8.5pt; font-style: italic; }
+</style>
+</head>
+<body>
+
+<section class="page">
+  <header>
+    <img src="root_logo.png" alt="Root Tabletop Tournament">
+    <div>
+      <h1>The things that are not obvious</h1>
+      <p>Root: Tournament Edition</p>
+    </div>
+  </header>
+
+  <h2>The numpad <small>hover a piece, press</small></h2>
+  <div class="keys">
+    <div class="key"><div class="cap">0</div><div><b>Send home</b>
+      Warrior, wood: supply bag. Building, token: rightmost empty slot of its kind. Locked piece, card, hireling,
+      VP marker: nothing.</div></div>
+    <div class="key"><div class="cap">1</div><div><b>Take a warrior</b>
+      One of your warriors to the pointer. From the warriors' numpad 4 row first; none there: from the supply.</div></div>
+    <div class="key"><div class="cap hold">2</div><div><b>Take a token or building</b>
+      <span class="hold-note">Hold 1 s</span> on a token or building: that is now your kind. Tap: one piece of your kind
+      to the pointer. From its numpad 4 row first; none there: from its supply.</div></div>
+    <div class="key"><div class="cap">3</div><div><b>Prisoner</b>
+      Warrior lies flat, locked, black outline. Press again: stands up.</div></div>
+    <div class="key"><div class="cap hold">4</div><div><b>Set a home row</b>
+      Select pieces, <span class="hold-note">hold 1 s</span>: their spots become the home row of that kind. Numpad 0
+      sends a piece of that kind to a free spot of the row; row full: to the supply. Numpad 1 takes a warrior from
+      the warriors' row; numpad 2 takes its chosen kind from that kind's row. Numpad 4 again on a kind: the old row
+      of that kind is forgotten.</div></div>
+    <div class="key"><div class="cap" style="font-size:8.5pt">no<br>pad</div><div><b>No numpad</b>
+      <i>Options &rarr; Game Keys</i>: "Move back to supply", "Move a warrior", "Move any token",
+      "Set warrior as a knave prisoner", "Set home of selected pieces".</div></div>
+  </div>
+
+  <div class="cols">
+    <div>
+      <h2>The box score <small>beside the map</small></h2>
+      <ul>
+        <li>Reads the VP markers on the track. Rows follow the seats.</li>
+        <li>A turn pass writes the finishing faction's score. A point scored before your turn shows at once.</li>
+        <li>Marker on a dominance card: turn and suit recorded, <span class="btn">DOM WIN</span> offered.
+          Vagabond, Knaves: <span class="btn">COALITION</span>.</li>
+        <li><span class="btn">END TURN</span>: records the highlighted faction. For tables without the TTS turn order.</li>
+        <li><span class="btn">EDIT</span>: cell = score, column number = round, portrait = whose turn, &#9650; = order,
+          &#9660; = leader, captains, character. <span class="btn">MAP</span> <span class="btn">DECK</span>
+          <span class="btn">UNPICKED</span>, game name.</li>
+        <li><span class="btn">EXPORT</span>: JSON to the Notebook tab "BoxScore". Opens the Root Database token box.</li>
+        <li><span class="btn">INFO</span>: the manual.</li>
+      </ul>
+
+      <h2>The VP panel <small>above each Crafted Improvements board</small></h2>
+      <ul>
+        <li><span class="btn red">&ndash;</span> <span class="btn green">+</span>: marker one step.</li>
+        <li><span class="btn gold">DRAW 1 CARD</span>: to your hand. <span class="btn gold">DRAW POND</span>: from the pond.</li>
+        <li>Owner only.</li>
+      </ul>
+
+      <h2>The turn panel <small>next to the box score</small></h2>
+      <ul>
+        <li><b>ROUND</b>: from the box score. Clock: the current turn.</li>
+        <li><span class="btn gold">START</span>: turn 1. Shuffles the deck, clears the sheet. Asks if the sheet holds a game.</li>
+        <li><span class="btn">DEAL 5 CARDS</span>: to every seat. Asks before a second deal.</li>
+        <li><span class="btn">PAUSE</span> / <span class="btn">CONTINUE</span>.</li>
+        <li>Red flash after 20 min.</li>
+      </ul>
+    </div>
+    <div>
+      <h2>The draft</h2>
+      <ul>
+        <li>Random seats and turn order. One selector board per seat. First click takes the faction.</li>
+        <li>Your faction: your last pick. Numpad 1, 2 and the VP panel follow it.</li>
+        <li>Knaves: 4 captains dealt, keep 3. A captain card in a slot spawns its meeple, items, warrior.</li>
+      </ul>
+
+      <h2>The deck holder</h2>
+      <ul>
+        <li>Card on the discard: face up.</li>
+        <li>Dominance card: its slot. Frog card: the pond. Shuffle-on-discard card: the deck.</li>
+        <li>Card on the pond: face up. Draw pile: never touched.</li>
+      </ul>
+
+      <h2>Resync <small>setup board, bottom row</small></h2>
+      <ul>
+        <li>Re-sends every object to every player. For missing pieces, card backs.</li>
+        <li>Refused while anyone holds a piece with the mouse. Cards in hand: fine.</li>
+        <li>Removes a duplicated loose card.</li>
+      </ul>
+
+      <h2>The setup board</h2>
+      <ul>
+        <li>A wipe button turns red and asks. Press again within 3 s.</li>
+        <li>New game: keeps the map. Map button: keeps the factions. Marsh: rebuilt when the player count changes.</li>
+        <li>Box score, turn panel: never destroyed.</li>
+        <li><span class="btn">MORE</span>: <span class="btn">RIVERBOAT</span> (Flotilla hireling), <span class="btn">CREDITS</span>.</li>
+        <li><span class="btn">FACTION CARDS</span>: vagabond characters too.</li>
+        <li>Suit-marker snaps: enclaves only.</li>
+      </ul>
+    </div>
+  </div>
+
+  <footer><span>Root: Tournament Edition &middot; by MrDrouf &middot; September 2026</span>
+    <span>github.com/mrdrouf/root-tabletop-tournament</span></footer>
+</section>
+
+</body>
+</html>
